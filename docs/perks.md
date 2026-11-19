@@ -284,7 +284,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Kind:** Always on
 - **Trigger:** Someone lies (a deceive) to someone else, and the owner hears it: the words, or the sound of the voice.
 - **Conditions:** The owner is not the one lied to and did not already answer the lie.
-- **Effect:** The speaker's Falsehood against the owner's answer to a lie (Insight, or the better of Insight and Falsehood with Takes One to Know One). If the owner wins, the owner sees through it: the hint that something doesn't sit right, or plainly a lie with Plain as Day. Seeing through it changes nothing else.
+- **Effect:** The speaker's Falsehood against the owner's answer to a lie (Insight, or the better of Insight and Falsehood with Takes One to Know One). If the owner wins, the owner sees through it: it is plainly a lie. Seeing through it changes nothing else.
 - **Lasts:** Each lie overheard.
 
 ### Catnap (Stamina) · SS1
@@ -839,14 +839,15 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The owner answers a lie in words with the better of Insight and Falsehood, and a lie told with the body with the better of Insight and Guile. The other skill of the pair augments that roll by 0.2 (CONFIG.TAKES_ONE_SHARE, placeholder) × its true skill × its tier, and learns from it as an augment does.
 - **Lasts:** Each answer to a lie.
 
-### Plain as Day (Insight) · LI2a
+### Quick Read (Insight) · LG20b
 
-*Story:* Some people can't lie to your face, and they all try. A lie you see through is plainly a lie, not a vague feeling that something doesn't sit right.
+*Story:* In a fight you take someone's measure in a glance: the first time you see them clearly, you know how they feel, how they stand toward you, and whether they hide something.
 
 - **Kind:** Always on
-- **Trigger:** The owner sees through a lie (wins the answering roll).
-- **Effect:** The owner is told plainly that the speaker is lying, instead of the hint that something doesn't sit right.
-- **Lasts:** Each lie seen through.
+- **Trigger:** The end of a turn in a fight, for each person the owner sees clearly and has not read yet this fight.
+- **Conditions:** The owner is in a fight, awake and able to act. Each person is read at most once a fight, the first time the owner sees them clearly.
+- **Effect:** The owner sizes that person up at once, for free: Insight against the face they keep, as the sizing-up action. A win reads their mood, how they feel about the owner, and whether they hide something; a loss or a tie reads nothing, and they are not tried again this fight.
+- **Lasts:** Until the fight ends.
 
 ### Protagonist Mentality (Resolve) · CN7
 

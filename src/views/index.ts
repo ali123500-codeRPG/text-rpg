@@ -401,7 +401,7 @@ function eventView(state: GameState, viewer: Actor, e: GameEvent): EventView {
     ...(full && e.spar ? { spar: true as const } : {}),
     ...(e.impact ? { impact: e.impact } : {}),
     ...(e.actorId === viewer.id && tookWords(e) ? { took: tookWords(e) } : {}),
-    ...(e.overheard?.includes(viewer.id) || (e.push?.tell && e.push.listener === viewer.id) ? { tell: tellFor(viewer) } : {}), // LI5a Overheard; NL4 a lie aimed at it that it saw through
+    ...(e.overheard?.includes(viewer.id) || (e.push?.tell && e.push.listener === viewer.id) ? { tell: tellFor() } : {}), // LI5a Overheard; NL4 a lie aimed at it that it saw through
     ...(e.kind === 'wasted' && e.actorId === viewer.id && e.reason ? { reason: e.reason } : {}), // BG-175: its own action came to nothing, and why
   };
 }
@@ -880,8 +880,8 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ...(full && e.kind === 'attack' && e.attack ? { packet: buildCombatPacket(state, e, me) } : {}),
       ...(full && e.spar ? { spar: true as const } : {}),
     ...(e.impact ? { impact: e.impact } : {}),
-      ...(e.push?.listener === me && pressedWords(e, p) ? { pressed: pressedWords(e, p) } : {}),
-      ...(e.overheard?.includes(me) ? { overheard: tellFor(p) } : {}), // LI5a
+      ...(e.push?.listener === me && pressedWords(e) ? { pressed: pressedWords(e) } : {}),
+      ...(e.overheard?.includes(me) ? { overheard: tellFor() } : {}), // LI5a
       ...(item ? { item } : {}),
       ...(full && e.into && findContainer(state, e.into) ? { into: itemDef(state, findContainer(state, e.into)!.inst.itemId).name } : {}), // PI1
       ...(full && e.price ? { price: coinWords(e.price) } : {}),

@@ -6,7 +6,8 @@ import { SPEECH_ACTIONS } from '../types';
 import { CONFIG } from '../config';
 import { hasPerk, markUse, ruleset, tierAtLeast, toContest } from '../ruleset';
 import { getLibrary, perkName } from '../library';
-import { isActive, isEngaged, nameBook, stance, wary } from './relations';
+import { allActors, isActive, isAsleep, isEngaged, nameBook, stance, wary } from './relations';
+import { usableThisEngagement, useThisEngagement } from './engagement';
 import { bribeMod, OFFER_WORDS, playerOffer, speaks } from './offer';
 import { distM, type Located } from './position';
 import { falseName } from '../words';
@@ -254,12 +255,11 @@ const INFLUENCE = () => Object.entries(getLibrary().skills).filter(([, k]) => k.
 export const PUSH_TYPES: string[] = SPEECH_ACTIONS.filter((t) => t !== 'talk');
 /** added to a listener's impression when it saw through a lie */
 export const TELL = 'something about it does not sit right';
-/** LI2a Plain as Day: a lie the listener saw through, said plainly */
+/** a lie the listener saw through, said plainly */
 export const PLAIN = 'it is a lie';
-/** what a listener that saw through a lie is told. BF8: a lie seen through by CONFIG.LIE_PLAIN_GAP tiers or more, or by any win with Plain as Day, is plainly a lie; a narrower
- * win (and, for the player, a tie: BF10) gives the hint. With no gap given: the hint, or plainly with Plain as Day. */
-export const tellFor = (listener: Actor | undefined, gap?: number): string =>
-  gap === undefined ? (hasPerk(listener, PK.plain_as_day) ? PLAIN : TELL) : gap >= CONFIG.LIE_PLAIN_GAP || (gap >= 1 && hasPerk(listener, PK.plain_as_day)) ? PLAIN : TELL;
+/** what a listener that saw through a lie is told. LG25 c (Plain as Day, once a perk, is everyone's rule): any win reads
+ * plainly as a lie; for the player a tie (BF10, a doubt) gives the hint. With no gap given it was a win: plainly. */
+export const tellFor = (gap?: number): string => (gap === undefined || gap >= 1 ? PLAIN : TELL);
 
 /** a lie told in words (deceive, Bluff, Overheard) or with the body (Play Dead, feigned flight) */
 export type LieKind = 'spoken' | 'body';
@@ -300,6 +300,19 @@ export function sizeUp(state: GameState, looker: Actor, them: Actor, rng: Rng): 
   const b = looker.mind?.knowledge[them.id];
   if (b) b.read = read;
   return { contest, read };
+}
+
+/** LG20 b, LG26 a Quick Read (Insight 60): at each turn's end an owner in a fight, awake and able to act, sizes up at once
+ * everyone it sees clearly and has not tried yet this fight (sizeUp: the same contest, read and marks). One try a person a
+ * fight, won or not; someone out of clear sight is not tried, so they are read when they first come into it. */
+export function quickReads(state: GameState, rng: Rng): void {
+  for (const a of allActors(state)) {
+    if (!a.engagement?.kinds.includes('fight') || !hasPerk(a, PK.quick_read) || !isActive(a) || isAsleep(a)) continue;
+    for (const o of allActors(state)) {
+      const key = `${PK.quick_read}:${o.id}`;
+      if (o !== a && isActive(o) && usableThisEngagement(a, key) && sizeUp(state, a, o, rng)) useThisEngagement(a, key);
+    }
+  }
 }
 
 /** LI5a Overheard: a lie (`ev`, a speak event) told to someone else, heard by an owner of Overheard (the words or the
@@ -347,13 +360,13 @@ export function applySpeech(speaker: Actor, listener: Actor, type: string, conte
 
 /** OQ-29: an NPC's speech roll at the player, in words for the Narrator: how it strikes the player (from the speaker's
  * tier), and how the player takes it. A lie the player did not see through gets no hint. */
-export function pressedWords(e: GameEvent, listener?: Actor): { how?: string; took?: string } | undefined {
+export function pressedWords(e: GameEvent): { how?: string; took?: string } | undefined {
   const p = e.push, c = e.contest;
   if (!p || !c) return undefined;
   // BG-137: a lie reads like the truth: no word on how convincing it was, only the tell when the player saw through it
-  if (p.type === 'deceive') return p.tell || p.doubt ? { took: tellFor(listener, c.gap) } : undefined;
+  if (p.type === 'deceive') return p.tell || p.doubt ? { took: tellFor(c.gap) } : undefined;
   const took = p.status === 'shaken' ? 'it shakes you' : p.status === 'swayed' ? 'you find yourself swayed'
-    : p.tell ? tellFor(listener) : p.landed ? 'the haggling goes their way' : 'you hold firm';
+    : p.tell ? tellFor() : p.landed ? 'the haggling goes their way' : 'you hold firm';
   return { how: impressionWords(p.type, c.a.tier), ...(took ? { took } : {}), ...(p.offer ? { offer: `an offer to stop fighting; it ${OFFER_WORDS[p.offer]}` } : {}) };
 }
 

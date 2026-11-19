@@ -23,6 +23,11 @@ import { fearMult } from '../../src/engine/auras';
 import { actorById } from '../../src/engine/relations';
 import { landed, tiersToConvince } from '../../src/engine/offer';
 import { TRICK, warnedShift } from '../../src/engine/ruses';
+import { quickReads } from '../../src/engine/speech';
+import { effectiveSkill } from '../../src/ruleset/gear';
+import { armorDefenseCost } from '../../src/library/gearScale';
+import { sightAt } from '../../src/perception';
+import { createRng } from '../harness';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const npc = (s: GameState, id: string) => actorById(s, id)!;
@@ -142,5 +147,44 @@ describe('403 missing 20 and 40 perks', () => {
     };
     expect(steadies(false)).toBe(0);
     expect(steadies(true)).toBe(1);
+  });
+
+  it('LG23 a: worn armor lowers Dodge and Parry alike, by its weight × its requirement', () => {
+    const s = makeVillage(), p = s.player;
+    set(p, SK.dodge, 40); set(p, SK.parry, 40);
+    p.core.inventory = p.core.inventory.filter((i) => !getLibrary().items[i.itemId]?.armor);
+    p.core.inventory.push({ id: 'harness', itemId: IT.plate_harness });
+    const before = { d: effectiveSkill(s, p, SK.dodge).value, p: effectiveSkill(s, p, SK.parry).value };
+    equipArmor(s, p, 'harness'); // heavy, Superior (need 75)
+    const cost = armorDefenseCost('heavy', CONFIG.EQUIP_NEED.superior);
+    expect(cost).toBeCloseTo(CONFIG.ARMOR_DEFENSE_COST.heavy * CONFIG.EQUIP_NEED.superior, 9);
+    expect(effectiveSkill(s, p, SK.dodge).value).toBeCloseTo(before.d + cost, 9);
+    expect(effectiveSkill(s, p, SK.parry).value).toBeCloseTo(before.p + cost, 9);
+    // it grows with the need, with no top: a Mythic (200) piece costs four times a Fine (50) one; a Crude one nothing
+    expect(armorDefenseCost('medium', 200)).toBeCloseTo(4 * armorDefenseCost('medium', 50), 9);
+    expect(armorDefenseCost('light', 0)).toBeCloseTo(0, 9);
+  });
+
+  it('LG26 a Quick Read (Insight 60): in a fight the owner sizes up everyone it sees clearly, once each a fight', () => {
+    const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'trader'] }), p = s.player;
+    expect(getLibrary().perks[PK.quick_read]?.ladder).toEqual({ skill: SK.insight, milestone: 60 });
+    expect(BUILT_PERKS.has(PK.quick_read)).toBe(true);
+    set(p, SK.insight, 60);
+    const others = s.actors.filter((a) => a !== p);
+    const clear = others.filter((o) => sightAt(s, p, o, 'normal') === 'full').map((o) => o.id);
+    expect(clear.length).toBeGreaterThan(0);
+    const tried = () => Object.keys(p.engagement?.uses ?? {}).filter((k) => k.startsWith(`${PK.quick_read}:`)).map((k) => k.split(':')[1]).sort();
+    p.engagement = { start: s.turn, last: s.turn, kinds: ['fight'] };
+    quickReads(s, createRng(1));
+    expect(tried()).toEqual([]); // no perk, nothing
+    give(p, PK.quick_read);
+    p.engagement.kinds = ['talk'];
+    quickReads(s, createRng(1));
+    expect(tried()).toEqual([]); // a talk is not a fight
+    p.engagement.kinds = ['talk', 'fight'];
+    quickReads(s, createRng(1));
+    expect(tried()).toEqual([...clear].sort()); // everyone in clear sight, nobody else
+    quickReads(s, createRng(2));
+    expect(Object.values(p.engagement.uses ?? {}).every((n) => n === 1)).toBe(true); // once each a fight
   });
 });

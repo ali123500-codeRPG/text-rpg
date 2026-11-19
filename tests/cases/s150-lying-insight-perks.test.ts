@@ -13,7 +13,7 @@ import { PK } from '../../src/library/perkIds';
 import { SK } from '../../src/library/skillIds';
 import { perkMoveBlock, resolvePerkMove } from '../../src/engine/perkMoves';
 import { bluffed } from '../../src/engine/perkMarks';
-import { answerRoll, pressedWords, tellFor, PLAIN, TELL } from '../../src/engine/speech';
+import { answerRoll, pressedWords, tellFor, PLAIN } from '../../src/engine/speech';
 import { augmentsOf, tierMult } from '../../src/ruleset/gear';
 import { buildPlayerView } from '../../src/views';
 import { deck } from '../../src/ui/deck';
@@ -35,9 +35,9 @@ describe('150 Falsehood and Insight perks', () => {
     const perks = getLibrary().perks;
     expect(perks[PK.bluff]?.ladder).toEqual({ skill: SK.falsehood, milestone: 20 });
     expect(perks[PK.takes_one_to_know_one]?.ladder).toEqual({ skill: SK.falsehood, milestone: 60 });
-    expect(perks[PK.plain_as_day]?.ladder).toEqual({ skill: SK.insight, milestone: 60 });
+    expect(perks[PK.quick_read]?.ladder).toEqual({ skill: SK.insight, milestone: 60 }); // LG25 c: Plain as Day is everyone's rule
     expect(perks[PK.read_their_face]?.ladder).toEqual({ skill: SK.insight, milestone: 100 });
-    for (const id of [PK.bluff, PK.takes_one_to_know_one, PK.plain_as_day, PK.read_their_face]) expect(BUILT_PERKS.has(id)).toBe(true);
+    for (const id of [PK.bluff, PK.takes_one_to_know_one, PK.quick_read, PK.read_their_face]) expect(BUILT_PERKS.has(id)).toBe(true);
     expect(perks[PK.not_born_yesterday]).toBeUndefined(); // banked write-ups stay out of the game library
   });
 
@@ -128,14 +128,11 @@ describe('150 Falsehood and Insight perks', () => {
     expect(augmentsOf(wim, SK.falsehood).reduce((n, a) => n + a.value, 0)).toBe(0); // never on Falsehood's own rolls
   });
 
-  it('Plain as Day says a lie seen through is a lie', () => {
-    const s = makeVillage();
-    expect(tellFor(s.player)).toBe(TELL);
+  it('LG25 c: a lie seen through is plainly a lie, for everyone (Plain as Day is no longer a perk)', () => {
+    expect(tellFor()).toBe(PLAIN);
     const lie = { push: { type: 'deceive', tell: true }, contest: { a: { tier: 'success' } } } as unknown as GameEvent;
-    expect(pressedWords(lie, s.player)?.took).toBe(TELL);
-    give(s.player, PK.plain_as_day);
-    expect(tellFor(s.player)).toBe(PLAIN);
-    expect(pressedWords(lie, s.player)?.took).toBe(PLAIN);
+    expect(pressedWords(lie)?.took).toBe(PLAIN);
+    expect(Object.values(getLibrary().perks).some((p) => p.name === 'Plain as Day')).toBe(false);
   });
 
   it('Read Their Face shows the stance of someone who spoke to the owner this scenario', () => {

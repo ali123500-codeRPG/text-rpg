@@ -638,7 +638,9 @@ const DEFAULTS = {
   EQUIP_BEYOND_STEP: PAST_100_STEP,
   /** EQ12 c: every roll with an item you fall short on is one outcome step worse per this many points short (or part of it) */
   EQUIP_SHORT_STEP: 10,
-  ARMOR_DODGE: { light: -5, medium: -10, heavy: -20 } as Record<string, number>,
+  /** LG23 a: worn armor lowers Dodge and Parry alike by this × the piece's requirement (its need), by weight: a Fine (need 50)
+   * piece costs −5 light, −10 medium, −20 heavy; a Masterwork one twice that (placeholders) */
+  ARMOR_DEFENSE_COST: { light: -0.1, medium: -0.2, heavy: -0.4 } as Record<string, number>,
   // AN1–AN4 (values are placeholders): worn armor makes body-moving events this many NOISE steps louder, per
   // ARMOR_WEIGHTS key. Moving stealthily doesn't cancel it. Quiet Mail (AN5) takes one step off.
   ARMOR_NOISE_STEPS: { light: 0, medium: 1, heavy: 2 } as Record<string, number>,
@@ -1085,7 +1087,6 @@ const DEFAULTS = {
   QUEST_XP_LEVELS_UP: 2,
   GAIN_MAX_QUALITY: { none: null, minor: 'quality_1', moderate: 'quality_2', major: 'quality_3', extreme: 'quality_4' } as Record<string, QualityKey | null>, // null: no minted item
   // ---- Part 2 engine ----
-  LIE_PLAIN_GAP: 2, // BF8: a lie seen through by this many tiers or more is plainly a lie; a narrower win gives the hint
   ERRAND_TURNS: 3, // BG-180: after an NPC answers someone with a deed under way, it gets Planner calls this many turns (a hold ends it)
   AGENT_STAY_S: 180, // BF11/AT33: a place an NPC's own agent moved it to holds this many game seconds, unless its agent decides again
   /** AT73/AT80/AT85: with no new sight or sound, a belief steps down from tracking after DECAY_TRACKING_S game seconds (a hunter

@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-314
+
+**What was wrong:** A search only ever looked inside the title the searcher stood in. Someone hiding 1.6 m away, in plain line, but standing just over a title's edge (the next part of the same yard, say) could never be found. That was the zone-era rule "search your own area" (SE20): titles are only names on the floor plan now, so the rule cut a search off at an invisible line.
+
+**What was done:** A search now covers its circle around the searcher in a clear line, whatever title anyone stands in: a wall stops it, a title's edge doesn't. Items on the ground are found the same way. SE20's "own area" rule is dropped. (Finding people by sound is being worked out separately.)
+
+**Fixed by:** [PR #1089](https://github.com/ali123500-codeRPG/text-rpg/pull/1089)
+
 ## BG-322
 
 **What was wrong:** On the Play deck's Defense row, the name and figure in each button (Dodge, Parry, Block) sat flush with the top edge instead of in the middle. The buttons are flex boxes lined up by text baseline, which pins the text to the top; the row's 30 px minimum height then left all the spare room below.

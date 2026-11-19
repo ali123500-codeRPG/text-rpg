@@ -18,11 +18,12 @@ export const PK = {
   nobody_special: 'PK66', every_fall_a_lesson: 'PK67', as_far_as_the_road_goes: 'PK68', write_your_own_ending: 'PK69', no_road_closed: 'PK70',
   quick_study: 'PK71', past_the_pain: 'PK72', never_surprised: 'PK73',
   step_and_cut: 'PK98', known_at_every_stall: 'PK99',
-  bluff: 'PK100', takes_one_to_know_one: 'PK101', plain_as_day: 'PK102', read_their_face: 'PK103', dread_presence: 'PK105',
+  bluff: 'PK100', takes_one_to_know_one: 'PK101', read_their_face: 'PK103', dread_presence: 'PK105',
   junk_arsenal: 'PK106', know_the_step: 'PK107', last_to_fall: 'PK108', overheard: 'PK109', grit: 'PK110', against_the_grain: 'PK111', iron_rim: 'PK112', gut_feeling: 'PK113', overwhelm: 'PK114', crushing_presence: 'PK115', steady_nerves: 'PK116', used_to_the_pain: 'PK117', run_later: 'PK118', one_sense: 'PK119',
   // D-218: the Varo's Loop's abilities (granted by the item, never taken)
   loose_odds: 'PK120', twin_abyss: 'PK121', call_the_toss: 'PK122', pull_to_the_edges: 'PK123', all_or_nothing: 'PK124', further_still: 'PK125',
   // PK15 retired: Quick Word (Persuasion 20) became everyone's rule (TP6 c, src/engine/speech.ts quickWord); never reuse
+  // PK102 retired: Plain as Day (Insight 60) became everyone's rule (LG25 c, src/engine/speech.ts tellFor); never reuse
   // PK127 retired: Light Sleeper (Earshot 60) became everyone's rule (NW14, src/engine/sleep.ts wakeCheck); never reuse
   always_yours: 'PK126', // TB7: Threadbounded level 1, gives a random Threadbound item
   misdirection: 'PK128', fade_back: 'PK129', // PT12: Vanishing's All-50 part; Fade Back parked (D-232)
@@ -50,6 +51,7 @@ export const PK = {
   fear_bites_deeper: 'PK175', shadow_work: 'PK176', thick_of_it: 'PK177', free_movement: 'PK178', deeper_soak: 'PK179', honest_face: 'PK180', // 40 perks (LG12, LG14-LG16, LG18, LG19)
   sharp_answer: 'PK181', // Parry 40 (LG2)
   read_the_feint: 'PK182', // Insight 40 (LG20 a)
+  quick_read: 'PK183', // Insight 60 (LG20 b, LG26 a)
 } as const;
 /** a perk ID: PK + a number */
 export type PerkId = `PK${number}`;

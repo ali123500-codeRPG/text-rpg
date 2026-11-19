@@ -28,7 +28,7 @@ function mundaneProblems(d: ItemDef): string[] {
   }
   if (d.shield && d.shield.pool !== CONFIG.POOL_BASE + CONFIG.POOL_FACTOR * need) bad.push(`shield pool ${d.shield.pool}`);
   for (const e of d.effects ?? []) {
-    const ok = e.kit || e.byLevel || (e.armorWeight && d.armor && e.value === CONFIG.ARMOR_DODGE[d.armor.weight]);
+    const ok = e.kit || e.byLevel || (e.armorWeight && d.armor && e.value === 0);
     if (!ok) bad.push(`hand-set effect ${e.skill ?? e.roll} ${e.value}`);
   }
   const improvised = d.tags?.includes('improvised');
