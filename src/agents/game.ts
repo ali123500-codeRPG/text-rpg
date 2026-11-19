@@ -115,7 +115,7 @@ export const DOWN_TEXT = '(down)'; // D-239: the turn the foes decide whether to
 /** IQ7 a: said when Finish the fight is asked for with no fight far below the player */
 export const FINISH_REFUSED = 'There is no fight here so far below you that it can be played out in one go.';
 /** IQ4 a: a finished fight's blow each round: an attack on that foe with what is in hand */
-const finishAttack = (target: string): Intent => ({ move: null, action: { type: 'attack', skill: '', target, targetPart: null, item: null, mode: null, approach: '', stance: 'normal' }, gear: null, spoken: null, addressees: null, deferred: [], clarify: null });
+const finishAttack = (target: string): Intent => ({ move: null, action: { type: 'attack', skill: '', target, targetPart: null, item: null, mode: null, approach: '' }, gear: null, spoken: null, addressees: null, deferred: [], clarify: null });
 /** the bands of the people the player can see (the Parser's legality reads them) */
 const bandsOf = (s: GameState, pv: import('../types').PlayerView) => pv.actors.map((a) => s.actors.find((x) => x.id === a.id)?.bandId ?? '').filter(Boolean);
 /** NW18: a turn played while the player sleeps */
@@ -345,8 +345,9 @@ export function createGame(deps: GameDeps): Game {
     return { agent: 'voice', actorId: id, output: r.output };
   }
 
-  /** given: AD7, an order code built from a clicked action: it skips the Parser and passes the same checks */
-  async function playTurn(text: string, aimed: boolean, given?: Intent): Promise<void> {
+  /** given: AD7, an order code built from a clicked action: it skips the Parser and passes the same checks; rest (D-20 b):
+   * the steps of the player's order still queued after this one */
+  async function playTurn(text: string, aimed: boolean, given?: Intent, rest: string[] = []): Promise<void> {
     const s = state!;
     const submitAt = clock.now();
     const before = snapTurn(s); // TQ1: the turn checker compares the world after the turn with this
@@ -404,6 +405,7 @@ export function createGame(deps: GameDeps): Game {
     if (intent.action?.noSkillFits) s.log.push({ turn: s.turn, code: 'skill_gap', detail: { words: text.slice(0, 300), type: intent.action.type, skill: intent.action.skill, target: intent.action.target } });
     const rngBefore = s.rngState;
     const rng = createRng(s.rngState);
+    const watch = engine.watchOrder(s); // D-20 b: what is news to the player after the turn
     const quick = engine.quickWord(s, intent); // A15 in a fight, OA1 asides outside one: a line beside a deed, replied to for free
     const speech = !!intent.action && ((SPEECH_ACTIONS as readonly string[]).includes(intent.action.type) || quick) && !!intent.addressees?.length;
     const spokespeople = speech ? engine.selectSpokespeople(s, intent) : [];
@@ -465,11 +467,13 @@ export function createGame(deps: GameDeps): Game {
     for (const b of checkTurn(s, before, events)) s.log.push({ turn: s.turn, code: 'turn_check', detail: { ...b } });
     aimNext = false;
     yieldNext = false;
-    await finishTurn(s, events, { playerInput: text, rngBefore, aimed, intent, gearBefore, coinBefore, brokenBefore, partsBefore, zonesBefore, doingBefore, ...(ended ? { ended } : {}) }, spokespeople.length ? submitAt : null);
+    const queue = [...(intent.deferred ?? []), ...rest];
+    const queueStops = queue.length > 0 && engine.orderStops(s, watch, events, spokespeople);
+    await finishTurn(s, events, { playerInput: text, rngBefore, aimed, intent, gearBefore, coinBefore, brokenBefore, partsBefore, zonesBefore, doingBefore, queue, queueStops, ...(ended ? { ended } : {}) }, spokespeople.length ? submitAt : null);
   }
 
   /** save → NarrationView → advance → Narrator → display (shared by every turn and by story start) */
-  async function finishTurn(s: GameState, events: GameEvent[], rec: { playerInput: string; rngBefore: number; aimed: boolean; intent: Intent | null; gearBefore?: GearSnap; coinBefore?: number; brokenBefore?: boolean; doingBefore?: DoingSnap; partsBefore?: { id: string; state: PartState }[]; zonesBefore?: string[]; ended?: import('../types').ScenarioEnding; opening?: true }, dialogueSubmitAt: number | null): Promise<void> {
+  async function finishTurn(s: GameState, events: GameEvent[], rec: { playerInput: string; rngBefore: number; aimed: boolean; intent: Intent | null; gearBefore?: GearSnap; coinBefore?: number; brokenBefore?: boolean; doingBefore?: DoingSnap; queue?: string[]; queueStops?: boolean; partsBefore?: { id: string; state: PartState }[]; zonesBefore?: string[]; ended?: import('../types').ScenarioEnding; opening?: true }, dialogueSubmitAt: number | null): Promise<void> {
     s.events = events;
     // saved with the engine page, so a reloaded story resolves the next turn exactly as continuous play would
     s.recentEvents = pruneRecent(s, [...(s.recentEvents ?? []), ...events]);
@@ -546,7 +550,7 @@ export function createGame(deps: GameDeps): Game {
     endingNow = null;
     // rolls are kept on every line, so Show rolls also shows past turns' (the screen hides them while it is off)
     lines.push({ turn, kind: 'narration', text: narr.output.text, ...scenarioEnd, ...(CONFIG.SHOW_MECHANICS && mechanics.length ? { mechanics } : {}),
-      ...lineExtras(s, events, nv, narr.output.text), ...notes, ...where, ...(rec.intent?.deferred?.length ? { next: rec.intent.deferred.join('. ') } : {}),
+      ...lineExtras(s, events, nv, narr.output.text), ...notes, ...where, ...(rec.queue?.length ? (rec.queueStops ? { next: rec.queue.join('. ') } : { queue: rec.queue }) : {}),
       length: { band, words: wordCount(narr.output.text), top: views.lengthTop(s, band) } }); // LN7: measured, never re-asked
     lastLog = narrLog;
     lastDisplayAt = clock.now();
@@ -698,10 +702,12 @@ export function createGame(deps: GameDeps): Game {
     busy = true;
     emit();
     try {
-      await playTurn(state.player.asleep ? ASLEEP_TEXT : t, opts.aimed || aimNext, state.player.asleep ? undefined : given);
+      // D-20 b: sending the next queued step of the player's order plays it and keeps the rest; anything else drops the rest
+      const queued = engine.queuedSteps(lines), rest = !given && queued[0] === t ? queued.slice(1) : [];
+      await playTurn(state.player.asleep ? ASLEEP_TEXT : t, opts.aimed || aimNext, state.player.asleep ? undefined : given, rest);
       // NW18/AT42: while you stay asleep the game plays your turns: the night runs on as one stretch between them, so each
       // moves the clock on; a turn that doesn't (nothing left to run) waits for you
-      for (let t = -1; state?.player.asleep && !stopped && gameNow(state) > t; ) { t = gameNow(state); await playTurn(ASLEEP_TEXT, false); }
+      for (let t = -1; state?.player.asleep && !stopped && gameNow(state) > t; ) { t = gameNow(state); await playTurn(ASLEEP_TEXT, false, undefined, engine.queuedSteps(lines)); }
       if (state?.mercy && !stopped) await playTurn(DOWN_TEXT, false); // D-239: the foes answer while you lie there
     } catch (e) {
       if (e instanceof StopPlay) stop(e.code);
@@ -950,6 +956,7 @@ export function createGame(deps: GameDeps): Game {
     abandonQuest(id) { if (state && !busy && abandonQuest(state, id)) { amend((x) => { abandonQuest(x, id); }); emit(); } },
     pinQuest(id) { if (state && !busy) { pinQuest(state, id); amend((x) => pinQuest(x, id)); emit(); } },
     setSignatures(lines) { if (state && !busy) { setSignatures(state.player, lines); amend((x) => setSignatures(x.player, lines)); emit(); } },
+    setDefense(kind) { if (state && !busy) { state.player.core.standingDefense = kind; amend((x) => { x.player.core.standingDefense = kind; }); emit(); } },
     adopt(s) {
       abortBackground();
       state = s;

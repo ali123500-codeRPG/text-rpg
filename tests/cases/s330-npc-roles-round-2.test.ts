@@ -20,7 +20,7 @@ import { TIERS } from '../../src/scales';
 
 const heal = (target: string | null): Intent => ({
   move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null,
-  action: { type: 'heal', skill: '', target, item: null, targetPart: null, mode: null, approach: '', stance: 'normal' },
+  action: { type: 'heal', skill: '', target, item: null, targetPart: null, mode: null, approach: '' },
 });
 const turn = (s: GameState, i: Intent, seed = 1) => { s.turn += 1; return resolveTurn(s, { intent: i, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(seed)); };
 

@@ -88,7 +88,7 @@ export function fillSpeech(state: GameState, intent: Intent, text: string): Inte
   if (!intent.action && !intent.perkMove && intent.spoken?.trim() && !intent.yields) {
     const to = intent.addressees?.find((x) => state.actors.some((y) => y.id === x)) ?? null;
     const talk = talkingWith(state);
-    return { ...intent, action: { type: 'talk', skill: '', target: to, targetPart: null, item: null, mode: null, approach: '', stance: 'normal' }, addressees: intent.addressees?.length ? intent.addressees : talk.length ? talk : ['everyone'] };
+    return { ...intent, action: { type: 'talk', skill: '', target: to, targetPart: null, item: null, mode: null, approach: '' }, addressees: intent.addressees?.length ? intent.addressees : talk.length ? talk : ['everyone'] };
   }
   const a = intent.action;
   // OA1: words beside a deed that name no one are for the one the deed is aimed at, else whoever the player was just talking with

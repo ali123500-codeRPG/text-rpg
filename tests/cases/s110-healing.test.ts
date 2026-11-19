@@ -13,7 +13,7 @@ import type { GameState, Intent } from '../../src/types';
 
 const use = (item: string): Intent => ({
   move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null,
-  action: { type: 'use_item', skill: '', target: null, targetPart: null, item, mode: null, approach: '', stance: 'normal' },
+  action: { type: 'use_item', skill: '', target: null, targetPart: null, item, mode: null, approach: '' },
 });
 const turn = (s: GameState, intent: Intent) => { s.turn += 1; return resolveTurn(s, { intent, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(1)); };
 

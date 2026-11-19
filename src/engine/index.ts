@@ -13,3 +13,4 @@ export { applyHealing, healingName } from './heal';
 export { updateEngagements, usableThisEngagement, useThisEngagement, engagedThisTurn } from './engagement';
 export { endScenario } from './scenarioEnd';
 export { essenceSlots, essenceText, essenceValue, giveEssence, passEssence, playerAtRest, removeCostText, removeEssence, sellEssence, takeEssence } from './essence';
+export { orderStops, queuedSteps, watchOrder } from './orderQueue';

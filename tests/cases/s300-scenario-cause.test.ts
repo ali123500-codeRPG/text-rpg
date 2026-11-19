@@ -109,7 +109,7 @@ describe('300 why a scenario started', () => {
     claude.defaults.narrator = narrateAll();
     game.adopt(state);
     const g = { claude, game };
-    g.claude.push('parser', intent({ action: { type: 'attack', skill: '', target: 'patron_1', targetPart: null, item: null, mode: null, approach: '', stance: 'normal' } }));
+    g.claude.push('parser', intent({ action: { type: 'attack', skill: '', target: 'patron_1', targetPart: null, item: null, mode: null, approach: '' } }));
     await g.game.submit('I punch the patron', { aimed: false });
     await g.game.settle();
     const call = g.claude.callsFor('weaver').at(-1)!;

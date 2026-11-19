@@ -20,7 +20,7 @@ export const RELOAD_EVERY = 10;
 
 const base = (p: Partial<Intent>): Intent => ({ move: null, action: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null, ...p });
 const act = (type: NonNullable<Intent['action']>['type'], p: Partial<NonNullable<Intent['action']>> = {}): Intent['action'] =>
-  ({ type, skill: '', target: null, targetPart: null, item: null, mode: null, approach: '', stance: 'normal', ...p });
+  ({ type, skill: '', target: null, targetPart: null, item: null, mode: null, approach: '', ...p });
 
 /** one random thing a player could try, from what the player sees (legality still has the last word, as with the Parser) */
 export function randomIntent(v: PlayerView, r: Rng): Intent {

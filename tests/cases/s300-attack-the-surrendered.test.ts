@@ -84,7 +84,7 @@ describe('300 attacking a foe who gave up', () => {
     await g.turn(intent(), 'I look around');
     const data = (g.claude.callsFor('narrator').at(-1) as { input: { content: string }[] }).input.map((m) => m.content).join('\n');
     expect(data).toMatch(/"label":"a tavern patron"[^}]*"morale":"Surrendered"/);
-    await g.turn(intent({ action: { type: 'attack', skill: SK.melee_medium, target: 'patron_1', targetPart: null, item: `player_${IT.arming_sword}_1`, mode: AM.cut, approach: 'a quick cut', stance: 'normal' } }), 'I cut down the man who gave up');
+    await g.turn(intent({ action: { type: 'attack', skill: SK.melee_medium, target: 'patron_1', targetPart: null, item: `player_${IT.arming_sword}_1`, mode: AM.cut, approach: 'a quick cut' } }), 'I cut down the man who gave up');
     expect((g.game.state()!.player.progression!.achievements ?? []).map((a) => a.key)).toContain(ACH.struck_surrendered_1);
   });
 });

@@ -7,7 +7,7 @@ describe('Show rolls, retroactively', () => {
   it('whole turn: a turn played with Show rolls off still keeps its rolls on its line', async () => {
     const g = wholeTurn({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
     g.game.state()!.settings.showMechanics = false;
-    await g.turn(intent({ action: { type: 'rest', skill: '', target: null, targetPart: null, item: null, mode: null, approach: '', stance: 'normal' } }), 'I rest a while');
+    await g.turn(intent({ action: { type: 'rest', skill: '', target: null, targetPart: null, item: null, mode: null, approach: '' } }), 'I rest a while');
     const line = g.game.lines().filter((l) => l.kind === 'narration').at(-1)!;
     expect(line.mechanics?.length).toBeGreaterThan(0);
   });

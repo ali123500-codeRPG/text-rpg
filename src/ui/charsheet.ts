@@ -8,7 +8,7 @@ import { BT, RC } from '../library/raceIds';
 import { figure3d } from './figure3d';
 import { defaultMode, effectiveSkill, FLAW_MARK, healthLevel, modeSkill, TAG_MARK, totalHp, trueSkill, usedOffSheet } from '../ruleset';
 import { partName, poolState, SHOWN_LEVELS, shownLevel, type FigPart } from '../ruleset/body';
-import { augmentsOf, defenseItem, isHeld, tradesOut } from '../ruleset/gear';
+import { augmentsOf, defenseItem, isHeld, tradesOut, usableDefense } from '../ruleset/gear';
 import { hollowedMult, type SkillPart } from '../ruleset/perks';
 import { charLevel, freeLevelsOwed, keepCapstone, levelTarget, swapCapstone, xpFill, xpToNext } from '../engine/xp';
 import { essenceSlots } from '../engine/essence';
@@ -41,9 +41,10 @@ export function hpLeft(s: GameState, p: Actor): { hp: number | null; total: numb
   return { total, hp: total === null ? null : total * (1 - p.core.condition.hpLostPct / 100) };
 }
 
-/** the effective-skill call behind standing defense and standing attack: the card's figure and its pop-up both use it */
+/** the effective-skill call behind standing defense and standing attack: the card's figure and its pop-up both use it.
+ * The defense actually used against a melee blow: the chosen one, or the fallback when it can't be used now */
 function defenseCall(s: GameState, p: Actor) {
-  const kind = p.core.standingDefense;
+  const kind = usableDefense(s, p, false);
   return { kind, skill: DEFENSE_SKILL[kind], ctx: { itemId: defenseItem(s, p, kind)?.id } };
 }
 export function standing(s: GameState, p: Actor): { kind: string; value: number | null } {

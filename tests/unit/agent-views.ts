@@ -74,7 +74,7 @@ export function narrationView(): NarrationView {
 
 export const intentOf = (over: Partial<Intent> = {}): Intent => ({
   move: null,
-  action: { type: 'observe', skill: SK.eyesight, target: null, targetPart: null, item: null, mode: null, approach: 'carefully', stance: 'careful' },
+  action: { type: 'observe', skill: SK.eyesight, target: null, targetPart: null, item: null, mode: null, approach: 'carefully' },
   gear: null, spoken: null, addressees: null, deferred: [], clarify: null, ...over,
 });
 

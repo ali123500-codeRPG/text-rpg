@@ -19,7 +19,7 @@ import { travelSpeed } from '../../src/engine/travel';
 
 const act = (type: ParserActionType): Intent => ({
   move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null,
-  action: { type, skill: '', target: null, targetPart: null, item: null, mode: null, approach: '', stance: 'normal' },
+  action: { type, skill: '', target: null, targetPart: null, item: null, mode: null, approach: '' },
 });
 const turn = (s: GameState, intent: Intent) => { s.turn += 1; return resolveTurn(s, { intent, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(1)); };
 const quiet = (playerZone = 'tav_cellar') => makeVillage({ playerZone, without: ['slime_1', 'slime_2', 'patron_1'] });

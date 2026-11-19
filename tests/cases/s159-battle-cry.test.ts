@@ -52,7 +52,7 @@ describe('159 Battle Cry', () => {
   it('foes who hear it roll Resolve against Intimidation; allies take heart; it takes 1 s and the attack follows (AT11)', () => {
     const { s, foe, friend } = setup();
     const before = moraleLost(foe);
-    const ev = play(s, { intent: { ...cry, action: { type: 'attack', skill: '', target: 'patron_1', targetPart: null, item: null, mode: null, approach: '', stance: 'normal' } } as never });
+    const ev = play(s, { intent: { ...cry, action: { type: 'attack', skill: '', target: 'patron_1', targetPart: null, item: null, mode: null, approach: '' } } as never });
     const roar = ev.find((e) => e.kind === 'battle_cry' && e.actorId === 'player')!;
     expect(roar.noise).toBe('loud');
     const onFoe = roar.effects.find((f) => f.actorId === 'patron_1')!;
@@ -86,7 +86,7 @@ describe('159 Battle Cry', () => {
   it('can be let out while broken: a broken nerve keeps the roar and still blocks the attack (BF37)', () => {
     const { s } = setup();
     s.player.core.condition.moraleLost = maxMorale(s.player); // broken
-    const ev = play(s, { intent: { ...cry, action: { type: 'attack', skill: '', target: 'patron_1', targetPart: null, item: null, mode: null, approach: '', stance: 'normal' } } as never });
+    const ev = play(s, { intent: { ...cry, action: { type: 'attack', skill: '', target: 'patron_1', targetPart: null, item: null, mode: null, approach: '' } } as never });
     expect(ev.some((e) => e.kind === 'battle_cry' && e.actorId === 'player')).toBe(true);
     expect(ev.some((e) => e.kind === 'attack' && e.actorId === 'player')).toBe(false);
   });

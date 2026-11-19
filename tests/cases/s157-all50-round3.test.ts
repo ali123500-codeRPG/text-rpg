@@ -1,7 +1,7 @@
 // 157 All-50 round 3 (PT8–PT11): Grit (Resolve's part: Endurance augments Resolve at 0.25, through PerkDef.augments),
 // Against the Grain (Parry's part: no heavy-weapon gap shift on the owner's parries), Iron Rim (Block's part: the shield
 // pool takes ×0.75). Swordsman unlocks with Medium or Heavy Weapons 60 and Parry 80, and Blade Wall works with either.
-// PT12: Misdirection (Vanishing's part: Lying augments Vanishing at 0.25); Fade Back parked (D-232).
+// PT12: Misdirection (Vanishing's part: Guile augments Vanishing at 0.25); Fade Back parked (D-232).
 // PT9 + VS3: Strike and Fade gives a watcher a second roll (Vanishing) only when the attack from hiding made it aware.
 import { describe, expect, it } from 'vitest';
 import { fit, forcedRng, makeVillage, place, beside } from '../harness';
@@ -47,19 +47,19 @@ describe('157 All-50 round 3', () => {
     expect(augmentsOf(s.player, SK.endurance)).toEqual([]); // one way only
   });
 
-  it('PT12 Misdirection: Vanishing\'s part, a quarter of Lying augments every Vanishing roll; Fade Back stays parked', () => {
+  it('PT12 Misdirection: Vanishing\'s part, a quarter of Guile augments every Vanishing roll; Fade Back stays parked', () => {
     expect(SKILL_PARTS[SK.vanishing]).toBe(PK.misdirection);
     expect(BUILT_PERKS.has(PK.misdirection)).toBe(true);
     expect(BUILT_PERKS.has(PK.fade_back)).toBe(false);
     expect(Object.values(SKILL_PARTS)).not.toContain(PK.fade_back);
     const s = makeVillage();
-    skill(s.player, SK.lying, 40);
+    skill(s.player, SK.guile, 40);
     skill(s.player, SK.vanishing, 20);
     const before = effectiveSkill(s, s.player, SK.vanishing).value;
     give(s.player, PK.misdirection);
-    expect(augmentsOf(s.player, SK.vanishing)).toContainEqual({ source: 'Falsehood (augments, Misdirection)', value: 40 * CONFIG.MISDIRECTION_SHARE });
+    expect(augmentsOf(s.player, SK.vanishing)).toContainEqual({ source: 'Guile (augments, Misdirection)', value: 40 * CONFIG.MISDIRECTION_SHARE });
     expect(effectiveSkill(s, s.player, SK.vanishing).value).toBeCloseTo(before + 40 * CONFIG.MISDIRECTION_SHARE, 9);
-    expect(augmentsOf(s.player, SK.lying)).toEqual([]); // one way only
+    expect(augmentsOf(s.player, SK.guile)).toEqual([]); // one way only
   });
 
   it('Against the Grain: a heavy blow loses its gap shift against the owner\'s parry, not against a block', () => {

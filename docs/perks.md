@@ -1342,6 +1342,17 @@ All-50, All-100 and All-150 work alike. Granted free once enough skills of the t
 - **Lasts:** Always.
 - **Built:** yes
 
+### Mind Over Body (Fortitude, Resolve) · T4-100r
+
+*Story:* A hard mind makes a hard body. A quarter of your Resolve adds to your health the way Endurance does, and whenever Endurance learns, Resolve learns too.
+
+- **Kind:** Always on
+- **Trigger:** Always: max health, and every time Endurance is marked for training.
+- **Conditions:** Resolve's All-100 part: granted with the Fortitude All-100 when Resolve is at 100.
+- **Effect:** Max health adds Resolve (raw) × 0.25 (CONFIG.MIND_OVER_BODY_SHARE, placeholder) × HP_PER_END, before the body's and prefix's multipliers, the same way Endurance adds. Whenever Endurance is marked for training, Resolve is marked too.
+- **Lasts:** Always.
+- **Built:** yes
+
 ### Second Breath (Fortitude, Stamina) · SS8
 
 *Story:* Just when your lungs give out, they find more. Once a fight, when your breath runs out, half of it comes back at once.
@@ -1443,12 +1454,12 @@ All-50, All-100 and All-150 work alike. Granted free once enough skills of the t
 
 ### Misdirection (Stealth – Conventional, Vanishing) · T6e
 
-*Story:* "Look over there!" and you are gone. A quarter of your Falsehood adds to every Vanishing roll, and both skills learn from it.
+*Story:* A glance over their shoulder, a pointed finger, and you are gone. A quarter of your Guile adds to every Vanishing roll, and both skills learn from it.
 
 - **Kind:** Always on
 - **Trigger:** The owner makes a Vanishing roll.
 - **Conditions:** The Trickery tree is open to the owner.
-- **Effect:** Falsehood augments Vanishing: the roll adds the owner's true Falsehood × 0.25 (CONFIG.MISDIRECTION_SHARE, placeholder) × its tier, the way a skill augment does, and Falsehood can learn from the roll the same way.
+- **Effect:** Guile augments Vanishing: the roll adds the owner's true Guile × 0.25 (CONFIG.MISDIRECTION_SHARE, placeholder) × its tier, the way a skill augment does, and Guile can learn from the roll the same way.
 - **Lasts:** Always.
 - **Built:** yes
 

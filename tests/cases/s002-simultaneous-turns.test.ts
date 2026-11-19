@@ -15,7 +15,7 @@ describe('2 Simultaneous turns', () => {
     expect(plannerInputs.length).toBeGreaterThan(0);
     for (const s of plannerInputs) expect(s).not.toMatch(/pumpernickel/i);
 
-    claude.push('parser', speech('persuade', 'trader', 'Tell me about the flood, friend.', { approach: 'leaning on the bar', stance: 'reckless' }));
+    claude.push('parser', speech('persuade', 'trader', 'Tell me about the flood, friend.', { approach: 'leaning on the bar' }));
     claude.push('voice', { action: npcAction('talk', 'player'), line: 'Floods every spring.', volume: 'normal', shares: [], gear: null, stance: null, routine: null }, { actorId: 'trader' });
     claude.pushResponse({ agent: 'narrator', response: narrateAll('The barkeep shrugs.') });
     await game.submit('Leaning on the bar, I ask: "Tell me about the flood, friend."', { aimed: false });
@@ -23,6 +23,6 @@ describe('2 Simultaneous turns', () => {
     const voiceIn = JSON.stringify((game.gm().agentLog.find((l) => l.agent === 'voice')!.input as { content: string }[]).slice(1));
     expect(voiceIn).toContain('Tell me about the flood, friend.');
     expect(voiceIn).toContain('IMPRESSION');
-    for (const s of ['leaning on the bar', 'reckless', 'persuade', 'pumpernickel']) expect(voiceIn.toLowerCase()).not.toContain(s);
+    for (const s of ['leaning on the bar', 'persuade', 'pumpernickel']) expect(voiceIn.toLowerCase()).not.toContain(s);
   });
 });
