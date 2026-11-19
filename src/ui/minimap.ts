@@ -114,16 +114,17 @@ export function minimapPanel(api: GameApi, opts: {
   let snap: Snap | null = null, lastAt = '', lastRing: number | null = null, face = '';
   let hover: MinimapPlan | null = null, plan: Extract<MinimapPlan, { pts: Pos[] }> | null = null;
 
-  const svg = s('svg', { class: 'mm-svg', tabindex: 0, role: 'group', 'aria-label': 'Minimap: click a spot to plan a move there, double-click to walk there now' }) as SVGSVGElement;
+  // SD4: how to use it is the map's tip and name, not a line under it
+  const svg = s('svg', { class: 'mm-svg', tabindex: 0, role: 'group', 'aria-label': `Minimap. ${HINT}` }) as SVGSVGElement;
   const world = s('g'), gZones = s('g'), gNames = s('g', { 'aria-hidden': 'true' }), gRing = s('g'), gMarks = s('g'), gPath = s('g'), gTokens = s('g');
   world.append(gZones, gNames, gRing, gMarks, gPath, gTokens);
-  svg.append(world);
+  svg.append(s('title', {}, HINT), world);
   const floorEl = h('span', { class: 'mm-floor' });
   const tool = (label: string, title: string, on: () => void) => h('button', { type: 'button', title, 'aria-label': title, onclick: on }, label);
   const say = h('span', { class: 'mm-say' }), carried = h('span', { class: 'mm-carry' });
   const go = h('button', { type: 'button', class: 'mm-go', hidden: true, onclick: () => plan && !api.busy() && opts.onWalk(point(plan)) }, 'Just go');
   const el = h('section', { class: 'mm', 'aria-label': 'Minimap' },
-    h('div', { class: 'mm-head' }, h('b', {}, 'Minimap'), floorEl,
+    h('div', { class: 'mm-head' }, floorEl,
       h('span', { class: 'mm-tools' }, tool('+', 'Zoom in', () => zoom(-1)), tool('−', 'Zoom out', () => zoom(1)), tool('◎', 'Back to you', recentre), tool('⤢', 'Open the full map', () => opts.onOpenMap()))),
     svg, h('div', { class: 'mm-foot' }, say, go, carried));
 
@@ -249,11 +250,11 @@ export function minimapPanel(api: GameApi, opts: {
       const [m, ...rest] = p.words.split(' · '), last = rest.length > 1 && snap?.ring !== null ? rest.pop()! : null;
       return [h('b', {}, m), ...rest.map((x) => ` · ${x}`), ...(last ? [' · ', h('b', { class: p.turns === 1 ? 'now' : 'far' }, last)] : []), ` · ${p.where}`];
     };
-    say.replaceChildren(...(!snap ? ['No map of where you are yet.'] : !shown ? [HINT] : 'why' in shown ? [shown.why] : [...(shown === plan && !hover ? ['Planned: '] : []), ...parts(shown)]));
+    say.replaceChildren(...(!snap ? ['No map of where you are yet.'] : !shown ? [] : 'why' in shown ? [shown.why] : [...(shown === plan && !hover ? ['Planned: '] : []), ...parts(shown)]));
     go.hidden = !plan;
     const notes = [snap && snap.carried > 0 ? `+${r1(snap.carried)} s carried over` : '', snap?.ring && 2 * snap.ring > widest ? `this turn reaches ${metresText(snap.ring)}` : '', snap?.dash && 2 * snap.dash > widest ? `a dash reaches ${metresText(snap.dash)}` : ''].filter(Boolean);
     carried.textContent = notes.join(' · ');
-    floorEl.textContent = snap ? `· ${floorName(snap.height)}` : '';
+    floorEl.textContent = snap ? floorName(snap.height) : '';
   }
 
   function zoom(dir: number) {

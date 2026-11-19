@@ -22,7 +22,7 @@ import { powerFigure } from './power';
 import { ageText } from '../ruleset/age';
 import { callName, staminaOf } from '../views';
 import { fatigueLevel } from '../ruleset/fatigue';
-import { skillName, SKILL_SUB, TREE_VIEW } from './creation';
+import { markIcon, skillName, SKILL_SUB, TREE_VIEW } from './creation';
 import { DEFENSE_SKILL } from '../library/skillIds';
 import { CLASS_TIERS, FATIGUE_LEVELS, HEALTH_LEVELS, MORALE_LEVELS, PART_STATES, type MoraleLevel } from '../scales';
 import { isBrokenLevel, isCoweringLevel, maxMorale, moraleLevel, moraleLostPct, moralePenalty } from '../ruleset/morale';
@@ -36,6 +36,8 @@ export const invFocus: { id: string | null } = { id: null };
 export const charFocus: { open: 'essences' | 'perks' | 'classes' | null } = { open: null };
 
 const BAR_SCALE = CONFIG.SKILL_CAP; // display only: the bar fills at the mortal limit; true skill can pass it
+/** SD2: the Character page's skill bars say so in their tip */
+const BAR_TIP = `Fills at ${BAR_SCALE}, the training cap; a skill can go past it`;
 
 export function hpLeft(s: GameState, p: Actor): { hp: number | null; total: number | null } {
   const total = safe(() => totalHp(s, p));
@@ -118,6 +120,8 @@ export function trees(p: Actor, withZero: boolean) {
 
 /** a tagged skill's mark; hovering it says Tagged */
 export const tag = () => h('span', { class: 'tag', title: 'Tagged', 'aria-label': 'tagged' }, TAG_MARK);
+/** SD2: a tagged skill's mark on the Character page and its pop-ups: the tagged icon; hovering it says Tagged */
+const tagIcon = () => markIcon('tagged', 'Tagged', 'mk-i tag');
 /** FC5: a flawed skill's mark; hovering it says Flawed */
 export const flaw = () => h('span', { class: 'flaw', title: 'Flawed', 'aria-label': 'flawed' }, FLAW_MARK);
 const offNote = () => h('small', { class: 'off', title: 'You have used this skill. It is not on your sheet yet and learns as you use it.' }, 'used');
@@ -135,15 +139,9 @@ const windowOf = (p: Actor, id: string): Win => {
 };
 const winText = (w: Win) => `${w.via ? `via ${w.via} ` : ''}${w.lo}–${w.hi}`;
 const winTitle = (w: Win) => `Learns from opposition ${w.lo} to ${w.hi}${w.via ? `, on ${w.via} rolls it adds to` : ''}`;
-const bar = (raw: number, win?: Win) => h('div', { class: 'cs-bar' }, h('b', { style: `width:${pct(raw)}%` }),
+const bar = (raw: number, win?: Win, tip?: string) => h('div', { class: 'cs-bar', title: tip }, h('b', { style: `width:${pct(raw)}%` }),
   win ? h('i', { class: 'lw' + (win.via ? ' via' : ''), style: `left:${pct(win.lo)}%;width:${pct(win.hi) - pct(win.lo)}%`, title: winTitle(win) }) : null);
 const whole = (n: number | null) => (n === null ? '—' : String(+n.toFixed(2))); // fractions shown, not rounded (OQ-25); toFixed only drops float noise
-
-/** one row of level names over the card's equal boxes, alternating above (0) and below (1) the bar. The boxes run
- * Critical on the left to Bruised, then a 7th box for Unhurt on the right, so the bar empties from the
- * right like the side sheet's. Unhurt and Incapacitated are not named. */
-const steps = (boxes: HealthLevel[], level: HealthLevel, below: 0 | 1) => h('div', { class: `cs-steps ${below ? 'down' : 'up'}` },
-  boxes.map((l, i) => (l !== 'unhurt' && i % 2 === below ? h('span', { class: l === level ? 'now' : '', style: `grid-column:${i + 1}` }, HEALTH_LEVELS.name(l)) : null)));
 
 /** `openClasses` opens the class tree (the class line is its button); without it the line is plain text */
 export function charCard(s: GameState, p: Actor, openClasses?: (opener: HTMLElement) => void): HTMLElement {
@@ -161,11 +159,10 @@ export function charCard(s: GameState, p: Actor, openClasses?: (opener: HTMLElem
     h('div', { class: 'cs-who' }, h('div', { class: 'cs-sigil', 'aria-hidden': 'true' }, '⚔'),
       h('div', {}, h('b', {}, p.names.current || (getLibrary().classes[cls]?.name ?? cls)), h('span', {}, [ageText(s, p), place ? `In ${theName(place)}` : ''].filter(Boolean).join(' · ')))), // AG16
     h('div', { class: 'cs-track' },
-      h('div', { class: 'cs-row' }, h('span', {}, 'Health'), h('b', {}, `${HEALTH_LEVELS.name(level)} · `, figBtn('cs-figlink', 'What makes up your total health', (el) => openHealthPop(s, p, el), `${whole(hp)} HP`))),
-      // each level named at its segment, alternating one above the bar and one below
-      steps(boxes, level, 0),
-      h('div', { class: 'cs-hp', title: `Health track: ${levels.map(HEALTH_LEVELS.name).join(', ')}` }, boxes.map((l) => h('i', { class: at <= levels.indexOf(l) ? 'on' : '', title: HEALTH_LEVELS.name(l), 'aria-label': HEALTH_LEVELS.name(l) }))),
-      steps(boxes, level, 1)),
+      h('div', { class: 'cs-row' }, h('span', {}, 'Health'), h('b', {}, figBtn('cs-figlink', 'What makes up your total health', (el) => openHealthPop(s, p, el), `${whole(hp)} HP`))),
+      // SD5: the boxes (Critical on the left to Bruised, then Unhurt) show the level; its word is the track's tip and name
+      h('div', { class: 'cs-hp', role: 'img', title: HEALTH_LEVELS.name(level), 'aria-label': `Health: ${HEALTH_LEVELS.name(level)}` },
+        boxes.map((l) => h('i', { class: at <= levels.indexOf(l) ? 'on' : '' })))),
     xpTrack(s, p, openClasses),
     capstoneChoice(s, p),
     // the body figure beside the figures (CP5: a click opens each part in a pop-up); gear and personality are tiles under the page
@@ -196,8 +193,9 @@ export function openBodyPop(s: GameState, p: Actor, opener?: HTMLElement | null,
   const { hp, total } = hpLeft(s, p);
   const row = (id: string, name: string, pct: number, amount: string) => {
     const st = poolState(pct);
-    return h('div', { class: 'bp-row' + (id === part ? ' on' : ''), 'data-part': id }, h('i', { class: `bf-${st}`, 'aria-hidden': 'true' }), h('b', {}, name),
-      h('span', { class: 'bp-st' }, PART_STATES.name(st)), h('span', { class: 'bp-amt' }, amount));
+    // SD3: a healthy part names no state (its square and the key say it); Damaged and worse keep their word
+    return h('div', { class: 'bp-row' + (id === part ? ' on' : ''), 'data-part': id }, h('i', { class: `bf-${st}`, role: 'img', title: PART_STATES.name(st), 'aria-label': PART_STATES.name(st) }), h('b', {}, name),
+      h('span', { class: 'bp-st' }, st === 'healthy' ? '' : PART_STATES.name(st)), h('span', { class: 'bp-amt' }, amount));
   };
   // BV1 b: the turnable figure; a click on a part marks its row
   const fig = bodyFigure(s, p, new Set(), 'pop', (id) => {
@@ -231,7 +229,7 @@ function xpTrack(s: GameState, p: Actor, openClasses?: (opener: HTMLElement) => 
     target && target.classId !== cur?.classId ? `next level to ${name(target.classId)}` : ''].filter(Boolean).join(' · ');
   const cls: HTMLElement = openClasses
     ? h('button', { type: 'button', class: 'cs-class', 'aria-haspopup': 'dialog', title: 'Open the class tree: how classes link, and where your next level goes',
-      onclick: () => openClasses(cls) }, h('span', { class: 'hs-label' }, 'Class'), cur ? classIcon(cur.classId) : '', h('b', {}, line), h('span', { class: 'cs-class-go', 'aria-hidden': 'true' }, '›'))
+      onclick: () => openClasses(cls) }, cur ? classIcon(cur.classId) : '', h('b', {}, line), h('span', { class: 'cs-class-go', 'aria-hidden': 'true' }, '›'))
     : h('div', { class: 'cs-row' }, h('span', {}, 'Class'), h('b', {}, cur ? classIcon(cur.classId) : '', line));
   return h('div', { class: 'cs-track' },
     h('div', { class: 'cs-row' }, h('span', {}, `Level ${charLevel(p)}`), h('b', {}, `${+pr.xp.toFixed(6)} / ${need} XP`)),
@@ -277,8 +275,8 @@ export function treeBars(p: Actor): HTMLElement {
       t.rows.map((r) => h('div', { class: 'cs-sk' + (r.raw ? '' : ' zero'), role: 'button', tabindex: '0', 'aria-haspopup': 'dialog', 'data-skill': r.id,
         title: 'What makes up this skill', onclick: (e: Event) => openSkillPop(p, r.id, e.currentTarget as HTMLElement),
         onkeydown: (e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openSkillPop(p, r.id, e.currentTarget as HTMLElement); } } },
-        h('div', { class: 'n' }, skillName(r.id), r.tagged ? [' ', tag()] : null, r.flawed ? [' ', flaw()] : null, r.off ? [' ', offNote()] : null, marked(p, r.id) ? markDot() : null, SKILL_SUB[r.id] ? h('small', {}, SKILL_SUB[r.id]) : null),
-        bar(r.raw, windowOf(p, r.id)), ((w) => h('div', { class: 'lwn', title: winTitle(w) }, winText(w)))(windowOf(p, r.id)), skillNum(trueSkill(p, r.id), r.raw))))));
+        h('div', { class: 'n' }, skillName(r.id), r.tagged ? [' ', tagIcon()] : null, r.flawed ? [' ', flaw()] : null, r.off ? [' ', offNote()] : null, marked(p, r.id) ? markDot() : null, SKILL_SUB[r.id] ? h('small', {}, SKILL_SUB[r.id]) : null),
+        bar(r.raw, windowOf(p, r.id), BAR_TIP), ((w) => h('div', { class: 'lwn', title: winTitle(w) }, winText(w)))(windowOf(p, r.id)), skillNum(trueSkill(p, r.id), r.raw))))));
 }
 
 const signed = (n: number) => `${n < 0 ? '−' : '+'}${whole(Math.abs(n))}`;
@@ -309,11 +307,11 @@ export function openSkillPop(p: Actor, id: string, opener?: HTMLElement | null):
   const line = (label: string, v: string, cls = '', tip: Record<string, string> = {}) => h('div', { class: 'sk-line ' + cls }, h('span', tip, label), h('b', {}, v));
   const tagged = p.core.skills[id]?.state === 'tagged', flawed = p.core.skills[id]?.state === 'flawed';
   openPop({ title: skillName(id), cls: 'sk-pop', opener, body: [
-    h('div', { class: 'sk-top' }, h('b', { class: 'sk-v' }, whole(f.value)), h('span', {}, f.value === f.raw ? 'Skill' : `True skill · raw ${f.raw}`),
-      tagged ? h('span', { class: 'sk-chip' }, tag(), ' Tagged') : null, flawed ? h('span', { class: 'sk-chip' }, flaw(), ' Flawed') : null, marked(p, id) ? h('span', { class: 'sk-chip' }, markDot(), ' Marked to improve') : null),
+    h('div', { class: 'sk-top' }, h('b', { class: 'sk-v' }, whole(f.value)), f.value === f.raw ? null : h('span', {}, `True skill · raw ${f.raw}`),
+      tagged ? h('span', { class: 'sk-chip' }, tagIcon(), ' Tagged') : null, flawed ? h('span', { class: 'sk-chip' }, flaw(), ' Flawed') : null, marked(p, id) ? h('span', { class: 'sk-chip' }, markDot(), ' Marked to improve') : null),
     SKILL_SUB[id] && !f.gives.length ? h('p', { class: 'hs-note' }, cap(SKILL_SUB[id]) + '.') : null,
     h('div', { class: 'sk-list', 'aria-label': 'What adds to it' },
-      line('Raw', whole(f.raw), 'sk-raw'), ...f.parts.map((x) => line(x.label, signed(x.adds))),
+      f.value === f.raw ? null : line('Raw', whole(f.raw), 'sk-raw'), ...f.parts.map((x) => line(x.label, signed(x.adds))),
       f.mult !== 1 ? line(perkName(PK.hollowed), `×${whole(f.mult)}`, 'sk-bad') : null,
       line('True skill', whole(f.value), 'sk-sum')),
     f.rolls.length ? h('div', { class: 'sk-list' }, h('p', { class: 'hs-label' }, 'On its rolls'), ...f.rolls.map((x) => line(cap(x.source), signed(x.value), x.value < 0 ? 'sk-bad' : ''))) : null,
@@ -428,7 +426,7 @@ export const NERVE_UNTIL = "You can't attack or go toward a foe until the fight 
 export const NERVE_COWERING = "You can't move or attack until the fight is behind you: you cower where you stand.";
 export const NERVE_PASSES = () => `That is once no one has fought you for ${engagementEndS()} s, your yield is taken, this scenario ends, or you rest.`;
 export const NERVE_STILL = 'You can still talk, beg, yield, give, hide, use an item such as a bandage, pick something up, or open a door or container within reach.';
-/** NB2: a level word that carries what it costs as a tip, shown on hover or keyboard focus (dotted underline as the cue);
+/** NB2: a bar's label that carries its level and what it costs as a tip, shown on hover or keyboard focus (dotted underline as the cue);
  * screen readers get it as the word's description */
 function tipped(word: string, tip: string, m: string, tm: string): HTMLElement {
   const id = `tip-${m}`;
@@ -443,7 +441,8 @@ export function moraleHint(k: MoraleLevel): string | null {
   return `${roll ? `−${Math.abs(roll)}% on every roll. ` : ''}${last ? 'One more fright and your nerve breaks' : 'If your nerve breaks'}: you won't be able to attack or go toward a foe.`;
 }
 
-/** MB11: the player's morale bar, a second bar under health: level word, how much is left, and the track's thresholds as ticks */
+/** MB11: the player's morale bar, a second bar under health: how much is left and the track's thresholds as ticks; the level
+ * word is only the bar's tip and name (SD5), and from MORALE_HINT_FROM the stakes are a tip on the label (NB2) */
 export function moraleBar(p: Actor, full: boolean): HTMLElement[] {
   const key = moraleLevel(p), hint = moraleHint(key);
   const level = MORALE_LEVELS.name(key);
@@ -452,13 +451,13 @@ export function moraleBar(p: Actor, full: boolean): HTMLElement[] {
   const left = Math.round(max * (100 - lost) / 100);
   const ticks = full ? CONFIG.MORALE_TRACK.slice(1, -1).map(([, at]) => h('i', { style: `left:${100 - Math.min(100, at)}%` })) : [];
   return [
-    h('span', { class: 'cs-row' }, h('span', {}, 'Morale',
+    h('span', { class: 'cs-row' }, h('span', {},
+      // NB2: above Broken the stakes are a tip on the label (hover or focus), never a line of their own
+      hint && !isBrokenLevel(key) ? tipped('Morale', `${level}: ${hint}`, 'morale-label', 'morale-hint') : 'Morale',
       // SY1: a Great Success or better at steadying yourself halves the next morale loss, then it is gone
       p.core.condition.mentallySteady ? h('span', { class: 'cs-steady', 'data-m': 'steady', title: 'Mentally steady: your next morale loss is halved' }, 'Mentally steady') : null),
-      // NB2: above Broken the stakes are a tip on the level word (hover or focus), never a line of their own
-      h('b', {}, hint && !isBrokenLevel(key) ? tipped(level, hint, 'morale-level', 'morale-hint') : h('span', { 'data-m': 'morale-level' }, level),
-      full ? [' · ', figBtn('cs-figlink', 'What makes up your max morale', (el) => openMoralePop(p, el), h('span', { 'data-m': 'morale-left' }, String(left)), ` / ${max}`)] : null)),
-    h('span', { class: 'cs-hptrack cs-morale', title: 'Morale track, Calm on the right', role: 'img', 'aria-label': `Morale: ${level}`, 'data-m': 'morale-track' },
+      h('b', {}, full ? figBtn('cs-figlink', 'What makes up your max morale', (el) => openMoralePop(p, el), h('span', { 'data-m': 'morale-left' }, String(left)), ` / ${max}`) : null)),
+    h('span', { class: 'cs-hptrack cs-morale', title: `Morale: ${level}`, role: 'img', 'aria-label': `Morale: ${level}`, 'data-m': 'morale-track' },
       h('b', { style: `width:${100 - lost}%` }), ...ticks),
     // NB3: at Broken the line stays under the bar: no attacks until the fight is behind you, how that comes, what still works
     ...(hint && isBrokenLevel(key) ? [h('span', { class: 'cs-mhint broken', 'data-m': 'morale-hint', role: 'status' },
@@ -476,9 +475,10 @@ export function staminaBar(p: Actor, full: boolean): HTMLElement[] {
   const ticks = full ? CONFIG.FATIGUE_TRACK.slice(1, -1).map(([, at]) => h('i', { style: `left:${100 - Math.min(100, at)}%` })) : [];
   const breath = `Breath ${fmt1(v.lineLeft)} / ${fmt1(v.lineMax)}: strain spends it first, then eats into sleep debt; it comes back once you stop for a while`;
   return [
-    h('span', { class: 'cs-row' }, h('span', {}, 'Stamina', v.spent ? h('span', { class: 'cs-spent', 'data-m': 'spent', title: 'Spent: nothing harder than a Light effort until you sleep' }, 'Spent') : null),
-      h('b', {}, row && row[2] < 0 ? tipped(v.level, `${v.level}: −${Math.abs(row[2])}% to rolls`, 'stamina-level', 'stamina-hint') : h('span', { 'data-m': 'stamina-level' }, v.level), full ? [' · ', h('span', { 'data-m': 'stamina-left' }, fmt1(v.left)), ` / ${fmt1(v.max)}`] : null)),
-    h('span', { class: 'cs-hptrack cs-stam', title: 'Stamina: sleep debt, Rested on the right; only sleep clears it', role: 'img', 'aria-label': `Stamina: ${v.level}`, 'data-m': 'stamina-track' },
+    h('span', { class: 'cs-row' }, h('span', {}, row && row[2] < 0 ? tipped('Stamina', `${v.level}: −${Math.abs(row[2])}% to rolls`, 'stamina-label', 'stamina-hint') : 'Stamina',
+      v.spent ? h('span', { class: 'cs-spent', 'data-m': 'spent', title: 'Spent: nothing harder than a Light effort until you sleep' }, 'Spent') : null),
+      h('b', {}, full ? [h('span', { 'data-m': 'stamina-left' }, fmt1(v.left)), ` / ${fmt1(v.max)}`] : null)),
+    h('span', { class: 'cs-hptrack cs-stam', title: `Stamina: ${v.level}. Sleep debt; only sleep clears it`, role: 'img', 'aria-label': `Stamina: ${v.level}`, 'data-m': 'stamina-track' },
       h('b', { style: `width:${pct(v.left, v.max)}%` }), ...ticks),
     h('span', { class: 'cs-stline', title: breath, role: 'img', 'aria-label': breath, 'data-m': 'stamina-line', style: `width:${pct(v.lineMax, v.max)}%` },
       h('b', { style: `width:${pct(v.lineLeft, v.lineMax)}%` })),
@@ -521,23 +521,26 @@ export function gearNote(s: GameState, i: Actor['core']['inventory'][number]): {
   return { text: bits.join(', '), cls: bits.some((b) => b.endsWith('empty')) ? 'ps-destroyed' : 'ps-pool' };
 }
 
+/** a gear note as the play sheet shows it: none for a Healthy shield, the normal case (SD3) */
+const playNote = (s: GameState, i: Actor['core']['inventory'][number]) => { const n = gearNote(s, i); return n?.cls === 'ps-healthy' ? null : n; };
+
 /** the gear lines on the play sheet: each held or worn item by name, with its gearNote (M-35) */
 function gearLine(s: GameState, p: Actor, held: boolean): HTMLElement[] {
   const on = p.core.inventory.filter((i) => i.equippedIn?.length && isHeld(i) === held);
   return on.map((i, k) => {
-    const n = gearNote(s, i);
+    const n = playNote(s, i);
     return h('span', { class: 'cs-gi', 'data-gear': i.id }, k ? ' · ' : '', cap(safe(() => itemDef(s, i.itemId).name) ?? i.itemId),
       n ? h('span', { class: `cs-gn ${n.cls}`, 'data-m': 'gear-note' }, n.text) : null);
   });
 }
 
-/** Layout A: the narrow status strip beside the story (health word and bar, damaged parts, what is held); a click opens the full sheet */
+/** Layout A: the narrow status strip beside the story (the health, morale and stamina bars, their levels only in each bar's tip; damaged parts); a click opens the full sheet */
 export function statusStrip(s: GameState, p: Actor): HTMLElement[] {
   const level = shownLevel(healthLevel(p));
   const left = level === 'unhurt' ? 100 : Math.max(0, 100 - p.core.condition.hpLostPct) * (100 - UNHURT_SECTION) / 100;
   return [
-    h('span', { class: 'cs-row' }, h('span', {}, 'Health'), h('b', {}, h('span', { 'data-m': 'hp-level' }, HEALTH_LEVELS.name(level)))),
-    h('span', { class: 'cs-hptrack', 'data-m': 'hp-track' }, h('b', { style: `width:${left}%` })),
+    h('span', { class: 'cs-row' }, h('span', {}, 'Health')),
+    h('span', { class: 'cs-hptrack', title: `Health: ${HEALTH_LEVELS.name(level)}`, role: 'img', 'aria-label': `Health: ${HEALTH_LEVELS.name(level)}`, 'data-m': 'hp-track' }, h('b', { style: `width:${left}%` })),
     partChips(s, p),
     ...moraleBar(p, false),
     ...staminaBar(p, false),
@@ -607,7 +610,7 @@ export function shownValues(s: GameState, p: Actor): ShownValues {
     parts: Object.fromEntries((safe(() => actorBody(s, p).parts) ?? []).map((d) => [d.id, poolState(p.core.condition.parts[d.id] ?? 100)])),
     skills: Object.fromEntries(trees(p, false).flatMap((t) => t.rows.map((r) => [r.id, r.raw]))),
     lvl: xp?.level ?? null, xp: xp?.xp ?? null, xpPct: xp?.pct ?? null, coin: coins(p),
-    gear: Object.fromEntries(p.core.inventory.filter((i) => i.equippedIn?.length).map((i) => [i.id, { name: cap(safe(() => itemDef(s, i.itemId).name) ?? i.itemId), note: gearNote(s, i)?.text ?? '' }])),
+    gear: Object.fromEntries(p.core.inventory.filter((i) => i.equippedIn?.length).map((i) => [i.id, { name: cap(safe(() => itemDef(s, i.itemId).name) ?? i.itemId), note: playNote(s, i)?.text ?? '' }])),
     chips: Object.entries(p.pressure ?? {}).flatMap(([id, x]) => (['shaken', 'swayed'] as const).filter((k) => x[k]).map((k) => `${id}:${k}`)),
     yielded: !!s.yielding,
     points: p.progression?.unspentPerkPoints ?? 0,

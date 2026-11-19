@@ -35,7 +35,8 @@ import { GRADES } from '../types/core';
 /** earnedAtText only reads state to name a granted kind; the library shows definitions, so it passes none */
 const NO_STATE = {} as GameState;
 import { itemLevel, requirement } from '../ruleset/requirements';
-import { claudeComments, fmtDate, h } from './kit';
+import { claudeComments, fmtDate, h, iconMark } from './kit';
+import { ICON_ART } from './iconArt';
 import { toneTable } from './libraryTones';
 import { skillName } from './creation';
 import { ALL_BUNDLES } from '../library/allPerks';
@@ -256,16 +257,18 @@ function gearCard(i: ItemDef, id = i.id): HTMLElement {
   const req = requirement(i);
   const flags = (['concealed', 'stackable', 'consumable', 'visible'] as const).filter((f) => i[f]).map((f) => chip(f, toneFor('Flag', f)));
   const covers = new Set(i.armor?.covers ?? []);
-  return card('gear', id, i, label(i.name), [chip(i.kind, toneFor('Kind', i.kind)), ...flags, ...(i.tags ?? []).map((t) => chip(t, toneFor('Flag', t)))],
+  // SD12: a mode's tree and class are said once, by the gear class ("Light melee weapon"); a mode of another class keeps them
+  const cls = (lib.gearClasses?.[i.gearClass ?? '']?.name ?? '').toLowerCase().split(/\s+/);
+  const own = (bit: string) => (bit.split(' ').every((w) => cls.includes(w)) ? null : bit);
+  const c = card('gear', id, i, label(i.name), [chip(i.kind, toneFor('Kind', i.kind)), ...flags, ...(i.tags ?? []).map((t) => chip(t, toneFor('Flag', t)))],
     h('p', { class: 'lv-look' }, i.look),
-    i.family ? row('Family', lib.itemFamilies?.[i.family]?.name ?? i.family) : null, // IR30: Mundane, or a special family
     i.gearClass ? row('Gear class', typedId(i.gearClass) ?? i.gearClass) : null,
     i.gearType ? row('Gear type', link('gearTypes', i.gearType, lib.gearTypes?.[i.gearType]?.name ?? i.gearType)) : null, // IR23: its reach or coverage comes from the type
     req ? row('Needs', `${req.need} true skill in `, link('skills', req.skill, skillName(req.skill)), ` (${equipName(req.level)} item)`) : row('Needs', none('nothing')),
     row('Bulk', String(i.bulk)), row('Value', `${itemValue(null, i)} coin${benefits(i).length ? ` (${benefits(i).map((b) => `${b.what}: ${+b.coin.toFixed(2)}`).join(' · ')})` : ''}`),
     i.grips !== undefined ? row('Grips', String(i.grips)) : null,
     i.slot ? row('Slot', i.slot) : null,
-    i.weapon ? row('Modes', h('div', { class: 'lv-plist' }, i.weapon.modes.map((m) => { const row = lib.attackModes?.[m.id]; return parts(modeName(m), [`${m.tree} ${m.class}`,
+    i.weapon ? row('Modes', h('div', { class: 'lv-plist' }, i.weapon.modes.map((m) => { const row = lib.attackModes?.[m.id]; return parts(modeName(m), [own(`${m.tree} ${m.class}`),
       `${m.thrown ? 'thrown' : 'reach'} ${modeReach(m)} m`, `${m.grips} grip${m.grips === 1 ? '' : 's'}`,
       m.skill && skillName(m.skill), m.thrown && 'thrown', row?.blend && `combined roll (${row.blend.weapon} own skill + ${row.blend.ranged} ranged)`, m.hitAdj ? `hit ${m.hitAdj > 0 ? '+' : ''}${m.hitAdj}` : null]); }))) : null,
     i.armor ? h('div', { class: 'lv-armor' }, figure(humanoid, (p) => (covers.has(p) ? 'lv-on' : 'lv-off')),
@@ -274,6 +277,9 @@ function gearCard(i: ItemDef, id = i.id): HTMLElement {
     i.shield ? row('Shield pool', String(i.shield.pool)) : null,
     i.effects?.length ? row('Effects', h('div', { class: 'lv-plist' }, i.effects.map((e) => { const [lead, bits] = effectParts(e, i); return parts(lead, bits); }))) : null,
     i.heal ? row('Heals as', link('healing', i.heal, lib.healing?.[i.heal]?.name ?? i.heal)) : null);
+  // SD12: only the exception is marked: a Threadbound piece gets its mark after the name (the family panes still sort them)
+  if (i.threadbound) c.querySelector('header > h3')?.append(iconMark(ICON_ART.threadbounded, 'Threadbound'));
+  return c;
 }
 function gear(): HTMLElement[] {
   const kinds = [...new Set(Object.values(lib.items).map((i) => i.kind))];
@@ -382,7 +388,7 @@ function showPane(key: string): void {
   drawBar(); paint(); filter();
 }
 
-const cell = (d: PerkDef) => h('a', { class: `lv-cell${d.built ? '' : ' unbuilt'}${d.quirk ? ' quirk' : ''}`, href: `#perks/${d.id}`, style: `--tg: var(${toneFor('Effect', d.effect ?? '') ?? '--c3'})` }, d.name);
+const cell = (d: PerkDef) => h('a', { class: `lv-cell${d.built ? '' : ' unbuilt'}${d.quirk ? ' quirk' : ''}`, href: `#perks/${d.id}`, title: d.quirk ? 'Quirk' : undefined, style: `--tg: var(${toneFor('Effect', d.effect ?? '') ?? '--c3'})` }, d.name);
 const grid = (corner: string, cols: string[], rows: [string, (col: string) => PerkDef[]][]) => h('div', { class: 'lv-ladder' }, h('table', { class: 'hs-tbl' },
   h('thead', {}, h('tr', {}, h('th', {}, corner), cols.map((c) => h('th', {}, c)))),
   h('tbody', {}, rows.map(([name, at]) => h('tr', {}, h('td', {}, h('b', {}, name)), cols.map((c) => h('td', {}, at(c).map(cell))))))));
@@ -442,7 +448,7 @@ function perks(): HTMLElement[] {
   const classRows = classes.map((c): [string, (col: string) => PerkDef[]] => [`${c.name} · ${CLASS_TIERS.name(c.tier)}`,
     (col) => (col === 'Capstones' ? [...(c.capstone ?? []), ...(c.capstones ?? []).map((x) => x.perk)] : c.levelPerks?.[+col.replace('Level ', '')] ?? []).map((id) => lib.perks[id]).filter(Boolean)]);
   return [
-    h('p', { class: 'hs-note' }, `${all.length} perks in the library · ${all.filter((d) => d.built).length} built · ${quirks} quirk${quirks === 1 ? '' : 's'} · ${loose.length} written outside the library. A dashed cell is not built yet; a red edge is a quirk.`),
+    h('p', { class: 'hs-note' }, `${all.length} perks in the library · ${all.filter((d) => d.built).length} built · ${quirks} quirk${quirks === 1 ? '' : 's'} · ${loose.length} written outside the library. A dashed cell is not built yet; a wavy underline is a quirk.`),
     h('p', { class: 'hs-note lv-chips' }, [...new Set(all.map((d) => d.effect).flatMap((e) => (e ? [e] : [])))].sort((x, y) => x.localeCompare(y)).map((e) => chip(e, toneFor('Effect', e)))),
     ...panes([
       { key: 'milestone', title: 'Milestone perks (20, 40, 60 …)', short: 'Milestone', n: ladder.length, content: [
@@ -1259,9 +1265,11 @@ claudeComments().then((api) => {
     }
   };
 }).catch(() => undefined);
+// the build line sits at the foot of the page: the entries come first
 const main = h('main', {}, h('div', { class: 'head' }, h('div', { class: 'lv-head-main' },
-  h('div', { class: 'lv-titlerow' }, titleEl, h('p', { class: 'lv-build', title: 'Library as the code builds it (prototypeLibrary)' }, `Built from code · commit ${__BUILD__.sha} · ${fmtDate(__BUILD__.date)}`, ' ', refresh, ' ', refreshNote)),
-  h('div', { class: 'lv-meta' }, results)), search), bar, body);
+  h('div', { class: 'lv-titlerow' }, titleEl),
+  h('div', { class: 'lv-meta' }, results)), search), bar, body,
+  h('footer', { class: 'lv-foot' }, h('p', { class: 'lv-build', title: 'Library as the code builds it (prototypeLibrary)' }, `Built from code · commit ${__BUILD__.sha} · ${fmtDate(__BUILD__.date)}`, ' ', refresh, ' ', refreshNote)));
 // sub-tabs live in a rail on the right, mirroring the table rail on the left; hidden when the tab has none
 const subRail = h('nav', { class: 'hs-rail lv-subrail', 'aria-label': 'Sub-tabs' });
 body.id = 'lv-content';
@@ -1415,7 +1423,7 @@ function filter(): void {
   body.querySelectorAll<HTMLAnchorElement>('.lv-cell').forEach((a) => a.classList.toggle('dim', !!document.getElementById(a.hash.slice(1))?.hidden));
   const n = all.filter((c) => !c.hidden).length;
   const filtering = !!q || picks.size > 0;
-  results.replaceChildren(...(all.length ? [`${n} of ${all.length} shown`] : []),
+  results.replaceChildren(...(all.length && n < all.length ? [`${n} of ${all.length} shown`] : []),
     ...(filtering ? [' ', h('button', { type: 'button', class: 'hs-btn-text', onclick: () => { search.value = ''; clearFilters(); } }, 'Clear')] : []));
   empty.hidden = !(filtering && all.length && !n);
   if (!empty.hidden) {
@@ -1688,7 +1696,7 @@ function tablify(): void {
     const tbody = h('tbody', {});
     const rows = list.map((c, i) => {
       const t = c.querySelector(':scope > header > h3');
-      const tr = h('tr', { 'data-ref': c.id }, h('th', { scope: 'row' }, h('a', { class: 'lv-link', href: `#${c.id}` }, cellText(t))),
+      const tr = h('tr', { 'data-ref': c.id }, h('th', { scope: 'row' }, h('a', { class: 'lv-link', href: `#${c.id}` }, cellText(t)), ...Array.from(t?.querySelectorAll('.ic-mk') ?? []).map((m) => m.cloneNode(true))),
         ...cols.map((k) => h('td', {}, ...(maps[i].has(k) ? Array.from(maps[i].get(k)!.cloneNode(true).childNodes) : ['—']))));
       return { tr, card: c, keys: [cellText(t), ...cols.map((k) => cellText(maps[i].get(k)))] };
     });
@@ -1726,7 +1734,7 @@ function route(): void {
   if (!found && key) { history.replaceState(null, '', `#${sec.key}`); notice = `There is no table called “${key}”, so this is ${sec.title}.`; shown = ''; }
   if (sec.key !== shown) {
     shown = sec.key;
-    titleEl.replaceChildren(sec.title, h('span', { class: 'lv-size' }, ` · ${sizeOf(sec)}`));
+    titleEl.replaceChildren(sec.title); // its size shows once, in the rail
     barTitle.textContent = sec.title;
     picks.clear();
     if (!allBox.checked) search.value = ''; // a new table starts unfiltered, unless the search covers all tables

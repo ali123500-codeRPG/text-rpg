@@ -12,7 +12,7 @@ import { CLASS_TIERS, type ClassTierKey } from '../scales';
 import { classMaxLevel } from '../library/spawn';
 import { levelTarget, spendXp } from '../engine/xp';
 import { PK } from '../library/perkIds';
-import { skillName } from './creation';
+import { markIcon, skillName } from './creation';
 import { h } from './kit';
 import { classIcon } from './itemIcons';
 import { openPop, closePop } from './pop';
@@ -109,6 +109,10 @@ const statusText = (n: ClassNode): string =>
     : n.level >= n.top ? `Level ${n.level} · its top level`
       : `Level ${n.level} of ${n.top}${n.state === 'current' ? ' · current' : n.state === 'previous' ? ' · left behind' : ''}`;
 
+/** SD10: the tree card's own line drops the words its border already shows: current (gold) and Locked (dashed); its tip keeps them */
+const cardText = (n: ClassNode): string => (n.shown === 'next' ? '' : statusText(n).replace(' · current', ''));
+const CLASSES_ABOUT = 'Each band is a class tier, Common on the left. Arrows show which class opens which; a dead end opens nothing after it. The gold thread is your path, from where you started. Click a class for its card, and to choose where your next level goes.';
+
 /** the class tree's body: the tier bands with their classes, and the link arrows and the thread drawn over them once laid out */
 export function classTreeView(s: GameState, after: () => void): HTMLElement {
   const el = h('section', { class: 'ct', 'aria-label': 'Class tree' });
@@ -118,20 +122,24 @@ export function classTreeView(s: GameState, after: () => void): HTMLElement {
     const start = classPath(p)[0];
     const { lane, lanes: n } = lanes(nodes, links);
     const bands = CLASS_TIERS.keys.map((t) => [t, nodes.filter((x) => x.tier === t)] as const); // Common on the left
+    // SD10: started here, next level here and can open every class are icons after the name, each named in its tip
     const node = (x: ClassNode) => h('button', {
-      type: 'button', class: `ct-node ${x.shown}${x.target ? ' target' : ''}${x.deadEnd ? ' dead' : ''}`, 'data-class': x.id, 'aria-haspopup': 'dialog',
+      type: 'button', class: `ct-node ${x.shown}${x.target ? ' target' : ''}${x.deadEnd ? ' dead' : ''}`, 'data-class': x.id, 'aria-haspopup': 'dialog', title: `${x.name}: ${statusText(x)}`,
       onclick: (e: Event) => openClassCard(s, x.id, e.currentTarget as HTMLElement, () => { draw(); after(); }),
-    }, h('span', { class: 'ct-name' }, classIcon(x.id), h('b', {}, x.name)), h('span', { class: 'ct-st' }, statusText(x)),
-      x.id === start ? h('span', { class: 'ct-chip start' }, 'Started here') : null,
-      x.target ? h('span', { class: 'ct-chip next' }, 'Next level here') : null,
+    }, h('span', { class: 'ct-name' }, classIcon(x.id), h('b', {}, x.name),
+      x.id === start ? markIcon('class_start', 'Started here', 'mk-i ct-mk start') : null,
+      x.target ? markIcon('class_next', 'Next level here', 'mk-i ct-mk next') : null,
+      !x.deadEnd && x.opensAll ? markIcon('class_any', 'Can open every class', 'mk-i ct-mk all') : null),
+      cardText(x) ? h('span', { class: 'ct-st' }, cardText(x)) : null,
+      // the card's name for a screen reader keeps the words its border shows
+      x.state === 'current' || x.shown === 'next' ? h('span', { class: 'vh' }, x.shown === 'next' ? 'Locked' : 'Current') : null,
       x.shown === 'next' && x.source ? h('span', { class: 'ct-src' }, `From ${x.source}`) : null,
-      x.deadEnd ? h('span', { class: 'ct-chip dead' }, 'Dead end') : x.opensAll ? h('span', { class: 'ct-chip all' }, 'Can open every class') : null);
+      x.deadEnd ? h('span', { class: 'ct-chip dead' }, 'Dead end') : null);
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('class', 'ct-links');
     svg.setAttribute('aria-hidden', 'true');
     el.replaceChildren(
-      h('div', { class: 'ct-h' }, h('h2', {}, 'Classes'),
-        h('p', {}, 'Each band is a class tier, Common on the left. Arrows show which class opens which; a dead end opens nothing after it. The gold thread is your path, from where you started. Click a class for its card, and to choose where your next level goes.')),
+      h('div', { class: 'ct-h' }, h('h2', { title: CLASSES_ABOUT }, 'Classes')),
       // a band with classes is twice as wide as an empty one, so every tier stays in view and the classes have room
       h('div', { class: 'ct-bands', style: `grid-template-columns: ${bands.map(([, col]) => (col.length ? 'minmax(min-content, 2fr)' : 'minmax(104px, 1fr)')).join(' ')}` }, svg, ...bands.map(([t, col]) => h('div', { class: 'ct-band', 'data-tier': t },
         h('span', { class: 'ct-tier' }, CLASS_TIERS.name(t)), h('div', { class: 'ct-col', style: `grid-template-rows: repeat(${n}, minmax(0, 1fr))` }, col.map((x) => { const b = node(x); b.style.gridRow = String(lane.get(x.id)! + 1); b.style.gridColumn = '1'; return b; }))))));

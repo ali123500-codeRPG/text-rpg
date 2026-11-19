@@ -20,10 +20,10 @@ import type { MinimapPoint } from './minimap';
 export type SayMode = { action: DeckAction; choice: Choice; to: string };
 
 /** the Defense row: each standing defense, what it does, and what it needs when it can't be used now */
-const DEFENSES: { kind: DefenseKind; tip: string; lack?: string; needs?: string }[] = [
+const DEFENSES: { kind: DefenseKind; tip: string; needs?: string }[] = [
   { kind: 'dodge', tip: 'Dodge: get out of the way of every blow and missile' },
-  { kind: 'parry', tip: "Parry: turn melee blows with your weapon. It can't stop missiles: against those you use your best other defense", lack: 'no weapon', needs: 'a melee weapon in hand' },
-  { kind: 'block', tip: 'Block: catch blows and missiles on your shield', lack: 'no shield', needs: 'a shield in hand' },
+  { kind: 'parry', tip: "Parry: turn melee blows with your weapon. It can't stop missiles: against those you use your best other defense", needs: 'a melee weapon in hand' },
+  { kind: 'block', tip: 'Block: catch blows and missiles on your shield', needs: 'a shield in hand' },
 ];
 const figure = (n: number) => String(+n.toFixed(2)); // fractions shown, as the Character page does
 
@@ -88,7 +88,7 @@ export function deckView(api: GameApi, o: {
     if (!acts.length) return;
     const opener = anchor instanceof HTMLElement ? anchor : null;
     const pop = openPop({ title: pickLabel(acts[0], { target: id }) ?? 'Them', opener, cls: 'deck-pick', body: [h('div', { class: 'dk-picks', role: 'list' }, acts.map((a) =>
-      h('button', { type: 'button', class: 'dk-pick' + (a.hot ? ' hot' : ''), role: 'listitem', onclick: () => run(a, { target: id }, opener) }, h('b', {}, a.label), a.note ? h('small', {}, a.note) : null)))] });
+      h('button', { type: 'button', class: 'dk-pick' + (a.hot ? ' hot' : ''), role: 'listitem', title: actTip(a), onclick: () => run(a, { target: id }, opener) }, h('b', {}, a.label))))] });
     if (!(anchor instanceof HTMLElement)) { pop.style.left = `${Math.max(16, anchor.left - pop.offsetWidth - 8)}px`; pop.style.top = `${Math.max(16, anchor.top)}px`; }
   }
 
@@ -106,8 +106,7 @@ export function deckView(api: GameApi, o: {
     const p = s.player, chosen = p.core.standingDefense, used = safe(() => usableDefense(s, p, false)) ?? chosen;
     DEFENSES.forEach((d, i) => {
       const b = defBtns[i], can = canDefend(s, p, d.kind), v = can ? safe(() => defenseValue(s, p, d.kind)) : null;
-      const text = can ? (v === null ? '' : figure(v)) : d.lack!;
-      b.replaceChildren(h('span', {}, cap(d.kind)), h('span', { class: 'dv' }, text));
+      b.replaceChildren(h('span', {}, cap(d.kind)), can ? h('span', { class: 'dv' }, v === null ? '' : figure(v)) : lockMark(d.needs!));
       b.setAttribute('aria-pressed', String(d.kind === chosen));
       if (can) b.removeAttribute('aria-disabled'); else b.setAttribute('aria-disabled', 'true');
       b.title = can ? d.tip : `Needs ${d.needs}`;
@@ -137,8 +136,8 @@ export function deckView(api: GameApi, o: {
     if (sayMode && !groups.some((g) => g.actions.some((a) => a.kind === sayMode!.action.kind))) setSay(null);
     const kids = groups.map((g) => h('div', { class: `dk-col g-${g.group}` }, h('p', { class: 'dk-h' }, g.name),
       ...g.actions.map((a, i) => h('button', { type: 'button', class: 'dk-act' + (a.hot ? ' hot' : '') + (a.limit ? ' dk-lim' : ''), 'data-kind': a.kind, 'data-i': String(i),
-        ...(a.limit ? { 'aria-disabled': 'true', 'aria-label': `${a.label}, ${a.limit.tip}` } : {}), title: [a.limit?.tip, a.time].filter(Boolean).join(' · ') },
-        h('span', { class: 't' }, limitMark(a), a.label, freeMark(a), natureMark(a)), a.note ? h('span', { class: 'n' }, a.note) : null))));
+        ...(a.limit ? { 'aria-disabled': 'true', 'aria-label': `${a.label}, ${a.limit.tip}` } : {}), title: actTip(a) },
+        h('span', { class: 't' }, limitMark(a), a.label, freeMark(a), natureMark(a))))));
     const now = kids.map((k) => k.outerHTML).join('');
     if (now === html && !force) return;
     html = now;
@@ -178,10 +177,19 @@ export function deckView(api: GameApi, o: {
 
 const keyOf = (a: DeckAction) => `${a.kind}|${a.label}`;
 /** A3: a used move's hollow mark with a slash; a waiting one's ring, filled by the share of the wait gone */
+/** the hover line of a deck action: its wait, its time, then what the old sub-line said (SD6: no line under the name) */
+const actTip = (a: DeckAction) => [a.limit?.tip, a.time, a.note].filter(Boolean).join(' · ');
+/** a padlock after a defense that can't be used now; its name says what it needs (SD14) */
+function lockMark(needs: string): HTMLElement {
+  const el = h('span', { class: 'dk-mk dk-lock', role: 'img', title: `Needs ${needs}`, 'aria-label': `Needs ${needs}` });
+  el.innerHTML = ICONS.locked;
+  return el;
+}
+
 /** a lightning bolt after the name of a free action (beside your action, not instead of it): only free ones are marked */
 function freeMark(a: DeckAction): HTMLElement | null {
   if (!a.free) return null;
-  const el = h('span', { class: 'dk-mk dk-free', role: 'img', 'aria-label': 'Free' });
+  const el = h('span', { class: 'dk-mk dk-free', role: 'img', title: 'Free', 'aria-label': 'Free' });
   el.innerHTML = ICONS.free_action;
   return el;
 }

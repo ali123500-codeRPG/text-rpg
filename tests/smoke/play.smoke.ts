@@ -99,6 +99,57 @@ describe('play page smoke (TQ7)', () => {
     expect(errors).toEqual([]);
   });
 
+  it('creation: SD9 tag and flaw are two icon toggles after each skill name, lit when set; the rules and estimate are tile tips', async () => {
+    const k = await page.locator('.row[data-k]').filter({ has: page.locator('.tg-btn.tg-tag[aria-pressed="true"]') }).first().getAttribute('data-k');
+    const tagged = page.locator(`.row[data-k="${k}"]`);
+    const name = (await tagged.locator('.nm b').textContent())!;
+    const tag = tagged.locator('.tg-btn.tg-tag');
+    expect(await tag.getAttribute('aria-label')).toBe(`Untag ${name}`);
+    expect(await tagged.locator('.tg-btn.tg-flaw').evaluate((b) => getComputedStyle(b).visibility)).toBe('hidden'); // a tagged skill can't be flawed
+    await tag.click();
+    expect(await tag.getAttribute('aria-pressed')).toBe('false');
+    expect(await tag.getAttribute('aria-label')).toBe(`Tag ${name}`);
+    await tag.click();
+    expect(await tag.getAttribute('aria-pressed')).toBe('true');
+    // no word pills, no Tag / Flaw words on the rows, and no sub-lines under the names
+    expect(await page.locator('.row .hs-tg, .key .hs-tg').count()).toBe(0);
+    expect(await page.locator('.row').filter({ hasText: /^Tag|Flaw|sets HP/ }).count()).toBe(0);
+    expect(await page.getByRole('img', { name: 'Tagged' }).count()).toBeGreaterThan(0); // the key's icon
+    // SD4: the rule line is the Points left tile's tip; the estimate's source is its tile's tip, with its control by it
+    expect(await page.getByText(/^Spend \d+ points/).count()).toBe(0);
+    expect(await page.locator('.hs-readout', { hasText: 'Points left' }).getAttribute('title')).toMatch(/^Spend \d+ points\. Your class sets floors/);
+    const slime = page.locator('.hs-readout', { hasText: 'Vs one slime' });
+    expect(await slime.getAttribute('title')).toMatch(/practice swings each way/);
+    expect(await slime.getByRole('button', { name: 'Change the estimate' }).count()).toBe(1);
+    expect(await page.locator('.hs-ro-i').count()).toBe(0);
+    // SD14: the Placeholders box is for the GM view only; SD3: an axis with no lean shows no word
+    expect(await page.getByText('Placeholders').count()).toBe(0);
+    expect(await page.getByText('no lean').count()).toBe(0);
+    expect(errors).toEqual([]);
+  });
+
+  it('SD1-SD5, SD10: the Character page shows no help lines; health and classes keep their words in tips', async () => {
+    await nav('Character');
+    const card = page.locator('.cs-card');
+    await card.waitFor();
+    expect(await page.getByText(/Same as \/stats|marks a tagged skill/).count()).toBe(0);
+    expect(await card.getByText(/Unhurt|Bruised|Critical/).count()).toBe(0);
+    expect(await card.getByRole('img', { name: /^Health: / }).count()).toBe(1);
+    expect(await card.locator('.cs-class .hs-label').count()).toBe(0);
+    await card.locator('.cs-class').click();
+    const tree = page.locator('.ct-full');
+    await tree.waitFor();
+    expect(await tree.getByText(/Started here|current/).count()).toBe(0);
+    expect(await tree.getByRole('img', { name: 'Started here' }).count()).toBe(1);
+    expect(await tree.locator('.ct-node').first().getAttribute('title')).toMatch(/Level \d+/);
+    await page.locator('.fpop-x').click();
+    await page.locator('.cs-bfbtn').click();
+    const body = page.locator('.bp-pop');
+    await body.waitFor();
+    expect(await body.locator('.bp-st').allTextContents()).not.toContain('Healthy');
+    expect(errors).toEqual([]);
+  });
+
   it('plays a turn: the input shows, the turn advances, the narration shows', async () => {
     await turn('look around', 1);
     await expect.poll(() => page.getByText(NARRATION).count()).toBe(2); // the opening and this turn
@@ -112,6 +163,25 @@ describe('play page smoke (TQ7)', () => {
     await expect.poll(() => page.locator('.ln-player').count()).toBe(before + 1);
     expect(await page.locator('.ln-player').last().innerText()).toBe('Look around');
     await page.locator('.dk-act[data-kind="look"]:not([disabled])').waitFor(); // the deck comes back once the turn lands
+    expect(errors).toEqual([]);
+  });
+
+  it('SD4–SD7: Play shows, it does not tell: icon switches, no state words beside the bars, no sub-lines or help lines', async () => {
+    const tools = page.locator('.title-tools');
+    for (const name of ['Watch an agent play', 'Show rolls', 'Narration: Normal', 'Sound']) expect(await tools.getByRole('button', { name, exact: true }).locator('svg').count()).toBe(1);
+    expect(await tools.innerText()).not.toMatch(/✓|Show rolls|Narration|Sound/); // only Map keeps its word
+    expect(await page.locator('.cs-strip').innerText()).not.toMatch(/Unhurt|Calm|Rested/);
+    expect(await page.locator('.cs-strip [role="img"][aria-label^="Health: "]').count()).toBe(1);
+    expect(await page.locator('.dk-act .n').count()).toBe(0);
+    expect(await page.locator('.dk-act[data-kind="look"]').getAttribute('title')).toMatch(/ · a glance at all in sight$/);
+    expect(await page.locator('.dk-free').first().getAttribute('title')).toBe('Free');
+    expect(await page.locator('[data-def="block"]').getByRole('img', { name: 'Needs a shield in hand' }).count()).toBe(1); // the opening build holds no shield
+    expect(await page.locator('.inbar .hs-input').getAttribute('placeholder')).toBe('What do you do or say?');
+    expect(await page.locator('.mm-foot').innerText()).not.toMatch(/Point anywhere/);
+    await page.getByRole('button', { name: 'Commands' }).click();
+    expect(await page.locator('.helps').innerText()).not.toMatch(/no time passes|nothing is sent/i);
+    await page.locator('.helps').getByRole('button', { name: 'Close', exact: true }).click();
+    await expect.poll(() => page.locator('.helps').isHidden()).toBe(true);
     expect(errors).toEqual([]);
   });
 
@@ -146,7 +216,10 @@ describe('play page smoke (TQ7)', () => {
     await expect.poll(() => tile.innerText()).toMatch(/1 of \d+/);
     await tile.click();
     const sec = page.locator('.ess-all');
-    await expect.poll(() => sec.innerText()).toMatch(/1 of \d+ slots? used[\s\S]*Street Instinct/);
+    // SD3: the pop-up shows the held essence and any empty slot as a dashed box, with no count line or empty line of its own
+    await expect.poll(() => sec.innerText()).toMatch(/Street Instinct/);
+    expect(await sec.getByText(/slots? used|No essences yet/).count()).toBe(0);
+    expect(await sec.locator('.ess-tile:not(.ess-empty)').count()).toBe(1);
     expect(await sec.getByText('On offer').count()).toBe(0);
     expect(errors).toEqual([]);
   });
@@ -348,6 +421,10 @@ describe('play page smoke (TQ7)', () => {
     await nav('Inventory');
     await page.getByText(/^Coin: /).waitFor();
     expect(await page.locator('.hs-readout.vis').count()).toBe(0); // the group-count boxes are gone from this page only
+    // SD11: each item shows once, in the pack grid; no table lists them again, and no word for the normal case
+    const inv = page.locator('main', { has: page.locator('h1', { hasText: 'Inventory' }) });
+    expect(await inv.locator('table').count()).toBe(0);
+    expect(await inv.getByText(/^(Carried|Empty|Whole)$/).count()).toBe(0);
     await nav('Quests');
     await page.locator('h1', { hasText: 'Quests' }).waitFor();
     expect(errors).toEqual([]);

@@ -5,6 +5,7 @@
 import type { GameApi } from '../types';
 import { boxOf, h, pointOf, viewSize } from './kit';
 import { arrive } from './motion';
+import { ICONS } from './itemIcons';
 import { PERSONA_NAMES, VOICE_STYLES, autoPerk, plainLine } from '../agents/autopilot';
 import { type Mcp, type McpError, RPG_DEFAULT_VOICE, RPG_VOICES, rpgFailure, rpgSpeak, rpgVoices, splitLine } from './rpgVoice';
 import { CONFIG } from '../config';
@@ -75,8 +76,10 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
   // plays; it stays open beside any details pop-up, and ✕ closes it and pauses the agent
   const el = h('aside', { class: 'auto', role: 'dialog', 'aria-modal': 'false', 'aria-label': 'Watch an agent play' });
   let at: { left: number; top: number } | null = null; // where it was dragged to, kept while the page lives
-  const opener = h('button', { type: 'button', class: 'hs-btn-text auto-open', title: 'An agent plays while you watch, with spoken commentary',
+  // SD7: the header switch is the agent icon; its name and tip carry the words, pressed shows it open
+  const opener = h('button', { type: 'button', class: 'hs-icon-btn tool-ic auto-open', 'aria-label': 'Watch an agent play', title: 'An agent plays while you watch, with spoken commentary',
     onclick: () => { if (open) pause(''); open = !open; update(); } });
+  opener.innerHTML = ICONS.agent;
   const agentStory = () => api.state()?.meta.owner === 'agent';
   const stopped = () => api.notices().some((n) => n.kind === 'stop_play' || n.kind === 'read_only');
 
@@ -288,8 +291,6 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
     const btn = (label: string, on: () => void, o: { pressed?: boolean; disabled?: boolean; main?: boolean; title?: string; agent?: boolean } = {}) => h('button', {
       type: 'button', class: (o.main ? 'hs-btn-main' : 'hs-btn-text') + (o.agent ? ' auto-agent' : ''), onclick: on, disabled: o.disabled, title: o.title,
       'aria-pressed': o.pressed === undefined ? undefined : String(o.pressed) }, label);
-    const mine = agentStory() ? null : h('p', { class: 'hs-note' }, 'The agent’s turns are saved to your story like your own. Undo works one turn back.');
-    opener.textContent = open ? '✓ Watch an agent play' : 'Watch an agent play';
     opener.setAttribute('aria-pressed', String(open));
     // on the agent's own story the opener and the "Agent’s" choice turn yellow instead of a banner (no extra row)
     opener.classList.toggle('auto-agent', agentStory());
@@ -320,7 +321,9 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
       h('optgroup', { label: 'Claude' }, claudeVoices.map((v) => h('option', { value: `claude:${v}`, selected: prefs.voice && !rv && claudeVoice() === v }, cap(v)))));
     const rate = h('select', { 'aria-label': 'Speaking speed', onchange: (e: Event) => { prefs.rate = +(e.target as HTMLSelectElement).value; writePrefs(prefs); preview(); } },
       RATES.map((r) => h('option', { value: String(r), selected: prefs.rate === r }, `${r}×`)));
-    const noVoice = prefs.voice && !tts && !rv ? 'Claude’s voice isn’t available in this view, so the commentary is shown only.' : '';
+    // SD4: what used to be footnotes under the panel is Play's tip
+    const playTip = [agentStory() ? '' : 'The agent’s turns are saved to your story like your own. Undo works one turn back.',
+      prefs.voice && !tts && !rv ? 'Claude’s voice isn’t available in this view, so the commentary is shown only.' : ''].filter(Boolean).join(' ') || undefined;
     const wait = h('select', { 'aria-label': 'Wait between turns', onchange: (e: Event) => { prefs.waitS = +(e.target as HTMLSelectElement).value; writePrefs(prefs); } },
       WAITS.map((s) => h('option', { value: String(s), selected: prefs.waitS === s }, `${s} s`)));
     const mode = h('select', { 'aria-label': 'Mode', onchange: (e: Event) => { prefs.mode = (e.target as HTMLSelectElement).value as Prefs['mode']; writePrefs(prefs); update(); } },
@@ -355,13 +358,13 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
       h('label', { class: 'auto-field' }, 'Speed', rate));
     goBox.replaceChildren(
       btn('One turn', () => play(true), { disabled: playing || switching || !api.state() }),
-      playing ? btn('Pause', () => pause('Paused'), { main: true }) : btn('Play', () => play(), { main: true, disabled: switching || !api.state() }));
+      playing ? btn('Pause', () => pause('Paused'), { main: true }) : btn('Play', () => play(), { main: true, disabled: switching || !api.state(), title: playTip }));
     if (!held(liveBox)) liveBox.replaceChildren(
       card || (said ? h('p', { class: 'auto-say' }, h('span', { class: 'auto-who' }, 'Agent'), `“${plainLine(said)}”`) : ''),
       !q && prefs.mode === 'guided' && guidance && guidance.scenario === scenario() ? h('p', { class: 'hs-note' }, `Your guidance this scenario: ${guidance.text}`) : '',
       !q && prefs.mode === 'guided' && lastCall ? h('p', { class: 'hs-note' }, `Last call: ${lastCall}`) : '',
-      status || (!playing && mine) ? h('p', { class: 'hs-note', role: 'status' }, status ? `${status}${playing && status.endsWith('…') && Date.now() - statusAt >= SLOW_MS ? ` ${Math.floor((Date.now() - statusAt) / 1000)} s` : ''}` : mine!.textContent) : '',
-      noVoice || voiceNote ? h('p', { class: 'hs-note' }, noVoice || voiceNote) : '');
+      status ? h('p', { class: 'hs-note', role: 'status' }, `${status}${playing && status.endsWith('…') && Date.now() - statusAt >= SLOW_MS ? ` ${Math.floor((Date.now() - statusAt) / 1000)} s` : ''}`) : '',
+      voiceNote ? h('p', { class: 'hs-note' }, voiceNote) : '');
   }
   update();
   return { el, opener, update, playing: () => playing, asking: () => !!question,

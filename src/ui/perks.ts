@@ -5,7 +5,7 @@
 import { termAttrs } from '../words';
 import type { Actor, GameApi, GameState, PerkDef } from '../types';
 import { getLibrary } from '../library';
-import { MILESTONES, allStepsUpTo, canUndo, milestonesUpTo, milestonePerk, milestoneState, trueSkill, type MilestoneState } from '../ruleset';
+import { allStepsUpTo, canUndo, milestonesUpTo, milestonePerk, milestoneState, trueSkill, type MilestoneState } from '../ruleset';
 import { boxOf, h, pointOf, viewSize } from './kit';
 import { CONFIG } from '../config';
 import { skillName, TREE_VIEW } from './creation';
@@ -21,7 +21,8 @@ const ui = { text: readText(), sel: null as null | { skill: string; milestone: n
 type Show = MilestoneState;
 /** which perk series a milestone belongs to: 20/60/100/140 change what you can do, 40/80/120 raise numbers; each series has its own colour */
 export const perkSeries = (milestone: number): '20' | '40' => (milestone % 40 === 20 ? '20' : '40');
-const seriesList = (series: '20' | '40') => MILESTONES.filter((m) => perkSeries(m) === series).join(', ');
+/** SD4: a milestone's series, named in its diamond's tip (Breakthrough 20, 60, 100, 140; Refinement 40, 80, 120) */
+const seriesName = (milestone: number) => (perkSeries(milestone) === '20' ? 'Breakthrough' : 'Refinement');
 /** CS11: the rails reach PERK_RAILS_TO, or the next All step past the actor's highest true skill */
 const railTop = (p: Actor) => {
   const top = Math.max(CONFIG.PERK_RAILS_TO, ...Object.keys(p.core.skills).map((k) => trueSkill(p, k)));
@@ -42,15 +43,16 @@ function node(skill: string, milestone: number, st: Show, label: boolean) {
   return h('button', {
     type: 'button', class: `pk-n ${st}${sel ? ' sel' : ''}`, 'data-k': `${skill}:${milestone}`, 'data-series': perkSeries(milestone), disabled: st === 'sealed',
     'aria-label': st === 'sealed' ? `${skillName(skill)} ${milestone}, sealed` : `${skillName(skill)} ${milestone}${d ? ', ' + d.name : st === 'empty' ? ', no perk yet' : ''}`,
-    ...(label && d ? { title: d.name } : {}), // the name beside it may be cut short in a narrow box
+    title: `${seriesName(milestone)} ${milestone}${d ? ` · ${d.name}` : ''}`, // the name beside it may be cut short in a narrow box
     onclick: () => { ui.sel = sel ? null : { skill, milestone }; redraw(); },
   }, h('span', {}, String(milestone)), label && d ? h('em', {}, d.name) : null);
 }
 
-/** the All-XXX marker: tree skills at the step, of the count the tree's rating needs (allStepNeed); an inferior tree never earns one */
+/** the All-XXX marker: tree skills at the step, of the count the tree's rating needs (allStepNeed), once one is there; an inferior tree never earns one */
 function allStepCount(p: Actor, treeId: string, step: number): string {
   const need = allStepNeed(treeId);
-  return need === null ? 'never' : `${Math.min(skillsAt(p, treeId, step).length, need)} of ${need}`;
+  const n = Math.min(skillsAt(p, treeId, step).length, need ?? 0);
+  return need === null ? 'never' : n ? `${n} of ${need}` : ''; // SD3: the count shows once the row has started
 }
 
 function ladders(p: Actor, treeId: string, skills: string[]) {
@@ -176,10 +178,6 @@ export function perksSection(api: GameApi): HTMLElement {
     const kids: (HTMLElement | null)[] = [
       h('div', { class: 'pk-h' }, h('h2', {}, 'Perks'),
         h('span', { class: 'pk-pts' + (pts ? '' : ' none') }, `✦ ${pts} point${pts === 1 ? '' : 's'}`)),
-      // the two perk series, in the colours their milestones use everywhere
-      h('ul', { class: 'pk-key', 'aria-label': 'Perk series' },
-        h('li', { 'data-series': '20' }, h('i', { 'aria-hidden': 'true' }), h('b', termAttrs('Breakthrough'), 'Breakthrough'), ` ${seriesList('20')}`),
-        h('li', { 'data-series': '40' }, h('i', { 'aria-hidden': 'true' }), h('b', termAttrs('Refinement'), 'Refinement'), ` ${seriesList('40')}`)),
       innate(p),
       linked(p),
       // every tree in its own box, side by side; a box is as wide as its skills need
