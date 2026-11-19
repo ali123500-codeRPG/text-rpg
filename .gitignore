@@ -2,3 +2,4 @@ node_modules
 dist
 .claude/
 playtest-out
+__pycache__/
