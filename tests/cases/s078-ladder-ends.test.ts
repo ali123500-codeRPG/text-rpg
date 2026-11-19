@@ -21,6 +21,6 @@ describe('78 Ladder ends', () => {
     expect(r.gap).toBe(-6);
     expect(r.multiplier).toBe(CONFIG.GAP_LADDER.dodge[-6]);
     expect(r.outcome).toBe('crushing_hit');
-    expect(r.damage).toBe(25 * CONFIG.GAP_LADDER.dodge[-6]);
+    expect(r.damage).toBe(25 * 1.5 * CONFIG.GAP_LADDER.dodge[-6]); // a Fine sword: requirement 50
   });
 });

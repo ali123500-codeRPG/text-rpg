@@ -26,7 +26,7 @@ export function powerLines(s: GameState, p: Actor): { total: number; lines: Powe
   const parts = powerParts(s, p);
   const lines: PowerLine[] = [
     { label: `Level ${parts.level}`, how: `${CONFIG.LEVEL_RATING_SHARE * 100}% of the XP it takes to reach it`, adds: parts.levelAdds },
-    { label: `Combat level ${r1(parts.combatLevel)}`, how: `fights a reference fighter of this level evenly${gmView() ? ' (placeholder)' : ''}`, adds: parts.combatAdds },
+    { label: `Combat level ${r1(parts.combatLevel)}`, how: `fights a standard soldier of this level evenly${gmView() ? ' (placeholder)' : ''}`, adds: parts.combatAdds },
     ...parts.nonCombat.sort((a, b) => b.adds - a.adds).map((g) => ({
       label: `${groupName(g.group)} skills`, how: `rating ${r1(g.rating)}; ${pct(g.share)} ${SHARE_WORDS[g.rule]}`, adds: g.adds,
     })),

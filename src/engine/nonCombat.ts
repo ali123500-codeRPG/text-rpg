@@ -1,8 +1,8 @@
 // PLACEHOLDER: the XP rating's non-combat part (GR34, GR41, GR42). Each non-combat skill group adds its pool (the worths
 // of its skills, highest first at 1, ½, ¼…, as a group rating pools them) × its share: the part of an equal fight its use
 // settles or saves, worked out from the rolls against a foe at the group's own rating (GR41: an equal foe, so skill counts
-// once, through the pool). Checks pool skill lines only (GR43). The fight model reads every skill a fight uses; these
-// groups count here, Intimidation in both (GR42).
+// once, through the pool). Checks pool skill lines only (GR43). The combat level reads the skills a fight uses; these
+// groups count here; Intimidation counts here only, since the combat level leaves threats out.
 import type { Actor, GameState } from '../types';
 import { CONFIG } from '../config';
 import { GR } from '../library/functionIds';
@@ -11,7 +11,7 @@ import { trueSkill } from '../ruleset/perks';
 import { gradeMod } from '../ruleset';
 import { expectOver, tierOdds } from '../ruleset/expect';
 import { ratingOfGroups, ratingOf } from '../ruleset/ratings';
-import { refFighter } from './fightModel';
+import { refFighter } from './combatLevel';
 import { healShare } from '../ruleset/body';
 
 /** how each non-combat group's share is worked out (CONFIG.NONCOMBAT_SHARES):

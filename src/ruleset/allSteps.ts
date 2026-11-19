@@ -8,7 +8,7 @@
 // Also the rolls that read All-50 parts on the other side (Dodgy) or after the dice (Curiouser and Curiouser).
 import { TR } from '../library/treeIds';
 import type { Actor, GameState, Mod, TierShift } from '../types';
-import { getLibrary } from '../library';
+import { getLibrary, perkName } from '../library';
 import { ALL_BUNDLES, STEP_PARTS } from '../library/allPerks';
 import { MASTERY_ACH } from '../library/achievementIds';
 import { FUNCTION_ROLLS } from '../library/functionNames';
@@ -60,7 +60,7 @@ export function grantAllSteps(state: GameState, a: Actor, now = false): void {
 
 /** modifiers a roll takes from the other side's perks (the roll's `against`): T4d Dodgy on attack rolls */
 export function foeMods(foe: Actor | undefined, rollKind: string | undefined): Mod[] {
-  if (rollKind === 'hit' && hasPerk(foe, PK.dodgy)) return [{ source: 'Dodgy', type: 'foe_perk', value: -CONFIG.SKILL_WEIGHT * CONFIG.DODGY_SKILL }];
+  if (rollKind === 'hit' && hasPerk(foe, PK.dodgy)) return [{ source: perkName(PK.dodgy), type: 'foe_perk', value: -CONFIG.SKILL_WEIGHT * CONFIG.DODGY_SKILL }];
   return [];
 }
 
@@ -81,10 +81,10 @@ export function shareSpotted(state: GameState, o: Actor): void {
  * higher. A request's nearMissUp (T6d Hushed Steps): a Near Miss counts one tier higher. */
 export function afterRollShifts(a: Actor, skill: string, level: number, nearMissUp?: string): TierShift[] {
   const fns = getLibrary().skills[skill]?.functions ?? [];
-  if (FUNCTION_ROLLS.some((f) => fns.includes(f)) && level >= TIERS.pos('success') && hasPerk(a, PK.curiouser)) return [{ source: 'Curiouser and Curiouser', value: 1 }];
+  if (FUNCTION_ROLLS.some((f) => fns.includes(f)) && level >= TIERS.pos('success') && hasPerk(a, PK.curiouser)) return [{ source: perkName(PK.curiouser), value: 1 }];
   if (nearMissUp && level === TIERS.pos('near_miss')) return [{ source: nearMissUp, value: 1 }];
   // T7a Soft Landing: a speech roll at Near Miss or worse counts one tier higher
   const speech = getLibrary().trees[TR.speech]?.skills ?? [];
-  if (speech.includes(skill) && level <= TIERS.pos('near_miss') && hasPerk(a, PK.soft_landing)) return [{ source: 'Soft Landing', value: 1 }];
+  if (speech.includes(skill) && level <= TIERS.pos('near_miss') && hasPerk(a, PK.soft_landing)) return [{ source: perkName(PK.soft_landing), value: 1 }];
   return [];
 }

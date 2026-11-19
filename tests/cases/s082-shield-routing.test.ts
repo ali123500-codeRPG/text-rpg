@@ -22,7 +22,7 @@ describe('82 Shield routing', () => {
     const shield = s.player.core.inventory.find((i) => i.id === `player_${IT.round_shield}_2`)!;
     const pool = getLibrary().items[IT.round_shield].shield!.pool; // QE5: POOL_BASE + POOL_FACTOR × need = 20 + 0.8 × 25 = 40
     expect(pool).toBe(CONFIG.POOL_BASE + CONFIG.POOL_FACTOR * CONFIG.EQUIP_NEED.common);
-    expect(shield.pools!.shield).toBeCloseTo(100 - (20 / pool) * 100); // slam 20 of the pool
+    expect(shield.pools!.shield).toBeCloseTo(100 - (26 / pool) * 100); // slam 20 × 1.3 (the slime's Slam 30) of the pool
     expect(s.player.core.condition.hpLostPct).toBe(0);
     expect(s.player.core.condition.parts).toEqual(parts);
     expect(fx).toEqual([{ kind: 'part_state_changed', actorId: 'player', data: { part: 'shield', from: 'healthy', to: 'damaged', itemId: `player_${IT.round_shield}_2` } }]);

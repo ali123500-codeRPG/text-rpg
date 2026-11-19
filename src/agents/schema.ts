@@ -208,7 +208,7 @@ const weaver = obj<StagePlan>({
     size: str, area: num, walls: record(str) as V<NonNullable<StagePlan['zones'][number]['walls']>>,
     length: (v, p, e) => (typeof v === 'number' ? num(v, p, e) : str(v, p, e)), danger: str, road: str, fromLayout: any as V<true>, furniture: arr(FURNITURE),
     ways: arr(obj<StagePlan['zones'][number]['ways'][number]>({ to: str, label: str, kind: str as V<WayKind>,
-      barrier: obj<PlanBarrier>({ kind: str, grade: GRADE, locked: bool, barredFrom: str, guarded: bool, keys: arr(str) }, ['grade', 'locked', 'barredFrom', 'guarded', 'keys']) }, ['kind', 'barrier'])),
+      barrier: obj<PlanBarrier>({ kind: str, grade: GRADE, locked: bool, barredFrom: str, guarded: bool, keys: arr(str) }, ['grade', 'locked', 'barredFrom', 'guarded', 'keys']), doorless: bool }, ['kind', 'barrier', 'doorless'])),
   }, ['kind', 'light', 'size', 'area', 'walls', 'length', 'danger', 'road', 'fromLayout', 'furniture'])),
   frontiers: arr(obj<StagePlan['frontiers'][number]>({ key: str, label: str, brief: str }, ['brief'])),
   bands: arr(obj<StagePlan['bands'][number]>({

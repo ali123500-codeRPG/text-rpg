@@ -373,7 +373,7 @@ describe('125 All-50 moves', () => {
       arm(s, 'player', IT.shortbow);
       if (perk) give(s.player, PK.volley);
       const hit = (r: AttackResult) => ({ ...r, outcome: 'full_hit' as const, location: 'general', damage: 0.01 });
-      return { s, calls: fight(s, 'slime_1', 'w_player', hit).filter((c) => c.by === 'player') };
+      return { s, calls: fight(s, 'slime_1', 'w_player', hit, true).filter((c) => c.by === 'player') }; // every shot a scratch, so no slime falls before the turn's second shot
     };
     const plain = run(false).calls.length; // TP9: a 3 s light bow shot repeats in a 6 s turn (AT78)
     const { s, calls } = run(true);

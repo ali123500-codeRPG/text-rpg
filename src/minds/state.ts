@@ -4,7 +4,7 @@ import { groundIn } from '../engine/ground';
 import { FN } from '../library/functionIds';
 import type { Actor, ActorView, ContestResult, Cue, GameEvent, GameState, ItemInstance, Order, Rng, RollResult, Tier, TierRoll, Zone } from '../types';
 import { TIERS } from '../scales';
-import { getLibrary, itemDef } from '../library';
+import { getLibrary, itemDef, perkName } from '../library';
 import { hiddenFrom } from '../engine/gear';
 import { CONFIG } from '../config';
 import { now, secondsSince, timeOfDay, zoneLight } from '../time';
@@ -224,11 +224,11 @@ type Sense = typeof FN.sight | typeof FN.hearing | typeof FN.smell;
 /** the sense a perception cue rolls (a stealth contest, an ambush): smell rolls Scent (AB18), sound hearing, else sight */
 const cueSense = (cue: Cue | undefined): Sense => (cue === 'sound' ? FN.hearing : cue === 'smell' ? FN.smell : FN.sight);
 /** the hider's stealth roll against one sense. ST21/ST22: light and cover reach it by situation tag; staying put
- * (a Vanish in place, or hiding from a search) ignores leg wounds (ST10). P14: darkness never hurts hearing, so it gives no help against one who only hears.
+ * (a sneak that stays put with Melt Away or Strike and Fade, or hiding from a search) ignores leg wounds (ST10). P14: darkness never hurts hearing, so it gives no help against one who only hears.
  * All-50 Hushed Steps: the owner's Sneaking Near Miss counts as a Success against one who only hears. */
 function hiderRoll(state: GameState, s: Actor, sk: string, sense: Sense, still: boolean, watcher?: Actor) {
   const zone = zoneById(state, s.zone);
-  const hushed = sk === SK.sneaking && sense === FN.hearing && hasPerk(s, PK.hushed_steps) ? { nearMissUp: 'Hushed Steps' } : {};
+  const hushed = sk === SK.sneaking && sense === FN.hearing && hasPerk(s, PK.hushed_steps) ? { nearMissUp: perkName(PK.hushed_steps) } : {};
   return { actorId: s.id, skill: sk, ...situational(state, sk, { light: sense === FN.sight ? zone : undefined, cover: zone, actor: s, body: s, from: watcher }), rollKind: 'stealth' as const, ...(still ? { roles: [] } : {}), ...hushed };
 }
 /** the watcher's sense roll in the light where the hider is: a function roll, the best sight (or hearing) skill at full value */

@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { barrierStuff, breakSeconds, breakSecondsAt, breakStrength, breakTool, liftKg, materialRow, walksThrough, wallStuff } from '../../src/ruleset/breaking';
-import { refFighter } from '../../src/engine/fightModel';
+import { refFighter } from '../../src/engine/combatLevel';
 import { equipLoadout } from '../../src/library/spawn';
 import { getLibrary } from '../../src/library';
 import { BK, BM, WK } from '../../src/library/tableIds';

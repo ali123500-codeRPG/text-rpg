@@ -8,6 +8,7 @@ import { intent, play } from './w4-kit';
 import { headTo } from '../../src/minds';
 import { now, startClock } from '../../src/time';
 import { isActive } from '../../src/engine/relations';
+import { isBrokenLevel, moraleLevel } from '../../src/ruleset/morale';
 import { CONFIG } from '../../src/config';
 import { mechanicsLines } from '../../src/agents/game';
 import { checkNear, contact, startWatch, stepS, warnS } from '../../src/engine/comingNear';
@@ -123,7 +124,7 @@ describe('272 NPCs on code in a stretch (stage 3c)', () => {
     g.mind!.knowledge[tr.id] = { status: 'engaged', lastKnownZone: tr.zone, lastSeenTurn: s.turn, source: 'seen', revealed: [] };
     const t = now(s);
     play(s, { intent: rest });
-    expect(isActive(tr)).toBe(false);
+    expect(!isActive(tr) || isBrokenLevel(moraleLevel(tr))).toBe(true); // defeated: down, or its nerve broken by the blow
     expect(stopped(s)).toBeUndefined();
     expect(now(s) - t).toBeCloseTo(60, 6);
   });

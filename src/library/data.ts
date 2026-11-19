@@ -971,7 +971,7 @@ export function prototypeLibrary(): Library {
       [TR.tools]: { id: TR.tools, name: 'Tools (placeholder, OQ-20)', skills: [SK.lockpicking], access: { blockedBy: [AMORPHOUS] } },
     },
     classes: {
-      // Parry 40 and Medium or Heavy Weapons 40 unlock the class; Medium Weapons 40 and Parry 40 are its creation floors
+      // Parry 80 and Medium or Heavy Weapons 60 unlock the class (PR #918); Medium Weapons 40 and Parry 40 are its creation floors
       [CL.swordsman]: { id: CL.swordsman, personality: { [PA.discipline]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Swordsman', tier: 'tier_2', label: 'a swordsman', story: 'Blade against blade, drilled until the parry comes before the thought does.', floors: { [SK.melee_medium]: 40, [SK.parry]: 40 }, unlock: { [SK.parry]: 80 }, unlockAny: [{ [SK.melee_medium]: 60, [SK.melee_heavy]: 60 }], levelPerks: { 1: [PK.blade_against_blade] } },
       // the class of the late bloomer start (ST2): a unique class with a level 1 perk
       [CL.late_bloomer]: { id: CL.late_bloomer, personality: { [PA.curiosity]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Unwritten Legend', tier: 'tier_5', label: 'a young stranger', story: 'No song carries your name, no master claimed you, and no road was chosen for you. You start late, in rough clothes with empty hands. Whatever story ends with your name, you will write it yourself.', floors: {}, unlockClass: { [CL.a_somebody]: 'max' }, levelPerks: { 1: [PK.any_road_will_do] }, capstone: [PK.as_far_as_the_road_goes], // CB3: also opens at A Somebody's top level
@@ -1404,7 +1404,7 @@ export function prototypeLibrary(): Library {
     // ground the two titles share; a window (a drop, SD7) is a casement's size and sill unless its barrier gives one (PC3);
     // stairs about a metre wide (an estimate)
     openingKinds: Object.fromEntries(([
-      [OP.doorway, 'Doorway', false, true, undefined, CONFIG.DOORWAY_M, undefined, 'A doorway in a wall: walked through; the far side shows only while its door stands open.'],
+      [OP.doorway, 'Doorway', true, true, undefined, CONFIG.DOORWAY_M, undefined, 'A doorway in a wall: walked through. It holds a plain door unless it is doorless (an open doorway, as into a hall); the far side shows while the door stands open, or always with none (BG-312).'],
       [OP.gap, 'Gap', true, true, undefined, undefined, undefined, 'An open way: an arch, a gap in a wall, or open ground between two titles.'],
       [OP.window, 'Window', true, false, undefined, [0.6, 1], 0.9, 'A window or ledge over lower ground: seen through, and only ever jumped down.'],
       [OP.stairs, 'Stairs', false, true, true, [1, 2], undefined, 'Stairs, a ladder or a hatch to the floor above or below.'],

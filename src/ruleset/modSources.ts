@@ -16,6 +16,7 @@ import { rewardOf } from './achRewards';
 import { cap, listWords } from '../words';
 import { skillName } from '../library/skillNames';
 import { PK } from '../library/perkIds';
+import { perkName } from '../library';
 
 /** the types an event roll's modifiers carry (eventRollMods in gear.ts), besides gear */
 export type SituationModType = 'perk' | 'status';
@@ -81,14 +82,14 @@ export const MOD_SOURCES: ModSource[] = [
       value: ((on) => [d.numbers?.rollAdd ? `${sg(d.numbers.rollAdd)} every ${on} roll` : '', d.numbers?.hitAdd ? `${sg(d.numbers.hitAdd)} ${on} attack rolls` : ''].filter(Boolean).join(' · '))(d.numbersForAttack ? `${d.numbersForAttack}` : (d.numbersFor ?? [d.ladder!.skill]).map(skillName).join(' / ')) })) },
   { type: 'rating', roll: 'skill', source: 'Strength', at: 'src/engine/held.ts', when: 'Grapple rolls to break free of a hold and to hold on: STRENGTH_HOLD_SHARE × the roller\'s Melee strength rating (Grapple left out of its pool), in skill points (GR26).',
     value: `${W()} × ${CONFIG.STRENGTH_HOLD_SHARE} × Melee strength` },
-  { type: 'roll_perk', roll: 'skill', source: 'Steady Guard', at: 'src/ruleset/index.ts', when: 'Parry rolls made with a medium melee weapon.',
+  { type: 'roll_perk', roll: 'skill', source: perkName(PK.steady_guard), at: 'src/ruleset/index.ts', when: 'Parry rolls made with a medium melee weapon.',
     value: sg(W() * CONFIG.STEADY_GUARD), feeds: (lib) => perk(lib, PK.steady_guard) },
-  { type: 'roll_perk', roll: 'skill', source: 'Bare-Handed Guard', at: 'src/ruleset/index.ts', when: 'Dodge rolls while the owner holds no weapon.',
+  { type: 'roll_perk', roll: 'skill', source: perkName(PK.bare_handed_guard), at: 'src/ruleset/index.ts', when: 'Dodge rolls while the owner holds no weapon.',
     value: sg(W() * CONFIG.BARE_HANDED_GUARD), feeds: (lib) => perk(lib, PK.bare_handed_guard) },
-  { type: 'roll_perk', roll: 'skill', source: 'Overdrive', at: 'src/ruleset/index.ts', when: 'Every roll while the owner\'s short-term line is more than half full; each costs OVERDRIVE_STRAIN strain.',
+  { type: 'roll_perk', roll: 'skill', source: perkName(PK.overdrive), at: 'src/ruleset/index.ts', when: 'Every roll while the owner\'s short-term line is more than half full; each costs OVERDRIVE_STRAIN strain.',
     value: `Stamina × ${CONFIG.OVERDRIVE_SHARE} × its tier`, feeds: (lib) => perk(lib, PK.overdrive) },
   // foe_perk
-  { type: 'foe_perk', roll: 'skill', source: 'Dodgy', at: 'src/ruleset/allSteps.ts', when: 'Attack rolls against a foe who has Dodgy.',
+  { type: 'foe_perk', roll: 'skill', source: perkName(PK.dodgy), at: 'src/ruleset/allSteps.ts', when: 'Attack rolls against a foe who has Dodgy.',
     value: sg(-W() * CONFIG.DODGY_SKILL), feeds: (lib) => perk(lib, PK.dodgy) },
   // gear
   { type: 'gear', roll: 'skill', source: 'Weapon class hit', at: 'src/ruleset/index.ts', when: 'Attack rolls: the class hit plus the mode\'s hitAdj, as one entry.',

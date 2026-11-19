@@ -7,5 +7,7 @@ import { CONFIG } from '../config';
 export const armorStop = (w: ArmorWeightKey, need: number): number => CONFIG.ARMOR_FACTOR * need * (CONFIG.ARMOR_WEIGHT_SOAK[w] ?? 1);
 /** a need-0 (Crude) piece stops nothing: its multiplier is 1; otherwise its weight's */
 export const armorMultiplier = (w: ArmorWeightKey, need: number): number => (need ? CONFIG.ARMOR_MULTIPLIER[w] : 1);
+/** CE11: what a weapon's damage is multiplied by at this need: 1 + DAMAGE_NEED_RATE × need (a need-0 weapon keeps its class damage) */
+export const damageGrowth = (need: number): number => 1 + CONFIG.DAMAGE_NEED_RATE * need;
 /** QE5: a shield's pool: POOL_BASE + POOL_FACTOR × need */
 export const shieldPool = (need: number): number => CONFIG.POOL_BASE + CONFIG.POOL_FACTOR * need;

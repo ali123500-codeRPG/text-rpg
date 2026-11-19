@@ -18,10 +18,10 @@ describe('94 Uncovered part', () => {
     const head = ruleset.attack({ attackerId: 'player', targetId: 'guard_1', weaponId: `player_${IT.arming_sword}_1`, targetPart: 'head', aimed: true }, s, forcedRng([95, 40]));
     expect(head.gap).toBe(-2);
     expect(head.location).toBe('head');
-    expect(head.damage).toBe(31.25);
+    expect(head.damage).toBe(46.875); // 25 × 1.5 (a Fine sword: requirement 50) × 1.25
     // torso: 65 + 37.5 − 63.5 = 39 → Great Success; location roll 80 → general
     const torso = ruleset.attack({ attackerId: 'player', targetId: 'guard_1', weaponId: `player_${IT.arming_sword}_1`, targetPart: null, aimed: false }, s, forcedRng([65, 40, 80]));
     expect(torso.location).toBe('general');
-    expect(torso.damage).toBeCloseTo(25 * 1.25 * 0.65 - 6, 9); // D-368: share first, then mail's soak 4 × 1.5; 14.3125, not rounded (OQ-25)
+    expect(torso.damage).toBeCloseTo(25 * 1.5 * 1.25 * 0.65 - 6, 9); // D-368: share first, then mail's soak 4 × 1.5; 24.46875, not rounded (OQ-25)
   });
 });

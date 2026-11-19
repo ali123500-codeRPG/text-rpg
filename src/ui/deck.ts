@@ -11,7 +11,7 @@ import type { GameState, Intent, Personality, PlayerView } from '../types';
 import { HEALTH_LEVELS } from '../scales';
 import { isDownLevel, othersHealthWord, trueSkill } from '../ruleset';
 import { isHeld } from '../ruleset/slots';
-import { actorBody } from '../library';
+import { actorBody, perkName } from '../library';
 import { cantSteady } from '../engine/steady';
 import { cantExtract } from '../engine/extract';
 import { walksAway } from '../engine/nerve';
@@ -148,7 +148,7 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
       ...(why === 'too_soon' ? { limit: waiting(secondsSince(s!, s!.player.core.condition.steadiedTurn!), CONFIG.STEADY_COOLDOWN_S, 's') } : {}) });
     const down = seen.filter((a) => a.level === 'full' && a.health && isDownLevel(a.health));
     const extractable = s ? down.filter((a) => cantExtract(s, s.player, s.actors.find((x) => x.id === a.id)) === null) : [];
-    if (extractable.length) add('extract', 'fight', 'Pull the Thread', [who('From whom?', extractable)], (c) => order(`Pull the essence from ${them(c)}`, { action: act('extract', { target: c.target! }) }), { note: 'take their essence' });
+    if (extractable.length) add('extract', 'fight', perkName(PK.extract_essence), [who('From whom?', extractable)], (c) => order(`Pull the essence from ${them(c)}`, { action: act('extract', { target: c.target! }) }), { note: 'take their essence' });
   }
   // MB40/SP5: give up the fight or spar you are in; TF11: take a foe's offer to stop
   if (fight || pv.player.spar || broken) add('yield', broken ? 'getaway' : 'fight', 'Yield', [], () => order('I yield', { yields: true }), { note: 'ends the fight if they take it' });
@@ -221,7 +221,7 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
     };
     const doors = pv.zone.links.filter((l) => wayOps(l).length);
     if (doors.length) add('way', g, 'Door, gate or bar', [{ key: 'target', title: 'Which way?', picks: () => doors.map((l) => ({ id: l.to, label: cap(l.label), note: wayNote(l) })) },
-      { key: 'item', title: 'Do what?', picks: (c) => wayOps(doors.find((l) => l.to === c.target)!).map((op) => ({ id: op, label: cap(op) })) }],
+      { key: 'item', title: 'Do what?', picks: (c) => { const d = doors.find((l) => l.to === c.target); return d ? wayOps(d).map((op) => ({ id: op, label: cap(op) })) : []; } }],
       (c) => order(`${cap(c.item!)} ${doors.find((l) => l.to === c.target)?.label ?? 'the way'}`, { way: { toZone: c.target!, op: c.item as WayOp } }), { note: 'takes your move' });
   }
 

@@ -5,7 +5,7 @@ import type { Actor, ContestResult, GameEvent, GameState, Intent, PersonRead, Rn
 import { SPEECH_ACTIONS } from '../types';
 import { CONFIG } from '../config';
 import { hasPerk, markUse, ruleset, tierAtLeast, toContest } from '../ruleset';
-import { getLibrary } from '../library';
+import { getLibrary, perkName } from '../library';
 import { isActive, isEngaged, nameBook, stance, wary } from './relations';
 import { bribeMod, OFFER_WORDS, playerOffer, speaks } from './offer';
 import { distM, type Located } from './position';
@@ -263,7 +263,7 @@ export const tellFor = (listener: Actor | undefined, gap?: number): string =>
  * Takes One to Know One (LI1a) answers a lie with the better of Insight and Lying */
 export function answerRoll(state: GameState, listener: Actor, skill: string, speakerId: string, rng: Rng, extra: TierShift[] = []): RollResult {
   const knows = skill === SK.insight && hasPerk(listener, PK.takes_one_to_know_one);
-  return ruleset.roll({ actorId: listener.id, skill, modifiers: [], tierShifts: [...(hasPerk(listener, PK.easy_speaker) ? [{ source: 'Easy Speaker', value: 1 }] : []), ...extra], against: speakerId, contest: true, ...(knows ? { fullValue: [SK.lying] } : {}) }, state, rng);
+  return ruleset.roll({ actorId: listener.id, skill, modifiers: [], tierShifts: [...(hasPerk(listener, PK.easy_speaker) ? [{ source: perkName(PK.easy_speaker), value: 1 }] : []), ...extra], against: speakerId, contest: true, ...(knows ? { fullValue: [SK.lying] } : {}) }, state, rng);
 }
 
 /** OQ-29: an NPC's speech roll at the player (NL1: or a lie at another NPC); the listener answers (answerSkill; the speaker is side a) */

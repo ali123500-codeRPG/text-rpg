@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { actor } from '../harness/village';
 import { achievementName, awardXp, levelCost, xpToReach, skillRating, defeatXp, payDefeats, power, ratingGroups, refSkillPart, levelRating, xpGroupFactor, xpToNext } from '../../src/engine/xp';
-import { combatLevel } from '../../src/engine/fightModel';
+import { combatLevel } from '../../src/engine/combatLevel';
 import { nonCombatPart } from '../../src/engine/nonCombat';
 import { CONFIG } from '../../src/config';
 import { REWARD_LEVELS } from '../../src/scales';
