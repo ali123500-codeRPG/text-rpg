@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** A watcher now counts when the line from their eyes to you is clear, at any distance, whatever titles lie between: over a fence it is, through a wall it isn't.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #1092](https://github.com/ali123500-codeRPG/text-rpg/pull/1092)
 
 ## BG-314
 
