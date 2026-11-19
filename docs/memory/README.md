@@ -70,11 +70,15 @@ numbers are never here: a file names the setting and where it lives.
   screen review, motion, the Character page, the action deck.
 - [history-look-viewer-sound-and-lore.md](history-look-viewer-sound-and-lore.md): context. The library viewer,
   class flavor and lore, narration length, icons, sound, the look, show don't tell.
+- [history-code-checks-and-testing.md](history-code-checks-and-testing.md): context. Scale keys, bug reports,
+  code scans, the review of past fixes, test safety nets, the ten-slice code check.
+- [history-reviews-and-models.md](history-reviews-and-models.md): context. The first playtest review, speed,
+  which model each agent uses, the rule reviews, open parked items.
 - [working-notes-code.md](working-notes-code.md): working note. Traps in the code that tests do not catch.
 - [working-notes-git.md](working-notes-git.md): working note. Branching, merges and pushes in this repo.
 - [working-notes-testing.md](working-notes-testing.md): working note. Checking behaviour, motion and playtests.
 
 The `history-` files are topic histories: which questions each design topic answered, what replaced what, and
-which PR built it. They moved here from the Claude project's in-app memory in eleven slices. What stays in
+which PR built it. They moved here from the Claude project's in-app memory in twelve slices. What stays in
 that memory is provider-only: page links, thread names, publishing notes and study notes on novels. Where a
 topic has no history entry, the spec's "Deferred items" table and the merged PRs on GitHub are its record.
