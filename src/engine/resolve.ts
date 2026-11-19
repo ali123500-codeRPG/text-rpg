@@ -15,7 +15,7 @@ import { bestReward } from '../ruleset/achRewards';
 import { isHeld, parryItem, rollFnSkills } from '../ruleset/gear';
 import { freeGrips, healShare, levelMaxPct } from '../ruleset/body';
 import { FN } from '../library/functionIds';
-import type { Actor, ActorView, AttackResult, Barrier, CheckResult, Grade, RollResult, ContestResult, Effect, DurationDef, GameEvent, GameState, GearOp, Intent, ItemInstance, Mod, Order, Rng, TierShift, WayDid } from '../types';
+import type { Actor, ActorView, AttackResult, Barrier, CheckResult, Grade, RollResult, ContestResult, Effect, DurationDef, GameEvent, GameState, GearOp, Intent, ItemInstance, Mod, Opening, Order, Rng, TierShift, WayDid } from '../types';
 import { GRADED_ACTS } from '../types';
 import { barrierOn, broken, noteTried, openWay, passage, shutBy, wayOp, type WayOp } from './barriers';
 import { actionRow, actionSeconds, attackRowIds, reactSeconds, timeFactor } from '../ruleset/actionTime';
@@ -24,7 +24,7 @@ import { CONFIG } from '../config';
 import { activity, actorBody, getLibrary, itemDef, perkName, routine } from '../library';
 import { moveSpeed, slotMetres } from './speed';
 import { companions, travel, travelSpeed, tripGoal, type TripWorld } from './travel';
-import { M_EPS, closeInM, distM, faceToward, floorGap, distOrNull, gateAhead, placeAll, reachesM, roomAround, sightDistM, spotOnTheWay, spotPoint, walkLeg, wayLeftM, wayPoint, withinM, type Located } from './position';
+import { M_EPS, closeInM, distM, faceToward, floorGap, distOrNull, gateAhead, placeAll, reachesM, roomAround, seeingM, sightDistM, spotOnTheWay, spotPoint, walkLeg, wayLeftM, wayPoint, withinM, type Located } from './position';
 import { applyHealing, calm, healFromPerk, passiveHealing, wouldHeal } from './heal';
 import { FOCUS, HEALTH_LEVELS, MORALE_LEVELS, TIERS, type BodyPoseKey } from '../scales';
 import { defaultMode, effectiveSkill, gradeMod, gradeMods, obstacleGate, trueSkill, pickSeconds, pickTool, hasPerk, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markUse, markEndurance, modeSkill, partStates, roleOff, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
@@ -2540,11 +2540,18 @@ function noteWalked(state: GameState, a: Actor, m: number): void {
   w[a.id] = (w[a.id] ?? 0) + m;
 }
 
+/** BG-316 (BF102 a): the player sees what happens at a way: a clear line to its point, within the glimpse range of someone
+ * walking (SIGHT_M normal) */
+function doorSeen(state: GameState, o: Opening, zone: string): boolean {
+  const d = seeingM(state, state.player, { zone, pos: { x: o.at.x, y: o.at.y } });
+  return d !== null && withinM(d, CONFIG.SIGHT_M.normal![1]);
+}
+
 /** NW11: the time a turn took moves everyone on. Each NPC not in a fight goes toward where its routine puts it at the new
  * time, as far as it could walk in that time at the travel pace (travelSpeed), less what its own move already walked:
  * one jump, no Claude calls. It stops at a shut way or an unbuilt frontier, and a road is walked by its length. Healing
- * already counts minutes. CS11: a way it can open (its key, the bolt's side) it opens and walks through when the player is
- * in neither zone, and leaves it as it was where it can: the key locks it again from either side; a bar slid back from
+ * already counts minutes. CS11: a way it can open (its key, the bolt's side) it opens and walks through when it is
+ * out of the player's sight (BG-316), and leaves it as it was where it can: the key locks it again from either side; a bar slid back from
  * its own side can't be drawn again from the far side, so it stays open. */
 export function catchUp(state: GameState, minutes: number, deductWalked = true, onLeg?: (a: Actor, from: Located, metres: number, toward: string) => void): void {
   if (minutes <= 0) return;
@@ -2560,7 +2567,7 @@ export function catchUp(state: GameState, minutes: number, deductWalked = true, 
     const start = a.zone;
     for (let i = 0; i < 100 && left > M_EPS && a.zone !== d.zone; i++) {
       const gate = gateAhead(state, a, d.zone);
-      const unseen = !!gate && state.player.zone !== a.zone && state.player.zone !== gate.to;
+      const unseen = !!gate && !doorSeen(state, gate.opening, a.zone); // BG-316 (BF102 a): by the player's line of sight, not titles
       if (gate && (gate.pass !== 'opens' || !unseen)) break; // a way that is not simply open, or opened in view
       const was = gate && { locked: !!gate.b.lock?.locked, drawn: !!gate.b.bar?.drawn };
       if (gate) openWay(gate.b, a, a.zone);

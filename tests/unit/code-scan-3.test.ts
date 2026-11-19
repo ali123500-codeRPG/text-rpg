@@ -127,6 +127,16 @@ describe('CS11: NPCs use their own keys while time skips', () => {
     expect(b.g.zone).toBe('gate_inner');
     expect(b.b.lock.locked).toBe(true);
   });
+  it('BG-316: watching the door from another title in a clear line counts as in view', async () => {
+    const { catchUp } = await import('../../src/engine/resolve');
+    const { seeingM } = await import('../../src/engine/position');
+    const a = await setup({ playerZone: 'street_door' });
+    const door = a.s.openings.find((o) => o.barrier === 'gate_door')!;
+    expect(seeingM(a.s, a.s.player, { zone: 'street_square', pos: door.at })).not.toBeNull(); // across the square, nothing between
+    catchUp(a.s, 60);
+    expect(a.g.zone).toBe('gate_inner');
+    expect(a.b.lock.locked).toBe(true);
+  });
   it('a bar slid back from its own side stays open once it is through (it cannot be drawn from the far side)', async () => {
     const { catchUp } = await import('../../src/engine/resolve');
     const { s, g, b } = await setup({ bar: true });
