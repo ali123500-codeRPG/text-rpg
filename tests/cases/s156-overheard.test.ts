@@ -9,7 +9,7 @@ import { BUILT_PERKS } from '../../src/library/builtPerks';
 import { PK } from '../../src/library/perkIds';
 import { SK } from '../../src/library/skillIds';
 import { actorById } from '../../src/engine/relations';
-import { overhearLie, PLAIN, TELL } from '../../src/engine/speech';
+import { overhearLie, PLAIN } from '../../src/engine/speech';
 import { buildActorView, buildNarrationView } from '../../src/views';
 import type { Actor, GameEvent, GameState } from '../../src/types';
 
@@ -74,10 +74,8 @@ describe('156 Overheard', () => {
     const e = lie(s);
     e.overheard = ['player', 'trader'];
     s.events.push(e);
-    expect(buildNarrationView(s, [e]).events.find((x) => x.id === e.id)?.overheard).toBe(TELL);
-    give(s.player, PK.plain_as_day);
-    expect(buildNarrationView(s, [e]).events.find((x) => x.id === e.id)?.overheard).toBe(PLAIN);
-    expect(buildActorView(s, 'trader').perceived.find((x: { id: string; tell?: string }) => x.id === e.id)?.tell).toBe(TELL);
+    expect(buildNarrationView(s, [e]).events.find((x) => x.id === e.id)?.overheard).toBe(PLAIN); // LG25 c: plainly, for everyone
+    expect(buildActorView(s, 'trader').perceived.find((x: { id: string; tell?: string }) => x.id === e.id)?.tell).toBe(PLAIN);
   });
 
   it('in play: an NPC lie to another NPC is checked for an owner nearby', () => {

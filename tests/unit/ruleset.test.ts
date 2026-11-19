@@ -67,7 +67,9 @@ describe('ruleset maths', () => {
   });
   it('armor weight lowers dodge', () => {
     const s = makeVillage();
-    expect(effectiveSkill(s, s.player, SK.dodge).value).toBe(20); // 25 − 5 gambeson
+    expect(effectiveSkill(s, s.player, SK.dodge).value).toBe(22.5); // 25 − 2.5 Common gambeson (LG23 a: light −0.1 × need 25)
+    s.player.core.skills[SK.parry] = { raw: 30, state: 'normal' };
+    expect(effectiveSkill(s, s.player, SK.parry).value).toBe(27.5); // and Parry alike
   });
 });
 
