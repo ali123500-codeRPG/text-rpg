@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Every doorway the game draws now holds a real wooden door, shut and unlocked, unless its way is marked doorless (an open doorway into a hall, or a curtain). The door opens and shuts with the open and shut actions, and sight and sound follow it: shut it muffles a voice and hides the far side, open it doesn't. An empty doorway is seen and heard through like a gap. The fixed flag is gone. Saves move to schema 11: a doorway that the old flag kept shut gets its door, so an existing world plays as before until someone opens one.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #1081](https://github.com/ali123500-codeRPG/text-rpg/pull/1081)
 
 ## BG-311
 
