@@ -1,6 +1,5 @@
 // State-side minds work: routine install and switch, the alarm machine, Explore detection and ambush.
-import { areaOf } from '../plan/geom';
-import { groundIn } from '../engine/ground';
+import { groundZoneOf } from '../engine/ground';
 import { FN } from '../library/functionIds';
 import type { Actor, ActorView, ContestResult, Cue, GameEvent, GameState, ItemInstance, Order, Rng, RollResult, Tier, TierRoll, Zone } from '../types';
 import { TIERS } from '../scales';
@@ -15,7 +14,7 @@ import { VOLUME_NOISE } from '../perception/noise';
 import { markUse, ruleset, situational, fnRoller, tierLevel, toContest, usableModes, fallbackAttackSkill, modeSkill, effectiveSkill } from '../ruleset';
 import { coverShown, rollFnSkills } from '../ruleset/gear';
 import { rewardSum } from '../ruleset/achRewards';
-import { distM, seeingM, withinGrip, withinM, type Located } from '../engine/position';
+import { distM, seeingM, sightDistM, withinGrip, withinM, type Located } from '../engine/position';
 import { hasPerk, meltAwayHere } from '../ruleset/perks';
 import { blindSpotNow } from '../engine/perkMarks';
 import { fightingWith } from '../engine/engagement';
@@ -325,14 +324,13 @@ const senseSkill = (state: GameState, a: Actor, sense: Sense): number => effecti
  * searchArea %, + SEARCH_M2_PER_FIGHT_M m² per metre of searchReach (perks and achievements; every source adds up) */
 export const searchAreaM2 = (a: Actor, skill: number): number =>
   Math.max(0, CONFIG.SEARCH_AREA_M2 * skill / CONFIG.SEARCH_AREA_SKILL_BASE * (1 + rewardSum(a, 'searchArea') / 100) + rewardSum(a, 'searchReach') * CONFIG.SEARCH_M2_PER_FIGHT_M);
-/** SE1/SE20: `h` is in what a search by `a` covers: the searcher's own area, all of it when it is no bigger than the search
- * area, else the search area around the searcher; a fight turn only area ÷ SEARCH_M2_PER_FIGHT_M metres around it (SA8 b) */
+/** SE1, PZ11 a, BG-314 (BF83 b): `h` is in what a search by `a` covers: the search area's circle round the searcher (a fight
+ * turn only area ÷ SEARCH_M2_PER_FIGHT_M metres, SA8 b), in a clear line, whatever title either stands in */
 function inSearch(state: GameState, a: Actor, h: Located, area: number): boolean {
-  if (h.zone !== a.zone) return false;
-  if (state.mode === 'tactical') return withinM(distM(state, a, h), area / CONFIG.SEARCH_M2_PER_FIGHT_M);
-  const z = zoneById(state, a.zone);
-  return (z?.outline?.length ? areaOf(z.outline) : Infinity) <= area || withinM(distM(state, a, h), Math.sqrt(area / Math.PI));
+  return searchSees(state, a, h, state.mode === 'tactical' ? area / CONFIG.SEARCH_M2_PER_FIGHT_M : Math.sqrt(area / Math.PI));
 }
+/** BG-314: the sight part of a search's reach: a clear line from `a` to `h`, within `r` metres */
+export const searchSees = (state: GameState, a: Actor, h: Located, r: number): boolean => withinM(sightDistM(state, a, h), r);
 
 /** SE2 b, SE3, SE5, SE14, SE16: a search, by anyone, is a contest of the searcher's better sense after light against the
  * stealth (hide tag included) of everyone stealthy in reach whom it doesn't already see: a win makes it aware, a tie
@@ -387,7 +385,7 @@ const hiddenLevel = (i: ItemInstance): number => i.hiderSkill ?? tierSkill(i.hid
 export function searchItems(state: GameState, a: Actor, rng: Rng): { r?: RollResult; found: ItemInstance[]; hint: boolean } {
   const z = zoneById(state, a.zone);
   const area = searchAreaM2(a, senseSkill(state, a, FN.sight));
-  const hidden = groundIn(state, a.zone).filter((i) => hiddenFrom(i, a) && inSearch(state, a, { zone: a.zone, ...(i.at ? { pos: i.at } : {}) }, area));
+  const hidden = state.ground.filter((i) => { const zone = groundZoneOf(state, i); return !!zone && hiddenFrom(i, a) && inSearch(state, a, { zone, ...(i.at ? { pos: i.at } : {}) }, area); });
   if (!hidden.length) return { found: [], hint: false };
   const r = sightRoll(state, a, z, rng);
   const found = hidden.filter((i) => tierLevel(r) > tierLevel(i.hiddenAt!));
