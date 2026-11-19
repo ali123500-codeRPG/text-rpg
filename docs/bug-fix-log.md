@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-316
+
+**What was wrong:** When people walk about on their own between turns, a walker whose way is shut by a door opens it as a quiet background step only if the player can't see that door; a door in view stops them, so the opening happens as a move you can see. "Can't see it" was judged the zone way: the player standing in neither title beside the door. So someone could unlock and open a door in plain view across the street as a background step, with nothing shown.
+
+**What was done:** A door now counts as seen when the player has a clear line to it within a walking person's glimpse range, whatever title the player stands in. Only a door the player truly can't see is opened in the background.
+
+**Fixed by:** [PR #1095](https://github.com/ali123500-codeRPG/text-rpg/pull/1095)
+
 ## BG-315
 
 **What was wrong:** Gut Feeling (the hunch that someone hidden is watching you) only counted a watcher when the titles between you were joined by ways you can see through. That is the old zone links' idea of sight. So someone watching you over a garden fence, or across open ground between two titles with no "way" drawn, never set it off, while a watcher behind a wall in a linked title could.
