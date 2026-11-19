@@ -18,6 +18,7 @@ import { groupName, ratingName } from '../library/functionNames';
 import { SK } from '../library/skillIds';
 import { FN, RT } from '../library/functionIds';
 import { PK } from '../library/perkIds';
+import { perkName } from '../library';
 import { FR } from '../library/tableIds';
 
 export type Equation = {
@@ -106,7 +107,7 @@ export function equations(lib: Library): EquationGroup[] {
         formula: `the speaker rolls the speech skill (Lying for a lie) − ${CONFIG.REPEAT_TRY} × earlier tries; the listener rolls the same skill back (Insight against a lie), whoever speaks`,
         terms: [['Shaken', `the listener lost to intimidation: −${CONFIG.SHAKEN_PER_TIER} × tiers lost by, on every roll against the speaker until its engagement ends`],
           ['Swayed', `the listener lost to persuasion: −${CONFIG.SWAYED_PER_TIER} × tiers lost by, on every roll against the speaker until its engagement ends`],
-          ['a lie', 'a listener whose Insight beats the Lying roll sees through it'], ['Overheard', 'an owner who hears a lie told to someone else answers the same Lying roll with Insight too'], ['earlier tries', 'tries of the same kind (persuade, deceive, intimidate, barter) at the same listener this engagement; plain talk never counts'], ['Easy Speaker', 'the listener answers one tier higher']],
+          ['a lie', 'a listener whose Insight beats the Lying roll sees through it'], [perkName(PK.overheard), 'an owner who hears a lie told to someone else answers the same Lying roll with Insight too'], ['earlier tries', 'tries of the same kind (persuade, deceive, intimidate, barter) at the same listener this engagement; plain talk never counts'], [perkName(PK.easy_speaker), 'the listener answers one tier higher']],
         notes: ['NPCs roll speech at the player only with persuade, deceive, intimidate or barter; their plain talk does not roll, but a line they know is false is always given as deceive. A second Shaken or Swayed from the same speaker keeps the bigger one.'] },
       { name: 'Morale roll', at: 'moraleRoll · src/ruleset/index.ts; payFear · src/engine/morale.ts; fear · src/engine/resolve.ts',
         formula: `margin = d100 + ${n(W())} × Resolve + modifiers − ${n(NEED())}; morale lost = the fear's cost × the tier's multiplier`,

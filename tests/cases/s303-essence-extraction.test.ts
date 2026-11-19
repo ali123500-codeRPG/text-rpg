@@ -5,12 +5,16 @@
 import { expect, it } from 'vitest';
 import type { Actor, GameState } from '../../src/types';
 import { beside, makeVillage } from '../harness';
+import { bannedLines } from '../harness/guard';
 import { intent, play } from './w4-kit';
 import { CONFIG } from '../../src/config';
 import { PK } from '../../src/library/perkIds';
 import { trueSkill } from '../../src/ruleset/perks';
 import { cantExtract } from '../../src/engine/extract';
 import { gradeMult, rowsFor } from '../../src/engine/essence';
+import { deck } from '../../src/ui/deck';
+import { buildPlayerView } from '../../src/views';
+import { getLibrary } from '../../src/library';
 
 const down = (a: Actor) => { a.core.condition.hpLostPct = CONFIG.HEALTH_TRACK.find(([l]) => l === 'incapacitated')![1]; };
 const setup = () => {
@@ -65,4 +69,21 @@ it('DX6 a: extraction is an attack: the target and bandmates who see it turn hos
   expect(g.mind!.overrides!.player).toBe('hostile'); // Down, but it knows who did it
   expect(mate.mind!.overrides!.player).toBe('hostile');
   expect(mate.core.condition.moraleLost ?? 0).toBe(lost); // it already fell: "A bandmate goes down" is not paid again
+});
+
+it('BG-319: the deck names extraction by the perk\'s library name', () => {
+  const { s, g } = setup();
+  down(g);
+  g.mind!.moraleState = 'surrendered';
+  s.mode = 'tactical';
+  const entry = deck({ pv: buildPlayerView(s), s }).flatMap((x) => x.actions).find((a) => a.kind === 'extract')!;
+  expect(entry.label).toBe(getLibrary().perks[PK.extract_essence].name);
+});
+
+it('BG-319: no code outside the library types a perk\'s name; labels read it with perkName, so a rename reaches them', () => {
+  const esc = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const names = Object.values(getLibrary().perks).map((d) => d.name).filter((n) => n !== 'Rally'); // Rally is also the achievements' rally bonus (modSources)
+  const typed = new RegExp(`(['"\`])(${names.map(esc).join('|')})\\1`);
+  const roots = ['agents', 'engine', 'land', 'minds', 'perception', 'plan', 'ruleset', 'save', 'scenario', 'types', 'ui', 'views'].map((d) => `src/${d}`);
+  expect(bannedLines(typed, { 'src/ui/fakeGame.ts': 'a made-up save for the screen previews' }, roots)).toEqual([]);
 });

@@ -15,7 +15,7 @@ import { isDownLevel, othersHealthWord, TAG_MARK, tierAtLeast, tierLevel, tierNa
 import { blowSound, deathSound, setSound, setSoundVolume, sfx, soundOn, soundVolume, tierSound } from './sound';
 import { isHeld } from '../ruleset/slots';
 import { poolState } from '../ruleset/body';
-import { actorBody, getLibrary } from '../library';
+import { actorBody, getLibrary, perkName } from '../library';
 import type { TierRoll } from '../types';
 import { fellFacts, fellLine } from './fell';
 import { autopilotBar } from './autopilot';
@@ -659,7 +659,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
         // FT17: others' fatigue, only from Exhausted down, as the level word (never points or the breath line)
         a.fatigue ? h('span', { class: 'st tired', 'data-st': 'fatigue', title: 'How worn out they look' }, a.fatigue) : null,
         // A13 Read Wounds: their Damaged parts
-        ...(a.damaged ?? []).map((pt) => h('span', { class: 'st warn', title: 'Read Wounds' }, `${partName(pt).toLowerCase()} damaged`))))) : [h('p', { class: 'hs-note' }, 'Nobody in view')];
+        ...(a.damaged ?? []).map((pt) => h('span', { class: 'st warn', title: perkName(PK.read_wounds) }, `${partName(pt).toLowerCase()} damaged`))))) : [h('p', { class: 'hs-note' }, 'Nobody in view')];
     // a redraw that changes nothing keeps the old elements, so nothing restarts (M-74)
     const whoNow = whoKids.map((k) => k.outerHTML).join('');
     if (!frozen && whoNow !== whoHtml) { who.replaceChildren(...whoKids); whoHtml = whoNow; }

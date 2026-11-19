@@ -9,6 +9,7 @@ import { hasPerk, ruleset, tierAtLeast, tierLevel } from '../ruleset';
 import { heldBy, isActive } from './relations';
 import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
+import { perkName } from '../library';
 import { contestFeat } from './feats';
 import { met } from '../ruleset/hits';
 import { effectiveSkill } from '../ruleset/gear';
@@ -33,7 +34,7 @@ export function breakFree(state: GameState, a: Actor, rng: Rng): { free: boolean
   const strength = (x: Actor): Mod[] => { const v = holdStrength(state, x); return v > 0 ? [{ source: 'Strength', type: 'rating', value: CONFIG.SKILL_WEIGHT * v }] : []; };
   const req = (id: string) => ({ actorId: id, skill: GRAPPLE, modifiers: strength(id === a.id ? a : h), tierShifts: [], contest: true as const });
   // All-50 Hard to Hold: the owner's break-free roll gets tier shift +1
-  const mine = ruleset.roll({ ...req(a.id), tierShifts: hasPerk(a, PK.hard_to_hold) ? [{ source: 'Hard to Hold', value: 1 }] : [] }, state, rng);
+  const mine = ruleset.roll({ ...req(a.id), tierShifts: hasPerk(a, PK.hard_to_hold) ? [{ source: perkName(PK.hard_to_hold), value: 1 }] : [] }, state, rng);
   const theirs = ruleset.roll(req(h.id), state, rng);
   const free = tierLevel(mine) - tierLevel(theirs) >= 0;
   const contest: ContestResult = { a: mine, b: theirs, gap: tierLevel(theirs) - tierLevel(mine), winner: free ? 'a' : 'b' };

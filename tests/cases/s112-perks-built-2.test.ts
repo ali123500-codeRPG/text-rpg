@@ -9,6 +9,7 @@ import { afterAttack, coverFor, expireMarks, markShifts } from '../../src/engine
 import type { Actor, AttackResult, GameState } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
 import { PK } from '../../src/library/perkIds';
+import { perkName } from '../../src/library';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const npc = (s: GameState, id: string) => s.actors.find((a) => a.id === id)!;
@@ -57,7 +58,7 @@ describe('112 coded perks, batch 2', () => {
     afterAttack(s, s.player, slime, result({ outcome: 'dodged' }), true);
     expect(s.player.perkMarks).toBeUndefined();
     afterAttack(s, s.player, slime, result({ outcome: 'grazed' }), true);
-    expect(markShifts(s, s.player, slime, true).attack).toEqual([{ source: 'Hunter’s Mark', value: 1 }]);
+    expect(markShifts(s, s.player, slime, true).attack).toEqual([{ source: perkName(PK.hunters_mark), value: 1 }]);
   });
   it('Make Them Stumble: a clean dodge makes the attacker’s next defense one tier worse, until the end of its next turn', () => {
     const s = makeVillage();
