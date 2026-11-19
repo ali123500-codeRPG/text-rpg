@@ -16,6 +16,7 @@ import { buildActorView } from '../../src/views';
 import { zoneById } from '../../src/engine/relations';
 import { approachMove } from '../../src/engine/merge';
 import { seedGoals } from '../../src/engine/goals';
+import { hearsClearly } from '../../src/perception';
 import { act, plannerOut, play } from './w4-kit';
 
 describe('385 no zone links or same zone as distance', () => {
@@ -59,14 +60,18 @@ describe('385 no zone links or same zone as distance', () => {
   it('BG-308: a leader stops waiting once the one it leads is near enough to talk, in any zone', () => {
     const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'patron_1'] });
     const m = actor(s, 'trader');
-    // the trader rolled Keen Ear when this was written; pinned so other perk rolls don't change what it hears (BG-312)
-    if (!m.core.perks.some((p) => p.perkId === PK.keen_ear)) m.core.perks.push({ perkId: PK.keen_ear, source: 'level', gainedTurn: 0 });
+    m.core.perks = m.core.perks.filter((p) => p.perkId !== PK.keen_ear); // BG-312: plain hearing, whatever perks it rolled
     m.mind!.control = 'agent';
     play(s, { agentOutputs: [plannerOut(m.id, act('hold'), { headTo: 'street_door', lead: s.player.id })] });
     m.mind!.control = 'code';
     for (let i = 0; i < 6 && m.zone !== 'street_door'; i++) play(s);
     expect(m.zone).toBe('street_door');
     Object.assign(s.player.pos!, { x: 0, y: -3.6 }); m.pos = { x: 0, y: -4.6 }; // the player in the doorway, still in the tavern
+    // BG-312: the front doorway holds a real door: shut, a normal voice 0.7 m off comes through muffled; open, clearly
+    const door = s.barriers![s.openings.find((o) => o.joins.includes('street_door') && o.joins.includes('tav_common'))!.barrier!];
+    expect(hearsClearly(s, m, s.player, 'normal')).toBe(false);
+    door.open = true;
+    expect(hearsClearly(s, m, s.player, 'normal')).toBe(true);
     play(s);
     expect(m.mind!.leading).toBeUndefined();
   });

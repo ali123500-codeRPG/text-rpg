@@ -10,6 +10,7 @@ import { resolveTurn } from '../../src/engine';
 import { buildNarrationView, buildPlayerView } from '../../src/views';
 import { checkParserLegality } from '../../src/agents/legality';
 import { wallsAround, holeSpot } from '../../src/plan/holes';
+import { seesNow } from '../../src/plan/line';
 import { walkPath } from '../../src/plan/path';
 import { waysOut } from '../../src/plan/where';
 import { addWear, breakJob, jobShare, regrow, secondsLeft, toolCheck, type BreakJob } from '../../src/engine/breakThrough';
@@ -60,7 +61,8 @@ describe('402 breaking through walls and barriers (BW8-BW26)', () => {
     expect(w.dents).toHaveLength(1);
     expect(addWear(s, s.player, job, t * 0.3).reached).toBe('crippled');
     const crack = s.openings.find((o) => o.id === job.dent.hole)!;
-    expect(crack).toMatchObject({ crack: true, seeThrough: true, wall: w.id, joins: ['tav_common', 'tav_counter'] });
+    expect(crack).toMatchObject({ crack: true, wall: w.id, joins: ['tav_common', 'tav_counter'] });
+    expect(seesNow(s, crack)).toBe(true);
     const A = { ...s.player.pos!, floor: 0 }, B = { ...crack.at, floor: 0 };
     const beyond = { x: B.x + (B.x - A.x), y: B.y + (B.y - A.y), floor: 0 };
     expect(walkPath(s, A, beyond, { walker: s.player, body: s.player })?.through ?? []).not.toContain(crack);

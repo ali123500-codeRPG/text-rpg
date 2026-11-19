@@ -174,16 +174,16 @@ export type WallDent = { at: Pt; wear: Record<string, number>; turn: number; hol
 /** PZ2: a way: a doorway, gap, window, stairs, ladder or hatch (library openingKinds, OK) at a spot (at, on floor) along a
  * wall (wall) or in a floor. joins: the titles either side (a frontier's second is its frontier key); labels: how the way
  * reads from joins[0] and from joins[1]. to: stairs, ladders, hatches and drops reach a point on another floor. barrier: its
- * door, gate, grate, shutters or rubble (GameState.barriers). seeThrough: with no barrier standing open, whether it shows
- * the far side (a gap, an arch or a window does; a plain doorway does not). drop (SD7): a window or ledge over lower ground,
- * only ever jumped down. */
+ * door, gate, grate, shutters or rubble (GameState.barriers). Sight and sound pass it by its barrier (shut, open, broken or
+ * seen through), else by its kind (library openingKinds seeThrough) (BG-312: no fixed flag of its own). drop (SD7): a window
+ * or ledge over lower ground, only ever jumped down. */
 export type Opening = {
   id: string; placeId: PlaceId; kind: string;
   at: Pt; floor: number; wall?: string;
   widthM: number; heightM: number; sillM?: number;
   to?: Pt3;
   joins: [string, string]; labels: [string, string];
-  barrier?: string; seeThrough: boolean;
+  barrier?: string;
   frontier?: true; drop?: true;
   /** BW11 a: a hole broken halfway through a wall (Crippled): seen and heard through, but only an amorphous body passes */
   crack?: true;
@@ -192,9 +192,10 @@ export type Opening = {
  * doorway, not seen through while shut), window (seen through, only jumped down: a drop, SD7), up or down (stairs, a
  * ladder or a hatch to the floor above or below) */
 export type WayKind = 'open' | 'door' | 'window' | 'up' | 'down';
-/** PZ14 a: a way as drawing takes it: to a title (or a frontier key), its label from this side and back, its kind; sight
- * overrides the kind's seen-through; barrier: an existing barrier record's id */
-export type WaySpec = { to: string; label: string; back?: string; kind?: WayKind; sight?: boolean; frontier?: true; barrier?: string };
+/** PZ14 a: a way as drawing takes it: to a title (or a frontier key), its label from this side and back, its kind; barrier:
+ * an existing barrier record's id. BG-312: a doorway with no barrier gets a plain door unless doorless (an open doorway, as
+ * into a hall) */
+export type WaySpec = { to: string; label: string; back?: string; kind?: WayKind; frontier?: true; barrier?: string; doorless?: true };
 /** PZ14 a: a title as drawing takes it (src/plan/draw.ts drawTitles): the title, plus how to draw it. A spec given an
  * outline (or rect) is not placed again. */
 export type TitleSpec = Omit<Zone, 'outline' | 'floor' | 'top'> & {

@@ -618,7 +618,7 @@ const DEFAULTS = {
   TURN_ENDS_KEPT: 500, // AT15/AT43: turn end times kept for timers (more than the longest timer needs at the shortest turn)
   HISTORY_CHUNK_TURNS: 20, // Q18: story text saved in documents of this many turns each
   LOCK_LEASE_MS: 60_000, // Q2
-  SCHEMA_VERSION: 10, // v10: titles and the floor plan (PZ16 b); v9: land (regions, WZ12)
+  SCHEMA_VERSION: 11, // v11: doorways hold real doors (BG-312); v10: titles and the floor plan (PZ16 b); v9: land (regions, WZ12)
   /** MG2: a save older than this is refused (the prototype keeps no old saves, D-116); OLDEST_SAVE_REASON ends "this save was made …" */
   OLDEST_SAVE_SCHEMA: 10,
   OLDEST_SAVE_REASON: 'before zones became titles on a floor plan (walls, doors and light at points)',

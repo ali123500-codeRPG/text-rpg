@@ -104,11 +104,11 @@ export function crossings(state: GameState, A: P3, B: P3): Crossing[] {
 }
 
 /** BG-70, PC4: an opening shows the far side now: its barrier stands open, is broken, or is seen through (bars, a slit);
- * with no barrier, by its own kind (a gap or window does, a plain doorway does not) */
+ * with no barrier, by its own kind (BG-312: an empty doorway, a gap or a window does; a stair hole is the roof's) */
 export function seesNow(state: GameState, o: Opening): boolean {
   const b = o.barrier ? state.barriers?.[o.barrier] : undefined;
   if (b) return !!b.open || b.state === 'destroyed' || !!getLibrary().barrierKinds?.[b.kind]?.seeThrough;
-  return o.seeThrough;
+  return !!o.crack || !!getLibrary().openingKinds?.[o.kind]?.seeThrough;
 }
 /** PZ3 a: nothing on the line from A to B stops sight */
 export function lineClear(state: GameState, A: P3, B: P3): boolean {
@@ -123,12 +123,12 @@ const holeOpen = (state: GameState, o: Opening): boolean => !o.barrier || seesNo
 
 const lossDb = (k: SoundLossKey | undefined): number => CONFIG.SOUND_LOSS_DB[k ?? 'open'];
 /** HB4, PZ4: what a sound loses through an opening: its barrier by kind while shut (a door, a gate, a hatch; a grate's bars
- * nothing); a window with no shutters a pane's; a plain doorway a shut door's; else nothing */
+ * nothing); a window with no shutters a pane's; an empty doorway or gap nothing (BG-312) */
 export function openingLoss(state: GameState, o: Opening): number {
   const b = o.barrier ? state.barriers?.[o.barrier] : undefined;
   if (b) return b.open || b.state === 'destroyed' ? 0 : lossDb(getLibrary().barrierKinds?.[b.kind]?.sound);
   if (o.kind === OP.window) return lossDb('window');
-  return lossDb(o.seeThrough ? 'open' : 'door');
+  return lossDb(seesNow(state, o) ? 'open' : 'door');
 }
 /** PZ4 a: the decibels a sound loses on the straight line from A to B: each wall by its kind (a low wall or fence
  * nothing), each opening by what stands in it, each floor or roof as a wall unless through an open stair hole */
