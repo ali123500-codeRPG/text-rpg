@@ -21,7 +21,7 @@ import { TURN_CHECK, checkTurn, snapTurn } from '../../src/save/turnCheck';
 const actor = (s: GameState, id: string) => s.actors.find((a) => a.id === id)!;
 const act = (type: ParserActionType): Intent => ({
   move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null,
-  action: { type, skill: '', target: null, targetPart: null, item: null, mode: null, approach: '', stance: 'normal' },
+  action: { type, skill: '', target: null, targetPart: null, item: null, mode: null, approach: '' },
 });
 const companion = (s: GameState, id: string, zone: string): Actor => {
   const c = spawnNpc(null, TP.patron, { id, zone, placeId: s.zones.find((z) => z.id === zone)!.placeId, bandId: s.player.bandId, name: id });

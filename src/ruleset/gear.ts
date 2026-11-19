@@ -472,13 +472,15 @@ export function usableDefense(state: GameState, actor: Actor, ranged: boolean): 
 /** the defenses in tie order: block, parry, dodge */
 const DEFENSE_ORDER: DefenseKind[] = ['block', 'parry', 'dodge'];
 /** dodge always works; block needs a held shield; parry a held melee weapon or an open hand, never against a missile */
-const canDefend = (state: GameState, actor: Actor, t: DefenseKind, ranged = false): boolean =>
+export const canDefend = (state: GameState, actor: Actor, t: DefenseKind, ranged = false): boolean =>
   t === 'dodge' || (t === 'block' ? canBlock(state, actor) : !ranged && canParry(state, actor));
 
-const bestDefense = (state: GameState, actor: Actor, kinds: DefenseKind[]): DefenseKind => {
-  const value = (t: DefenseKind) => effectiveSkill(state, actor, DEFENSE_SKILL[t], { itemId: defenseItem(state, actor, t)?.id }).value;
-  return kinds.reduce((best, t) => (value(t) > value(best) ? t : best), kinds[0] ?? 'dodge');
-};
+/** a defense's effective skill, with the shield or weapon it rolls with */
+export const defenseValue = (state: GameState, actor: Actor, t: DefenseKind): number =>
+  effectiveSkill(state, actor, DEFENSE_SKILL[t], { itemId: defenseItem(state, actor, t)?.id }).value;
+
+const bestDefense = (state: GameState, actor: Actor, kinds: DefenseKind[]): DefenseKind =>
+  kinds.reduce((best, t) => (defenseValue(state, actor, t) > defenseValue(state, actor, best) ? t : best), kinds[0] ?? 'dodge');
 
 /** Default standing defense (Part 2, Agent Planner): whichever usable defense has the highest effective skill; ties go block, parry, dodge. */
 export function defaultStandingDefense(state: GameState, actor: Actor): DefenseKind {

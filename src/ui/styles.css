@@ -1562,6 +1562,17 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .dk-seg { display: inline-flex; border: 1px solid var(--border); border-radius: var(--r-pill); overflow: hidden; }
 .dk-seg button { background: none; border: 0; min-height: 30px; padding: 0 var(--space-3); color: var(--muted); font: 13px var(--font-round); cursor: pointer; }
 .dk-seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-pill); font-weight: 700; }
+/* the Defense row: each defense with its figure; one that can't be used now says what it lacks; a chosen one that can't
+   be used keeps a dashed ring and the note beside the row names the fallback (words, not colour alone) */
+.dk-def button { display: inline-flex; align-items: baseline; gap: 6px; transition: background-color var(--m-feedback) var(--m-ease), color var(--m-feedback) var(--m-ease); }
+.dk-def button + button { border-left: 1px solid var(--border); }
+.dk-def .dv { color: var(--text); font-weight: 700; }
+.dk-def button:not([aria-pressed="true"]):not([aria-disabled="true"]):hover { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--text); }
+.dk-def button[aria-pressed="true"] .dv { color: inherit; }
+.dk-def button[aria-disabled="true"] { cursor: default; }
+.dk-def button[aria-disabled="true"] .dv { color: var(--muted); font-weight: 400; font-style: italic; }
+.dk-def button[aria-pressed="true"][aria-disabled="true"] { background: none; color: var(--text); outline: 1px dashed var(--warn); outline-offset: -4px; }
+.dk-defnote { color: var(--warn); }
 .dk-links { margin-left: auto; display: flex; gap: var(--space-2); }
 .dk-links .hs-btn-text[aria-pressed="true"] { text-decoration: underline; }
 .dk-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-2) var(--space-4); max-height: calc(var(--vh) * .3); overflow-y: auto; align-items: start; }

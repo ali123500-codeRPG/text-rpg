@@ -503,5 +503,6 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     abandonQuest(id) { if (state && abandonQuest(state, id)) emit(); },
     pinQuest(id) { if (state) { pinQuest(state, id); emit(); } },
     setSignatures(lines) { if (state) { setSignatures(state.player, lines); emit(); } },
+    setDefense(kind) { if (state) { state.player.core.standingDefense = kind; emit(); } },
   };
 }

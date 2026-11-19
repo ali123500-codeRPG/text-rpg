@@ -8,7 +8,7 @@ import { checkTurn, snapTurn } from '../../src/save/turnCheck';
 export type IntentArg = Omit<Partial<Intent>, 'action'> & { action?: Partial<NonNullable<Intent['action']>> };
 export const intent = ({ action, ...p }: IntentArg = {}): Intent => ({
   move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null, ...p,
-  action: action ? { type: 'other', skill: '', target: null, targetPart: null, item: null, mode: null, approach: '', stance: 'normal', ...action } : null,
+  action: action ? { type: 'other', skill: '', target: null, targetPart: null, item: null, mode: null, approach: '', ...action } : null,
 });
 
 export const act = (type: NpcAction['type'], target: string | null = null, extra: Partial<NpcAction> = {}): NpcAction =>

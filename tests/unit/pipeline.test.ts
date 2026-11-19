@@ -33,6 +33,7 @@ vi.mock('../../src/engine', () => ({
   BEAT_OPENING: '(you speak first)',
   MUFFLED: '(muffled)',
   offerNote: () => undefined,
+  queuedSteps: () => [], watchOrder: () => ({}), orderStops: () => false,
   resolveTurn: (s: GameState, input: TurnInput) => {
     H.resolved.push({ at: H.clockNow(), input });
     H.onResolve?.(s);

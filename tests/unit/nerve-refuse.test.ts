@@ -16,7 +16,7 @@ describe('an attack with a broken nerve', () => {
     setMoraleLost(s.player, maxMorale(s.player));
     expect(moraleLevel(s.player)).toBe('broken');
     const turn = s.turn;
-    const atk = { type: 'attack' as const, skill: SK.melee_medium, target: 'patron_1', targetPart: null, item: null, mode: null, approach: '', stance: 'normal' as const };
+    const atk = { type: 'attack' as const, skill: SK.melee_medium, target: 'patron_1', targetPart: null, item: null, mode: null, approach: '' };
     await expect(g.turn(intent({ action: atk }), 'I hit the patron')).rejects.toThrow(/did not advance/); // the harness: no turn passed
     expect(g.game.state()!.turn).toBe(turn);
     expect(g.game.lines().at(-1)).toMatchObject({ kind: 'clarify', text: NERVE_REFUSED });

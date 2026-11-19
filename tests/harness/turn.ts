@@ -22,13 +22,13 @@ export function setupGame(opts: VillageOpts & { engaged?: string[] } = {}) {
 
 export const intent = (over: Partial<Intent> = {}): Intent => ({
   move: null,
-  action: { type: 'observe', skill: SK.eyesight, target: null, targetPart: null, item: null, mode: null, approach: 'quietly', stance: 'normal' },
+  action: { type: 'observe', skill: SK.eyesight, target: null, targetPart: null, item: null, mode: null, approach: 'quietly' },
   gear: null, spoken: null, addressees: null, deferred: [], clarify: null, ...over,
 });
 
 export const speech = (type: 'talk' | 'persuade' | 'deceive', to: string, spoken: string, over: Partial<NonNullable<Intent['action']>> = {}): Intent =>
   intent({
-    action: { type, skill: SK.persuasion, target: to, targetPart: null, item: null, mode: null, approach: 'with a crooked grin', stance: 'normal', ...over },
+    action: { type, skill: SK.persuasion, target: to, targetPart: null, item: null, mode: null, approach: 'with a crooked grin', ...over },
     spoken, addressees: [to],
   });
 
