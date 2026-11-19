@@ -115,6 +115,25 @@ describe('play page smoke (TQ7)', () => {
     expect(errors).toEqual([]);
   });
 
+  it('SD4–SD7: Play shows, it does not tell: icon switches, no state words beside the bars, no sub-lines or help lines', async () => {
+    const tools = page.locator('.title-tools');
+    for (const name of ['Watch an agent play', 'Show rolls', 'Narration: Normal', 'Sound']) expect(await tools.getByRole('button', { name, exact: true }).locator('svg').count()).toBe(1);
+    expect(await tools.innerText()).not.toMatch(/✓|Show rolls|Narration|Sound/); // only Map keeps its word
+    expect(await page.locator('.cs-strip').innerText()).not.toMatch(/Unhurt|Calm|Rested/);
+    expect(await page.locator('.cs-strip [role="img"][aria-label^="Health: "]').count()).toBe(1);
+    expect(await page.locator('.dk-act .n').count()).toBe(0);
+    expect(await page.locator('.dk-act[data-kind="look"]').getAttribute('title')).toMatch(/ · a glance at all in sight$/);
+    expect(await page.locator('.dk-free').first().getAttribute('title')).toBe('Free');
+    expect(await page.locator('[data-def="block"]').getByRole('img', { name: 'Needs a shield in hand' }).count()).toBe(1); // the opening build holds no shield
+    expect(await page.locator('.inbar .hs-input').getAttribute('placeholder')).toBe('What do you do or say?');
+    expect(await page.locator('.mm-foot').innerText()).not.toMatch(/Point anywhere/);
+    await page.getByRole('button', { name: 'Commands' }).click();
+    expect(await page.locator('.helps').innerText()).not.toMatch(/no time passes|nothing is sent/i);
+    await page.locator('.helps').getByRole('button', { name: 'Close', exact: true }).click();
+    await expect.poll(() => page.locator('.helps').isHidden()).toBe(true);
+    expect(errors).toEqual([]);
+  });
+
   it('the next step of an order is taken by clicking the box, or played by Enter in the empty box (D-20 b)', async () => {
     await turn('look around then search the shelf', 1);
     const box = page.locator('.inbar .hs-input');

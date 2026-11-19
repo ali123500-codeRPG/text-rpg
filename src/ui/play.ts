@@ -37,11 +37,11 @@ import { actionsRow, doingChip, doingNow, followingNow, walkingNow } from './doi
 import { closePop, openPop } from './pop';
 import { deckView, walkOrder, type SayMode } from './deckView';
 import { minimapPanel } from './minimap';
-import { instanceIcon } from './itemIcons';
+import { ICONS, instanceIcon } from './itemIcons';
 import { maybeOfferPop } from './essences';
 import { anyGains, gainsPanel, gainsSummary, honor, playGains } from './gains';
 import { working } from '../ruleset/body';
-import { HEALTH_LEVELS, HIT_OUTCOMES, MORALE_LEVELS, NARRATION_SCALES, PART_STATES, POSTURES, type MoraleLevel } from '../scales';
+import { HEALTH_LEVELS, HIT_OUTCOMES, LIFE_STAGES, MORALE_LEVELS, NARRATION_SCALES, PART_STATES, POSTURES, type MoraleLevel } from '../scales';
 import type { AttackOutcome, PartState } from '../types';
 import { cap, r1, termAttrs, theOf } from '../words';
 
@@ -94,6 +94,12 @@ function mapIcon(): HTMLElement {
   const i = h('span', { class: 'dl-i', 'aria-hidden': 'true' });
   i.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14"/></svg>';
   return i;
+}
+/** SD7: a header switch as an icon; its words are its name and tip, and pressed shows by its accent fill (aria-pressed) */
+function toolIcon(icon: keyof typeof ICONS, label: string, title: string, pressed: boolean | null, onclick: () => void): HTMLElement {
+  const b = h('button', { type: 'button', class: 'hs-icon-btn tool-ic', 'aria-label': label, title, 'aria-pressed': pressed === null ? undefined : String(pressed), onclick });
+  b.innerHTML = ICONS[icon];
+  return b;
 }
 const colourOf = (name: string) => SPEAKER_COLOURS[[...name].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7) % SPEAKER_COLOURS.length];
 const changesWord = (n: number) => `${n} change${n === 1 ? '' : 's'}`;
@@ -229,7 +235,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const story = h('div', { class: 'story' }, h('div', { class: 'col' }, list, waiting));
   const notices = h('div', { class: 'notices' });
   const input = h('input', { class: 'hs-input', id: 'cmd', autocomplete: 'off', 'aria-label': 'Say or type what you do', 'aria-describedby': 'cmd-hint' });
-  const PLACEHOLDER = 'What do you do or say? A line starting with / is a command (/help)';
+  const PLACEHOLDER = 'What do you do or say?';
   const hint = h('p', { class: 'hs-note in-hint', id: 'cmd-hint' });
   const send = h('button', { class: 'hs-btn-main', type: 'submit' }, 'Send');
   // AD5: the quick heal slot sits on the health strip; a click treats your wounds with it at once (AD7)
@@ -438,7 +444,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       ...(l.incomingChecks ?? []).map((c) => checkLine(c, c.by)),
       l.changes?.length ? h('details', { class: 'changes' },
         h('summary', {}, h('span', { class: 'hs-label' }, `Turn ${l.turn}`), h('span', { class: 'hs-chip' }, String(l.changes.length)),
-          h('span', { class: 'sum' }, l.changes.filter((x) => x.kind !== 'combat').map((x) => x.text).join(' · ') || changesWord(l.changes.length))),
+          h('span', { class: 'sum' }, l.changes.filter((x) => x.kind === 'condition').map((x) => x.text).join(' · ') || changesWord(l.changes.length))),
         h('table', { class: 'chg' }, h('tbody', {}, l.changes.map((x) => h('tr', {},
           h('td', {}, h('span', { class: 'hs-tg', style: `--tg:var(--${CHANGE_WORD[x.kind][1]})` }, CHANGE_WORD[x.kind][0])), h('td', {}, x.text)))))) : null,
       ...gear.map((g) => row('Gear', g)),
@@ -606,19 +612,17 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
         deals.map((d) => h('div', { class: 'dl-row' }, h('b', {}, cap(d.with)), h('span', {}, d.text), h('small', {}, `Made turn ${d.madeTurn}`)))) : null) : null;
     // UI6: "Show rolls" sets the story's own showMechanics; every turn keeps its rolls, so the switch shows or hides them all, past turns too
     const show = !!(s?.settings.showMechanics ?? CONFIG.SHOW_ROLLS_DEFAULT);
-    const rollsBtn = s && CONFIG.SHOW_MECHANICS ? h('button', { type: 'button', class: 'hs-btn-text rolls-sw', 'aria-pressed': String(show),
-      title: show ? 'Rolls show under each turn. Click to hide them' : 'Click to show the dice and modifiers under each turn',
-      onclick: () => { s.settings.showMechanics = !show; update(); } }, show ? '✓ Show rolls' : 'Show rolls') : null;
+    const rollsBtn = s && CONFIG.SHOW_MECHANICS ? toolIcon('rolls', 'Show rolls', show ? 'Show rolls: on. Click to hide the dice and modifiers under each turn' : 'Show rolls: the dice and modifiers under each turn',
+      show, () => { s.settings.showMechanics = !show; update(); }) : null;
     // LN6: the story's Narration length (Shorter, Normal, Longer), one click to the next; the next turn is told at that length
     const nl = s?.settings.narrationLength ?? 'normal', nlNext = NARRATION_SCALES.keys[(NARRATION_SCALES.pos(nl) + 1) % NARRATION_SCALES.keys.length];
-    const lengthBtn = s ? h('button', { type: 'button', class: 'hs-btn-text rolls-sw', title: `How long the story's telling is, from the next turn. Click for ${NARRATION_SCALES.name(nlNext)}`,
-      onclick: () => { s.settings.narrationLength = nlNext; update(); } }, `Narration: ${NARRATION_SCALES.name(nl)}`) : null;
+    const lengthBtn = s ? toolIcon('narration', `Narration: ${NARRATION_SCALES.name(nl)}`, `Narration: ${NARRATION_SCALES.name(nl)}. How long the story's telling is, from the next turn. Click for ${NARRATION_SCALES.name(nlNext)}`,
+      null, () => { s.settings.narrationLength = nlNext; update(); }) : null;
     // AU7: the Sound switch beside Show rolls, and one volume slider while it is on; both kept per viewer
     const sOn = soundOn();
     const soundBtn = h('span', { class: 'sound-sw' },
-      h('button', { type: 'button', class: 'hs-btn-text rolls-sw', 'aria-pressed': String(sOn),
-        title: sOn ? 'Clicks, blows and rolls make sounds. Click to mute' : 'Click to turn sound on',
-        onclick: () => { setSound(!sOn); update(); } }, sOn ? '✓ Sound' : 'Sound'),
+      toolIcon(sOn ? 'sound' : 'sound_off', 'Sound', sOn ? 'Sound: on. Clicks, blows and rolls make sounds. Click to mute' : 'Sound: off. Click to turn it on',
+        sOn, () => { setSound(!sOn); update(); }),
       sOn ? h('input', { type: 'range', min: '0', max: '1', step: '0.05', value: String(soundVolume()), 'aria-label': 'Sound volume',
         title: 'Sound volume', oninput: (e: Event) => setSoundVolume(Number((e.target as HTMLInputElement).value)) }) : null);
     // the map opens as a big pop-up over Play (it has no page of its own)
@@ -647,7 +651,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     const whoKids = seen.length ? seen.map((a) => h('div', { class: 'pp' + (foe(a) ? ' foe' : '') + (pins.has(a.id) ? ' pinned' : ''), role: 'listitem button', 'data-who': cap(a.name ?? a.label), 'data-id': a.id, tabindex: '0', title: 'What you can do to or with them' },
       h('span', { class: 'dot', 'aria-hidden': 'true' }),
       h('b', {}, cap(a.name ?? a.label), handIn.has(a.id) ? h('span', { class: 'q-ready', title: 'A quest for them is ready to hand in', 'aria-label': ', a quest for them is ready to hand in' }, ' ✓') : null), // the name (BG-30's edit had put it inside the comment, so the row lost every name)
-      h('span', { class: 'ds' }, [whoDistance(a, pv!), a.age ? `looks ${a.age.toLowerCase()}` : ''].filter(Boolean).join(' · ')), // how far, if your weapon reaches; AG16: the life stage they look
+      h('span', { class: 'ds' }, [whoDistance(a, pv!), a.age && a.age !== LIFE_STAGES.name('stage_2') ? `looks ${a.age.toLowerCase()}` : ''].filter(Boolean).join(' · ')), // how far, if your weapon reaches; AG16: the life stage they look, unless adult (SD3)
       h('button', { type: 'button', class: 'pin', 'aria-pressed': String(pins.has(a.id)), title: pins.has(a.id) ? 'Unpin' : 'Pin to the top', 'aria-label': `${pins.has(a.id) ? 'Unpin' : 'Pin'} ${cap(a.name ?? a.label)}` }, pins.has(a.id) ? '★' : '☆'),
       h('span', { class: 'sts' },
         a.health ? h('span', { class: isDownLevel(a.health) ? 'st down' : 'st warn' }, othersHealthWord(a.health, a.level === 'full'))
@@ -701,10 +705,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
 
     helpPanel.hidden = !open;
     cmdBtn.setAttribute('aria-pressed', String(open === 'commands'));
-    if (open === 'commands') helpPanel.replaceChildren(h('div', { class: 'helps-h' }, h('p', { class: 'hs-section' }, 'Commands · no time passes'),
-      h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { open = null; update(); } }, 'Close ×')),
+    if (open === 'commands') helpPanel.replaceChildren(h('div', { class: 'helps-h' }, h('p', { class: 'hs-section' }, 'Commands'),
+      h('button', { class: 'hs-icon-btn dpop-x', type: 'button', 'aria-label': 'Close', title: 'Close (Esc)', onclick: () => { open = null; update(); } }, '✕')),
       h('ul', { class: 'cmds' }, COMMANDS.map(([c, what]) => h('li', {}, h('button', { type: 'button', onclick: () => pick(c) }, h('b', {}, c.trim()), h('span', {}, what))))),
-      h('p', { class: 'hs-note' }, 'Picking one fills the box; nothing is sent until you press Send.'),
       // A5: the keys the play screen answers, beside the commands
       h('p', { class: 'hs-section' }, 'Keys'), h('dl', { class: 'keys' }, KEYS.flatMap(([k, what]) => [h('dt', {}, h('kbd', {}, k)), h('dd', {}, what)])));
     if (stick || busy) story.scrollTop = story.scrollHeight;
@@ -986,7 +989,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     const whole = (n: number) => String(Math.round(n)); // while counting; the final text keeps its fractions
     const sign = (n: number, f: (x: number) => string = num) => (n > 0 ? '+' : '−') + f(Math.abs(n));
     let redEdge = false; // the red health edge flared this turn: the violet one stays out of its way (MW1)
-    // health: the number counts, the bar leaves a trail, a new level word lands; Wounded or worse pulses the edge once
+    // health: the number counts, the bar leaves a trail; Wounded or worse pulses the edge once (no level word to land, SD5)
     if (a.hp !== b.hp || a.level !== b.level || a.hpFill !== b.hpFill) {
       const d = at(stagger);
       if (a.hp !== null && b.hp !== null && a.hp !== b.hp) {
@@ -995,7 +998,6 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       }
       barMove(q('[data-m="hp-track"]'), q('[data-m="hp-track"] > b'), b.hpFill, a.hpFill, d);
       if (a.level !== b.level) {
-        stamp(q('[data-m="hp-level"]'), d, HEALTH_LEVELS.name(b.level));
         const at = HEALTH_LEVELS.pos(a.level);
         if (at > HEALTH_LEVELS.pos(b.level) && at >= HEALTH_LEVELS.pos(CONFIG.MOTION_EDGE_FROM)) {
           const steady = at >= HEALTH_LEVELS.pos(CONFIG.MOTION_EDGE_STEADY);
@@ -1038,7 +1040,6 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       const d = at(stagger);
       count(q('[data-m="morale-left"]'), b.moraleLeft, a.moraleLeft, (n) => String(Math.round(n)), d);
       barMove(q('[data-m="morale-track"]'), q('[data-m="morale-track"] > b'), b.moraleFill, a.moraleFill, d);
-      if (a.morale !== b.morale) stamp(q('[data-m="morale-level"]'), d, b.morale);
       nerveBeats(b.moraleKey, a.moraleKey, d, redEdge || HEALTH_LEVELS.pos(a.level) >= HEALTH_LEVELS.pos(CONFIG.MOTION_EDGE_STEADY));
     }
     // Shaken, Swayed and the yield box arrive when they first show (M-36)

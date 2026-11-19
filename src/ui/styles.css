@@ -867,7 +867,9 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 /* Q2: a shield's state or an armor pool's points beside the item on the gear lines; colour carries the state (M-34) */
 .cs-gn { margin-left: .35em; font-weight: 500; font-size: 13px; color: var(--pc, var(--muted)); }
 .cs-gn.ps-pool { --pc: var(--muted); }
-.rolls-sw[aria-pressed="true"], .auto-open[aria-pressed="true"] { color: var(--text); }
+/* SD7: the header switches as icons; on shows as an accent fill (aria-pressed), never a check mark */
+.tool-ic svg { width: 20px; height: 20px; display: block; }
+.tool-ic[aria-pressed="true"] { color: var(--accent); background: var(--accent-soft); }
 
 /* QT15: the quest line under the place line on the Play screen; only the quest text shrinks */
 .quest-line { display: flex; align-items: center; gap: var(--space-2); width: fit-content; max-width: 100%; min-height: 24px; padding: 0; margin-top: var(--space-1);
@@ -1567,7 +1569,7 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .dk-def button:not([aria-pressed="true"]):not([aria-disabled="true"]):hover { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--text); }
 .dk-def button[aria-pressed="true"] .dv { color: inherit; }
 .dk-def button[aria-disabled="true"] { cursor: default; }
-.dk-def button[aria-disabled="true"] .dv { color: var(--muted); font-weight: 400; font-style: italic; }
+.dk-def .dk-lock { margin-left: 0; align-self: center; color: var(--muted); }
 .dk-def button[aria-pressed="true"][aria-disabled="true"] { background: none; color: var(--text); outline: 1px dashed var(--warn); outline-offset: -4px; }
 .dk-defnote { color: var(--warn); }
 .dk-links { margin-left: auto; display: flex; gap: var(--space-2); }
@@ -1582,7 +1584,6 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .dk-act:hover, .dk-act:focus-visible { background: color-mix(in srgb, var(--accent) 14%, transparent); outline: none; }
 .dk-act:disabled { opacity: .5; cursor: default; background: none; }
 .dk-act .t { font: 600 14px var(--font-round); }
-.dk-act .n { font-size: 13px; color: var(--faint); }
 .dk-mk { display: inline-block; width: 14px; height: 14px; margin-left: 6px; vertical-align: -2px; color: var(--faint); }
 .dk-free { color: var(--accent); }
 .dk-mk svg { width: 100%; height: 100%; display: block; }
@@ -1643,8 +1644,7 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
    are the full Map's own marks. Only colour changes, on hover (M-70) */
 .mm { border: 1px solid var(--border); border-radius: var(--r-lg); background: color-mix(in srgb, var(--surface) 70%, transparent); overflow: hidden; }
 .mm-head { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); font-size: 13px; border-bottom: 1px solid var(--border); }
-.mm-head b { font-weight: 800; }
-.mm-floor { color: var(--muted); }
+.mm-floor { font-weight: 700; }
 .mm-tools { margin-left: auto; display: flex; gap: var(--space-1); }
 .mm-tools button { width: 30px; height: 30px; padding: 0; border-radius: var(--r-md); border: 1px solid var(--border); background: var(--bg); color: var(--text); font: inherit; font-weight: 700; cursor: pointer;
   transition: border-color var(--m-feedback) var(--m-ease); }
