@@ -3,6 +3,7 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, `docs/build-spec.md` and `docs/bug-fix-log.md`.
 
+- 19/11/2026: Added Codex provider notes covering the private questionnaire, verified setup and Claude handoffs.
 - 19/11/2026: The repo became the home for the working rules. Added `AGENTS.md`, `docs/instructions.md`,
   `docs/providers/claude.md`, `docs/memory/`, `docs/glossary.md`, `docs/skills.md`, `docs/assets.md`,
   `tools/questions-hub/` and this file. The rules were moved from the Claude project's in-app instructions and
