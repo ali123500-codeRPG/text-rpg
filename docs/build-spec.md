@@ -3967,6 +3967,8 @@ The game files a report at `bugs/new-<time>` (status new) for every bug code it 
 | BG-314 | An NPC search stays inside its own title (minds/state.ts inSearch) instead of searching by sight across titles (PZ11 a) | 19/11/2026 | open (BF83, awaiting Ali) | |
 | BG-315 | Hunches test sight along the zone path (hunches.ts, shortestPath sightOnly) instead of a clear line | 19/11/2026 | open (BF84, awaiting Ali) | |
 | BG-316 | Catching up reads "unseen" from the player's title (resolve.ts catchUp) instead of a clear line within glimpse range | 19/11/2026 | open (BF85, awaiting Ali) | |
+| BG-317 | Library viewer (UI review, 19/11/2026): the Gear table's Family column breaks Mundane mid-word ("Mundan" / "e"), and the rail cuts long group names (THREADBOUND, COMPOSURE). Cause: table cells use overflow-wrap: anywhere, which lets a column shrink below its longest word; rail names are 12 px upper case with .08em tracking in an 83 px rail | 19/11/2026 | open (fix plan on hub page show-dont-tell-review, SD13) | |
+| BG-318 | Journal (UI review, 19/11/2026): the Places note still says "The Map page draws their zones", but the map is a pop-up from the Play header, not a page | 19/11/2026 | open (fix plan on hub page show-dont-tell-review, SD13) | |
 
 ## Check on release
 
