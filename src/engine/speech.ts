@@ -12,6 +12,7 @@ import { distM, type Located } from './position';
 import { falseName } from '../words';
 import type { ExchangeSpeech } from './types';
 import { SK } from '../library/skillIds';
+import { CONTEST } from '../library/contests';
 import { PK } from '../library/perkIds';
 import { bested, tally } from './xp';
 import { contestFeat } from './feats';
@@ -283,7 +284,7 @@ export function pushContest(state: GameState, speaker: Actor, type: string, rng:
  * or a lie they told lately), never what. A loss or a tie reads nothing beyond plain sight. */
 export function sizeUp(state: GameState, looker: Actor, them: Actor, rng: Rng): { contest: ContestResult; read?: PersonRead } | null {
   if (them === looker || sightAt(state, looker, them, 'normal') !== 'full') return null;
-  const contest = ruleset.contested({ actorId: looker.id, skill: SK.insight, modifiers: [], tierShifts: [] }, { actorId: them.id, skill: SK.lying, modifiers: [], tierShifts: [] }, state, rng);
+  const contest = ruleset.contested({ actorId: looker.id, skill: CONTEST.size_up.roll, modifiers: [], tierShifts: [] }, { actorId: them.id, skill: CONTEST.size_up.against, modifiers: [], tierShifts: [] }, state, rng);
   contestFeat(state, contest);
   markUse(state, looker, contest.a.skill, contest);
   markUse(state, them, contest.b.skill, contest);
@@ -307,8 +308,8 @@ export function overhearLie(state: GameState, ev: GameEvent, answered: string[],
     if (o.id === speaker.id || answered.includes(o.id) || !isActive(o) || !hasPerk(o, PK.overheard)) continue;
     const heard = ev.perception?.[o.id];
     if (!hearsWords(heard)) continue;
-    roll ??= ruleset.roll({ actorId: speaker.id, skill: SK.lying, modifiers: [], tierShifts: [], contest: true }, state, rng);
-    const contest = toContest(roll, answerRoll(state, o, SK.insight, speaker.id, rng));
+    roll ??= ruleset.roll({ actorId: speaker.id, skill: speechSkill('deceive'), modifiers: [], tierShifts: [], contest: true }, state, rng);
+    const contest = toContest(roll, answerRoll(state, o, answerSkill('deceive'), speaker.id, rng));
     contestFeat(state, contest);
     markUse(state, o, contest.b.skill, contest);
     if (contest.winner === 'b') {

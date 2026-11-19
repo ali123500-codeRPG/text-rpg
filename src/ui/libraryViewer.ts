@@ -47,6 +47,7 @@ import { classMaxLevel, creationPoints, startLevel } from '../library/spawn';
 import { blessedClass, blessingGods } from '../ruleset/blessings';
 import { cap } from '../words';
 import { armReachM, volumeM3 } from '../library/bodySize';
+import { ACTIONS, type ActionGroup, type ActionRow, type ActSide } from '../library/actions';
 /** D-276: an augment's share as the viewer shows it: ×share, or a percentage augment's rate of the receiving skill */
 const augmentShareText = (a: { share?: number; kind?: string }): string => a.kind === 'percent'
   ? ` +${Math.round((a.share ?? CONFIG.AUGMENT_PERCENT_RATE) * 100)}% of its own skill per 100`
@@ -920,6 +921,30 @@ function stacking(): HTMLElement[] {
   ];
 }
 
+// ---------- Actions: what each action rolls and what it is up against (src/library/actions.ts) ----------
+const ACTION_WORDS: Record<string, string> = { use_item: 'Use item', call_help: 'Call for help', size_up: 'Size someone up', break_free: 'Break free', wake: 'Wake a sleeper' };
+const WHO_WORDS: Record<ActionRow['who'], string> = { both: 'Both', player: 'Player', npc: 'NPCs' };
+const ACTION_PANES: Record<ActionGroup['key'], string> = { actions: 'Actions', moves: 'Perk moves', passive: 'Contests on their own' };
+/** one side of a roll: skills link to the Skills tab; a function names its skills on hover; no roll is a dash */
+function actSide(s: ActSide | null): Node {
+  if (!s) return h('span', { class: 'lv-none', title: 'No roll', 'aria-label': 'No roll' }, '—');
+  const parts: Node[] = [
+    ...(s.weapon ? [h('span', {}, 'Weapon skill')] : []),
+    ...(s.skills ?? []).map((id) => link('skills', id, skillName(id))),
+    ...(s.fns ?? []).map((f) => { const of = fnSkills(f).map(skillName).join(', '); return h('span', { class: 'lv-fn', title: of, 'aria-label': `${functionName(f)}: ${of}` }, functionName(f)); }),
+    ...(s.text ? [h('span', {}, s.text)] : []),
+  ];
+  return h('span', {}, ...parts.flatMap((n, i) => (i ? [' or ', n] : [n])));
+}
+function actionsView(): HTMLElement[] {
+  const nameOf = (r: ActionRow) => (lib.perks[r.id] ? link('perks', r.id, perkName(r.id)) : h('b', {}, ACTION_WORDS[r.id] ?? cap(r.id.replace(/_/g, ' '))));
+  return panes(ACTIONS.map((g) => ({ key: g.key, title: ACTION_PANES[g.key], n: g.rows.length, content: [
+    h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, ACTION_PANES[g.key]),
+      h('table', { class: 'hs-tbl lv-acts' }, h('thead', {}, h('tr', {}, ['Action', 'Who', 'Rolls', 'Against'].map((x) => h('th', {}, x)))),
+        h('tbody', {}, g.rows.map((r) => h('tr', { id: `actions/${r.id}`, title: r.at }, h('td', {}, nameOf(r)), h('td', {}, WHO_WORDS[r.who]), h('td', {}, actSide(r.roll)), h('td', {}, actSide(r.against))))))),
+  ] })));
+}
+
 // ---------- Equations ----------
 const EQUATIONS = equations(lib);
 function equationsView(): HTMLElement[] {
@@ -1130,6 +1155,7 @@ const CUSTOM: Section[] = [
   { key: 'tensions', title: 'Tensions', table: 'tensions', view: tensionsView },
   { key: 'quests', title: 'Quests', table: 'perks', view: questsView, count: 4 + QUEST_STATES.length + GOAL_KINDS.length },
   { key: 'stacking', title: 'Stacking', table: 'perks', view: stacking, count: MOD_SOURCES.length },
+  { key: 'actions', title: 'Actions', table: 'perks', view: actionsView, count: ACTIONS.reduce((n, g) => n + g.rows.length, 0) },
   { key: 'equations', title: 'Equations', table: 'perks', view: equationsView, count: EQUATIONS.reduce((n, g) => n + g.equations.length, 0) },
 ];
 const treeOf = (skill?: string) => (skill ? lib.trees[lib.skills[skill]?.treeId]?.name : undefined);
@@ -1184,7 +1210,7 @@ const SECTIONS: Section[] = [...CUSTOM, ...(Object.keys(lib) as (keyof Library)[
 const RAIL_GROUPS: [string, string[] | null][] = [
   ['Items', ['gear', 'threadbound', 'gearClasses', 'gearTypes']],
   ['Library', ['perks', 'essences', 'races', 'bodyTypes', 'classes', 'starts', 'gods', 'skills', 'achievements']],
-  ['Rules', ['standIns', 'stacking', 'equations', 'attackModes', 'durations', 'quests']],
+  ['Rules', ['actions', 'standIns', 'stacking', 'equations', 'attackModes', 'durations', 'quests']],
   ['Body and mind', ['healing', 'composure', 'fears']],
   ['Places', ['zoneKinds', 'zoneSizes', 'edgeKinds', 'barrierKinds', 'barrierMaterials', 'roadLengths', 'roadDangers', 'layouts', 'noiseLevels', 'visibilityLevels']],
   ['People', ['templates', 'npcRoles', 'themes', 'roles', 'activities', 'routines', 'routineSets', 'services']],

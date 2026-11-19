@@ -32,6 +32,9 @@ body { grid-template-columns: var(--rail-w) minmax(0, 1fr); height: auto; }
 .lv-chips { display: inline-flex; flex-wrap: wrap; gap: var(--space-1); }
 .lv-none { color: var(--faint); font-style: italic; }
 .lv-link { color: var(--accent); font-weight: 500; text-decoration: none; }
+/* a skill function: its skills show on hover (title), so a dotted underline marks that it says more */
+.lv-fn { text-decoration: underline dotted var(--faint); text-underline-offset: 3px; cursor: help; }
+.lv-acts td:first-child { white-space: nowrap; }
 .lv-link:hover { text-decoration: underline; }
 .lv-raw summary { cursor: pointer; color: var(--faint); font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: .1em; }
 .lv-raw pre { margin: var(--space-2) 0 0; padding: var(--space-3); background: var(--bg); border-radius: var(--r-md); font: 12px/1.45 var(--font-mono); overflow: auto; max-height: 420px; }
