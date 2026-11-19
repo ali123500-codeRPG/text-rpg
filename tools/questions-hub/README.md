@@ -124,6 +124,26 @@ print_writes(new_page('page-name', header['title'], header, [('r1', 'Round 1', '
   time). The earlier answer is kept as the previous one.
 - New questions always go in a new round at the bottom. Answered ones show first, in the order asked.
 
+## Publishing a new hub
+
+A hub belongs to one Claude account. A session on another account cannot save to it or reach its database, so
+that account publishes its own hub, as a new private page. Never pass an existing hub's link when you do.
+
+- Page: `tools/questions-hub/hub.html`.
+- Files beside it, under `kit/`: `HISABRound-Regular.woff2`, `HISABRound-Bold.woff2`, `HISABRound-ExtraBold.woff2`,
+  `Literata-Regular.woff2` and `night-sky.webp`, all from `src/ui/assets/`.
+- Database rules, declared at the first publish: `pages`, `rounds` and `qs` are read at `view` and written at
+  `admin`. Answers keep the default rule.
+
+```json
+{"db": {"rules": [{"path": "pages", "read": "view", "write": "admin"},
+                  {"path": "rounds", "read": "view", "write": "admin"},
+                  {"path": "qs", "read": "view", "write": "admin"}]}}
+```
+
+- A new hub starts empty. Write its first questionnaire with `new_page` (above), then give the owner the link.
+- Record the new hub's link where that account's agents will find it. It opens only for the owner.
+
 ## Changing the page itself
 
 Only a change to the hub's own layout needs a new publish. Several threads edit it: read the live page first, keep
