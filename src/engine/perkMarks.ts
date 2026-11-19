@@ -20,6 +20,7 @@ import { canBlock, defenseItem, effectiveSkill, parryItem, usableDefense } from 
 import { allActors, foe, isActive, stance, warm } from './relations';
 import { SK, DEFENSE_SKILL } from '../library/skillIds';
 import { PK } from '../library/perkIds';
+import { perkName } from '../library';
 import { met } from '../ruleset/hits';
 import { withinGrip } from './position';
 import { CONFIG } from '../config';
@@ -28,7 +29,6 @@ import { secondsSince } from '../time';
 /** AT74: a timed mark lasts PERK_MARK_ROUNDS rounds from the turn it was made; one with no stamp lasts until used */
 const live = (state: GameState, m: PerkMark): boolean => m.made === undefined || secondsSince(state, m.made) < CONFIG.PERK_MARK_ROUNDS * CONFIG.ROUND_S;
 
-export const MARK_SOURCE: Record<string, string> = { [PK.draw_them_in]: 'Draw Them In', [PK.press_the_opening]: 'Press the Opening', [PK.hug_the_cover]: 'Hug the Cover', [PK.set_them_up]: 'Set Them Up', [PK.turn_the_blade]: 'Turn the Blade', [PK.hunters_mark]: 'Hunter’s Mark', [PK.make_them_stumble]: 'Make Them Stumble', [PK.leg_bolt]: 'Leg Bolt', [PK.dirt_in_the_eyes]: 'Dirt in the Eyes' };
 
 const drop = (a: Actor, f: (m: NonNullable<Actor['perkMarks']>[number]) => boolean) => {
   if (!a.perkMarks) return;
@@ -50,11 +50,11 @@ export function markShifts(state: GameState, A: Actor, D: Actor, ranged: boolean
   const mark = (a: Actor, perk: string, target?: string) => a.perkMarks?.find((m) => m.perk === perk && m.target === target && live(state, m));
   const has = (a: Actor, perk: string, target?: string) => !!mark(a, perk, target);
   const open = ranged ? PK.hunters_mark : PK.turn_the_blade;
-  const dirt = [{ source: MARK_SOURCE[PK.dirt_in_the_eyes], value: -2 }];
+  const dirt = [{ source: perkName(PK.dirt_in_the_eyes), value: -2 }];
   return {
-    attack: [...(has(A, open, D.id) ? [{ source: MARK_SOURCE[open], value: 1 }] : []), ...(has(A, PK.press_the_opening, D.id) ? [{ source: MARK_SOURCE[PK.press_the_opening], value: 1 }] : []), ...(has(A, PK.draw_them_in, D.id) ? [{ source: MARK_SOURCE[PK.draw_them_in], value: 1 }] : []), ...(has(A, PK.dirt_in_the_eyes) ? dirt : []),
-      ...(skill && SET_UP[skill] && has(A, SET_UP[skill].uses, D.id) ? [{ source: MARK_SOURCE[PK.set_them_up], value: mark(A, SET_UP[skill].uses, D.id)?.value ?? 1 }] : [])],
-    defense: [...(has(D, PK.make_them_stumble) ? [{ source: MARK_SOURCE[PK.make_them_stumble], value: -1 }] : []), ...(has(D, PK.dirt_in_the_eyes) ? dirt : [])],
+    attack: [...(has(A, open, D.id) ? [{ source: perkName(open), value: 1 }] : []), ...(has(A, PK.press_the_opening, D.id) ? [{ source: perkName(PK.press_the_opening), value: 1 }] : []), ...(has(A, PK.draw_them_in, D.id) ? [{ source: perkName(PK.draw_them_in), value: 1 }] : []), ...(has(A, PK.dirt_in_the_eyes) ? dirt : []),
+      ...(skill && SET_UP[skill] && has(A, SET_UP[skill].uses, D.id) ? [{ source: perkName(PK.set_them_up), value: mark(A, SET_UP[skill].uses, D.id)?.value ?? 1 }] : [])],
+    defense: [...(has(D, PK.make_them_stumble) ? [{ source: perkName(PK.make_them_stumble), value: -1 }] : []), ...(has(D, PK.dirt_in_the_eyes) ? dirt : [])],
   };
 }
 
@@ -103,19 +103,19 @@ const friends = (state: GameState, x: Actor, A: Actor): boolean => warm(stance(s
 /** after an attack resolves: spend the marks it used, then make the ones it earned */
 export function afterAttack(state: GameState, A: Actor, D: Actor, r: AttackResult, ranged: boolean, skill?: string, oneTwo = false): void {
   const used = (src: string, shifts?: { source: string }[]) => !!shifts?.some((x) => x.source === src);
-  for (const perk of [PK.turn_the_blade, PK.hunters_mark]) if (used(MARK_SOURCE[perk], r.attack.tierShifts)) drop(A, (m) => m.perk === perk && m.target === D.id);
-  if (used(MARK_SOURCE[PK.make_them_stumble], r.defense?.tierShifts)) drop(D, (m) => m.perk === PK.make_them_stumble);
-  if (used(MARK_SOURCE[PK.press_the_opening], r.attack.tierShifts)) drop(A, (m) => m.perk === PK.press_the_opening && m.target === D.id);
-  if (used(MARK_SOURCE[PK.draw_them_in], r.attack.tierShifts)) drop(A, (m) => m.perk === PK.draw_them_in && m.target === D.id);
+  for (const perk of [PK.turn_the_blade, PK.hunters_mark]) if (used(perkName(perk), r.attack.tierShifts)) drop(A, (m) => m.perk === perk && m.target === D.id);
+  if (used(perkName(PK.make_them_stumble), r.defense?.tierShifts)) drop(D, (m) => m.perk === PK.make_them_stumble);
+  if (used(perkName(PK.press_the_opening), r.attack.tierShifts)) drop(A, (m) => m.perk === PK.press_the_opening && m.target === D.id);
+  if (used(perkName(PK.draw_them_in), r.attack.tierShifts)) drop(A, (m) => m.perk === PK.draw_them_in && m.target === D.id);
   if (ranged && hasPerk(D, PK.hug_the_cover)) add(D, { perk: PK.hug_the_cover, made: state.turn }); // TC30 a: the first ranged attack this turn is taken
   // TC28 a Press the Opening: a hit opens the foe to the attacker's friends who own the perk, until their next turn ends
   if (met(r.outcome)) for (const x of allActors(state)) {
     if (x !== A && x !== D && isActive(x) && hasPerk(x, PK.press_the_opening) && friends(state, x, A) && (foe(state, x, D) || foe(state, D, x))) add(x, { perk: PK.press_the_opening, target: D.id, made: state.turn });
   }
-  if (used(MARK_SOURCE[PK.dirt_in_the_eyes], r.attack.tierShifts)) drop(A, (m) => m.perk === PK.dirt_in_the_eyes);
-  if (used(MARK_SOURCE[PK.dirt_in_the_eyes], r.defense?.tierShifts)) drop(D, (m) => m.perk === PK.dirt_in_the_eyes);
+  if (used(perkName(PK.dirt_in_the_eyes), r.attack.tierShifts)) drop(A, (m) => m.perk === PK.dirt_in_the_eyes);
+  if (used(perkName(PK.dirt_in_the_eyes), r.defense?.tierShifts)) drop(D, (m) => m.perk === PK.dirt_in_the_eyes);
   const setUp = skill ? SET_UP[skill] : undefined;
-  if (setUp && used(MARK_SOURCE[PK.set_them_up], r.attack.tierShifts)) drop(A, (m) => m.perk === setUp.uses && m.target === D.id);
+  if (setUp && used(perkName(PK.set_them_up), r.attack.tierShifts)) drop(A, (m) => m.perk === setUp.uses && m.target === D.id);
   // on the attempt, hit or miss; LR2 Combination: One-Two's free Strike leaves a +2 mark
   if (setUp && hasPerk(A, PK.set_them_up)) add(A, { perk: setUp.leaves, target: D.id, ...(oneTwo && hasPerk(A, PK.combination) ? { value: 2 } : {}) });
   if (r.legBolt && hasPerk(A, PK.leg_bolt)) markForRounds(state, D, PK.leg_bolt);

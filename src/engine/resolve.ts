@@ -21,7 +21,7 @@ import { barrierOn, broken, noteTried, openWay, passage, shutBy, wayOp, type Way
 import { actionRow, actionSeconds, attackRowIds, reactSeconds, timeFactor } from '../ruleset/actionTime';
 import { busyNow } from './busy';
 import { CONFIG } from '../config';
-import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
+import { activity, actorBody, getLibrary, itemDef, perkName, routine } from '../library';
 import { moveSpeed, slotMetres } from './speed';
 import { companions, travel, travelSpeed, tripGoal, type TripWorld } from './travel';
 import { M_EPS, closeInM, distM, faceToward, floorGap, distOrNull, gateAhead, placeAll, reachesM, roomAround, sightDistM, spotOnTheWay, spotPoint, walkLeg, wayLeftM, wayPoint, withinM, type Located } from './position';
@@ -900,7 +900,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
   const opening = openingShifts(ctx, a, t, m.mode.tree);
   // LR1 Ghost Blade: Hidden Strike also lands on a target only suspicious of the owner, once per target per engagement
   if (!surprised && hasPerk(a, PK.ghost_blade) && beliefStatus(state, t, a) === 'suspicious' && !neverFlatFooted(t, a) && onceThisEngagement(state, a, `${PK.ghost_blade}:${t.id}`)) {
-    opening.attackerShifts = [...(opening.attackerShifts ?? []), { source: 'Ghost Blade', value: 1 }];
+    opening.attackerShifts = [...(opening.attackerShifts ?? []), { source: perkName(PK.ghost_blade), value: 1 }];
   }
   gaveUpFeats(state, a, t); // AS1–AS11: striking someone who already gave up, before this blow changes anything
   if (flurry) opening.attackerShifts = [...(opening.attackerShifts ?? []), { source: 'Flurry', value: -1 }]; // AT79: one tier less sure
@@ -1010,11 +1010,11 @@ function onceThisEngagement(state: GameState, a: Actor, id: string): boolean {
 function openingShifts(ctx: Ctx, a: Actor, t: Actor, tree: string): { attackerShifts?: TierShift[]; defenderShifts?: TierShift[] } {
   const { state } = ctx;
   if (tree === 'melee' && hasPerk(a, PK.opening_strike) && onceThisEngagement(state, a, `opening_strike:${t.id}`)) {
-    return { attackerShifts: [{ source: 'Opening Strike', value: 1 }] };
+    return { attackerShifts: [{ source: perkName(PK.opening_strike), value: 1 }] };
   }
   const fresh = !t.engagement || (t.engagement.start === state.turn && !ctx.acted.has(t.id));
   if (tree === 'ranged' && fresh && hasPerk(a, PK.unerring) && onceThisEngagement(state, a, PK.unerring)) {
-    return { defenderShifts: [{ source: 'Unerring', value: -1 }] };
+    return { defenderShifts: [{ source: perkName(PK.unerring), value: -1 }] };
   }
   return {};
 }

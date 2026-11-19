@@ -2,7 +2,7 @@
 // library exactly as code sees it. Bundled into dist/library/ by scripts/build.mjs. Tables without a custom view
 // get the generic cards, so a new table shows up with no edit here.
 import { BT, RC } from '../library/raceIds';
-import { sizeOf as bodySize } from '../library';
+import { perkName, sizeOf as bodySize } from '../library';
 import { FIGURE_CREDITS, figureKey, figureUpright } from '../library/figureModels';
 import { figure3d } from './figure3d';
 import './styles.css';
@@ -851,7 +851,7 @@ function standIns(): HTMLElement[] {
       h('li', {}, 'Light and other situation modifiers come from the skill that rolls (fnRoller), so a hearing roll (Tremor included, as an Earshot augment) ignores darkness.')),
     row('Functions checked this way', `FUNCTION_ROLLS: ${FUNCTION_ROLLS.map(functionName).join(', ')}`),
     row('Rolls that use them', 'sneak and hide contests (stealthDetect), searches (searchFor) and noticing an ambush (resolveAmbush) in minds/state.ts; Look around in engine/resolve.ts'),
-    row('After the roll', link('perks', PK.curiouser, 'Curiouser and Curiouser'), ': Success or better on any function check counts one tier higher (allSteps.ts)'));
+    row('After the roll', link('perks', PK.curiouser, perkName(PK.curiouser)), ': Success or better on any function check counts one tier higher (allSteps.ts)'));
   const fnCards = FUNCTION_ROLLS.map((f) => {
     const rows = fnSkills(f).map((id) => ({ id, tier: CONFIG.SKILL_TIER_MULT[lib.skills[id].tier] })).sort((a, b) => b.tier - a.tier);
     const asked = (SENSE_SKILL as Record<string, string>)[f];

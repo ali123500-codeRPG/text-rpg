@@ -10,7 +10,7 @@ import type {
 } from '../types';
 import { CONFIG } from '../config';
 import { TIERS } from '../scales';
-import { actorBody, getLibrary, itemDef } from '../library';
+import { actorBody, getLibrary, itemDef, perkName } from '../library';
 import { actorById, foe, isActive, hostile, zoneById } from '../engine/relations';
 import { seenSizeFactor, sightDistM, withinM } from '../engine/position';
 import { adjacent, healthLevel, hitTable, partPct, poolState, totalHp, woundsMods, woundsOnRoll } from './body';
@@ -21,7 +21,7 @@ import { pressureMods } from './pressure';
 import { achievementAimEase, achievementRollMods, bestReward, deathsDoor, rallyMods, renownMods, tierReach } from './achRewards';
 import { besidePlayer } from '../engine/engagement';
 import { afterRollShifts, foeMods } from './allSteps';
-import { MARK_SOURCE, hugReady, markShifts } from '../engine/perkMarks';
+import { hugReady, markShifts } from '../engine/perkMarks';
 import { forScenarioAhead, rollFeats, tally } from '../engine/xp';
 import { killedSurrenderedFeat } from '../engine/feats';
 import { shortShifts } from './requirements';
@@ -158,13 +158,12 @@ function decidingOf(r: RollResult, skill: number, gear: { source: string; value:
   return out;
 }
 
-const OVERDRIVE = 'Overdrive';
 /** SS15 Overdrive (Stamina 140): while the short-term line is more than half full, a roll adds Stamina's true skill × the
  * augment equation's factor at OVERDRIVE_SHARE (roll() then pays OVERDRIVE_STRAIN) */
 function overdrive(actor: Actor, skill: string): Mod[] {
   if (!hasPerk(actor, PK.overdrive) || lineUsed(actor) * 2 >= lineMax(actor)) return [];
   const value = trueSkill(actor, SK.stamina) * augmentK(actor, { share: CONFIG.OVERDRIVE_SHARE }, SK.stamina, skill);
-  return value ? [{ source: OVERDRIVE, type: 'roll_perk', value }] : [];
+  return value ? [{ source: perkName(PK.overdrive), type: 'roll_perk', value }] : [];
 }
 
 /** everything a roll is made of before the dice: the skill it rolls at, its modifiers, its tier shifts and its reach past
@@ -206,7 +205,7 @@ function roll(req: RollRequest, state: GameState, rng: Rng): RollResult {
   const margin = rollMargin(d, eff.value, modifiers);
   const { level, shifts } = rollLevel(su, d, req.auto !== false, req.nearMissUp);
   const out: RollResult = { actorId: actor.id, skill: eff.skill, ...(eff.skill !== req.skill && !req.fn ? { asked: req.skill } : {}), ...(eff.parts ? { parts: eff.parts } : {}), ...(req.rollKind ? { rollKind: req.rollKind } : {}), ...(req.when?.length ? { when: req.when } : {}), d100: d, margin, ...tierAt(level), natural: naturalEdge(d), modifiers, tierShifts: shifts };
-  if (modifiers.some((m) => m.source === OVERDRIVE)) payStrain(state, actor, 'light', CONFIG.OVERDRIVE_STRAIN / CONFIG.STRAIN_COST.light); // its strain
+  if (modifiers.some((m) => m.source === perkName(PK.overdrive))) payStrain(state, actor, 'light', CONFIG.OVERDRIVE_STRAIN / CONFIG.STRAIN_COST.light); // its strain
   if (actor === state.player) rollFeats(state, out); // D-120 Critical Success achievements, per skill group
   return out;
 }
@@ -286,10 +285,10 @@ export function defenseOwnMods(state: GameState, D: Actor, type: DefenseKind, ra
   const dm: Mod[] = [];
   if (ranged && type === 'dodge') dm.push({ source: 'dodge vs missile', type: 'situational', value: CONFIG.DODGE_VS_MISSILE });
   if (parriesWithMedium(state, D, type) && hasPerk(D, PK.steady_guard)) {
-    dm.push({ source: 'Steady Guard', type: 'roll_perk', value: CONFIG.SKILL_WEIGHT * CONFIG.STEADY_GUARD });
+    dm.push({ source: perkName(PK.steady_guard), type: 'roll_perk', value: CONFIG.SKILL_WEIGHT * CONFIG.STEADY_GUARD });
   }
   if (type === 'dodge' && hasPerk(D, PK.bare_handed_guard) && !D.core.inventory.some((i) => isHeld(i) && !!itemDef(state, i.itemId).weapon)) {
-    dm.push({ source: 'Bare-Handed Guard', type: 'roll_perk', value: CONFIG.SKILL_WEIGHT * CONFIG.BARE_HANDED_GUARD });
+    dm.push({ source: perkName(PK.bare_handed_guard), type: 'roll_perk', value: CONFIG.SKILL_WEIGHT * CONFIG.BARE_HANDED_GUARD });
   }
   return dm;
 }
@@ -300,9 +299,9 @@ export function gapShiftsOf(state: GameState, D: Actor, mode: AttackMode, type: 
   const out: TierShift[] = [];
   if (mode.class === 'heavy' && type !== 'dodge' && !(type === 'parry' && hasPerk(D, PK.against_the_grain))) out.push({ source: `heavy vs ${type}`, value: CONFIG.HEAVY_VS_BLOCK_GAP });
   const pre = diff + sumShifts(out);
-  if (pre <= CONFIG.HIT_GAPS.heavy && hasPerk(D, PK.turn_aside)) out.push({ source: 'Turn Aside', value: Math.min(CONFIG.TURN_ASIDE_GAP, -pre) });
+  if (pre <= CONFIG.HIT_GAPS.heavy && hasPerk(D, PK.turn_aside)) out.push({ source: perkName(PK.turn_aside), value: Math.min(CONFIG.TURN_ASIDE_GAP, -pre) });
   if (type === 'dodge' && hasPerk(D, PK.slip_the_blow) && diff + sumShifts(out) === 0) {
-    out.push({ source: 'Slip the Blow', value: 1 });
+    out.push({ source: perkName(PK.slip_the_blow), value: 1 });
   }
   return out;
 }
@@ -388,9 +387,9 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   // A1 Hidden Strike: an attack on a target unaware of the owner lands one tier better
   const marks = markShifts(state, A, D, ranged, skill); // A2, A5, A10, B15, TC28
   // TC30 a Hug the Cover: the first ranged attack on the owner each turn, while it has cover, lands one outcome worse
-  const hug = ranged && shown < 1 && hugReady(state, D) ? [{ source: MARK_SOURCE[PK.hug_the_cover], value: -1 }] : [];
+  const hug = ranged && shown < 1 && hugReady(state, D) ? [{ source: perkName(PK.hug_the_cover), value: -1 }] : [];
   const unseen = req.context?.defenderUnaware ? bestReward(A, 'unawareShift') : undefined; // an achievement reward
-  const atkShifts: TierShift[] = [...(req.context?.defenderUnaware && hasPerk(A, PK.hidden_strike) ? [{ source: 'Hidden Strike', value: 1 }] : []),
+  const atkShifts: TierShift[] = [...(req.context?.defenderUnaware && hasPerk(A, PK.hidden_strike) ? [{ source: perkName(PK.hidden_strike), value: 1 }] : []),
     ...(unseen ? [{ source: unseen.name, value: unseen.value }] : []), ...marks.attack, ...hug, ...(req.context?.attackerShifts ?? [])];
   const atk = ruleset.roll({ actorId: A.id, skill, modifiers: am, tierShifts: atkShifts, itemId: req.weaponId, rollKind: 'hit', ...(req.context?.fromHiding ? { when: ['from_hiding' as const] } : {}), against: D.id, contest: true, standInFns: mode.standInFns, blend: mode.blend, attackKind: kind }, state, rng);
   const atkEff = mode.blend ? blendedSkill(state, A, mode.blend, { itemId: req.weaponId, standInFns: mode.standInFns }) : effectiveSkill(state, A, skill, { itemId: req.weaponId });

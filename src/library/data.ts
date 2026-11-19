@@ -971,7 +971,7 @@ export function prototypeLibrary(): Library {
       [TR.tools]: { id: TR.tools, name: 'Tools (placeholder, OQ-20)', skills: [SK.lockpicking], access: { blockedBy: [AMORPHOUS] } },
     },
     classes: {
-      // Parry 40 and Medium or Heavy Weapons 40 unlock the class; Medium Weapons 40 and Parry 40 are its creation floors
+      // Parry 80 and Medium or Heavy Weapons 60 unlock the class (PR #918); Medium Weapons 40 and Parry 40 are its creation floors
       [CL.swordsman]: { id: CL.swordsman, personality: { [PA.discipline]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Swordsman', tier: 'tier_2', label: 'a swordsman', story: 'Blade against blade, drilled until the parry comes before the thought does.', floors: { [SK.melee_medium]: 40, [SK.parry]: 40 }, unlock: { [SK.parry]: 80 }, unlockAny: [{ [SK.melee_medium]: 60, [SK.melee_heavy]: 60 }], levelPerks: { 1: [PK.blade_against_blade] } },
       // the class of the late bloomer start (ST2): a unique class with a level 1 perk
       [CL.late_bloomer]: { id: CL.late_bloomer, personality: { [PA.curiosity]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Unwritten Legend', tier: 'tier_5', label: 'a young stranger', story: 'No song carries your name, no master claimed you, and no road was chosen for you. You start late, in rough clothes with empty hands. Whatever story ends with your name, you will write it yourself.', floors: {}, unlockClass: { [CL.a_somebody]: 'max' }, levelPerks: { 1: [PK.any_road_will_do] }, capstone: [PK.as_far_as_the_road_goes], // CB3: also opens at A Somebody's top level

@@ -22,7 +22,6 @@ import { ARMOR_SKILL } from '../../src/library/skillIds';
 import { modeIdOf } from '../../src/ruleset/gear';
 import { BUILT_PERKS } from '../../src/library/builtPerks';
 import { ALL_BUNDLES, SKILL_PARTS } from '../../src/library/allPerks';
-import { MARK_SOURCE } from '../../src/engine/perkMarks';
 import { PERK_MOVES } from '../../src/ruleset/perks';
 
 /** banked perk write-ups have PK IDs but are not library perks until they get a milestone */
@@ -76,7 +75,6 @@ describe('typed IDs', () => {
     for (const b of ALL_BUNDLES) if (b.passive) known(b.passive, `bundle ${b.name}`);
     for (const [sk, id] of Object.entries(SKILL_PARTS)) { known(id, `skill part ${sk}`); expect(L.skills[sk], `skill part ${sk}`).toBeDefined(); }
     for (const id of BUILT_PERKS) known(id, 'BUILT_PERKS');
-    for (const id of Object.keys(MARK_SOURCE)) known(id, 'MARK_SOURCE');
     for (const id of Object.keys(PERK_MOVES)) known(id, 'PERK_MOVES');
   });
 
