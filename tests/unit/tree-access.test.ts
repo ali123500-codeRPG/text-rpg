@@ -22,7 +22,7 @@ const opts = { id: 'n1', zone: 'z', placeId: 'p', bandId: 'b' };
 const open = (a: Actor) => Object.keys(getLibrary().trees).filter((t) => treeOpen(a, t)).sort();
 
 /** a new character in the Swordsman class (its Start is gone; the class is unlocked in play) */
-const swordsman = () => { const p = createPlayer(recommendedBuild(), 's1'); p.core.classes = [{ classId: CL.swordsman, state: 'current', level: 4 }]; return p; };
+const swordsman = () => { const p = createPlayer(recommendedBuild(), 's1'); p.core.classes = [{ classId: CL.swordsman, state: 'current', level: 4 }]; p.core.perks.push({ perkId: PK.blade_against_blade, source: 'class', gainedTurn: 0 }); return p; }; // its level 1 perk opens the Swordsman tree
 
 describe('skill tree access', () => {
   it('every rule names a real source, and every skill sits in exactly one tree', () => {
@@ -39,10 +39,10 @@ describe('skill tree access', () => {
 
   it('a swordsman gets every general tree and Swordsman; a slime gets its own trees only', () => {
     const p = swordsman();
-    expect(open(p)).toEqual([TR.armor, TR.defense, TR.fortitude, TR.medicine, TR.melee, TR.perception, TR.ranged, TR.speech, TR.stealth, TR.swordsman, TR.tools, TR.trickery, TR.unarmed].sort());
+    expect(open(p)).toEqual([TR.armor, TR.defense, TR.fortitude, TR.medicine, TR.melee, TR.perception, TR.ranged, TR.speech, TR.stealth, TR.swordsman, TR.tactics, TR.tools, TR.trickery, TR.unarmed].sort());
     expect(treeBlock(p, TR.natural)).toMatch(/^Needs one of: Amorphous, Dragon, Dog, /); // AB16: every body and race with a natural attack
     const slime = spawnNpc(null, TP.slime, opts);
-    expect(open(slime)).toEqual([TR.defense, TR.fortitude, TR.natural, TR.perception, TR.stealth].sort()); // AB19: Scent, not Tremor
+    expect(open(slime)).toEqual([TR.defense, TR.fortitude, TR.natural, TR.perception, TR.stealth].sort()); // AB19: Scent, not Tremor; no Tactics (unintelligent)
     // Scent sits in Perception: a slime may smell, but has no eyes or ears; a human has no Scent
     expect([skillBlock(slime, SK.scent), skillBlock(slime, SK.eyesight), skillBlock(slime, SK.insight)]).toEqual(['', 'Blocked by: Amorphous', 'Blocked by: Amorphous']);
     expect(skillBlock(p, SK.scent)).toMatch(/^Needs one of: Slime, /);
@@ -78,13 +78,14 @@ describe('skill tree access', () => {
     const s = makeVillage();
     const p = s.player;
     p.core.skills[SK.riposte] = { raw: 30, state: 'normal' };
+    p.core.perks.push({ perkId: PK.blade_against_blade, source: 'class', gainedTurn: 0 }); // Swordsman's level 1 perk opens Riposte
     expect(trueSkill(p, SK.riposte)).toBe(30);
-    p.core.classes[0].state = 'unlocked';
+    p.core.perks = p.core.perks.filter((x) => x.perkId !== PK.blade_against_blade);
     expect(skillOpen(p, SK.riposte)).toBe(false);
     expect(trueSkill(p, SK.riposte)).toBe(0);
     markIfClose(s, p, SK.riposte, 30);
     expect(p.progression!.marks).not.toContain(SK.riposte);
-    p.core.classes[0].state = 'current';
+    p.core.perks.push({ perkId: PK.blade_against_blade, source: 'class', gainedTurn: 0 });
     expect(trueSkill(p, SK.riposte)).toBe(30);
   });
 

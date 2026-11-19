@@ -1,33 +1,40 @@
 // W3 — the six deny-by-default view builders (+ the combat packet). Copy whitelisted fields into new objects only.
+import { middle, waysOut, wayTo, type Way } from '../plan/where';
+import { wallsAround } from '../plan/holes';
+import { wallStuff } from '../ruleset/breaking';
+import { groundIn } from '../engine/ground';
+import { landTarget } from '../scenario/ways';
 import { landView } from '../land/brief';
-import { withRosters } from '../land/roster';
+import { encounterPeople, withRosters } from '../land/roster';
 import { actionRow } from '../ruleset/actionTime';
 import { doingOf } from '../engine/busy';
 import { budgetUsed, lastScenarios } from '../engine/scenarioEnd';
+import { nearbyZones } from '../scenario/stage';
 import { SCENARIO_ENDING_NAMES } from '../types';
 import { personalityText } from '../ruleset/personality';
 import { ageText, lifeStage, stageName, stageOf } from '../ruleset/age';
 import type { AttackOutcome, ScenarioFrame, Tier,
   Actor, ActorView, AttackMode, Drive, BeliefView, CombatPacket, DialogueInput, DialogueView, Effect, EventView, GameEvent, GameState, ItemDef,
-  AgreementView, BodyAttackView, ContainerView, ItemInstance, HealthLevel, PartState, YieldView, Intent, JobView, Quest, NarrationEvent, NarrationView, OppositionView, OwnGearView, PlayerView, RollResult, SeenActor, SeenGearView,
-  NpcTemplate, SparView, StaminaView, WalkingView, FollowingView, WayDid, WeaverView, WorldView, Zone, ZoneLink, ZoneView,
+  AgreementView, BodyAttackView, ContainerView, ItemInstance, HealthLevel, PartState, YieldView, Intent, JobView, Quest, NarrationEvent, NarrationView, OppositionView, OwnGearView, PerkMoveView, PlayerView, RollResult, SeenActor, SeenGearView,
+  NpcTemplate, SparView, StaminaView, WalkingView, FollowingView, WayDid, WeaverView, WorldView, Zone, ZoneView,
 } from '../types';
 import { GRADES } from '../types';
 import { CONFIG } from '../config';
 import { COVER, LIGHT, NERVE_LINES, RANKS, SCENARIO_SCALES, VISIBILITY, type NarrationBand, type VisibilityKey } from '../scales';
-import { timeView, zoneLight, clockSet, now, timeOfDay, durationText, spanText } from '../time';
+import { isDark, timeView, zoneLight, clockSet, now, timeOfDay, durationText, spanText } from '../time';
 import { charLevel, power, wornTitle } from '../engine/xp';
 import { presetAgeFloor, presetTalent, rankName, rankRow, spawnNpc } from '../library/spawn';
 import { uniqueInWorld } from '../library/echo';
 import { distOrNull, seeingM, sideFrom, sightDistM, spotPoint } from '../engine/position';
-import { moveSpeed } from '../engine/speed';
+import { moveSpeed, slotMetres } from '../engine/speed';
 import { hiddenFrom } from '../engine/gear';
 import { revealedTo } from '../minds/state';
 import { sightLevel } from '../perception/sight';
 import { madeOutBySight } from '../perception/madeOut';
 import { atChaseLine, chaseLost, chaseZones } from '../engine/chase';
-import { actorById, allActors, knowsName, nameFor, atLeast, bandById, heldBy, isActive, hostile, perceivedZoneIds, seesAcross, shortestPath, sparring, stance, wary, zoneById } from '../engine/relations';
+import { actorById, allActors, knowsName, nameFor, atLeast, bandById, heldBy, isActive, isAsleep, hostile, perceivedZoneIds, seesAcross, shortestPath, sparring, stance, zoneById } from '../engine/relations';
 import { knownDestinations } from '../engine/trail';
+import { agreementsOf } from '../engine/memory';
 import { talkingWith } from '../engine/speech';
 import { barrierName, barrierOn, barrierView, linkPassage } from '../engine/barriers';
 import { contentsOf, findContainer, wornPack } from '../engine/containers';
@@ -37,7 +44,11 @@ import { furnitureIn, furnitureWhere } from '../engine/furniture';
 import { sparLimit, sparOf } from '../engine/spar';
 import { activity, actorBody, bodyType, getLibrary, itemDef, npcTemplate, routine } from '../library';
 import { perkMoveBlock } from '../engine/perkMoves';
-import { blindSpotNow } from '../engine/perkMarks';
+import { warnableOf } from '../engine/warnings';
+import { fooledBy, playDeadOpen } from '../engine/playDead';
+import { fooledByFeint } from '../engine/feint';
+import { tacticsWord } from './tactics';
+import { fallBackOwner } from '../engine/nerve';
 import { PERK_MOVES, fallbackAttackSkill, hasPerk, healthLevel, isDownLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
 import { itemHolders, summonableThreadboundItems } from '../ruleset/threadboundItems';
 import { beliefStatus, hearsWords, isComm, spotInSight } from '../perception';
@@ -46,18 +57,19 @@ import { offeredRoutines } from '../minds/routines';
 import { coinWords, countWords, isSeller, offerList, wareList } from '../engine/trade';
 import { dueText, payText } from '../engine/quests';
 import { pressedWords, tellFor, tookWords } from '../engine/speech';
-import { canDemand, canOffer, OFFER_WORDS, offersTo } from '../engine/offer';
+import { canDemand, canOffer, OFFER_WORDS, offersTo, speaks } from '../engine/offer';
+import { farBelow, FINISH_STOP_WORDS, type FinishStop } from '../engine/finish';
 import { fightingWith } from '../engine/engagement';
 import { PK } from '../library/perkIds';
 import { readsHealthOf } from '../ruleset/achRewards';
 import { IT } from '../library/itemIds';
 import { cap, listWords, mentions, r1, theOf } from '../words';
-import { gripsOf, isAccSlot, isGripSlot, isHeld, modeName, pieceName, usableModes } from '../ruleset/gear';
+import { clutterCover, gripsOf, isAccSlot, isGripSlot, isHeld, meleeReachM, modeName, pieceName, usableModes } from '../ruleset/gear';
 import { usableGrips } from '../ruleset/body';
 import { met, outcomeText } from '../ruleset/hits';
 import { itemValue } from '../ruleset/value';
 import { shortShifts } from '../ruleset/requirements';
-import { moraleLevel, moraleShows } from '../ruleset/morale';
+import { isCoweringLevel, moraleLevel, moraleShows } from '../ruleset/morale';
 import { barMax, fatigueLevel, fatigueOf, fatigueShows, isSpent, lineMax, lineUsed } from '../ruleset/fatigue';
 import { FATIGUE_LEVELS, HEALTH_LEVELS, MORALE_LEVELS, PART_STATES } from '../scales';
 import { inArmorSlot } from '../ruleset/slots';
@@ -66,7 +78,7 @@ const moraleWord = (a: Actor): string => MORALE_LEVELS.name(moraleLevel(a));
 /** AS3: the word others see for someone's morale: a foe who surrendered shows Surrendered, a visible state like Broken */
 export const SURRENDERED_WORD = 'Surrendered';
 // BG-199: a broken NPC shows Broken for as long as it lasts, whatever its bar has crept back to
-const seenMoraleWord = (a: Actor): string => (a.mind?.moraleState === 'surrendered' ? SURRENDERED_WORD : a.mind?.moraleState === 'broken' ? MORALE_LEVELS.name('broken') : moraleWord(a));
+const seenMoraleWord = (a: Actor): string => (a.mind?.moraleState === 'surrendered' ? SURRENDERED_WORD : a.mind?.moraleState === 'broken' ? MORALE_LEVELS.name(isCoweringLevel(moraleLevel(a)) ? 'cowering' : 'broken') : moraleWord(a));
 const fatigueWord = (a: Actor): string => FATIGUE_LEVELS.name(fatigueLevel(a));
 /** FT20: the player's stamina bar as points left, to a tenth */
 export const staminaOf = (a: Actor): StaminaView => ({ level: fatigueWord(a), left: r1(barMax(a) - fatigueOf(a).debt), max: r1(barMax(a)), lineLeft: r1(lineMax(a) - lineUsed(a)), lineMax: r1(lineMax(a)), ...(isSpent(a) ? { spent: true as const } : {}) });
@@ -82,13 +94,11 @@ function yieldView(state: GameState): YieldView | undefined {
 }
 
 /** others' health shows from CONFIG.HEALTH_SHOWN_FROM down (Voyage C2); Read Wounds (A13) shows it one step earlier on
- * the health track, by position, against a foe (an actor either side is opposed or hostile to) */
-const foe = (state: GameState, a: Actor, b: Actor) => wary(state, a, b) || wary(state, b, a);
-const reads = (state: GameState, viewer: Actor | undefined, other: Actor | undefined) => !!viewer && !!other && hasPerk(viewer, PK.read_wounds) && foe(state, viewer, other);
+ * the health track, by position, for anyone else the owner sees (IC11 a: not foes only) */
+const reads = (viewer: Actor | undefined, other: Actor | undefined) => !!viewer && !!other && viewer !== other && hasPerk(viewer, PK.read_wounds);
 const healthShows = (level: HealthLevel, sharp: boolean) => HEALTH_LEVELS.pos(level) >= HEALTH_LEVELS.pos(CONFIG.HEALTH_SHOWN_FROM) - (sharp ? 1 : 0);
 
 // ---------- shared helpers ----------
-const stageZones = (state: GameState) => state.stage.zoneIds.map((id) => zoneById(state, id)).filter((z): z is Zone => !!z);
 
 /** a distance as the story and the Map say it: metres under 1 km, else km to one decimal (4.5 km) */
 export const distText = (m: number): string => (m >= 1000 ? `${Math.round(m / 100) / 10} km` : `${Math.round(m)} m`);
@@ -96,23 +106,44 @@ export const distText = (m: number): string => (m >= 1000 ? `${Math.round(m / 10
 /** a zone as `viewer` knows it (SD3–SD5: a barrier on a way shows what the viewer can tell of it); with no viewer (the
  * Weaver), every barrier in full */
 export function zoneView(state: GameState, z: Zone, viewer?: Actor): ZoneView {
-  const way = (l: ZoneLink) => {
+  const way = (l: Way) => {
     const b = barrierOn(state, l);
     if (!b) return {};
     return { way: viewer ? barrierView(b, viewer, z.id) : { kind: barrierName(b), grade: b.grade, ...(b.lock ? { lock: b.lock.locked ? 'locked' : 'unlocked' } : {}),
       ...(b.bar ? { bar: `${b.bar.drawn ? 'drawn' : 'open'}, bolt on the ${b.bar.side === z.id ? 'this' : 'far'} side` } : {}), ...(b.blocked ? { blocked: true as const } : {}), ...(b.guarded ? { guarded: true as const } : {}) } };
   };
   return {
-    id: z.id, name: z.name, look: z.look, cover: COVER.name(z.cover), light: LIGHT.name(zoneLight(state, z)),
-    links: z.links.map((l) => ({ to: l.to, label: l.label, sight: seesAcross(state, l), ...(l.frontier ? { frontier: true } : {}), ...(l.drop ? { drop: true } : {}), ...way(l) })),
-    groundItems: z.groundItems.filter((i) => !viewer || !hiddenFrom(i, viewer)).map((i) => ({ id: i.id, name: pieceName(state, i), ...containerOf(state, i, viewer) })), // SE8
+    id: z.id, name: z.name, look: z.look, cover: COVER.name(clutterCover(state, z, viewer?.zone === z.id ? viewer.pos : undefined)), light: LIGHT.name(zoneLight(state, z, viewer?.zone === z.id ? viewer.pos : undefined)), // PC1: indoors, furniture gives the cover
+    links: waysOut(state, z.id).map((l) => ({ to: l.to, label: l.label, sight: seesAcross(state, l), ...(l.frontier ? { frontier: true } : {}), ...(l.drop ? { drop: true } : {}), ...(l.opening.crack ? { crack: true } : {}), ...way(l) })), // PZ10: the ways out, read from this side
+    ...(viewer?.zone === z.id ? wallsView(state, z) : {}), // BW12 a: what the viewer could break through
+    groundItems: groundIn(state, z.id).filter((i) => !viewer || !hiddenFrom(i, viewer)).map((i) => ({ id: i.id, name: pieceName(state, i), ...containerOf(state, i, viewer) })), // SE8
     ...furnitureView(state, z.id, viewer),
   };
+}
+/** BW8-BW26: a turn of breaking through, in words: what is being broken (the wall's material, or the barrier's kind) */
+function breakThroughView(state: GameState, b: NonNullable<GameEvent['breakThrough']>): NonNullable<NarrationEvent['breakThrough']> {
+  const w = b.wall ? state.walls.find((x) => x.id === b.wall) : undefined, bar = b.barrier ? state.barriers?.[b.barrier] : undefined;
+  const what = w ? `${wallStuff(w)?.material.name.toLowerCase() ?? 'a'} wall` : bar ? barrierName(bar) : 'wall';
+  return { what, ...(b.to ? { to: zoneById(state, b.to)?.name ?? b.to } : {}), share: b.share, ...(b.state ? { state: b.state } : {}), ...(b.toolBroke ? { toolBroke: true as const } : {}), ...(b.walked ? { walked: true as const } : {}) };
+}
+/** BW12 a: the walls round the viewer's own title that can be broken: by id, what they are made of, the title behind when
+ * a way from here leads there too (to, its name in behind; else unknown: nothing is given away), and the share broken at
+ * their deepest dent */
+function wallsView(state: GameState, z: Zone): { walls?: ZoneView['walls'] } {
+  const ways = new Set(waysOut(state, z.id).map((l) => l.to));
+  const ws = wallsAround(state, z).flatMap(({ wall, behind: b }) => {
+    const behind = b && ways.has(b.id) ? b : undefined;
+    const m = wallStuff(wall)?.material;
+    if (!m) return [];
+    const broken = Math.max(0, ...(wall.dents ?? []).map((d) => Object.values(d.wear).reduce((n, x) => n + x, 0)));
+    return [{ id: wall.id, of: m.name.toLowerCase(), ...(behind ? { to: behind.id } : {}), behind: behind?.name ?? 'unknown', ...(broken > 0 ? { broken: Math.round(broken * 100) / 100 } : {}) }];
+  });
+  return ws.length ? { walls: ws } : {};
 }
 /** FR1/FR5: what furniture stands in a zone and where; OD12: its grade once the viewer has tried it (always for the Weaver) */
 function furnitureView(state: GameState, zoneId: string, viewer?: Actor): { furniture?: ZoneView['furniture'] } {
   const fs = furnitureIn(state, zoneId);
-  return fs.length ? { furniture: fs.map((f) => ({ id: f.id, name: f.name, where: furnitureWhere(f), ...(f.grade && (!viewer || f.graded?.includes(viewer.id)) ? { grade: f.grade } : {}) })) } : {};
+  return fs.length ? { furniture: fs.map((f) => ({ id: f.id, name: f.name, where: furnitureWhere(f, zoneId), ...(f.grade && (!viewer || f.graded?.includes(viewer.id)) ? { grade: f.grade } : {}) })) } : {};
 }
 /** HF2: an echo's hidden past, for the Narrator only */
 const echoOf = (state: GameState, id: string): { echo?: string } => {
@@ -136,7 +167,7 @@ const perceivedZones = (state: GameState, zoneId: string, viewer: Actor) => perc
 function whereLabel(state: GameState, from: string, to: string): string | undefined {
   if (from === to) return zoneById(state, from)?.name;
   const path = shortestPath(state, from, to);
-  return path?.length ? zoneById(state, from)?.links.find((l) => l.to === path[0])?.label : undefined;
+  return path?.length ? wayTo(state, from, path[0])?.label : undefined;
 }
 
 /** what `viewerId` calls `id`: the player by 'player'; anyone else by the name the viewer has for them (nameFor), else by label */
@@ -149,6 +180,8 @@ export function callName(state: GameState, viewerId: string, id: string): string
 }
 /** whoever `viewer` sees clearly right now (BG-95: a name heard is put to this face) */
 export const seesClearlyNow = (state: GameState, viewer: Actor, id: string): boolean => seenActors(state, viewer).some((x) => x.id === id && x.level === 'full');
+/** everyone the viewer sees now, clearly or half (Never Flat-Footed notes them: src/engine/flatFooted.ts) */
+export const seenIds = (state: GameState, viewer: Actor): string[] => seenActors(state, viewer).map((x) => x.id);
 
 /** BF70 (EQ12 c): gear the holder falls short on says so, with the outcome steps it costs every roll made with it, so an NPC
  * can pick its fists or another weapon (worn armor costs Dodge and stealth rolls) */
@@ -160,12 +193,14 @@ function beyond(state: GameState, a: Actor, i: ItemInstance): { beyondYou?: stri
 }
 
 function ownGear(state: GameState, a: Actor): OwnGearView[] {
+  const usable = new Set(usableModes(state, a).map((m) => m.itemId));
   return a.core.inventory.map((i) => {
     const d = itemDef(state, i.itemId);
     const classes = [...new Set((d.weapon?.modes ?? []).map((m) => m.class))];
     return {
       id: i.id, itemId: i.itemId, name: pieceName(state, i), look: d.look, kind: d.kind, equippedIn: [...(i.equippedIn ?? [])],
       modes: (d.weapon?.modes ?? []).map((m) => ({ id: m.id, name: modeName(m) })),
+      ...(d.weapon && isHeld(i) && !usable.has(i.id) ? { cantSwing: true as const } : {}), // BG-283: in hand, but no usable grip (a crippled arm, a hold)
       ...(classes.length ? { classLabel: classes.join('/') } : {}),
       ...(d.armor ? { weightLabel: d.armor.weight } : {}),
       ...(d.stackable ? { qty: i.qty ?? 1 } : {}),
@@ -219,14 +254,47 @@ function seenClearly(state: GameState, viewerId: string, aboutId: string): boole
     e.actorId === aboutId && e.turn >= state.stage.scenarioStartTurn && e.perception[viewerId]?.level === 'full');
 }
 
+/** BG-265: in a fight, someone the viewer counts as a foe, from what it knows: one fighting it (a beast too, not only someone
+ * it could talk down), or one it saw strike first, this scenario, at someone who is not fighting the viewer (a slime mauling a
+ * bystander). strikes: whom that one struck, as the viewer names them (absent when it fights the viewer). A blow struck back
+ * at whoever struck first makes no foe, so a guard cutting at a slime that went for him is not one. */
+function foeOf(state: GameState, viewer: Actor, a: Actor): { strikes?: string } | undefined {
+  if (state.mode !== 'tactical' || a === viewer || !isActive(a)) return undefined;
+  if (fightingWith(state, a, viewer)) return {};
+  const blows = [...(state.recentEvents ?? []), ...state.events].filter((e) => e.kind === 'attack' && !e.spar && !!e.target
+    && e.turn >= state.stage.scenarioStartTurn && e.perception[viewer.id]?.level === 'full');
+  const firstBlow = (from: string, to: string) => blows.findIndex((e) => e.actorId === from && e.target === to);
+  for (const [i, e] of blows.entries()) {
+    if (e.actorId !== a.id || e.target === viewer.id) continue;
+    const t = actorById(state, e.target!);
+    if (!t || fightingWith(state, t, viewer)) continue;
+    const back = firstBlow(t.id, a.id);
+    if (back < 0 || back > i) return { strikes: nameFor(state, viewer, t) ?? t.label };
+  }
+  return undefined;
+}
+
 /** ZR6: how far off a person is made out, by the sight table: someone still at low visibility; someone who did something this
  * turn (walked, spoke, fought) at the most visible of what they did */
 const personVisibility = (a: Actor, events: GameEvent[]): VisibilityKey =>
   events.filter((e) => e.actorId === a.id).reduce<VisibilityKey>((v, e) => (VISIBILITY.pos(e.visibility) > VISIBILITY.pos(v) ? e.visibility : v), 'low');
 
+/** TC32 a Play Dead: a foe fooled by it sees the owner Down (incapacitated) */
+const seemingHealth = (viewer: Actor, a: Actor): HealthLevel => (fooledBy(viewer, a) ? 'incapacitated' : healthLevel(a));
+
 /** actors the viewer perceives now: in its own or a sight-linked zone, made out by the sight table in metres (ZR6): full
  * within clear sight, 'someone' within a glimpse, beyond that not at all; dark zones give partial. NPCs perceive the player
  * only once aware. */
+
+/** BG-306: the people `a` is aware of and perceived this turn or last (seen or heard) whom one move and its melee reach
+ * would bring a blow to this turn: metres by the walking path, in any zone */
+function withinStrike(state: GameState, a: Actor): { withinStrike?: string[] } {
+  const reach = slotMetres(state, a, 'move') + meleeReachM(state, a), k = a.mind?.knowledge ?? {};
+  const ids = allActors(state).filter((x) => x !== a && atLeast(k[x.id]?.status, 'aware') && (k[x.id]?.lastSeenTurn ?? -Infinity) >= state.turn - 1
+    && (distOrNull(state, a, x) ?? Infinity) <= reach).map((x) => x.id).sort();
+  return ids.length ? { withinStrike: ids } : {};
+}
+
 function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state.events): SeenActor[] {
   if (viewer.asleep) return []; // NW12/NW20: asleep, it sees no one
   const zones = perceivedZoneIds(state, viewer.zone);
@@ -244,18 +312,20 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
       ...(a.pos && viewer.pos ? { distanceM: r1(sightDistM(state, viewer, a)) } : {}),
       ...(sideFrom(viewer, a.pos) ? { side: sideFrom(viewer, a.pos)! } : {}),
     };
-    if (hidden === 'suspicious') { out.push({ id: a.id, label: 'someone', zone: a.zone, level: 'partial', gear: [], ...place }); continue; }
+    // BG-278: one half seen who lies still (down, dead or asleep) says so, though not which of the three
+    const lying = isDownLevel(seemingHealth(viewer, a)) || isAsleep(a) ? { lying: true as const } : {};
+    if (hidden === 'suspicious') { out.push({ id: a.id, label: 'someone', zone: a.zone, level: 'partial', gear: [], ...place, ...lying }); continue; }
     // P3: in a dark zone someone is half seen, unless within clear sight and the viewer perceived them fully this scenario
     // (spoke face to face, say): then they stay seen
     // Q17/BG-252 (PG11 a): someone the player saw clearly (by distance, a look or a make-out roll) stays seen while they
     // stay put and can still be glimpsed (sight is not null here); anyone made out by sight this turn is seen clearly
     const keptSight = viewer.journal?.clearSight?.[a.id] === a.zone || madeOutBySight(state, viewer.id, a.id);
-    const dark = zoneLight(state, zoneById(state, a.zone)) === 'dark' && !(sight === 'full' && seenClearly(state, viewer.id, a.id));
+    const dark = isDark(zoneLight(state, zoneById(state, a.zone), a.pos)) && !(sight === 'full' && seenClearly(state, viewer.id, a.id));
     const level = keptSight ? 'full' : sight === 'partial' || dark ? 'partial' : 'full';
     // CS7: a partially perceived actor keeps its id (needed as a target) but shows only 'someone'
-    if (level === 'partial') { out.push({ id: a.id, label: 'someone', zone: a.zone, level, gear: [], ...place }); continue; }
+    if (level === 'partial') { out.push({ id: a.id, label: 'someone', zone: a.zone, level, gear: [], ...place, ...lying }); continue; }
     const name = nameFor(state, viewer, a);
-    const h = healthLevel(a);
+    const h = seemingHealth(viewer, a);
     const parts = partStates(state, a);
     const crippled = parts.filter((p) => p.state === 'crippled').map((p) => p.id);
     const destroyed = parts.filter((p) => p.state === 'destroyed').map((p) => p.id);
@@ -263,20 +333,22 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
     const look = lookOf(state, events, viewer.id, a.id);
     out.push({
       id: a.id, label: a.label, ...(name ? { name } : {}), ...(a.pronouns ? { pronouns: a.pronouns } : {}), zone: a.zone, level,
+      ...(!speaks(a) ? { mute: true as const } : {}), // BG-280: made out as one who cannot talk (a slime, a beast)
       ...(stageOf(state, a) ? { age: stageOf(state, a)! } : {}), // AG16: the life stage, never the number
       ...place,
       ...(look ? { activityLook: look } : {}),
-      ...(healthShows(h, reads(state, viewer, a)) || readsHealthOf(viewer, a) ? { health: h } : {}),
+      ...(healthShows(h, reads(viewer, a)) || readsHealthOf(viewer, a) ? { health: h } : {}),
       // someone Down (incapacitated or dead) shows no mood
-      ...(!isDownLevel(h) && (moraleShows(moraleLevel(a)) || a.mind?.moraleState) ? { morale: seenMoraleWord(a) } : {}),
+      ...(fooledByFeint(state, viewer, a) ? { morale: MORALE_LEVELS.name('broken') } : !isDownLevel(h) && (moraleShows(moraleLevel(a)) || a.mind?.moraleState) ? { morale: seenMoraleWord(a) } : {}), // TC52 a: a believer sees a feint as a break
       ...(!isDownLevel(h) && fatigueShows(fatigueLevel(a)) ? { fatigue: fatigueWord(a) } : {}),
       ...(readsFace(state, viewer, a) ? { stance: stance(state, a, viewer) } : {}),
       ...(crippled.length ? { crippled } : {}), ...(destroyed.length ? { destroyed } : {}), ...tendedOf(state, a),
-      ...(reads(state, viewer, a) && damaged.length ? { damaged } : {}),
+      ...(reads(viewer, a) && damaged.length ? { damaged } : {}),
       gear: seenGear(state, a, revealedTo(viewer, a.id), viewer.id),
       ...(viewer === state.player && isSeller(a) ? { wares: wareList(state, viewer, a), offers: offerList(state, viewer, a) } : {}),
       ...(doingOf(a) ? { doing: doingOf(a)! } : {}),
       ...(level === 'full' && offerTo(state, a, viewer.id) ? { holdsOut: { item: a.offer!.item, name: itemName(state, a.offer!.item) ?? 'something' } } : {}), // BF34
+      ...(viewer === state.player && level === 'full' && foeOf(state, viewer, a) ? { foe: foeOf(state, viewer, a)! } : {}), // BG-265
       ...(viewer === state.player && level === 'full' && canOffer(state, viewer, a) && fightingWith(state, a, viewer) ? { talkDown: true as const } : {}), // TF13
       ...(viewer === state.player && level === 'full' && canDemand(state, viewer, a) && (fightingWith(state, a, viewer) || a.mind?.moraleState === 'broken') ? { demandYield: true as const } : {}), // TF19
     });
@@ -309,7 +381,7 @@ function knowsStep(state: GameState, viewer: Actor, e: GameEvent): boolean {
 function missingOf(state: GameState, a: Actor): { missing?: { id: string; name: string }[] } {
   const all = (xs: ItemInstance[]): ItemInstance[] => xs.flatMap((i) => [i, ...all(i.contents ?? [])]);
   const mine = new Set(all(a.core.inventory));
-  const gone = all([...allActors(state).flatMap((x) => x.core.inventory), ...state.zones.flatMap((z) => z.groundItems)])
+  const gone = all([...allActors(state).flatMap((x) => x.core.inventory), ...state.ground])
     .filter((i) => i.owner === a.id && !mine.has(i) && !itemDef(state, i.itemId).container);
   return gone.length ? { missing: gone.map((i) => ({ id: i.id, name: itemName(state, i.id) ?? itemDef(state, i.itemId).name })) } : {};
 }
@@ -341,7 +413,7 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
   for (const f of effects) {
     const own = f.actorId === viewerId;
     const who = callName(state, viewerId, f.actorId);
-    const sharp = reads(state, actorById(state, viewerId), actorById(state, f.actorId));
+    const sharp = reads(actorById(state, viewerId), actorById(state, f.actorId));
     if (f.kind === 'threshold_crossed') {
       const to = f.data.to as HealthLevel;
       if (own || healthShows(to, sharp) || readsHealthOf(actorById(state, viewerId), actorById(state, f.actorId))) out.push(`${who} is ${HEALTH_LEVELS.name(to)}`);
@@ -360,6 +432,8 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
     }
     if (f.kind === 'found_secret') out.push(`${by} catches something ${who} would rather keep hidden`); // SE17: the secret itself shows once known
     if (f.kind === 'disturbed') out.push(`${who} notices something here has been moved`); // SE8: a search that tied a hidden item
+    if (f.kind === 'threat_took') out.push(`${who} shrinks back from ${by}'s threat`); // BF88: a beast stared down, no words needed
+    if (f.kind === 'threat_shrugged') out.push(`${who} is not cowed by ${by}'s threat`);
     if (f.kind === 'not_understood') out.push(`${who} does not understand words`); // NV5: a slime or a beast spoken to
     if (f.kind === 'held') out.push(`${who} is held by ${by}`); // A8 Hold
     if (f.kind === 'broke_off') out.push(`${who} ${own ? 'are' : 'is'} broken off ${(actionRow(String(f.data.row))?.name ?? 'what they were doing').toLowerCase()}${f.data.then === 'kept' ? ', the work so far kept' : ', the work lost'}`); // AT6/AT25
@@ -370,13 +444,25 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
     if (f.kind === 'dirt_dodged') out.push(`${who} turns away from ${by}'s thrown dirt`);
     if (f.kind === 'bluff_believed') out.push(`${who} falls for ${by}'s bluff and hesitates`); // LI1c Bluff
     if (f.kind === 'bluff_seen_through') out.push(`${who} doesn't fall for ${by}'s bluff`);
+    if (f.kind === 'drawn_in') out.push(`${who} takes ${by}'s false opening and comes at ${by}`); // TC31 a Draw Them In
+    if (f.kind === 'draw_seen_through') out.push(`${who} sees through ${by}'s false opening`);
+    // TC32 a Play Dead: one fooled is never told it was fooled; the owner and onlookers are
+    if (f.kind === 'play_dead_fooled' && !own) out.push(`${who} takes ${by} for down`);
+    if (f.kind === 'play_dead_seen_through') out.push(own ? `${who} see ${by} is only playing dead` : `${who} sees ${by} is only playing dead`);
+    if (f.kind === 'feint_fooled' && !own) out.push(`${who} takes ${by}'s flight for a real one`); // TC52 a: the fooled are never told
+    if (f.kind === 'feint_seen_through') out.push(`${who} ${own ? 'see' : 'sees'} that ${by}'s flight is a trick`);
+    if (f.kind === 'warned') { // WN1-WN9: an ally's warning taken in
+      const about = callName(state, viewerId, String(f.data.about));
+      out.push(f.data.tricks ? `${by} warns ${who} that ${about} is playing a trick` : f.data.pointed ? `${by} points out where ${about} is hiding to ${who}` : `${by} warns ${who} about ${about}`);
+    }
+    if (f.kind === 'play_dead_ends') out.push(`${who} ${own ? 'are' : 'is'} up again, the act over`);
     if (f.kind === 'aura_took') out.push(f.data.overwhelmed ? `${who} is overwhelmed by ${by} and gives up` : `${who} falters before ${by}`); // NT14 auras: Dread Presence; MR4 Overwhelm
     if (f.kind === 'cry_took') out.push(f.data.overwhelmed ? `${who} is overwhelmed by ${by}'s roar and gives up` : `${who} falters at ${by}'s roar`); // I9 Battle Cry
-    if (f.kind === 'rallied' && f.data.by !== f.actorId) out.push(`${who} takes heart at ${by}'s roar`); // the roarer's own rally goes untold
+    if (f.kind === 'rallied' && f.data.by !== f.actorId) out.push(`${who} takes heart at ${by}'s ${f.data.perk === PK.rally ? 'call' : 'roar'}`); // the roarer's own rally goes untold; TC39 a Rally
     if (f.kind === 'travelled') { // TV7: one passage for the trip: how far, how long, how it ended
       const d = f.data as { metres: number; minutes: number; night: boolean; stop: string };
       const km = distText(d.metres);
-      const stop = d.stop === 'nightfall' ? ', stopping as night falls' : d.stop === 'encounter' ? ', until something on the road stops ' + (own ? 'you' : who) : '';
+      const stop = d.stop === 'nightfall' ? ', stopping as night falls' : d.stop === 'encounter' ? ', until something on the road stops ' + (own ? 'you' : who) : d.stop === 'met' ? ', until someone on the way stops ' + (own ? 'you' : who) : '';
       out.push(`${who} travel${own ? '' : 's'} ${km} in ${durationText(d.minutes)}${d.night ? ' through the dark' : ''}${stop}`);
     }
     if (f.kind === 'part_state_changed') {
@@ -437,7 +523,7 @@ function lastSeen(state: GameState, seen: SeenActor[]): NonNullable<PlayerView['
     if (!a || seen.some((x) => x.id === id && x.level === 'full') || !isActive(a)) return [];
     // BG-130: their pronouns too, so words about someone out of sight never guess them from a name
     // BG-155: a seller seen before is still known to sell, so a buy from them steps up to them
-    return [{ id, name: nameFor(state, p, a) ?? a.label, zone: zoneById(state, zone)?.name ?? zone, ...(a.pronouns ? { pronouns: a.pronouns } : {}), ...(isSeller(a) ? { wares: wareList(state, p, a) } : {}), ...(goneFromSpot(state, id) ? { gone: true } : {}) }];
+    return [{ id, name: nameFor(state, p, a) ?? a.label, zone: zoneById(state, zone)?.name ?? zone, ...(a.pronouns ? { pronouns: a.pronouns } : {}), ...(!speaks(a) ? { mute: true as const } : {}), ...(isSeller(a) ? { wares: wareList(state, p, a) } : {}), ...(goneFromSpot(state, id) ? { gone: true } : {}) }];
   });
 }
 
@@ -448,15 +534,17 @@ const heardOf = (state: GameState): string[] => (state.player.journal?.heardOf ?
 const steadyOf = (a: Actor): { mentallySteady?: true } => (a.core.condition.mentallySteady ? { mentallySteady: true } : {});
 
 /** AT49 (stage 4): the player's walk still on its way, as metres and seconds at a walk to its zone */
-function walkingOf(state: GameState, p: Actor): { walking?: WalkingView } {
+function walkingOf(state: GameState, p: Actor, seen: SeenActor[]): { walking?: WalkingView } {
   const w = p.walking;
   if (!w) return {};
   const m = distOrNull(state, p, { zone: w.toZone }), walk = moveSpeed(state, p).walk;
   if (m === null || walk <= 0) return {};
-  return { walking: { toZone: w.toZone, to: zoneById(state, w.toZone)?.name ?? w.toZone, metres: Math.round(m), seconds: Math.round(m / walk) } };
+  // BG-281: a walk up to someone is named by them as the player sees them, never by the zone they stand in
+  const near = w.spot && 'near' in w.spot ? seen.find((a) => a.id === (w.spot as { near: string }).near) : undefined;
+  return { walking: { toZone: w.toZone, to: near ? near.name ?? near.label : zoneById(state, w.toZone)?.name ?? w.toZone, metres: Math.round(m), seconds: Math.round(m / walk) } };
 }
 /** each weapon in the player's hands at its longest reach, longest first (natural attacks and fists left out) */
-function reachesOf(state: GameState, p: Actor): { reaches?: { name: string; metres: number }[] } {
+export function reachesOf(state: GameState, p: Actor): { reaches?: { name: string; metres: number }[] } {
   const best = new Map<string, number>(); // by name, so two daggers read once
   for (const m of usableModes(state, p)) {
     const inst = p.core.inventory.find((i) => i.id === m.itemId);
@@ -485,6 +573,19 @@ function bodyAttacks(state: GameState, a: Actor): { bodyAttacks?: BodyAttackView
   return l.length ? { bodyAttacks: l } : {};
 }
 
+/** AE8: one owned perk move as the view shows it; used (A3): spent for this engagement (an aimed one: on everyone in range) */
+function perkMoveOf(state: GameState, p: Actor, id: string, actors: { id: string }[]): PerkMoveView {
+  const def = PERK_MOVES[id];
+  const inRange = def.untargeted ? undefined : actors.filter((x) => perkMoveBlock(state, p, id, x.id) !== 'no_target').map((x) => x.id);
+  const used = inRange ? inRange.length > 0 && inRange.every((x) => perkMoveBlock(state, p, id, x) === 'used_this_engagement') : perkMoveBlock(state, p, id, null) === 'used_this_engagement';
+  return { id, name: getLibrary().perks[id]?.name ?? id, does: def.does, ...(def.free ? {} : { action: true as const }), ...(inRange ? { inRange } : {}), ...(used ? { used: true as const } : {}) };
+}
+/** TC49: the perk moves an actor owns, for its Parser or its agent (Play Dead only while open, TC44 a) */
+function perkMovesOf(state: GameState, a: Actor, seen: { id: string }[]): { perkMoves?: PerkMoveView[] } {
+  const ids = ownPerkMoves(a).filter((id) => id !== PK.play_dead || playDeadOpen(state, a));
+  return ids.length ? { perkMoves: ids.map((id) => perkMoveOf(state, a, id, seen)) } : {};
+}
+
 export function buildPlayerView(state: GameState): PlayerView {
   const p = state.player;
   const actors = seenActors(state, p);
@@ -496,13 +597,13 @@ export function buildPlayerView(state: GameState): PlayerView {
       skills: Object.keys(p.core.skills).map((id) => ({ id, name: skillName(id) })),
       perks: p.core.perks.map((x) => ({ id: x.perkId, name: getLibrary().perks[x.perkId]?.name ?? x.perkId })),
       ...(doingOf(p) ? { doing: doingOf(p)! } : {}),
-      ...(blindSpotNow(state, p) ? { blindSpot: true as const } : {}),
-      ...walkingOf(state, p),
+      ...walkingOf(state, p, actors),
       ...followingOf(state, p),
       ...reachesOf(state, p),
       ...bodyAttacks(state, p),
       ...(summonableThreadboundItems(state, p).length ? { summonable: summonableThreadboundItems(state, p).map((i) => ({ id: i.id, name: itemDef(state, i.itemId).name })) } : {}),
-      ...(ownPerkMoves(p).length ? { perkMoves: ownPerkMoves(p).map((id) => ({ id, name: getLibrary().perks[id]?.name ?? id, does: PERK_MOVES[id].does, ...(PERK_MOVES[id].free ? {} : { action: true as const }), ...(PERK_MOVES[id].untargeted ? {} : { inRange: actors.filter((x) => perkMoveBlock(state, p, id, x.id) !== 'no_target').map((x) => x.id) }) })) } : {}),
+      ...perkMovesOf(state, p, actors), ...(p.playingDead ? { playingDead: true as const } : {}),
+      ...(warnableOf(state, p).length ? { warnable: warnableOf(state, p) } : {}), // WN9 a
       health: healthLevel(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), ...tendedOf(state, p), morale: moraleWord(p), ...steadyOf(p), stamina: staminaOf(p),
       inventory: ownGear(state, p),
       posture: p.posture ?? 'open',
@@ -511,6 +612,7 @@ export function buildPlayerView(state: GameState): PlayerView {
       ...(sparOf(state, p.id) ? { spar: sparView(state, p, (id) => callName(state, p.id, id)) } : {}),
       ...(yieldView(state) ? { yielded: yieldView(state) } : {}),
       ...(offersTo(state, p).length ? { standDownOffers: offersTo(state, p).map((o) => ({ id: o.from, name: callName(state, p.id, o.from), landed: OFFER_WORDS[o.landed] })) } : {}), // TF11
+      ...(farBelow(state) ? { finishable: true as const } : {}), // IQ7 a
     },
     zone: zoneView(state, zoneById(state, p.zone)!, p),
     zones: perceivedZones(state, p.zone, p),
@@ -527,7 +629,13 @@ export function buildPlayerView(state: GameState): PlayerView {
 }
 
 // ---------- ActorView / OppositionView / DialogueView ----------
-type BaseView = Omit<ActorView, 'plan' | 'goals' | 'steps' | 'thinkWhy' | 'memory' | 'agreements' | 'secrets' | 'firedTriggers'>;
+type BaseView = Omit<ActorView, 'tacticsWord' | 'tactics' | 'plan' | 'goals' | 'steps' | 'thinkWhy' | 'memory' | 'agreements' | 'secrets' | 'firedTriggers'>;
+
+/** TC36 c: a broken NPC's Fall Back on Me owner, where it may run instead of away */
+function fallBackView(state: GameState, a: Actor): { fallBackTo?: { id: string; zone: string } } {
+  const o = a.mind?.moraleState === 'broken' ? fallBackOwner(state, a) : undefined;
+  return o ? { fallBackTo: { id: o.id, zone: o.zone } } : {};
+}
 
 /** everything an NPC view holds that is not in state.hidden */
 function baseView(state: GameState, actorId: string): BaseView {
@@ -555,11 +663,12 @@ function baseView(state: GameState, actorId: string): BaseView {
       source: b.source, revealed: [...b.revealed],
       stance: stance(state, a, other), hostile: hostile(state, a, other), ...(sparring(state, a, other) ? { sparring: true as const } : {}),
       ...(chaseLost(b) ? { lost: true as const } : {}),
-      active: isActive(other), label: callName(state, a.id, about),
+      active: isActive(other) && !fooledBy(a, other), label: callName(state, a.id, about), // TC32 a: one fooled by Play Dead takes it for Down
       ...(about === state.player.id && nameFor(state, a, other) ? { name: nameFor(state, a, other)! } : {}), // BG-95: the player's name, once heard (NM3: or the false one believed)
       ...(other.pronouns ? { pronouns: other.pronouns } : {}), // BG-60: so an NPC speaks of someone out of sight as they are
       // T18: a worn title reaches only someone who has seen the player, never by sound or hearsay, so stealth keeps it hidden
       ...(about === state.player.id && b.source === 'seen' && atLeast(b.status, 'aware') && wornTitle(state) ? { title: wornTitle(state) } : {}),
+      ...(b.read ? { read: { ...b.read } } : {}), // BF97 a
     });
   }
   const band = bandById(state, a.bandId);
@@ -572,9 +681,9 @@ function baseView(state: GameState, actorId: string): BaseView {
       id: a.id, label: a.label, name: a.names.current, kind: 'npc', ...(ageText(state, a) ? { age: ageText(state, a)! } : {}), // AG16
       zone: a.zone, placeId: a.placeId, bandId: a.bandId,
       health: healthLevel(a), parts: partStates(state, a).map((x) => ({ id: x.id, state: x.state })), ...tendedOf(state, a), morale: moraleWord(a), ...steadyOf(a), fatigue: fatigueWord(a),
-      ...(m.lastWasted ? { lastWasted: { ...m.lastWasted } } : {}), ...missingOf(state, a), ...(m.meanwhile && m.meanwhile.turn >= state.turn - 1 ? { meanwhile: { minutes: Math.round(m.meanwhile.seconds / 60) } } : {}), active: isActive(a), broken: m.moraleState === 'broken', surrendered: m.moraleState === 'surrendered',
+      ...(m.lastWasted ? { lastWasted: { ...m.lastWasted } } : {}), ...missingOf(state, a), ...(m.meanwhile && m.meanwhile.turn >= state.turn - 1 ? { meanwhile: { minutes: Math.round(m.meanwhile.seconds / 60) } } : {}), active: isActive(a), broken: m.moraleState === 'broken', ...(m.moraleState === 'broken' && isCoweringLevel(moraleLevel(a)) ? { cowering: true as const } : {}), surrendered: m.moraleState === 'surrendered', ...fallBackView(state, a),
       control: m.control, standingDefense: a.core.standingDefense, ...(heldBy(state, a) ? { heldBy: heldBy(state, a)!.id } : {}),
-      gear: ownGear(state, a), attackSkill, ...bodyAttacks(state, a),
+      gear: ownGear(state, a), attackSkill, ...bodyAttacks(state, a), ...perkMovesOf(state, a, seenActors(state, a)), ...(a.playingDead ? { playingDead: true as const } : {}),
       ...(m.routine ? { routine: { id: m.routine.id, anchorTurn: m.routine.anchorTurn, elapsed: Math.max(0, now(state) - (m.routine.at ?? now(state))), dayPart: timeOfDay(now(state)) } } : {}),
       routines: offeredRoutines(m.routines).map((id) => ({ id, brief: routine(id).brief })),
       ...(m.routineSetId ? { routineSetId: m.routineSetId } : {}),
@@ -588,6 +697,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       ...((o) => o ? { standDownOffer: { from: callName(state, a.id, o.from), landed: OFFER_WORDS[o.landed], ...(o.coin ? { coin: coinWords(o.coin) } : {}), ...(o.demand ? { demand: o.demand } : {}) } } : {})(offersTo(state, a)[0]), // TF15, TF19
       ...(isSeller(a) ? { wares: wareList(state, state.player, a), offers: offerList(state, state.player, a) } : {}),
       ...(chase ? { chaseZones: chase } : {}),
+      ...withinStrike(state, a),
       ...(a.mind?.suspects && Object.keys(a.mind.suspects).length ? { suspects: Object.entries(a.mind.suspects).map(([id, s]) => ({ id, name: callName(state, a.id, id), item: `a locked ${boxName(state, s.box)}` })) } : {}), // GD3
       ...(atChaseLine(state, a) ? { atChaseLine: true as const } : {}),
     },
@@ -596,10 +706,10 @@ function baseView(state: GameState, actorId: string): BaseView {
     personality: personalityText(state, a, moraleWord(a)),
     ...(rolledTitle(state, a) ? { title: rolledTitle(state, a) } : {}),
     band: band
-      ? { id: band.id, name: band.name, goals: band.goals, temperament: band.temperament, tactics: band.tactics, relations: { ...band.relations } }
-      : { id: a.bandId, name: '', goals: '', temperament: '', tactics: 'simple', relations: {} },
+      ? { id: band.id, name: band.name, goals: band.goals, temperament: band.temperament, relations: { ...band.relations } }
+      : { id: a.bandId, name: '', goals: '', temperament: '', relations: {} },
     // BA7: code paths treat a way shut to this actor (no key, the far side of the bar, rubble) as no way
-    map: stageZones(state).map((z) => ({ id: z.id, links: z.links.map((l) => ({ to: l.to, sight: seesAcross(state, l), ...(l.frontier ? { frontier: true } : {}), ...(l.drop ? { drop: true } : {}), ...(linkPassage(state, l, a, z.id) === 'shut' ? { shut: true } : {}) })) })),
+    map: nearbyZones(state, [a.zone], [a.placeId]).map((z) => ({ id: z.id, links: waysOut(state, z.id).map((l) => ({ to: l.to, sight: seesAcross(state, l), ...(l.frontier ? { frontier: true } : {}), ...(l.drop ? { drop: true } : {}), ...(linkPassage(state, l, a, z.id) === 'shut' ? { shut: true } : {}) })) })),
     zones: perceivedZones(state, a.zone, a),
     seen: seenActors(state, a),
     ...(jobs.length ? { jobs } : {}),
@@ -647,6 +757,7 @@ export function buildActorView(state: GameState, actorId: string): ActorView {
   const plan = h.plans[actorId];
   return {
     ...base,
+    tacticsWord: tacticsWord(need(state, actorId)),
     ...(plan ? { plan: { goal: plan.goal, steps: [...plan.steps], triggers: structuredClone(plan.triggers), createdTurn: plan.createdTurn } } : {}),
     ...goalView(h.drives?.[actorId]),
     ...(h.memory[actorId]?.length ? { memory: h.memory[actorId].map((m, i) => ({ n: i + 1, turn: m.turn, text: m.text })) } : {}),
@@ -657,7 +768,7 @@ export function buildActorView(state: GameState, actorId: string): ActorView {
 }
 /** PM3: the deals `viewerId` is a party to, naming the other party as the viewer calls it */
 function agreementViews(state: GameState, viewerId: string): AgreementView[] {
-  return (state.hidden.agreements ?? []).filter((g) => g.parties.includes(viewerId)).map((g) => {
+  return agreementsOf(state, viewerId).map((g) => {
     const other = g.parties[0] === viewerId ? g.parties[1] : g.parties[0];
     const q = state.quests.find((x) => x.dealId === g.id);
     return { id: g.id, with: callName(state, viewerId, other), withId: other, text: g.text, madeTurn: g.madeTurn, ...(q ? { quest: q.id } : {}) };
@@ -709,22 +820,21 @@ function eventTarget(state: GameState, me: string, target: string, seenIds: Set<
 
 /** GD3: a container's name by instance id (anywhere), else "container" */
 const boxName = (state: GameState, id: string): string => itemName(state, id) ?? 'container';
-/** the library item of an item instance anyone carries or that lies on the ground anywhere, or one inside a container there (BK2) */
-export function instanceItem(state: GameState, instanceId: string): string | undefined {
+/** an item instance anywhere in the world: carried (or inside what is carried), or on any zone's ground */
+export function findInstance(state: GameState, instanceId: string): ItemInstance | undefined {
   const find = (list: ItemInstance[]): ItemInstance | undefined => {
     for (const x of list) { if (x.id === instanceId) return x; const inner = x.contents && find(x.contents); if (inner) return inner; }
     return undefined;
   };
   for (const a of allActors(state)) {
     const i = find(a.core.inventory);
-    if (i) return i.itemId;
+    if (i) return i;
   }
-  for (const z of state.places.flatMap((pl) => pl.zones)) { // every place's zones, not only the stage's
-    const i = find(z.groundItems);
-    if (i) return i.itemId;
-  }
+  return find(state.ground); // PZ11: everything on the ground, anywhere
   return undefined;
 }
+/** the library item of an item instance anyone carries or that lies on the ground anywhere, or one inside a container there (BK2) */
+export const instanceItem = (state: GameState, instanceId: string): string | undefined => findInstance(state, instanceId)?.itemId;
 /** an event's item by name: an instance id, or (BG-168: a use_item, a stack used up) the item's own id */
 function itemName(state: GameState, instanceId: string): string | undefined {
   const id = instanceItem(state, instanceId) ?? instanceId;
@@ -759,7 +869,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     const target = full && e.target ? eventTarget(state, me, e.target, e.kind === 'attack' ? new Set([...seenIds, e.target]) : seenIds)
       ?? (e.actorId === me && actorById(state, e.target) ? 'someone' : undefined) : undefined;
     out.push({
-      id: e.id, kind: e.kind, level: per.level, cue: per.cue,
+      id: e.id, kind: e.kind === 'play_dead' && fooledBy(p, actorById(state, e.actorId)) ? 'collapse' : e.kind === 'feint' && fooledByFeint(state, p, actorById(state, e.actorId)) ? 'breaks_and_runs' : e.kind, level: per.level, cue: per.cue, // TC32 a: the fooled see a fall
       ...(full ? { actor: callName(state, me, e.actorId) } : {}),
       ...(full && e.actorId !== me && actorById(state, e.actorId)?.pronouns ? { pronouns: actorById(state, e.actorId)!.pronouns } : {}),
       ...(target ? { target } : {}),
@@ -781,11 +891,13 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ...(full && e.beside ? { spot: 'beside them' } : {}), // BG-81: the walk at its target reached them
       ...(full && e.offers ? { offers: e.offers.map((o) => ({ to: callName(state, me, o.to), landed: o.landed, ...(o.demand ? { demand: o.demand } : {}) })) } : {}), // TF12, TF19
       ...(full && e.surrender ? { surrender: { with: e.surrender.with.map((id) => callName(state, me, id)) } } : {}), // TF19
+      ...(full && e.breakThrough ? { breakThrough: breakThroughView(state, e.breakThrough) } : {}), // BW8-BW26
       ...(full && e.breakOpen ? { breakOpen: { ...e.breakOpen, ...(e.breakOpen.broke ? { broke: e.breakOpen.opened ? e.breakOpen.broke.map((id) => itemName(state, id) ?? 'something') : ['something inside'] } : {}) } } : {}), // BF31; BK2: what broke, unnamed while it stays shut
       ...(full && e.standDown ? { standDown: { with: e.standDown.with.map((id) => callName(state, me, id)), ...(e.standDown.coin ? { coin: coinWords(e.standDown.coin) } : {}) } } : {}), // TF16
       ...(full && e.steady ? { steady: e.steady.points > 0 ? 'calmer' : e.steady.points < 0 ? 'worse' : 'no change', ...(e.steady.buff ? { mentallySteady: true as const } : {}) } : {}), // SY1: in words, never points
       ...(full && e.extract ? { extract: { essence: getLibrary().essences?.[e.extract.essence]?.name ?? 'an essence' } } : {}), // DX3
       ...(full && e.obstacle?.gate === 'out' ? { beyond: true as const } : {}), // OD1 b: out of the actor's reach, no roll
+      ...(e.read && e.actorId === me ? { read: { mood: e.read.mood, feels: e.read.feels, hiding: e.read.hiding } } : {}), // BF97 a: only the player's own read of someone
       ...(full && e.obstacle && e.obstacle.gate !== 'out' ? { graded: true as const } : {}), // OD5: its tier says what the act did
       ...(full && e.mishap ? { mishap: { kind: e.mishap.kind, ...(e.mishap.item ? { item: itemName(state, e.mishap.item) ?? 'something' } : {}) } } : {}), // OD5
       ...(full && e.fall ? { fall: { metres: e.fall.metres, landing: e.fall.landing } } : {}),
@@ -804,14 +916,14 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
   return {
     style: { tone: state.settings.tone || CONFIG.STYLE.tone, length: lengthText(state, 'normal') }, // the turn's own band is set by narrationBand
     time: timeView(state),
-    ...(a ? { approach: a.approach, stance: a.stance } : {}),
+    ...(a ? { approach: a.approach } : {}),
     events: out,
     player: { name: p.names.current, ...(p.pronouns ? { pronouns: p.pronouns } : {}), health: healthLevel(p), morale: moraleWord(p), fatigue: fatigueWord(p), ...steadyOf(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), ...tendedOf(state, p), zone: zoneById(state, p.zone)?.name ?? '', ...(p.posture === 'stealthy' ? { stealthy: true } : {}), ...(yieldView(state) ? { yielded: yieldView(state) } : {}), ...(wornTitle(state) ? { title: wornTitle(state) } : {}), personality: personalityText(state, p, moraleWord(p)), ...(ageText(state, p) ? { age: ageText(state, p)! } : {}),
       // the only gear the player character has: the Narrator may not describe any other (playtest run 20)
       gear: ownGear(state, p).map((g) => `${countWords(g.itemId, g.name, g.qty)}, ${g.look} (${isHeld(g) ? 'held' : g.equippedIn.length ? 'worn' : 'carried'})${g.container?.contents?.length ? `, holding ${g.container.contents.map((c) => c.name).join(', ')}` : ''}`) }, // PI1: what is in it
     surroundings: perceivedZones(state, p.zone, p),
     heard,
-    actors: seen.map((s) => ({ label: s.label, ...(s.name ? { name: s.name } : {}), ...(s.pronouns ? { pronouns: s.pronouns } : {}), zone: zoneById(state, s.zone)?.name ?? '', ...(s.distanceM !== undefined ? { distanceM: Math.round(s.distanceM) } : {}), ...(s.side ? { side: s.side } : {}), ...(s.health ? { health: s.health } : {}), ...(s.morale ? { morale: s.morale } : {}), ...(s.fatigue ? { fatigue: s.fatigue } : {}), ...(s.activityLook ? { activityLook: s.activityLook } : {}), ...(s.age ? { age: s.age } : {}), ...(s.tended ? { tended: s.tended } : {}), ...(s.doing ? { doing: s.doing } : {}), ...echoOf(state, s.id) })),
+    actors: seen.map((s) => ({ label: s.label, ...(s.name ? { name: s.name } : {}), ...(s.pronouns ? { pronouns: s.pronouns } : {}), zone: zoneById(state, s.zone)?.name ?? '', ...(s.distanceM !== undefined ? { distanceM: Math.round(s.distanceM) } : {}), ...(s.side ? { side: s.side } : {}), ...(s.health ? { health: s.health } : {}), ...(s.morale ? { morale: s.morale } : {}), ...(s.fatigue ? { fatigue: s.fatigue } : {}), ...(s.activityLook ? { activityLook: s.activityLook } : {}), ...(s.age ? { age: s.age } : {}), ...(s.tended ? { tended: s.tended } : {}), ...(s.doing ? { doing: s.doing } : {}), ...(s.lying ? { lying: true } : {}), ...echoOf(state, s.id) })),
     facts: factsFor(state, p.placeId, seen.filter((s) => s.level === 'full').map((s) => s.id)),
     headlines: headlinesFor(state, p.placeId, false),
     // growth proposal 2.7/EG11 b: essences offered this turn, as the character feels them (never numbers or grades)
@@ -819,6 +931,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       .map((o) => ({ name: getLibrary().essences?.[o.essence]?.name ?? o.essence, story: getLibrary().essences?.[o.essence]?.story ?? '' }))),
     // essences that appeared this turn and failed their quality roll: they show, then fade
     ...(comings.size ? { cameAndWent: cameAndWent(state, me, comings) } : {}),
+    ...((f) => f ? { fightFinished: { rounds: f.rounds, stop: FINISH_STOP_WORDS[f.stop] } } : {})(state.scratch?.fightFinished as { rounds: number; stop: FinishStop } | undefined), // IQ4 a
     ...((gone) => gone.length ? { notThere: gone } : {})(notThere(state, intent, seenIds)),
     ...((w) => w ? { stayedPut: w } : {})(stayedPut(state, events, intent)),
     ...((faded) => faded.length ? { essencesFaded: faded } : {})(state.log.filter((l) => l.turn === state.turn && l.code === 'essence_faded')
@@ -899,7 +1012,7 @@ function checkinScenario(state: GameState, f: ScenarioFrame): NonNullable<Weaver
     turns: state.turn - f.startTurn, budget: c?.budgetMin ? `${spanText(c.budgetMin)} of ${c.actingOnly ? 'acting time (waits, rest, sleep and trips not counted)' : 'game time'}` : '?',
     used: Math.round(budgetUsed(state, f) * 100) / 100, overTime: budgetUsed(state, f) >= 1,
     happened: (f.happened ?? []).map((h) => ({ ...h })),
-    remembered: state.actors.filter((a) => state.stage.zoneIds.includes(a.zone)).flatMap((a) =>
+    remembered: state.actors.filter((a) => !!zoneById(state, a.zone)).flatMap((a) =>
       (state.hidden.memory[a.id] ?? []).filter((m) => m.turn >= f.startTurn).map((m) => ({ who: a.id, turn: m.turn, text: m.text }))),
   };
 }
@@ -941,12 +1054,12 @@ const STAKES: Record<Tier, string> = {
 
 const placeName = (state: GameState, id: string) => state.places.find((p) => p.id === id)?.names.current ?? id;
 
-/** NW6: the stage sorted by place, in stage order: each place named, with its parent, its areas and
+/** NW6: the ground around the player (WI8 a: nearbyZones) sorted by place, in world order: each place named, with its parent, its areas and
  * the people standing in them. Nobody is left out; the sorting is what keeps the Weaver on the right place (the test
  * on 12/11 lost the thread with two flat lists). */
-function weaverPlaces(state: GameState, onStage: Actor[]): WeaverView['places'] {
+function weaverPlaces(state: GameState, zones: Zone[], onStage: Actor[]): WeaverView['places'] {
   const out = new Map<string, WeaverView['places'][number]>();
-  for (const z of stageZones(state)) {
+  for (const z of zones) {
     let e = out.get(z.placeId);
     if (!e) {
       const pl = state.places.find((p) => p.id === z.placeId);
@@ -986,7 +1099,10 @@ export function buildWorldView(state: GameState, target: WeaverTarget): WorldVie
 }
 export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverView {
   const lib = getLibrary();
-  const stage = new Set(state.stage.zoneIds);
+  // WI8 a: the ground around the player and the target (the frontier's edge too), not the whole world
+  const edges = target.frontierKey ? state.openings.filter((o) => o.frontier && o.joins[1] === target.frontierKey).map((o) => o.joins[0]) : [];
+  const near = nearbyZones(state, [state.player.zone, ...edges], [target.placeId, state.player.placeId]);
+  const stage = new Set(near.map((z) => z.id));
   const onStage = state.actors.filter((a) => stage.has(a.zone));
   const bandIds = new Set([state.player.bandId, ...onStage.map((a) => a.bandId)]);
   const cur = state.player.core.classes.find((c) => c.state === 'current');
@@ -1005,15 +1121,16 @@ export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverV
     time: clockSet(state) ? timeView(state) : null,
     ways: WAYS_LEAN[state.stage.tier] ?? '',
     stakes: (STAKES[state.stage.tier] ?? '') + (state.stage.tierBeyond ? `; beyond Critical by ${Math.abs(state.stage.tierBeyond)}: push it further still, the luck ${state.stage.tierBeyond > 0 ? 'almost unbelievable' : 'cruel to the point of irony'}` : ''),
-    target: { kind: target.kind, placeId: target.placeId, placeName: placeName(state, target.placeId), ...(target.label !== undefined ? { label: target.label } : {}), ...(target.frontierKey !== undefined ? { frontierKey: target.frontierKey } : {}), ...(target.wake ? { wake: true as const } : {}), ...(target.ahead ? { ahead: true as const } : {}), ...(target.brief ? { brief: target.brief } : {}),
+    target: { kind: target.kind, placeId: target.placeId, placeName: placeName(state, target.placeId), ...(target.label !== undefined ? { label: target.label } : {}), ...(target.frontierKey !== undefined ? { frontierKey: target.frontierKey } : {}), ...(target.wake ? { wake: true as const } : {}), ...(target.arrive ? { arrive: true as const } : {}), ...(target.ahead ? { ahead: true as const } : {}), ...(target.brief ? { brief: target.brief } : {}),
+      ...((t) => (t ? { land: t } : {}))(target.frontierKey ? landTarget(state, target.frontierKey) : undefined),
       ...(target.kind === 'checkin' && state.stage.scenario ? { reason: target.reason, scenario: checkinScenario(state, state.stage.scenario) } : {}),
-      ...(target.kind === 'scenario' && state.stage.encounter ? { encounter: { zone: state.stage.encounter.zone, danger: zoneById(state, state.stage.encounter.zone)?.danger ?? 'quiet', noticed: state.stage.encounter.noticed } } : {}),
+      ...(target.kind === 'scenario' && state.stage.encounter ? { encounter: { zone: state.stage.encounter.zone, danger: zoneById(state, state.stage.encounter.zone)?.danger ?? 'quiet',
+        ...encounterPeople(state, zoneById(state, state.stage.encounter.zone)?.road, state.stage.encounter.at, timeOfDay(now(state)) === 'night') } } : {}),
       ...((target.kind === 'scenario' || target.kind === 'window') && state.stage.cause ? { cause: structuredClone(state.stage.cause) } : {}) },
     headlines: headlinesFor(state, target.placeId, true),
-    ...((land) => (land ? { land } : {}))(landView(state, state.player.pos ?? (() => { const r = zoneById(state, state.player.zone)?.rect; return r ? { x: r.x, y: r.y } : undefined; })())),
-    places: weaverPlaces(state, onStage),
+    ...((land) => (land ? { land } : {}))(landView(state, state.player.pos ?? (() => { const z = zoneById(state, state.player.zone); return z?.outline?.length ? middle(z) : undefined; })())),
+    places: weaverPlaces(state, near, onStage),
     quests: state.quests.map((q) => ({ id: q.id, state: q.state, text: q.text })),
-    flags: { ...state.flags },
     bands: state.bands.filter((b) => bandIds.has(b.id)).map((b) => ({ id: b.id, name: b.name, goals: b.goals, relations: { ...b.relations }, ...(b.chase ? { chase: b.chase } : {}) })),
     player: { level: charLevel(state.player), power: Math.round(power(state, state.player)), ...(state.player.pronouns ? { pronouns: state.player.pronouns } : {}), currentClass: cur ? { id: cur.classId, name: lib.classes[cur.classId]?.name ?? cur.classId } : null, health: healthLevel(state.player),
       standsIn: { place: state.player.placeId, placeName: placeName(state, state.player.placeId), area: state.player.zone },
@@ -1044,7 +1161,8 @@ export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverV
       skills: Object.keys(lib.skills).map((id) => ({ id, name: skillName(id) })),
       personality: { nerve: Object.keys(NERVE_LINES), types: Object.values(lib.personalityTypes ?? {}).map((t) => ({ id: t.id, name: t.name, hint: t.hint })), values: Object.values(lib.values ?? {}).map((v) => ({ id: v.id, name: v.name })) },
       zoneKinds: Object.values(lib.zoneKinds ?? {}).map((k) => ({ ...k })),
-      edgeKinds: Object.values(lib.edgeKinds ?? {}).map((k) => ({ ...k })),
+      wallKinds: Object.values(lib.wallKinds ?? {}).map((k) => ({ ...k })),
+      openingKinds: Object.values(lib.openingKinds ?? {}).map((k) => ({ ...k })),
       furnitureKinds: Object.values(lib.furnitureKinds ?? {}).map((k) => ({ ...k })),
       barrierKinds: Object.values(lib.barrierKinds ?? {}).map((k) => ({ ...k })),
       layouts: Object.values(lib.layouts ?? {}).map((l) => ({ id: l.id, name: l.name, building: l.building, entry: l.entry, zones: l.zones.map((z) => ({ key: z.key, name: z.name, ...(z.furniture?.length ? { furniture: z.furniture.map((f) => f.name) } : {}) })) })),

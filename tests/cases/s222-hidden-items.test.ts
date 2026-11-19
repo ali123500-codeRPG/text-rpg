@@ -4,13 +4,14 @@
 // concealed item they wear.
 import { TP } from '../../src/library/templateIds';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { makeVillage, beside } from '../harness';
+import { makeVillage, beside, lay } from '../harness';
 import { intent, play } from './w4-kit';
 import { ruleset } from '../../src/ruleset';
 import { spawnNpc } from '../../src/library/spawn';
 import { buildPlayerView } from '../../src/views';
 import { IT } from '../../src/library/itemIds';
 import type { GameState, RollResult, Tier } from '../../src/types';
+import { groundIn } from '../../src/engine/ground';
 
 /** forces every sight or stealth function roll to `tier` */
 function rigRolls(tier: Tier) {
@@ -21,10 +22,7 @@ function rigRolls(tier: Tier) {
   });
 }
 const hide = (s: GameState, tier: Tier) => {
-  const z = s.zones.find((x) => x.id === s.player.zone)!;
-  const it = { id: 'ring_1', itemId: IT.dagger, at: { ...s.player.pos! }, hiddenAt: { tier }, knownTo: [] as string[] };
-  z.groundItems.push(it);
-  return it;
+  return lay(s, s.player.zone, { id: 'ring_1', itemId: IT.dagger, hiddenAt: { tier }, knownTo: [] as string[] }, s.player.pos);
 };
 const ground = (s: GameState) => buildPlayerView(s).zone.groundItems.map((i) => i.id);
 const search = (target: string | null = null) => ({ intent: intent({ action: { type: 'search', target } }) });
@@ -54,8 +52,7 @@ describe('222 hidden items', () => {
     s.player.core.inventory.push({ id: 'purse_1', itemId: IT.dagger });
     rigRolls('great_success');
     play(s, { intent: intent({ action: { type: 'stash', item: 'purse_1' } }) });
-    const z = s.zones.find((x) => x.id === 'street_square')!;
-    const it = z.groundItems.find((i) => i.id === 'purse_1')!;
+    const it = groundIn(s, 'street_square').find((i) => i.id === 'purse_1')!;
     expect(it.hiddenAt).toEqual({ tier: 'great_success' });
     expect(it.knownTo?.[0]).toBe('player');
     expect(s.player.core.inventory.some((i) => i.id === 'purse_1')).toBe(false);
@@ -66,7 +63,7 @@ describe('222 hidden items', () => {
     const s = makeVillage({ playerZone: 'street_square' });
     const t = spawnNpc(null, TP.thief, { id: 'thief_1', zone: 'street_square', placeId: 'street', bandId: 'thieves', name: 'Tam', storyId: 'test' });
     s.actors.push(t);
-    s.bands.push({ id: 'thieves', name: 'thieves', goals: '', temperament: '', tactics: 'simple', lethal: true, relations: {} });
+    s.bands.push({ id: 'thieves', name: 'thieves', goals: '', temperament: '', lethal: true, relations: {} });
     beside(s, 'thief_1', 'player', 0.5);
     t.core.inventory.push({ id: 'blade_1', itemId: IT.hidden_blade, equippedIn: ['grip:left_arm'] }, { id: 'stow_1', itemId: IT.dagger });
     const gear = () => buildPlayerView(s).actors.find((a) => a.id === 'thief_1')?.gear?.map((g) => g.id) ?? [];

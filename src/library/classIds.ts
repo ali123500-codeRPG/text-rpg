@@ -7,5 +7,6 @@ export const CL = {
   blessed_by_imbra: 'CL10', // DX1: Blessed by Imbra, the blessed start's class when Imbra blesses
   knight: 'CL11', // NR13, NR36: tier 2, armoured weapon master (benefits later)
   knight_trainee: 'CL12', // NR36: tier 1, the way into Knight (placeholder unlock; benefits later)
+  a_somebody: 'CL13', // CB1-CB7: tier 3, between A Nobody and Unwritten Legend
 } as const;
 export type ClassId = (typeof CL)[keyof typeof CL];

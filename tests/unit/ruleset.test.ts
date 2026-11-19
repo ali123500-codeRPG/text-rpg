@@ -1,5 +1,6 @@
-import { AM } from '../../src/library/tableIds';
-import { BT } from '../../src/library/raceIds';
+import { AM, RL } from '../../src/library/tableIds';
+import { roleOff } from '../../src/ruleset/body';
+import { BT, RC } from '../../src/library/raceIds';
 import { TIERS } from '../../src/scales';
 import { describe, expect, it } from 'vitest';
 import { makeVillage, place, actor, forcedRng, createRng } from '../harness';
@@ -16,6 +17,7 @@ import { maxMorale, moraleLevel, restoreMorale, tierCostMult } from '../../src/r
 import { CONFIG } from '../../src/config';
 import { getLibrary } from '../../src/library';
 import { IT } from '../../src/library/itemIds';
+import { groundIn } from '../../src/engine/ground';
 
 const sword = `player_${IT.arming_sword}_1`;
 
@@ -82,11 +84,27 @@ describe('body', () => {
     const ranges = (a: Actor) => hitTable(s, a).map((r) => `${r.part}:${r.from}-${r.to}`);
     expect(ranges(s.player)).toEqual(['head:1-7', 'left_arm:8-22', 'right_arm:23-37', 'left_leg:38-52', 'right_leg:53-67', 'neck:68-70', 'general:71-100']);
     const dragon = { ...s.player, core: { ...s.player.core, bodyTypeId: BT.winged_quadruped, condition: { hpLostPct: 0, parts: {}, status: [] } } };
-    expect(ranges(dragon)).toEqual(['head:1-9', 'left_wing:10-18', 'right_wing:19-27', 'forelegs:28-36', 'hind_legs:37-46', 'tail:47-51', 'general:52-100']);
+    expect(ranges(dragon)).toEqual(['head:1-9', 'neck:10-13', 'left_wing:14-22', 'right_wing:23-31', 'left_foreleg:32-35', 'right_foreleg:36-39', 'left_hind_leg:40-43', 'right_hind_leg:44-47', 'tail:48-52', 'general:53-100']);
     s.player.core.condition.parts.left_arm = -100;
     expect(hitTable(s, s.player).map((r) => r.part)).not.toContain('left_arm');
     expect(hitTable(s, s.player).at(-1)!.to).toBe(100);
     expect(ranges(actor(s, 'slime_1'))).toEqual(['general:1-100']);
+  });
+  it('BV7 a: a four-legged body has one part per leg; a pair attack works while either leg does; running stops at 3 Crippled', () => {
+    const s = makeVillage();
+    const tiger: Actor = { ...s.player, core: { ...s.player.core, bodyTypeId: BT.quadruped, raceId: RC.tiger, condition: { hpLostPct: 0, parts: {}, status: [] } } };
+    const legs = hitTable(s, tiger).filter((r) => /leg$/.test(r.part));
+    expect(legs.map((r) => r.part)).toEqual(['left_foreleg', 'right_foreleg', 'left_hind_leg', 'right_hind_leg']);
+    expect(Math.abs(legs.reduce((n, r) => n + r.to - r.from + 1, 0) - 26.7)).toBeLessThan(1); // as the two pairs were (2 × normal = 4 × small), whole-number bands
+    const claws = () => usableModes(s, tiger).some((m) => m.itemId === `natural:${AM.claw}`);
+    tiger.core.condition.parts.left_foreleg = -100;
+    expect(claws()).toBe(true); // the right foreleg still strikes
+    tiger.core.condition.parts.right_foreleg = -100;
+    expect(claws()).toBe(false);
+    tiger.core.condition.parts = { left_foreleg: -10, right_foreleg: -10 };
+    expect(roleOff(s, tiger, RL.move)).toBe(false); // two of four Crippled: 2 < 0.6 × 4
+    tiger.core.condition.parts.left_hind_leg = -10;
+    expect(roleOff(s, tiger, RL.move)).toBe(true);
   });
   it('wounds: level plus role penalties, shared roles split, per-limb for the item hand', () => {
     const s = makeVillage();
@@ -95,8 +113,8 @@ describe('body', () => {
     expect(woundsMods(s, s.player, SK.melee_medium, { itemId: sword }).map((m) => m.value)).toEqual([-7, -13]);
     expect(woundsMods(s, s.player, SK.melee_medium).map((m) => m.value)).toEqual([-7]); // best arm without an item
     expect(woundsMods(s, s.player, SK.persuasion).map((m) => m.value)).toEqual([-7]);
-    const dragon = { ...s.player, core: { ...s.player.core, bodyTypeId: BT.winged_quadruped, condition: { hpLostPct: 0, parts: { forelegs: 40 }, status: [] } } };
-    expect(woundsMods(s, dragon, SK.dodge)).toEqual([{ source: 'move wounds', type: 'wounds', value: -13 / 2 }]);
+    const dragon = { ...s.player, core: { ...s.player.core, bodyTypeId: BT.winged_quadruped, condition: { hpLostPct: 0, parts: { left_foreleg: 40 }, status: [] } } };
+    expect(woundsMods(s, dragon, SK.dodge)).toEqual([{ source: 'move wounds', type: 'wounds', value: -13 / 4 }]); // BV7 a: one leg of four
     s.player.core.condition.parts.head = 40; // Damaged head: speech rolls only
     expect(woundsMods(s, s.player, SK.persuasion)).toContainEqual({ source: 'speech wounds', type: 'wounds', value: -13 });
     expect(woundsMods(s, s.player, SK.dodge).map((m) => m.value)).toEqual([-7]);
@@ -134,7 +152,7 @@ describe('ruleset methods', () => {
     const fx = ruleset.applyEffects({ ...hit, location: 'right_arm', damage: 5 }, s);
     expect(fx.map((e) => e.kind)).toContain('item_dropped');
     expect(g.core.inventory.some((i) => i.itemId === IT.arming_sword)).toBe(false);
-    const dropped = s.zones.find((z) => z.id === 'tav_common')!.groundItems;
+    const dropped = groundIn(s, 'tav_common');
     expect(dropped.map((i) => i.itemId)).toEqual([IT.arming_sword]);
     expect(dropped[0].equippedIn).toBeUndefined();
     g.core.condition.parts.neck = -95;
@@ -202,7 +220,7 @@ describe('ruleset methods', () => {
     expect(usableModes(s, s.player).map((m) => `${m.itemId}/${m.mode.id}`)).toEqual([`${sword}/${AM.cut}`, `natural:${AM.punch}/${AM.punch}`, `natural:${AM.grapple}/${AM.grapple}`]);
     expect(defaultMode(s, s.player, 0)!.mode.id).toBe(AM.cut);
     expect(defaultMode(s, s.player, 1.6)!.mode.id).toBe(AM.cut); // the arming sword reaches 1.6 m
-    expect(defaultMode(s, s.player, 1.7)).toBeNull();
+    expect(defaultMode(s, s.player, 1.8)).toBeNull(); // past 1.6 m and the 0.1 m reach margin (BG-267)
     s.player.core.condition.parts.right_arm = -10; // Crippled sword arm: no sword attack
     expect(usableModes(s, s.player).map((m) => m.mode.id)).toEqual([AM.punch, AM.grapple]);
   });

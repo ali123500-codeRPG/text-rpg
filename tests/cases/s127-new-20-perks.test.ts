@@ -1,5 +1,6 @@
 // 127 20 perks for the skills added after the first 20 round: Soft Tread (Sneaking), Melt Away (Vanishing),
 // Slip the Blow (Light Armor), Quiet Mail (Medium Armor), Turn Aside (Heavy Armor).
+import { CONFIG } from '../../src/config';
 import { describe, expect, it } from 'vitest';
 import { createRng, fit, forcedRng, makeVillage, place, beside } from '../harness';
 import { meltAwayHere, ruleset } from '../../src/ruleset';
@@ -14,6 +15,9 @@ import { SK } from '../../src/library/skillIds';
 import { beliefStatus } from '../../src/perception';
 import { PK } from '../../src/library/perkIds';
 import { IT } from '../../src/library/itemIds';
+import { FU } from '../../src/library/tableIds';
+import { boxOf } from '../../src/plan/geom';
+import { makeFurniture } from '../../src/engine/furniture';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const NOISE = ['silent', 'faint', 'hushed', 'quiet', 'normal', 'loud', 'deafening'];
@@ -67,28 +71,34 @@ describe('127 20 perks for the new skills', () => {
     expect(run(true, false)).toBe(run(false, false));
   });
 
-  it('Melt Away: a Vanish with nowhere to go vanishes in place where there is cover or shade', () => {
-    expect(meltAwayHere('none', 'bright')).toBe(false);
-    expect(meltAwayHere('some', 'bright')).toBe(true);
-    expect(meltAwayHere('none', 'dim')).toBe(true);
-    const run = (perk: boolean) => {
+  it('Melt Away: a sneak that stays put where there is cover or shade still rolls Vanishing against those who see you (VS2)', () => {
+    expect(meltAwayHere(1, 'bright')).toBe(false); // in the open
+    expect(meltAwayHere(0.5, 'bright')).toBe(true); // half shows: a person in some cover
+    expect(meltAwayHere(0.75, 'bright')).toBe(false); // a person in light cover
+    expect(meltAwayHere(1, 'dim')).toBe(true);
+    const run = (perk: boolean, cover: 'none' | 'some') => {
       const s = makeVillage({ playerZone: 'tav_counter' });
-      zoneById(s, 'tav_counter')!.cover = 'some';
+      // PC1: indoors the cover is furniture: a 1.1 m counter beside the player hides 63% of a person
+      const z = zoneById(s, 'tav_counter')!;
+      s.furniture = s.furniture.filter((f) => f.zone !== z.id).concat(cover === 'some' ? makeFurniture(s, z, [{ kind: FU.counter, name: 'counter' }]) : []);
+      s.player.pos = { x: boxOf(z.outline).x, y: boxOf(z.outline).y + 0.7 }; // just behind the counter in the middle
+      const w = place(s, 'patron_1', 'tav_counter');
+      w.mind!.knowledge.player = { status: 'aware', source: 'seen', lastKnownZone: 'tav_counter', lastSeenTurn: s.turn, revealed: [] };
       if (perk) give(s.player, PK.melt_away);
-      const i = intent({ action: { type: 'vanish' } });
-      const legal = checkParserLegality(i, buildPlayerView(s)).illegal;
-      const ev = play(s, { intent: i });
-      return { legal, vanished: ev.some((e) => e.actorId === 'player' && e.kind === 'vanish' && e.vanish), zone: s.player.zone };
+      const i = intent({ action: { type: 'sneak' } });
+      expect(checkParserLegality(i, buildPlayerView(s)).illegal).toEqual([]);
+      play(s, { intent: i });
+      const rolls = s.log.filter((l) => l.code === 'stealth_contest' && (l.detail as { observerId: string }).observerId === 'patron_1');
+      return { vanishing: rolls.filter((l) => (l.detail as { skill: string }).skill === SK.vanishing).length, zone: s.player.zone };
     };
-    expect(run(false).legal).toContain('action.vanish');
-    expect(run(false).vanished).toBe(false);
-    const r = run(true);
-    expect(r.legal).not.toContain('action.vanish');
-    expect(r.vanished).toBe(true);
+    expect(run(false, 'some').vanishing).toBe(0);
+    expect(run(true, 'none').vanishing).toBe(0);
+    const r = run(true, 'some');
+    expect(r.vanishing).toBe(1);
     expect(r.zone).toBe('tav_counter');
   });
 
-  it('Slip the Blow: in light armor, a Dodge that ties counts as a graze', () => {
+  it('Slip the Blow: a Dodge that ties counts as a graze, in any armor', () => {
     const setup = (armor: string, perk: boolean) => {
       const s = makeVillage();
       beside(s, 'patron_1');
@@ -99,34 +109,36 @@ describe('127 20 perks for the new skills', () => {
       return s;
     };
     const d = attackAtGap(setup(IT.gambeson, false), 0);
-    const hit = (s: GameState) => ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'w_patron_1', targetPart: null, aimed: false }, s, forcedRng([60, d, 50, 50, 50]));
+    const hit = (s: GameState, dd = d) => ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'w_patron_1', targetPart: null, aimed: false }, s, forcedRng([60, dd, 50, 50, 50]));
     const r = hit(setup(IT.gambeson, true));
     expect(r.gapShifts).toEqual([{ source: 'Slip the Blow', value: 1 }]);
     expect(r.outcome).toBe('grazed');
     expect(r.multiplier).toBeCloseTo(0.8);
-    expect(hit(setup(IT.mail_hauberk, true)).gapShifts).toEqual([]);
+    expect(hit(setup(IT.mail_hauberk, true), attackAtGap(setup(IT.mail_hauberk, false), 0)).gapShifts).toEqual([{ source: 'Slip the Blow', value: 1 }]); // always on: heavier armor too
+    expect(hit(setup(IT.gambeson, false)).gapShifts).toEqual([]);
   });
 
-  it('Turn Aside: a heavy or crushing hit on a part heavy armor covers lands as a full hit', () => {
-    const setup = (perk: boolean) => {
+  it('Turn Aside: a heavy or crushing hit counts TURN_ASIDE_GAP better, never past 0, whatever the owner wears', () => {
+    const setup = (perk: boolean, armor: string) => {
       const s = makeVillage();
       beside(s, 'patron_1');
       arm(s, 'patron_1');
       s.player.core.standingDefense = 'dodge';
-      wear(s.player, IT.plate_harness);
+      wear(s.player, armor);
       s.player.core.skills[SK.dodge] = { raw: 0, state: 'normal' };
       if (perk) give(s.player, PK.turn_aside);
       return s;
     };
     // a critical attack against a failed dodge: gap −4 or worse
     const hit = (s: GameState) => ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'w_patron_1', targetPart: null, aimed: false }, s, forcedRng([100, 1, 50, 50, 50]));
-    const plain = hit(setup(false));
-    expect(['heavy_hit', 'crushing_hit']).toContain(plain.outcome);
-    const covered = hit(setup(true));
-    expect(covered.location).toBe(plain.location);
-    expect(covered.outcome).toBe('full_hit');
-    expect(covered.multiplier).toBe(1);
-    expect(covered.damage).toBeLessThan(plain.damage);
+    for (const armor of [IT.plate_harness, IT.gambeson]) {
+      const plain = hit(setup(false, armor));
+      expect(['heavy_hit', 'crushing_hit']).toContain(plain.outcome);
+      const turned = hit(setup(true, armor));
+      expect(turned.gapShifts).toEqual([{ source: 'Turn Aside', value: CONFIG.TURN_ASIDE_GAP }]);
+      expect(turned.gap).toBe(Math.min(0, plain.gap! + CONFIG.TURN_ASIDE_GAP));
+      expect(turned.multiplier).toBeLessThan(plain.multiplier);
+    }
   });
   it('In and Out: a melee attack from hiding keeps the owner Stealthy; only the target becomes aware', () => {
     const run = (perk: boolean) => {
@@ -146,7 +158,7 @@ describe('127 20 perks for the new skills', () => {
     expect(r.target).toBe('engaged'); // the target knows who struck, so the two are engaged (YD6)
   });
 
-  it('the 60s against crowds: Blade Wall (Parry, medium weapon), Shield Wall (Block) and Slip the Crowd (Dodge) drop the outnumbered penalty', () => {
+  it('the 60s against crowds: Blade Wall (Parry), Shield Wall (Block) and Slip the Crowd (Dodge) drop the outnumbered penalty', () => {
     const mods = (itemId: string | null, perk: string | null, stance: 'dodge' | 'block' | 'parry') => {
       const s = makeVillage();
       beside(s, 'patron_1');
@@ -161,7 +173,7 @@ describe('127 20 perks for the new skills', () => {
     };
     expect(mods(IT.arming_sword, null, 'parry')).toBe(true);
     expect(mods(IT.arming_sword, PK.blade_wall, 'parry')).toBe(false);
-    expect(mods(IT.dagger, PK.blade_wall, 'parry')).toBe(true);
+    expect(mods(IT.dagger, PK.blade_wall, 'parry')).toBe(false); // any parry, a light blade included
     expect(mods(IT.round_shield, null, 'block')).toBe(true);
     expect(mods(IT.round_shield, PK.blade_wall, 'block')).toBe(true);
     expect(mods(IT.round_shield, PK.shield_wall, 'block')).toBe(false);

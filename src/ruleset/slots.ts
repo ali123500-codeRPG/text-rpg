@@ -16,7 +16,7 @@ export const isHeld = (i: Slotted) => !!i.equippedIn?.some(isGripSlot);
 export const isWorn = (i: Slotted) => !!i.equippedIn?.some((s) => s === ARMOR || isAccSlot(s));
 /** in the armor slot */
 export const inArmorSlot = (i: Slotted) => !!i.equippedIn?.includes(ARMOR);
-/** the armor worn among these items, if any */
-export const wornArmor = <T extends Slotted>(items: readonly T[]): T | undefined => items.find(inArmorSlot);
+/** IR19: the armor pieces worn among these items (any number, no body part covered twice) */
+export const wornArmors = <T extends Slotted>(items: readonly T[]): T[] => items.filter(inArmorSlot);
 /** the grip parts holding the item */
 export const gripsOf = (i: Slotted) => (i.equippedIn ?? []).filter(isGripSlot).map((s) => s.slice(GRIP.length));

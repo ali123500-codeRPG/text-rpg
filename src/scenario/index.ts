@@ -14,6 +14,6 @@ export { boon, gradesFitTier, tidyRewards, validateStagePlan } from './validate'
  *  openingEvents: arrival + presence events for the player's perception (scenario setup step 8). */
 export { applyStagePlan, applyFallbackStage, openingEvents, beginScenario } from './apply';
 /** frontiersNearPlayer: unbuilt frontier keys linked from the player's zone. */
-export { frontiersNearPlayer, loadSavedZone, isSavedZone } from './stage';
+export { frontiersNearPlayer, nearbyZones } from './stage';
 export { ScenarioDirector } from './director';
 export type { Weave, ScenarioResult, ScenarioOutcome } from './director';

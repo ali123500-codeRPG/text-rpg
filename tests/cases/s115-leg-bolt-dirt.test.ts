@@ -53,6 +53,7 @@ describe('115 Leg Bolt', () => {
   it('a slowed player can’t dash', () => {
     const s = makeVillage();
     place(s, 'player', 'street_door');
+    place(s, 'slime_1', 'field_edge'); // SZ11: a slime 0.3 m high is made out at 0.41 × a person's range; at the field's edge it is near enough that the turn is a fight
     s.player.perkMarks = [{ perk: PK.leg_bolt, made: s.pending.turn }];
     play(s, { intent: intent({ move: { toZone: 'gate_inner' } }) });
     expect(s.player.zone).not.toBe('gate_inner');

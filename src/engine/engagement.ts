@@ -4,7 +4,7 @@
 // nothing has engaged it, either way, for ENGAGEMENT_END (engagementEndS) in a row. Talk turning into a fight (or back)
 // stays one engagement, so once-per-engagement effects and the end-of-engagement improvement rolls happen once.
 import type { Actor, EngagementKind, GameEvent, GameState } from '../types';
-import { actorById, allActors, atLeast, countsInFight, hostile, isActive, sparring } from './relations';
+import { actorById, allActors, atLeast, countsInFight, hostile, isActive, sparring, zoneById } from './relations';
 import { logCode } from './effects';
 import { M_EPS, distM } from './position';
 import { calm } from './heal';
@@ -12,6 +12,7 @@ import { CP } from '../library/tableIds';
 import { yieldAllTaken } from './yield';
 import { secondsSince } from '../time';
 import { engagementEndS } from '../ruleset/actionTime';
+import { notePower } from './xp';
 
 /** YD6: either of the two holds the other at the top awareness state, engaged (they traded blows, or one struck the other's side) */
 export function engagedPair(a: Actor, b: Actor): boolean {
@@ -31,6 +32,7 @@ function press(state: GameState, a: Actor, b: Actor, status: 'hunting' | 'engage
   const cur = k[b.id];
   const next = atLeast(cur?.status, status) ? cur!.status : status;
   k[b.id] = { ...(cur ?? { source: 'seen', revealed: [] }), status: next, closedTurn: state.turn, lastKnownZone: b.zone, lastSeenTurn: state.turn };
+  if (b.pos) k[b.id]!.lastKnownAt = { x: b.pos.x, y: b.pos.y, floor: zoneById(state, b.zone)?.floor ?? 0 }; else delete k[b.id]!.lastKnownAt; // PZ11 a
 }
 
 /** YD6 each turn, after the blows and moves: a real (not sparring) blow engages attacker and target, and the target's
@@ -130,6 +132,7 @@ export function updateEngagements(state: GameState, events: GameEvent[]): boolea
         e.last = state.turn;
         for (const k of kinds) if (!e.kinds.includes(k)) e.kinds.push(k);
       }
+      notePower(state, a); // GR44: power is taken when it joins a fight
     } else if (e && (brk || (yielded && a === state.player) || secondsSince(state, e.last) >= engagementEndS())) {
       delete a.engagement;
       delete a.haggle; // PY6: haggled prices last until the engagement ends

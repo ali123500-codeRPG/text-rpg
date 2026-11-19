@@ -3,7 +3,7 @@
 // sleeps where it stands when its routine says sleep, and the gap is filed once as a bug (bed_missing).
 import { describe, expect, it } from 'vitest';
 import type { GameState, Intent, ParserActionType } from '../../src/types';
-import { createRng, makeVillage } from '../harness';
+import { addPiece, createRng, makeVillage } from '../harness';
 import { resolveTurn } from '../../src/engine';
 import { CONFIG } from '../../src/config';
 import { routineSet } from '../../src/library';
@@ -16,7 +16,7 @@ import { fatigueOf } from '../../src/ruleset/fatigue';
 
 const act = (type: ParserActionType): Intent => ({
   move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null,
-  action: { type, skill: '', target: null, item: null, targetPart: null, mode: null, approach: '', stance: 'normal' },
+  action: { type, skill: '', target: null, item: null, targetPart: null, mode: null, approach: '' },
 });
 const turn = (s: GameState) => { s.turn += 1; return resolveTurn(s, { intent: act('observe'), aimed: false, agentOutputs: [], spokespeople: [] }, createRng(1)); };
 
@@ -36,8 +36,7 @@ describe('318 everyone has a bed', () => {
     expect(withBed(s, 'gate_guard', { post: 'gate_inner' }, 'gate_inner').bed).toBe('gate_inner');
     expect(withBed(s, 'barkeep', { counter: 'tav_counter', refuge: 'tav_cellar', bed: 'tav_common' }, 'tav_counter').bed).toBe('tav_common'); // given: kept
     expect(withBed(s, 'thief', { route: ['field_mid'], refuge: 'tav_cellar' }, 'field_mid').bed).toBeUndefined(); // no bed slot
-    const z = s.zones.find((x) => x.id === 'tav_common')!;
-    (z.furniture ??= []).push({ id: 'bed_1', kind: FU.bed } as never);
+    addPiece(s, 'tav_common', { kind: FU.bed, name: 'bed' }, 'bed_1');
     expect(withBed(s, 'barkeep', { counter: 'tav_counter', refuge: 'tav_cellar' }, 'tav_counter').bed).toBe('tav_common');
   });
 

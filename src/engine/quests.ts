@@ -9,12 +9,12 @@ import { TIME_OF_DAY } from '../scales';
 import { DAY_MINUTES, dayOf, now } from '../time';
 import { IT } from '../library/itemIds';
 import { healthLevel } from '../ruleset/body';
-import { bestReward, rewardXp } from '../ruleset/achRewards';
+import { bestReward, questLevelXp } from '../ruleset/achRewards';
 import { buildLeakContext, leakScan } from '../agents/narration';
 import { actorById, allActors, zoneById } from './relations';
 import { applyMemoryOps } from './memory';
 import { logCode, stepStance } from './effects';
-import { awardXp, power, tally, weakFoeTaper } from './xp';
+import { awardXp, fightPower, power, tally, weakFoeTaper, xpToNext } from './xp';
 import { coinWords } from './trade';
 import { freshId } from '../ids';
 
@@ -22,7 +22,7 @@ export const isOpen = (q: Quest) => q.state === 'active' || q.state === 'ready';
 const safe = <T>(f: () => T): T | undefined => { try { return f(); } catch { return undefined; } };
 const whole = (n: number | null | undefined, min = 1) => Math.max(min, Math.floor(n ?? min));
 const norm = (s: string) => s.trim().toLowerCase().replace(/s$/, '');
-const instances = (state: GameState) => [...allActors(state).flatMap((a) => a.core.inventory), ...state.zones.flatMap((z) => z.groundItems)].flatMap((i) => [i, ...(i.contents ?? [])]); // CT1: and what containers hold
+const instances = (state: GameState) => [...allActors(state).flatMap((a) => a.core.inventory), ...state.ground].flatMap((i) => [i, ...(i.contents ?? [])]); // CT1: and what containers hold
 
 /** a library row by id, or by its name (singular or plural) */
 function libKey(rows: Record<string, { name: string }> | undefined, t: string): string | undefined {
@@ -102,10 +102,10 @@ export function makeQuest(state: GameState, giver: Actor, dealId: string, job: J
   logCode(state, 'quest_made', { id, giver: giver.id, goal: goal.kind, level: q.level });
 }
 
-/** a done quest's XP: its reward level's amount; a defeat job is cut by the defeat-XP taper of its foes' average power
+/** a done quest's XP: its reward level's amount (questLevelXp: an achievement two levels higher); a defeat job is cut by the defeat-XP taper of its foes' average power
  * (as each fell) against the player's power at hand-in (QX2, QX4) */
 export function questXp(state: GameState, q: Quest): number {
-  const xp = rewardXp(q.level);
+  const xp = questLevelXp(q.level, xpToNext(state.player));
   if (q.goal.kind !== 'defeat' || !q.progress || q.foePower === undefined) return xp;
   return Math.round(xp * weakFoeTaper(q.foePower / q.progress, power(state, state.player)));
 }
@@ -188,8 +188,9 @@ export function handInQuests(state: GameState, talkedTo: (id: string) => boolean
 
 // ---- goal checks, shared by quest goals and scenario endings (SC7: one rule for the same thing) ----
 /** is the player in zone or place `place` (a place counts with every place inside it) */
-export function playerIn(state: GameState, place: string): boolean {
-  const p = state.player;
+export const playerIn = (state: GameState, place: string): boolean => actorIn(state, state.player, place);
+/** is `p` in zone or place `place` (a place counts with every place inside it) */
+export function actorIn(state: GameState, p: Actor, place: string): boolean {
   if (p.zone === place) return true;
   const chain: string[] = [];
   for (let id: string | null = zoneById(state, p.zone)?.placeId ?? p.placeId; id && !chain.includes(id); id = state.places.find((x) => x.id === id)?.parentId ?? null) chain.push(id);
@@ -220,7 +221,7 @@ export function updateQuests(state: GameState, events: GameEvent[], defeated: Ac
     const g = q.goal;
     if (g.kind === 'defeat') for (const t of defeated.filter((x) => (g.by === 'actor' ? x.id : g.by === 'race' ? x.core.raceId : x.core.bodyTypeId) === g.of)) {
       q.progress++;
-      q.foePower = (q.foePower ?? 0) + power(state, t); // QX4: each foe's power when it falls
+      q.foePower = (q.foePower ?? 0) + fightPower(state, t); // QX4, GR44: each foe's power as it joined the fight
     }
     if (g.kind === 'deliver') q.progress += givenTo(state, events, g.item, g.to, g.inst);
     if (g.kind === 'reach' && playerIn(state, g.place)) q.progress = 1;

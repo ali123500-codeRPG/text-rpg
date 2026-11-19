@@ -9,8 +9,7 @@ import { SK } from '../../src/library/skillIds';
 import { act, intent, play } from './w4-kit';
 
 it('BG-120: a whisper said from the standing gap beside the player is heard, rounding and all', () => {
-  const s = makeVillage({ without: ['slime_1', 'slime_2', 'guard_1'] });
-  s.zones.find((x) => x.id === 'tav_common')!.rect = { x: 0, y: 0, w: 12, d: 8 };
+  const s = makeVillage({ shape: { tav_common: { rect: { x: 0, y: 0, w: 12, d: 8 } } }, without: ['slime_1', 'slime_2', 'guard_1'] });
   const p = place(s, 'patron_1', 'tav_common');
   s.player.zone = 'tav_common';
   s.player.pos = { x: 0.99863, y: 0.0538 }; p.pos = { x: 0, y: 0 }; // 1.00008 m, as in run 77b

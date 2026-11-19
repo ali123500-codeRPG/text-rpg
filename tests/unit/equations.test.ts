@@ -15,11 +15,20 @@ import { CLASS_TIERS, TIERS } from '../../src/scales';
 describe('equations for the library viewer', () => {
   it('builds every group with numbers from CONFIG', () => {
     const groups = equations(prototypeLibrary());
-    expect(groups.map((g) => g.key)).toEqual(['skills', 'rolls', 'attacks', 'gain', 'levels', 'marking']);
+    expect(groups.map((g) => g.key)).toEqual(['skills', 'rolls', 'attacks', 'gain', 'levels', 'marking', 'power', 'essences']);
     for (const g of groups) for (const e of g.equations) {
       expect(e.formula).not.toMatch(/undefined|NaN/);
       for (const r of e.table?.rows ?? []) expect(r.join(' ')).not.toMatch(/undefined|NaN/);
     }
+  });
+
+  it('the group rating table rates a lone skill as itself, and more skills add less', () => {
+    const rows = equations(prototypeLibrary()).find((g) => g.key === 'power')!.equations[0].table!.rows;
+    const at = (k: string) => Number(rows.find((r) => r[0] === k)![1]);
+    expect(at('50')).toBe(50);
+    expect(at('150')).toBe(150);
+    expect(at('50 + 50')).toBeGreaterThan(50);
+    expect(at('50 + 50 + 50') - at('50 + 50')).toBeLessThan(at('50 + 50') - 50);
   });
 
   it('the level tables match xpToNext and classMaxLevel', () => {

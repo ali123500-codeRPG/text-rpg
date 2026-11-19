@@ -1,5 +1,5 @@
 // Play screen (UI1–UI8, then the action deck AD1–AD16): one reading column with each turn's results under its prose and the
-// action deck at its foot (the suggested action, the Say box, Aim and Stance, every action the code allows); a right column
+// action deck at its foot (the Say box, Aim and Stance, every action the code allows); a right column
 // with the health strip (a click opens the full condition), the minimap, Who's here and the short sheet. Everything reads only PlayerView, the player's own sheet and the LogLines, and
 // nothing changes with the encounter mode, which agents run or how many Claude calls a turn makes (hidden information).
 import { PK } from '../library/perkIds';
@@ -19,13 +19,14 @@ import { actorBody, getLibrary } from '../library';
 import type { TierRoll } from '../types';
 import { fellFacts, fellLine } from './fell';
 import { autopilotBar } from './autopilot';
-import { boxOf, h, dragScroll, lineIcon, playDraft, viewSize } from './kit';
+import { boxOf, h, dragScroll, lineIcon, playDraft, viewSize, safe } from './kit';
 import { perkSeries } from './perks';
-import { stealthBadge } from './stealth';
+import { stealthBadge, stealthyTip } from './stealth';
 import { dayOf, now, timeOfDay, timeView } from '../time';
 import { timePassedRow, todBadge } from './timeOfDay';
-import { charFocus, NERVE_PASSES, NERVE_STILL, NERVE_UNTIL, shortSheet, shownValues, sideSheet, statusStrip, tag, type ShownValues } from './charsheet';
-import { moraleLevel } from '../ruleset/morale';
+import { charFocus, stateToken, NERVE_PASSES, NERVE_STILL, NERVE_UNTIL, shortSheet, shownValues, sideSheet, statusStrip, tag, type ShownValues } from './charsheet';
+import { figurePulse } from './figure3d';
+import { isBrokenLevel, moraleLevel } from '../ruleset/morale';
 import { cantSteady } from '../engine/steady';
 import { skillName } from './creation';
 import { healCard, healIcon, partName, quickHeal, woundCard } from './healing';
@@ -40,9 +41,9 @@ import { instanceIcon } from './itemIcons';
 import { maybeOfferPop } from './essences';
 import { anyGains, gainsPanel, gainsSummary, honor, playGains } from './gains';
 import { working } from '../ruleset/body';
-import { HEALTH_LEVELS, HIT_OUTCOMES, MORALE_LEVELS, NARRATION_SCALES, PART_STATES, type MoraleLevel } from '../scales';
+import { HEALTH_LEVELS, HIT_OUTCOMES, MORALE_LEVELS, NARRATION_SCALES, PART_STATES, POSTURES, type MoraleLevel } from '../scales';
 import type { AttackOutcome, PartState } from '../types';
-import { cap, r1, theOf } from '../words';
+import { cap, r1, termAttrs, theOf } from '../words';
 
 const NOTICE_KIND: Record<Notice['kind'], string> = {
   scenario_fallback: 'Scenario planning failed', rate_limited: 'Slow down', stop_play: 'Play stopped',
@@ -52,6 +53,14 @@ const NOTICE_KIND: Record<Notice['kind'], string> = {
 const VOLUME_WORD: Record<string, string> = { whisper: 'whispering', normal: '', shout: 'shouting' };
 const CHANGE_WORD: Record<string, [string, string]> = { combat: ['Combat', 'c10'], condition: ['Condition', 'c7'], health: ['Health', 'c2'] };
 const SPEAKER_COLOURS = ['c15', 'c12', 'c4', 'c5', 'c1', 'c7', 'c14'];
+/** A5: the keys the play screen answers (the keydown handlers below), listed under the commands */
+const KEYS: [string, string][] = [
+  ['Esc', 'Skips what is moving, then closes what is open: a panel, the Say box, a planned move, the suggestion'],
+  ['Enter', 'Sends what is in the box; in an empty box, walks to the move planned on the map, else plays the next step of your order'],
+  ['Tab', 'Takes the suggestion into an empty box'],
+  ['PageUp', 'Scrolls the story up while the box has focus'],
+  ['PageDown', 'Scrolls the story down while the box has focus'],
+];
 const COMMANDS: [string, string][] = [
   ['/help', 'what you can type, and a recap of the last turns'], ['/stats', 'your character sheet'], ['/inv', 'what you carry'],
   ['/quests', 'your quests'], ['/achievements', 'your achievements and scars'], ['/title', 'wear an achievement as your title'], ['/essence', 'essences on offer and held: take, pass, give, sell or remove one'], ['/yield', 'give up the fight you are in'], ['/stuck', 'the scenario can go nowhere: the story finds a way forward'], ['/strike ', 'a blow at someone: /strike the guard at his left arm'], ['/shoot ', 'shoot at someone, by part if you like'], ['/throw ', 'throw something at someone'], ['/aim ', 'aim this attack at the body part it names: /aim /strike the guard at his leg'], ['/undo', 'rewind one turn (dice are not rolled back)'],
@@ -62,7 +71,7 @@ const TURNS_SHOWN = 50; // long-list rule: the last 50 turns, then 50 more per c
 // check line: an icon for the kind of roll, and each tier as a chip tinted good (Success and up) or bad (below)
 const ICON_PATH = { attack: 'M14.5 4H20v5.5L9 20.5 3.5 15zM6 13l5 5M4 20l2.5-2.5', contest: 'M4 5h16v11H9l-5 4z', roll: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z' };
 const checkIcon = (kind: 'attack' | 'contest' | 'roll'): SVGSVGElement => lineIcon('hs-i ci', ICON_PATH[kind]);
-const tierChip = (t: TierRoll) => h('span', { class: 'tier ' + (tierAtLeast(t, 'great_success') ? 'great' : tierAtLeast(t, 'success') ? 'ok' : tierAtLeast(t, 'near_miss') ? 'near' : 'bad') }, tierName(t));
+const tierChip = (t: TierRoll) => h('span', { ...termAttrs(tierName(t)), class: 'tier ' + (tierAtLeast(t, 'great_success') ? 'great' : tierAtLeast(t, 'success') ? 'ok' : tierAtLeast(t, 'near_miss') ? 'near' : 'bad') }, tierName(t));
 
 /** M-20: how hard each outcome label lands, 0 (no motion) to 4; hits are coloured by whose loss they are */
 const OUTCOME_BEAT: Record<AttackOutcome, number> = { missed: 0, dodged: 0, parried: 1, blocked: 1, grazed: 1, full_hit: 2, heavy_hit: 3, crushing_hit: 4 };
@@ -86,7 +95,6 @@ function mapIcon(): HTMLElement {
   i.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14"/></svg>';
   return i;
 }
-const safe = <T>(f: () => T): T | null => { try { return f(); } catch { return null; } };
 const colourOf = (name: string) => SPEAKER_COLOURS[[...name].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7) % SPEAKER_COLOURS.length];
 const changesWord = (n: number) => `${n} change${n === 1 ? '' : 's'}`;
 /** "*draws his sword* Stay back" → the stage direction in italics without the asterisks, outside the quote marks */
@@ -193,7 +201,7 @@ function questLine(s: GameState, open: (id: string) => void): HTMLElement | null
   const sep = () => h('span', { 'aria-hidden': 'true' }, '·');
   const bits: (HTMLElement | null)[] = [
     goal ? h('span', {}, goal) : null,
-    ready ? h('span', { class: 'ok' }, `✓ ${QUEST_STATE_NAME.ready}`) : null,
+    ready ? h('span', { class: 'q-ready' }, `✓ ${QUEST_STATE_NAME.ready}`) : null,
     due ? h('span', { class: dueDay(q) === dayOf(now(s)) ? 'warn' : '' }, due) : null,
     pay ? h('span', {}, pay) : null,
     more > 0 ? h('span', { class: 'more' }, `+${more} more`) : null,
@@ -228,6 +236,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const healBtn = h('button', { type: 'button', class: 'itm heal-slot' });
   let open: 'commands' | null = null;
   let suggestion = ''; // Q16: what the player put off last turn, offered in the box until used or cleared
+  let queued = false; // D-20 b: the suggestion is the next step of the player's order, and Enter in the empty box plays it
   const pick = (text: string) => { input.value = text; open = null; update(); input.focus(); };
   const cmdBtn = h('button', { type: 'button', class: 'hs-btn-text', onclick: () => { open = open ? null : 'commands'; update(); } }, 'Commands');
   // BG-190: the last order that played out (a clarify or a command doesn't count), offered back to carry on with it
@@ -252,7 +261,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const inputOff = () => input.disabled;
   const doingSlot = h('div', { class: 'doing-slot' }); // AT11a: the player's own long action, above the deck
   let doingHtml = '';
-  const bar = h('form', { class: 'inbar', onsubmit: (e: Event) => { e.preventDefault(); submit(); } }, doingSlot, dk.sugEl, h('div', { class: 'inrow' }, sayChip, input, send), hint, dk.el);
+  const bar = h('form', { class: 'inbar', onsubmit: (e: Event) => { e.preventDefault(); submit(); } }, doingSlot, h('div', { class: 'inrow' }, sayChip, input, send), hint, dk.el);
   const fell = h('div', { class: 'fell', hidden: true });
   const edge = h('div', { class: 'm-edge', 'aria-hidden': 'true' }); // M-33: the red edge when hurt badly
   const nerveEdge = h('div', { class: 'm-edge nerve', 'aria-hidden': 'true' }); // MW1: the violet edge as the nerve gives
@@ -308,6 +317,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   story.addEventListener('click', () => { if (moving()) finishAll(); });
 
   // Escape closes whatever is open; PageUp/PageDown scroll the story while the box has focus; Tab takes the suggestion
+  // (the Commands panel's Keys list says the same, A5: keep the two together)
   document.addEventListener('keydown', (e) => {
     if (!el.isConnected || el.hidden) return;
     if (e.key === 'Escape' && moving()) { finishAll(); return; } // M-12: while something moves, Esc only skips
@@ -344,6 +354,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     // AD12: Enter in an empty box walks to the move planned on the minimap
     const planned = mm.planned();
     if (!text && planned && !byAgent) { mm.clear(); if (!api.busy() && !inputOff()) { finishAll(); await api.act(walkOrder(planned), { aimed: false }); } return; }
+    // D-20 b: Enter in an empty box plays the next step of the player's order
+    if (!text && queued && suggestion && !sayFor && !byAgent) { input.value = suggestion; return submit(); }
     // an action waiting for words (persuade, lie, threaten…) takes the Say box's line and plays at once (AD7)
     if (text && sayFor && !text.startsWith('/') && !byAgent && !api.busy() && !inputOff()) { if (dk.sendWords(text)) return; }
     if (!text || api.busy() || (auto.playing() && !byAgent && !auto.asking())) return;
@@ -425,7 +437,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       l.check ? checkLine(l.check) : null,
       ...(l.incomingChecks ?? []).map((c) => checkLine(c, c.by)),
       l.changes?.length ? h('details', { class: 'changes' },
-        h('summary', {}, h('span', { class: 'hs-label' }, `Turn ${l.turn}`), h('span', { class: 'hs-chip' }, `↻${l.changes.length}`),
+        h('summary', {}, h('span', { class: 'hs-label' }, `Turn ${l.turn}`), h('span', { class: 'hs-chip' }, String(l.changes.length)),
           h('span', { class: 'sum' }, l.changes.filter((x) => x.kind !== 'combat').map((x) => x.text).join(' · ') || changesWord(l.changes.length))),
         h('table', { class: 'chg' }, h('tbody', {}, l.changes.map((x) => h('tr', {},
           h('td', {}, h('span', { class: 'hs-tg', style: `--tg:var(--${CHANGE_WORD[x.kind][1]})` }, CHANGE_WORD[x.kind][0])), h('td', {}, x.text)))))) : null,
@@ -627,12 +639,14 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
 
     // who's here: one row each; only actors the character fully perceives (PlayerView); others' health from Wounded down.
     // AD4: pinned first, then those fighting you, then the rest; the list scrolls when it is long
-    const foe = (a: PlayerView['actors'][number]) => !!(a.talkDown || a.demandYield || pv?.player.spar?.opponents.includes(a.name ?? a.label));
+    const foe = (a: PlayerView['actors'][number]) => !!(a.foe || pv?.player.spar?.opponents.includes(a.name ?? a.label)); // BG-265: beasts too
     const rank = (a: PlayerView['actors'][number]) => (pins.has(a.id) ? 0 : foe(a) ? 1 : a.health && isDownLevel(a.health) ? 3 : 2);
     const seen = (pv?.actors.filter((a) => a.level === 'full') ?? []).map((a, i) => ({ a, i })).sort((x, y) => rank(x.a) - rank(y.a) || x.i - y.i).map((x) => x.a);
+    // C7: a giver with a quest ready to hand in carries a gold check (the words only in its tip)
+    const handIn = new Set(s?.quests.filter((q) => q.state === 'ready').map((q) => q.giver) ?? []);
     const whoKids = seen.length ? seen.map((a) => h('div', { class: 'pp' + (foe(a) ? ' foe' : '') + (pins.has(a.id) ? ' pinned' : ''), role: 'listitem button', 'data-who': cap(a.name ?? a.label), 'data-id': a.id, tabindex: '0', title: 'What you can do to or with them' },
       h('span', { class: 'dot', 'aria-hidden': 'true' }),
-      h('b', {}, cap(a.name ?? a.label)), // the name (BG-30's edit had put it inside the comment, so the row lost every name)
+      h('b', {}, cap(a.name ?? a.label), handIn.has(a.id) ? h('span', { class: 'q-ready', title: 'A quest for them is ready to hand in', 'aria-label': ', a quest for them is ready to hand in' }, ' ✓') : null), // the name (BG-30's edit had put it inside the comment, so the row lost every name)
       h('span', { class: 'ds' }, [whoDistance(a, pv!), a.age ? `looks ${a.age.toLowerCase()}` : ''].filter(Boolean).join(' · ')), // how far, if your weapon reaches; AG16: the life stage they look
       h('button', { type: 'button', class: 'pin', 'aria-pressed': String(pins.has(a.id)), title: pins.has(a.id) ? 'Unpin' : 'Pin to the top', 'aria-label': `${pins.has(a.id) ? 'Unpin' : 'Pin'} ${cap(a.name ?? a.label)}` }, pins.has(a.id) ? '★' : '☆'),
       h('span', { class: 'sts' },
@@ -644,7 +658,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
         a.morale ? h('span', { class: 'st fear' }, a.morale) : null,
         // FT17: others' fatigue, only from Exhausted down, as the level word (never points or the breath line)
         a.fatigue ? h('span', { class: 'st tired', 'data-st': 'fatigue', title: 'How worn out they look' }, a.fatigue) : null,
-        // A13 Read Wounds: a foe's Damaged parts
+        // A13 Read Wounds: their Damaged parts
         ...(a.damaged ?? []).map((pt) => h('span', { class: 'st warn', title: 'Read Wounds' }, `${partName(pt).toLowerCase()} damaged`))))) : [h('p', { class: 'hs-note' }, 'Nobody in view')];
     // a redraw that changes nothing keeps the old elements, so nothing restarts (M-74)
     const whoNow = whoKids.map((k) => k.outerHTML).join('');
@@ -652,17 +666,21 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
 
     // Q16: what the player put off last turn is offered as a dimmed suggestion; nothing is typed or sent until they take it
     const nextLine = lines.at(-1);
-    if (nextLine?.next && nextLine !== offered && !api.busy()) { suggestion = nextLine.next; offered = nextLine; }
+    const nextText = nextLine?.queue?.[0] ?? nextLine?.next; // D-20 b: a live queue offers its next step
+    if (nextText && nextLine !== offered && !api.busy()) { suggestion = nextText; queued = !!nextLine!.queue; offered = nextLine!; }
     const offering = !!suggestion && !input.value && !sayFor;
     // an action waiting for words names who they are for, in a chip before the box (✕ or Esc lets it go)
     sayChip.hidden = !sayFor;
     if (sayFor) sayChip.textContent = `${sayFor.action.label}${sayFor.to && !sayFor.action.label.includes(sayFor.to) ? ` ${sayFor.to}` : ''} ✕`;
     input.placeholder = sayFor ? `What do you say${sayFor.to ? ` to ${sayFor.to}` : ''}? Enter plays it` : offering ? suggestion : PLACEHOLDER;
     input.classList.toggle('suggest', offering);
-    const hintNow = offering ? 'offer' : '';
+    const hintNow = offering ? (queued ? 'queue' : 'offer') : '';
     if (hint.dataset.now !== hintNow) {
       hint.dataset.now = hintNow;
-      hint.replaceChildren(...(offering ? ['From last turn · click it or Tab to use, Esc to clear ',
+      hint.replaceChildren(...(offering && queued ? ['Next step of your order · Enter plays it, Esc drops the rest ',
+        h('button', { type: 'button', class: 'hs-btn-text in-use', 'data-chip': 'play-step', onclick: () => void submit() }, 'Play it'),
+        h('button', { type: 'button', class: 'hs-btn-text in-clear', 'data-chip': 'drop-queue', onclick: () => { suggestion = ''; update(); input.focus(); } }, 'Drop the rest')]
+        : offering ? ['From last turn · click it or Tab to use, Esc to clear ',
         h('button', { type: 'button', class: 'hs-btn-text in-use', 'data-chip': 'use-suggestion', onclick: takeSuggestion }, 'Use it'),
         h('button', { type: 'button', class: 'hs-btn-text in-clear', 'data-chip': 'clear-suggestion', onclick: () => { suggestion = ''; update(); input.focus(); } }, 'Clear')] : []));
     }
@@ -686,7 +704,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     if (open === 'commands') helpPanel.replaceChildren(h('div', { class: 'helps-h' }, h('p', { class: 'hs-section' }, 'Commands · no time passes'),
       h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { open = null; update(); } }, 'Close ×')),
       h('ul', { class: 'cmds' }, COMMANDS.map(([c, what]) => h('li', {}, h('button', { type: 'button', onclick: () => pick(c) }, h('b', {}, c.trim()), h('span', {}, what))))),
-      h('p', { class: 'hs-note' }, 'Picking one fills the box; nothing is sent until you press Send.'));
+      h('p', { class: 'hs-note' }, 'Picking one fills the box; nothing is sent until you press Send.'),
+      // A5: the keys the play screen answers, beside the commands
+      h('p', { class: 'hs-section' }, 'Keys'), h('dl', { class: 'keys' }, KEYS.flatMap(([k, what]) => [h('dt', {}, h('kbd', {}, k)), h('dd', {}, what)])));
     if (stick || busy) story.scrollTop = story.scrollHeight;
     // 2.5: a new essence offer opens its pop-up once, when no turn is running (Take it / Let it go / Decide later)
     if (!busy && !auto.playing()) maybeOfferPop(api, s, update);
@@ -719,7 +739,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     }
 
     // AD2/AD3: the folded health strip and the short sheet; the minimap and Who's here keep their own elements
-    const stripKids = s ? [...statusStrip(s, s.player), stealthy ? h('span', { class: 'cs-stl' }, 'Stealthy') : null].filter((x): x is HTMLElement => !!x) : [];
+    const stripKids = s ? [...statusStrip(s, s.player), stealthy ? h('span', { class: 'cs-stl', title: stealthyTip() }, POSTURES.name('stealthy')) : null].filter((x): x is HTMLElement => !!x) : [];
     const shortKids = s ? shortSheet(s, s.player) : [];
     const sheetNow = [...stripKids, ...shortKids].map((k) => k.outerHTML).join('');
     if (!frozen && sheetNow !== sheetHtml) { strip.replaceChildren(...stripKids); shortEl.replaceChildren(...shortKids); sheetHtml = sheetNow; }
@@ -951,7 +971,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   function nerveBeats(from: MoraleLevel, to: MoraleLevel, d: number, red: boolean) {
     const pos = (k: MoraleLevel) => MORALE_LEVELS.pos(k), steadyAt = pos(CONFIG.MOTION_NERVE_STEADY);
     if (pos(to) > pos(from)) {
-      if (to === 'broken') { pulse(sheet.querySelector('[data-m="morale-track"]'), d + ms('--m-count'), 2); arrive(sheet.querySelector('[data-m="morale-until"]'), d + ms('--m-count')); }
+      if (isBrokenLevel(to)) { pulse(sheet.querySelector('[data-m="morale-track"]'), d + ms('--m-count'), 2); arrive(sheet.querySelector('[data-m="morale-until"]'), d + ms('--m-count')); }
       if (red || pos(to) < pos(CONFIG.MOTION_NERVE_FROM)) return;
       play(nerveEdge, [{ opacity: 0 }, { opacity: 1, offset: 0.3 }, { opacity: pos(to) >= steadyAt ? 0.45 : 0 }], { dur: ms('--m-scenario'), delay: d });
     } else if (pos(from) >= steadyAt && pos(to) < steadyAt) {
@@ -994,14 +1014,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
         if (worse) slam(chip, d); else pulse(chip, d);
         // the figure keeps the part's old colour until this beat, then turns and dips once (M-30, M-74: the new
         // colour is already set; the old one is only the animation's first frame)
-        const path = q(`path[data-part="${k}"]`);
-        if (path) {
-          const cls = path.getAttribute('class') ?? '';
-          path.setAttribute('class', cls.replace(/\bbf-\w+/, `bf-${b.parts[k]}`));
-          const old = getComputedStyle(path).fill;
-          path.setAttribute('class', cls);
-          play(path, [{ fill: old, opacity: 1 }, { fill: old, opacity: 0.35, offset: 0.35 }, { opacity: 1 }], { dur: ms('--m-beat') * 2, delay: d });
-        }
+        figurePulse(q('.f3d'), k, stateToken(a.parts[k]), stateToken(b.parts[k]), d, ms('--m-beat') * 2);
       }
     }
     // gear lines (M-35, M-32): a shield's state or a pool's points land; an item that is gone fades out of its line

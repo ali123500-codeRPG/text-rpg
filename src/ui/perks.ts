@@ -2,6 +2,7 @@
 // ladders (one per skill; tracks on narrow screens), the boxes side by side in rows. Sealed milestones show only their
 // number and nothing hints at what comes next (K4). A small card beside the tapped milestone takes or undoes, with its
 // own Story / Effect toggle for the write-up, as the innate and linked lists have.
+import { termAttrs } from '../words';
 import type { Actor, GameApi, GameState, PerkDef } from '../types';
 import { getLibrary } from '../library';
 import { MILESTONES, allStepsUpTo, canUndo, milestonesUpTo, milestonePerk, milestoneState, trueSkill, type MilestoneState } from '../ruleset';
@@ -55,7 +56,7 @@ function allStepCount(p: Actor, treeId: string, step: number): string {
 function ladders(p: Actor, treeId: string, skills: string[]) {
   const top = railTop(p), pct = pctOf(top);
   return h('div', { class: 'pk-lad' },
-    allStepsUpTo(top).map((m) => h('div', { class: 'pk-mb', style: `bottom:calc(${m / top} * var(--rh))` }, h('b', {}, `All-${m}`), h('small', {}, allStepCount(p, treeId, m)))),
+    allStepsUpTo(top).map((m) => h('div', { class: 'pk-mb', style: `bottom:calc(${m / top} * var(--rh))` }, h('b', termAttrs(`All-${m}`), `All-${m}`), h('small', {}, allStepCount(p, treeId, m)))),
     skills.map((k) => {
       const v = trueSkill(p, k);
       return h('div', { class: 'pk-col' },
@@ -92,7 +93,7 @@ function card(s: GameState, p: Actor, api: GameApi) {
     d ? [h('h4', {}, d.name), ...writeup(d)] : h('p', {}, 'No perk is written for this milestone yet.'),
     st === 'own' && d && linkNote(p, d.id) ? h('p', { class: 'pk-link-note' }, linkNote(p, d.id)) : null,
     st === 'open' && d?.built === false ? h('p', { class: 'tiny' }, 'Not in the game yet.') : null,
-    st === 'open' && d?.built !== false ? h('button', { type: 'button', class: 'hs-btn-main pk-take', disabled: pts < 1 || api.busy(), onclick: () => api.takePerk(d!.id) }, pts < 1 ? 'No perk point' : 'Take · 1 point') : null,
+    st === 'open' && d?.built !== false ? h('button', { type: 'button', class: 'hs-btn-main pk-take', disabled: pts < 1 || api.busy(), onclick: () => api.takePerk(d!.id) }, pts < 1 ? `Needs ${1 - pts} more point` : 'Take · 1 point') : null,
     // A11: a perk the owner can switch off, on by default
     st === 'own' && d && SWITCHABLE.has(d.id) ? h('button', { type: 'button', class: 'hs-btn-text', 'aria-pressed': String(!p.core.perksOff?.includes(d.id)),
       onclick: () => { const off = new Set(p.core.perksOff ?? []); if (off.has(d.id)) off.delete(d.id); else off.add(d.id); p.core.perksOff = [...off]; redraw(); } },
@@ -177,8 +178,8 @@ export function perksSection(api: GameApi): HTMLElement {
         h('span', { class: 'pk-pts' + (pts ? '' : ' none') }, `✦ ${pts} point${pts === 1 ? '' : 's'}`)),
       // the two perk series, in the colours their milestones use everywhere
       h('ul', { class: 'pk-key', 'aria-label': 'Perk series' },
-        h('li', { 'data-series': '20' }, h('i', { 'aria-hidden': 'true' }), h('b', {}, 'Breakthrough'), ` ${seriesList('20')}`),
-        h('li', { 'data-series': '40' }, h('i', { 'aria-hidden': 'true' }), h('b', {}, 'Refinement'), ` ${seriesList('40')}`)),
+        h('li', { 'data-series': '20' }, h('i', { 'aria-hidden': 'true' }), h('b', termAttrs('Breakthrough'), 'Breakthrough'), ` ${seriesList('20')}`),
+        h('li', { 'data-series': '40' }, h('i', { 'aria-hidden': 'true' }), h('b', termAttrs('Refinement'), 'Refinement'), ` ${seriesList('40')}`)),
       innate(p),
       linked(p),
       // every tree in its own box, side by side; a box is as wide as its skills need

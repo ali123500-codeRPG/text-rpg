@@ -6,6 +6,13 @@ export const BUILT_PERKS = new Set<string>([
   PK.fists_do_the_talking, // essence trait (Tavern Brawler), D-276 trade augment: src/ruleset/gear.ts augmentRows() and tradesOut()
   PK.dreaded_on_sight, // quirk: src/engine/auras.ts sightDread(), src/engine/relations.ts stance()
   PK.hidden_strike, // A1: src/ruleset/index.ts attack()
+  PK.press_the_opening, // TC28 a (Battle Sense 20): src/engine/perkMarks.ts afterAttack() and markShifts()
+  PK.fall_back_on_me, // TC36 c (Command 20): src/engine/nerve.ts fallBackOwner(), nerveLetsWalk(); minds fleeOrder()
+  PK.play_dead, // TC32 a, TC44-TC48 (Guile 20): src/engine/playDead.ts, resolve.ts doPlayDead(); views show believers the owner Down
+  PK.rally, // TC39 a (Command 100): src/engine/resolve.ts doRally(), src/engine/auras.ts rallyCall()
+  PK.never_flat_footed, // TC35 b (Battle Sense 100): src/engine/flatFooted.ts noteSeen(), neverFlatFooted() in resolve.ts initiativeOrder() and doAttack()
+  PK.draw_them_in, // TC31 a (Stratagem 20): src/engine/resolve.ts doDrawThemIn(), src/engine/perkMarks.ts drawIn(); the drawn foe's order in merge.ts
+  PK.hug_the_cover, // TC30 a (Fieldcraft 20): src/engine/perkMarks.ts hugReady(), src/ruleset/index.ts attack()
   PK.bluff, // LI1c (Lying 20): src/engine/perkMoves.ts, the Parser's perkMove; acts last in resolve.ts initiativeOrder()
   PK.takes_one_to_know_one, // LI1a (Lying 60): src/engine/speech.ts answerRoll()
   PK.overheard, // LI5a (Insight 20): src/engine/speech.ts overhearLie(), from doSpeak() and the exchange slot in resolve.ts
@@ -27,6 +34,7 @@ export const BUILT_PERKS = new Set<string>([
   PK.know_the_step, // T5f: src/views/index.ts knowsStep()
   PK.iron_knuckles, PK.bare_handed_guard, // T3d, T3d2: attack() in src/ruleset/index.ts; trueSkillTo
   PK.spotter, // T5b: src/ruleset/allSteps.ts shareSpotted()
+  PK.mind_over_body, // Resolve All-100: src/ruleset/body.ts totalHp(), src/ruleset/improve.ts markEndurance()
   PK.one_sense, // Perception All-150: src/perception/index.ts perceptionOf(), src/ruleset/gear.ts rollFnSkills()
   PK.steady_guard, PK.thick_hide, // T1e, T4e: attack() in src/ruleset/index.ts; trueSkillTo
   PK.night_eyes, // T5e: src/ruleset/gear.ts situational()
@@ -75,4 +83,14 @@ export const BUILT_PERKS = new Set<string>([
   PK.iron_lungs, PK.deep_lungs, PK.bottomless, // SS2/SS4/SS6: deep_lungs lineMax() in src/ruleset/fatigue.ts, bottomless payStrain() in src/engine/fatigue.ts
   // Stamina ladder and part (SS1, SS5, SS8): src/engine/fatigue.ts restRecover(), payStrain(); perkSleepMult() in src/ruleset/fatigue.ts
   PK.catnap, PK.sleepless, PK.second_breath, PK.overdrive, PK.patient_knife, PK.protagonist_mentality, PK.chorus,
+  PK.deflect, // LG1: src/ruleset/gear.ts canDefend()
+  PK.grit_your_teeth, // LG7: src/engine/resolve.ts gritAuto() and doPerkMove(); PERK_MOVES
+  PK.hear_me_out, // LG9: src/engine/offer.ts landed()
+  PK.guarded_answer, PK.dancers_feet, PK.silver_tongue, PK.shadow_work, PK.free_movement, PK.honest_face, // 40 perks with +true skill (boostPerks.ts)
+  PK.deep_reserves, // LG8: reservesMult() in src/ruleset/perks.ts (totalHp, barMax, maxMorale)
+  PK.unseen_strike, // LG11: awarenessMod() in src/ruleset/index.ts
+  PK.fear_bites_deeper, // LG12: fearMult() in src/engine/auras.ts
+  PK.thick_of_it, // LG15: stealthDetect() in src/minds/state.ts
+  PK.deeper_soak, // LG18: blowDamage() in src/ruleset/index.ts
+  PK.sharp_answer, // LG2: attack() in src/ruleset/index.ts, on a strike back (context.strikeBack from parryStrike)
 ]);

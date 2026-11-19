@@ -37,7 +37,9 @@ export function chainRollLine(key: string, d: AchievementDef | undefined): strin
   return `${signed(sum(parts))} ${what}${parts.length > 1 ? ` (${parts.map(signed).join(' + ')})` : ''}`;
 }
 
-const COMBAT_ROLLS = new Set(['hit', 'dodge', 'block', 'parry']);
+/** the roll kinds total-defeats achievements add to (the Stacking tab names them from this list) */
+export const DEFEATS_ROLLS = ['hit', 'dodge', 'block', 'parry'] as const;
+const COMBAT_ROLLS = new Set<string>(DEFEATS_ROLLS);
 /** roll bonus of one total-defeats achievement: its own step (place × DEFEATS_ROLL_PER_TIER) plus every lower level's
  * (I = +1, II = +3, III = +6, IV = +10) */
 export const defeatsRoll = (key: string): number => sum(chainSteps(key, CONFIG.DEFEATS_ROLL_PER_TIER));

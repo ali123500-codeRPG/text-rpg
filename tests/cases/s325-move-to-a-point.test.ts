@@ -10,9 +10,10 @@ import { checkIntent } from '../../src/agents/schema';
 import { buildPlayerView } from '../../src/views';
 import { CONFIG } from '../../src/config';
 import type { GameState, Intent } from '../../src/types';
+import { boxOf } from '../../src/plan/geom';
 
 const quiet = () => makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'patron_1', 'trader'] });
-const rect = (s: GameState, id: string) => s.zones.find((z) => z.id === id)!.rect!;
+const rect = (s: GameState, id: string) => boxOf(s.zones.find((z) => z.id === id)!.outline);
 const to = (toZone: string, x: number, y: number): Intent => intent({ move: { toZone, spot: { at: { x, y } } } });
 /** plays the move until it stops getting closer */
 function walkTo(s: GameState, i: Intent, fight = false): number {
@@ -50,25 +51,26 @@ describe('325 a move to an exact point (AD16)', () => {
     const s = quiet(), r = rect(s, 'tav_common');
     const far = { x: r.x + r.w * 3, y: r.y + r.d * 3 };
     const sp = spotPoint(s, 'tav_common', { at: far }, s.player)!;
-    expect(sp.pos.x).toBeCloseTo(r.x + r.w / 2 - CONFIG.ENTER_M, 6);
-    expect(sp.pos.y).toBeCloseTo(r.y + r.d / 2 - CONFIG.ENTER_M, 6);
+    const wall = CONFIG.ENTER_M + 0.25; // SZ19: a step from the walls to the body's edge (half its widest side, 0.5 m)
+    expect(sp.pos.x).toBeCloseTo(r.x + r.w / 2 - wall, 6);
+    expect(sp.pos.y).toBeCloseTo(r.y + r.d / 2 - wall, 6);
     walkTo(s, to('tav_common', far.x, far.y));
     expect(s.player.zone).toBe('tav_common');
     expect(distM(s, s.player, { zone: 'tav_common', pos: sp.pos })).toBeLessThan(0.01);
   });
 
   it('in a fight a far point takes several turns: the walk carries on and gets there', () => {
-    const s = quiet(), r = rect(s, 'street_square');
+    const s = quiet(), r = rect(s, 'field_edge');
     const at = { x: r.x, y: r.y };
-    const route = walkRoute(s, s.player, { zone: 'street_square', pos: at }, s.player)!;
+    const route = walkRoute(s, s.player, { zone: 'field_edge', pos: at }, s.player)!;
     s.mode = 'tactical';
-    play(s, { intent: to('street_square', at.x, at.y) });
+    play(s, { intent: to('field_edge', at.x, at.y) });
     expect(s.player.walking?.spot?.at).toEqual(at);
     const turns = 1 + walkTo(s, intent(), true);
     expect(route.metres).toBeGreaterThan(CONFIG.FIGHT_TURN_S * 2);
     expect(turns).toBeGreaterThan(1);
-    expect(s.player.zone).toBe('street_square');
-    expect(distM(s, s.player, { zone: 'street_square', pos: at })).toBeLessThanOrEqual(CONFIG.ENTER_M);
+    expect(s.player.zone).toBe('field_edge');
+    expect(distM(s, s.player, { zone: 'field_edge', pos: at })).toBeLessThanOrEqual(CONFIG.ENTER_M);
     expect(s.player.walking).toBeUndefined();
   });
 

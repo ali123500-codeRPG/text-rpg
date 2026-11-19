@@ -13,7 +13,7 @@ import { CONFIG } from '../config';
 import { PK } from '../library/perkIds';
 import { hasPerk } from '../ruleset/perks';
 import { healthLevel } from '../ruleset/body';
-import { moraleLevel } from '../ruleset/morale';
+import { isBrokenLevel, moraleLevel } from '../ruleset/morale';
 import { logCode } from './effects';
 import { withinGrip } from './position';
 import { gradeMult, measureOf, offerExtracted, qualityRoll, rowsFor } from './essence';
@@ -24,7 +24,7 @@ export type ExtractRefusal = 'no_power' | 'no_target' | 'not_helpless' | 'no_ess
 export function cantExtract(state: GameState, a: Actor, t: Actor | undefined): ExtractRefusal | null {
   if (a !== state.player || !hasPerk(a, PK.extract_essence)) return 'no_power';
   if (!t || t === a || healthLevel(t) === 'dead') return 'no_target';
-  if (healthLevel(t) !== 'incapacitated' || !(t.mind?.moraleState || moraleLevel(t) === 'broken')) return 'not_helpless';
+  if (healthLevel(t) !== 'incapacitated' || !(t.mind?.moraleState || isBrokenLevel(moraleLevel(t)))) return 'not_helpless';
   if (t.mind?.essenceRolled || !rowsFor(state, t).length) return 'no_essence';
   if (!withinGrip(state, a, t)) return 'out_of_reach';
   return null;

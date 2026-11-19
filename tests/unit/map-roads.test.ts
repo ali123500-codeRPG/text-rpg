@@ -3,8 +3,8 @@
 import { describe, expect, it } from 'vitest';
 import { setupGame, intent, narrateAll } from '../harness/turn';
 import { knownMap, rootPlace, worldTiles, type KnownMap, type MapZone } from '../../src/ui/mapData';
-import { ZK } from '../../src/library/tableIds';
 import type { Place, Zone } from '../../src/types';
+import { drawTitles } from '../../src/plan/draw';
 
 const P = (id: string, kind: string, parentId: string | null, name: string, zones: Zone[]): Place =>
   ({ id, storyId: 'test', kind, parentId, names: { current: name, past: [] }, zones, state: {}, headlines: [] });
@@ -46,14 +46,14 @@ describe('roads on the map', () => {
 
   it('whole turn: standing on a road, the World holds the road as a place you are in, with your point along it, and the halt beside it on its own', async () => {
     const g = setupGame({ playerZone: 'gate_inner', without: ['slime_1', 'slime_2'] });
-    const road: Zone = { id: 'e_road', placeId: 'east_way', name: 'the east road', look: 'A rutted cart road.', kind: ZK.road, outdoor: true, cover: 'none', light: 'bright', groundItems: [],
-      rect: { x: 300, y: 0, w: 400, d: 4 }, links: [{ to: 'gate_inner', label: 'back to the gate', sight: true }, { to: 'halt_yard', label: 'a yard beside the road', sight: true }] };
-    const yard: Zone = { id: 'halt_yard', placeId: 'halt', name: 'the halt', look: 'A stock pen beside the road.', outdoor: true, cover: 'none', light: 'bright', groundItems: [],
-      rect: { x: 510, y: 0, w: 20, d: 20 }, links: [{ to: 'e_road', label: 'back out to the road', sight: true }] };
-    g.state.places.push(P('east_way', 'road', null, 'the east road', [road]), P('halt', 'waystation', 'east_way', 'the halt', [yard]));
-    g.state.places.find((p) => p.id === 'gate')!.zones[0].links.push({ to: 'e_road', label: 'the east road', sight: true });
+    g.state.places.push(P('east_way', 'road', null, 'the east road', []), P('halt', 'waystation', 'east_way', 'the halt', []));
+    drawTitles(g.state, [ // well off the village, so it overlaps none of it
+      { id: 'e_road', placeId: 'east_way', name: 'the east road', look: 'A rutted cart road.', roof: false, light: 'bright', danger: 'quiet', line: [{ x: 100, y: 100 }, { x: 500, y: 100 }],
+        ways: [{ to: 'gate_inner', label: 'back to the gate', back: 'the east road', kind: 'open' }, { to: 'halt_yard', label: 'a yard beside the road', back: 'back out to the road', kind: 'open' }] },
+      { id: 'halt_yard', placeId: 'halt', name: 'the halt', look: 'A stock pen beside the road.', roof: false, light: 'bright', rect: { x: 510, y: 100, w: 20, d: 20 }, ways: [] },
+    ]);
     const p = g.state.player;
-    p.zone = 'e_road'; p.placeId = 'east_way'; p.pos = { x: 250, y: 0 };
+    p.zone = 'e_road'; p.placeId = 'east_way'; p.pos = { x: 250, y: 100 };
     g.claude.defaults.narrator = narrateAll();
     g.start();
     const t = g.game.state()!.turn;

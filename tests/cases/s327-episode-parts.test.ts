@@ -126,7 +126,7 @@ describe('327 an Episode holds its parts (SW10 a)', () => {
       return { ok: true, value: { ...MILL_PLAN, event: { ...MILL_PLAN.event, ...FITTING_GRADES[s.stage.starting!.eventRoll.tier] } } as StagePlan };
     };
     game.adopt(state);
-    claude.push('parser', intent({ action: { type: 'attack', skill: '', target: 'patron_1', targetPart: null, item: null, mode: null, approach: '', stance: 'normal' } }));
+    claude.push('parser', intent({ action: { type: 'attack', skill: '', target: 'patron_1', targetPart: null, item: null, mode: null, approach: '' } }));
     await game.submit('I punch the patron', { aimed: false });
     await game.settle();
     let s = game.state()!;

@@ -37,6 +37,12 @@ export type ItemDef = {
   shield?: { pool: number };
   level?: EquipLevelKey; // EQ8/EQ10: equipment level: how much its requirement asks for
   gearClass?: string; // GC id: which skill its requirement asks for (library gearClasses)
+  /** GR40: a relic's requirement in true skill, whatever its level; every stat that scales with need follows it (the combat rating's reference kit) */
+  relicNeed?: number;
+  /** IF id (IR30): its family. Mundane pieces scale only by their level (IR31); a special family (Threadbound, Relic) stands on a
+   * Mundane base and adds its own extras (IR33). Set for every equipment piece when the library loads */
+  family?: string;
+  gearType?: string; // GT id (IR23): its reach (weapons) or coverage (armor), from the library gearTypes table
   base?: { itemId: LibraryRef; quality: import('../scales').QualityKey; boosts: string };
   tags?: string[]; // 'kit' marks a standard-kit piece (one shared bonus per roll); 'broken' a broken item (BK3: its name starts "broken", it does nothing); 'fantasy' a piece past any real smith (IR2: Masterwork and up)
   /** D-218 Threadbound item: one of a kind in the world. It binds to the first who wears it; while its owner wears it, each
@@ -65,6 +71,8 @@ export type ItemEffect = {
   byLevel?: true;
   /** AX4: a rolled skill's weight by its skill tree (TR id); a tree not listed weighs 1 */
   weights?: Record<string, number>;
+  /** IR24: an armor piece's weight cost (its Dodge penalty); several worn pieces' costs stack by the stacking rule */
+  armorWeight?: true;
 };
 
 export type AttackMode = {
@@ -74,6 +82,9 @@ export type AttackMode = {
   skill?: LibraryRef; // unarmed only
   /** how far the mode strikes or shoots, in metres, from real weapons (the library's item rows) */
   reachM: number;
+  /** SZ8: a mode wielded in a grip (a held weapon, fists, a grapple): its own length past the hand. In use it reaches the
+   * wielder's grip reach plus this (ruleset/gear inGrip); reachM is then what a Humanoid of the standard size reaches */
+  lengthM?: number;
   /** the metres it reaches in use: reachM, plus a thrown weapon's perk metres (ruleset/gear modeReach) */
   reach: number;
   grips: 0 | 1 | 2; // Grip parts it takes (0 for natural attacks)
@@ -86,6 +97,7 @@ export type AttackMode = {
    * an improvised melee strike takes Arms stand-ins, an improvised throw takes Ranged ones) */
   standInFns?: SkillFunction[];
   partId?: string; // natural attacks: the Strike part used
+  partIds?: readonly string[]; // BV7 a: natural attacks from either part of a pair (claws from either foreleg); usable while one works
   name?: string; // public name for natural modes (packet); else the attackModes row's name
 };
 
@@ -101,7 +113,7 @@ export type ItemInstance = {
    * no Threadbound item's one of a kind (HF19), and it fades when its owner dies */
   soulbound?: true;
   usedAt?: Record<string, number>; // D-218: game minute each active ability last fired, by perk id
-  at?: { x: number; y: number }; // FR2: where it lies on the ground (a point in its zone); absent while carried
+  at?: import('./core').Pt3; // FR2, PZ11: where it lies on the ground (a point and its floor); absent while carried
   hiddenAt?: import('./core').TierRoll; // SE8/SE9: lying hidden: a search must beat this outcome tier to find it (a tie gives a hint)
   knownTo?: string[]; // SE8: who knows where a hidden item lies (its stasher, anyone who saw it stashed or found it)
   hiderSkill?: number; // SE25 a: the stasher's true stealth skill when it was stashed: a search learns against it
@@ -122,8 +134,10 @@ export type ItemInstance = {
   work?: Record<string, number>; // BA2, as on a barrier
 };
 
+/** every gear op (the type, the schema and the agents' shapes read this list) */
+export const GEAR_OPS = ['draw', 'stow', 'swap', 'wear_acc', 'remove_acc', 'pick_up', 'summon', 'set_down'] as const;
 export type GearOp = {
-  op: 'draw' | 'stow' | 'swap' | 'wear_acc' | 'remove_acc' | 'pick_up' | 'summon' | 'set_down'; // summon: TB6, the player's own Threadbound item, from wherever it is; set_down: OA4, put down where one stands (free)
+  op: (typeof GEAR_OPS)[number]; // summon: TB6, the player's own Threadbound item, from wherever it is; set_down: OA4, put down where one stands (free)
   qty?: number; // set_down: how many of a stack (all of it when left out)
   item: string; // item instance id
   from?: string; // actor id (pick up from a downed or yielded actor); absent = the ground or an open container (CT3)

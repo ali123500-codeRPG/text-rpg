@@ -2,22 +2,23 @@
 // knows (knownMap, as the full Map), its marks laid out by the full Map's own code (planScene: MAP-23, MAP-25, MAP-31).
 // Point anywhere known to see the walk there through the doorways as the engine walks it (walkRoute) and how long it
 // takes; a click plans a move to that exact point (MoveSpot.at, AD16), a double-click, Enter or Just go walks at once, Esc
-// clears. In a fight a ring shows how far one move slot walks this turn, carried time included (AD9). Only colour and
+// clears. In a fight a ring shows how far one move slot walks this turn, carried time included (AD9), and a second, wider
+// ring how far a dash runs (BF91: the move time walked, then the main time run). Only colour and
 // opacity change, on hover (M-70); nothing changes while a turn runs (M-06).
+import { areaOf, inOutline } from '../plan/geom';
 import type { GameApi, GameState } from '../types';
 import { h } from './kit';
 import { CONFIG } from '../config';
 import { knownMap, rootPlace, type KnownMap, type MapZone } from './mapData';
 import { NAME_PX, PX_PER_M, TEXT, checkReach, planScene, wrap, type Box, type Measure } from './mapPlan';
 import { checkMap } from './mapCheck';
-import { doorGlyph, floorName, wayGlyph, wayWords, whoInitial } from './map';
+import { floorMarks, doorGlyph, floorName, footprintMark, wayGlyph, wayWords, whoInitial } from './map';
 import { furnIcon } from './furnitureIcons';
 import { moveSpeed, slotMetres } from '../engine/speed';
 import { M_EPS, spotPoint, walkRoute, type Pos } from '../engine/position';
 import { shortestPath } from '../engine/relations';
 import { distText } from '../views';
 import { cap, r1, theName } from '../words';
-import { EK } from '../library/tableIds';
 
 export type MinimapPoint = { zone: string; x: number; y: number; metres: number; seconds: number; turns: number; label: string };
 /** a point's plan: the walk there (its points, in metres) and how it reads on the path; or why there is no way there */
@@ -27,6 +28,14 @@ export type MinimapPlan = (MinimapPoint & { pts: Pos[]; words: string; where: st
 export const carriedMoveS = (s: GameState): number => (s.player.carry ?? []).reduce((n, c) => n + c.move, 0);
 /** AD9: metres one move slot walks this turn, carried time included; null outside a fight (no ring) */
 export const ringMetres = (s: GameState): number | null => (s.mode === 'tactical' ? slotMetres(s, s.player, 'move', CONFIG.FIGHT_TURN_S + carriedMoveS(s)) : null);
+/** the main seconds carried into this turn (as carriedMoveS) */
+export const carriedMainS = (s: GameState): number => (s.player.carry ?? []).reduce((n, c) => n + c.main, 0);
+/** BF91: metres a dash covers this turn (a move slot walked, then the main slot run: slotMetres), carried time included;
+ *  null outside a fight */
+export const dashMetres = (s: GameState): number | null => {
+  const walk = ringMetres(s);
+  return walk === null ? null : walk + slotMetres(s, s.player, 'main', CONFIG.FIGHT_TURN_S + carriedMainS(s));
+};
 /** metres as the minimap says them: to a tenth under 10 m ("6.4 m"), whole above ("22 m") */
 export const metresText = (m: number): string => (m < 9.95 ? `${r1(m)} m` : distText(m));
 const secondsText = (t: number) => (t < 90 ? `${Math.round(t)} s` : `${Math.round(t / 60)} min`);
@@ -67,8 +76,10 @@ export function splitAt(pts: Pos[], m: number): [Pos[], Pos[]] {
 
 /** the known zone of these at a point (metres): the smallest that holds it (MAP-11: zones nest, never overlap) */
 export function zoneAt(zones: MapZone[], q: Pos): MapZone | undefined {
-  const hits = zones.filter((z) => z.rect && Math.abs(q.x - z.rect.x) <= z.rect.w / 2 && Math.abs(q.y - z.rect.y) <= z.rect.d / 2);
-  return hits.sort((a, b) => a.rect!.w * a.rect!.d - b.rect!.w * b.rect!.d)[0];
+  // PZ1: by its outline (a title can be any shape), the smallest first
+  const size = (z: MapZone) => (z.outline?.length ? areaOf(z.outline) : z.rect!.w * z.rect!.d);
+  const hits = zones.filter((z) => z.rect && (z.outline?.length ? inOutline(q, z.outline) : Math.abs(q.x - z.rect.x) <= z.rect.w / 2 && Math.abs(q.y - z.rect.y) <= z.rect.d / 2));
+  return hits.sort((a, b) => size(a) - size(b))[0];
 }
 
 const SVGNS = 'http://www.w3.org/2000/svg';
@@ -83,7 +94,6 @@ const NAME_MAX = 15;
 /** room a name keeps from its zone's walls (MAP-20: 6 px, plus the hair the floor sits inside), and its letters' dark edge */
 const PAD = 7, NAME_EDGE = 3;
 /** CSS class of each edge kind's line, as the full Map draws it */
-const EDGE_CLASS: Record<string, string> = { [EK.wall]: 'wall', [EK.open]: 'open', [EK.low]: 'low', [EK.window]: 'window' };
 const HINT = 'Point anywhere you know to see the way and how long it takes. Click to plan a move; double-click to walk there now.';
 const clip = (a: Box, b: Box): Box | null => {
   const c = { x0: Math.max(a.x0, b.x0), y0: Math.max(a.y0, b.y0), x1: Math.min(a.x1, b.x1), y1: Math.min(a.y1, b.y1) };
@@ -100,7 +110,7 @@ export function minimapPanel(api: GameApi, opts: {
   const steps = CONFIG.MINIMAP_ZOOM_M, widest = steps[steps.length - 1];
   let viewM = CONFIG.MINIMAP_VIEW_M, pan = { x: 0, y: 0 }; // pan: svg pixels the view is dragged off you
   // M-06: what the minimap shows is taken at update() and kept while a turn runs; the live state is read only between turns
-  type Snap = { km: KnownMap; floor: MapZone[]; every: MapZone[]; height: number; you: Pos; facing?: [number, number]; ring: number | null; carried: number };
+  type Snap = { km: KnownMap; floor: MapZone[]; every: MapZone[]; height: number; you: Pos; facing?: [number, number]; ring: number | null; dash: number | null; carried: number };
   let snap: Snap | null = null, lastAt = '', lastRing: number | null = null, face = '';
   let hover: MinimapPlan | null = null, plan: Extract<MinimapPlan, { pts: Pos[] }> | null = null;
 
@@ -162,11 +172,10 @@ export function minimapPanel(api: GameApi, opts: {
       if (!c) continue;
       const g = s('g', { class: `mm-zone ${x.state} ${z.outdoor ? 'outdoor' : 'indoor'}${z.inView ? '' : ' remembered'}` },
         s('rect', { class: 'mm-ground', x: c.x0 + 0.5, y: c.y0 + 0.5, width: c.x1 - c.x0 - 1, height: c.y1 - c.y0 - 1, 'data-role': 'zone', 'data-id': z.id, 'data-parent': z.placeId }));
-      const sides: Record<string, [number, number, number, number]> = { n: [b.x0, b.y0, b.x1, b.y0], s: [b.x0, b.y1, b.x1, b.y1], w: [b.x0, b.y0, b.x0, b.y1], e: [b.x1, b.y0, b.x1, b.y1] };
-      for (const [side, [x1, y1, x2, y2]] of Object.entries(sides)) {
-        const kind = (z.edges as Record<string, string> | undefined)?.[side] ?? (z.outdoor ? EK.open : EK.wall);
-        g.append(s('line', { x1, y1, x2, y2, class: `map-edge ${EDGE_CLASS[kind] ?? 'wall'}` }));
-      }
+      // PZ1, PZ2: a title of another shape shows its own floor over its box; its walls run along its outline
+      const fm = floorMarks(z, z.rect!.w ? (b.x1 - b.x0) / z.rect!.w : PX_PER_M, 0, 0);
+      if (fm.floor) { g.firstElementChild!.setAttribute('class', 'mm-ground mm-box'); g.append(s('polygon', { class: 'mm-ground', points: fm.floor })); }
+      g.append(...fm.walls);
       if (x.state === 'current') g.append(s('rect', { class: 'mm-here', x: b.x0 + 0.5, y: b.y0 + 0.5, width: b.x1 - b.x0 - 1, height: b.y1 - b.y0 - 1 })); // MAP-33: where you are
       g.append(s('title', {}, `${cap(z.name)}: ${Math.round(z.rect!.w)} × ${Math.round(z.rect!.d)} m`));
       gZones.append(g);
@@ -179,7 +188,10 @@ export function minimapPanel(api: GameApi, opts: {
     }
     for (const c of scene.connectors) gZones.append(s('line', { x1: c.x1, y1: c.y1, x2: c.x2, y2: c.y2, class: `map-link${c.sight ? '' : ' hidden-view'}` }, s('title', {}, c.title)));
     // AD9: how far one move slot walks this turn; past the widest zoom it is a note under the map instead
-    if (snap.ring !== null && 2 * snap.ring <= widest) { const y = px(snap.you, K); gRing.append(s('circle', { class: 'mm-ring', cx: y.x, cy: y.y, r: snap.ring * K })); }
+    // BF91: and how far a dash runs, a second, wider ring
+    const y = px(snap.you, K);
+    if (snap.dash !== null && 2 * snap.dash <= widest) gRing.append(s('circle', { class: 'mm-ring dash', cx: y.x, cy: y.y, r: snap.dash * K }, s('title', {}, `A dash this turn: ${metresText(snap.dash)}`)));
+    if (snap.ring !== null && 2 * snap.ring <= widest) gRing.append(s('circle', { class: 'mm-ring', cx: y.x, cy: y.y, r: snap.ring * K }, s('title', {}, `A walk this turn: ${metresText(snap.ring)}`)));
     // marks: the full Map's (doors, stairs, furniture, people), each only when it is whole in view (MAP-50)
     for (const d of scene.doors) {
       if (!within(d, inView)) continue;
@@ -200,7 +212,8 @@ export function minimapPanel(api: GameApi, opts: {
           s('g', { 'data-role': 'token', 'data-id': 'you' }, s('circle', { cx: t.cx, cy: t.cy, r: t.r })), s('text', { x: t.cx, y: t.cy + 3, 'text-anchor': 'middle' }, 'You'), s('title', {}, 'You are here')));
         continue;
       }
-      const who = t.who!, g = s('g', { class: `map-who plan-who${who.now ? '' : ' last'}${who.at ? ' at' : ''}`, tabindex: 0, role: 'button', 'aria-label': `${t.title}: what to do` },
+      const who = t.who!, foot = footprintMark(t.cx, t.cy, t.r, who, PX_PER_M * k);
+      const g = s('g', { class: `map-who plan-who${who.now ? '' : ' last'}${who.at ? ' at' : ''}`, tabindex: 0, role: 'button', 'aria-label': `${t.title}: what to do` }, ...(foot ? [foot] : []),
         s('g', { 'data-role': 'token', 'data-id': t.id }, s('circle', { cx: t.cx, cy: t.cy, r: t.r }), s('text', { x: t.cx, y: t.cy + 3, 'text-anchor': 'middle' }, whoInitial(who.name))),
         s('text', { x: t.cx + t.r + 4, y: t.cy + 4, class: 'map-who-label' }, who.name), s('title', {}, t.title));
       const open = (e: Event) => { e.stopPropagation(); if (!api.busy()) opts.onPerson(who.id, (g as Element).getBoundingClientRect()); };
@@ -238,7 +251,7 @@ export function minimapPanel(api: GameApi, opts: {
     };
     say.replaceChildren(...(!snap ? ['No map of where you are yet.'] : !shown ? [HINT] : 'why' in shown ? [shown.why] : [...(shown === plan && !hover ? ['Planned: '] : []), ...parts(shown)]));
     go.hidden = !plan;
-    const notes = [snap && snap.carried > 0 ? `+${r1(snap.carried)} s carried over` : '', snap?.ring && 2 * snap.ring > widest ? `this turn reaches ${metresText(snap.ring)}` : ''].filter(Boolean);
+    const notes = [snap && snap.carried > 0 ? `+${r1(snap.carried)} s carried over` : '', snap?.ring && 2 * snap.ring > widest ? `this turn reaches ${metresText(snap.ring)}` : '', snap?.dash && 2 * snap.dash > widest ? `a dash reaches ${metresText(snap.dash)}` : ''].filter(Boolean);
     carried.textContent = notes.join(' · ');
     floorEl.textContent = snap ? `· ${floorName(snap.height)}` : '';
   }
@@ -323,13 +336,13 @@ export function minimapPanel(api: GameApi, opts: {
     const here = every.find((z) => z.here);
     if (!st || !km || !here?.you) { snap = null; hover = null; if (plan) { plan = null; opts.onPlan(null); } render(); return; }
     const ring = ringMetres(st);
-    snap = { km, every, floor: every.filter((z) => z.height === here.height), height: here.height, you: { ...here.you }, ...(st.player.facing ? { facing: [...st.player.facing] as [number, number] } : {}), ring, carried: carriedMoveS(st) };
+    snap = { km, every, floor: every.filter((z) => z.height === here.height), height: here.height, you: { ...here.you }, ...(st.player.facing ? { facing: [...st.player.facing] as [number, number] } : {}), ring, dash: dashMetres(st), carried: carriedMoveS(st) };
     const at = `${here.id}:${here.you.x}:${here.you.y}`;
     if (at !== lastAt) { lastAt = at; pan = { x: 0, y: 0 }; hover = null; }
     // AD9: a ring wider than the view zooms out to fit it (across the view's short side), up to the widest zoom; past it
-    // the footer says how far
+    // the footer says how far. BF91: the dash ring, the wider, is the one fitted, so both show
     if (ring !== lastRing) {
-      const { w, h: hh } = size(), need = (2.1 * (ring ?? 0) * w) / Math.min(w, hh);
+      const { w, h: hh } = size(), need = (2.1 * (snap.dash ?? ring ?? 0) * w) / Math.min(w, hh);
       lastRing = ring;
       if (need > viewM) viewM = steps.find((x) => x >= need) ?? widest;
     }

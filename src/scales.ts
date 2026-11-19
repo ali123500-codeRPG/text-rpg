@@ -11,7 +11,7 @@ export type Scale<K extends string> = {
   at(i: number): K;
   /** display name of a key */
   name(k: K): string;
-  /** key for a key or display name in any case (text from Claude or an old save); undefined if unknown */
+  /** key for a key or display name in any case (text from Claude); undefined if unknown */
   keyOf(word: unknown): K | undefined;
   /** is this one of the scale's keys */
   has(x: unknown): x is K;
@@ -70,8 +70,8 @@ export const ESSENCE_GRADES = scale([['common', 'Common'], ['fine', 'Fine'], ['r
 export type EssenceGradeKey = (typeof ESSENCE_GRADES.keys)[number];
 /** band tactics (V2) */
 export const TACTICS = scale([['simple', 'simple'], ['competent', 'competent'], ['cunning', 'cunning']]);
-/** zone light, brightest first (V1) */
-export const LIGHT = scale([['bright', 'bright'], ['dim', 'dim'], ['dark', 'dark']]);
+/** zone light, brightest first (V1, LT1); each level's light in lux is CONFIG.LIGHT_LUX */
+export const LIGHT = scale([['bright', 'bright'], ['lamplit', 'lamplit'], ['dim', 'dim'], ['moonlit', 'moonlit'], ['dark', 'dark'], ['black', 'pitch black']]);
 /** stance of one actor toward another, coldest first (hostile = attacks on sight; opposed = at odds, on guard, won't strike
  * first; unfriendly = dislike without a standoff: not on guard, still trades, pays no XP; friend = helps at a cost to itself;
  * loyal = takes the other's side: anyone hostile to them it treats as hostile too) */
@@ -85,7 +85,6 @@ export const AWARENESS = scale([['unaware', 'Unaware'], ['suspicious', 'Suspicio
 /** XP reward levels for achievements; XP per level is rewardXp (the REWARD_XP_CURVE equation) */
 export const REWARD_LEVELS = scale([['minus_2', '−2'], ['minus_1', '−1'], ['zero', '0'], ['i', 'I'], ['ii', 'II'], ['iii', 'III'], ['iv', 'IV'], ['v', 'V'], ['vi', 'VI'],
   ['vii', 'VII'], ['viii', 'VIII'], ['ix', 'IX'], ['x', 'X'], ['xi', 'XI'], ['xii', 'XII'], ['xiii', 'XIII'], ['xiv', 'XIV'], ['xv', 'XV']]);
-export type RewardLevel = (typeof REWARD_LEVELS.keys)[number];
 /** QT28: the reward levels a quest may have, 0 to IV: rows of REWARD_LEVELS (keys and names from there); XP per level is
  * rewardXp, as for achievements; the level from CONFIG.QUEST_GAIN_LEVEL */
 export const QUEST_REWARD_LEVELS = scale(REWARD_LEVELS.keys.slice(REWARD_LEVELS.pos('zero'), REWARD_LEVELS.pos('iv') + 1).map((k) => [k, REWARD_LEVELS.name(k)] as const));
@@ -178,9 +177,9 @@ export type NoiseKey = (typeof NOISE.keys)[number];
 export const SOUND_LOSS = scale([['open', 'Open gap'], ['window', 'Shut window'], ['door', 'Shut door'], ['wall', 'Wall']]);
 export type SoundLossKey = (typeof SOUND_LOSS.keys)[number];
 /** how far an event is seen, least first; reach per level is CONFIG.SIGHT_M (perception sightLevel) */
-export const VISIBILITY = scale([['unseen', 'Unseen'], ['faint', 'Faint'], ['close', 'Close'], ['low', 'Low'], ['normal', 'Normal'], ['high', 'High'], ['glaring', 'Glaring']]);
+export const VISIBILITY = scale([['unseen', 'Unseen'], ['faint', 'Faint'], ['slight', 'Slight'], ['close', 'Close'], ['low', 'Low'], ['normal', 'Normal'], ['high', 'High'], ['bright', 'Bright'], ['glaring', 'Glaring']]);
 export type VisibilityKey = (typeof VISIBILITY.keys)[number];
-/** how closely someone at an activity is paying attention, most first (an activity's attention; read by nothing yet: D-200) */
+/** how closely someone at an activity is paying attention, most first (an activity's attention; filching reads it, TN4; sight does not yet, D-200) */
 export const ATTENTION = scale([['alert', 'alert'], ['normal', 'normal'], ['distracted', 'distracted'], ['asleep', 'asleep']]);
 export type AttentionKey = (typeof ATTENTION.keys)[number];
 /** worn armor weight, lightest first (AN3); noise steps per weight are CONFIG.ARMOR_NOISE_STEPS */
@@ -200,8 +199,8 @@ export const equipPos = (k: EquipLevelKey): number => (EQUIP_LEVELS.has(k) ? EQU
 export const equipAt = (i: number): EquipLevelKey => (i <= LAST_EQUIP ? EQUIP_LEVELS.at(i) : `divine_${i - LAST_EQUIP}`);
 /** an equip level's name: past the last row it gains a + per step (Divine+, Divine++) */
 export const equipName = (k: EquipLevelKey): string => (EQUIP_LEVELS.has(k) ? EQUIP_LEVELS.name(k) : EQUIP_LEVELS.name(EQUIP_LEVELS.keys[LAST_EQUIP]) + '+'.repeat(equipStepsPast(k)));
-/** zone cover (V1) */
-export const COVER = scale([['none', 'none'], ['some', 'some'], ['heavy', 'heavy']]);
+/** zone cover (V1, CV1), least first: each level hides CONFIG.COVER_HIDDEN of a standing person */
+export const COVER = scale([['none', 'none'], ['light', 'light'], ['some', 'some'], ['heavy', 'heavy'], ['dense', 'dense']]);
 /** CO16 zone sizes, smallest first; the m² of each is CONFIG.ZONE_SIZE_M2 and its real or fantasy reference is the library's zoneSizes row */
 export const ZONE_SIZES = scale([['cramped', 'cramped'], ['small', 'small'], ['room', 'room'], ['hall', 'hall'], ['yard', 'yard'], ['open', 'open'], ['vast', 'vast']]);
 export type ZoneSizeKey = (typeof ZONE_SIZES.keys)[number];
@@ -216,7 +215,7 @@ export type RoadDangerKey = (typeof ROAD_DANGERS.keys)[number];
 export const SKILL_TIERS = scale([['tier_0', 'Tier 0'], ['tier_1', 'Tier 1'], ['tier_2', 'Tier 2']]);
 export type SkillTierKey = (typeof SKILL_TIERS.keys)[number];
 /** morale levels, calmest first (MB2); bands and penalties per level are CONFIG.MORALE_TRACK */
-export const MORALE_LEVELS = scale([['calm', 'Calm'], ['uneasy', 'Uneasy'], ['tense', 'Tense'], ['rattled', 'Rattled'], ['afraid', 'Afraid'], ['terrified', 'Terrified'], ['panicking', 'Panicking'], ['broken', 'Broken']]);
+export const MORALE_LEVELS = scale([['calm', 'Calm'], ['uneasy', 'Uneasy'], ['tense', 'Tense'], ['rattled', 'Rattled'], ['afraid', 'Afraid'], ['terrified', 'Terrified'], ['panicking', 'Panicking'], ['broken', 'Broken'], ['cowering', 'Cowering']]);
 export type MoraleLevel = (typeof MORALE_LEVELS.keys)[number];
 /** FT3/FT22 fatigue levels, freshest first; where each starts, its roll penalty and its short-line band are CONFIG.FATIGUE_TRACK */
 export const FATIGUE_LEVELS = scale([['rested', 'Rested'], ['fine', 'Fine'], ['tired', 'Tired'], ['weary', 'Weary'], ['exhausted', 'Exhausted'], ['drained', 'Drained'], ['dead_on_feet', 'Dead on your feet'], ['collapsed', 'Collapsed']]);

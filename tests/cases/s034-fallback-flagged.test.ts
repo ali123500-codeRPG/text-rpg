@@ -14,7 +14,7 @@ describe('34 Fallback is flagged', () => {
     const roll = vi.spyOn(ruleset, 'eventRoll').mockReturnValue({ actorId: 'player', roll: 60, tier: 'success', modifiers: [] });
     const s = makeVillage();
     s.turn = 5;
-    const bad: StagePlan = { ...villageStagePlan('success'), event: { summary: 'x', challenge: 'none', gain: 'extreme' } };
+    const bad: StagePlan = { ...villageStagePlan('success'), places: [], zones: [], bands: [], cast: [], rewards: [], frontiers: [], event: { summary: 'x', challenge: 'none', gain: 'extreme' } };
     const weave = vi.fn(async () => bad);
     const d = new ScenarioDirector({ weave, clock: new VirtualClock() });
     const nActors = s.actors.length;
@@ -26,12 +26,12 @@ describe('34 Fallback is flagged', () => {
     expect(entry.detail!.errors).toEqual([expect.objectContaining({ code: 'grades_misfit' })]);
     expect(s.hidden.stage).toMatchObject({ challenge: 'none', gain: 'none' });
     expect(s.actors).toHaveLength(nActors); // no new cast
-    expect(s.stage.zoneIds).toContain('tav_common'); // the place's saved zones
+    expect(s.zones.map((z) => z.id)).toContain('tav_common'); // the place's saved zones
 
     // the flags stay until the next scenario start
     weave.mockResolvedValue(null as never);
     weave.mockResolvedValueOnce({ ...villageStagePlan('success'), places: [], bands: [], cast: [], rewards: [], frontiers: [], hiddenTerms: [],
-      zones: [{ key: 'snug', place: 'tavern', kind: ZK.room, name: 'the snug', look: 'a cramped side room', cover: 'some', light: 'dim', links: [{ to: 'tav_common', label: 'the common room', sight: true }] }] });
+      zones: [{ key: 'snug', place: 'tavern', kind: ZK.room, name: 'the snug', look: 'a cramped side room', light: 'dim', ways: [{ to: 'tav_common', label: 'the common room' }] }] });
     s.turn = 9;
     await d.startScenario(s, createRng(s.rngState));
     expect(s.stage.fallback).toBeUndefined();

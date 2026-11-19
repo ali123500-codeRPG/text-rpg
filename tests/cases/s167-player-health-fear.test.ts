@@ -15,17 +15,19 @@ import { BT } from '../../src/library/raceIds';
 import { isActive } from '../../src/engine/relations';
 import { FR } from '../../src/library/tableIds';
 import type { PartStateKey } from '../../src/scales';
+import { HEALTH_LEVELS } from '../../src/scales';
 
 it('167 a hit that moves the player to a new health level pays the health fear', () => {
   let checked = 0;
   for (let seed = 1; seed < 400 && checked < 5; seed++) {
-    const s = makeVillage({ playerZone: 'tav_common' });
+    const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] }); // the field's slimes play no part
     s.actors.find((a) => a.id === 'patron_1')!.mind!.overrides = { player: 'hostile' };
     s.player.core.condition.hpLostPct = 40;
     const before = healthLevel(s.player);
     resolveTurn(s, { intent: intent({ action: { type: 'attack', target: 'patron_1' } }), aimed: false, agentOutputs: [plannerOut('patron_1', act('attack', 'player'))], spokespeople: [] }, createRng(seed));
-    if (healthLevel(s.player) === before) continue;
+    if (HEALTH_LEVELS.pos(healthLevel(s.player)) <= HEALTH_LEVELS.pos(before)) continue; // a worse level only (a level-up in the turn can raise health)
     checked++;
+    // a Resolve roll at Critical Success pays (and logs) nothing; these seeds roll none
     expect(s.log.some((l) => l.code === 'morale' && (l.detail as { actorId: string }).actorId === 'player')).toBe(true);
   }
   expect(checked).toBe(5);
@@ -45,7 +47,7 @@ it('167b a hit that cripples a part rolls the part fear, once per hit; Destroyed
   expect(partFearCost(fears[FR.own_part_crippled], ['neck', 'left_arm'], human)).toBe(45);
   expect(partFearCost(fears[FR.own_part_destroyed], ['head'], human)).toBe(45);
   const dragon = getLibrary().bodyTypes[BT.winged_quadruped].parts;
-  expect(partFearCost(fears[FR.own_part_crippled], ['tail'], dragon)).toBe(5 * 6 / dragon.length);
+  expect(partFearCost(fears[FR.own_part_crippled], ['tail'], dragon)).toBeCloseTo(5 * 6 / dragon.length, 9);
   const twelve = [...human, ...human.map((p) => ({ ...p, id: p.id + '_2' }))];
   expect(partFearCost(fears[FR.own_part_crippled], ['left_arm'], twelve)).toBe(7.5);
   let checked = 0, paid = 0;

@@ -1,10 +1,10 @@
 // The action deck shaped by personality: code orders the groups and actions by what the character is drawn to, and marks
-// an action they are pulled away from "against your nature". Nothing is added or taken away; a middling character keeps the
+// an action they are pulled away from as against their nature (the deck shows a cracked mask). Nothing is added or taken away; a middling character keeps the
 // plain order.
 import { describe, expect, it } from 'vitest';
 import { buildPlayerView } from '../../src/views';
 import { deck } from '../../src/ui/deck';
-import { AGAINST_NATURE, pullOf } from '../../src/ui/ideaLeans';
+import { pullOf } from '../../src/ui/ideaLeans';
 import { personalityOf } from '../../src/ruleset/personality';
 import { PA, VL } from '../../src/library/tableIds';
 import { CONFIG } from '../../src/config';
@@ -28,7 +28,7 @@ describe('the action deck by personality', () => {
     expect(order.indexOf('talk')).toBeGreaterThan(order.indexOf('use'));
     const talk = shy.find((x) => x.group === 'talk')!.actions.filter((a) => a.kind === 'talk' || a.kind === 'persuade');
     expect(talk.length).toBeGreaterThan(0);
-    for (const a of talk) expect(a.note).toContain(AGAINST_NATURE);
+    for (const a of talk) expect(a.against).toBe(true);
     expect(kinds(shy)).toEqual(kinds(deck({ pv: buildPlayerView(s), s })));
   });
 
@@ -43,6 +43,6 @@ describe('the action deck by personality', () => {
     const s = g.game.state()!;
     const out = deck({ pv: buildPlayerView(s), s, broken: true, self: { nerve: 0, traits: { [PA.pride]: 80, [PA.sociability]: 90 }, values: [] } });
     expect(out[0].group).toBe('getaway');
-    expect(out[0].actions.find((a) => a.kind === 'yield')!.note).toContain(AGAINST_NATURE);
+    expect(out[0].actions.find((a) => a.kind === 'yield')!.against).toBe(true);
   });
 });

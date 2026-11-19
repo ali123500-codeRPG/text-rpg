@@ -1,13 +1,16 @@
 // Library viewer: every library table drawn from the same modules the game runs, so it shows the
 // library exactly as code sees it. Bundled into dist/library/ by scripts/build.mjs. Tables without a custom view
 // get the generic cards, so a new table shows up with no edit here.
-import { BT } from '../library/raceIds';
+import { BT, RC } from '../library/raceIds';
+import { sizeOf as bodySize } from '../library';
+import { FIGURE_CREDITS, figureKey, figureUpright } from '../library/figureModels';
+import { figure3d } from './figure3d';
 import './styles.css';
 import './libraryViewer.css';
 import type { NpcTemplate, NpcRoleDef, ThemeDef, PersonalityLean, RoutineSet, EssenceDef, Personality, TierUnlock, ClassDef, HealingDef, FearDef, ComposureDef, AchievementDef, AchievementTag, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
 import { classTree, condName } from '../ruleset/access';
 import { baneSkill, chainRollLine, defeatsRoll, isBane } from '../ruleset/bane';
-import { achLevel, achXp, rewardLines, rewardName, rewardXp, tierUnlockLine } from '../ruleset/achRewards';
+import { achLevel, achXp, questLevelXp, questXpLevel, rewardLines, rewardName, tierUnlockLine } from '../ruleset/achRewards';
 import { ACH_HEAD_NAMES, ACH_TAGS } from '../library/achievementIds';
 import { branchLabel, branchRoots, chainHead, chainRows, chainTag, isBareHead } from '../ruleset/achChains';
 import { MOD_SOURCES, MOD_TYPE_NAMES, type ModSource, type StackedType } from '../ruleset/modSources';
@@ -43,6 +46,7 @@ import { PK } from '../library/perkIds';
 import { classMaxLevel, creationPoints, startLevel } from '../library/spawn';
 import { blessedClass, blessingGods } from '../ruleset/blessings';
 import { cap } from '../words';
+import { armReachM, volumeM3 } from '../library/bodySize';
 /** D-276: an augment's share as the viewer shows it: ×share, or a percentage augment's rate of the receiving skill */
 const augmentShareText = (a: { share?: number; kind?: string }): string => a.kind === 'percent'
   ? ` +${Math.round((a.share ?? CONFIG.AUGMENT_PERCENT_RATE) * 100)}% of its own skill per 100`
@@ -91,18 +95,21 @@ function typedId(v: string): Node | null {
   }
   return hit[0] ? link(hit[0], v, hit[1]) : h('span', { title: v }, hit[1]);
 }
-/** any value as code holds it: primitives as text, lists as chips, objects as nested rows */
+/** a plain number as shown: rounded to the third digit after the dot */
+const num = (x: number): string => String(+x.toFixed(3));
+/** any value as code holds it: primitives as text (numbers rounded), lists as chips, objects as nested rows */
 function val(v: unknown, depth = 0): Node | string {
   if (v === null || v === undefined) return none('—');
+  if (typeof v === 'number') return num(v);
   if (v instanceof Node) return v;
   if (typeof v === 'string') { const t = typedId(v); if (t) return t; }
   if (Array.isArray(v)) {
     if (!v.length) return none('empty');
     if (v.every((x) => typeof x === 'string' && typedId(x))) return h('span', {}, ...v.flatMap((x, i) => [i ? ', ' : '', typedId(x as string)!]));
-    if (v.every((x) => typeof x !== 'object')) return h('span', { class: 'lv-chips' }, v.map((x) => chip(String(x))));
+    if (v.every((x) => typeof x !== 'object')) return h('span', { class: 'lv-chips' }, v.map((x) => chip(typeof x === 'number' ? num(x) : String(x))));
     return h('div', { class: 'lv-sub' }, v.map((x) => h('div', { class: 'lv-subitem' }, val(x, depth + 1))));
   }
-  if (typeof v === 'object') return depth > 3 ? JSON.stringify(v) : h('div', { class: 'lv-sub' }, Object.entries(v).map(([k, x]) => row(humanKey(k), val(x, depth + 1))));
+  if (typeof v === 'object') return depth > 3 ? JSON.stringify(v, (_, x) => (typeof x === 'number' ? +x.toFixed(3) : x)) : h('div', { class: 'lv-sub' }, Object.entries(v).map(([k, x]) => row(humanKey(k), val(x, depth + 1))));
   return String(v);
 }
 /** skill IDs are codes: show a skill field, or a table keyed by skill, by the skill's name */
@@ -123,7 +130,6 @@ const named = (k: string, v: unknown): unknown => {
   }
   // fields that hold perk ids show each perk as a link that opens its details
   const perkLinks = (ids: string[]) => links('perks', ids.map((id) => [id, lib.perks[id]?.name ?? id]));
-  if (k === 'unlockPerk' && typeof v === 'string') return perkLinks([v]);
   if (k === 'levelPerks' && v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([lv, ids]) => [`level ${lv}`, perkLinks(ids as string[])]));
   if (/perks?$|quirks?$/i.test(k) && Array.isArray(v) && v.length && v.every((x) => typeof x === 'string' && lib.perks[x])) return perkLinks(v as string[]);
   if (Array.isArray(v)) return v.map((x) => (x && typeof x === 'object' ? Object.fromEntries(Object.entries(x).map(([a, b]) => (SKILL_KEYED.has(k) ? [skillName(a), b] : [a, named(a, b)]))) : SKILL_KEYED.has(k) && typeof x === 'string' ? skillName(x) : x));
@@ -177,8 +183,8 @@ const leanText = (l?: PersonalityLean) => {
 /** NG10: gear as item links with their level; picked items (not pinned on the template) say so */
 const itemLinks = (ids: string[], pins: readonly string[]) => h('span', {}, ...ids.flatMap((id, i) => [i ? ', ' : '',
   link('gear', id, lib.items[id] ? label(lib.items[id].name) : id), lib.items[id] ? ` (${equipName(itemLevel(lib.items[id]) ?? 'crude')}${pins.includes(id) ? '' : ', picked'})` : '']));
-/** NG2, NG8: a template's skills before each copy's spread (templateSkills with no actor), high-band skills tagged */
-const skillList = (skills: Record<string, { raw: number; state?: string }>) => ((l) => (l.length ? h('span', {}, ...l.flatMap(([id, s], i) => [i ? ', ' : '', link('skills', id, skillName(id)), ` ${s.raw}${s.state === 'tagged' ? ' (tagged)' : ''}`])) : none('none')))(
+/** NG2, NG8: a template's skills before each copy's spread (templateSkills with no actor), high-band skills tagged, low-band flawed (FC8 b) */
+const skillList = (skills: Record<string, { raw: number; state?: string }>) => ((l) => (l.length ? h('span', {}, ...l.flatMap(([id, s], i) => [i ? ', ' : '', link('skills', id, skillName(id)), ` ${s.raw}${s.state === 'tagged' ? ' (tagged)' : s.state === 'flawed' ? ' (flawed)' : ''}`])) : none('none')))(
   Object.entries(skills).sort(([, a], [, b]) => b.raw - a.raw));
 /** NG2, NG21: an NPC role or theme: its skill bands (share of the rank's anchor), a theme's rank titles, and the templates using it */
 function layerCard(sec: 'npcRoles' | 'themes', id: string, e: Entry, title: string): HTMLElement {
@@ -203,14 +209,34 @@ function layerCard(sec: 'npcRoles' | 'themes', id: string, e: Entry, title: stri
 const fitText = (fit?: number) => (fit === undefined ? 'set by hand' : `fit ${Math.round(fit * 100)}%`);
 const essenceList = (t: NpcTemplate) => ((l) => (l.length ? h('span', {}, ...l.flatMap((x, i) => [i ? ', ' : '', link('essences', x.row.id, x.row.name), ` (${fitText(x.fit)})`])) : none('none')))(templateEssences(t));
 
+/** every small table of a view (not the table view, which scrolls in its own box, nor the perk ladder grid) is marked
+ * lv-ctbl and names each cell by its column (data-k), so on a phone a row shows as a small card of labelled values
+ * instead of scrolling sideways (CSS, max-width 760px) */
+function labelCells(root: HTMLElement): void {
+  for (const t of Array.from(root.querySelectorAll<HTMLTableElement>('table.hs-tbl'))) {
+    if (t.closest('.lv-ladder')) continue;
+    t.classList.add('lv-ctbl');
+    const heads = Array.from(t.querySelectorAll<HTMLTableCellElement>(':scope > thead > tr:first-child > th')).map((c) => c.textContent?.trim() ?? '');
+    for (const r of Array.from(t.querySelectorAll<HTMLTableRowElement>(':scope > tbody > tr')))
+      Array.from(r.querySelectorAll<HTMLElement>(':scope > td, :scope > th')).forEach((c, i) => { if (heads[i] && !c.dataset.k) c.dataset.k = heads[i]; });
+  }
+}
+
 // ---------- Body figure: a body type's parts, tinted by impact or lit when an item covers them ----------
 const IMPACT_TONE: Record<string, string> = { essential: 'lv-ess', normal: 'lv-norm', non_essential: 'lv-non' };
-function figure(ct: BodyType | undefined, cls: (part: string) => string): HTMLElement | null {
-  if (!ct?.figure) return null;
-  const f = h('div', { class: 'bf-svg lv-fig' });
-  f.innerHTML = `<svg viewBox="${ct.figure.viewBox}" role="img" aria-label="${ct.name} body">${Object.entries(ct.figure.parts)
-    .map(([id, d]) => `<path class="${cls(id)}" d="${d}"><title>${id === 'general' ? ct.general.name : label(id)}</title></path>`).join('')}</svg>`;
-  return f;
+/** each tone's colour on the 3D figure (the same tokens the key chips use) */
+const TONE_TOKEN: Record<string, string> = { 'lv-ess': '--danger', 'lv-norm': '--accent', 'lv-non': '--c3', 'lv-on': '--accent', 'lv-off': '--rule' };
+/** BV1 b: the 3D figure of a body type (its built shape) or a race (its model), turnable; a click names the part */
+function figure(ct: BodyType | undefined, cls: (part: string) => string, raceId?: string): HTMLElement | null {
+  if (!ct) return null;
+  const key = figureKey(raceId, ct.id), out = h('p', { class: 'bf-out', 'aria-live': 'polite' });
+  const size = bodySize(ct, raceId ? lib.races?.[raceId] : undefined), name = (id: string) => (id === 'general' ? ct.general.name : label(id));
+  const f = figure3d({ key, upright: figureUpright(key), size, raceSize: size, personSize: bodySize(lib.bodyTypes[BT.humanoid], lib.races?.[RC.human]),
+    tint: (part) => ({ token: TONE_TOKEN[cls(part)] ?? '--accent' }), label: `${ct.name} body`, width: 150, height: 150, turnable: true, ground: false,
+    onPick: (part) => { out.textContent = part ? name(part) : ''; } });
+  const credit = FIGURE_CREDITS[key];
+  // BV12 b: a model's credit wherever it is shown (CC-BY asks for it)
+  return h('div', { class: 'lv-fig' }, f, out, credit ? h('p', { class: 'lv-credit' }, 'Model: ', h('a', { href: credit.url, target: '_blank', rel: 'noopener' }, credit.title), ` by ${credit.author} (${credit.licence})`) : null);
 }
 const impactOf = (ct: BodyType, part: string) => (part === 'general' ? 'essential' : ct.parts.find((p) => p.id === part)?.impact ?? 'normal');
 
@@ -231,7 +257,9 @@ function gearCard(i: ItemDef, id = i.id): HTMLElement {
   const covers = new Set(i.armor?.covers ?? []);
   return card('gear', id, i, label(i.name), [chip(i.kind, toneFor('Kind', i.kind)), ...flags, ...(i.tags ?? []).map((t) => chip(t, toneFor('Flag', t)))],
     h('p', { class: 'lv-look' }, i.look),
+    i.family ? row('Family', lib.itemFamilies?.[i.family]?.name ?? i.family) : null, // IR30: Mundane, or a special family
     i.gearClass ? row('Gear class', typedId(i.gearClass) ?? i.gearClass) : null,
+    i.gearType ? row('Gear type', link('gearTypes', i.gearType, lib.gearTypes?.[i.gearType]?.name ?? i.gearType)) : null, // IR23: its reach or coverage comes from the type
     req ? row('Needs', `${req.need} true skill in `, link('skills', req.skill, skillName(req.skill)), ` (${equipName(req.level)} item)`) : row('Needs', none('nothing')),
     row('Bulk', String(i.bulk)), row('Value', `${itemValue(null, i)} coin${benefits(i).length ? ` (${benefits(i).map((b) => `${b.what}: ${+b.coin.toFixed(2)}`).join(' · ')})` : ''}`),
     i.grips !== undefined ? row('Grips', String(i.grips)) : null,
@@ -248,8 +276,12 @@ function gearCard(i: ItemDef, id = i.id): HTMLElement {
 }
 function gear(): HTMLElement[] {
   const kinds = [...new Set(Object.values(lib.items).map((i) => i.kind))];
-  const all = kinds.map((kind) => h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, `${label(kind)}`),
-    h('div', { class: 'lv-grid' }, Object.values(lib.items).filter((i) => i.kind === kind).map((i) => gearCard(i)))));
+  const byKind = (items: ItemDef[], pre = '') => kinds.filter((k) => items.some((i) => i.kind === k)).map((kind) => h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, `${label(kind)}`),
+    h('div', { class: 'lv-grid' }, items.filter((i) => i.kind === kind).map((i) => gearCard(i, pre ? `${pre}-${i.id}` : i.id)))));
+  const all = byKind(Object.values(lib.items));
+  // IR30: one pane per item family (Mundane pieces scale only by their level; special families stand on a Mundane base)
+  const families = Object.values(lib.itemFamilies ?? {}).map((f) => ({ f, items: Object.values(lib.items).filter((i) => i.family === f.id) })).filter((x) => x.items.length)
+    .map(({ f, items }) => ({ key: `family-${f.id}`, title: f.name, n: items.length, content: [h('p', { class: 'lv-look' }, f.rule), ...byKind(items, f.id)] }));
   // the starter kit: every item tagged 'starter' (starterKit in src/library/spawn.ts)
   const kit = Object.values(lib.items).filter((i) => i.tags?.includes('starter'));
   const rule = h('article', { class: 'lv-card lv-fixed' }, h('header', {}, h('h3', {}, 'How the starter kit is given'), chip('starterKit · src/library/spawn.ts')),
@@ -261,6 +293,7 @@ function gear(): HTMLElement[] {
   const kitKinds = [...new Set(kit.map((i) => i.kind))];
   return panes([
     { key: 'all', title: 'All gear', n: Object.keys(lib.items).length, content: all },
+    ...families,
     { key: 'starter', title: 'Starter kit', n: kit.length, content: [
       h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'Starter kit'), h('div', { class: 'lv-grid wide' }, rule)),
       ...kitKinds.map((kind) => h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, `Starter ${label(kind)}`),
@@ -397,8 +430,11 @@ function perks(): HTMLElement[] {
   const ladderRows = Object.keys(lib.skills).filter((s) => ladder.some((d) => d.ladder!.skill === s))
     .map((s): [string, (c: string) => PerkDef[]] => [skillName(s), (c) => ladder.filter((d) => d.ladder!.skill === s && String(d.ladder!.milestone) === c)]);
   const allSteps = [...new Set(allParts.map((d) => d.allStep!.step))].sort((x, y) => x - y).map(String);
-  const allRows = Object.values(lib.trees).filter((t) => allParts.some((d) => d.allStep!.treeId === t.id))
-    .map((t): [string, (c: string) => PerkDef[]] => [t.name, (c) => allParts.filter((d) => d.allStep!.treeId === t.id && String(d.allStep!.step) === c)]);
+  // every tree has a row, so a tree with no All-XX perk yet shows as an empty row; one that can never earn its All-XX says why
+  const neverWhy = (t: { rating?: string; skills: string[] }) => { const need = CONFIG.ALL_STEP_SKILLS[t.rating ?? 'normal'] ?? null;
+    return need === null ? ' · never (inferior tree)' : t.skills.length < need ? ` · never (${t.skills.length} of ${need} skills)` : ''; };
+  const allRows = Object.values(lib.trees)
+    .map((t): [string, (c: string) => PerkDef[]] => [t.name + neverWhy(t), (c) => allParts.filter((d) => d.allStep!.treeId === t.id && String(d.allStep!.step) === c)]);
   const classLevels = [...new Set(classes.flatMap((c) => Object.keys(c.levelPerks ?? {}).map(Number)))].sort((x, y) => x - y).map(String);
   // capstones (ClassDef.capstones) get their own column: picked at the level cap, each with its own access rule
   const classCols = [...classLevels.map((l) => `Level ${l}`), ...(classes.some((c) => c.capstone?.length || c.capstones?.length) ? ['Capstones'] : [])];
@@ -450,6 +486,22 @@ function gearClasses(): HTMLElement[] {
         row('Use', g.use), row('Skill', link('skills', g.skill, skillName(g.skill))),
         row('Items', items.length ? h('span', {}, ...items.flatMap((i, n) => [n ? ', ' : '', link('gear', i.id, `${label(i.name)} (${equipName(itemLevel(i) ?? 'crude')}${items.filter((o) => o.name === i.name).length > 1 ? `, bulk ${i.bulk}` : ''})`)])) : none('none yet')));
     }))];
+}
+
+// ---------- Gear types ----------
+// IR23: a type sets a weapon's reach or an armor's coverage; every item of the type shares it
+function gearTypes(): HTMLElement[] {
+  const all = Object.values(lib.gearTypes ?? {}), humanoid = lib.bodyTypes[BT.humanoid];
+  const itemsOf = (t: string) => Object.values(lib.items).filter((i) => i.gearType === t);
+  const itemsRow = (t: string) => { const items = itemsOf(t); return row('Items', items.length ? links('gear', items.map((i) => [i.id, label(i.name)])) : none('none yet')); };
+  const group = (title: string, list: typeof all, body: (t: (typeof all)[number]) => (Node | null)[]) => h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, title),
+    h('div', { class: 'lv-grid' }, list.map((t) => card('gearTypes', t.id, t, t.name, [chip(t.covers ? 'armor' : 'weapon', toneFor('Kind', t.covers ? 'armor' : 'weapon'))], ...body(t), itemsRow(t.id)))));
+  return [h('p', { class: 'hs-note' }, 'A gear type sets a weapon\'s length past the hand (it reaches the wielder\'s arm plus that), a bow\'s range, or what an armor piece covers. Every item of the type shares it; a thrown attack keeps its own range.'),
+    group('Weapons: length', all.filter((t) => t.lengthM !== undefined), (t) => [row('Length past the hand', `${t.lengthM} m`),
+      row('Reach', `the wielder's arm + ${t.lengthM} m (${+(armReachM(humanoid.size!) + t.lengthM!).toFixed(3)} m for a person)`)]),
+    group('Weapons: range', all.filter((t) => t.reachM !== undefined), (t) => [row('Reach', `${t.reachM} m`)]),
+    group('Armor: coverage', all.filter((t) => t.covers), (t) => [h('div', { class: 'lv-armor' }, figure(humanoid, (p) => (t.covers!.includes(p) ? 'lv-on' : 'lv-off')),
+      h('div', {}, row('Covers', val(t.covers!.map(label)))))])];
 }
 
 // Healing: what each source restores in words, morale included, so the table view shows it too (the raw % fields stay in Code)
@@ -523,7 +575,7 @@ function races(): HTMLElement[] {
   return [h('div', { class: 'lv-grid' }, Object.values(lib.races ?? {}).map((r) => {
     const ct = lib.bodyTypes[r.bodyTypeId];
     return card('races', r.id, r, r.name, [chip(INTELLIGENCE.name(r.intelligence), toneFor('Intelligence', INTELLIGENCE.name(r.intelligence)))],
-      h('div', { class: 'lv-armor' }, figure(ct, (p) => IMPACT_TONE[impactOf(ct, p)]), h('div', {},
+      h('div', { class: 'lv-armor' }, figure(ct, (p) => IMPACT_TONE[impactOf(ct, p)], r.id), h('div', {},
         row('Body', link('bodyTypes', r.bodyTypeId, lib.bodyTypes[r.bodyTypeId]?.name ?? r.bodyTypeId)),
         row('HP multiplier', `×${r.hpMultiplier}`),
         row('Intelligence', INTELLIGENCE.name(r.intelligence)),
@@ -541,6 +593,7 @@ function bodyTypes(): HTMLElement[] {
     h('div', { class: 'lv-grid wide' }, Object.values(lib.bodyTypes).map((c) => card('bodyTypes', c.id, c, c.name, [chip(c.general.size, toneFor('Size', c.general.size))],
       h('div', { class: 'lv-armor' }, figure(c, (p) => IMPACT_TONE[impactOf(c, p)]), h('div', {},
         row('General area', `${c.general.name} · ${c.general.size}`),
+        ...(c.size ? [row('Size', `${c.size.lengthM} × ${c.size.widthM} × ${c.size.heightM} m (length × width × height), ${+volumeM3(c.size).toFixed(2)} m³`)] : []),
         row('Natural attacks', c.naturalAttacks.length ? val(c.naturalAttacks.map((a) => `${a.name ?? a.id} (${skillName(a.skill ?? '')})`)) : none('none')),
         row('Fallback attack', skillName(c.fallback.attackSkill)),
         row('Races', links('races', Object.values(lib.races ?? {}).filter((r) => r.bodyTypeId === c.id).map((r) => [r.id, r.name]))),
@@ -665,7 +718,6 @@ function unlockRow(c: ClassDef): HTMLElement | null {
   const lines: (Node | string)[][] = [
     ...Object.entries(c.unlock ?? {}).map((e) => sk(e)),
     ...(c.unlockAny ?? []).map((g) => ['one of: ', ...Object.entries(g).flatMap((e, i) => [i ? ', ' : '', ...sk(e)])]),
-    ...(c.unlockPerk ? [['the perk ', link('perks', c.unlockPerk, lib.perks[c.unlockPerk]?.name ?? c.unlockPerk)]] : []),
     ...Object.entries(c.unlockPerkWith ?? {}).map(([k, n]) => {
       const has = Object.values(lib.perks).filter((d) => ((d as unknown as Record<string, number>)[k] ?? 0) >= (n as number));
       return [`an active perk with ${PERK_NUMBERS[k] ?? humanKey(k).toLowerCase()} ${n}`, ...(has.length ? [' (', ...has.flatMap((d, i) => [i ? ', ' : '', link('perks', d.id, d.name)]), ')'] : [])];
@@ -675,8 +727,9 @@ function unlockRow(c: ClassDef): HTMLElement | null {
   // NR36: other ways in (Knight: Knight Trainee at its top level)
   const ors = (c.orUnlocks ?? []).map((r) => [...Object.entries(r.unlock ?? {}).flatMap((e, i) => [i ? ', ' : '', ...sk(e)]),
     ...Object.entries(r.unlockClass ?? {}).flatMap(([id, lv]) => [link('classes', id, lib.classes[id]?.name ?? id), lv === 'max' ? ` at its top level (${classMaxLevel(id)})` : ` level ${lv}`])]);
+  const main = lines.length; // "all hold" speaks of the main rule only; the other ways in follow as "or instead"
   if (ors.length) lines.push(...ors.map((l) => ['or instead: ', ...l]));
-  return lines.length ? row(lines.length > 1 ? 'Unlocks when all hold' : 'Unlocks when', h('div', { class: 'lv-sub' }, lines.map((l) => h('div', {}, ...l)))) : null;
+  return lines.length ? row(main > 1 ? 'Unlocks when all hold' : 'Unlocks when', h('div', { class: 'lv-sub' }, lines.map((l) => h('div', {}, ...l)))) : null;
 }
 /** skill floors a character of the class always meets: its own floors plus its unlock skills (classFloors in src/library/spawn.ts) */
 function floorsRow(c: ClassDef): HTMLElement | null {
@@ -696,7 +749,7 @@ function classes(): HTMLElement[] {
       c.story ? h('p', { class: 'lv-story' }, c.story) : null,
       row('Top level', `${classMaxLevel(c.id)} (from its tier)`),
       unlockRow(c), floorsRow(c),
-      ...fields(c as unknown as Entry, ['id', 'name', 'tier', 'story', 'capstone', 'capstones', 'unlock', 'unlockAny', 'unlockPerk', 'unlockPerkWith', 'unlockClass', 'floors']),
+      ...fields(c as unknown as Entry, ['id', 'name', 'tier', 'story', 'capstone', 'capstones', 'unlock', 'unlockAny', 'unlockPerkWith', 'unlockClass', 'orUnlocks', 'floors']),
       c.capstone?.length || c.capstones?.length ? row('Capstones', h('div', { class: 'lv-sub' },
         ...(c.capstone ?? []).map((id) => h('div', {}, link('perks', id, lib.perks[id]?.name ?? id), ' ', chip('default'))),
         ...(c.capstones ?? []).map((x) => h('div', {}, link('perks', x.perk, lib.perks[x.perk]?.name ?? x.perk), ' ', chip('alternate'), ' ', ...access(x.needs))))) : null))),
@@ -914,11 +967,11 @@ function questsView(): HTMLElement[] {
   return [
     h('p', { class: 'hs-note' }, 'Quests have no fixed list: each one is a job someone gives you in play, held in a deal, and kept in your save (see them on the Play screen\'s Quests page or with /quests). These are the rules every quest follows. Quest achievements are under Achievements.'),
     h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'Rules'), h('div', { class: 'lv-grid wide' },
-      fixed(card('quests', 'reward', {}, 'Reward levels and XP', [chip('REWARD_XP_CURVE · rewardXp · QUEST_GAIN_LEVEL')],
-        h('p', { class: 'hs-note' }, 'A quest\'s reward level is set when you accept it, from how much the scenario stands to gain. A quest pays the XP of its reward level from the same equation as achievements.'),
-        tbl(['Level', 'XP', 'Scenario gain when accepted'], QUEST_REWARD_LEVELS.keys.map((lv) => {
+      fixed(card('quests', 'reward', {}, 'Reward levels and XP', [chip('REWARD_XP_CURVE · questLevelXp · QUEST_XP_LEVELS_UP · QUEST_GAIN_LEVEL')],
+        h('p', { class: 'hs-note' }, `A quest's reward level is set when you accept it, from how much the scenario stands to gain. A quest pays the XP of an achievement ${CONFIG.QUEST_XP_LEVELS_UP} reward levels higher, from the same equation: a level 0 quest pays what a level ${rewardName(questXpLevel('zero'))} achievement does.`),
+        tbl(['Level', 'XP', 'Same as achievement level', 'Scenario gain when accepted'], QUEST_REWARD_LEVELS.keys.map((lv) => {
           const g = gainsFor(lv);
-          return [QUEST_REWARD_LEVELS.name(lv), String(rewardXp(lv)), g.length ? g.join(', ') : 'none yet (kept for story quests)'];
+          return [QUEST_REWARD_LEVELS.name(lv), String(questLevelXp(lv)), rewardName(questXpLevel(lv)), g.length ? g.join(', ') : 'none yet (kept for story quests)'];
         })))),
       fixed(card('quests', 'defeat-xp', {}, 'Defeat jobs against weak foes', [chip('questXp · weakFoeTaper')],
         h('p', { class: 'lv-formula' }, `XP × min(1, ${CONFIG.DEFEAT_XP_TAPER} × average foe power ÷ your power)`),
@@ -1030,10 +1083,11 @@ function threadboundView(): HTMLElement[] {
 function essencesView(): HTMLElement[] {
   const C = CONFIG;
   const grades = ESSENCE_GRADES.keys.map((g) => `${ESSENCE_GRADES.name(g)} ×${C.ESSENCE_GRADE_MULT[g] ?? 1}`).join(', ');
+  // the rule itself is the same for every essence of a kind: it lives once, under Equations → Essences
   const fromText = (e: EssenceDef): Node | string => e.from.deed
-    ? 'A deed: a scenario you resolve at Great Success or better, in which you beat no foe whose race or body type has essences. It is built on the skill you used most in that scenario.'
+    ? 'A deed (the rule: Equations → Essences)'
     : h('span', {}, 'Beating a notable ', e.from.race ? link('races', e.from.race, lib.races?.[e.from.race]?.name ?? e.from.race) : e.from.bodyType ? link('bodyTypes', e.from.bodyType, lib.bodyTypes[e.from.bodyType]?.name ?? e.from.bodyType) : '?',
-      ` foe: one whose power is at least ${Math.round(C.ESSENCE_NOTABLE_SHARE * 100)}% of yours, or a notable or rolled NPC. Each such foe rolls once, ever. A scenario you resolve at Great Success or better can also offer one from the foes you beat in it.`);
+      ' foe (the rule: Equations → Essences)');
   const split = (e: EssenceDef) => { const w = e.skills.reduce((n, x) => n + x.weight, 0) || 1;
     return e.skills.length ? e.skills.map((x) => `${skillName(x.skill)} ${Math.round((x.weight / w) * 100)}%`).join(', ') : 'the skill you used most in the scenario, all of it'; };
   const all = Object.values(lib.essences ?? {});
@@ -1045,9 +1099,10 @@ function essencesView(): HTMLElement[] {
       row('Trait', e.trait ? link('perks', e.trait, lib.perks[e.trait]?.name ?? e.trait) : none('none yet: essence traits are not written')),
       e.quirk ? row('Quirk', link('perks', e.quirk, lib.perks[e.quirk]?.name ?? e.quirk)) : null,
       row('Comes from', fromText(e)),
+      e.from.min || e.from.max ? row('Owner needs', [...Object.entries(e.from.min ?? {}).map(([sk, b]) => `${skillName(sk)} at least ${b}`), ...Object.entries(e.from.max ?? {}).map(([sk, b]) => `${skillName(sk)} at most ${b}`)].join(', ')) : null,
       e.from.deed ? null : row('NPC templates', ((ts) => (ts.length ? h('span', {}, ...ts.flatMap(([t, fit], i) => [i ? ', ' : '', link('templates', t.id, t.label ?? t.id), ` (${fitText(fit)})`])) : none('none carry it')))(
         Object.values(lib.templates).flatMap((t): [NpcTemplate, number | undefined][] => templateEssences(t).filter((x) => x.row.id === e.id).map((x) => [t, x.fit])))),
-      e.from.deed ? null : ((n) => row('Picked', n === 1 ? `always: the only essence of that ${e.from.race ? 'race' : 'body type'}` : `by weight ${e.weight} among the ${n} essences of that ${e.from.race ? 'race' : 'body type'}`))((e.from.race ? all.filter((x) => x.from.race === e.from.race) : all.filter((x) => x.from.bodyType === e.from.bodyType)).length)))),
+      e.from.deed ? null : row('Picked', `by weight ${CONFIG.ESSENCE_PICK_WEIGHT[e.id]} against the other essences the same NPC carries`)))),
   ];
 }
 
@@ -1055,6 +1110,7 @@ function essencesView(): HTMLElement[] {
 const CUSTOM: Section[] = [
   { key: 'gear', title: 'Gear', table: 'items', view: gear },
   { key: 'gearClasses', title: 'Gear classes', table: 'gearClasses', view: gearClasses },
+  { key: 'gearTypes', title: 'Gear types', table: 'gearTypes', view: gearTypes },
   { key: 'essences', title: 'Essences', table: 'essences', view: essencesView },
   { key: 'threadbound', title: 'Threadbound', table: 'items', view: threadboundView, count: Object.values(lib.items).filter((i) => i.threadbound).length },
   { key: 'perks', title: 'Perks', table: 'perks', view: perks },
@@ -1119,17 +1175,18 @@ function autoFacets(table: Record<string, Entry>): Facets {
   return (e: Entry) => keys.map((k) => [humanKey(k), typeof e[k] === 'string' ? typedId(e[k] as string)?.textContent ?? (e[k] as string) : (e[k] as string)]);
 }
 
-const NAMES: Partial<Record<keyof Library, string>> = { templates: 'NPCs', npcRoles: 'NPC roles', themes: 'NPC themes', durations: 'Clock', routineSets: 'Routine sets', zoneKinds: 'Zone kinds', edgeKinds: 'Edge kinds', zoneSizes: 'Zone sizes', roadLengths: 'Road lengths', roadDangers: 'Road dangers', noiseLevels: 'Noise levels', visibilityLevels: 'Visibility levels', values: 'Values', layouts: 'Layouts' };
+const NAMES: Partial<Record<keyof Library, string>> = { templates: 'NPCs', npcRoles: 'NPC roles', themes: 'NPC themes', durations: 'Clock', routineSets: 'Routine sets', zoneKinds: 'Title kinds', wallKinds: 'Wall kinds', openingKinds: 'Way kinds', zoneSizes: 'Zone sizes', roadLengths: 'Road lengths', roadDangers: 'Road dangers', noiseLevels: 'Noise levels', visibilityLevels: 'Visibility levels', values: 'Values', layouts: 'Layouts', barrierMaterials: 'Materials', status: 'Old skill IDs' };
 const SECTIONS: Section[] = [...CUSTOM, ...(Object.keys(lib) as (keyof Library)[])
   .filter((k) => typeof lib[k] === 'object' && !CUSTOM.some((c) => c.table === k) && k !== 'trees' && Object.keys(lib[k] as object).length)
   .map((k) => ({ key: k, title: NAMES[k] ?? humanKey(k), table: k }))];
 
 // the rail in groups; a table not named here (a new one) lands in More
 const RAIL_GROUPS: [string, string[] | null][] = [
-  ['Items', ['gear', 'threadbound', 'gearClasses']],
+  ['Items', ['gear', 'threadbound', 'gearClasses', 'gearTypes']],
   ['Library', ['perks', 'essences', 'races', 'bodyTypes', 'classes', 'starts', 'gods', 'skills', 'achievements']],
-  ['Rules', ['standIns', 'stacking', 'equations', 'attackModes', 'durations', 'healing', 'composure', 'quests', 'fears', 'status']],
-  ['Places', ['zoneKinds', 'zoneSizes', 'edgeKinds', 'barrierKinds', 'roadLengths', 'roadDangers', 'layouts', 'noiseLevels', 'visibilityLevels']],
+  ['Rules', ['standIns', 'stacking', 'equations', 'attackModes', 'durations', 'quests']],
+  ['Body and mind', ['healing', 'composure', 'fears']],
+  ['Places', ['zoneKinds', 'zoneSizes', 'edgeKinds', 'barrierKinds', 'barrierMaterials', 'roadLengths', 'roadDangers', 'layouts', 'noiseLevels', 'visibilityLevels']],
   ['People', ['templates', 'npcRoles', 'themes', 'roles', 'activities', 'routines', 'routineSets', 'services']],
   ['Personality', ['nerve', 'personalityAxes', 'personalityTypes', 'tensions', 'values']],
   ['More', null], // a table not named above (a new one) lands here
@@ -1139,7 +1196,7 @@ const sizeOf = (s: Section) => s.count ?? Object.keys(lib[s.table] as object).le
 const rail = h('nav', { class: 'hs-rail', 'aria-label': 'Library tables' }, h('div', { class: 'hs-brand' }, 'LIB', h('span', { class: 'ar' }, `v${lib.version}`)),
   RAIL_GROUPS.flatMap(([g, keys]) => {
     const list = keys ? keys.flatMap((k) => SECTIONS.filter((s) => s.key === k)) : SECTIONS.filter((s) => !RAIL_GROUPS.some(([, k]) => k?.includes(s.key)));
-    const grp = g.toLowerCase(); // each group has its own colour (CSS [data-group]), so the breaks between them read at a glance
+    const grp = g.toLowerCase().replace(/ /g, '-'); // each group has its own colour (CSS [data-group]), so the breaks between them read at a glance
     const items = list.map((s) => { const n = sizeOf(s); return h('a', { href: `#${s.key}`, 'data-sec': s.key, 'data-group': grp, class: railFolds.has(grp) ? 'lv-railfold' : '', 'aria-label': `${s.title}, ${n} entries` }, s.title, h('span', { class: 'lv-n', 'aria-hidden': 'true' }, String(n))); });
     // clicking a group's label folds its tables away (the open table stays); remembered in this browser
     const head = h('button', { type: 'button', class: 'lv-railgroup', 'data-group': grp, 'aria-expanded': String(!railFolds.has(grp)), onclick: () => {
@@ -1651,6 +1708,7 @@ function route(): void {
     colourBy = COLOUR_BY[sec.key] ?? '';
     facetOf = facetsFor(sec);
     body.replaceChildren(...(notice ? [h('p', { class: 'lv-notice', role: 'status' }, notice)] : []), ...viewOf(sec));
+    labelCells(body);
     notice = '';
     const tabs = body.querySelector('.lv-tabs');
     subRail.replaceChildren(...(tabs ? [tabs] : []));

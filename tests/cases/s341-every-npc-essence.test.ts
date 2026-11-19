@@ -1,0 +1,110 @@
+// 341 Every NPC has an essence (NE1-NE5): every template and every person or beast the composer can build carries at least
+// one essence row. Beasts get shared rows by natural weapon (NE1 a), people rows come from the humanoid body so elves carry
+// them (NE2 a), Lookout's Eyes is for watchers and hunters (NE3 a). An NPC the player kills or bests with no row is flagged
+// as a bug report, essence_gap (NE4). A row may also set min / max skills its owner must meet, so a row can be kept to Divine owners. Every row's pick weight lives in one table, CONFIG.ESSENCE_PICK_WEIGHT.
+import { describe, expect, it } from 'vitest';
+import { makeVillage } from '../harness';
+import { composeError, composeTemplate, spawnNpc } from '../../src/library/spawn';
+import { getLibrary } from '../../src/library';
+import { TP } from '../../src/library/templateIds';
+import { ES } from '../../src/library/essenceIds';
+import { RC, BT } from '../../src/library/raceIds';
+import { RO, TH } from '../../src/library/npcLayerIds';
+import { SK } from '../../src/library/skillIds';
+import { offersFromDefeats, templateEssences } from '../../src/engine/essence';
+import { isBugCode } from '../../src/save/bugs';
+import { CONFIG } from '../../src/config';
+import type { Rng } from '../../src/types';
+
+const ids = (c: { race: string; role: string; theme: string; rank: string }) => templateEssences(composeTemplate(c, 'x')).map((x) => x.row.id);
+
+describe('every NPC has an essence', () => {
+  it('NE1-NE3: every template, and every person or beast mix the composer accepts, carries a row at every rank', () => {
+    makeVillage();
+    const lib = getLibrary();
+    for (const t of Object.values(lib.templates)) expect(templateEssences(t).length, t.id).toBeGreaterThan(0);
+    for (const role of Object.values(lib.npcRoles!)) for (const theme of Object.values(lib.themes!)) for (const race of Object.values(lib.races ?? {})) {
+      if ((role.kind !== 'beast') !== (race.bodyTypeId === BT.humanoid)) continue; // people are humanoid, beasts are not
+      for (const rank of ['rank_0', 'rank_1', 'rank_3', 'rank_6', 'rank_8']) {
+        const c = { race: race.id, role: role.id, theme: theme.id, rank };
+        if (!composeError(c)) expect(ids(c).length, `${role.name} ${theme.name} ${race.name} ${rank}`).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it('NE1 a: a beast carries the rows of the natural weapons it has; a person never does', () => {
+    makeVillage();
+    const beast = (race: string) => ids({ race, role: RO.beast, theme: TH.wild_beasts, rank: 'rank_3' });
+    expect(beast(RC.wolf)).toEqual([ES.fang_nose]);
+    expect(beast(RC.boar)).toEqual([ES.horn_hide]);
+    expect(beast(RC.tiger)).toEqual([ES.fang_nose, ES.claw_pounce]);
+    expect(beast(RC.crocodile)).toEqual([ES.fang_nose, ES.lashing_tail]);
+    expect(beast(RC.slime)).toEqual([ES.gel_patience]);
+    for (const id of [ES.fang_nose, ES.horn_hide, ES.claw_pounce, ES.lashing_tail]) expect(ids({ race: RC.human, role: RO.brute, theme: TH.road_bandits, rank: 'rank_6' })).not.toContain(id);
+  });
+
+  it('D-362: a beast whose Resolve is above every weapon skill carries Cornered Nerve; one whose weapons outgrow it does not', () => {
+    makeVillage();
+    const beast = (race: string, rank: string) => ids({ race, role: RO.beast, theme: TH.wild_beasts, rank });
+    for (const race of [RC.wolf, RC.boar, RC.tiger, RC.dragon, RC.python]) {
+      expect(beast(race, 'rank_0'), race).toEqual([ES.cornered_nerve]); // Resolve 50, weapons about 15
+      expect(beast(race, 'rank_3'), race).not.toContain(ES.cornered_nerve); // weapons 65 over Resolve 50
+    }
+    expect(ids({ race: RC.human, role: RO.leader, theme: TH.village_folk, rank: 'rank_0' })).not.toContain(ES.cornered_nerve); // beasts only
+  });
+
+  it('min / max: a row can be kept to owners whose skill is at least or at most a value, steps past 100 included', () => {
+    makeVillage();
+    const lib = getLibrary().essences!, row = lib[ES.fang_nose];
+    const wolf = (rank: string) => ids({ race: RC.wolf, role: RO.beast, theme: TH.wild_beasts, rank });
+    expect(Object.values(lib).some((r) => r.from.min || r.from.max)).toBe(false); // the provision only: no row sets one yet
+    try {
+      lib[ES.fang_nose] = { ...row, from: { ...row.from, min: { [SK.bite]: 'divine' } } }; // Divine (400) and up only
+      expect(wolf('rank_transcendent')).not.toContain(ES.fang_nose); // Bite 300
+      expect(wolf('rank_8')).toContain(ES.fang_nose); // Divine: Bite 400
+      expect(wolf('rank_9')).toContain(ES.fang_nose); // Divine+: Bite 500, no top
+      lib[ES.fang_nose] = { ...row, from: { ...row.from, max: { [SK.bite]: 150 } } }; // kept from anyone past Beyond
+      expect(wolf('rank_6')).toContain(ES.fang_nose); // Beyond: Bite 150
+      expect(wolf('rank_7')).not.toContain(ES.fang_nose); // Mythic: Bite 200
+    } finally { lib[ES.fang_nose] = row; }
+  });
+
+  it('NE2 a: an elf carries what a human of the same role and theme carries', () => {
+    makeVillage();
+    for (const role of [RO.soldier, RO.talker, RO.sneak, RO.worker]) {
+      const c = { role, theme: TH.village_folk, rank: 'rank_3' };
+      if (composeError({ ...c, race: RC.human })) continue;
+      expect(ids({ ...c, race: RC.elf })).toEqual(ids({ ...c, race: RC.human }));
+    }
+  });
+
+  it('NE3 a: watchers and hunters carry Lookout\'s Eyes; every other person carries it too, picked rarely (weight 0.25)', () => {
+    makeVillage();
+    expect(ids({ race: RC.human, role: RO.watcher, theme: TH.town_watch, rank: 'rank_3' })).toEqual([ES.lookout_eyes]);
+    expect(ids({ race: RC.human, role: RO.hunter, theme: TH.village_folk, rank: 'rank_3' })).toEqual([ES.lookout_eyes]);
+    expect(ids({ race: RC.human, role: RO.soldier, theme: TH.town_watch, rank: 'rank_3' })).toEqual([ES.gate_habit, ES.lookout_eyes]);
+    const w = CONFIG.ESSENCE_PICK_WEIGHT;
+    expect(w[ES.lookout_eyes] / (w[ES.lookout_eyes] + w[ES.gate_habit])).toBe(0.2); // a guard gives it 1 time in 5
+  });
+
+  it('every essence row has its pick weight in the one table, CONFIG.ESSENCE_PICK_WEIGHT', () => {
+    makeVillage();
+    for (const id of Object.keys(getLibrary().essences!)) expect(CONFIG.ESSENCE_PICK_WEIGHT[id], id).toBeGreaterThan(0);
+  });
+
+  it('NE4: an NPC the player killed with no row on its list is flagged as a bug report', () => {
+    const s = makeVillage();
+    const lib = getLibrary(), saved = lib.essences!;
+    const thief = spawnNpc(s, TP.thief, { id: 'thief_x', zone: s.player.zone, placeId: s.player.placeId, bandId: 'tavern_folk' });
+    s.actors.push(thief);
+    thief.core.condition.hpLostPct = 200; thief.mind!.hitByPlayer = true;
+    const carried = templateEssences(lib.templates[TP.thief]).map((x) => x.row.id);
+    lib.essences = Object.fromEntries(Object.entries(saved).filter(([id]) => !carried.includes(id))); // every row the thief carries gone
+    const dice: Rng = { state: 1, next: () => 0, int: (lo) => lo, d100: () => 1 };
+    offersFromDefeats(s, [thief], dice);
+    lib.essences = saved;
+    expect(s.log.filter((e) => e.code === 'essence_gap').map((e) => (e.detail as { npc: string }).npc)).toEqual(['thief_x']);
+    expect(isBugCode('essence_gap')).toBe(true);
+    expect(s.player.progression?.essenceOffers ?? []).toEqual([]);
+  });
+});

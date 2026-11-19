@@ -1,8 +1,8 @@
 // 157 All-50 round 3 (PT8–PT11): Grit (Resolve's part: Endurance augments Resolve at 0.25, through PerkDef.augments),
 // Against the Grain (Parry's part: no heavy-weapon gap shift on the owner's parries), Iron Rim (Block's part: the shield
-// pool takes ×0.75). Swordsman unlocks with Medium or Heavy Weapons 40 and Parry 40, and Blade Wall works with either.
-// PT12: Misdirection (Vanishing's part: Lying augments Vanishing at 0.25); Fade Back parked (D-232).
-// PT9: Strike and Fade leaves attacks from hiding as they were: nobody rolls twice against the owner in a turn.
+// pool takes ×0.75). Swordsman unlocks with Medium or Heavy Weapons 60 and Parry 80, and Blade Wall works with either.
+// PT12: Misdirection (Vanishing's part: Guile augments Vanishing at 0.25); Fade Back parked (D-232).
+// PT9 + VS3: Strike and Fade gives a watcher a second roll (Vanishing) only when the attack from hiding made it aware.
 import { describe, expect, it } from 'vitest';
 import { fit, forcedRng, makeVillage, place, beside } from '../harness';
 import { effectiveSkill, ruleset } from '../../src/ruleset';
@@ -47,19 +47,19 @@ describe('157 All-50 round 3', () => {
     expect(augmentsOf(s.player, SK.endurance)).toEqual([]); // one way only
   });
 
-  it('PT12 Misdirection: Vanishing\'s part, a quarter of Lying augments every Vanishing roll; Fade Back stays parked', () => {
+  it('PT12 Misdirection: Vanishing\'s part, a quarter of Guile augments every Vanishing roll; Fade Back stays parked', () => {
     expect(SKILL_PARTS[SK.vanishing]).toBe(PK.misdirection);
     expect(BUILT_PERKS.has(PK.misdirection)).toBe(true);
     expect(BUILT_PERKS.has(PK.fade_back)).toBe(false);
     expect(Object.values(SKILL_PARTS)).not.toContain(PK.fade_back);
     const s = makeVillage();
-    skill(s.player, SK.lying, 40);
+    skill(s.player, SK.guile, 40);
     skill(s.player, SK.vanishing, 20);
     const before = effectiveSkill(s, s.player, SK.vanishing).value;
     give(s.player, PK.misdirection);
-    expect(augmentsOf(s.player, SK.vanishing)).toContainEqual({ source: 'Lying (augments, Misdirection)', value: 40 * CONFIG.MISDIRECTION_SHARE });
+    expect(augmentsOf(s.player, SK.vanishing)).toContainEqual({ source: 'Guile (augments, Misdirection)', value: 40 * CONFIG.MISDIRECTION_SHARE });
     expect(effectiveSkill(s, s.player, SK.vanishing).value).toBeCloseTo(before + 40 * CONFIG.MISDIRECTION_SHARE, 9);
-    expect(augmentsOf(s.player, SK.lying)).toEqual([]); // one way only
+    expect(augmentsOf(s.player, SK.guile)).toEqual([]); // one way only
   });
 
   it('Against the Grain: a heavy blow loses its gap shift against the owner\'s parry, not against a block', () => {
@@ -97,19 +97,19 @@ describe('157 All-50 round 3', () => {
     expect(lost()).toBeCloseTo(base * CONFIG.IRON_RIM_MULT, 9);
   });
 
-  it('Swordsman unlocks with Parry 40 and Medium or Heavy Weapons 40', () => {
+  it('Swordsman unlocks with Parry 80 and Medium or Heavy Weapons 60', () => {
     const run = (medium: number, heavy: number) => {
       const s = makeVillage();
       s.player.core.classes = s.player.core.classes.filter((c) => c.classId !== CL.swordsman);
-      skill(s.player, SK.parry, 40);
+      skill(s.player, SK.parry, 80);
       skill(s.player, SK.melee_medium, medium);
       skill(s.player, SK.melee_heavy, heavy);
       unlockClasses(s);
       return s.player.core.classes.some((c) => c.classId === CL.swordsman);
     };
-    expect(run(40, 0)).toBe(true);
-    expect(run(0, 40)).toBe(true);
-    expect(run(39, 39)).toBe(false);
+    expect(run(60, 0)).toBe(true);
+    expect(run(0, 60)).toBe(true);
+    expect(run(59, 59)).toBe(false);
   });
 
   it('Blade Wall: a heavy weapon parry is never outnumbered either', () => {
@@ -125,7 +125,8 @@ describe('157 All-50 round 3', () => {
     expect(crowded()).toBe(false);
   });
 
-  it('PT9: a shot from hiding keeps the shooter hidden and Strike and Fade adds no second roll for anyone', () => {
+  it('PT9, VS3: a shot from hiding keeps the shooter hidden; with Strike and Fade only a watcher it made aware rolls again, at Vanishing', () => {
+    let faded = 0;
     for (const perk of [false, true]) for (let seed = 1; seed <= 10; seed++) {
       const s = makeVillage();
       beside(s, 'patron_1');
@@ -136,10 +137,15 @@ describe('157 All-50 round 3', () => {
       for (const a of s.actors) if (a.mind) delete a.mind.knowledge.player;
       play(s, { intent: intent({ action: { type: 'attack', target: 'patron_1', item: 'bow' } }) }, seed * 31);
       expect(s.player.posture).toBe('stealthy');
-      const rolls = (id: string) => s.log.filter((l) => l.code === 'stealth_contest' && (l.detail as { observerId: string }).observerId === id).length;
-      expect(rolls('patron_1')).toBe(1);
-      expect(rolls('guard_1')).toBe(1);
+      for (const id of ['patron_1', 'guard_1']) {
+        const rolls = s.log.filter((l) => l.code === 'stealth_contest' && (l.detail as { observerId: string }).observerId === id).map((l) => l.detail as { kind: string; skill: string; gap: number });
+        expect(rolls[0].kind).toBe('attack');
+        // a second roll only for a watcher the shot spotted (and that perceives the fade, like any stealth roll)
+        expect(rolls.length).toBeLessThanOrEqual(perk && rolls[0].gap > 0 ? 2 : 1);
+        if (rolls.length === 2) { expect(rolls[1]).toMatchObject({ kind: 'vanish', skill: SK.vanishing }); faded++; }
+      }
       expect(npc(s, 'patron_1').mind!.knowledge.player?.status).not.toBe('unaware'); // the target at least suspects the shooter's zone
     }
-  });
+    expect(faded).toBeGreaterThan(0);
+  }, 20000); // twenty fresh villages; the player with and without the perk, the patron and the guard each get a combat level worked out afresh
 });

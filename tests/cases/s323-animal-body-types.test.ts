@@ -29,7 +29,8 @@ describe('323 animal body types', () => {
   it('every animal composes, spawns with its race speed and attacks, and grips only with jaws', () => {
     const s = toStoryStart(makeVillage());
     for (let i = 0; i < ANIMALS.length; i += 3) { // the cast cap is 8: the village's 5 plus 3 animals a plan
-      const p = villageStagePlan();
+      // WI1: the village is built by the first plan; later plans add to it and never declare it again
+      const p = i ? { ...villageStagePlan(), places: [], zones: [], bands: [], frontiers: [] } : villageStagePlan();
       for (const race of ANIMALS.slice(i, i + 3)) p.cast.push({ compose: { race, role: RO.beast, theme: TH.wild_beasts, rank: 'rank_1' }, key: race, label: 'a beast', name: race,
         appearance: 'a beast', band: 'village_watch', routineSetId: 'gate_guard', slots: { post: 'street_door' }, awarenessOfPlayer: 'unaware', motive: 'roams' });
       expect(validateStagePlan(s, p, ctx)).toEqual([]);
@@ -40,7 +41,7 @@ describe('323 animal body types', () => {
       expect(a.core.bodyTypeId).toBe(r.bodyTypeId);
       expect(moveSpeed(s, a)).toEqual(r.speed); // no armor: the race's own speeds
       expect(usableModes(s, a).map((m) => m.itemId)).toEqual(r.naturalAttacks!.map((m) => `natural:${m.id}`));
-      expect(gripReachM(s, a)).toBe(r.bodyTypeId === BT.quadruped ? 0.5 : 0); // a snake carries nothing
+      expect(gripReachM(s, a)).toBeCloseTo(r.bodyTypeId === BT.quadruped ? 0.2 * actorBody(s, a).reachScale : 0, 9); // a snake carries nothing; SZ9, SZ10: jaws 0.2 m past the nose × the race's length
       expect(actorBody(s, a).naturalArmor).toEqual(r.naturalArmor); // AB13: boar, lizard, crocodile
     }
     const tiger = s.actors.find((x) => x.names.current === RC.tiger)!, dog = s.actors.find((x) => x.names.current === RC.dog)!;

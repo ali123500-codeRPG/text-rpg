@@ -15,12 +15,9 @@ import { applyWindow } from '../engine/chase';
 import { formatWeaverView, formatWorldView } from './format';
 import { computePerception } from '../perception';
 
-/** V11 switch: send the rejected plan back with the repair (set by the V11 test) */
-export let REPAIR_WITH_PLAN = true;
-export function setRepairWithPlan(on: boolean): void { REPAIR_WITH_PLAN = on; }
 /** the validator's errors for a repair call, with the rejected plan (V11) */
 const repairNote = (errors?: PlanError[], rejected?: StagePlan) => (errors?.length ? `\n\nREPAIR: your previous plan failed validation:\n${errors.filter((e) => !e.repaired).map((e) => `- ${e.code}: ${e.message}`).join('\n')}` +
-  (REPAIR_WITH_PLAN && rejected ? `\n\nREJECTED_PLAN:\n${JSON.stringify(rejected)}\n\nReturn the whole plan again with only these errors fixed; keep everything else as it is.` : '') : '');
+  (rejected ? `\n\nREJECTED_PLAN:\n${JSON.stringify(rejected)}\n\nReturn the whole plan again with only these errors fixed; keep everything else as it is.` : '') : '');
 export function createDirector(clock: Clock): ScenarioDirector {
   let ctx: AgentCtx | null = null; // the context of the turn that owns the next Weaver call
   const ctxOf = new WeakMap<object, AgentCtx>();

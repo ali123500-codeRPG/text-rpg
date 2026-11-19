@@ -38,6 +38,17 @@ export const PK = {
   patient_knife: 'PK147', protagonist_mentality: 'PK148', chorus: 'PK151', // CN6-CN8: payoff perks (D-260)
   extract_essence: 'PK149', hollowed: 'PK150', // DX1-DX5: essence extraction (a blessing of Imbra) and the quirk it leaves
   every_answer: 'PK152', ceaseless_guard: 'PK153', endless_answer: 'PK154', // D-337: strike-back limit perks (Riposte 20, Parry 100, merged)
+  blade_against_blade: 'PK155', first_steps_of_the_dance: 'PK156', // level 1 perks of Swordsman and Sword-dancer: they open Riposte and Blade Dance
+  late_bloom: 'PK157', // CB5: A Somebody's level 1 perk
+  any_road_will_do: 'PK158', // UL1: Unwritten Legend's level 1 perk
+  press_the_opening: 'PK159', fall_back_on_me: 'PK160', hug_the_cover: 'PK161', draw_them_in: 'PK162', // Tactics tree 20 perks (TC28 a, TC36 c, TC30 a, TC31 a)
+  never_flat_footed: 'PK163', rally: 'PK164', // Battle Sense 100 (TC35 b), Command 100 (TC39 a)
+  play_dead: 'PK165', // Guile 20 (TC32 a, TC44-TC49)
+  mind_over_body: 'PK166', // Resolve's All-100 part: Resolve adds to health, and trains when Endurance does
+  deflect: 'PK167', grit_your_teeth: 'PK168', hear_me_out: 'PK169', // 20 perks: Parry (LG1 a), Resolve (LG7 c), Persuasion (LG9 b)
+  guarded_answer: 'PK170', dancers_feet: 'PK171', deep_reserves: 'PK172', silver_tongue: 'PK173', unseen_strike: 'PK174', // 40 perks (LG4, LG6, LG8, LG10, LG11)
+  fear_bites_deeper: 'PK175', shadow_work: 'PK176', thick_of_it: 'PK177', free_movement: 'PK178', deeper_soak: 'PK179', honest_face: 'PK180', // 40 perks (LG12, LG14-LG16, LG18, LG19)
+  sharp_answer: 'PK181', // Parry 40 (LG2)
 } as const;
 /** a perk ID: PK + a number */
 export type PerkId = `PK${number}`;

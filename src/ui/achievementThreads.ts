@@ -4,7 +4,7 @@
 // (Sight, Influence…), and fold away under the trunk. Clicking a chain's name or a knot opens the side panel.
 import type { AchievementDef, GameState } from '../types';
 import { getLibrary } from '../library';
-import { achXp, achievementInfo, achievementName, earnedAtText, kindName } from '../engine/xp';
+import { achievementInfo, achievementName, earnedAtText, kindName } from '../engine/xp';
 import { branchLabel, chainRows, chainTag, endInSight, heldChains, isBareHead, type HeldChain } from '../ruleset/achChains';
 import { ACH_HEAD_NAMES } from '../library/achievementIds';
 import { h, openPanel, plural, type PanelRow } from './kit';
@@ -13,7 +13,7 @@ import { roman } from '../scales';
 
 export type Knot = { key: string; of?: string; level: string; label: string; name: string; state: 'held' | 'next' | 'later'; turn?: number };
 export type Thread = { root: string; of?: string; kind?: string; knots: Knot[]; have?: number; need?: number; endless?: true };
-export type ChainView = { id: string; tag: string; name: string; place: string; xp: number; turn: number; rows: number;
+export type ChainView = { id: string; tag: string; name: string; place: string; turn: number; rows: number;
   trunk?: Thread; branches: { label: string; threads: Thread[] }[] };
 
 const lib = (): Record<string, AchievementDef> => getLibrary().achievements ?? {};
@@ -72,7 +72,7 @@ export function chainViews(s: GameState, scars: boolean): ChainView[] {
     const name = isBareHead(head) ? ACH_HEAD_NAMES[head].name : cur?.name || achievementName(s, latest);
     const heldN = trunk ? trunk.knots.filter((k) => k.state === 'held').length : 0;
     const place = !trunkC ? '' : !L[head]?.every ? `${roman(heldN)} of ${endInSight(trunkC) ? roman(trunk!.knots.length) : '?'}` : plural(heldN, 'time', 'times');
-    return { id, tag: chainTag(head), name, place, xp: earned.reduce((n, m) => n + achXp(L[m.key!], m.of), 0), turn: latest.turn, rows: earned.length,
+    return { id, tag: chainTag(head), name, place, turn: latest.turn, rows: earned.length,
       ...(trunk ? { trunk } : {}), branches };
   });
 }
@@ -87,7 +87,8 @@ function knotPanel(s: GameState, k: Knot, scars: boolean) {
   if (m) {
     const info = achievementInfo(s, m);
     rows.unshift({ k: 'Name', v: info.name });
-    rows.push({ k: 'You earned it', v: info.why }, { k: 'Reward', v: [`${info.xp} XP`, ...info.rewards].join(' · ') });
+    rows.push({ k: 'You earned it', v: info.why });
+    if (info.rewards.length) rows.push({ k: 'Reward', v: info.rewards.join(' · ') });
   } else rows.push({ k: 'Not yet', v: k.state === 'next' ? 'This is the next level of the chain.' : "A later level."});
   openPanel(scars ? 'Scar' : 'Achievement', rows);
 }
@@ -129,7 +130,7 @@ export function chainCard(s: GameState, v: ChainView, scars: boolean, redraw: ()
       h('div', { class: 'th-title' },
         h('button', { type: 'button', class: 'th-name', onclick: detail }, v.name),
         h('div', { class: 'th-sub' }, v.place ? h('span', { class: 'th-place' }, v.place) : null,
-          h('span', { class: 'th-meta' }, `${fmt(v.xp)} XP · turn ${v.turn}`))),
+          h('span', { class: 'th-meta' }, `turn ${v.turn}`))),
       nBranch && !always ? h('button', { type: 'button', class: 'th-fold', 'aria-expanded': String(open), 'aria-controls': bid, onclick: toggle },
         h('span', { class: 'th-chev', 'aria-hidden': 'true' }), plural(nBranch, 'branch', 'branches')) : null),
     v.trunk ? threadEl(s, v.trunk, scars) : null,

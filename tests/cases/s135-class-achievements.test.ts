@@ -29,7 +29,7 @@ describe('135 class and level achievements', () => {
       if (n === 2) expect(got).toContain(`${ACH.class_max_tier_2}:${t}`);
       if (n >= 3) expect(got).toContain(`${ACH.class_max_tier_3}:${t}`);
     }
-    const step = [ACH.class_tiers_2, ACH.class_tiers_3, ACH.class_tiers_4, ACH.class_tiers_5][Math.min(tiers.size, 5) - 2];
+    const step = [ACH.class_tiers_2, ACH.class_tiers_3, ACH.class_tiers_4, ACH.class_tiers_5, ACH.class_tiers_all][Math.min(tiers.size, 6) - 2]; // every tier: Every Height Climbed
     if (step) expect(got).toContain(step);
     const peak = s.player.progression!.achievements!.find((a) => a.id === `${ACH.class_max_tier_1}:tier_1`);
     if (peak) expect(achievementName(s, peak)).toBe('Peak of the Trained');

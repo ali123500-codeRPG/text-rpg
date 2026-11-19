@@ -1,6 +1,7 @@
 // Scenario orchestration: scenario start (event roll, Weaver, repair retry, WEAVER_TIMEOUT), background stage
 // extensions held in memory per frontier, crossing (waits for a late extension), saved-zone re-entry.
 // The pipeline (W7) injects `weave`, which wraps the real Agent Weaver call and logs it.
+import { wayTo } from '../plan/where';
 import { placeAll } from '../engine/position';
 import { noteLeft } from '../engine/trail';
 import { noteCrossing } from '../engine/chase';
@@ -13,7 +14,7 @@ import type { FrontierWait } from '../engine/resolve';
 import type { PlanContext, PlanError } from './index';
 import { stageFrontiers, validateStagePlan } from './validate';
 import { applyFallbackStage, applyStagePlan, beginScenario, ensurePlace, openingEvents, stealthyArrival } from './apply';
-import { frontiersNearPlayer, isSavedZone, loadSavedZone } from './stage';
+import { frontiersNearPlayer } from './stage';
 import { addRegion, regionCallView, tidyBrief, type RegionCallView } from '../land/brief';
 import { squaresWanted } from '../land/edge';
 
@@ -34,7 +35,7 @@ export type CheckIn = (view: WeaverView) => Promise<CheckinAnswer | null>;
 /** WB6: one Weaver call on a scenario window in free roam: start one now, or not now. null = the call failed. */
 export type Window = (view: WeaverView) => Promise<WindowAnswer | null>;
 
-export type ScenarioOutcome = 'applied' | 'degraded' | 'fallback' | 'loaded';
+export type ScenarioOutcome = 'applied' | 'degraded' | 'fallback';
 export type ScenarioResult = {
   outcome: ScenarioOutcome;
   plan: StagePlan | null;
@@ -144,9 +145,9 @@ export class ScenarioDirector {
     this.held.clear();
     const w = this.begin(state, eventRoll);
     // WZ1 + WZ13: the land comes first; the story's first settlement stands on the brief's start site
-    // WEAVER_TIMEOUT bounds the whole scenario-start wait (the region call, the first call and repair together)
+    // BG-311: a new world's first region call has its own wait; WEAVER_TIMEOUT then bounds the first call and repair together
+    if (this.opening) await this.firstRegion(state, this.opts.clock.now() + CONFIG.REGION_TIMEOUT_MS);
     const deadline = this.opts.clock.now() + CONFIG.WEAVER_TIMEOUT_MS;
-    if (this.opening) await this.firstRegion(state, deadline);
     const { ctx, target } = this.aim(state, eventRoll, w);
     if (ahead) {
       const r = await ahead.result;
@@ -268,14 +269,12 @@ export class ScenarioDirector {
   }
 
   /** NW3 (option A): an NPC waiting at an unbuilt frontier this turn starts the same background Weaver call the player's
-   * frontiers get, at most NPC_BUILDS_PER_TURN a turn and none for a frontier already held. A frontier to a saved zone
-   * just loads it (no call). In free roam too: the NPC's build is an extension, never a scenario of its own. */
+   * frontiers get, at most NPC_BUILDS_PER_TURN a turn and none for a frontier already held. In free roam too: the NPC's build is an extension, never a scenario of its own. */
   private buildAhead(state: GameState): string[] {
     const started: string[] = [];
     const open = stageFrontiers(state);
     for (const w of (state.scratch?.frontierWaits as FrontierWait[] | undefined) ?? []) {
       if (!open.has(w.frontier) || this.held.has(w.frontier)) continue;
-      if (isSavedZone(state, w.frontier)) { loadSavedZone(state, w.frontier); continue; }
       if (started.length >= CONFIG.NPC_BUILDS_PER_TURN) break;
       const h: Held = { ...this.extension(state, w.frontier, true), ahead: true };
       h.result.then((r) => { h.done = r; });
@@ -332,14 +331,6 @@ export class ScenarioDirector {
   }
 
   private async crossTo(state: GameState, key: string, rng: Rng, entry: 'open' | 'stealthy'): Promise<ScenarioResult> {
-    if (isSavedZone(state, key)) {
-      loadSavedZone(state, key);
-      const z = zoneById(state, key)!;
-      state.player.zone = z.id;
-      state.player.placeId = z.placeId;
-      placeAll(state); // ZP1, as a built plan: a spot in the zone, never the point it had in the last one
-      return { outcome: 'loaded', plan: null, errors: [] };
-    }
     let h = this.held.get(key);
     if (!h) this.held.set(key, (h = this.extension(state, key)));
     const r = await h.result;
@@ -355,8 +346,8 @@ export class ScenarioDirector {
 
   private extension(state: GameState, key: string, ahead = false): Held {
     // the frontier's edge: the player's zone when it links there, else (NW3) the zone the NPC waits in
-    const edge = [zoneById(state, state.player.zone), ...state.zones].find((z) => z?.links.some((l) => l.to === key));
-    const link = edge?.links.find((l) => l.to === key);
+    const edge = [zoneById(state, state.player.zone), ...state.zones].find((z) => !!z && !!wayTo(state, z.id, key));
+    const link = edge ? wayTo(state, edge.id, key) : undefined;
     const placeId = ahead && edge ? edge.placeId : state.player.placeId;
     // WB1/WB2: the World builder builds it, with no tier: what is really there, not what luck brings
     const ctx: PlanContext = { tier: state.stage.tier, kind: 'extension', frontierKey: key, placeId, world: true, ...(ahead ? { ahead: true as const } : {}) };

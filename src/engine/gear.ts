@@ -1,4 +1,5 @@
 // Part 5 §4: grips, free gear ops, equip and give (main actions), ground items, Destroyed arm drops, thrown items.
+import { dropOnGround, groundZoneOf } from './ground';
 import { RL } from '../library/tableIds';
 import type { Actor, GameState, GearOp, ImprovisedBase, ItemInstance } from '../types';
 import { CONFIG } from '../config';
@@ -42,9 +43,8 @@ export const hiddenFrom = (i: ItemInstance, a: { id: string }): boolean => !!i.h
  * (CT3) in an open container (where it stands) */
 export function pickUpAt(state: GameState, op: GearOp, taker?: Actor): Located | null {
   if (op.from) { const src = actorById(state, op.from); return src && (!isActive(src) || (!!taker && yieldedTo(state, src, taker))) ? src : null; }
-  const z = state.zones.find((x) => x.groundItems.some((i) => i.id === op.item));
-  const it = z?.groundItems.find((i) => i.id === op.item);
-  if (z && it) return { zone: z.id, ...(it.at ? { pos: it.at } : {}) };
+  const it = state.ground.find((i) => i.id === op.item), z = it && groundZoneOf(state, it);
+  if (z && it) return { zone: z, ...(it.at ? { pos: it.at } : {}) };
   return taker ? inContainer(state, taker, op.item)?.c.at ?? null : null;
 }
 /** CT5: `src` yielded to `taker` and wears a pack: its pack (what it carries stowed) is open to them */
@@ -131,7 +131,7 @@ export function applyGearOps(state: GameState, actor: Actor, ops: GearOp[] | nul
         // FR2: within grip reach of where it lies (BG-85), on a downed actor or on the ground; CT3: in an open container
         const at = pickUpAt(state, op, actor);
         const src = op.from ? actorById(state, op.from) : undefined;
-        const ground = at && !op.from ? zoneById(state, at.zone)?.groundItems : undefined;
+        const ground = at && !op.from ? state.ground : undefined;
         const list = !at || !withinGrip(state, actor, at) ? undefined
           : src ? (src.core.inventory.some((x) => x.id === op.item) ? src.core.inventory : carriedContents(state, src.core.inventory).find((x) => x.inst.id === op.item)?.list) // BG-206: or a bag they carry
           : ground?.some((x) => x.id === op.item) ? ground : inContainer(state, actor, op.item)?.list;
@@ -196,8 +196,7 @@ export function dropToGround(state: GameState, actor: Actor, instId: string, zon
   if (i < 0 || !zone || actor.core.inventory[i].soulbound) return false; // HF18: soulbound gear can't be dropped
   const [it] = actor.core.inventory.splice(i, 1);
   delete it.equippedIn;
-  if (at) it.at = { ...at };
-  zone.groundItems.push(it);
+  dropOnGround(state, { zone: zoneId, ...(at ? { pos: at } : {}) }, it);
   return true;
 }
 
@@ -229,7 +228,8 @@ export function giveItem(state: GameState, actor: Actor, instId: string | null |
   return { id: moved.id, qty: n };
 }
 
-/** equip (main action): put armor on (taking off any worn armor), or take it off when worn. */
+/** equip (main action): put an armor piece on, or take it off when worn. Several pieces can be worn when no body part is
+ * covered twice (IR19): putting one on takes off the worn pieces that cover any of its parts. */
 export function equipArmor(state: GameState, actor: Actor, instId: string | null | undefined, dry = false): boolean {
   const inst = actor.core.inventory.find((x) => x.id === instId);
   if (!inst || itemDef(state, inst.itemId).slot !== 'armor') return false;
@@ -239,7 +239,8 @@ export function equipArmor(state: GameState, actor: Actor, instId: string | null
     return true;
   }
   if (inst.equippedIn?.length) return false;
-  actor.core.inventory.forEach((i) => { if (inArmorSlot(i)) delete i.equippedIn; });
+  const parts = new Set(itemDef(state, inst.itemId).armor?.covers ?? []);
+  actor.core.inventory.forEach((i) => { if (inArmorSlot(i) && itemDef(state, i.itemId).armor?.covers.some((p) => parts.has(p))) delete i.equippedIn; });
   inst.equippedIn = ['armor'];
   return true;
 }

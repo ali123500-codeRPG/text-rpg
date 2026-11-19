@@ -3,7 +3,7 @@ import { AM } from '../../src/library/tableIds';
 import type { Tier } from '../../src/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Actor, AttackRequest, AttackResult, GameEvent, GameState, Intent, Order, RollRequest } from '../../src/types';
-import { makeVillage, actor, place, createRng, beside } from '../harness';
+import { makeVillage, actor, place, createRng, beside, lay } from '../harness';
 import { SK } from '../../src/library/skillIds';
 import { IT } from '../../src/library/itemIds';
 import { PK } from '../../src/library/perkIds';
@@ -58,8 +58,7 @@ vi.mock('../../src/ruleset', async (orig) => {
         // like the real applyEffects: a Destroyed arm drops what it held to the zone's ground
         t.core.condition.parts[F.destroyPart] = -100;
         const held = t.core.inventory.filter((i) => i.equippedIn?.includes(`grip:${F.destroyPart}`));
-        const zone = state.zones.find((z) => z.id === t.zone)!;
-        for (const i of held) { t.core.inventory.splice(t.core.inventory.indexOf(i), 1); delete i.equippedIn; zone.groundItems.push(i); }
+        for (const i of held) { t.core.inventory.splice(t.core.inventory.indexOf(i), 1); delete i.equippedIn; lay(state, t.zone, i, t.pos); }
         return [{ kind: 'damage', actorId: t.id, data: {} }, ...held.map((i) => ({ kind: 'item_dropped', actorId: t.id, data: { itemId: i.id, zone: t.zone } }))];
       },
       recordUse: () => {},
@@ -113,7 +112,7 @@ vi.mock('../../src/views', () => ({
   seesClearlyNow: () => true,
   buildActorView: (state: GameState, id: string) => {
     const a = state.actors.find((x) => x.id === id)!;
-    return { turn: state.turn, self: { id, zone: a.zone, broken: a.mind?.moraleState === 'broken', surrendered: a.mind?.moraleState === 'surrendered' }, perceived: [] };
+    return { turn: state.turn, self: { id, zone: a.zone, slots: {}, broken: a.mind?.moraleState === 'broken', surrendered: a.mind?.moraleState === 'surrendered' }, perceived: [], beliefs: [], map: [] }; // BF79: a broken one's flight reads its beliefs and map
   },
 }));
 
@@ -130,6 +129,8 @@ vi.mock('../../src/minds', async (importOriginal) => {
     fallbackOrder: (v: { self: { id: string } }) => o(v, 'hold', 'fallback'),
     brokenOrder: (v: { self: { id: string } }) => o(v, 'hold', 'broken'),
     nerveHolds: real.nerveHolds, // BF37: the real rule
+    brokenHolds: real.brokenHolds, // BF79: the real rule
+    fleeOrder: real.fleeOrder,
     bindTemplate: (tpl: Order, v: { self: { id: string } }, ctx: { triggerZone?: string; source: Order['source']; triggerId?: string }) => ({
       ...tpl, actorId: v.self.id, target: tpl.target === '$triggerZone' ? ctx.triggerZone : tpl.target === '$player' ? 'player' : tpl.target, source: ctx.source, triggerId: ctx.triggerId,
     }),
@@ -156,11 +157,12 @@ vi.mock('../../src/minds', async (importOriginal) => {
 import { computePending, firedOrders, fromIntent, resolveSpeech, resolveTurn, selectSpokespeople, unclearAddressee, impressionWords } from '../../src/engine';
 import type { TurnInput } from '../../src/engine';
 import { hostile, stance, wary } from '../../src/engine/relations';
+import { groundIn } from '../../src/engine/ground';
 
 type IntentArg = Omit<Partial<Intent>, 'action'> & { action?: Partial<NonNullable<Intent['action']>> };
 const intent = ({ action, ...p }: IntentArg): Intent => ({
   move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null, ...p,
-  action: action ? { type: 'other', skill: '', target: null, targetPart: null, item: null, mode: null, approach: '', stance: 'normal', ...action } : null,
+  action: action ? { type: 'other', skill: '', target: null, targetPart: null, item: null, mode: null, approach: '', ...action } : null,
 });
 const input = (p: Partial<TurnInput> = {}): TurnInput => ({ intent: null, aimed: false, agentOutputs: [], spokespeople: [], ...p });
 const npcAction = (type: string, target: string | null = null) => ({ type, target, skill: null, targetPart: null, aimed: false, defense: null, item: null, mode: null, intent: '' }) as never;
@@ -424,11 +426,12 @@ describe('gear and combat', () => {
     place(s, 'patron_1', s.player.zone); // a knife throw (7 m) reaches its own zone
     F.defended = false;
     resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'patron_1', item: 'dg', mode: AM.throw } }) }), createRng(1));
-    expect(s.zones.find((z) => z.id === s.player.zone)!.groundItems.map((i) => i.id)).toEqual(['dg']);
+    expect(groundIn(s, s.player.zone).map((i) => i.id)).toEqual(['dg']);
     expect(s.player.core.inventory.some((i) => i.id === 'dg')).toBe(false);
   });
   it('a Destroyed sword arm drops the sword; pick up is free and returns it', () => {
     place(s, 'guard_1', 'tav_common');
+    beside(s, 'guard_1', 'player', 0); // close enough that the sword falls within the player's grip reach (FR2)
     F.destroyPart = 'right_arm';
     const ev = resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'guard_1' } }) }), createRng(1));
     const drop = ev.find((e) => e.kind === 'item_dropped')!;

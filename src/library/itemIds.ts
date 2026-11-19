@@ -22,4 +22,14 @@ export const IT = {
   rapier: 'IT53', longsword: 'IT54', turkish_bow: 'IT55', warbow: 'IT56', jack_of_plates: 'IT57', coat_of_plates: 'IT58', heater_shield: 'IT59',
   peerless_rapier: 'IT60', peerless_longsword: 'IT61', peerless_greatsword: 'IT62', peerless_composite_bow: 'IT63', peerless_warbow: 'IT64',
   peerless_crossbow: 'IT65', peerless_jack: 'IT66', peerless_coat_of_plates: 'IT67', peerless_plate: 'IT68', peerless_heater: 'IT69',
+  // IR21: helmets, armor pieces that cover the head (some the neck), Common to Masterwork in each armor weight
+  arming_cap: 'IT70', leather_cap: 'IT71', secret: 'IT72', peerless_cap: 'IT73',
+  mail_coif: 'IT74', kettle_hat: 'IT75', sallet: 'IT76', peerless_sallet: 'IT77',
+  nasal_helm: 'IT78', bascinet: 'IT79', great_helm: 'IT80', peerless_great_helm: 'IT81',
+  // IR25-IR29: gauntlets, an unarmed weapon held in both grips, one pair per level
+  leather_gloves: 'IT82', mail_mittens: 'IT83', plate_gauntlets: 'IT84', peerless_gauntlets: 'IT85',
+  war_spear: 'IT86', // IC6 a: the two-handed spear beside the one-handed one
+  sledgehammer: 'IT87', pick: 'IT88', // BW22 a: breaking tools
 } as const;
+/** BW22 a: the tag that makes an item a breaking tool (a sledgehammer, a pick) */
+export const BREAK_TOOL_TAG = 'break_tool';

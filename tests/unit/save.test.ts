@@ -1,6 +1,6 @@
 import { BT } from '../../src/library/raceIds';
 import { afterEach, describe, expect, it } from 'vitest';
-import { makeVillage, actor } from '../harness';
+import { makeVillage, actor, lay } from '../harness';
 import { CONFIG, resetConfig } from '../../src/config';
 import { getLibrary } from '../../src/library';
 import {
@@ -20,14 +20,14 @@ async function play(st: ReturnType<typeof memoryStore>, s: GameState, from: numb
   for (let t = from; t <= to; t++) {
     s.turn = t;
     s.rngState = 1000 + t;
-    s.flags.last = t;
+    s.clocks.last = t;
     await saveTurn(st, s, rec(s, t));
   }
 }
 
 afterEach(() => {
   resetConfig();
-  delete MIGRATIONS[9];
+  delete MIGRATIONS[10];
 });
 
 describe('save and load', () => {
@@ -59,11 +59,11 @@ describe('save and load', () => {
     const s = makeVillage();
     const st = memoryStore();
     await saveTurn(st, s, rec(s, 0));
-    s.flags.x = 1;
+    s.clocks.x = 1;
     st.failNext = { match: /control\/head/, code: 'quota_exceeded' };
     await expect(saveTurn(st, s, rec(s, 1))).rejects.toMatchObject({ code: 'quota_exceeded', committed: false });
     expect((await head(st)).turn).toBe(0);
-    expect((await loadStory(st, 'test', lib())).state.flags.x).toBeUndefined();
+    expect((await loadStory(st, 'test', lib())).state.clocks.x).toBeUndefined();
   });
 
   it('refuses a tampered page and leaves the save untouched', async () => {
@@ -96,17 +96,16 @@ describe('save and load', () => {
     expect((await head(st)).turn).toBe(0);
   });
 
-  it('flags a placeId that disagrees with the zone, and a stage zone on no place page', async () => {
+  it('flags a placeId that disagrees with the zone', async () => {
     const s = makeVillage();
     s.player.placeId = 'street';
-    s.stage.zoneIds.push('nowhere');
     const st = memoryStore();
     await saveTurn(st, s, rec(s, 0));
     const err = await loadStory(st, 'test', lib()).catch((e) => e);
-    expect(err.report).toEqual(expect.arrayContaining([expect.stringMatching(/player placeId street/), expect.stringMatching(/stage zone nowhere/)]));
+    expect(err.report).toEqual(expect.arrayContaining([expect.stringMatching(/player placeId street/)]));
   });
 
-  it('repairs dangling references and reports them; raw above its cap is a warning (a tagged skill may reach 125)', async () => {
+  it('repairs dangling references and reports them; raw past its cap is fine (no hard limit, D-374 TB7)', async () => {
     const s = makeVillage();
     s.player.journal!.factsWitnessed.push('f_missing');
     actor(s, 'guard_1').mind!.knowledge.ghost = { status: 'aware', source: 'seen', revealed: [] };
@@ -117,17 +116,18 @@ describe('save and load', () => {
     const { state, report } = await loadStory(st, 'test', lib());
     expect(state.player.journal!.factsWitnessed).toEqual([]);
     expect(actor(state, 'guard_1').mind!.knowledge.ghost).toBeUndefined();
-    expect(report).toEqual(expect.arrayContaining([expect.stringMatching(/witnessed facts f_missing/), expect.stringMatching(/belief about ghost/), `warning: player raw ${SK.melee_medium} 104 above its cap 100`]));
-    expect((await loadStory(st, 'test', lib())).report).toEqual([`warning: player raw ${SK.melee_medium} 104 above its cap 100`]); // repair was saved
+    expect(report).toEqual(expect.arrayContaining([expect.stringMatching(/witnessed facts f_missing/), expect.stringMatching(/belief about ghost/)]));
+    expect(report.some((l) => l.includes('above its cap'))).toBe(false);
+    expect((await loadStory(st, 'test', lib())).report).toEqual([]); // repair was saved
   });
 
   it('drops ground items the library no longer has, so zone views cannot throw', async () => {
     const s = makeVillage();
-    s.zones[0].groundItems.push({ id: 'gi1', itemId: 'retired_item' });
+    lay(s, s.zones[0].id, { id: 'gi1', itemId: 'retired_item' });
     const st = memoryStore();
     await saveTurn(st, s, rec(s, 0));
     const { state, report } = await loadStory(st, 'test', lib());
-    expect(state.zones[0].groundItems.map((i) => i.id)).not.toContain('gi1');
+    expect(state.ground.map((i) => i.id)).not.toContain('gi1');
     expect(report).toEqual(expect.arrayContaining([expect.stringMatching(/unknown ground items/)]));
   });
 
@@ -162,11 +162,11 @@ describe('undo', () => {
     await play(st, s, 1, 2);
     await undoTurn(st, 'test');
     const { state } = await loadStory(st, 'test', lib());
-    expect(state.flags.last).toBe(1);
+    expect(state.clocks.last).toBe(1);
     expect(state.rngState).toBe(1002); // not rolled back
     expect(await readTurnRecord(st, 'test', 2)).toBeNull();
     await expect(undoTurn(st, 'test')).rejects.toMatchObject({ code: 'nothing_to_undo' }); // D-72: one turn
-    s.flags.last = 2; s.rngState = 2002;
+    s.clocks.last = 2; s.rngState = 2002;
     await saveTurn(st, s, rec(s, 2)); // redo writes turn 2 again without touching the live engine page
     expect((await loadStory(st, 'test', lib())).state.rngState).toBe(2002);
     await undoTurn(st, 'test');
@@ -194,13 +194,13 @@ describe('cleanup, backups, restore', () => {
     await play(st, s, 1, 6);
     expect((await listBackups(st, 'test')).map((b) => b.turn)).toEqual([6, 4]);
     const { state } = await restoreBackup(st, 'test', 4, lib());
-    expect(state.flags.last).toBe(4);
+    expect(state.clocks.last).toBe(4);
     const h = await head(st);
     expect(h.safety!.turn).toBe(6);
     expect(h.undo).toBeNull();
     await play(st, state, 5, 5);
     expect((await head(st)).safety).toBeUndefined(); // dropped after the next good turn
-    expect((await loadStory(st, 'test', lib())).state.flags.last).toBe(5);
+    expect((await loadStory(st, 'test', lib())).state.clocks.last).toBe(5);
   });
 });
 
@@ -209,109 +209,27 @@ describe('migration and reconcile', () => {
     const s = makeVillage();
     const st = memoryStore();
     await play(st, s, 1, 2);
-    CONFIG.SCHEMA_VERSION = 10;
-    MIGRATIONS[9] = (pages) => { (pages.engine as { flags: Record<string, unknown> }).flags.migrated = true; };
+    CONFIG.SCHEMA_VERSION = 11;
+    MIGRATIONS[10] = (pages) => { (pages.engine as { clocks: Record<string, unknown> }).clocks.migrated = 1; };
     const { state, report } = await loadStory(st, 'test', lib());
-    expect(state.flags.migrated).toBe(true);
-    expect(report).toContain('migrated v9 -> v10');
+    expect(state.clocks.migrated).toBe(1);
+    expect(report).toContain('migrated v10 -> v11');
     const h = await head(st);
-    expect(h).toMatchObject({ schemaVersion: 10, undo: null, safety: { turn: 2 } });
+    expect(h).toMatchObject({ schemaVersion: 11, undo: null, safety: { turn: 2 } });
     expect((await listBackups(st, 'test')).map((b) => b.turn)).toEqual([2]);
     // the safety bookmark can be taken back (it migrates again)
-    expect((await useBookmark(st, 'test', 'safety', lib())).state.flags.migrated).toBe(true);
+    expect((await useBookmark(st, 'test', 'safety', lib())).state.clocks.migrated).toBe(1);
   });
 
   it('refuses when a step is missing and leaves the save untouched', async () => {
     const s = makeVillage();
     const st = memoryStore();
     await saveTurn(st, s, rec(s, 0));
-    CONFIG.SCHEMA_VERSION = 11;
-    MIGRATIONS[9] = () => {};
+    CONFIG.SCHEMA_VERSION = 12;
+    MIGRATIONS[10] = () => {};
     const err = await loadStory(st, 'test', lib()).catch((e) => e);
-    expect(err.report).toContain('schema: no migration step v10 -> v11');
-    expect((await head(st)).schemaVersion).toBe(9);
-  });
-
-  it('v3 -> v4 gives humanoids two legs from the old pool and widens armor that covered legs', () => {
-    const pages: Record<string, unknown> = {
-      'actor.a': { core: { creatureTypeId: 'humanoid', condition: { parts: { head: 100, legs: 40 } } } },
-      'actor.d': { core: { creatureTypeId: 'dragon', condition: { parts: { legs: 10 } } } },
-      'blueprint.b': { data: { armor: { covers: ['general', 'legs'] } } },
-    };
-    MIGRATIONS[3](pages);
-    expect(pages).toEqual({
-      'actor.a': { core: { creatureTypeId: 'humanoid', condition: { parts: { head: 100, left_leg: 40, right_leg: 40 } } } },
-      'actor.d': { core: { creatureTypeId: 'dragon', condition: { parts: { legs: 10 } } } },
-      'blueprint.b': { data: { armor: { covers: ['general', 'left_leg', 'right_leg'] } } },
-    });
-  });
-
-  it('v4 -> v5 keeps old opposed behavior as hostile and renames the colder stance step', () => {
-    const pages: Record<string, unknown> = {
-      engine: { bands: [{ id: 'slimes', relations: { player_band: 'opposed', tavern_folk: 'neutral' } }] },
-      'actor.g': { mind: { overrides: { player: 'opposed', trader: 'friendly' } } },
-      hidden: { stage: { plan: { cast: [{ overrides: [{ actor: 'player', stance: 'opposed' }] }] } }, log: [{ stance: { toward: 'player', step: 'more_opposed' } }] },
-    };
-    MIGRATIONS[4](pages);
-    expect(pages).toEqual({
-      engine: { bands: [{ id: 'slimes', relations: { player_band: 'hostile', tavern_folk: 'neutral' } }] },
-      'actor.g': { mind: { overrides: { player: 'hostile', trader: 'friendly' } } },
-      hidden: { stage: { plan: { cast: [{ overrides: [{ actor: 'player', stance: 'hostile' }] }] } }, log: [{ stance: { toward: 'player', step: 'colder' } }] },
-    });
-  });
-
-  it('v5 -> v6 turns each memory note into a one-entry memory list (PM1)', () => {
-    const pages: Record<string, unknown> = { hidden: { memory: { a: 'saw a stranger', b: '' } } };
-    MIGRATIONS[5](pages);
-    expect(pages).toEqual({ hidden: { memory: { a: [{ turn: 0, text: 'saw a stranger' }], b: [] } } });
-  });
-
-  it('v6 -> v7 stores event noise and visibility by key', () => {
-    const pages: Record<string, unknown> = { engine: { events: [{ kind: 'move', noise: 'silent', visibility: 'high' }, { kind: 'speak', noise: 'normal', visibility: 'low' }] } };
-    MIGRATIONS[6](pages);
-    expect(pages).toEqual({ engine: { events: [{ kind: 'move', noise: 'silent', visibility: 'high' }, { kind: 'speak', noise: 'normal', visibility: 'low' }] } });
-  });
-
-  it('v7 -> v8 moves held items from hand: slots to grip: slots (BG-186)', () => {
-    const pages: Record<string, unknown> = { 'actor.player': { core: { inventory: [{ id: 'bow', equippedIn: ['hand:right_arm', 'hand:left_arm'] }, { id: 'coat', equippedIn: ['armor'] }, { id: 'coin' }] } } };
-    MIGRATIONS[7](pages);
-    expect(pages).toEqual({ 'actor.player': { core: { inventory: [{ id: 'bow', equippedIn: ['grip:right_arm', 'grip:left_arm'] }, { id: 'coat', equippedIn: ['armor'] }, { id: 'coin' }] } } });
-  });
-
-  it('v1 -> v2 turns tier names (old ones too) and roll tierIndex into tier IDs', () => {
-    const pages: Record<string, unknown> = {
-      engine: { stage: { tier: 'Strong' }, events: [{ tier: 'Partial', attack: { attack: { tierIndex: 6, tier: 'Critical Success' } } }] },
-      hidden: { secrets: [{ revealWhen: { type: 'check_passed', minTier: 'Success' } }] },
-    };
-    MIGRATIONS[1](pages);
-    expect(pages).toEqual({
-      engine: { stage: { tier: 1 }, events: [{ tier: -1, attack: { attack: { tier: 3 } } }] },
-      hidden: { secrets: [{ revealWhen: { type: 'check_passed', minTier: 0 } }] },
-    });
-  });
-
-  it('v2 -> v3 turns tier IDs, light, cover and tactics levels into keys; perk tiers stay numbers', () => {
-    const pages: Record<string, unknown> = {
-      engine: {
-        stage: { tier: 1 },
-        zones: [{ id: 'z', cover: 2, light: 1 }],
-        bands: [{ id: 'b', tacticsLevel: 3 }],
-        player: { core: { perks: [{ perkId: 'p', tier: 100 }] } },
-        events: [{ tier: -1, attack: { attack: { tier: 3 }, defense: { tier: -5 } } }],
-      },
-      hidden: { secrets: [{ revealWhen: { type: 'check_passed', minTier: 0 } }] },
-    };
-    MIGRATIONS[2](pages);
-    expect(pages).toEqual({
-      engine: {
-        stage: { tier: 'great_success' },
-        zones: [{ id: 'z', cover: 'heavy', light: 'dim' }],
-        bands: [{ id: 'b', tactics: 'cunning' }],
-        player: { core: { perks: [{ perkId: 'p', tier: 100 }] } },
-        events: [{ tier: 'near_miss', attack: { attack: { tier: 'critical_success', beyond: 1 }, defense: { tier: 'critical_failure', beyond: -2 } } }],
-      },
-      hidden: { secrets: [{ revealWhen: { type: 'check_passed', minTier: 'success' } }] },
-    });
+    expect(err.report).toContain('schema: no migration step v11 -> v12');
+    expect((await head(st)).schemaVersion).toBe(10);
   });
 
   it('follows renamed entries, marks deleted ones dormant, syncs body parts', async () => {

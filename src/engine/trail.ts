@@ -3,6 +3,8 @@ import { CONFIG } from '../config';
 import type { Actor, GameState, Journal } from '../types';
 import { perceivedZoneIds, zoneById } from './relations';
 import { seeLand } from '../land/sight';
+import { seeSquares } from '../plan/fog';
+import { waysOut } from '../plan/where';
 
 /** the player's journal, made empty the first time it is needed */
 export const journalOf = (p: Actor): Journal => (p.journal ??= { secretsKnown: [], factsWitnessed: [], remembered: {}, namesKnown: [] });
@@ -16,15 +18,18 @@ export function noteLeft(state: GameState, from: string): void {
   j.trail = [{ zone: from, left: state.turn }, ...(j.trail ?? []).filter((x) => x.zone !== from)].slice(0, CONFIG.TRAIL_ZONES);
 }
 
-/** the Map page's memory: the player's zone and the zones it sees across sight links join journal.zonesSeen (once each) */
+/** the Map page's memory: the player's title and the titles it looks into join journal.zonesSeen (once each), and the
+ * squares it sees join its fog (PZ12) */
 export function noteZonesSeen(state: GameState): void {
   const p = state.player;
   if (!p.zone) return;
   const j = journalOf(p);
   const seen = (j.zonesSeen ??= []);
-  for (const z of perceivedZoneIds(state, p.zone)) if (!seen.includes(z)) seen.push(z);
+  const ids = perceivedZoneIds(state, p.zone);
+  for (const z of ids) if (!seen.includes(z)) seen.push(z);
   noteVisited(state, p.zone);
   seeLand(state);
+  seeSquares(state, ids.map((id) => zoneById(state, id)!).filter(Boolean)); // PZ12: the floor plan's fog
 }
 
 /** the zones the player has stood in (MAP-33: the map draws them apart from zones only seen); a save made before the list
@@ -55,7 +60,7 @@ export function knownDestinations(state: GameState): { id: string; name: string 
   const out = known.filter((id) => id !== state.player.zone).map((id) => ({ id, name: zoneById(state, id)!.name }));
   for (const id of known) {
     const z = zoneById(state, id)!;
-    for (const l of z.links) if (!l.frontier && !have.has(l.to) && zoneById(state, l.to)) { have.add(l.to); out.push({ id: l.to, name: `${l.label} (from ${z.name})` }); }
+    for (const l of waysOut(state, z.id)) if (!l.frontier && !have.has(l.to) && zoneById(state, l.to)) { have.add(l.to); out.push({ id: l.to, name: `${l.label} (from ${z.name})` }); }
   }
   return out;
 }

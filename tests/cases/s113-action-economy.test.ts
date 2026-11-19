@@ -14,7 +14,7 @@ import { afterEach } from 'vitest';
 
 const intent = (move: Intent['move'], action: Partial<NonNullable<Intent['action']>> | null = null): Intent => ({
   move, gear: null, spoken: null, addressees: null, deferred: [], clarify: null,
-  action: action ? { type: 'attack', skill: '', target: null, targetPart: null, item: null, mode: null, approach: '', stance: 'normal', ...action } : null,
+  action: action ? { type: 'attack', skill: '', target: null, targetPart: null, item: null, mode: null, approach: '', ...action } : null,
 });
 const turn = (s: GameState, i: Intent) => { s.turn += 1; return resolveTurn(s, { intent: i, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(1)); };
 /** metres the player walked in these events */
@@ -56,10 +56,12 @@ describe('113 action economy', () => {
   it('a long move with no action is a dash (the main slot runs too); no running (60% of the legs, CS8) stops it', () => {
     const s = makeVillage();
     place(s, 'player', 'street_door');
+    place(s, 'slime_1', 'field_edge'); // SZ11: a slime 0.3 m high is made out at 0.41 × a person's range; at the field's edge it is near enough that the turn is a fight
     expect(walked(turn(s, intent({ toZone: 'field_far' })))).toBeCloseTo(slots(s, 1, 1), 0);
     // one Crippled leg of two is 50%: still runs
     const one = makeVillage();
     place(one, 'player', 'street_door');
+    place(one, 'slime_1', 'field_edge');
     one.player.core.condition.parts.left_leg = -30;
     expect(walked(turn(one, intent({ toZone: 'field_far' })))).toBeCloseTo(slots(one, 1, 1), 0);
     expect(one.log.some((l) => l.code === 'dash_blocked')).toBe(false);
@@ -67,6 +69,7 @@ describe('113 action economy', () => {
     for (const hurt of [{ left_leg: -30, right_leg: -30 }, { left_leg: -100 }]) {
       const c = makeVillage();
       place(c, 'player', 'street_door');
+      place(c, 'slime_1', 'field_edge');
       Object.assign(c.player.core.condition.parts, hurt);
       expect(walked(turn(c, intent({ toZone: 'field_far' })))).toBeCloseTo(slots(c, 1), 0);
       expect(c.log.some((l) => l.code === 'dash_blocked')).toBe(true);
@@ -75,6 +78,7 @@ describe('113 action economy', () => {
   it('CO13: a movement spends the move time first, then the main time when no action is planned', () => {
     const t = makeVillage();
     place(t, 'player', 'street_door');
+    place(t, 'slime_1', 'field_edge'); // SZ11: a slime 0.3 m high is made out at 0.41 × a person's range; at the field's edge it is near enough that the turn is a fight
     expect(walked(turn(t, intent({ toZone: 'field_far' }, { type: 'attack', target: 'slime_1' })))).toBeCloseTo(slots(t, 1), 0); // a main action planned: the move time only
   });
   it('"after" resolves the action before the move', () => {

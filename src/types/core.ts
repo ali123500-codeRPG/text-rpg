@@ -38,19 +38,14 @@ export type Band = {
   name: string; // public
   goals: string; // hidden text (Weaver)
   temperament: string; // hidden text (Weaver)
-  tactics: Tactics;
   lethal: boolean;
   relations: Record<string, Stance>;
   /** CH5: how far its code-run members chase the player (none: the template's, else CONFIG.CHASE_RANGE_DEFAULT) */
   chase?: import('../scales').ChaseRange;
 };
 
-/** a way out of a zone. drop (SD7): a window or ledge down to a lower zone: only jumped down, with fall damage from the
- * drop; never walked or climbed. barrier: SD3–SD5 a barrier on this way, by its id in GameState.barriers (one record for
- * both sides of the way) */
-export type ZoneLink = { to: string; label: string; sight: boolean; frontier?: true; drop?: true; barrier?: string };
-/** SD3–SD5, BA2–BA7: a door, gate, grate or blocked passage on a way. One record serves both sides; the links on each side
- * name it by id. Breaking one (wear, material, thickness) belongs to the walls thread; this record leaves room for it. */
+/** SD3–SD5, BA2–BA7: a door, gate, grate, shutters or blocked passage on a way. One record serves both sides; its opening
+ * names it by id (Opening.barrier). Breaking one (wear, material, thickness) belongs to the walls thread; this record leaves room for it. */
 export type WayDid = 'unlocked' | 'unbarred' | 'found_locked' | 'found_barred' | 'found_blocked' | 'lock' | 'unlock' | 'bar' | 'unbar' | 'open' | 'shut'
   | 'picked' | 'picking' | 'not_yet' | 'beyond' | 'pick_broke' | 'found_open' | 'found_opens';
 export type Barrier = {
@@ -65,7 +60,7 @@ export type Barrier = {
   material?: string; thicknessCm?: number; // walls thread
   scenario?: number; // the scenario that made it (BA8 counts)
   tried?: string[]; // actors who found it shut by trying it: they know it is locked or barred
-  /** BG-70: standing open: sight (and sound) pass it though its link is not a sight link; anyone can shut it again */
+  /** BG-70: standing open: sight (and sound) pass its opening though it is not seen through shut; anyone can shut it again */
   open?: true;
   /** BA2: a picker's Failure leaves the lock beyond them until their Lockpicking (with tools) is higher than this */
   beyond?: Record<string, number>;
@@ -73,6 +68,9 @@ export type Barrier = {
   graded?: string[];
   /** BA2: seconds of picking done toward opening it in a fight, by picker */
   work?: Record<string, number>;
+  /** BW13 a: seconds of breaking done on it, by breaker (their shares add); wornTurn: the turn of the latest (BW9 b regrowth) */
+  wear?: Record<string, number>;
+  wornTurn?: number;
 };
 /** a zone's four sides, by map compass */
 export type Side = 'n' | 'e' | 's' | 'w';
@@ -118,7 +116,10 @@ export type Region = {
 };
 /** a river or stream: its line downstream, in metres */
 export type Water = { id: string; kind: 'river' | 'stream'; name: string; width: number; pts: Pt[] };
-export type RoadNode = { id: string; kind: 'site' | 'junction' | 'edge'; at: Pt; site?: string; side?: Side };
+/** zone (WI2 a): a junction's zone once built, kept like RoadLine.zone; a junction found on a road later (a road encounter
+ * opening a side way) is a new node of the same kind, added to the region's nodes; feature (RE8): a side way's far end
+ * at a landmark (LandFeature id), named after it */
+export type RoadNode = { id: string; kind: 'site' | 'junction' | 'edge'; at: Pt; site?: string; side?: Side; zone?: string; feature?: string };
 /** WZ8 a stretch of road or path between two nodes; roads branch at junctions */
 export type RoadLine = {
   id: string; kind: 'road' | 'path'; name?: string; danger: import('../scales').RoadDangerKey;
@@ -132,44 +133,97 @@ export type Site = { id: string; size: 'town' | 'village' | 'hamlet'; name: stri
 /** a landmark the brief asked for (a quarry, a ruin, a mill), where code found it room */
 export type LandFeature = { id: string; kind: string; name: string; look: string; at: Pt };
 
-/** FR1: a named piece of furniture in a zone and where it stands: a compass side or corner ('n', 'ne', …), or the middle
- * when left out. Mostly colour: a move can end beside it, and search and stash work where one stands. FR4: one on an edge
- * (a counter, a rail) shows on both sides of it from this one record. grade (OD2): set when someone can do something hard
- * with it, or by the first act on it (OD3); graded: who has tried it, and sees its grade (OD12). */
-export type Furniture = { id: string; kind: string; name: string; at?: string; edge?: true; grade?: Grade; graded?: string[]; beyond?: Record<string, number> };
+/** FR1, PZ1: a named piece of furniture standing at a point (pos, on its floor) in the title it was drawn in (zone): a
+ * counter, a bed, a cart. side: the compass side or corner ('n', 'ne', ...) it was drawn by, or the middle when left out.
+ * Mostly colour: a move can end beside it, and search and stash work where one stands. FR4: one on an edge (a counter, a
+ * rail) shows from both sides. grade (OD2): set when someone can do something hard with it, or by the first act on it
+ * (OD3); graded: who has tried it, and sees its grade (OD12). */
+export type Furniture = { id: string; kind: string; name: string; placeId: PlaceId; zone: string; pos: Pt; floor: number; side?: string; edge?: true;
+  grade?: Grade; graded?: string[]; beyond?: Record<string, number> };
+/** PZ7: a point with the floor it is on (metres above the ground outside) */
+export type Pt3 = Pt & { floor: number };
+/** PZ1 a: a title: the name of a space. Its space is a footprint of any shape (outline, a polygon in metres, corners
+ * counter-clockwise) between a bottom and a top height (floor, top: metres above the ground outside), so each floor of a
+ * building can be named on its own. A point's title is the smallest space that holds it (src/plan/where.ts zoneAt).
+ * Walls, openings, light, clutter and furniture are on the floor plan (src/plan), never on the title. */
 export type Zone = {
   id: string;
   placeId: PlaceId;
   name: string;
   look: string; // public text
-  links: ZoneLink[];
-  cover: Cover;
-  light: Light; // the zone's own light (lamps, hearths); outdoors the sky can brighten it (src/time.ts zoneLight)
-  outdoor?: true; // T3a: under the sky
-  /** metres above the ground outside (0 when unset); stairs change it, never distance across the map (src/scenario/heights.ts) */
-  height?: number;
-  /** CO16 floor area in m² (from the size word, the kind's default size, or the Weaver's own figure) */
-  area?: number;
-  /** CO15 each side's edge kind id (EK); a side not listed is the kind's default */
-  edges?: Partial<Record<Side, string>>;
-  /** CO16 long side ÷ short side, from the kind (corridors and streets are long) */
-  aspect?: number;
-  /** FR1/FR2: its furniture (the kind's defaults, a layout's, or the Weaver's own list) */
-  furniture?: Furniture[];
-  /** the zone kind id (ZK) it was built from (Z2); hand-built test zones may have none */
+  /** the title kind id (ZK) it was drawn from (PZ14); hand-built test titles may have none */
   kind?: string;
-  /** TV4 a road's danger (ROAD_DANGERS); only roads have one */
-  danger?: import('../scales').RoadDangerKey;
-  /** WZ1 the region road line this road zone runs along (RoadLine id): its length and line come from the land */
+  outline: Pt[];
+  floor: number;
+  top: number;
+  /** CO16 floor area in m² it was drawn at (from the size word, the kind's default size, or the Weaver's own figure) */
+  area?: number;
+  /** PZ9: the region road line (RoadLine id) a road's title runs along */
   road?: string;
-  /** set by code (src/scenario/geometry.ts placeZones), never by Claude */
-  rect?: Rect;
-  groundItems: import('./items').ItemInstance[];
+  /** PZ9: a road's centre line, its title drawn ROAD_WIDTH_M wide along it (a land road's points, or a straight line of
+   * its length where no land lies under it); travel walks it */
+  line?: Pt[];
+  /** TV4: the danger of a road with no land line under it (a land road's is on its RoadLine) */
+  danger?: import('../scales').RoadDangerKey;
 };
+/** PZ2: a wall on the floor plan: a segment from a to b standing from floor to top, of a wall kind (library wallKinds, WK) */
+export type Wall = { id: string; placeId: PlaceId; a: Pt; b: Pt; floor: number; top: number; kind: string; material?: string; thicknessM: number; dents?: WallDent[] };
+/** BW11 a, BW13 a: a spot on a wall someone is breaking through: the seconds of work by breaker (their shares add), the turn
+ * of the latest (BW9 b regrowth), and the hole cut there once it is Crippled (an opening, crack) */
+export type WallDent = { at: Pt; wear: Record<string, number>; turn: number; hole?: string };
+/** PZ2: a way: a doorway, gap, window, stairs, ladder or hatch (library openingKinds, OK) at a spot (at, on floor) along a
+ * wall (wall) or in a floor. joins: the titles either side (a frontier's second is its frontier key); labels: how the way
+ * reads from joins[0] and from joins[1]. to: stairs, ladders, hatches and drops reach a point on another floor. barrier: its
+ * door, gate, grate, shutters or rubble (GameState.barriers). seeThrough: with no barrier standing open, whether it shows
+ * the far side (a gap, an arch or a window does; a plain doorway does not). drop (SD7): a window or ledge over lower ground,
+ * only ever jumped down. */
+export type Opening = {
+  id: string; placeId: PlaceId; kind: string;
+  at: Pt; floor: number; wall?: string;
+  widthM: number; heightM: number; sillM?: number;
+  to?: Pt3;
+  joins: [string, string]; labels: [string, string];
+  barrier?: string; seeThrough: boolean;
+  frontier?: true; drop?: true;
+  /** BW11 a: a hole broken halfway through a wall (Crippled): seen and heard through, but only an amorphous body passes */
+  crack?: true;
+};
+/** PZ10 a: how the Weaver, a layout or a test names a way between two titles: open (a gap or arch, seen through), door (a
+ * doorway, not seen through while shut), window (seen through, only jumped down: a drop, SD7), up or down (stairs, a
+ * ladder or a hatch to the floor above or below) */
+export type WayKind = 'open' | 'door' | 'window' | 'up' | 'down';
+/** PZ14 a: a way as drawing takes it: to a title (or a frontier key), its label from this side and back, its kind; sight
+ * overrides the kind's seen-through; barrier: an existing barrier record's id */
+export type WaySpec = { to: string; label: string; back?: string; kind?: WayKind; sight?: boolean; frontier?: true; barrier?: string };
+/** PZ14 a: a title as drawing takes it (src/plan/draw.ts drawTitles): the title, plus how to draw it. A spec given an
+ * outline (or rect) is not placed again. */
+export type TitleSpec = Omit<Zone, 'outline' | 'floor' | 'top'> & {
+  outline?: Pt[]; rect?: Rect; floor?: number; top?: number;
+  /** a roof over it (indoors); default: its kind's, else none */
+  roof?: boolean;
+  /** each side's wall kind (WK) where it differs from the kind's default */
+  walls?: Partial<Record<Side, string>>;
+  /** the light word it is drawn lit to (PZ5: a source at its middle); default: its kind's */
+  light?: Light;
+  /** CO16 long side ÷ short side */
+  aspect?: number;
+  ways: WaySpec[];
+  furniture?: import('./library').PlanFurniture[];
+  /** PZ9: a road's centre line (a land road's points, or a straight line of its length) */
+  line?: Pt[];
+};
+/** PZ5: a roof over an outline at height h (the floor of the storey above, or the roof itself): under it is indoors */
+export type Roof = { id: string; placeId: PlaceId; outline: Pt[]; h: number };
+/** PZ5 a (D-391): a light source: a kind (library lightKinds, LK), a point and height above the ground outside, a brightness
+ * in candela; lit unless lit is false */
+export type LightSource = { id: string; placeId: PlaceId; kind: string; at: Pt; h: number; candela: number; lit?: false };
 
 export type Belief = {
   status: BeliefStatus;
+  /** PZ11 a: the title of lastKnownAt, for words */
   lastKnownZone?: string;
+  /** PZ11 a: where it was last made out: a point and floor */
+  lastKnownAt?: Pt3;
   lastSeenTurn?: number;
   source: 'seen' | 'heard' | 'told';
   /** YD6: the last turn either side attacked or closed in on the other, which keeps hunting and engaged alive */
@@ -179,7 +233,12 @@ export type Belief = {
   /** AT73/AT80: game minutes its last fade step fell due (perception applyBeliefDecay) */
   fadedAt?: number;
   revealed: string[]; // e.g. 'has_crossbow', 'item:<instanceId>' for revealed concealed items
+  /** BF97 a: what this actor made out the last time it sized the other up with Insight and won (speech.ts sizeUp) */
+  read?: PersonRead;
 };
+
+/** BF97 a: a won Insight look at a person: their mood, how they feel about the one looking, and whether they hide something (never what) */
+export type PersonRead = { turn: number; mood: string; feels: Stance; hiding: boolean };
 
 export type Fact = { id: string; text: string };
 
@@ -191,7 +250,7 @@ export type GameEvent = {
   actorId: string;
   kind: string; // 'attack','move','idle','speak','call_help','alarm','arrival','presence','item_dropped','give','wasted','search','hold','threshold_crossed','part_state_changed', ...
   zone: string;
-  pos?: { x: number; y: number }; // where in the zone it happened: the actor's point (step 2); absent = the zone's centre
+  pos?: { x: number; y: number }; // where it happened: the actor's point on its title's floor; absent = the title's middle
   target?: string;
   tier?: Tier;
   effects: Effect[]; // structured; text is built per view, never stored
@@ -218,7 +277,7 @@ export type GameEvent = {
    * shut by trying it (locked, barred, blocked), turned or slid on purpose (lock, unlock, bar, unbar), or picked (BA2) */
   way?: { to: string; barrier?: string; did: WayDid }; // barrier: none on a way with nothing to lock (BG-65)
   fall?: { metres: number; damage: number; landing: string }; // SD7: a jump down a drop link: the drop, the flat damage, the landing roll's tier name
-  vanish?: true; // ST11–ST19: the player's Vanish move (breaks the sight of those who see them)
+  spotted?: string[]; // VS3 Strike and Fade (a 'vanish' event): the observers the attack from hiding made aware
   activity?: string; // idle / presence: ActivityDef id
   itemId?: string; // item instance involved (gear, give, thrown, dropped)
   into?: string; // put_in: the container instance it went into
@@ -234,6 +293,8 @@ export type GameEvent = {
   filch?: 'taken' | 'fumbled' | 'caught'; // FL4: how a filch went (src/engine/filch.ts)
   attack?: import('./ruleset').AttackResult; // attacks only; code only, never copied to a view
   contest?: import('./ruleset').ContestResult;
+  /** BF97 a: an Insight look at a person (observe) the looker won: what they made out */
+  read?: PersonRead;
   /** OD1 b/OD3: an act on a graded thing (use, interact, other): the skill, the grade, and whether it was sure, out of reach or rolled */
   obstacle?: { skill: string; grade: Grade; gate: 'sure' | 'out' | 'roll' };
   /** OD5: a graded act's Critical Failure: a tool that broke (its instance), a fall (see fall), or a loud noise */
@@ -251,6 +312,10 @@ export type GameEvent = {
   offers?: { to: string; landed: 'convinced' | 'tempted' | 'unmoved'; demand?: 'yield' }[]; // demand: TF19, it asked them to surrender
   /** BF31: a container broken open (kind break_open): whether it opened; cut: a blade cut a soft one open, no roll */
   breakOpen?: { opened: boolean; cut?: true; broke?: string[]; beyond?: true }; // broke: BK2, instance ids of what broke inside; beyond: OD13, out of the breaker's reach (no roll)
+  /** BW8-BW26: a turn of breaking through a wall or a barrier on a way (kind break_through): what (wall or barrier), the
+   * title it leads to (none: unbuilt ground), the share of the work done (0-1, everyone's), its state once Crippled or
+   * Destroyed this turn, and the seconds the breaker still needs at their own rate */
+  breakThrough?: { wall?: string; barrier?: string; to?: string; share: number; state?: 'crippled' | 'destroyed'; left?: number; tool?: string; toolBroke?: true; walked?: true }; // walked: BW21 a, gone straight through on a walk
   extract?: { essence: string; grade: string }; // DX3: an essence pulled out of the target (an essence row id and its grade)
   /** TF19: a surrender talked out of a foe (kind surrender; actorId gave up to target): bandmates that gave up with it */
   surrender?: { with: string[] };

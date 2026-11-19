@@ -6,7 +6,7 @@ import type { Tier } from './core';
 import type { LogEntry } from './core';
 import type { HealthLevelKey, NarrationBand, PartStateKey } from '../scales';
 
-export type CreationBuild = { name: string; skills: Record<string, number>; tagged: string[]; startId?: string /* the Start (ST…); left out = the Swordsman start */; pronouns?: Pronouns /* the character's gender as others speak of them; left out = they */; personality?: import('./actor').Personality /* PL14: left out = no lean */; age?: number /* AG15: whole years; left out = the start's default */; raceId?: string /* CC7 a: a playable race (RC…); left out = Human */ };
+export type CreationBuild = { name: string; skills: Record<string, number>; tagged: string[]; flawed: string[] /* FC1: exactly CREATION_FLAWS skills, never tagged */; startId?: string /* the Start (ST…); left out = the Swordsman start */; pronouns?: Pronouns /* the character's gender as others speak of them; left out = they */; personality?: import('./actor').Personality /* PL14: left out = no lean */; age?: number /* AG15: whole years; left out = the start's default */; raceId?: string /* CC7 a: a playable race (RC…); left out = Human */ };
 
 export type LogLine = {
   turn: number;
@@ -20,7 +20,8 @@ export type LogLine = {
   check?: LineCheck; // the player's own roll this turn
   speech?: { speaker: string; volume: Volume; text: string }[]; // lines the character heard, word for word
   changes?: { kind: 'combat' | 'condition' | 'health'; text: string }[]; // what changed this turn
-  next?: string; // Q16: what the player put off this turn (the Parser's deferred), offered in the action box
+  next?: string; // Q16: what the player put off this turn (the Parser's deferred), offered in the action box once the queue stopped
+  queue?: string[]; // D-20 b: the rest of the player's order, in their words; Enter plays the first as the next turn while nothing new happens
   // taken from the turn's code log before it is cleared (the log only lives until the next turn starts)
   heals?: HealNote[]; // H11: the player's healing this turn
   unlocks?: { skill: string; milestone: number }[]; // V2a: milestones a skill crossed this turn
@@ -169,4 +170,6 @@ export interface GameApi {
   pinQuest(questId: string): void;
   /** the player character's signatures, one per line (setSignatures cleans them); saved at once */
   setSignatures(lines: string[]): void;
+  /** the deck's Defense row: the player's standing defense from now on (free, no turn); saved at once */
+  setDefense(kind: import('./actor').DefenseKind): void;
 }

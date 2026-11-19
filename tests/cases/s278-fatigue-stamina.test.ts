@@ -6,7 +6,7 @@
 import { actionRow } from '../../src/ruleset/actionTime';
 import { describe, expect, it } from 'vitest';
 import type { GameState } from '../../src/types';
-import { makeVillage } from '../harness';
+import { makeVillage, furnish } from '../harness';
 import { sleepDebtFor } from '../harness/sleep';
 import { intent, play } from './w4-kit';
 import { wholeTurn } from '../harness/turn';
@@ -22,6 +22,7 @@ import { EFFORT } from '../../src/scales';
 import { now } from '../../src/time';
 import { actorById } from '../../src/engine/relations';
 import { passiveFatigue, payStrain, sleepMinutes } from '../../src/engine/fatigue';
+import { PK } from '../../src/library/perkIds';
 import { barMax, debtPct, fatigueLevel, fatigueOf, isSpent, lineMax, lineUsed } from '../../src/ruleset/fatigue';
 import { woundsMods } from '../../src/ruleset/body';
 import { presetSkills } from '../../src/library/spawn';
@@ -108,6 +109,14 @@ describe('278 fatigue and stamina', () => {
     expect(lineUsed(s.player)).toBeCloseTo(20 - 0.15 * lineMax(s.player), 1);
   });
 
+  it('Fast Healer doubles catching your breath', () => {
+    const s = quiet();
+    s.player.core.perks.push({ perkId: PK.quick_mend, source: 'level', gainedTurn: 0 });
+    payStrain(s, s.player, 'hard', 10); // 20 used, now
+    pass(s, CONFIG.BREATH_CALM_S / 60 + 1);
+    expect(lineUsed(s.player)).toBeCloseTo(20 - 2 * 0.15 * lineMax(s.player), 1);
+  });
+
   it('FT7/FT8/FT9: sleep clears 4 % an hour (× 0.75 off a bed, × armour) and lasts until rested, 1 to 24 hours', () => {
     const s = quiet();
     expect(sleepMinutes(s, s.player)).toBe(60); // nothing to clear: the shortest sleep
@@ -116,7 +125,7 @@ describe('278 fatigue and stamina', () => {
     s.player.core.condition.fatigue!.debt = barMax(s.player);
     expect(sleepMinutes(s, s.player)).toBeLessThanOrEqual(CONFIG.SLEEP_MAX_HOURS * 60);
     const bed = quiet();
-    bed.zones.find((z) => z.id === bed.player.zone)!.furniture = [{ id: 'b1', kind: FU.bed, name: 'bed' }];
+    furnish(bed, bed.player.zone, [{ kind: FU.bed, name: 'bed' }]);
     bed.player.core.condition.fatigue = { debt: 10, line: 30 };
     bed.player.asleep = { since: now(bed) };
     pass(bed, 60);

@@ -3,7 +3,7 @@
 // watching it, and nothing when unwatched. SE17: a search aimed at someone reveals their check_passed secrets of a sight
 // or hearing skill when the roll reaches the secret's minTier.
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { makeVillage, beside } from '../harness';
+import { makeVillage, beside, lay } from '../harness';
 import { intent, play } from './w4-kit';
 import { intent as turnIntent, wholeTurn } from '../harness/turn';
 import { ruleset } from '../../src/ruleset';
@@ -11,6 +11,7 @@ import { tierSkill } from '../../src/minds/state';
 import { IT } from '../../src/library/itemIds';
 import { SK } from '../../src/library/skillIds';
 import type { GameState, RollResult, Tier } from '../../src/types';
+import { groundIn } from '../../src/engine/ground';
 
 /** forces every sight or stealth function roll to `tier` */
 function rigRolls(tier: Tier) {
@@ -22,8 +23,7 @@ function rigRolls(tier: Tier) {
 }
 const marks = (s: GameState, sk: string) => s.player.progression?.markCounts?.[sk] ?? 0;
 const hideHere = (s: GameState, over: object) => {
-  const z = s.zones.find((x) => x.id === s.player.zone)!;
-  z.groundItems.push({ id: 'ring_1', itemId: IT.dagger, at: { ...s.player.pos! }, hiddenAt: { tier: 'critical_success' }, knownTo: [], ...over });
+  lay(s, s.player.zone, { id: 'ring_1', itemId: IT.dagger, hiddenAt: { tier: 'critical_success' }, knownTo: [], ...over }, s.player.pos);
 };
 const search = (target: string | null = null) => ({ intent: intent({ action: { type: 'search', target } }) });
 
@@ -57,7 +57,7 @@ describe('269 search learning and secrets', () => {
     s.player.core.inventory.push({ id: 'purse_1', itemId: IT.dagger });
     rigRolls('success');
     play(s, { intent: intent({ action: { type: 'stash', item: 'purse_1' } }) });
-    const it = s.zones.find((z) => z.id === 'street_square')!.groundItems.find((i) => i.id === 'purse_1')!;
+    const it = groundIn(s, 'street_square').find((i) => i.id === 'purse_1')!;
     expect(it.hiderSkill).toBe(30);
     expect(it.knownTo).toEqual(['player']);
     expect(marks(s, SK.sneaking)).toBe(0);

@@ -2,9 +2,9 @@
 // one pace (SR5); it stops on arrival, at dusk (setting off in the dark presses on, slower, with a worse event roll), or at an
 // encounter, whose event roll becomes the next scenario's tier. Each hour of it adds strain to the long-term bar (SR5).
 import { describe, expect, it } from 'vitest';
-import { makeVillage } from '../harness';
+import { makeVillage, withRoad } from '../harness';
+import { middle } from '../../src/plan/where';
 import { intent, play } from './w4-kit';
-import { placeZones } from '../../src/scenario/geometry';
 import { roadShape } from '../../src/scenario/apply';
 import { placeAll } from '../../src/engine/position';
 import { travelSpeed } from '../../src/engine/travel';
@@ -17,29 +17,6 @@ import { now, timeOfDay } from '../../src/time';
 import { fatigueOf } from '../../src/ruleset/fatigue';
 import type { GameState, Zone } from '../../src/types';
 
-/** the test village laid out on the map, with a road north out of the gate to Ashford (or to a frontier) */
-function withRoad(km: number, danger: 'safe' | 'quiet' | 'wild' | 'dangerous' = 'safe', frontier = false): GameState {
-  const s = makeVillage({ playerZone: 'gate_inner' });
-  s.actors = s.actors.filter((a) => !a.id.startsWith('slime')); // the field's slimes would notice the player on the way
-  const gate = s.places.flatMap((p) => p.zones).find((z) => z.id === 'gate_inner')!;
-  const road: Zone = { id: 'north_road', placeId: 'gate', kind: ZK.road, name: 'the north road', look: 'a cart track', links: [{ to: 'gate_inner', label: 'back to the gate, south', sight: true }], cover: 'none', light: 'dark', outdoor: true, groundItems: [], ...roadShape(km, danger) };
-  gate.links.push({ to: 'north_road', label: 'the north road', sight: true });
-  const zones = [road];
-  if (frontier) road.links.push({ to: 'onward', label: 'onward, north', sight: false, frontier: true });
-  else {
-    const ash: Zone = { id: 'ashford_gate', placeId: 'gate', kind: ZK.gate, name: 'Ashford gate', look: 'a stone arch', links: [{ to: 'north_road', label: 'the road south', sight: true }], cover: 'none', light: 'dark', outdoor: true, area: 100, groundItems: [] };
-    road.links.push({ to: 'ashford_gate', label: 'Ashford, north', sight: true });
-    zones.push(ash);
-  }
-  s.places.find((p) => p.id === 'gate')!.zones.push(...zones);
-  s.stage.zoneIds.push(...zones.map((z) => z.id));
-  const all = s.places.flatMap((p) => p.zones);
-  for (const z of all) if (!z.area) z.area = CONFIG.ZONE_SIZE_M2[z.id.startsWith('field') ? 'open' : z.id.startsWith('street') || z.id.startsWith('gate') ? 'yard' : 'room'];
-  placeZones(s, all);
-  placeAll(s);
-  s.clocks.time = 7 * 60; // day 1, morning
-  return s;
-}
 const trip = (s: GameState) => s.log.find((l) => l.code === 'travelled')?.detail as { metres: number; minutes: number; night: boolean; stop: string; companions: string[] } | undefined;
 const go = (s: GameState, to: string, seed = 1) => play(s, { intent: intent({ move: { toZone: to } }) }, seed);
 
@@ -77,7 +54,7 @@ describe('172 travel', () => {
     expect(s.player.zone).toBe('north_road');
     expect(timeOfDay(now(s))).toBe('dusk');
     expect(trip(s)!.minutes).toBe(30);
-    go(s, 'ashford_gate');
+    go(s, 'ashford_gate', 2); // a seed with no encounter on the night road
     expect(trip(s)!).toMatchObject({ night: true, stop: 'arrived' });
     expect(trip(s)!.metres / (trip(s)!.minutes * 60)).toBeCloseTo(travelSpeed(s, s.player, true), 1); // walked slower in the dark
     expect(s.player.zone).toBe('ashford_gate');
@@ -101,11 +78,34 @@ describe('172 travel', () => {
     const rolled = s.stage.encounter!.eventRoll;
     expect(replayScenarioStart(s, [null], createRng(5)).eventRoll).toBe(rolled);
     expect(s.stage.tier).toBe(rolled.tier);
-    // the encounter's people stand on the road ahead of the player, not at the road's middle
+    // RE6: the encounter's people stand on the road ahead of the player where a still figure is first glimpsed (60 m)
     n.actors[0].zone = 'north_road'; delete n.actors[0].pos;
     placeAll(n);
     const p = n.player.pos!, q = n.actors[0].pos!;
-    expect(Math.hypot(p.x - q.x, p.y - q.y)).toBeLessThan(CONFIG.ENCOUNTER_M + 5);
+    expect(Math.hypot(p.x - q.x, p.y - q.y)).toBeGreaterThan(CONFIG.SIGHT_M[CONFIG.ENCOUNTER_VISIBILITY]![1] - 5);
+    expect(Math.hypot(p.x - q.x, p.y - q.y)).toBeLessThan(CONFIG.SIGHT_M[CONFIG.ENCOUNTER_VISIBILITY]![1] + 5);
+  });
+
+  it('RE1 (BG-291): road minutes carry over from trip to trip; each full leg of them rolls once, then the count starts again', () => {
+    // a 3 km road is 40 min: one trip never fills a leg, the second one meets something 20 min in
+    const s = withRoad(3, 'dangerous');
+    CONFIG.ROAD_ENCOUNTER_PCT = { ...CONFIG.ROAD_ENCOUNTER_PCT, dangerous: 100 };
+    go(s, 'ashford_gate');
+    expect(trip(s)!.stop).toBe('arrived');
+    expect(s.player.roadMin).toBeCloseTo(40, 0);
+    s.log.length = 0;
+    go(s, 'gate_inner', 2);
+    expect(trip(s)!.stop).toBe('encounter');
+    expect(trip(s)!.minutes).toBe(20);
+    expect(s.player.zone).toBe('north_road');
+    expect(s.player.roadMin).toBe(0);
+    // the roll is the road's chance for a full leg: at 0% nothing meets you and the count still starts again
+    const q = withRoad(3, 'dangerous');
+    CONFIG.ROAD_ENCOUNTER_PCT = { ...CONFIG.ROAD_ENCOUNTER_PCT, dangerous: 0 };
+    q.player.roadMin = 50;
+    go(q, 'ashford_gate');
+    expect(trip(q)!.stop).toBe('arrived');
+    expect(q.player.roadMin).toBeCloseTo(30, 0);
   });
 
   it('a safe road can still be walked without stopping; the mechanics line and the Narrator get one passage', () => {
@@ -125,6 +125,23 @@ describe('172 travel', () => {
     go(s, 'ashford_gate');
     expect(trip(s)).toBeUndefined();
     expect(s.player.zone).not.toBe('ashford_gate');
+  });
+
+  it('RE5: a trip runs on the world clock: someone new seen on the road ahead stops it there, as a rest or a walk stops', () => {
+    const s = withRoad(9);
+    const x = s.actors.find((a) => a.id === 'patron_1')!;
+    const road = s.zones.find((z) => z.id === 'north_road')!;
+    x.zone = 'north_road'; x.placeId = 'gate'; x.pos = middle(road);
+    const t0 = now(s);
+    const ev = go(s, 'ashford_gate');
+    const d = trip(s)!;
+    expect(d.stop).toBe('met');
+    expect(s.player.zone).toBe('north_road');
+    expect(s.log.find((l) => l.code === 'stretch_stopped')?.detail).toMatchObject({ kind: 'trip', why: 'appeared', by: ['patron_1'] });
+    expect(ev.find((e) => e.kind === 'travel')!.effects).toContainEqual(expect.objectContaining({ kind: 'stopped', actorId: 'player' }));
+    const p = s.player.pos!, q = x.pos!;
+    expect(Math.hypot(p.x - q.x, p.y - q.y)).toBeLessThan(500); // stopped where they came into sight, not past them
+    expect(now(s) - t0).toBeLessThan(9000 / travelSpeed(s, s.player) / 60); // the clock ran only that far
   });
 
   it('TV3: a frontier off the road is at the road\'s far end: the trip walks there, then crosses', () => {

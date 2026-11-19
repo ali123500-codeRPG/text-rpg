@@ -48,7 +48,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** The owner makes a ranged attack.
-- **Conditions:** Any ranged attack, thrown included. A hostile actor is within 2 m of the owner (HOSTILE_NEAR_M).
+- **Conditions:** Any ranged attack, thrown included. A hostile actor is near enough to strike the owner: within a step (HOSTILE_NEAR_STEP_M, 0.75 m) plus its own melee reach.
 - **Effect:** The −10 ranged modifier for a hostile close to the shooter is not applied.
 - **Lasts:** That attack.
 
@@ -135,12 +135,12 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Read Wounds (Eyesight) · A13
 
-*Story:* A limp, a favoured arm, a bleeding hand: every weakness shows itself to you. You can see which of a foe's body parts are Damaged, and you can tell a foe is hurt one step sooner than others can: from Injured instead of Wounded.
+*Story:* A limp, a favoured arm, a bleeding hand: every weakness shows itself to you. You can see which of anyone's body parts are Damaged, and you can tell someone is hurt one step sooner than others can: from Injured instead of Wounded.
 
 - **Kind:** Always on
-- **Trigger:** The owner perceives a foe by sight.
-- **Conditions:** The owner can see the foe.
-- **Effect:** The foe's Damaged body parts are shown to the owner (foes' part states are otherwise never shown). The foe's health level also shows one step earlier on the health track: the level where it starts to show moves one position milder in the health-track names table (from Wounded to Injured today).
+- **Trigger:** The owner perceives someone by sight, friend or foe.
+- **Conditions:** The owner can see them.
+- **Effect:** Their Damaged body parts are shown to the owner (others' part states are otherwise never shown). Their health level also shows one step earlier on the health track: the level where it starts to show moves one position milder in the health-track names table (from Wounded to Injured today).
 - **Lasts:** While the owner sees it.
 
 ### Keen Ear (Earshot) · A14
@@ -186,18 +186,18 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 *Story:* Shadow and clutter are enough. With cover or shade around you, you can vanish right where you stand.
 
 - **Kind:** Always on
-- **Trigger:** The owner Vanishes without a zone to go to.
-- **Conditions:** The owner's zone has some or heavy cover, or its light is dim or dark.
-- **Effect:** The owner vanishes in place: it stays in its zone, and each observer makes a Vanishing contest against it, as a Vanish does. One who saw the owner and loses drops to suspicious at that zone. It uses the main action.
-- **Lasts:** That Vanish.
+- **Trigger:** The owner sneaks and stays put this turn.
+- **Conditions:** The zone's cover hides at least half of the owner (some cover or heavier for a person; a smaller body needs less), or its light is dim or darker.
+- **Effect:** Observers who see the owner still roll against its Vanishing, as when it moves (VS2). One who loses drops to suspicious at that zone. It uses no action.
+- **Lasts:** That turn.
 
 ### Slip the Blow (Light Armor) · A20
 
-*Story:* Light armor lets you roll with a blow. When your dodge only ties, the hit becomes a graze.
+*Story:* Light armor taught you to roll with a blow, in any armor or none. When your dodge only ties, the hit becomes a graze.
 
 - **Kind:** Always on
 - **Trigger:** The owner dodges an attack.
-- **Conditions:** The owner wears light armor. The gap is 0.
+- **Conditions:** The gap is 0.
 - **Effect:** The gap counts as +1: a graze for 0.8× damage.
 - **Lasts:** That attack.
 
@@ -212,12 +212,12 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Turn Aside (Heavy Armor) · A22
 
-*Story:* Plate takes the worst out of any blow. A heavy or crushing hit on a part your heavy armor covers lands as a plain full hit.
+*Story:* Heavy armor taught you to take the worst out of a blow. A heavy or crushing hit lands softer, whatever you wear.
 
 - **Kind:** Always on
 - **Trigger:** An attack hits the owner.
-- **Conditions:** The hit is a heavy hit or a crushing hit (gap −4 or worse). The owner wears heavy armor that covers the struck part.
-- **Effect:** The hit counts as a full hit: damage multiplier 1× instead of the gap ladder's (on a dodge 1.5× at −4, 2× at −5, on a block 1.5× at −4, 2× at −5, on a parry 2× at −4, 2.5× at −5, more past that).
+- **Conditions:** The hit is a heavy hit or a crushing hit (gap −4 or worse).
+- **Effect:** The gap counts +2, never past 0 (on a dodge 1.5× → 1.25× at −4, 2× → 1.375× at −5; on a block 1.5× → 1× at −4, 2× → 1× at −5; on a parry 2× → 1.25× at −4, 2.5× → 1.5× at −5; the same two steps past that).
 - **Lasts:** That hit.
 
 ### In and Out (Combat Stealth) · A23
@@ -231,20 +231,49 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Every Answer (Riposte) · LG3
 
-*Story:* Each of them gets an answer. Your strike back after a clean parry, and your Counter, are no longer shared out among everyone attacking you: every attacker can earn its own.
+*Story:* Each of them gets an answer. Your strike back after a full parry, and your Counter, are no longer shared out among everyone attacking you: every attacker can earn its own.
 
 - **Kind:** Always on
 - **Trigger:** The owner earns a parry strike-back or a Counter.
 - **Effect:** The strike-back limit (1 per round, STRIKE_BACK_LIMIT) counts for each attacker separately instead of for all attackers together. Parry strike-backs and Counters keep separate counts.
 - **Lasts:** Always. Merges with Ceaseless Guard into Endless Answer.
 
-### Bluff (Lying) · LI1c
+### Deflect (Parry) · LG1
+
+*Story:* Arrows are only fast blades. With a weapon in your hand you can turn a shot or a thrown weapon aside, as you would a sword.
+
+- **Kind:** Always on
+- **Trigger:** A ranged attack is made at the owner: a shot or a throw, whatever weapon makes it.
+- **Conditions:** The owner holds a melee weapon to parry with (not an open hand).
+- **Effect:** The owner may parry it, on the normal parry ladder. A parry against a ranged attack earns no free strike back: the shooter is out of reach.
+- **Lasts:** Each ranged attack.
+
+### Grit Your Teeth (Resolve) · LG7
+
+*Story:* Fear comes, and you have already started pushing it back. The first time in a fight it gets to you, you steady yourself at once; after that, you do it without stopping what you are doing.
+
+- **Kind:** Always on, and a free move
+- **Trigger:** A morale loss leaves the owner Rattled or worse (GRIT_AUTO_FROM), or the owner uses the move.
+- **Conditions:** In a fight. The steadying cooldown has passed (STEADY_COOLDOWN_S), and the owner is not Broken.
+- **Effect:** The first time in each fight a morale loss leaves the owner Rattled or worse, it steadies itself at once, free. Steadying yourself is also a free move instead of the main action. Either way it is the normal steadying roll, with its risk, and it starts the cooldown.
+- **Lasts:** Each steadying.
+
+### Hear Me Out (Persuasion) · LG9
+
+*Story:* You make stopping sound like the sensible thing. Anyone you talk to in a fight listens as if they had already had enough.
+
+- **Kind:** Always on
+- **Trigger:** The owner makes an offer to stop fighting by persuasion (TF13).
+- **Effect:** The listener counts as shaken (hurt or uneasy) for the offer: a win by 2 tiers convinces it instead of 3 (OFFER_WIN_TIERS_SHAKEN, OFFER_WIN_TIERS).
+- **Lasts:** Each offer.
+
+### Bluff (Falsehood) · LI1c
 
 *Story:* Half a second of doubt is all a knife needs. "Behind you!" Once per foe in a fight, and without giving up your action, you throw a lie at a foe near enough to hear it clearly. If it believes you, it hesitates and acts last next turn.
 
 - **Kind:** Free move
 - **Trigger:** The owner uses the move on a foe who hears the owner's normal voice clearly. It does not use the owner's action.
-- **Effect:** A Lying roll against the foe's answer to a lie (Insight). Unless the foe wins, it believes the lie and acts last next turn, as if caught unaware.
+- **Effect:** A Falsehood roll against the foe's answer to a lie (Insight). Unless the foe wins, it believes the lie and acts last next turn, as if caught unaware.
 - **Lasts:** The foe's next turn.
 - **Cooldown:** Once per foe per engagement.
 
@@ -255,7 +284,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Kind:** Always on
 - **Trigger:** Someone lies (a deceive) to someone else, and the owner hears it: the words, or the sound of the voice.
 - **Conditions:** The owner is not the one lied to and did not already answer the lie.
-- **Effect:** The speaker's Lying against the owner's answer to a lie (Insight, or the better of Insight and Lying with Takes One to Know One). If the owner wins, the owner sees through it: the hint that something doesn't sit right, or plainly a lie with Plain as Day. Seeing through it changes nothing else.
+- **Effect:** The speaker's Falsehood against the owner's answer to a lie (Insight, or the better of Insight and Falsehood with Takes One to Know One). If the owner wins, the owner sees through it: the hint that something doesn't sit right, or plainly a lie with Plain as Day. Seeing through it changes nothing else.
 - **Lasts:** Each lie overheard.
 
 ### Catnap (Stamina) · SS1
@@ -267,15 +296,66 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** Besides refilling the short-term line, the rest clears sleep debt as 1 hour of sleep would there (the Sleep row's share of max an hour, × the spot, worn armour and sleep perks; CONFIG.CATNAP_SLEEP_HOURS, placeholder), by the share of the rest's hour that ran.
 - **Lasts:** Each rest.
 
+### Press the Opening (Battle Sense) · TC28
+
+*Story:* The moment a friend lands a blow, the foe's guard is somewhere else. When an ally hits a foe, your next attack on that foe lands one outcome better.
+
+- **Kind:** Always on
+- **Trigger:** An attack by someone the owner is friendly to hits a foe of the owner (grazed or better).
+- **Conditions:** The owner is not the attacker or the one hit.
+- **Effect:** The owner's next attack on that foe gets tier shift +1.
+- **Lasts:** Until it is used or the owner's next turn ends.
+
+### Fall Back on Me (Command) · TC36
+
+*Story:* "To me!" When their nerve goes, your people run to you instead of away. An ally in earshot who breaks may run toward you, even past a foe.
+
+- **Kind:** Always on
+- **Trigger:** Someone friendly to the owner (or in the owner's band) is broken.
+- **Conditions:** It hears the owner's shout clearly. The owner is up and not broken.
+- **Effect:** Its walks toward the owner are allowed, even toward a foe (a broken nerve otherwise only walks away). A code-run broken ally runs to the owner instead of fleeing. With several owners in earshot, the nearest.
+- **Lasts:** While it is broken and in earshot.
+
+### Hug the Cover (Fieldcraft) · TC30
+
+*Story:* You know how to make yourself small behind a crate. While you are in cover, the first shot or throw at you each turn lands one outcome worse.
+
+- **Kind:** Always on
+- **Trigger:** A ranged attack on the owner.
+- **Conditions:** The owner has cover where it stands (any cover above none). It is the first ranged attack on the owner this turn.
+- **Effect:** Tier shift −1 on that attack.
+- **Lasts:** That attack.
+- **Open:** Once cover levels change (thread "Rebalance cover and add cover levels"), this may become "cover counts one level better" (TC30).
+
+### Draw Them In (Stratagem) · TC31
+
+*Story:* You drop your guard for a heartbeat, and they can't resist. Once per fight, without giving up your action, you show a false opening: every foe that sees it and falls for it comes straight at you, and your next blow on it lands one outcome better.
+
+- **Kind:** Free move
+- **Trigger:** The owner uses the move. It does not use the owner's action.
+- **Effect:** Each foe that sees the owner clearly rolls Insight against the owner's Stratagem. Unless the foe wins, it is drawn in: its next turn's action is an attack on the owner (it closes in), whatever it meant to do, and the owner's next attack on it gets tier shift +1.
+- **Lasts:** The drawn foe's next turn; the owner's opening until it is used or the fight ends.
+- **Cooldown:** Once per engagement.
+
+### Play Dead (Guile) · TC32
+
+*Story:* A bad blow, and you go down like a sack of grain. Right after you are badly hurt, you can spend your turn dropping as if knocked out. Foes who fall for it leave you be, and your first blow when you rise catches them off guard.
+
+- **Kind:** Move
+- **Trigger:** The owner uses the move. It takes the turn's action (1 s, light effort). It can be used only on the turn a blow leaves the owner Wounded or worse (not Down), and on its next turn.
+- **Effect:** Each foe that sees the owner clearly rolls its answer to a lie (Insight) against the owner's Guile. Unless the foe wins outright, it takes the owner for Down: it stops attacking it and turns to other foes. A foe that first sees the owner clearly later rolls the same way, and a fooled foe that comes within grip reach rolls again, once a turn. Each foe judges on its own. The owner's first attack on a foe that still believed it counts as on an unaware foe (Hidden Strike and ambush rules apply).
+- **Lasts:** Until the owner acts, moves, speaks or defends against a blow: then it is over for every foe.
+- **Open:** Whether foes share what they see through goes to "Foes share what they notice" (WN13). Code-run NPCs wait on TC58 and TC59.
+
 ## 40 milestone
 
 ### Keen Edge (Light weapons) · P1
 
-*Story:* +5 Light weapons, +1 Melee. Your blade has learned where flesh is softest: +10 to hit with light weapons.
+*Story:* +5 Light weapons, +1 Melee. You have learned where flesh is softest: +10 to hit with any melee attack.
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in Light weapons. +1 true skill in every skill of group Melee. +10 on attack rolls with skill Light weapons.
+- **Effect:** +5 true skill in Light weapons. +1 true skill in every skill of group Melee. +10 on the attack roll of every melee attack (a weapon, unarmed or improvised blow, or a natural attack such as a bite).
 - **Lasts:** Always.
 
 ### Guard Drill (Medium weapons) · P2
@@ -289,11 +369,11 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Heavy Hand (Heavy weapons) · P3
 
-*Story:* +5 Heavy weapons, +1 Melee. Armor dents, bones give: your heavy weapons hit 20% harder.
+*Story:* +5 Heavy weapons, +1 Melee. Armor dents, bones give: every melee blow you land hits 20% harder.
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in Heavy weapons. +1 true skill in every skill of group Melee. Damage of an attack with skill Heavy weapons is ×1.2, before armor.
+- **Effect:** +5 true skill in Heavy weapons. +1 true skill in every skill of group Melee. Damage of every melee attack (a weapon, unarmed or improvised blow, or a natural attack such as a bite) is ×1.2, before armor.
 - **Lasts:** Always.
 
 ### Sharp Eyes (Light ranged) · P4
@@ -307,20 +387,20 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Steady Draw (Medium ranged) · P5
 
-*Story:* +5 Medium ranged, +1 Ranged. Steady hands, a heavier bite: +5 to hit with medium ranged weapons, and they hit 10% harder.
+*Story:* +5 Medium ranged, +1 Ranged. Steady hands, a heavier bite: +5 to hit with any ranged attack, and it hits 10% harder.
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in Medium ranged. +1 true skill in every skill of group Ranged. +5 on attack rolls with skill Medium ranged, and its damage is ×1.1, before armor.
+- **Effect:** +5 true skill in Medium ranged. +1 true skill in every skill of group Ranged. +5 on the attack roll of every ranged attack (a shot or a throw, whatever skill rolls it), and its damage is ×1.1, before armor.
 - **Lasts:** Always.
 
 ### Armor Piercer (Heavy ranged) · P6
 
-*Story:* +5 Heavy ranged, +1 Ranged. Steel plate is just a suggestion to your bolts: it stops 2 less of each hit.
+*Story:* +5 Heavy ranged, +1 Ranged. Steel plate is just a suggestion to anything you shoot or throw: it stops 2 less of each hit.
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in Heavy ranged. +1 true skill in every skill of group Ranged. On a hit with skill Heavy ranged, each armor the hit passes (worn and natural) reduces the damage by 2 less (never below 0).
+- **Effect:** +5 true skill in Heavy ranged. +1 true skill in every skill of group Ranged. On a hit with any ranged attack (a shot or a throw, whatever skill rolls it), each armor the hit passes (worn and natural) reduces the damage by 2 less (never below 0).
 - **Lasts:** Always.
 
 ### Street Fighter (Strike) · P7
@@ -370,11 +450,11 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Fast Healer (Endurance) · P12
 
-*Story:* +5 Endurance, +1 Health. Your flesh knits itself shut, twice as fast as it has any right to.
+*Story:* +5 Endurance, +1 Health. Your body mends itself twice as fast as it has any right to: wounds, nerve and breath alike.
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in Endurance. +1 true skill in every skill of group Health. Natural recovery (the hourly healing row read from Endurance) is ×2.
+- **Effect:** +5 true skill in Endurance. +1 true skill in every skill of group Health. Every natural recovery is ×2: health (Natural recovery, read from Endurance), morale (Natural composure, read from Resolve) and stamina (Catching your breath).
 - **Lasts:** Always.
 
 ### Marksman's Eye (Eyesight) · P13
@@ -415,20 +495,128 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Bottomless (Stamina) · SS6
 
-*Story:* +5% Stamina, +1 and +1% Stamina. Effort that would empty anyone else barely touches you: every strain you pay is halved.
+*Story:* +5% Stamina, +1% Stamina. Effort that would empty anyone else barely touches you: every strain you pay is halved.
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5% of the owner's true Stamina (HIGH_PERK_SHARE, placeholder) as true skill in Stamina. +1 true skill, and +1% of the owner's true Stamina (HIGH_PERK_SPREAD, placeholder), in every skill of group Stamina. Shares read true skill without shares; several on one skill add in full. Every strain cost the owner pays is ×0.5 (CONFIG.BOTTOMLESS_STRAIN, placeholder), after worn armour.
+- **Effect:** +5% of the owner's true Stamina (HIGH_PERK_SHARE, placeholder) as true skill in Stamina. +1% of the owner's true Stamina (HIGH_PERK_SPREAD, placeholder) as true skill in every skill of group Stamina. Shares read true skill without shares; several on one skill add in full. Every strain cost the owner pays is ×0.5 (CONFIG.BOTTOMLESS_STRAIN, placeholder), after worn armour.
+- **Lasts:** Always.
+
+### Sharp Answer (Parry) · LG2
+
+*Story:* +5 Parry, +1 Defense. A parry is there to earn the strike, and you make the strike count: the free blow back after a parry hits a quarter harder.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in Parry. +1 true skill in every skill of group Defense. The free strike back after the owner's parry deals ×1.25 damage, before armor (SHARP_ANSWER_MULT, placeholder). Other free attacks, Riposte's counters among them, are unchanged.
+- **Lasts:** Always.
+
+### Guarded Answer (Riposte) · LG4
+
+*Story:* +5 Riposte, +1 Defense. Every answer starts with a guard: +10 Parry.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in Riposte. +1 true skill in every skill of group Defense. +10 true skill in Parry.
+- **Lasts:** Always.
+
+### Dancer's Feet (Blade Dance) · LG6
+
+*Story:* +5 Blade Dance, +1 Defense. The dance is mostly not being there: +10 Dodge.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in Blade Dance. +1 true skill in every skill of group Defense. +10 true skill in Dodge.
+- **Lasts:** Always.
+
+### Deep Reserves (Resolve) · LG8
+
+*Story:* +5 Resolve, +1 Will. There is more of you to wear down: your Endurance, Stamina and Resolve each count a fifth more toward health, stamina and morale.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in Resolve. +1 true skill in every skill of group Will. Each point of Endurance, Stamina and Resolve counts ×1.2 toward the bar it fills: health (HP_PER_END), the stamina bar (STAMINA_PER_POINT) and max morale (MORALE_PER_RESOLVE). DEEP_RESERVES_MULT, placeholder.
+- **Lasts:** Always.
+
+### Silver Tongue (Persuasion) · LG10
+
+*Story:* +5 Persuasion, +1 Influence. Convincing and deceiving are the same craft: +10 Falsehood.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in Persuasion. +1 true skill in every skill of group Influence. +10 true skill in Falsehood.
+- **Lasts:** Always.
+
+### Unseen Strike (Combat Stealth) · LG11
+
+*Story:* +5 Combat Stealth, +1 Stealth. Whoever does not see you coming barely defends: a target unaware of you defends at −20, and one only suspicious of you at −10.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in Combat Stealth. +1 true skill in every skill of group Stealth. A defense roll against the owner's attack takes the awareness modifier one step further on its table (AWARENESS_DEFENSE 0, -10, -20): -20 when the defender is unaware of the owner, -10 when it is only suspicious. Never Flat-Footed still cancels it.
+- **Lasts:** Always.
+
+### Fear Bites Deeper (Intimidation) · LG12
+
+*Story:* +5 Intimidation, +1 Influence. Whatever fear you cause sinks in further: others lose a fifth more morale to you.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in Intimidation. +1 true skill in every skill of group Influence. Morale others lose to the owner (its auras, Battle Cry, Dreaded on Sight) is ×1.2 (FEAR_BITES_MULT, placeholder).
+- **Lasts:** Always.
+
+### Shadow Work (Sneaking) · LG14
+
+*Story:* +5 Sneaking, +1 Stealth. Getting close unseen is half the job: +5 Combat Stealth, +5 Vanishing.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in Sneaking. +1 true skill in every skill of group Stealth. +5 true skill in Combat Stealth and +5 in Vanishing.
+- **Lasts:** Always.
+
+### In the Thick of It (Vanishing) · LG15
+
+*Story:* +5 Vanishing, +1 Stealth. You can slip away from someone trading blows with you as easily as from anyone else.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in Vanishing. +1 true skill in every skill of group Stealth. Vanishing within 5 m of a foe fighting the owner takes no -1 tier shift (VANISH_NEAR_SHIFT).
+- **Lasts:** Always.
+
+### Free Movement (Light Armor) · LG16
+
+*Story:* +5 Light Armor, +1 Defense. Light armor moves with you: +10 Dodge.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in Light Armor. +1 true skill in every skill of group Defense. +10 true skill in Dodge.
+- **Lasts:** Always.
+
+### Deeper Soak (Heavy Armor) · LG18
+
+*Story:* +5 Heavy Armor, +1 Defense. You know how to let plate take the blow: your heavy armor stops half again as much of every hit.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in Heavy Armor. +1 true skill in every skill of group Defense. Worn heavy armor's flat soak (its reduction per hit) is ×1.5 on the owner (DEEPER_SOAK_MULT, placeholder); its multiplier is unchanged.
+- **Lasts:** Always.
+
+### Honest Face (Falsehood) · LG19
+
+*Story:* +5 Falsehood, +1 Influence. People believe a face like yours, whatever it says: +10 Persuasion.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in Falsehood. +1 true skill in every skill of group Influence. +10 true skill in Persuasion.
 - **Lasts:** Always.
 
 ### Chorus (Intimidation) · CN8
 
-*Story:* +5% Intimidation, +1 and +1% Influence. Every way you have learned to strike fear joins the one voice: your auras reach further for every shout perk you own.
+*Story:* +5% Intimidation, +1% Influence. Every way you have learned to strike fear joins the one voice: your auras reach further for every shout perk you own.
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5% of the owner's true Intimidation (HIGH_PERK_SHARE, placeholder) as true skill in Intimidation. +1 true skill, and +1% of the owner's true Intimidation (HIGH_PERK_SPREAD, placeholder), in every skill of group Influence. Shares read true skill without shares; several on one skill add in full. The owner's engagement auras (Dread Presence and any later one) reach further: each shout piece (perks tagged shout in src/library/perkThemes.ts, Chorus included) adds 1 m in full (CONFIG.CHORUS_REACH_M), and the base reach (AURA_REACH_M, 8 m) grows by the payoff share of those pieces, 5% × pieces^0.8 (placeholders). Chorus alone: 9.4 m; with three shout pieces: 12 m.
+- **Effect:** +5% of the owner's true Intimidation (HIGH_PERK_SHARE, placeholder) as true skill in Intimidation. +1% of the owner's true Intimidation (HIGH_PERK_SPREAD, placeholder) as true skill in every skill of group Influence. Shares read true skill without shares; several on one skill add in full. The owner's engagement auras (Dread Presence and any later one) reach further: each shout piece (perks tagged shout in src/library/perkThemes.ts, Chorus included) adds 1 m in full (CONFIG.CHORUS_REACH_M), and the base reach (AURA_REACH_M, 8 m) grows by the payoff share of those pieces, 5% × pieces^0.8 (placeholders). Chorus alone: 9.4 m; with three shout pieces: 12 m.
 - **Lasts:** Always.
 
 ## Higher milestone
@@ -566,13 +754,13 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Unblinking (Eyesight) · B14
 
-*Story:* Once your eyes are on someone, there is nowhere left to run. When someone you can see vanishes and gets past you, they still have to sneak past you as well before you lose them.
+*Story:* Once your eyes are on someone, there is nowhere left to run. When someone you can see slips away and gets past you, they still have to sneak past you as well before you lose them.
 
 - **Kind:** Always on
-- **Trigger:** A character the owner sees (aware or tracking) vanishes, and the owner loses the Vanishing contest.
-- **Conditions:** The owner saw the character before the Vanish.
+- **Trigger:** A character the owner sees (aware or tracking) slips away, and the owner loses the Vanishing contest.
+- **Conditions:** The owner saw the character before the roll.
 - **Effect:** The character must also win a Sneaking contest against the owner, or a Combat Stealth contest while engaged, using the owner's sight. If the character doesn't win it, the owner keeps seeing them.
-- **Lasts:** That Vanish.
+- **Lasts:** That roll.
 - **Open:** Eyesight 60. Works for the player too since NPC stealth (NS10).
 
 ### Set Them Up (Strike) · B15
@@ -607,7 +795,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Answer the Blow (Riposte) · B18
 
-*Story:* A clean parry is half a cut. With a medium weapon you answer sooner: a parry that only turns the blow partly aside already earns your strike back.
+*Story:* A full parry is half a cut. With a medium weapon you answer sooner: a parry that only turns the blow partly aside already earns your strike back.
 
 - **Kind:** Always on
 - **Trigger:** The owner parries a melee attack with a medium melee weapon.
@@ -626,21 +814,20 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Blade Wall (Parry) · B19
 
-*Story:* Let them all come. Your sword turns one blow after another. When you parry with a medium or heavy weapon, being outnumbered doesn't hurt your guard.
+*Story:* Let them all come. Your sword turns one blow after another. Your parries never take the outnumbered penalty.
 
 - **Kind:** Always on
 - **Trigger:** The owner parries.
-- **Conditions:** The owner parries with a medium or heavy melee weapon.
 - **Effect:** The outnumbered modifier is not applied.
 - **Lasts:** Always.
 
-### Takes One to Know One (Lying) · LI1a
+### Takes One to Know One (Falsehood) · LI1a
 
-*Story:* You know every trick in the book, because you wrote half of them. When someone lies to you, you answer with the better of your Insight and your Lying.
+*Story:* You know every trick in the book, because you wrote half of them. When someone lies to you, you answer with the better of your Insight and your Falsehood.
 
 - **Kind:** Always on
 - **Trigger:** Someone lies to the owner (a lie, or a Bluff).
-- **Effect:** The owner's answering roll uses the better of Insight and Lying, each at full value.
+- **Effect:** The owner's answering roll uses the better of Insight and Falsehood, each at full value.
 - **Lasts:** Each answer to a lie.
 
 ### Plain as Day (Insight) · LI2a
@@ -661,13 +848,12 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Conditions:** The owner has at least one quirk.
 - **Effect:** Resolve adds to its own rolls its true skill × the payoff share × its tier, the share being 5% × quirks owned^0.8 (CONFIG.PAYOFF_SHARE, PAYOFF_EXP, placeholders): 5% for one quirk, 8.7% for two.
 - **Lasts:** Always.
-- **Open:** Placed on Resolve 140 because Overwhelm holds Resolve 100.
 
 ## Very high milestone
 
 ### Ceaseless Guard (Parry) · SB-P100
 
-*Story:* Blow after blow comes back at them. You can strike back after a clean parry, or Counter a fumble, many times a round instead of once.
+*Story:* Blow after blow comes back at them. You can strike back after a full parry, or Counter a fumble, many times a round instead of once.
 
 - **Kind:** Always on
 - **Trigger:** The owner earns a parry strike-back or a Counter.
@@ -706,11 +892,11 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Battle Cry (Intimidation) · C2
 
-*Story:* Your roar tells every foe exactly how this ends, and tells your side it isn't over. Once per fight, as your action, every foe that hears it, however far, makes a morale roll against you, and you and every ally that hears it take heart and shake off fear.
+*Story:* Your roar tells every foe exactly how this ends, and tells your side it isn't over. Once per fight, as your action, every foe that hears it, however far, or stands close enough to feel it, makes a morale roll against you, and you and every such ally take heart and shake off fear: the steadier the heart, the more it gains.
 
-- **Kind:** Move (offensive aura)
+- **Kind:** Move (projected aura)
 - **Trigger:** The owner uses the move. The roar is a Loud noise.
-- **Effect:** Every foe opposed or hostile to the owner that perceives the roar, at any perception level (half heard counts), wherever it is, rolls its morale skill (Resolve) against the owner's Intimidation. If the owner wins, the foe loses 10 morale per tier of gap (as Dread Presence). Every ally of the owner that perceives the roar (a bandmate, someone who counts the owner a friend or better, or someone fighting beside the owner) gets 10 morale back and loses any Shaken, and so does the owner.
+- **Effect:** Every foe opposed or hostile to the owner that perceives the roar, at any perception level (half heard counts), wherever it is, or that is within the projected reach (2 × the aura reach, 16 m without Chorus) heard or not, rolls its morale skill (Resolve) against the owner's Intimidation. If the owner wins, the foe loses 10 morale per tier of gap (as Dread Presence). Every ally of the owner reached the same way (a bandmate, someone who counts the owner a friend or better, or someone fighting beside the owner) loses any Shaken and makes a rally roll: its morale check (Resolve) plus 50% of the owner's Intimidation (augment equation). Each tier above Near Miss gives 10 morale back, and any gain makes it Rallied (+5 on every roll until the fight ends; a second rally adds nothing). The owner rallies itself the same way. A broken ally is helped too: once its morale lost is back under 100 % of max, it stops fleeing and fights on (a spoken surrender stays).
 - **Lasts:** Instant.
 - **Cooldown:** Once per engagement. It is the owner's main action.
 
@@ -772,6 +958,26 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Conditions:** Patient Knife is an ambush perk itself, so it always counts at least one piece (perks tagged ambush: src/library/perkThemes.ts).
 - **Effect:** Combat Stealth augments the attack roll (and learns from it): its true skill × the payoff share × its tier. The payoff share is 5% × ambush pieces^0.8 (CONFIG.PAYOFF_SHARE, PAYOFF_EXP, placeholders): Patient Knife alone gives 5%, with two more 12%, with no ceiling.
 - **Lasts:** Always.
+
+### Never Flat-Footed (Battle Sense) · TC35
+
+*Story:* Once you've laid eyes on someone in a fight, you never lose track of them. A foe you have seen this fight can never catch you unaware.
+
+- **Kind:** Always on
+- **Trigger:** An attack on the owner by a foe the owner has seen during this engagement (clearly or half seen).
+- **Conditions:** The owner is awake and up.
+- **Effect:** The attack is never an ambush: the owner takes no unaware penalty to its defense and does not act last for being unaware. Hidden Strike and Ghost Blade don't apply.
+- **Lasts:** Until the engagement ends.
+
+### Rally (Command) · TC39
+
+*Story:* "Hold together! With me!" Once per fight, you spend your turn on a call that steadies your side. Every ally who hears it, or stands near enough, gets nerve back, and one who broke can come back to the fight.
+
+- **Kind:** Move (projected aura)
+- **Trigger:** The owner uses the move. It takes the turn's action (1 s, all-out effort).
+- **Effect:** A Loud call. Each ally who perceives it at any level, or stands within 2 × the aura reach, makes the rally roll: its morale check plus 50% of the owner's Command (augment equation). It gets 10 morale back for each tier above Near Miss and, if it got any, is Rallied (+5 on every roll) for the rest of the fight. A broken ally whose morale lost falls back under its max stops being broken; a spoken surrender stays.
+- **Lasts:** The morale is kept; Rallied lasts until the fight ends.
+- **Cooldown:** Once per engagement.
 
 ## Banked, no milestone yet
 
@@ -1003,11 +1209,11 @@ All-50, All-100 and All-150 work alike. Granted free once enough skills of the t
 
 ### Past the Cover (Combat – Ranged, Heavy ranged) · T2c
 
-*Story:* Cover only hides most of a body. Cover counts one step lighter against your ranged attacks.
+*Story:* Cover only hides most of a body. Against your ranged attacks a target in cover shows four times as much of itself.
 
 - **Kind:** Always on
 - **Trigger:** The owner makes a ranged attack.
-- **Effect:** The target zone's cover is read one step lighter (heavy as some, some as none).
+- **Effect:** What shows of the target in its zone's cover counts four times as much, never more than all of it: two halvings of the cover penalty back, +20 (CV8).
 - **Lasts:** That attack.
 - **Built:** yes
 
@@ -1136,6 +1342,17 @@ All-50, All-100 and All-150 work alike. Granted free once enough skills of the t
 - **Lasts:** Always.
 - **Built:** yes
 
+### Mind Over Body (Fortitude, Resolve) · T4-100r
+
+*Story:* A hard mind makes a hard body. A quarter of your Resolve adds to your health the way Endurance does, and whenever Endurance learns, Resolve learns too.
+
+- **Kind:** Always on
+- **Trigger:** Always: max health, and every time Endurance is marked for training.
+- **Conditions:** Resolve's All-100 part: granted with the Fortitude All-100 when Resolve is at 100.
+- **Effect:** Max health adds Resolve (raw) × 0.25 (CONFIG.MIND_OVER_BODY_SHARE, placeholder) × HP_PER_END, before the body's and prefix's multipliers, the same way Endurance adds. Whenever Endurance is marked for training, Resolve is marked too.
+- **Lasts:** Always.
+- **Built:** yes
+
 ### Second Breath (Fortitude, Stamina) · SS8
 
 *Story:* Just when your lungs give out, they find more. Once a fight, when your breath runs out, half of it comes back at once.
@@ -1194,11 +1411,11 @@ All-50, All-100 and All-150 work alike. Granted free once enough skills of the t
 
 ### Night Eyes (Perception, Eyesight) · T5e
 
-*Story:* The dark hides little from you. Light counts one step brighter when you look.
+*Story:* The dark hides little from you. Light counts ten times brighter when you look.
 
 - **Kind:** Always on
 - **Trigger:** The owner makes an Eyesight roll.
-- **Effect:** The light there is read one step brighter (dark as dim, dim as bright). The mirror of Child of Night.
+- **Effect:** The light there is read ten times brighter (+5 on the light modifier, never above 0; pitch black stays black). The mirror of Child of Night.
 - **Lasts:** That roll.
 - **Built:** yes
 
@@ -1209,17 +1426,17 @@ All-50, All-100 and All-150 work alike. Granted free once enough skills of the t
 - **Kind:** Automatic
 - **Trigger:** The owner attacks while stealthy.
 - **Conditions:** The owner is still active after the attack.
-- **Effect:** The owner is stealthy again and vanishes in place: each observer makes a Vanishing contest against the owner, as a Vanish does, which can break the sight of those who see the owner. It does not use the owner's action or move.
+- **Effect:** The owner is stealthy again, and each observer the attack made aware of the owner rolls at once against its Vanishing, in place with no cover needed: one who loses drops to suspicious. It is the one second stealth roll an observer makes in a turn (VS3). It does not use the owner's action or move.
 - **Lasts:** That contest.
 - **Built:** yes
 
 ### Child of Night (Stealth – Conventional, passive) · T6c
 
-*Story:* The dark knows you. Light counts one step darker for all your stealth.
+*Story:* The dark knows you. Light counts ten times darker for all your stealth.
 
 - **Kind:** Always on
 - **Trigger:** The owner makes a roll of a stealth skill (Sneaking, Combat Stealth, Vanishing).
-- **Effect:** The light there is read one step darker (bright as dim, dim as dark).
+- **Effect:** The light there is read ten times darker (5 more from the light modifier, from the level where sight starts to fade).
 - **Lasts:** That roll.
 - **Built:** yes
 
@@ -1237,12 +1454,12 @@ All-50, All-100 and All-150 work alike. Granted free once enough skills of the t
 
 ### Misdirection (Stealth – Conventional, Vanishing) · T6e
 
-*Story:* "Look over there!" and you are gone. A quarter of your Lying adds to every Vanishing roll, and both skills learn from it.
+*Story:* A glance over their shoulder, a pointed finger, and you are gone. A quarter of your Guile adds to every Vanishing roll, and both skills learn from it.
 
 - **Kind:** Always on
 - **Trigger:** The owner makes a Vanishing roll.
 - **Conditions:** The Trickery tree is open to the owner.
-- **Effect:** Lying augments Vanishing: the roll adds the owner's true Lying × 0.25 (CONFIG.MISDIRECTION_SHARE, placeholder) × its tier, the way a skill augment does, and Lying can learn from the roll the same way.
+- **Effect:** Guile augments Vanishing: the roll adds the owner's true Guile × 0.25 (CONFIG.MISDIRECTION_SHARE, placeholder) × its tier, the way a skill augment does, and Guile can learn from the roll the same way.
 - **Lasts:** Always.
 - **Built:** yes
 
@@ -1253,7 +1470,7 @@ All-50, All-100 and All-150 work alike. Granted free once enough skills of the t
 - **Kind:** Automatic
 - **Trigger:** The owner dodges an attack.
 - **Conditions:** The dodge wins by a gap of +3 or better. Once per engagement.
-- **Effect:** The owner vanishes in place for free right after: each observer makes a Vanishing contest against the owner, as a Vanish does. It does not use the owner's action or move.
+- **Effect:** The owner vanishes in place for free right after: each observer who sees the owner makes a Vanishing contest against it. It does not use the owner's action or move.
 - **Lasts:** That contest.
 - **Cooldown:** Once per engagement.
 - **Open:** Parked (D-232): the Vanishing part offered beside Misdirection in PT12.
@@ -1327,10 +1544,10 @@ All-50, All-100 and All-150 work alike. Granted free once enough skills of the t
 *Story:* The dirt makes its own cover. While a foe is still clawing at its eyes, you can vanish right in front of it.
 
 - **Kind:** Always on (linked perk)
-- **Trigger:** The owner Vanishes in place (Melt Away).
+- **Trigger:** The owner sneaks and stays put (Melt Away).
 - **Conditions:** The owner has both Dirt in the Eyes and Melt Away. A foe of the owner has its sight spoiled by Dirt in the Eyes right now.
 - **Effect:** Melt Away needs no cover and no dim light. Each observer still makes its Vanishing contest as usual.
-- **Lasts:** That Vanish.
+- **Lasts:** That turn.
 
 ### Bulwark (Block) · LR4
 
@@ -1344,7 +1561,7 @@ All-50, All-100 and All-150 work alike. Granted free once enough skills of the t
 
 ### Endless Answer (Parry) · LR5
 
-*Story:* There is no end to your answers. Every clean parry brings a strike back, and every fumble on you brings a Counter.
+*Story:* There is no end to your answers. Every full parry brings a strike back, and every fumble on you brings a Counter.
 
 - **Kind:** Always on (linked perk, merged)
 - **Trigger:** The owner earns a parry strike-back or a Counter.

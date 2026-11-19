@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import type { GameState, Intent } from '../../src/types';
 import { createRng, makeVillage } from '../harness';
 import { resolveTurn } from '../../src/engine';
-import { healShare } from '../../src/engine/resolve';
+import { healShare } from '../../src/ruleset/body';
 import { unlockClasses } from '../../src/engine/xp';
 import { classMaxLevel } from '../../src/library/spawn';
 import { getLibrary } from '../../src/library';
@@ -20,7 +20,7 @@ import { TIERS } from '../../src/scales';
 
 const heal = (target: string | null): Intent => ({
   move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null,
-  action: { type: 'heal', skill: '', target, item: null, targetPart: null, mode: null, approach: '', stance: 'normal' },
+  action: { type: 'heal', skill: '', target, item: null, targetPart: null, mode: null, approach: '' },
 });
 const turn = (s: GameState, i: Intent, seed = 1) => { s.turn += 1; return resolveTurn(s, { intent: i, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(seed)); };
 
@@ -28,7 +28,7 @@ describe('330 NPC roles, second round', () => {
   it('NR8, NR13: a civilian Leader and a combat Knight in heavy armour', () => {
     const r = getLibrary().npcRoles!;
     expect(r[RO.leader].kind).toBe('civilian');
-    expect(r[RO.leader].bands.high).toEqual([SK.persuasion, SK.intimidation]);
+    expect(r[RO.leader].bands.high).toEqual([SK.persuasion, SK.intimidation, SK.command]);
     expect(r[RO.knight].kind).toBe('combat');
     expect(r[RO.knight].bands.high).toEqual([SK.melee_medium, SK.heavy_armor]);
   });

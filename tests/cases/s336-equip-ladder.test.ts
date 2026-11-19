@@ -48,12 +48,25 @@ describe('336 equip ladder', () => {
 
   it('IR2: every gear class but improvised has a piece at every level from Common to Masterwork; Masterwork ones are fantasy', () => {
     const lib = getLibrary(), items = Object.values(lib.items);
-    expect(Object.keys(lib.gearClasses ?? {}).length).toBe(11);
+    expect(Object.keys(lib.gearClasses ?? {}).length).toBe(12);
     for (const gc of Object.keys(lib.gearClasses ?? {})) {
       if (gc === GC.improvised) continue;
       for (const lv of ['common', 'fine', 'superior', 'masterwork']) expect(items.some((d) => d.gearClass === gc && d.level === lv), `${gc} ${lv}`).toBe(true);
     }
     for (const d of items) if (d.level === 'masterwork') expect(d.tags, d.id).toContain('fantasy');
-    expect(item(IT.rapier).weapon!.modes[0].reachM).toBe(1.7);
+  });
+
+  it('IR23: every weapon and armor piece outside improvised and shields has a gear type, and its reach or coverage is the type\'s', () => {
+    const lib = getLibrary(), types = lib.gearTypes ?? {};
+    for (const d of Object.values(lib.items)) {
+      if (!d.gearClass || d.gearClass === GC.improvised || d.gearClass === GC.shield) continue;
+      const t = types[d.gearType ?? ''];
+      expect(t, d.id).toBeDefined();
+      // SZ8: a melee type gives its length past the hand (its library reach is a standard arm + that); a bow its range
+      for (const m of d.weapon?.modes ?? []) if (!m.thrown) expect(t.lengthM !== undefined ? m.lengthM : m.reachM, d.id).toBe(t.lengthM ?? t.reachM);
+      if (d.armor) expect(d.armor.covers, d.id).toEqual(t.covers);
+    }
+    expect(item(IT.rapier).weapon!.modes[0].lengthM).toBe(0.9); // a Sword: rounds to its type
+    expect(item(IT.dagger).weapon!.modes.find((m) => m.thrown)!.reachM).toBe(CONFIG.THROW_M.knife); // a throw keeps the throw table
   });
 });

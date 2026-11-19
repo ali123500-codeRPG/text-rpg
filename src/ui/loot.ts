@@ -4,21 +4,20 @@
 // never lists anything the character doesn't know of; whether each take works is still the turn's to decide.
 import type { GearOp, PlayerView } from '../types';
 import { isDownLevel } from '../ruleset';
-import { cap, listWords, theOf } from '../words';
-import { h } from './kit';
+import { cap, listWords, theItem, theOf } from '../words';
+import { h, tipOff, tipOn } from './kit';
 import { closePop, openPop } from './pop';
 
 export type LootItem = { id: string; name: string; qty?: number };
 /** one place things can be taken from: a body, an open container or the ground; `from` names it in an order ("" = the ground) */
 export type LootSource = { key: string; kind: 'body' | 'container' | 'ground'; title: string; from: string; items: LootItem[] };
 
-const theItem = (n: string) => (/^(the|a|an|some)\s/i.test(n) ? theOf(n) : `the ${n}`);
 
 /** everything the character can see to take here, by where it is */
 export function lootSources(pv: PlayerView): LootSource[] {
   const out: LootSource[] = [];
   for (const a of pv.actors) {
-    if (a.level !== 'full' || a.zone !== pv.zone.id || !a.health || !isDownLevel(a.health)) continue;
+    if (a.level !== 'full' || !a.health || !isDownLevel(a.health)) continue;
     const name = a.name ?? theOf(a.label);
     const items: LootItem[] = [];
     for (const g of a.gear) {
@@ -53,8 +52,9 @@ export function lootGear(src: LootSource[], picked: ReadonlySet<string>): GearOp
   return src.flatMap((s) => s.items.filter((i) => picked.has(i.id)).map((i) => ({ op: 'pick_up' as const, item: i.id, ...(s.kind === 'body' ? { from: s.key } : {}) })));
 }
 
-/** opens the loot pop-up; `onOrder` gets the order's words and its gear orders, and plays it; `iconOf` gives each thing its icon. Back closes it */
-export function openLoot(pv: PlayerView, opener: HTMLElement | null, onOrder: (order: string, gear: GearOp[]) => void, iconOf?: (id: string) => HTMLElement | null): HTMLElement | null {
+/** opens the loot pop-up; `onOrder` gets the order's words and its gear orders, and plays it; `iconOf` gives each thing its icon;
+ *  `tipOf` shows a thing's card while hovered or focused (P1: with what equipping it would change), `at` null hides it. Back closes it */
+export function openLoot(pv: PlayerView, opener: HTMLElement | null, onOrder: (order: string, gear: GearOp[]) => void, iconOf?: (id: string) => HTMLElement | null, tipOf?: (id: string, at: HTMLElement | null) => void): HTMLElement | null {
   const src = lootSources(pv);
   if (!src.length) return null;
   const picked = new Set<string>();
@@ -75,6 +75,11 @@ export function openLoot(pv: PlayerView, opener: HTMLElement | null, onOrder: (o
     const b = h('button', { type: 'button', class: 'loot-item', 'data-item': i.id, 'aria-pressed': 'false', onclick: () => { if (picked.has(i.id)) picked.delete(i.id); else picked.add(i.id); sync(); } },
       h('span', { class: 'loot-box', 'aria-hidden': 'true' }), iconOf?.(i.id) ?? '', h('span', {}, i.name), i.qty && i.qty > 1 ? h('span', { class: 'loot-qty' }, `×${i.qty}`) : '');
     chips.push(b as HTMLButtonElement);
+    if (tipOf) {
+      b.addEventListener('pointerenter', () => tipOn(() => tipOf(i.id, b)));
+      b.addEventListener('focusin', () => tipOn(() => tipOf(i.id, b), true));
+      for (const ev of ['pointerleave', 'focusout']) b.addEventListener(ev, () => tipOff(() => tipOf(i.id, null)));
+    }
     return b;
   };
   allBtn.onclick = () => { if (picked.size === all.length) picked.clear(); else for (const id of all) picked.add(id); sync(); };

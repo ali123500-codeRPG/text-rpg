@@ -6,7 +6,9 @@ import { ACH } from '../../src/library/achievementIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { actor } from '../harness/village';
-import { achievementName, awardXp, levelCost, xpToReach, skillRating, gearRating, defeatXp, payDefeats, rating, levelRating, xpGroupFactor, xpToNext } from '../../src/engine/xp';
+import { achievementName, awardXp, levelCost, xpToReach, skillRating, defeatXp, payDefeats, power, ratingGroups, refSkillPart, levelRating, xpGroupFactor, xpToNext } from '../../src/engine/xp';
+import { combatLevel } from '../../src/engine/fightModel';
+import { nonCombatPart } from '../../src/engine/nonCombat';
 import { CONFIG } from '../../src/config';
 import { REWARD_LEVELS } from '../../src/scales';
 import { getLibrary } from '../../src/library';
@@ -20,23 +22,20 @@ const hit = (target: string): GameEvent => ({ id: 'e1', turn: 1, actorId: 'playe
   attack: { attackerId: 'player', targetId: target, damage: 5 } as never });
 
 describe('106 XP and levels', () => {
-  it('rating: categories ranked 1, ½, ¼, weighted; weak foes taper (X18–X23)', () => {
+  it('the skill part ranks each group 1, ½, ¼, weighted; power reads it for the combat level; weak foes taper (X18–X23, GR45)', () => {
     const s = makeVillage();
     const slime = actor(s, 'slime_1');
-    // one offensive skill, plus Scent 50 at the notice weight (AB19: slimes smell), Dodge (the beast role's
-    // Low band: rank_0 anchor 15 × 0.6 = 9) at the defense weight, plus steady Resolve 50 (Will), plus level 1 (rank_0's row). No Hearing:
-    // a slime's body can't
-    expect(slime.core.skills[SK.dodge].raw).toBe(9);
-    expect(slime.core.skills[SK.earshot]).toBeUndefined();
-    expect(rating(slime)).toBeCloseTo(levelRating(slime) + skillRating(30) + xpGroupFactor(GR.notice) * skillRating(50) + xpGroupFactor(GR.defense) * skillRating(9) + xpGroupFactor(GR.will) * skillRating(50), 5);
+    // the skill part (now read off the reference fighter at a combat level): one skill per group in full, the next at ½
+    const sum = (a: typeof slime) => ratingGroups(a).reduce((n, g) => n + g.adds, 0);
+    expect(sum(slime)).toBeCloseTo(skillRating(30) + xpGroupFactor(GR.notice) * skillRating(50) + xpGroupFactor(GR.defense) * skillRating(9) + xpGroupFactor(GR.will) * skillRating(50), 5);
+    expect(power(s, slime)).toBeCloseTo(levelRating(slime, s) + refSkillPart(s, combatLevel(s, slime)) + nonCombatPart(s, slime), 5);
     const g = actor(s, 'guard_1');
-    expect(rating(g)).toBeGreaterThan(rating(slime));
-    const t = Math.min(1, CONFIG.DEFEAT_XP_TAPER * rating(slime) / (rating(s.player) + gearRating(s, s.player))); // the player's gear counts too
-    expect(defeatXp(s, slime)).toBeCloseTo(rating(slime) * t * CONFIG.DEFEAT_XP_MULT, 1);
-    s.player.core.skills[SK.barter] = { raw: 90, state: 'normal' }; // influence counts at 0.25×
-    const before = rating(s.player);
-    s.player.core.skills[SK.lockpicking] = { raw: 90, state: 'normal' }; // FL1: Lockpicking sits in Sleight, which counts like Stealth
-    expect(rating(s.player)).toBeGreaterThan(before);
+    expect(power(s, g)).toBeGreaterThan(power(s, slime));
+    const t = Math.min(1, CONFIG.DEFEAT_XP_TAPER * power(s, slime) / power(s, s.player));
+    expect(defeatXp(s, slime)).toBeCloseTo(power(s, slime) * t * CONFIG.DEFEAT_XP_MULT, 1);
+    const before = power(s, s.player);
+    s.player.core.skills[SK.lockpicking] = { raw: 90, state: 'normal' }; // FL1: Lockpicking sits in Sleight, a non-combat group (GR42)
+    expect(power(s, s.player)).toBeGreaterThan(before);
   });
   it('ten defeats earn defeats_10 and defeats_10:<body type> once each, named for what was defeated', () => {
     const s = makeVillage();
@@ -79,6 +78,7 @@ describe('106 XP and levels', () => {
   });
   it('a slime the player hit and downed pays its defeat XP once, plus a first-defeat achievement', () => {
     const s = makeVillage();
+  CONFIG.ACH_LEVEL_SHARE = { floor: 0, atI: 0, power: 1 }; // the ladder alone (the level share has its own test, s379)
     const slime = actor(s, 'slime_1');
     const xp = defeatXp(s, slime);
     payDefeats(s, [hit('slime_1')]);
@@ -88,7 +88,7 @@ describe('106 XP and levels', () => {
     payDefeats(s, []);
     const pr = s.player.progression!;
     expect(pr.achievements!.map((a) => a.id)).toEqual([`${ACH.first_defeat_body_type}:${BT.amorphous}`, `${ACH.first_defeat_race}:${RC.slime}`, ACH.bested_1]);
-    expect(pr.xpLog!.map((x) => x.source)).toEqual(['defeat:slime_1', `achievement:${ACH.first_defeat_body_type}:${BT.amorphous}`, `achievement:${ACH.first_defeat_race}:${RC.slime}`]); // two level I rewards are not yet a level (LEVEL_XP_FLOOR)
+    expect(pr.xpLog!.map((x) => x.source)).toEqual(['defeat:slime_1', `achievement:${ACH.first_defeat_body_type}:${BT.amorphous}`, `achievement:${ACH.first_defeat_race}:${RC.slime}`]); // two level I rewards are not yet a level (LEVEL_XP_EARLY)
     expect(pr.xpLog![0].amount).toBe(xp);
     expect(pr.xpLog![1].amount).toBe(rewardXp('i'));
     const other = actor(s, 'slime_2');
@@ -112,10 +112,10 @@ describe('106 XP and levels', () => {
     payDefeats(s, []);
     expect(s.player.progression!.xpLog!.filter((x) => x.source.startsWith('defeat')).map((x) => x.source)).toEqual(['defeat:slime_1']);
   });
-  it('levels need the larger of LEVEL_XP_FLOOR and LEVEL_XP × level and go to the chosen class', () => {
+  it('levels need LEVEL_XP × √(level² + LEVEL_XP_EARLY²) and go to the chosen class', () => {
     const s = makeVillage();
     const p = s.player, pr = p.progression!;
-    expect(xpToNext(p)).toBe(CONFIG.LEVEL_XP_FLOOR);
+    expect(xpToNext(p)).toBe(Math.round(CONFIG.LEVEL_XP * Math.sqrt(1 + CONFIG.LEVEL_XP_EARLY ** 2)));
     p.core.classes.push({ classId: CL.trader, state: 'unlocked', level: 0 });
     pr.nextClass = CL.trader;
     awardXp(s, xpToNext(p) + 5, 'test');
@@ -124,10 +124,11 @@ describe('106 XP and levels', () => {
     expect(pr.unspentPerkPoints).toBe(1); // level 2 is even
     expect(pr.xpLog!.at(-1)!.levelUp).toEqual({ classId: CL.trader, level: 2 });
   });
-  it('early levels are harsher: the XP that used to take level 1 to 10 (LEVEL_XP × n) now takes it to 8; later steps are unchanged', () => {
+  it('early levels are harsher: each level costs more than the last, the XP that used to take level 1 to 10 (LEVEL_XP × n) now takes it to 8, and later steps bend back to LEVEL_XP × n', () => {
+    for (let n = 0; n < 200; n++) expect(levelCost(n + 1)).toBeGreaterThan(levelCost(n));
     const old = CONFIG.LEVEL_XP * 45, from1 = (l: number) => xpToReach(l) - xpToReach(1);
     expect(from1(8)).toBeLessThanOrEqual(old);
     expect(from1(9)).toBeGreaterThan(old);
-    for (const n of [7, 10, 20, 50]) expect(levelCost(n)).toBe(CONFIG.LEVEL_XP * n);
+    expect(levelCost(30) / (CONFIG.LEVEL_XP * 30)).toBeLessThan(1.02);
   });
 });

@@ -65,13 +65,14 @@ export type EndCheck =
   | { kind: 'hold'; item: string }
   | { kind: 'deliver'; item: string; to: string }
   | { kind: 'time'; at: string }
+  | { kind: 'clear'; place: string } // BG-287 (BF94 a): nobody hostile to the player still standing in the place or zone
   | { kind: 'judged' };
 /** one way the scenario can end: what code checks, which ending it is, and a hidden line saying what it means */
 export type PlanEnding = { when: EndCheck; as: (typeof PLAN_ENDINGS)[number]; text: string };
 /** SC1/SC2/SC7: the scenario's hidden question, its scale and its endings */
 export type ScenarioFrame = {
   question: string; scale: ScenarioScale; endings: PlanEnding[];
-  /** SW8: hidden, what is lost if the player does nothing (absent on an old save) */
+  /** SW8: hidden, what is lost if the player does nothing (absent only when a plan applied after a failed repair gave none) */
   stake?: string;
   tier: Tier; startTurn: number; startMinute: number; number: number;
   /** BG-240: game minutes spent waiting, resting, sleeping or on a trip since it began (left out of an actingOnly budget) */
@@ -80,6 +81,8 @@ export type ScenarioFrame = {
   upAtStart: string[]; heldAtStart: string[];
   /** places a 'leave' ending names that the player has been in this scenario (leaving needs being there first) */
   beenIn?: string[];
+  /** BG-287: places a 'clear' ending names where a foe has stood this scenario (clearing needs a foe there first) */
+  hadFoes?: string[];
   /** SC8: Weaver check-ins asked so far, and the turn of the last one */
   checkins?: number; lastCheckin?: number;
   /** SC12: the check-in has been told the scenario is over its budget */

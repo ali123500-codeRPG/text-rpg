@@ -2,22 +2,23 @@
 // doorways), its turns count one move slot a turn after this turn's ring (carried time included, AD9), and a spot with no
 // way the player knows is not plannable, saying why.
 import { describe, expect, it } from 'vitest';
-import { makeVillage } from '../harness';
-import { carriedMoveS, metresText, planTo, ringMetres, splitAt, zoneAt, type MinimapPlan } from '../../src/ui/minimap';
+import { makeVillage, setBarrier } from '../harness';
+import { carriedMoveS, dashMetres, metresText, planTo, ringMetres, splitAt, zoneAt, type MinimapPlan } from '../../src/ui/minimap';
 import { knownMap } from '../../src/ui/mapData';
-import { pathM, walkRoute } from '../../src/engine/position';
+import { walkRoute } from '../../src/engine/position';
 import { moveSpeed, slotMetres } from '../../src/engine/speed';
 import { zoneById } from '../../src/engine/relations';
 import { BK } from '../../src/library/tableIds';
 import { CONFIG } from '../../src/config';
 import type { GameState } from '../../src/types';
+import { boxOf } from '../../src/plan/geom';
 
 const village = (known: string[]) => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'trader', 'patron_1'] });
   s.player.journal = { ...s.player.journal!, zonesSeen: known };
   return s;
 };
-const centre = (s: GameState, id: string) => { const r = zoneById(s, id)!.rect!; return { x: r.x, y: r.y }; };
+const centre = (s: GameState, id: string) => { const r = boxOf(zoneById(s, id)!.outline); return { x: r.x, y: r.y }; };
 const ok = (p: MinimapPlan) => { if ('why' in p) throw new Error(p.why); return p; };
 
 describe('minimap plans (AD16)', () => {
@@ -27,7 +28,6 @@ describe('minimap plans (AD16)', () => {
     const at = centre(s, 'street_square'), p = ok(planTo(s, knownMap(s), 'street_square', at));
     const r = walkRoute(s, s.player, { zone: 'street_square', pos: at }, s.player)!;
     expect(p.metres).toBeCloseTo(r.metres, 9);
-    expect(p.metres).toBeCloseTo(pathM(s, s.player, { zone: 'street_square', pos: at }, ['street_door', 'street_square']), 9);
     expect(p.pts).toEqual(r.pts);
     expect(p.seconds).toBeCloseTo(p.metres / moveSpeed(s, s.player).walk, 9);
     expect(p.turns).toBe(1);
@@ -47,16 +47,26 @@ describe('minimap plans (AD16)', () => {
     expect(far.metres).toBeGreaterThan(ring);
     expect(far.turns).toBe(1 + Math.ceil((far.metres - ring) / per));
     expect(far.words).toBe(`${metresText(far.metres)} · ${far.turns} turns · keeps walking by itself`);
-    const r = zoneById(s, 'tav_common')!.rect!, me = s.player.pos!;
+    const r = boxOf(zoneById(s, 'tav_common')!.outline), me = s.player.pos!;
     const near = ok(planTo(s, knownMap(s), 'tav_common', { x: me.x + Math.sign(r.x - me.x || 1) * 1.5, y: me.y }));
     expect(near.turns).toBe(1);
     expect(near.words).toMatch(/ · \d+ s walking · this turn$/);
   });
 
+  it('BF91: in a fight a second ring shows how far a dash runs (the walk ring, then the main time run); none outside a fight', () => {
+    const s = village(['tav_common']);
+    expect(dashMetres(s)).toBeNull();
+    s.mode = 'tactical';
+    s.player.carry = [{ main: 1, move: 1.5, turn: s.turn - 1 }];
+    const sp = moveSpeed(s, s.player);
+    expect(dashMetres(s)).toBeCloseTo(ringMetres(s)! + (sp.run - sp.walk) * (CONFIG.FIGHT_TURN_S + 1), 9);
+    expect(dashMetres(s)!).toBeGreaterThan(ringMetres(s)!);
+  });
+
   it('a point past the walls is planned a step inside them (spotPoint), as the walk will stop', () => {
-    const s = village(['tav_common']), r = zoneById(s, 'tav_common')!.rect!;
+    const s = village(['tav_common']), r = boxOf(zoneById(s, 'tav_common')!.outline);
     const p = ok(planTo(s, knownMap(s), 'tav_common', { x: r.x + r.w, y: r.y }));
-    expect(p.x).toBeCloseTo(r.x + r.w / 2 - CONFIG.ENTER_M, 9);
+    expect(p.x).toBeCloseTo(r.x + r.w / 2 - CONFIG.ENTER_M - 0.25, 9); // SZ19: to the body's edge (half its widest side)
   });
 
   it('no plan without a way the player knows, and it says why', () => {
@@ -67,7 +77,7 @@ describe('minimap plans (AD16)', () => {
     expect(planTo(s, m, 'tav_common', { ...s.player.pos! })).toEqual({ why: 'You are standing there.' });
     // a way the player tried and found locked, with no other way round
     s.barriers = { door: { id: 'door', kind: BK.door, grade: 'minor', lock: { locked: true }, tried: ['player'] } };
-    for (const [a, b] of [['tav_common', 'street_door'], ['street_door', 'tav_common']]) zoneById(s, a)!.links.find((l) => l.to === b)!.barrier = 'door';
+    setBarrier(s, 'tav_common', 'street_door', 'door');
     s.player.journal!.zonesSeen = ['tav_common', 'street_door'];
     expect((planTo(s, knownMap(s), 'street_door', centre(s, 'street_door')) as { why: string }).why).toMatch(/^No way there you can take: out the front door \(.*locked\)\.$/);
   });

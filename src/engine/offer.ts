@@ -22,9 +22,10 @@ import { CONFIG } from '../config';
 import { getLibrary } from '../library';
 import { INTELLIGENCE, HEALTH_LEVELS, MORALE_LEVELS, PART_STATES } from '../scales';
 import { healthLevel, partStates } from '../ruleset/body';
-import { moraleLevel } from '../ruleset/morale';
+import { isBrokenLevel, moraleLevel } from '../ruleset/morale';
 import { hasPerk } from '../ruleset/perks';
 import { PK } from '../library/perkIds';
+import { SK } from '../library/skillIds';
 import { actorById, allActors, atLeast, countsInFight, hostile, isActive, isEngaged, stance } from './relations';
 import { besidePlayer } from './engagement';
 import { together } from './yield';
@@ -47,6 +48,13 @@ export function speaks(a: Actor): boolean {
   return !!mind && INTELLIGENCE.pos(mind) >= INTELLIGENCE.pos('intelligent');
 }
 
+/** BF88: a creature that can't talk but has some wits (a Semi-intelligent beast: a wolf, a bear) can still be stared down
+ * by a threat; a mindless one (a slime) can't (a Battle Cry still shakes it, as any aura does) */
+export function feelsThreats(a: Actor): boolean {
+  const mind = a.core.raceId ? getLibrary().races?.[a.core.raceId]?.intelligence : undefined;
+  return !!mind && INTELLIGENCE.pos(mind) >= INTELLIGENCE.pos('semi');
+}
+
 /** in a fight, `to` can be offered a stand-down by `from`: both count in the fight, `to` speaks and is hostile to `from` */
 export function canOffer(state: GameState, from: Actor, to: Actor): boolean {
   return from !== to && countsInFight(from) && countsInFight(to) && speaks(to) && hostile(state, to, from) && isEngaged(state, from);
@@ -59,12 +67,12 @@ const cowering = (a: Actor): boolean => isActive(a) && a.mind?.moraleState === '
  * at OFFER_EASIER_HEALTH or worse in health, or OFFER_EASIER_MORALE or worse in morale (placeholders). TF19: a demand to
  * yield needs OFFER_YIELD_WIN_TIERS (OFFER_YIELD_WIN_TIERS_SHAKEN when shaken), OFFER_YIELD_EASIER less for each of: the
  * foe is Broken, a part of it is Crippled or worse; never less than a win by one tier */
-export function tiersToConvince(a: Actor, kind: OfferKind = 'stand_down', state?: GameState): number {
+export function tiersToConvince(a: Actor, kind: OfferKind = 'stand_down', state?: GameState, hearMeOut = false): number {
   const hurt = HEALTH_LEVELS.pos(healthLevel(a)) >= HEALTH_LEVELS.pos(CONFIG.OFFER_EASIER_HEALTH);
   const uneasy = MORALE_LEVELS.pos(moraleLevel(a)) >= MORALE_LEVELS.pos(CONFIG.OFFER_EASIER_MORALE);
   const shaken = hurt || uneasy;
-  if (kind === 'stand_down') return shaken ? CONFIG.OFFER_WIN_TIERS_SHAKEN : CONFIG.OFFER_WIN_TIERS;
-  const broken = a.mind?.moraleState === 'broken' || moraleLevel(a) === 'broken';
+  if (kind === 'stand_down') return shaken || hearMeOut ? CONFIG.OFFER_WIN_TIERS_SHAKEN : CONFIG.OFFER_WIN_TIERS;
+  const broken = a.mind?.moraleState === 'broken' || isBrokenLevel(moraleLevel(a));
   const crippled = !!state && partStates(state, a).some((p) => PART_STATES.pos(p.state) >= PART_STATES.pos('crippled'));
   const base = shaken ? CONFIG.OFFER_YIELD_WIN_TIERS_SHAKEN : CONFIG.OFFER_YIELD_WIN_TIERS;
   return Math.max(1, base - CONFIG.OFFER_YIELD_EASIER * ((broken ? 1 : 0) + (crippled ? 1 : 0)));
@@ -73,7 +81,10 @@ export function tiersToConvince(a: Actor, kind: OfferKind = 'stand_down', state?
 /** TF15: how an offer landed, from its contest (the speaker is side a) */
 export function landed(contest: ContestResult, listener: Actor, kind: OfferKind = 'stand_down', state?: GameState): OfferLanded {
   const won = -contest.gap;
-  return won >= tiersToConvince(listener, kind, state) ? 'convinced' : won >= 0 ? 'tempted' : 'unmoved';
+  // LG9 Hear Me Out (Persuasion 20): to the owner's persuasion offers every listener counts as shaken
+  const speaker = state ? actorById(state, contest.a.actorId) : undefined;
+  const hearMeOut = contest.a.skill === SK.persuasion && hasPerk(speaker, PK.hear_me_out);
+  return won >= tiersToConvince(listener, kind, state, hearMeOut) ? 'convinced' : won >= 0 ? 'tempted' : 'unmoved';
 }
 
 /** TF19: `from` can demand that `to` surrender: as for an offer (canOffer), or `to` cowers Broken before them */

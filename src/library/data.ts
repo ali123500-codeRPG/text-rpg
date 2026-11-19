@@ -1,6 +1,11 @@
 // The prototype library: skills (Part 1 §3), body types (Part 3), classes and templates (Part 4 §4),
-// items (Appendix: prototype item bank), routine bank (Appendix: prototype routine bank). All numbers are placeholders.
-import { AM, BK, CP, DU, RV, EK, FR, FU, GC, HL, PA, PY, RL, TN, VL, ZK, RK, LC, LM } from './tableIds';
+// items and the routine bank (the library viewer shows every row). All numbers are placeholders.
+import { AM, BK, BM, CP, DU, RV, WK, OP, LS, FR, FU, GC, GT, IF, HL, PA, PY, RL, TN, VL, ZK, RK, LC, LM } from './tableIds';
+/** BW26 a: what a wall of each kind is made of when it names no material (placeholders) */
+const WALL_MATERIAL: Record<string, string> = { [WK.wall]: BM.brick, [WK.glazed]: BM.glass, [WK.arcade]: BM.stone, [WK.low]: BM.brick, [WK.fence]: BM.planks };
+/** BW24: what each barrier kind is made of when it names no material (placeholders) */
+const BARRIER_MATERIAL: Record<string, string> = { [BK.door]: BM.oak, [BK.gate]: BM.oak, [BK.grate]: BM.iron, [BK.hatch]: BM.oak, [BK.rubble]: BM.rubble,
+  [BK.window]: BM.planks, [BK.arrow_slit]: BM.stone, [BK.barred_window]: BM.iron, [BK.large_window]: BM.planks };
 import { TP } from './templateIds';
 import { GP, HK, PF, RO, TH } from './npcLayerIds';
 import { BT, RC } from './raceIds';
@@ -8,21 +13,22 @@ import { TR } from './treeIds';
 import { CONFIG } from '../config';
 import { LAYOUTS } from './layouts';
 import { UNIQUES } from './uniques';
-import type { ArmorWeightKey, GrandeurKey, LifeStageKey } from '../scales';
+import type { ArmorWeightKey, GrandeurKey, LifeStageKey, RankKey } from '../scales';
 import { CLASS_TIERS, LIFE_STAGES, NOISE, VISIBILITY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS } from '../scales';
 import { openAirReachM } from '../perception/noise';
+import { HUMANOID_SIZE, armReachM } from './bodySize';
 
 /** AT12: armour on or off locks movement, is careful work in steps, and keeps what is done when broken off */
 const ARMOR_TIME = { locksMove: true, focus: 'careful', output: 'steps', onBreak: [{ upTo: 1, then: 'kept' }] } as const;
 /** HB1: how far a sound carries in the open */
 const inOpen = (m: number | undefined) => (m === undefined ? 'nowhere' : m === 0 ? 'only right beside you' : `${m} m in the open`);
-import type { AccessCond, ActivityDef, AttackMode, BodyType, ItemDef, ItemEffect, Library, NpcRoleDef, NpcTemplate, ThemeDef, HookKindDef, GroupDef, MeetRow, PerkDef, Personality, Routine, RoutineSet, SituationTag, SkillDef } from '../types';
+import type { AccessCond, PartDef, RoleId, ActivityDef, AttackMode, BodyType, ItemDef, ItemEffect, Library, NpcRoleDef, NpcTemplate, ThemeDef, HookKindDef, GroupDef, MeetRow, PerkDef, Personality, Routine, RoutineSet, SituationTag, SkillDef } from '../types';
 import { FUNCTION_GROUP } from './functionNames';
 import { PERK_WRITEUPS } from './perks';
 import { BOOST_PERKS } from './boostPerks';
 import { ALL_PARTS } from './allPerks';
 import { BUILT_PERKS } from './builtPerks';
-import { SK, OLD_SKILL_IDS, ROLLED_SKILL } from './skillIds';
+import { SK, ROLLED_SKILL } from './skillIds';
 import { ACH, ACH_HEADS } from './achievementIds';
 import { FN, GR } from './functionIds';
 import { CL } from './classIds';
@@ -31,7 +37,8 @@ import { GD } from './godIds';
 import { ST } from './startIds';
 import { ES } from './essenceIds';
 import { PK } from './perkIds';
-import { IT } from './itemIds';
+import { BREAK_TOOL_TAG, IT } from './itemIds';
+import { armorMultiplier, armorStop, shieldPool } from './gearScale';
 
 /** aimed hits per part size: smaller parts are harder to hit, so their levels pay this many reward levels more */
 /** AG3–AG6: life stage start ages per race (placeholders but the human row) */
@@ -140,6 +147,13 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   // each stands in for the other (CONFIG.SUBSTITUTES)
   sk(SK.lockpicking, TR.tools, [FN.lockpicking], [RL.grip]),
   sk(SK.filching, TR.trickery, [FN.filching], [RL.grip]), // in Trickery beside Lying; still Lockpicking's stand-in
+  sk(SK.guile, TR.trickery, [FN.influence], []), // TC24, TC26: a lie told with the body, rolled against the onlooker's Insight
+  // Tactics (TR19; TC11 d, TC10, TC13, TC14): the Tactics function on three skills that stand in for each other; Battle
+  // Sense also rolls Reaction (FN11, the initiative roll: TC5, TC13); Command joins the group only
+  sk(SK.battle_sense, TR.tactics, [FN.tactics, FN.initiative], []),
+  { ...sk(SK.command, TR.tactics, [], [RL.speech]), groups: [GR.tactics] }, // orders are spoken: head wounds count
+  sk(SK.fieldcraft, TR.tactics, [FN.tactics], []),
+  sk(SK.stratagem, TR.tactics, [FN.tactics], []),
 ].map((s) => [s.id, s]));
 
 /** ST21: situation tags per skill. Light reaches sight and stealth; cover reaches hide and ranged. */
@@ -154,21 +168,68 @@ for (const [id, tags] of Object.entries(SITUATION_TAGS_OF)) SKILLS[id].tags = ta
 // SR1: intimidation is open to any race with the Speech tree; persuasion and barter need a speaking race
 for (const id of [SK.persuasion, SK.barter, SK.lying]) SKILLS[id].access = { must: [{ kind: 'raceTag', id: 'speaks' }] };
 
-/** an attack mode with its reach in metres (real references) */
-const mode = (m: Partial<import('../types').AttackMode> & Pick<import('../types').AttackMode, 'id' | 'tree' | 'class' | 'grips'> & { reachM: number }) => ({ ...m, reach: m.reachM });
+/** SZ8: what a standard Humanoid's arm reaches past its body (0.625 m); a held weapon's library reach is this plus its length */
+const STD_ARM_M = armReachM(HUMANOID_SIZE);
+/** SZ8: a mode wielded in a grip: its own length past the hand; its library reach is the standard Humanoid's */
+const held = (lengthM: number) => ({ lengthM, reachM: STD_ARM_M + lengthM, reach: STD_ARM_M + lengthM });
+/** a humanoid's fists: as far as the arm (SZ8); also the bare-hands mode of a body with no natural attacks (ruleset/gear UNARMED_MODE) */
+export const FISTS: AttackMode = { id: AM.punch, tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, ...held(0), grips: 0, name: 'fists' };
+/** a weapon mode; a typed piece's non-thrown modes take their reach from its gear type (typed below), so they state none */
+const mode = (m: Partial<import('../types').AttackMode> & Pick<import('../types').AttackMode, 'id' | 'tree' | 'class' | 'grips'>) => ({ ...m, ...(m.reachM === undefined ? {} : { reach: m.reachM }) });
+/** IR23: gear types. A melee type has its length past the hand (SZ8: it reaches the wielder's arm plus that; a standard
+ * person's arm is 0.625 m, so a dagger reaches 0.925 m); a bow's or crossbow's reach is its effective range against a man,
+ * not its longest shot; armor covers the parts its real garment covers most of (IR8). Every piece of the type takes the
+ * type's number (pieces round to it). Thrown range stays CONFIG.THROW_M. */
+export const GEAR_TYPES: Record<string, { id: string; name: string; reachM?: number; lengthM?: number; covers?: string[] }> = Object.fromEntries(([
+  [GT.knife, 'Knife', { lengthM: 0.3 }], // dagger: a 30 cm blade
+  [GT.short, 'Short', { lengthM: 0.6 }], // short sword, hand axe, cudgel
+  [GT.sword, 'Sword', { lengthM: 0.9 }], // arming sword; longsword blade 80-110 cm (Wikipedia "Longsword"), rapier 104 cm (Wikipedia "Rapier")
+  [GT.great, 'Great', { lengthM: 1.6 }], // two-handed greatsword and greataxe
+  [GT.pole, 'Pole', { lengthM: 2.1 }], // spear
+  [GT.short_bow, 'Short bow', 50], [GT.flatbow, 'Flatbow', 60], [GT.recurve, 'Recurve', 70], [GT.longbow, 'Longbow', 90],
+  [GT.warbow, 'Warbow', 150], // Mary Rose bows; Barnabe Rich: 200 paces (153 m) for most archers (Wikipedia "English longbow")
+  [GT.crossbow_light, 'Light crossbow', 60], [GT.crossbow_stirrup, 'Stirrup crossbow', 70], [GT.crossbow_heavy, 'Heavy crossbow', 80],
+  [GT.cuirass, 'Cuirass', ['general']], // a torso garment (Wikipedia "Cuirass", "Brigandine", "Jack of plate")
+  [GT.coat, 'Coat', ['general', 'left_arm', 'right_arm']], // sleeved: gambeson, hauberk (Wikipedia "Gambeson", "Hauberk")
+  [GT.half_suit, 'Half suit', ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg']], // breastplate with arm and leg plates
+  [GT.full_harness, 'Full harness', ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg', 'head', 'neck']], // a full harness came with its helmet (Wikipedia "Plate armour")
+  [GT.helmet, 'Helmet', ['head']], [GT.helmet_neck, 'Helmet with neck', ['head', 'neck']],
+  [GT.fist, 'Fist', { lengthM: 0 }], // gauntlets: a punch reaches as far as the arm
+] as [string, string, number | string[] | { lengthM: number }][]).map(([id, name, v]) => [id, { id, name, ...(Array.isArray(v) ? { covers: v } : typeof v === 'number' ? { reachM: v } : v) }]));
+/** IR30-IR33: item families. A Mundane piece takes every number from its level, class and type (IR31); a special family
+ * stands on a Mundane base and adds its own extras, grown its own way (IR33). Relics are parked (D-167). */
+export const ITEM_FAMILIES: Record<string, { id: string; name: string; rule: string }> = Object.fromEntries(([
+  [IF.mundane, 'Mundane', 'Every number comes from its level (need) through one factor each, plus its gear class and gear type; nothing is set by hand. A minted piece stays Mundane: its quality adds factor × need × quality.'],
+  [IF.threadbound, 'Threadbound', 'One of a kind, bound to its owner; its abilities open through achievements and grow by its Rank.'],
+  [IF.relic, 'Relic', 'A unique piece that is not Threadbound (parked, D-167).'],
+] as [string, string, string][]).map(([id, name, rule]) => [id, { id, name, rule }]));
+/** IR30: the family of an equipment piece: Threadbound if it is one, else Mundane for any piece with an equipment level */
+const familyOf = (d: ItemDef): string | undefined => d.family ?? (d.threadbound ? IF.threadbound : d.level ? IF.mundane : undefined);
+/** IR23: fill a typed piece's reach (non-thrown modes) and coverage from its gear type; IR30: name its family */
+function typed(d: ItemDef): ItemDef {
+  const f = familyOf(d);
+  if (f) d.family = f;
+  const t = d.gearType ? GEAR_TYPES[d.gearType] : undefined;
+  if (!t) return d;
+  if (d.weapon && t.reachM !== undefined) d.weapon.modes = d.weapon.modes.map((m) => (m.thrown ? m : { ...m, reachM: t.reachM!, reach: t.reachM! }));
+  if (d.weapon && t.lengthM !== undefined) d.weapon.modes = d.weapon.modes.map((m) => (m.thrown ? m : { ...m, ...held(t.lengthM!) }));
+  if (d.armor && t.covers) d.armor = { ...d.armor, covers: [...t.covers] };
+  return d;
+}
 const KIT = (skill = '$mode'): ItemEffect => ({ kind: 'skill', skill, value: 25, active: 'held', scope: 'withItem', kit: true });
 /** armor numbers come from CONFIG (one source, Part 5 armor table) */
 /** Improvised weapons: a melee strike and a throw (like throwing a vase), both rolled with
  * Improvisation. Unarmed skills stand in for both (its own function); Arms skills also stand in for the strike,
  * Ranged skills for the throw. */
 const IMPROVISED_MODES = (cls: 'light' | 'medium' | 'heavy', grips: 1 | 2) => [
-  mode({ id: AM.strike, tree: 'melee', class: cls, skill: SK.unarmed_improvised, reachM: 1.2, grips, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: [FN.arms] }),
+  mode({ id: AM.strike, tree: 'melee', class: cls, skill: SK.unarmed_improvised, ...held(0.5), grips, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: [FN.arms] }),
   mode({ id: AM.throw, tree: 'ranged', class: cls, skill: SK.unarmed_improvised, reachM: CONFIG.THROW_M.improvised, grips, thrown: true, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: [FN.ranged] }),
 ];
-/** QE4/QE5: armor stops ARMOR_FACTOR × need; a shield's pool is POOL_BASE + POOL_FACTOR × need (gear stats scale with need) */
-const ARMOR = (w: ArmorWeightKey, level: string) => ({ reduction: CONFIG.ARMOR_FACTOR * CONFIG.EQUIP_NEED[level], multiplier: CONFIG.ARMOR_MULTIPLIER[w], weight: w });
-const POOL = (level: string) => ({ pool: CONFIG.POOL_BASE + CONFIG.POOL_FACTOR * CONFIG.EQUIP_NEED[level] });
-const WEIGHT = (v: number): ItemEffect => ({ kind: 'skill', skill: SK.dodge, value: v, active: 'worn', scope: 'any' });
+/** QE4/QE5, D-368: armor stops ARMOR_FACTOR × need × ARMOR_WEIGHT_SOAK[weight]; a shield's pool is POOL_BASE + POOL_FACTOR × need (gear stats scale with need);
+ * a Crude piece (need 0) stops nothing: its multiplier is 1 */
+const ARMOR = (w: ArmorWeightKey, level: string) => ({ reduction: armorStop(w, CONFIG.EQUIP_NEED[level]), multiplier: armorMultiplier(w, CONFIG.EQUIP_NEED[level]), weight: w });
+const POOL = (level: string) => ({ pool: shieldPool(CONFIG.EQUIP_NEED[level]) });
+const WEIGHT = (v: number): ItemEffect => ({ kind: 'skill', skill: SK.dodge, value: v, active: 'worn', scope: 'any', armorWeight: true });
 /** AX1/AX2: an accessory's skill bonus while worn, sized by the item's equipment level (ruleset/gear effectValue) */
 const ACC = (skill: string): ItemEffect => ({ kind: 'skill', skill, value: 0, active: 'worn', scope: 'any', byLevel: true });
 /** AX4 c: a charmed ring's skill weights by tree (placeholders): fighting and senses most, other common trees next, the rest 1 */
@@ -185,12 +246,13 @@ const CLASS_PERKS: Record<string, PerkDef> = {
   [PK.nobody_special]: {
     id: PK.nobody_special, name: 'Nobody Special', built: true, classLevel: { classId: CL.commoner, level: 5 },
     story: 'Five seasons of ordinary work, and nobody noticed you. That can be a start.',
-    rules: { kind: 'passive', trigger: 'the owner gains this perk at Commoner class level 5', conditions: ['the owner does not have the A Nobody class'], effect: 'the A Nobody class unlocks at class level 0', lasts: 'always' },
+    perkPoints: 1,
+    rules: { kind: 'passive', trigger: 'the owner gains this perk at Commoner class level 5', conditions: [], effect: '+1 perk point', lasts: 'once' },
   },
   [PK.known_at_every_stall]: {
-    id: PK.known_at_every_stall, name: 'Known at Every Stall', built: true, classLevel: { classId: CL.trader, level: 5 },
+    id: PK.known_at_every_stall, name: 'Known at Every Stall', built: false, classLevel: { classId: CL.trader, level: 5 },
     story: 'Every stallholder knows your face and your prices. Time for a shop of your own.',
-    rules: { kind: 'passive', trigger: 'the owner gains this perk at Trader class level 5', conditions: ['the owner does not have the Merchant class'], effect: 'the Merchant class unlocks at class level 0', lasts: 'always' },
+    rules: { kind: 'passive', trigger: 'the owner gains this perk at Trader class level 5', conditions: [], effect: 'none yet: a new Trader capstone is still to be designed (D-358)', lasts: 'always' },
   },
   [PK.every_fall_a_lesson]: {
     id: PK.every_fall_a_lesson, name: 'Every Fall a Lesson', built: true, classLevel: { classId: CL.a_nobody, level: 15 },
@@ -253,8 +315,28 @@ const CLASS_PERKS: Record<string, PerkDef> = {
     rules: { kind: 'Always on (quirk)', trigger: 'The owner sleeps.', conditions: [],
       effect: `Sleep clears sleep debt ×${CONFIG.INSOMNIAC_CLEAR} (sleepClear, CONFIG.INSOMNIAC_CLEAR, placeholder), with the bed and worn armour multipliers.`, lasts: 'Always.' },
   },
+  [PK.blade_against_blade]: {
+    id: PK.blade_against_blade, name: 'Blade Against Blade', built: true, classLevel: { classId: CL.swordsman, level: 1 },
+    story: 'Every parry now carries the answer inside it. The Swordsman drills have begun.',
+    rules: { kind: 'passive', trigger: 'the owner reaches Swordsman class level 1', conditions: [], effect: 'opens the Swordsman tree: the Riposte skill', lasts: 'always' },
+  },
+  [PK.first_steps_of_the_dance]: {
+    id: PK.first_steps_of_the_dance, name: 'First Steps of the Dance', built: true, classLevel: { classId: CL.sword_dancer, level: 1 },
+    story: 'The step and the cut become one motion. The Sword-dancer drills have begun.',
+    rules: { kind: 'passive', trigger: 'the owner reaches Sword-dancer class level 1', conditions: [], effect: 'opens the Sword-dancer tree: the Blade Dance skill', lasts: 'always' },
+  },
+  [PK.late_bloom]: {
+    id: PK.late_bloom, name: 'Late Bloom', built: true, classLevel: { classId: CL.a_somebody, level: 1 }, improveRolls: { belowShare: CONFIG.LATE_BLOOM_SHARE, rolls: 2 },
+    story: 'The skills you left behind catch up fast once people start watching.',
+    rules: { kind: 'passive', trigger: 'an improvement roll for a marked skill', conditions: [`the skill's raw value is below ${CONFIG.LATE_BLOOM_SHARE} × the owner's highest raw skill (CONFIG.LATE_BLOOM_SHARE, placeholder)`], effect: 'roll twice; each roll that passes adds its own gain', lasts: 'always' },
+  },
+  [PK.any_road_will_do]: { // UL1: Unwritten Legend's own level 1 perk (UL2: Quick Study stays A Nobody's)
+    id: PK.any_road_will_do, name: 'Any Road Will Do', built: true, classLevel: { classId: CL.late_bloomer, level: 1 }, standIn: { add: CONFIG.UL_STAND_IN_ADD },
+    story: 'No one showed you the way, so every way works for you.',
+    rules: { kind: 'passive', trigger: 'any roll where another skill stands in for the one asked for', conditions: [], effect: `the stand-in share of every function is +${CONFIG.UL_STAND_IN_ADD} (CONFIG.UL_STAND_IN_ADD, placeholder), within 0 to 1`, lasts: 'always' },
+  },
   [PK.quick_study]: {
-    id: PK.quick_study, name: 'Quick Study', built: true, personality: { [PA.curiosity]: CONFIG.ACH_PERSONALITY_STEP }, classLevel: { classId: CL.late_bloomer, level: 1 }, improveRolls: { below: 15, rolls: 2 },
+    id: PK.quick_study, name: 'Quick Study', built: true, personality: { [PA.curiosity]: CONFIG.ACH_PERSONALITY_STEP }, classLevel: { classId: CL.a_nobody, level: 1 }, improveRolls: { below: 15, rolls: 2 },
     story: 'You came to this late, and it shows in how fast you learn. A skill you have barely touched improves twice as readily.',
     rules: { kind: 'passive', trigger: 'an improvement roll for a marked skill', conditions: ['the skill\'s raw value is below 15'], effect: 'roll twice; each roll that passes adds its own gain', lasts: 'always' },
   },
@@ -298,105 +380,143 @@ const CLASS_PERKS: Record<string, PerkDef> = {
 };
 
 export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
-  { id: IT.dagger, edge: true, level: 'common', gearClass: GC.melee_light, tags: ['starter'], kind: 'weapon', name: 'dagger', look: 'a plain dagger', bulk: 1, grips: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.slash, tree: 'melee', class: 'light', reachM: 1, grips: 1 }), mode({ id: AM.throw, tree: 'ranged', class: 'light', reachM: CONFIG.THROW_M.knife, grips: 1, thrown: true })] } },
-  { id: IT.arming_sword, edge: true, level: 'fine', gearClass: GC.melee_medium, tags: ['starter'], kind: 'weapon', name: 'arming sword', look: 'a straight arming sword', bulk: 2, grips: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', reachM: 1.6, grips: 1 })] } },
-  { id: IT.greataxe, edge: true, level: 'superior', gearClass: GC.melee_heavy, kind: 'weapon', name: 'greataxe', look: 'a heavy two-handed axe', bulk: 3, grips: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.chop, tree: 'melee', class: 'heavy', reachM: 2.2, grips: 2 })] } },
-  { id: IT.spear, level: 'fine', gearClass: GC.melee_medium, tags: ['starter'], kind: 'weapon', name: 'spear', look: 'an ash-shafted spear', bulk: 3, grips: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.thrust, tree: 'melee', class: 'medium', reachM: 2.8, grips: 2 }), mode({ id: AM.throw, tree: 'ranged', class: 'medium', reachM: CONFIG.THROW_M.spear, grips: 1, thrown: true })] } },
-  { id: IT.shortbow, level: 'common', gearClass: GC.ranged_light, tags: ['starter'], kind: 'weapon', shotTime: DU.bow_light, name: 'shortbow', look: 'a short hunting bow', bulk: 2, grips: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'light', reachM: 50, grips: 2 })] } },
-  { id: IT.longbow, level: 'fine', gearClass: GC.ranged_medium, tags: ['starter'], kind: 'weapon', shotTime: DU.bow_medium, name: 'longbow', look: 'a tall longbow', bulk: 3, grips: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'medium', reachM: 90, grips: 2 })] } },
-  { id: IT.crossbow, level: 'superior', gearClass: GC.ranged_heavy, kind: 'weapon', shotTime: DU.crossbow_shot, spanTime: DU.span_crossbow, name: 'crossbow', look: 'a heavy crossbow', bulk: 3, grips: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', reachM: 80, grips: 2 })] } },
-  // SL12 test piece: a medium weapon whose basket hilt gives +5 Parry while held, apart from its requirement's skill
-  { id: IT.basket_hilt_sword, edge: true, level: 'fine', gearClass: GC.melee_medium, kind: 'weapon', name: 'basket-hilted sword', look: 'a sword with a caged steel hilt', bulk: 2, grips: 1,
-    effects: [KIT(), { kind: 'skill', skill: SK.parry, value: 5, active: 'held', scope: 'any' }],
-    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', reachM: 1.7, grips: 1 })] } },
-  { id: IT.hidden_blade, edge: true, level: 'fine', gearClass: GC.melee_light, kind: 'weapon', name: 'hidden blade', look: 'a slim blade', bulk: 1, grips: 1, concealed: true, hiddenAt: 'great_success', // SE9 placeholder
+  { id: IT.dagger, edge: true, level: 'common', gearClass: GC.melee_light, gearType: GT.knife, tags: ['starter'], kind: 'weapon', name: 'dagger', look: 'a plain dagger', bulk: 1, grips: 1, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.slash, tree: 'melee', class: 'light', grips: 1 }), mode({ id: AM.throw, tree: 'ranged', class: 'light', reachM: CONFIG.THROW_M.knife, grips: 1, thrown: true })] } },
+  { id: IT.arming_sword, edge: true, level: 'fine', gearClass: GC.melee_medium, gearType: GT.sword, tags: ['starter'], kind: 'weapon', name: 'arming sword', look: 'a straight arming sword', bulk: 2, grips: 1, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', grips: 1 })] } },
+  { id: IT.greataxe, edge: true, level: 'superior', gearClass: GC.melee_heavy, gearType: GT.great, kind: 'weapon', name: 'greataxe', look: 'a heavy two-handed axe', bulk: 3, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.chop, tree: 'melee', class: 'heavy', grips: 2 })] } },
+  // IC4, IC6 a: two spears. The spear thrusts and throws in one grip, so it can go beside a shield; the war spear takes both grips, not thrown
+  { id: IT.spear, level: 'fine', gearClass: GC.melee_medium, gearType: GT.pole, tags: ['starter'], kind: 'weapon', name: 'spear', look: 'an ash-shafted spear', bulk: 3, grips: 1, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.thrust, tree: 'melee', class: 'medium', grips: 1 }), mode({ id: AM.throw, tree: 'ranged', class: 'medium', reachM: CONFIG.THROW_M.spear, grips: 1, thrown: true })] } },
+  { id: IT.war_spear, level: 'common', gearClass: GC.melee_heavy, gearType: GT.pole, kind: 'weapon', name: 'war spear', look: 'a long, heavy-headed spear for both hands', bulk: 3, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.thrust, tree: 'melee', class: 'heavy', grips: 2 })] } },
+  { id: IT.shortbow, level: 'common', gearClass: GC.ranged_light, gearType: GT.short_bow, tags: ['starter'], kind: 'weapon', shotTime: DU.bow_light, name: 'shortbow', look: 'a short hunting bow', bulk: 2, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'light', grips: 2 })] } },
+  { id: IT.longbow, level: 'fine', gearClass: GC.ranged_medium, gearType: GT.longbow, tags: ['starter'], kind: 'weapon', shotTime: DU.bow_medium, name: 'longbow', look: 'a tall longbow', bulk: 3, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'medium', grips: 2 })] } },
+  { id: IT.crossbow, level: 'superior', gearClass: GC.ranged_heavy, gearType: GT.crossbow_heavy, kind: 'weapon', shotTime: DU.crossbow_shot, spanTime: DU.span_crossbow, name: 'crossbow', look: 'a heavy crossbow', bulk: 3, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', grips: 2 })] } },
+  { id: IT.basket_hilt_sword, edge: true, level: 'fine', gearClass: GC.melee_medium, gearType: GT.sword, kind: 'weapon', name: 'basket-hilted sword', look: 'a sword with a caged steel hilt', bulk: 2, grips: 1,
+    effects: [KIT()], // IR31: Mundane, so no hand-set Parry bonus
+    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', grips: 1 })] } },
+  { id: IT.hidden_blade, edge: true, level: 'fine', gearClass: GC.melee_light, gearType: GT.knife, kind: 'weapon', name: 'hidden blade', look: 'a slim blade', bulk: 1, grips: 1, concealed: true, hiddenAt: 'great_success', // SE9 placeholder
     effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.stab, tree: 'melee', class: 'light', reachM: 0.9, grips: 1 })] } },
+    weapon: { modes: [mode({ id: AM.stab, tree: 'melee', class: 'light', grips: 1 })] } },
   // IR8: an armor piece covers a body part when its real garment covers most of it, with the source on the row
   // Crude gear: level Crude needs 0. Only the clothes are in the starter kit; the crude weapons are library
   // items outside it. Clothes stop nothing and cost no Dodge (placeholders).
-  { id: IT.crude_clothes, level: 'crude', gearClass: GC.armor_light, tags: ['starter'], kind: 'armor', name: 'rough clothes', look: 'rough homespun clothes', bulk: 1, slot: 'armor',
-    armor: { covers: ['general'], reduction: 0, multiplier: 1, weight: 'light' } },
-  { id: IT.cudgel, level: 'crude', gearClass: GC.melee_medium, kind: 'weapon', name: 'cudgel', look: 'a knotted wooden cudgel', bulk: 2, grips: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.club, tree: 'melee', class: 'medium', reachM: 1.3, grips: 1 })] } },
-  { id: IT.rusty_knife, edge: true, level: 'crude', gearClass: GC.melee_light, kind: 'weapon', name: 'rusty knife', look: 'a rusty knife', bulk: 1, grips: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.slash, tree: 'melee', class: 'light', reachM: 0.9, grips: 1 })] } },
-  { id: IT.gambeson, level: 'common', gearClass: GC.armor_light, tags: ['starter'], kind: 'armor', name: 'gambeson', look: 'a quilted gambeson', bulk: 2, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
-    armor: { covers: ['general', 'left_arm', 'right_arm'], ...ARMOR('light', 'common') } }, // IR8: a padded, sleeved jacket to the hips or thigh (Wikipedia "Gambeson")
-  { id: IT.mail_hauberk, level: 'fine', gearClass: GC.armor_medium, tags: ['starter'], kind: 'armor', name: 'mail hauberk', look: 'a mail hauberk', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
-    armor: { covers: ['general', 'left_arm', 'right_arm'], ...ARMOR('medium', 'fine') } }, // IR8: a sleeved mail shirt to mid-thigh (Wikipedia "Hauberk")
-  { id: IT.plate_harness, level: 'superior', gearClass: GC.armor_heavy, kind: 'armor', name: 'plate harness', look: 'a full plate harness', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
-    armor: { covers: ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg', 'head', 'neck'], ...ARMOR('heavy', 'superior'), pools: { head: 20 } } },
+  { id: IT.crude_clothes, level: 'crude', gearClass: GC.armor_light, gearType: GT.cuirass, tags: ['starter'], kind: 'armor', name: 'rough clothes', look: 'rough homespun clothes', bulk: 1, slot: 'armor',
+    armor: ARMOR('light', 'crude') },
+  { id: IT.cudgel, level: 'crude', gearClass: GC.melee_medium, gearType: GT.short, kind: 'weapon', name: 'cudgel', look: 'a knotted wooden cudgel', bulk: 2, grips: 1, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.club, tree: 'melee', class: 'medium', grips: 1 })] } },
+  { id: IT.rusty_knife, edge: true, level: 'crude', gearClass: GC.melee_light, gearType: GT.knife, kind: 'weapon', name: 'rusty knife', look: 'a rusty knife', bulk: 1, grips: 1, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.slash, tree: 'melee', class: 'light', grips: 1 })] } },
+  { id: IT.gambeson, level: 'common', gearClass: GC.armor_light, gearType: GT.coat, tags: ['starter'], kind: 'armor', name: 'gambeson', look: 'a quilted gambeson', bulk: 2, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
+    armor: { ...ARMOR('light', 'common') } }, // IR8: a padded, sleeved jacket to the hips or thigh (Wikipedia "Gambeson")
+  { id: IT.mail_hauberk, level: 'fine', gearClass: GC.armor_medium, gearType: GT.coat, tags: ['starter'], kind: 'armor', name: 'mail hauberk', look: 'a mail hauberk', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
+    armor: { ...ARMOR('medium', 'fine') } }, // IR8: a sleeved mail shirt to mid-thigh (Wikipedia "Hauberk")
+  { id: IT.plate_harness, level: 'superior', gearClass: GC.armor_heavy, gearType: GT.full_harness, kind: 'armor', name: 'plate harness', look: 'a full plate harness', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
+    armor: { ...ARMOR('heavy', 'superior') } },
   { id: IT.round_shield, level: 'common', gearClass: GC.shield, tags: ['starter'], kind: 'shield', name: 'round shield', look: 'a painted round shield', bulk: 2, grips: 1, effects: [KIT(SK.block)], shield: POOL('common') },
   // Starter pairs: every gear class but improvised has a Common (need 25) and a Fine (need 50) starter piece;
   // creation gives the highest one met per class (starterKit). Superior and Masterwork gear stays out of the kit.
-  { id: IT.short_sword, edge: true, level: 'fine', gearClass: GC.melee_light, tags: ['starter'], kind: 'weapon', name: 'short sword', look: 'a short, broad-bladed sword', bulk: 1, grips: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.stab, tree: 'melee', class: 'light', reachM: 1.3, grips: 1 })] } },
-  { id: IT.hand_axe, edge: true, level: 'common', gearClass: GC.melee_medium, tags: ['starter'], kind: 'weapon', name: 'hand axe', look: 'a bearded hand axe', bulk: 2, grips: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.chop, tree: 'melee', class: 'medium', reachM: 1.2, grips: 1 })] } },
-  { id: IT.woodsman_axe, edge: true, level: 'common', gearClass: GC.melee_heavy, tags: ['starter'], kind: 'weapon', name: "woodsman's axe", look: 'a long-hafted felling axe', bulk: 3, grips: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.chop, tree: 'melee', class: 'heavy', reachM: 1.6, grips: 2 })] } },
-  { id: IT.greatsword, edge: true, level: 'fine', gearClass: GC.melee_heavy, tags: ['starter'], kind: 'weapon', name: 'greatsword', look: 'a two-handed sword', bulk: 3, grips: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'heavy', reachM: 2.3, grips: 2 })] } },
-  { id: IT.recurve_bow, level: 'fine', gearClass: GC.ranged_light, tags: ['starter'], kind: 'weapon', shotTime: DU.bow_light, name: 'recurve bow', look: 'a horn-backed recurve bow', bulk: 2, grips: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'light', reachM: 70, grips: 2 })] } },
-  { id: IT.flatbow, level: 'common', gearClass: GC.ranged_medium, tags: ['starter'], kind: 'weapon', shotTime: DU.bow_medium, name: 'flatbow', look: 'a plain flat-limbed bow', bulk: 3, grips: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'medium', reachM: 60, grips: 2 })] } },
-  { id: IT.light_crossbow, level: 'common', gearClass: GC.ranged_heavy, tags: ['starter'], kind: 'weapon', shotTime: DU.crossbow_shot, spanTime: DU.span_light, name: 'light crossbow', look: 'a light crossbow', bulk: 3, grips: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', reachM: 60, grips: 2 })] } },
-  { id: IT.stirrup_crossbow, level: 'fine', gearClass: GC.ranged_heavy, tags: ['starter'], kind: 'weapon', shotTime: DU.crossbow_shot, spanTime: DU.span_stirrup, name: 'stirrup crossbow', look: 'a crossbow with a foot stirrup', bulk: 3, grips: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', reachM: 70, grips: 2 })] } },
-  { id: IT.boiled_leather, level: 'fine', gearClass: GC.armor_light, tags: ['starter'], kind: 'armor', name: 'boiled leather', look: 'a cuirass of hardened leather', bulk: 2, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
-    armor: { covers: ['general'], ...ARMOR('light', 'fine') } }, // IR8: a cuirass guards the torso only (Wikipedia "Cuirass")
-  { id: IT.brigandine, level: 'common', gearClass: GC.armor_medium, tags: ['starter'], kind: 'armor', name: 'brigandine', look: 'a riveted brigandine', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
-    armor: { covers: ['general'], ...ARMOR('medium', 'common') } }, // IR8: a plated cloth garment over the torso (Wikipedia "Brigandine")
-  { id: IT.lamellar_coat, level: 'common', gearClass: GC.armor_heavy, tags: ['starter'], kind: 'armor', name: 'lamellar coat', look: 'a coat of laced lamellar plates', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
-    armor: { covers: ['general', 'left_arm', 'right_arm'], ...ARMOR('heavy', 'common') } }, // IR8: a laced-plate coat with shoulder and upper-arm guards; its skirt covers the thigh, not most of the leg (Wikipedia "Lamellar armour")
-  { id: IT.half_plate, level: 'fine', gearClass: GC.armor_heavy, tags: ['starter'], kind: 'armor', name: 'half plate', look: 'a breastplate with arm and leg plates', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
-    armor: { covers: ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg'], ...ARMOR('heavy', 'fine') } }, // IR8: breastplate with arm and leg plates, as its look says
+  { id: IT.short_sword, edge: true, level: 'fine', gearClass: GC.melee_light, gearType: GT.short, tags: ['starter'], kind: 'weapon', name: 'short sword', look: 'a short, broad-bladed sword', bulk: 1, grips: 1, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.stab, tree: 'melee', class: 'light', grips: 1 })] } },
+  { id: IT.hand_axe, edge: true, level: 'common', gearClass: GC.melee_medium, gearType: GT.short, tags: ['starter'], kind: 'weapon', name: 'hand axe', look: 'a bearded hand axe', bulk: 2, grips: 1, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.chop, tree: 'melee', class: 'medium', grips: 1 })] } },
+  { id: IT.woodsman_axe, edge: true, level: 'common', gearClass: GC.melee_heavy, gearType: GT.sword, tags: ['starter'], kind: 'weapon', name: "woodsman's axe", look: 'a long-hafted felling axe', bulk: 3, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.chop, tree: 'melee', class: 'heavy', grips: 2 })] } },
+  { id: IT.greatsword, edge: true, level: 'fine', gearClass: GC.melee_heavy, gearType: GT.great, tags: ['starter'], kind: 'weapon', name: 'greatsword', look: 'a two-handed sword', bulk: 3, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'heavy', grips: 2 })] } },
+  { id: IT.recurve_bow, level: 'fine', gearClass: GC.ranged_light, gearType: GT.recurve, tags: ['starter'], kind: 'weapon', shotTime: DU.bow_light, name: 'recurve bow', look: 'a horn-backed recurve bow', bulk: 2, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'light', grips: 2 })] } },
+  { id: IT.flatbow, level: 'common', gearClass: GC.ranged_medium, gearType: GT.flatbow, tags: ['starter'], kind: 'weapon', shotTime: DU.bow_medium, name: 'flatbow', look: 'a plain flat-limbed bow', bulk: 3, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'medium', grips: 2 })] } },
+  { id: IT.light_crossbow, level: 'common', gearClass: GC.ranged_heavy, gearType: GT.crossbow_light, tags: ['starter'], kind: 'weapon', shotTime: DU.crossbow_shot, spanTime: DU.span_light, name: 'light crossbow', look: 'a light crossbow', bulk: 3, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', grips: 2 })] } },
+  { id: IT.stirrup_crossbow, level: 'fine', gearClass: GC.ranged_heavy, gearType: GT.crossbow_stirrup, tags: ['starter'], kind: 'weapon', shotTime: DU.crossbow_shot, spanTime: DU.span_stirrup, name: 'stirrup crossbow', look: 'a crossbow with a foot stirrup', bulk: 3, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', grips: 2 })] } },
+  { id: IT.boiled_leather, level: 'fine', gearClass: GC.armor_light, gearType: GT.cuirass, tags: ['starter'], kind: 'armor', name: 'boiled leather', look: 'a cuirass of hardened leather', bulk: 2, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
+    armor: { ...ARMOR('light', 'fine') } }, // IR8: a cuirass guards the torso only (Wikipedia "Cuirass")
+  { id: IT.brigandine, level: 'common', gearClass: GC.armor_medium, gearType: GT.cuirass, tags: ['starter'], kind: 'armor', name: 'brigandine', look: 'a riveted brigandine', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
+    armor: { ...ARMOR('medium', 'common') } }, // IR8: a plated cloth garment over the torso (Wikipedia "Brigandine")
+  { id: IT.lamellar_coat, level: 'common', gearClass: GC.armor_heavy, gearType: GT.coat, tags: ['starter'], kind: 'armor', name: 'lamellar coat', look: 'a coat of laced lamellar plates', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
+    armor: { ...ARMOR('heavy', 'common') } }, // IR8: a laced-plate coat with shoulder and upper-arm guards; its skirt covers the thigh, not most of the leg (Wikipedia "Lamellar armour")
+  { id: IT.half_plate, level: 'fine', gearClass: GC.armor_heavy, gearType: GT.half_suit, tags: ['starter'], kind: 'armor', name: 'half plate', look: 'a breastplate with arm and leg plates', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
+    armor: { ...ARMOR('heavy', 'fine') } }, // IR8: breastplate with arm and leg plates, as its look says
   { id: IT.kite_shield, level: 'fine', gearClass: GC.shield, tags: ['starter'], kind: 'shield', name: 'kite shield', look: 'a tall kite shield', bulk: 3, grips: 1, effects: [KIT(SK.block)], shield: POOL('fine') },
   // IR2 Superior (need 75): the best real pieces. Reach is the blade plus a 0.7 m arm, as the dagger's 1.0 m is.
-  { id: IT.rapier, edge: true, level: 'superior', gearClass: GC.melee_light, kind: 'weapon', name: 'rapier', look: 'a long, slender rapier with a swept hilt', bulk: 2, grips: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.stab, tree: 'melee', class: 'light', reachM: 1.7, grips: 1 })] } }, // blade 104 cm on average, one-handed (Wikipedia "Rapier")
-  { id: IT.longsword, edge: true, level: 'superior', gearClass: GC.melee_medium, kind: 'weapon', name: 'longsword', look: 'a long, two-handed sword with a cruciform hilt', bulk: 2, grips: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', reachM: 1.65, grips: 2 })] } }, // blade 80-110 cm, mostly two-handed (Wikipedia "Longsword")
-  { id: IT.turkish_bow, level: 'superior', gearClass: GC.ranged_light, kind: 'weapon', shotTime: DU.bow_light, name: 'Turkish composite bow', look: 'a short, sharply recurved bow of horn, wood and sinew', bulk: 2, grips: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'light', reachM: 80, grips: 2 })] } }, // placeholder: no war range given; its flight records (434 m) pass the English bows' (315 m Finsbury mark) (Wikipedia "Turkish archery", "English longbow")
-  { id: IT.warbow, level: 'superior', gearClass: GC.ranged_medium, kind: 'weapon', shotTime: DU.bow_medium, name: 'warbow', look: 'a tall yew warbow of enormous draw', bulk: 3, grips: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'medium', reachM: 150, grips: 2 })] } }, // Mary Rose bows, 100-185 lbf; Barnabe Rich: 200 paces (153 m) for most archers (Wikipedia "English longbow")
-  { id: IT.jack_of_plates, level: 'superior', gearClass: GC.armor_light, kind: 'armor', name: 'jack of plates', look: 'a canvas jack quilted over small iron plates', bulk: 2, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
-    armor: { covers: ['general'], ...ARMOR('light', 'superior') } }, // IR8: iron squares sewn between canvas, about 7.7 kg, a torso garment (Wikipedia "Jack of plate")
-  { id: IT.coat_of_plates, level: 'superior', gearClass: GC.armor_medium, kind: 'armor', name: 'coat of plates with mail', look: 'a riveted coat of plates over a sleeved mail shirt', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
-    armor: { covers: ['general', 'left_arm', 'right_arm'], ...ARMOR('medium', 'superior') } }, // IR8: plates over the torso, worn with mail (Wikipedia "Coat of plates"); the mail's sleeves cover the arms (Wikipedia "Hauberk")
+  { id: IT.rapier, edge: true, level: 'superior', gearClass: GC.melee_light, gearType: GT.sword, kind: 'weapon', name: 'rapier', look: 'a long, slender rapier with a swept hilt', bulk: 2, grips: 1, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.stab, tree: 'melee', class: 'light', grips: 1 })] } }, // blade 104 cm on average, one-handed (Wikipedia "Rapier")
+  { id: IT.longsword, edge: true, level: 'superior', gearClass: GC.melee_medium, gearType: GT.sword, kind: 'weapon', name: 'longsword', look: 'a long, two-handed sword with a cruciform hilt', bulk: 2, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', grips: 2 })] } }, // blade 80-110 cm, mostly two-handed (Wikipedia "Longsword")
+  { id: IT.turkish_bow, level: 'superior', gearClass: GC.ranged_light, gearType: GT.recurve, kind: 'weapon', shotTime: DU.bow_light, name: 'Turkish composite bow', look: 'a short, sharply recurved bow of horn, wood and sinew', bulk: 2, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'light', grips: 2 })] } }, // placeholder: no war range given; its flight records (434 m) pass the English bows' (315 m Finsbury mark) (Wikipedia "Turkish archery", "English longbow")
+  { id: IT.warbow, level: 'superior', gearClass: GC.ranged_medium, gearType: GT.warbow, kind: 'weapon', shotTime: DU.bow_medium, name: 'warbow', look: 'a tall yew warbow of enormous draw', bulk: 3, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'medium', grips: 2 })] } }, // Mary Rose bows, 100-185 lbf; Barnabe Rich: 200 paces (153 m) for most archers (Wikipedia "English longbow")
+  { id: IT.jack_of_plates, level: 'superior', gearClass: GC.armor_light, gearType: GT.cuirass, kind: 'armor', name: 'jack of plates', look: 'a canvas jack quilted over small iron plates', bulk: 2, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
+    armor: { ...ARMOR('light', 'superior') } }, // IR8: iron squares sewn between canvas, about 7.7 kg, a torso garment (Wikipedia "Jack of plate")
+  { id: IT.coat_of_plates, level: 'superior', gearClass: GC.armor_medium, gearType: GT.coat, kind: 'armor', name: 'coat of plates with mail', look: 'a riveted coat of plates over a sleeved mail shirt', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
+    armor: { ...ARMOR('medium', 'superior') } }, // IR8: plates over the torso, worn with mail (Wikipedia "Coat of plates"); the mail's sleeves cover the arms (Wikipedia "Hauberk")
   { id: IT.heater_shield, level: 'superior', gearClass: GC.shield, kind: 'shield', name: 'heater shield', look: 'a flat-topped heater shield', bulk: 2, grips: 1, effects: [KIT(SK.block)], shield: POOL('superior') }, // smaller and lighter than the kite shield (Wikipedia "Heater shield")
   // IR2 Masterwork (need 100): made past any real smith, so tagged 'fantasy'. Each keeps its real form's reach and coverage;
   // only its level makes it stronger. Names are placeholders.
-  { id: IT.peerless_rapier, edge: true, level: 'masterwork', gearClass: GC.melee_light, tags: ['fantasy'], kind: 'weapon', name: 'peerless rapier', look: 'a rapier of impossible craft', bulk: 2, grips: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.stab, tree: 'melee', class: 'light', reachM: 1.7, grips: 1 })] } },
-  { id: IT.peerless_longsword, edge: true, level: 'masterwork', gearClass: GC.melee_medium, tags: ['fantasy'], kind: 'weapon', name: 'peerless longsword', look: 'a longsword of impossible craft', bulk: 2, grips: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', reachM: 1.65, grips: 2 })] } },
-  { id: IT.peerless_greatsword, edge: true, level: 'masterwork', gearClass: GC.melee_heavy, tags: ['fantasy'], kind: 'weapon', name: 'peerless greatsword', look: 'a greatsword of impossible craft', bulk: 3, grips: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'heavy', reachM: 2.3, grips: 2 })] } },
-  { id: IT.peerless_composite_bow, level: 'masterwork', gearClass: GC.ranged_light, tags: ['fantasy'], kind: 'weapon', shotTime: DU.bow_light, name: 'peerless composite bow', look: 'a composite bow of impossible craft', bulk: 2, grips: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'light', reachM: 80, grips: 2 })] } },
-  { id: IT.peerless_warbow, level: 'masterwork', gearClass: GC.ranged_medium, tags: ['fantasy'], kind: 'weapon', shotTime: DU.bow_medium, name: 'peerless warbow', look: 'a warbow of impossible craft', bulk: 3, grips: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'medium', reachM: 150, grips: 2 })] } },
-  { id: IT.peerless_crossbow, level: 'masterwork', gearClass: GC.ranged_heavy, tags: ['fantasy'], kind: 'weapon', shotTime: DU.crossbow_shot, spanTime: DU.span_crossbow, name: 'peerless crossbow', look: 'a steel-bowed crossbow of impossible craft', bulk: 3, grips: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', reachM: 80, grips: 2 })] } },
-  { id: IT.peerless_jack, level: 'masterwork', gearClass: GC.armor_light, tags: ['fantasy'], kind: 'armor', name: 'peerless jack', look: 'a jack of plates of impossible craft', bulk: 2, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
-    armor: { covers: ['general'], ...ARMOR('light', 'masterwork') } },
-  { id: IT.peerless_coat_of_plates, level: 'masterwork', gearClass: GC.armor_medium, tags: ['fantasy'], kind: 'armor', name: 'peerless coat of plates', look: 'a coat of plates over mail, of impossible craft', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
-    armor: { covers: ['general', 'left_arm', 'right_arm'], ...ARMOR('medium', 'masterwork') } },
-  { id: IT.peerless_plate, level: 'masterwork', gearClass: GC.armor_heavy, tags: ['fantasy'], kind: 'armor', name: 'peerless plate harness', look: 'a plate harness of impossible craft', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
-    armor: { covers: ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg', 'head', 'neck'], ...ARMOR('heavy', 'masterwork'), pools: { head: 20 } } },
+  { id: IT.peerless_rapier, edge: true, level: 'masterwork', gearClass: GC.melee_light, gearType: GT.sword, tags: ['fantasy'], kind: 'weapon', name: 'peerless rapier', look: 'a rapier of impossible craft', bulk: 2, grips: 1, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.stab, tree: 'melee', class: 'light', grips: 1 })] } },
+  { id: IT.peerless_longsword, edge: true, level: 'masterwork', gearClass: GC.melee_medium, gearType: GT.sword, tags: ['fantasy'], kind: 'weapon', name: 'peerless longsword', look: 'a longsword of impossible craft', bulk: 2, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', grips: 2 })] } },
+  { id: IT.peerless_greatsword, edge: true, level: 'masterwork', gearClass: GC.melee_heavy, gearType: GT.great, tags: ['fantasy'], kind: 'weapon', name: 'peerless greatsword', look: 'a greatsword of impossible craft', bulk: 3, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'heavy', grips: 2 })] } },
+  { id: IT.peerless_composite_bow, level: 'masterwork', gearClass: GC.ranged_light, gearType: GT.recurve, tags: ['fantasy'], kind: 'weapon', shotTime: DU.bow_light, name: 'peerless composite bow', look: 'a composite bow of impossible craft', bulk: 2, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'light', grips: 2 })] } },
+  { id: IT.peerless_warbow, level: 'masterwork', gearClass: GC.ranged_medium, gearType: GT.warbow, tags: ['fantasy'], kind: 'weapon', shotTime: DU.bow_medium, name: 'peerless warbow', look: 'a warbow of impossible craft', bulk: 3, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'medium', grips: 2 })] } },
+  { id: IT.peerless_crossbow, level: 'masterwork', gearClass: GC.ranged_heavy, gearType: GT.crossbow_heavy, tags: ['fantasy'], kind: 'weapon', shotTime: DU.crossbow_shot, spanTime: DU.span_crossbow, name: 'peerless crossbow', look: 'a steel-bowed crossbow of impossible craft', bulk: 3, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', grips: 2 })] } },
+  { id: IT.peerless_jack, level: 'masterwork', gearClass: GC.armor_light, gearType: GT.cuirass, tags: ['fantasy'], kind: 'armor', name: 'peerless jack', look: 'a jack of plates of impossible craft', bulk: 2, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
+    armor: { ...ARMOR('light', 'masterwork') } },
+  { id: IT.peerless_coat_of_plates, level: 'masterwork', gearClass: GC.armor_medium, gearType: GT.coat, tags: ['fantasy'], kind: 'armor', name: 'peerless coat of plates', look: 'a coat of plates over mail, of impossible craft', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
+    armor: { ...ARMOR('medium', 'masterwork') } },
+  { id: IT.peerless_plate, level: 'masterwork', gearClass: GC.armor_heavy, gearType: GT.full_harness, tags: ['fantasy'], kind: 'armor', name: 'peerless plate harness', look: 'a plate harness of impossible craft', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
+    armor: { ...ARMOR('heavy', 'masterwork') } },
   { id: IT.peerless_heater, level: 'masterwork', gearClass: GC.shield, tags: ['fantasy'], kind: 'shield', name: 'peerless heater shield', look: 'a heater shield of impossible craft', bulk: 2, grips: 1, effects: [KIT(SK.block)], shield: POOL('masterwork') },
+  // IR21: helmets, armor pieces of their weight's class covering the head (type Helmet, or Helmet with neck), worn beside any
+  // body piece that leaves those parts bare (IR19). Masterwork ones are tagged 'fantasy' (IR2).
+  { id: IT.arming_cap, level: 'common', gearClass: GC.armor_light, gearType: GT.helmet, kind: 'armor', name: 'arming cap', look: 'a quilted linen cap', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
+    armor: { ...ARMOR('light', 'common') } }, // a padded cap, worn alone or under a helm (Wikipedia "Arming cap")
+  { id: IT.leather_cap, level: 'fine', gearClass: GC.armor_light, gearType: GT.helmet, kind: 'armor', name: 'leather cap', look: 'a cap of hardened leather', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
+    armor: { ...ARMOR('light', 'fine') } }, // a hardened-leather skull cap (Wikipedia "Leather helmet")
+  { id: IT.secret, level: 'superior', gearClass: GC.armor_light, gearType: GT.helmet, kind: 'armor', name: 'secret', look: 'a soft hat over a hidden iron skull', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
+    armor: { ...ARMOR('light', 'superior') } }, // an iron skull cap worn under a hat (Wikipedia "Secret (helmet)")
+  { id: IT.peerless_cap, level: 'masterwork', gearClass: GC.armor_light, gearType: GT.helmet, tags: ['fantasy'], kind: 'armor', name: 'peerless cap', look: 'a leather cap of impossible craft', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
+    armor: { ...ARMOR('light', 'masterwork') } },
+  { id: IT.mail_coif, level: 'common', gearClass: GC.armor_medium, gearType: GT.helmet_neck, kind: 'armor', name: 'mail coif', look: 'a hood of riveted mail', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
+    armor: { ...ARMOR('medium', 'common') } }, // a mail hood over head and neck (Wikipedia "Coif")
+  { id: IT.kettle_hat, level: 'fine', gearClass: GC.armor_medium, gearType: GT.helmet, kind: 'armor', name: 'kettle hat', look: 'a broad-brimmed steel hat', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
+    armor: { ...ARMOR('medium', 'fine') } }, // an open, brimmed steel hat (Wikipedia "Kettle hat")
+  { id: IT.sallet, level: 'superior', gearClass: GC.armor_medium, gearType: GT.helmet, kind: 'armor', name: 'sallet', look: 'a swept steel sallet', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
+    armor: { ...ARMOR('medium', 'superior') } }, // a steel helmet with a long tail over the nape (Wikipedia "Sallet")
+  { id: IT.peerless_sallet, level: 'masterwork', gearClass: GC.armor_medium, gearType: GT.helmet, tags: ['fantasy'], kind: 'armor', name: 'peerless sallet', look: 'a sallet of impossible craft', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
+    armor: { ...ARMOR('medium', 'masterwork') } },
+  { id: IT.nasal_helm, level: 'common', gearClass: GC.armor_heavy, gearType: GT.helmet, kind: 'armor', name: 'nasal helm', look: 'a conical helm with a nose guard', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
+    armor: { ...ARMOR('heavy', 'common') } }, // a conical steel helm with a nasal bar (Wikipedia "Nasal helmet")
+  { id: IT.bascinet, level: 'fine', gearClass: GC.armor_heavy, gearType: GT.helmet_neck, kind: 'armor', name: 'bascinet', look: 'a visored bascinet with a mail aventail', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
+    armor: { ...ARMOR('heavy', 'fine') } }, // a steel bascinet; its mail aventail hangs over the neck (Wikipedia "Bascinet")
+  { id: IT.great_helm, level: 'superior', gearClass: GC.armor_heavy, gearType: GT.helmet, kind: 'armor', name: 'great helm', look: 'a flat-topped great helm with eye slits', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
+    armor: { ...ARMOR('heavy', 'superior') } }, // a closed steel helm over the whole head (Wikipedia "Great helm")
+  { id: IT.peerless_great_helm, level: 'masterwork', gearClass: GC.armor_heavy, gearType: GT.helmet, tags: ['fantasy'], kind: 'armor', name: 'peerless great helm', look: 'a great helm of impossible craft', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
+    armor: { ...ARMOR('heavy', 'masterwork') } },
+  // IR25-IR29: gauntlets are an unarmed weapon (gear class Gauntlets, asking Unarmed strike): a pair held in both grips, so a
+  // gauntleted hand holds nothing else. A punch with them is still a punch (15 damage, +10 hit); the kit bonus adds to the roll (IR26 b).
+  { id: IT.leather_gloves, level: 'common', gearClass: GC.gauntlets, gearType: GT.fist, tags: ['starter'], kind: 'weapon', name: 'leather gloves', look: 'a pair of stout leather gloves', bulk: 1, grips: 2, effects: [KIT()], // leather gloves, worn under or without armour (Wikipedia "Gauntlet (glove)")
+    weapon: { modes: [mode({ id: AM.punch, tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, grips: 1 })] } },
+  { id: IT.mail_mittens, level: 'fine', gearClass: GC.gauntlets, gearType: GT.fist, tags: ['starter'], kind: 'weapon', name: 'mail mittens', look: 'a pair of riveted mail mittens', bulk: 1, grips: 2, effects: [KIT()], // mail mittens (mufflers), extending the hauberk's sleeves (Wikipedia "Gauntlet (glove)")
+    weapon: { modes: [mode({ id: AM.punch, tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, grips: 1 })] } },
+  { id: IT.plate_gauntlets, level: 'superior', gearClass: GC.gauntlets, gearType: GT.fist, kind: 'weapon', name: 'plate gauntlets', look: 'a pair of fingered plate gauntlets', bulk: 1, grips: 2, effects: [KIT()], // articulated steel plate over each finger (Wikipedia "Gauntlet (glove)")
+    weapon: { modes: [mode({ id: AM.punch, tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, grips: 1 })] } },
+  { id: IT.peerless_gauntlets, level: 'masterwork', gearClass: GC.gauntlets, gearType: GT.fist, tags: ['fantasy'], kind: 'weapon', name: 'peerless gauntlets', look: 'a pair of gauntlets of impossible craft', bulk: 1, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.punch, tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, grips: 1 })] } },
   // D-218 Threadbound items: one of a kind; binds to the first who wears it (a charm: who carries it); its abilities open with its owner's achievements
   { id: IT.varos_loop, kind: 'misc', name: 'Varo\'s Loop', look: 'a small hoop of dark silver on a knotted cord, a charm worn smooth by fingers, stamped with the coin of Varo, god of extreme fortunes', bulk: 0, value: 400, boon: 20,
     threadbound: { rank: 'rank_4', grants: [
@@ -419,6 +539,9 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
     effects: [{ kind: 'rollMod', roll: 'event', value: 5, active: 'carried', scope: 'any' }] },
   { id: IT.lockpicks, kind: 'tool', name: 'lockpicks', look: 'a roll of lockpicks', bulk: 0, grips: 1,
     effects: [{ kind: 'skill', skill: SK.lockpicking, value: 25, active: 'inUse', scope: 'withItem' }] },
+  // BW22 a: breaking tools. In use (held in both grips) each adds CONFIG.BREAK_TOOL_KG to the breaker's force (src/ruleset/breaking.ts)
+  { id: IT.sledgehammer, kind: 'tool', name: 'sledgehammer', look: 'a long-hafted iron sledgehammer', bulk: 2, grips: 2, tags: [BREAK_TOOL_TAG] },
+  { id: IT.pick, kind: 'tool', name: 'pick', look: 'a heavy iron pick on an ash haft', bulk: 2, grips: 2, tags: [BREAK_TOOL_TAG] },
   { id: IT.healing_draught, kind: 'consumable', name: 'healing draught', look: 'a stoppered vial', bulk: 1, value: 10, grips: 1, stackable: true, consumable: true, heal: HL.draught },
   // generic bases for minted items with no close match, and for scenario objects the player grabs (loot L2, L3)
   { id: IT.improvised_light, level: 'common', gearClass: GC.improvised, kind: 'weapon', name: 'improvised weapon', look: 'something small grabbed to fight with', bulk: 1, grips: 1, tags: ['improvised'],
@@ -436,18 +559,23 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
   { id: IT.chest, kind: 'misc', name: 'chest', look: 'an iron-bound wooden chest', bulk: 3, value: 20, container: { fixed: true } },
   { id: IT.crate, kind: 'misc', name: 'crate', look: 'a nailed wooden crate', bulk: 3, value: 2, container: { fixed: true } },
   { id: IT.coin, kind: 'misc', fragility: 'unbreakable', name: 'coin', look: 'coins', bulk: 0, value: 1, stackable: true },
-] as ItemDef[]).map((i) => [i.id, i]));
+] as ItemDef[]).map((i) => [i.id, typed(i)]));
 
+/** BV7 a: a four-legged body has one part per leg, each small, so the four together keep a pair's old odds (2 × normal) */
+export const FORELEGS = ['left_foreleg', 'right_foreleg'] as const, HIND_LEGS = ['left_hind_leg', 'right_hind_leg'] as const;
+const fourLegs = (roles: RoleId[]): PartDef[] => [...FORELEGS, ...HIND_LEGS].map((id) => ({ id, size: 'small' as const, impact: 'normal' as const, roles }));
 export const BODY_TYPES: Record<string, BodyType> = {
   [BT.humanoid]: {
     id: BT.humanoid, name: 'Humanoid', general: { name: 'torso', size: 'normal' },
-    naturalAttacks: [{ id: AM.punch, tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, reachM: 0.7, reach: 0.7, grips: 0, name: 'fists' },
-      { id: AM.grapple, tree: 'unarmed', class: 'grapple', skill: SK.unarmed_grapple, reachM: 0.6, reach: 0.6, grips: 0, name: 'grapple' }],
+    size: HUMANOID_SIZE, // SZ3 (library/bodySize)
+    // SZ8: a grapple takes hold a hand's breadth inside the arm's full reach
+    naturalAttacks: [FISTS,
+      { id: AM.grapple, tree: 'unarmed', class: 'grapple', skill: SK.unarmed_grapple, ...held(-0.1), grips: 0, name: 'grapple' }],
     parts: [
       { id: 'head', size: 'small', impact: 'essential', roles: [RL.sense, RL.speech], adjacent: ['general', 'neck'] },
-      // FR2: an adult's arm reaches about 0.7 m from the shoulder to the fingertips (NASA-STD-3000 anthropometry), as fists do
-      { id: 'left_arm', size: 'normal', impact: 'normal', roles: [RL.grip], reachM: 0.7 },
-      { id: 'right_arm', size: 'normal', impact: 'normal', roles: [RL.grip], reachM: 0.7 },
+      // FR2, SZ8: an arm reaches half the arm span less half the shoulders past the body (library/bodySize armReachM)
+      { id: 'left_arm', size: 'normal', impact: 'normal', roles: [RL.grip], arm: true },
+      { id: 'right_arm', size: 'normal', impact: 'normal', roles: [RL.grip], arm: true },
       { id: 'left_leg', size: 'normal', impact: 'normal', roles: [RL.move] },
       { id: 'right_leg', size: 'normal', impact: 'normal', roles: [RL.move] },
       { id: 'neck', size: 'extra_small', impact: 'essential', roles: [], adjacent: ['head', 'general'] },
@@ -471,21 +599,26 @@ export const BODY_TYPES: Record<string, BodyType> = {
   // BR4: shape names, so later races can reuse them; Slime and Dragon are races
   [BT.amorphous]: {
     id: BT.amorphous, name: 'Amorphous', general: { name: 'body', size: 'normal' },
-    naturalAttacks: [{ id: AM.slam, tree: 'unarmed', class: 'slam', skill: SK.slam, reachM: 0.5, reach: 0.5, grips: 0, name: 'slam' }],
+    size: { lengthM: 0.5, widthM: 0.5, heightM: 0.3 }, // SZ3: the Slime: a low mound of about 30 kg (its HP multiplier's mass); an estimate
+    // SZ9: reach is metres past the body's edge: a slam lunges a little way out of the mound (estimate)
+    naturalAttacks: [{ id: AM.slam, tree: 'unarmed', class: 'slam', skill: SK.slam, reachM: 0.2, reach: 0.2, grips: 0, name: 'slam' }],
     parts: [],
     fallback: { attackSkill: SK.slam },
   },
   [BT.winged_quadruped]: {
     id: BT.winged_quadruped, name: 'Winged quadruped', general: { name: 'body', size: 'big' },
+    // SZ3: the Dragon: about 1,000 kg, a horse's shape at twice its weight (each measure × 2^(1/3)), wings folded; an estimate
+    size: { lengthM: 3, widthM: 0.85, heightM: 2 },
     naturalAttacks: [],
     parts: [
-      // FR4: a quadruped takes and carries things in its jaws, as a dog or a horse does; a horse's head and neck reach about
-      // 1.5 m forward of its chest
-      { id: 'head', size: 'normal', impact: 'essential', roles: [RL.sense, RL.strike, RL.speech, RL.grip], reachM: 1.5 },
+      // FR4: a quadruped takes and carries things in its jaws, as a dog or a horse does. SZ9: reach is metres past the body's
+      // edge (its nose): the long neck stretches about 0.8 m further (estimate)
+      { id: 'head', size: 'normal', impact: 'essential', roles: [RL.sense, RL.strike, RL.speech, RL.grip], adjacent: ['general', 'neck'], reachM: 0.8 },
+      // BV8 a: the long neck is a small part (the quadruped's is extra small), essential like every neck
+      { id: 'neck', size: 'small', impact: 'essential', roles: [], adjacent: ['head', 'general'] },
       { id: 'left_wing', size: 'normal', impact: 'non_essential', roles: [RL.fly] },
       { id: 'right_wing', size: 'normal', impact: 'non_essential', roles: [RL.fly] },
-      { id: 'forelegs', size: 'normal', impact: 'normal', roles: [RL.move] },
-      { id: 'hind_legs', size: 'normal', impact: 'normal', roles: [RL.move] },
+      ...fourLegs([RL.move]),
       { id: 'tail', size: 'small', impact: 'non_essential', roles: [RL.strike] },
     ],
     fallback: { attackSkill: SK.bite },
@@ -493,13 +626,14 @@ export const BODY_TYPES: Record<string, BodyType> = {
   // NR14 a: one four-legged shape for every land beast; each race sets its own speeds and attacks (a dog, a tiger, a horse)
   [BT.quadruped]: {
     id: BT.quadruped, name: 'Quadruped', general: { name: 'body', size: 'big' },
+    size: { lengthM: 1.3, widthM: 0.3, heightM: 0.8 }, // SZ3: the Wolf (head and body 1.0–1.6 m, shoulder 0.6–0.85 m; Mech 1970)
     naturalAttacks: [], // by race: bite force differs too much between a dog and a tiger for one shape attack
     parts: [
-      // FR4: takes and carries things in its jaws; a medium dog's head and neck reach about 0.5 m forward of its chest (estimate)
-      { id: 'head', size: 'small', impact: 'essential', roles: [RL.sense, RL.strike, RL.grip], adjacent: ['general', 'neck'], reachM: 0.5 },
+      // FR4: takes and carries things in its jaws. SZ9: reach is metres past the body's edge (its nose): the neck stretches
+      // about 0.2 m (estimate); SZ10: × the race's length
+      { id: 'head', size: 'small', impact: 'essential', roles: [RL.sense, RL.strike, RL.grip], adjacent: ['general', 'neck'], reachM: 0.2 },
       { id: 'neck', size: 'extra_small', impact: 'essential', roles: [], adjacent: ['head', 'general'] },
-      { id: 'forelegs', size: 'normal', impact: 'normal', roles: [RL.move, RL.strike] },
-      { id: 'hind_legs', size: 'normal', impact: 'normal', roles: [RL.move, RL.strike] },
+      ...fourLegs([RL.move, RL.strike]),
       { id: 'tail', size: 'small', impact: 'non_essential', roles: [RL.strike] },
     ],
     fallback: { attackSkill: SK.bite },
@@ -507,6 +641,8 @@ export const BODY_TYPES: Record<string, BodyType> = {
   // legless: the coils move it and squeeze; nothing to carry with (grip reach 0, as amorphous)
   [BT.serpent]: {
     id: BT.serpent, name: 'Serpent', general: { name: 'body', size: 'normal' },
+    // SZ3: the Python lies coiled or bent (5–6 m long, about 0.25 m thick), a coil about 1 m across; an estimate
+    size: { lengthM: 1, widthM: 1, heightM: 0.3 },
     naturalAttacks: [],
     parts: [
       { id: 'head', size: 'small', impact: 'essential', roles: [RL.sense, RL.strike] },
@@ -518,6 +654,7 @@ export const BODY_TYPES: Record<string, BodyType> = {
   // a spider's shape (CS24: 5 of 8 legs Crippled, or 4 Destroyed, stop it running); fangs on the head; no grip
   [BT.eight_legged]: {
     id: BT.eight_legged, name: 'Eight-legged', general: { name: 'body', size: 'normal' },
+    size: { lengthM: 1.5, widthM: 1.3, heightM: 0.6 }, // SZ3: the Giant spider, a wolf's weight: legs spread 1.5 by 1.3 m; an estimate
     naturalAttacks: [],
     parts: [
       { id: 'head', size: 'small', impact: 'essential', roles: [RL.sense, RL.strike] },
@@ -533,8 +670,13 @@ const HIDE = (hide: number) => ({ hide, multiplier: CONFIG.ARMOR_MULTIPLIER.ligh
 /** AB16 a: the skill each kind of natural attack rolls; a tail lash names its own (SK.tail) */
 const NAT_SKILL: Record<string, string> = { [AM.bite]: SK.bite, [AM.claw]: SK.claws, [AM.kick]: SK.hooves_horns, [AM.gore]: SK.hooves_horns, [AM.slam]: SK.slam };
 /** a race's natural attack: unarmed tree, its kind's skill unless given, reach in metres from the race's comment */
-const nat = (id: string, cls: AttackMode['class'], reachM: number, partId: string, name: string, skill: string = NAT_SKILL[id]): AttackMode =>
-  ({ id, tree: 'unarmed', class: cls, skill, reachM, reach: reachM, grips: 0, partId, name });
+const nat = (id: string, cls: AttackMode['class'], reachM: number, part: string | readonly string[], name: string, skill: string = NAT_SKILL[id]): AttackMode =>
+  ({ id, tree: 'unarmed', class: cls, skill, reachM, reach: reachM, grips: 0, ...(typeof part === 'string' ? { partId: part } : { partIds: part }), name });
+/** SZ1: a race's size factors, written from its cited metres [length, width, height] against its body type's size */
+const sized = (bt: string, [l, w, h]: [number, number, number]) => {
+  const s = BODY_TYPES[bt].size!;
+  return { sizeMult: { length: l / s.lengthM, width: w / s.widthM, height: h / s.heightM } };
+};
 
 /** AP2: an achievement's personality points, written in steps of CONFIG.ACH_PERSONALITY_STEP (the one balance lever) */
 const ap = (steps: Record<string, number>): Record<string, number> => Object.fromEntries(Object.entries(steps).map(([k, n]) => [k, n * CONFIG.ACH_PERSONALITY_STEP]));
@@ -545,23 +687,23 @@ const ap = (steps: Record<string, number>): Record<string, number> => Object.fro
 const role = (id: string, name: string, kind: NpcRoleDef['kind'], grandeur: GrandeurKey, bands: Record<string, readonly string[]>, leans?: NpcRoleDef['leans'], traits?: readonly string[], gear?: readonly string[]): NpcRoleDef =>
   ({ id, name, kind, grandeur, bands, ...(leans ? { leans } : {}), ...(traits ? { traits } : {}), ...(gear ? { gear } : {}) });
 export const NPC_ROLES: Record<string, NpcRoleDef> = Object.fromEntries([
-  role(RO.soldier, 'Soldier', 'combat', 'ordinary', { high: [SK.melee_medium, SK.block], moderate: [SK.medium_armor, SK.endurance, SK.intimidation], low: [SK.parry] }, { traits: { [PA.discipline]: 40 } }, [PK.second_wind], [GC.melee_medium, GC.shield, GC.armor_medium]), // Block is their defense
-  role(RO.skirmisher, 'Skirmisher', 'combat', 'ordinary', { high: [SK.melee_light, SK.dodge], moderate: [SK.light_armor, SK.ranged_light], low: [SK.sneaking, SK.endurance] }, { traits: { [PA.levity]: 20 } }, [PK.second_wind], [GC.melee_light, GC.armor_light]),
+  role(RO.soldier, 'Soldier', 'combat', 'ordinary', { high: [SK.melee_medium, SK.block, SK.battle_sense], moderate: [SK.medium_armor, SK.endurance, SK.intimidation], low: [SK.parry] }, { traits: { [PA.discipline]: 40 } }, [PK.second_wind], [GC.melee_medium, GC.shield, GC.armor_medium]), // Block is their defense
+  role(RO.skirmisher, 'Skirmisher', 'combat', 'ordinary', { high: [SK.melee_light, SK.dodge], moderate: [SK.light_armor, SK.ranged_light, SK.battle_sense], low: [SK.sneaking, SK.endurance] }, { traits: { [PA.levity]: 20 } }, [PK.second_wind], [GC.melee_light, GC.armor_light]),
   role(RO.brute, 'Brute', 'combat', 'ordinary', { high: [SK.melee_heavy, SK.unarmed_strike], moderate: [SK.endurance, SK.intimidation, SK.unarmed_grapple], low: [SK.heavy_armor] }, { traits: { [PA.temper]: 40 } }, [PK.second_wind, PK.heavy_sleeper], [GC.melee_heavy, GC.armor_heavy]),
   role(RO.shooter, 'Shooter', 'combat', 'ordinary', { high: [SK.ranged_medium], moderate: [SK.ranged_light, SK.eyesight, SK.dodge], low: [SK.light_armor, SK.melee_light] }, { traits: { [PA.discipline]: 20 } }, undefined, [GC.ranged_medium, GC.armor_light]),
-  role(RO.sneak, 'Sneak', 'combat', 'ordinary', { high: [SK.sneaking, SK.melee_light], moderate: [SK.combat_stealth, SK.vanishing, SK.dodge], low: [SK.light_armor, SK.lying, SK.filching, SK.lockpicking] }, { traits: { [PA.honesty]: -40 }, values: [VL.wealth] }, [PK.insomniac], [GC.melee_light, GC.armor_light]),
+  role(RO.sneak, 'Sneak', 'combat', 'ordinary', { high: [SK.sneaking, SK.melee_light, SK.stratagem], moderate: [SK.combat_stealth, SK.vanishing, SK.dodge], low: [SK.light_armor, SK.lying, SK.filching, SK.lockpicking] }, { traits: { [PA.honesty]: -40 }, values: [VL.wealth] }, [PK.insomniac], [GC.melee_light, GC.armor_light]),
   role(RO.watcher, 'Watcher', 'combat', 'ordinary', { high: [SK.eyesight, SK.earshot], moderate: [SK.insight, SK.intimidation], low: [SK.melee_medium, SK.persuasion] }, { traits: { [PA.curiosity]: 20 } }, [PK.insomniac], [GC.melee_medium]),
   role(RO.talker, 'Talker', 'civilian', 'ordinary', { high: [SK.persuasion, SK.barter], moderate: [SK.insight, SK.lying, SK.earshot], low: [SK.eyesight] }, { traits: { [PA.sociability]: 20 }, values: [VL.wealth] }),
   role(RO.worker, 'Worker', 'civilian', 'mundane', { high: [SK.endurance], moderate: [SK.unarmed_strike, SK.stamina], low: [SK.persuasion] }, { traits: { [PA.sociability]: 20 } }, [PK.heavy_sleeper]),
   // NR4: woods folk who live by the bow (hunters, foresters, trappers, poachers); civilian, Commoner class line (NR2)
-  role(RO.hunter, 'Hunter', 'civilian', 'mundane', { high: [SK.ranged_medium, SK.sneaking], moderate: [SK.eyesight, SK.earshot, SK.endurance], low: [SK.melee_light, SK.stamina] }, { traits: { [PA.curiosity]: 20 }, values: [VL.nature, VL.freedom] }, undefined, [GC.ranged_medium, GC.melee_light, GC.armor_light]),
+  role(RO.hunter, 'Hunter', 'civilian', 'mundane', { high: [SK.ranged_medium, SK.sneaking, SK.fieldcraft], moderate: [SK.eyesight, SK.earshot, SK.endurance], low: [SK.melee_light, SK.stamina] }, { traits: { [PA.curiosity]: 20 }, values: [VL.nature, VL.freedom] }, undefined, [GC.ranged_medium, GC.melee_light, GC.armor_light]),
   // NR6: barber-surgeons, herb-wives, midwives; the one who sells clinic care (SV.clinic) where a place has it
   role(RO.healer, 'Healer', 'civilian', 'mundane', { high: [SK.healing, SK.insight, SK.persuasion], moderate: [SK.resolve, SK.earshot], low: [SK.barter] }, { traits: { [PA.sociability]: 20 }, values: [VL.kindness] }),
   // NR8: the person others answer to (headman, reeve, guild master); a quest giver. Its own class comes later (D-341)
-  role(RO.leader, 'Leader', 'civilian', 'ordinary', { high: [SK.persuasion, SK.intimidation], moderate: [SK.insight, SK.resolve], low: [SK.melee_medium, SK.barter] }, { traits: { [PA.pride]: 20 }, values: [VL.order, VL.reputation] }),
+  role(RO.leader, 'Leader', 'civilian', 'ordinary', { high: [SK.persuasion, SK.intimidation, SK.command], moderate: [SK.insight, SK.resolve], low: [SK.melee_medium, SK.barter] }, { traits: { [PA.pride]: 20 }, values: [VL.order, VL.reputation] }),
   // NR13: the armoured professional (man-at-arms, knight, champion); its master's class is Knight (CL11)
   role(RO.knight, 'Knight', 'combat', 'grand', { high: [SK.melee_medium, SK.heavy_armor], moderate: [SK.block, SK.resolve, SK.intimidation], low: [SK.melee_heavy, SK.persuasion] }, { traits: { [PA.discipline]: 40 }, values: [VL.duty, VL.glory] }, [PK.second_wind], [GC.melee_medium, GC.shield, GC.armor_heavy]),
-  role(RO.beast, 'Beast', 'beast', 'ordinary', { high: [SK.bite, SK.claws, SK.hooves_horns, SK.tail, SK.slam], moderate: [SK.scent, SK.hide], low: [SK.dodge, SK.tremor] }), // each only where its body can use it (presetBands)
+  role(RO.beast, 'Beast', 'beast', 'ordinary', { high: [SK.bite, SK.claws, SK.hooves_horns, SK.tail, SK.slam], moderate: [SK.scent, SK.hide, SK.battle_sense, SK.stratagem], low: [SK.dodge, SK.tremor] }), // each only where its body can use it (presetBands); TC9 a: Tactics only for beasts that aren't unintelligent
 ].map((r) => [r.id, r]));
 
 /** theme role kinds: who fits each world (a bandit with no fighting role makes no sense) */
@@ -615,6 +757,14 @@ const meet = (group: string, weight: number, when?: 'day' | 'night'): MeetRow =>
  * minimums are hand-set floors the story needs; class floors are added in code. Rank floors, Keen Ear for patrols (NG13),
  * milestone perks (NG11), rank traits (NG12) and personality from the layers (NG14) are the generator's; personality here
  * only pins what differs from the layers. */
+/** named presets from race, role, theme and rank, with the composed defaults for the role's kind (as composeTemplate);
+ * people are rolled (each one its own person), beasts are copies */
+function presets(rows: [string, string, string, string, RankKey, string, Partial<NpcTemplate>?][]): Record<string, NpcTemplate> {
+  return Object.fromEntries(rows.map(([id, raceId, roleId, themeId, rank, label, extra]) => {
+    const d = CONFIG.COMPOSED_NPC[NPC_ROLES[roleId].kind];
+    return [id, { id, raceId, generation: NPC_ROLES[roleId].kind === 'beast' ? 'copy' : 'rolled', minimums: {}, roleId, themeId, rank, resolve: d.resolve, control: d.control, chase: d.chase, label, ...extra }];
+  }));
+}
 export const TEMPLATES: Record<string, NpcTemplate> = {
   [TP.slime]: {
     id: TP.slime, raceId: RC.slime, generation: 'copy', minimums: { [SK.slam]: 30, [SK.scent]: 50 }, // AB19 a: slimes smell, not feel
@@ -643,10 +793,38 @@ export const TEMPLATES: Record<string, NpcTemplate> = {
     minimums: { [SK.unarmed_strike]: 20, [SK.eyesight]: 20, [SK.persuasion]: 30 }, roleId: RO.worker, themeId: TH.village_folk, rank: 'rank_1',
     resolve: 30, personality: { values: [VL.pleasure] }, control: 'code', label: 'a tavern patron', chase: 'post',
   },
+  // the people and beasts the rosters and groups cast (NR17-NR20, NR27), named so the World builder and the catalog have
+  // them; the rank is the one their roster row rolls most often, and Resolve, control and chase are the composed defaults
+  ...presets([
+    [TP.hunter, RC.human, RO.hunter, TH.village_folk, 'rank_2', 'a hunter'], // a guide, or a poacher (GP11)
+    [TP.healer, RC.human, RO.healer, TH.village_folk, 'rank_2', 'a healer'], // the service hook that tends wounds (HK2)
+    [TP.headman, RC.human, RO.leader, TH.village_folk, 'rank_3', 'a village headman'], // the leader hook: work or a quest (HK1)
+    [TP.knight, RC.human, RO.knight, TH.lords_household, 'rank_4', 'a knight', { classId: CL.knight_trainee }], // a lord's sworn sword (NR36: a Knight Trainee short of the full Knight)
+    [TP.bandit, RC.human, RO.skirmisher, TH.road_bandits, 'rank_2', 'a bandit'], // GP5 follower
+    [TP.bandit_chief, RC.human, RO.brute, TH.road_bandits, 'rank_3', 'a bandit chief'], // GP5 leader, one step up
+    [TP.watch_sergeant, RC.human, RO.soldier, TH.town_watch, 'rank_3', 'a watch sergeant'], // GP6 leader, one step up
+    [TP.pedlar, RC.human, RO.talker, TH.travellers, 'rank_2', 'a pedlar', { classId: CL.trader }], // GP1: goods on the road
+    [TP.hired_guard, RC.human, RO.soldier, TH.travellers, 'rank_2', 'a hired guard'], // GP3 follower
+    [TP.wolf, RC.wolf, RO.beast, TH.wild_beasts, 'rank_2', 'a wolf'], // GP8
+    [TP.boar, RC.boar, RO.beast, TH.wild_beasts, 'rank_3', 'a wild boar'], // GP9
+    [TP.bear, RC.bear, RO.beast, TH.wild_beasts, 'rank_4', 'a bear'], // GP10
+    [TP.dog, RC.dog, RO.beast, TH.wild_beasts, 'rank_1', 'a dog'], // GP12: a dog at the fold
+    [TP.dire_wolf, RC.wolf, RO.beast, TH.wild_beasts, 'rank_3', 'a dire wolf', { prefix: PF.dire }], // NR37: a wolf one rank up, half again the health
+  ]),
 };
 
 const act = (id: string, look: string, attention: ActivityDef['attention'], noise: ActivityDef['noise'], visibility: ActivityDef['visibility']): ActivityDef =>
   ({ id, look, attention, noise, visibility });
+/** PC1: each furniture kind's size, [length, width, height] in metres (placeholders from common furniture: a bar counter
+ * about 1.1 m high, a table 0.75 m, a barrel 1 m, a cart bed about 1 m, a well's wall 0.9 m) */
+const FURNITURE_SIZE_M: Record<string, [number, number, number]> = {
+  [FU.counter]: [3, 0.6, 1.1], [FU.hearth]: [1.5, 0.6, 1], [FU.table]: [1.5, 0.8, 0.75], [FU.bench]: [1.5, 0.35, 0.45],
+  [FU.bed]: [2, 0.9, 0.5], [FU.barrels]: [1.2, 0.6, 1], [FU.shelves]: [1, 0.4, 1.8], [FU.crates]: [1, 1, 1], [FU.sacks]: [1, 0.6, 0.6],
+  [FU.anvil]: [0.6, 0.3, 0.8], [FU.forge]: [1.2, 1, 1], [FU.rack]: [1.5, 0.4, 1.6], [FU.brazier]: [0.5, 0.5, 0.9],
+  [FU.woodpile]: [2, 1, 1.2], [FU.water_barrel]: [0.6, 0.6, 1], [FU.stool]: [0.35, 0.35, 0.45], [FU.chair]: [0.45, 0.45, 0.9],
+  [FU.cupboard]: [1, 0.5, 1.8], [FU.well]: [1.5, 1.5, 0.9], [FU.cart]: [1.5, 1, 1], [FU.fence]: [3, 0.1, 1.2], [FU.rail]: [3, 0.1, 1],
+  [FU.altar]: [1.5, 0.8, 1], [FU.other]: [0.5, 0.5, 0.5],
+};
 /** FR2: furniture each zone kind gets unless a layout or the Weaver lists its own (colour, mostly: FR1) */
 const KIND_FURNITURE: Record<string, import('../types').PlanFurniture[]> = {
   [ZK.room]: [{ kind: FU.table, name: 'table' }, { kind: FU.bench, name: 'bench', at: 'w' }],
@@ -733,8 +911,8 @@ export const ROUTINES: Record<string, Routine> = Object.fromEntries([
 
 const set = (id: string, brief: string, place: string[], role: string[], time: RoutineSet['tags']['time'], slots: RoutineSet['slots'], routines: string[]): RoutineSet =>
   ({ id, brief, tags: { place, role, time, event: ['ordinary'] }, slots, routines });
-/** NW4: the kinds that lead onward (a street, square, gate, field, woods or road never ends in a wall); yards and rooms may */
-const ONWARD_KINDS = new Set<string>([ZK.street, ZK.square, ZK.gate, ZK.field, ZK.woods, ZK.road]);
+/** NW4: the kinds that lead onward (a street, square, gate, field or woods never ends in a wall); yards and rooms may */
+const ONWARD_KINDS = new Set<string>([ZK.street, ZK.square, ZK.gate, ZK.field, ZK.woods]);
 const z = (hint: string) => ({ kind: 'zone' as const, hint });
 /** RT: an optional slot; left unbound, the actor stays where it is at the times that read it */
 const oz = (hint: string) => ({ kind: 'zone' as const, hint, optional: true as const });
@@ -754,7 +932,7 @@ export const ROUTINE_SETS: Record<string, RoutineSet> = Object.fromEntries([
   set('bandit_camp', 'A bandit at the gang\'s camp', ['camp', 'woods'], ['bandit'], ['any'], { post: z('the camp'), seat: SEAT, bed: BED }, ['keep_camp', 'defend_camp_alert', 'wait', 'wait_alert']),
   set('bandit_ambush', 'A bandit lying in wait by a road', ['road', 'woods'], ['bandit'], ['any'], { hide: z('where it hides beside the road'), road: z('the road it rushes onto'), seat: SEAT, bed: BED }, ['ambush_road', 'spring_ambush_alert', 'wait', 'wait_alert']),
   set('companion', "The player's band; not chosen by tags", [], [], [], {}, ['follow', 'follow_alert', 'wait', 'wait_alert']),
-  set('slime_wander', 'A slime roaming the field outside the gate', ['field'], ['creature'], ['any'], { route: r('across the field, in order'), post: z('where it settles') }, ['roam_field', 'roam_field_alert']),
+  set('slime_wander', 'A slime roaming the field outside the gate', ['field'], ['beast'], ['any'], { route: r('across the field, in order'), post: z('where it settles') }, ['roam_field', 'roam_field_alert']),
 ].map((s) => [s.id, s]));
 
 // BR9: a rule names a body type or a race; a block the shape already gives is not repeated on the race
@@ -765,7 +943,7 @@ const ANIMALS = [RC.dog, RC.wolf, RC.tiger, RC.bear, RC.boar, RC.horse, RC.lizar
 export function prototypeLibrary(): Library {
   const lib: Library = structuredClone({
     version: 1,
-    status: Object.fromEntries(Object.entries(OLD_SKILL_IDS).map(([old, to]) => [old, { state: 'renamed' as const, to }])), // old name IDs → numbers
+    status: {}, // D-116: renamed, replaced and deleted entries (none while the prototype keeps no old saves)
     skills: SKILLS,
     // Skill tree access (TA1–TA11): each tree's own rule; no rule = open to everyone.
     // shortcut: slime and dragon are body types until the race split (BR answers) lands, then these name the races.
@@ -781,10 +959,12 @@ export function prototypeLibrary(): Library {
       [TR.perception]: { id: TR.perception, name: 'Perception', skills: [SK.eyesight, SK.earshot, SK.insight, SK.scent] },
       [TR.stealth]: { id: TR.stealth, name: 'Stealth – Conventional', skills: [SK.sneaking, SK.combat_stealth, SK.vanishing] },
       [TR.speech]: { id: TR.speech, name: 'Speech', skills: [SK.persuasion, SK.intimidation, SK.barter], access: { blockedBy: [AMORPHOUS] } },
-      [TR.trickery]: { id: TR.trickery, name: 'Trickery', skills: [SK.lying, SK.filching], access: { blockedBy: [AMORPHOUS] } },
-      [TR.swordsman]: { id: TR.swordsman, name: 'Swordsman', skills: [SK.riposte], access: { must: [{ kind: 'class', id: CL.swordsman }] } },
+      [TR.trickery]: { id: TR.trickery, name: 'Trickery', skills: [SK.lying, SK.filching, SK.guile], access: { blockedBy: [AMORPHOUS] } },
+      // TC2, TC11 d: a normal tree; TC9: closed to unintelligent races (end of this function), Command only for intelligent ones
+      [TR.tactics]: { id: TR.tactics, name: 'Tactics', skills: [SK.battle_sense, SK.command, SK.fieldcraft, SK.stratagem] },
+      [TR.swordsman]: { id: TR.swordsman, name: 'Swordsman', skills: [SK.riposte], access: { must: [{ kind: 'perk', id: PK.blade_against_blade }] } }, // opened by Swordsman's level 1 perk
       [TR.merchant]: { id: TR.merchant, name: 'Merchant', skills: [SK.shrewd_dealing], access: { must: [{ kind: 'class', id: CL.merchant }] } },
-      [TR.sword_dancer]: { id: TR.sword_dancer, name: 'Sword-dancer', skills: [SK.blade_dance], access: { must: [{ kind: 'class', id: CL.sword_dancer }] } }, // mirrors Swordsman
+      [TR.sword_dancer]: { id: TR.sword_dancer, name: 'Sword-dancer', skills: [SK.blade_dance], access: { must: [{ kind: 'perk', id: PK.first_steps_of_the_dance }] } }, // mirrors Swordsman: opened by its level 1 perk
       // BR7: from being a slime, not from a class
       [TR.slime_senses]: { id: TR.slime_senses, name: 'Tremor senses', rating: 'inferior', skills: [SK.tremor], access: { either: [RC.python, RC.spider].map((id) => ({ kind: 'race' as const, id })) } }, // AB11, AB19: snakes and spiders feel vibration; slimes smell instead
       [TR.medicine]: { id: TR.medicine, name: 'Medicine', skills: [SK.healing], access: { blockedBy: [AMORPHOUS] } }, // NR33: hands to mend with
@@ -792,9 +972,9 @@ export function prototypeLibrary(): Library {
     },
     classes: {
       // Parry 40 and Medium or Heavy Weapons 40 unlock the class; Medium Weapons 40 and Parry 40 are its creation floors
-      [CL.swordsman]: { id: CL.swordsman, personality: { [PA.discipline]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Swordsman', tier: 'tier_1', label: 'a swordsman', story: 'Blade against blade, drilled until the parry comes before the thought does.', floors: { [SK.melee_medium]: 40, [SK.parry]: 40 }, unlock: { [SK.parry]: 40 }, unlockAny: [{ [SK.melee_medium]: 40, [SK.melee_heavy]: 40 }] },
+      [CL.swordsman]: { id: CL.swordsman, personality: { [PA.discipline]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Swordsman', tier: 'tier_2', label: 'a swordsman', story: 'Blade against blade, drilled until the parry comes before the thought does.', floors: { [SK.melee_medium]: 40, [SK.parry]: 40 }, unlock: { [SK.parry]: 80 }, unlockAny: [{ [SK.melee_medium]: 60, [SK.melee_heavy]: 60 }], levelPerks: { 1: [PK.blade_against_blade] } },
       // the class of the late bloomer start (ST2): a unique class with a level 1 perk
-      [CL.late_bloomer]: { id: CL.late_bloomer, personality: { [PA.curiosity]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Unwritten Legend', tier: 'tier_5', label: 'a young stranger', story: 'No song carries your name, no master claimed you, and no road was chosen for you. You start late, in rough clothes with empty hands. Whatever story ends with your name, you will write it yourself.', floors: {}, levelPerks: { 1: [PK.quick_study] }, capstone: [PK.as_far_as_the_road_goes],
+      [CL.late_bloomer]: { id: CL.late_bloomer, personality: { [PA.curiosity]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Unwritten Legend', tier: 'tier_5', label: 'a young stranger', story: 'No song carries your name, no master claimed you, and no road was chosen for you. You start late, in rough clothes with empty hands. Whatever story ends with your name, you will write it yourself.', floors: {}, unlockClass: { [CL.a_somebody]: 'max' }, levelPerks: { 1: [PK.any_road_will_do] }, capstone: [PK.as_far_as_the_road_goes], // CB3: also opens at A Somebody's top level
         capstones: [{ perk: PK.write_your_own_ending, needs: { must: [{ kind: 'classes', id: '', level: 7 }] } },
           { perk: PK.no_road_closed, needs: { must: [{ kind: 'allStep', id: '50', level: 1 }, { kind: 'skillsAbove', id: '15', level: 10 }] } }] },
       // TB7: the Threadbounded class, used only by The Threadbound start (ST4); its level 1 perk gives a random Threadbound item. No unlock
@@ -804,7 +984,7 @@ export function prototypeLibrary(): Library {
       [CL.blessed_by_imbra]: { id: CL.blessed_by_imbra, name: 'Blessed by Imbra', tier: 'tier_2', label: 'a young stranger', story: 'Imbra looked your way once, and part of that look stayed with you.', floors: {}, blessedBy: GD.imbra },
       // Sword-dancer mirrors the Swordsman: its skills and perks are meant to be the Swordsman's, built for Dodge and
       // light or medium blades. Unlocks at Dodge 40 and Light or Medium Weapons 40; no tree, floors or creation start yet.
-      [CL.sword_dancer]: { id: CL.sword_dancer, personality: { [PA.levity]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Sword-dancer', tier: 'tier_1', story: 'Blade and footwork, drilled until the step comes before the thought does.', floors: {}, unlock: { [SK.dodge]: 40 }, unlockAny: [{ [SK.melee_light]: 40, [SK.melee_medium]: 40 }] },
+      [CL.sword_dancer]: { id: CL.sword_dancer, personality: { [PA.levity]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Sword-dancer', tier: 'tier_2', story: 'Blade and footwork, drilled until the step comes before the thought does.', floors: {}, unlock: { [SK.dodge]: 80 }, unlockAny: [{ [SK.melee_light]: 60, [SK.melee_medium]: 60 }], levelPerks: { 1: [PK.first_steps_of_the_dance] } },
       // NR13 (placeholder numbers, benefits later): every Arms skill at 50 (the Arms All-50), one at 75, and Heavy Armor 60
       [CL.knight]: { id: CL.knight, personality: { [PA.discipline]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Knight', tier: 'tier_2', label: 'a knight', story: 'Armoured head to foot and sworn to a banner; the blade does not tire and the line does not break.', floors: {},
         // NR36 b: the Arms All-50, one weapon at 100 and Heavy Armor 75; or Knight Trainee at its top level
@@ -813,11 +993,14 @@ export function prototypeLibrary(): Library {
       // NR36: the squire's road into Knight (placeholder unlock: a melee weapon and Heavy Armor at 40, like Guard's 40s)
       [CL.knight_trainee]: { id: CL.knight_trainee, personality: { [PA.discipline]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Knight Trainee', tier: 'tier_1', label: 'a knight trainee', story: 'Carry the shield, wear the weight, learn the blade until the banner takes you.', floors: {},
         unlock: { [SK.heavy_armor]: 40 }, unlockAny: [{ [SK.melee_light]: 40, [SK.melee_medium]: 40, [SK.melee_heavy]: 40 }] },
-      // the default class: opens when the current class is at its top level; its capstone (at 5, tier 0) unlocks A Nobody
+      // the default class: opens when the current class is at its top level; its capstone (at 5, tier 0) gives a perk point
       [CL.commoner]: { id: CL.commoner, name: 'Commoner', tier: 'tier_0', story: 'Plain work and plain days.', floors: {}, fallback: true, capstone: [PK.nobody_special] },
-      // unlocked through Commoner 5's perk (its Start, ST3, was removed: CC3)
-      [CL.a_nobody]: { id: CL.a_nobody, personality: { [PA.pride]: -CONFIG.ACH_PERSONALITY_STEP }, name: 'A Nobody', tier: 'tier_2', label: 'a nobody', story: 'Nobody watches a nobody, and you have learned to use that.', floors: {}, unlockPerk: PK.nobody_special,
+      // unlocks at Commoner's top level (its Start, ST3, was removed: CC3)
+      [CL.a_nobody]: { id: CL.a_nobody, personality: { [PA.pride]: -CONFIG.ACH_PERSONALITY_STEP }, name: 'A Nobody', tier: 'tier_2', label: 'a nobody', story: 'Nobody watches a nobody, and you have learned to use that.', floors: {}, unlockClass: { [CL.commoner]: 'max' },
         levelPerks: { 1: [PK.quick_study] }, capstone: [PK.every_fall_a_lesson] },
+      // CB1-CB7: between A Nobody and Unwritten Legend; opens at A Nobody's top level (no skill road), Late Bloom at 1; its capstone is parked (D-360)
+      [CL.a_somebody]: { id: CL.a_somebody, personality: { [PA.pride]: CONFIG.ACH_PERSONALITY_STEP }, name: 'A Somebody', tier: 'tier_3', label: 'a somebody', story: 'People finally know your name, though most of them still get it wrong.', floors: {},
+        unlockClass: { [CL.a_nobody]: 'max' }, levelPerks: { 1: [PK.late_bloom] } },
       // PY2: every NPC that sells has this class; Barter 20 unlocks it
       // any weapon, any armor and any defense skill, and a perk that adds a hearing link (Keen Ear, which patrol templates have)
       [CL.guard]: { id: CL.guard, personality: { [PA.discipline]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Guard', tier: 'tier_1', label: 'a guard', story: 'Stand at the gate and listen for trouble.', floors: {},
@@ -825,7 +1008,8 @@ export function prototypeLibrary(): Library {
           { [SK.light_armor]: 40, [SK.medium_armor]: 40, [SK.heavy_armor]: 40 }, { [SK.block]: 30, [SK.dodge]: 30, [SK.parry]: 30 }] as Record<string, number>[],
         unlockPerkWith: { hearingDb: 1 } },
       [CL.trader]: { id: CL.trader, personality: { [PA.sociability]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Trader', tier: 'tier_0', label: 'a trader', story: 'Buy low, sell higher.', floors: {}, unlock: { [SK.barter]: 20 }, capstone: [PK.known_at_every_stall] },
-      [CL.merchant]: { id: CL.merchant, personality: { [PA.pride]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Merchant', tier: 'tier_1', label: 'a merchant', story: 'A trader who owns the stall.', floors: {}, unlockPerk: PK.known_at_every_stall }, // the Trader capstone
+      [CL.merchant]: { id: CL.merchant, personality: { [PA.pride]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Merchant', tier: 'tier_1', label: 'a merchant', story: 'A trader who owns the stall.', floors: {}, unlockClass: { [CL.trader]: 'max' }, // Trader at its top level
+        orUnlocks: [{ unlock: { [SK.barter]: 75 } }] }, // or Barter 75 on its own
     },
     // DX1: the Starts, the ways to begin on the creation screen, in the order the screen shows them. points/level left out =
     // CONFIG.CREATION_POINTS / START_LEVEL
@@ -854,18 +1038,34 @@ export function prototypeLibrary(): Library {
     // with traits) belongs to the lore and loot threads (D-228). EG11 b: never numbers. NM2: an essence is a small foreign addition
     // that sits on someone's Thread, never a strand of it, so stories say it came with you or sits beside you, never that it knots in.
     essences: {
-      [ES.gel_patience]: { id: ES.gel_patience, name: 'Gel Patience', from: { race: RC.slime }, weight: 1, skills: [{ skill: SK.slam, weight: 2 }, { skill: SK.scent, weight: 1 }], // EN5: slimes have no Endurance; AB19: Scent, not Tremor
+      [ES.gel_patience]: { id: ES.gel_patience, name: 'Gel Patience', from: { race: RC.slime }, skills: [{ skill: SK.slam, weight: 2 }, { skill: SK.scent, weight: 1 }], // EN5: slimes have no Endurance; AB19: Scent, not Tremor
         story: 'The slime\'s slow patience comes with you and settles in your gut like a swallowed stone. Who passed by reaches you as a smell before your eyes find them, and your body starts to feel like the weapon.' },
-      [ES.gate_habit]: { id: ES.gate_habit, name: 'Gate-Warden\'s Habit', from: { race: RC.human }, weight: 1, skills: [{ skill: SK.block, weight: 2 }, { skill: SK.earshot, weight: 1 }],
+      // NE2 a: people rows come from the humanoid body type, so elves carry them as humans do (a row for one race can come later, D-229)
+      [ES.gate_habit]: { id: ES.gate_habit, name: 'Gate-Warden\'s Habit', from: { bodyType: BT.humanoid }, skills: [{ skill: SK.block, weight: 2 }, { skill: SK.earshot, weight: 1 }],
         story: 'You catch yourself turning a shoulder toward the door before you decide to, as if you had brought someone else\'s long watches home with you.' },
-      [ES.street_instinct]: { id: ES.street_instinct, name: 'Street Instinct', from: { race: RC.human }, weight: 1, skills: [{ skill: SK.dodge, weight: 2 }, { skill: SK.insight, weight: 1 }],
+      [ES.street_instinct]: { id: ES.street_instinct, name: 'Street Instinct', from: { bodyType: BT.humanoid }, skills: [{ skill: SK.dodge, weight: 2 }, { skill: SK.insight, weight: 1 }],
         story: 'A crowd reads differently now. You feel the reaching hand before it moves, the way they must have felt it.' },
       // EN6: placeholder rows so the barkeep and the tavern patron each carry one
-      [ES.haggler_ear]: { id: ES.haggler_ear, name: 'Haggler\'s Ear', from: { race: RC.human }, weight: 1, skills: [{ skill: SK.barter, weight: 2 }, { skill: SK.earshot, weight: 1 }],
+      [ES.haggler_ear]: { id: ES.haggler_ear, name: 'Haggler\'s Ear', from: { bodyType: BT.humanoid }, skills: [{ skill: SK.barter, weight: 2 }, { skill: SK.earshot, weight: 1 }],
         story: 'A haggler\'s ear sits beside your own now. Prices start to sound like opening moves, and you hear the give in a seller\'s voice before they know it is there.' },
-      [ES.tavern_brawler]: { id: ES.tavern_brawler, name: 'Tavern Brawler', from: { race: RC.human }, weight: 1, trait: PK.fists_do_the_talking, skills: [{ skill: SK.unarmed_strike, weight: 2 }, { skill: SK.persuasion, weight: 1 }],
+      [ES.tavern_brawler]: { id: ES.tavern_brawler, name: 'Tavern Brawler', from: { bodyType: BT.humanoid }, trait: PK.fists_do_the_talking, skills: [{ skill: SK.unarmed_strike, weight: 2 }, { skill: SK.persuasion, weight: 1 }],
         story: 'Someone\'s long nights of tavern brawls came along with you. Your fists hang easier at your sides, and so do your words: half a fight is talking your way into it, or out.' },
-      [ES.hard_won_habit]: { id: ES.hard_won_habit, name: 'Hard-Won Habit', from: { deed: true }, weight: 1, skills: [],
+      // NE3 a: watchers' and hunters' only row; every person has some Eyesight and Earshot, so it fits everyone, picked rarely (CONFIG.ESSENCE_PICK_WEIGHT)
+      [ES.lookout_eyes]: { id: ES.lookout_eyes, name: 'Lookout\'s Eyes', from: { bodyType: BT.humanoid }, skills: [{ skill: SK.eyesight, weight: 2 }, { skill: SK.earshot, weight: 1 }],
+        story: 'Someone\'s long hours on a wall or in a hide came along with you. Your eyes go to the treeline and the far end of the road on their own, and a twig snapping behind you turns your head before you think to.' },
+      // NE1 a: beast rows name no race or body type, so the fit rule hands each beast the rows of the natural weapons it has
+      [ES.fang_nose]: { id: ES.fang_nose, name: 'Fang and Nose', from: {}, skills: [{ skill: SK.bite, weight: 2 }, { skill: SK.scent, weight: 1 }],
+        story: 'A hunting animal\'s hunger sits beside your own now. Your jaw sets hard when a fight starts, and the air carries who passed by and how afraid they were.' },
+      [ES.horn_hide]: { id: ES.horn_hide, name: 'Horn and Hide', from: {}, skills: [{ skill: SK.hooves_horns, weight: 2 }, { skill: SK.hide, weight: 1 }],
+        story: 'Something of a charging beast came with you: the urge to lower your head and drive straight through, and a skin that shrugs off what should have cut it.' },
+      [ES.claw_pounce]: { id: ES.claw_pounce, name: 'Claw and Pounce', from: {}, skills: [{ skill: SK.claws, weight: 2 }, { skill: SK.dodge, weight: 1 }],
+        story: 'A great cat\'s patience settles in your shoulders. Your weight shifts onto your toes before a blow lands, and your hands curl as if they remember raking.' },
+      [ES.lashing_tail]: { id: ES.lashing_tail, name: 'Lashing Tail', from: {}, skills: [{ skill: SK.tail, weight: 2 }, { skill: SK.hide, weight: 1 }],
+        story: 'A heavy, scaled thing\'s way of fighting came along with you: turning side-on, sweeping wide at whatever comes close, and taking the hits on a hide that barely feels them.' },
+      // D-362: a beast whose Resolve is above every weapon skill (an Untrained one: Resolve 50, weapons about 15) fits no weapon row
+      [ES.cornered_nerve]: { id: ES.cornered_nerve, name: 'Cornered Nerve', from: { role: RO.beast, over: SK.resolve }, skills: [{ skill: SK.resolve, weight: 2 }, { skill: SK.scent, weight: 1 }],
+        story: 'A young animal\'s refusal to back down came along with you. It had little to fight with and stood its ground anyway; when you are cornered now, your feet stay where they are and you smell the fear on whoever cornered you.' },
+      [ES.hard_won_habit]: { id: ES.hard_won_habit, name: 'Hard-Won Habit', from: { deed: true }, skills: [],
         story: 'What you did again and again here has grown on you like a callus. Something in you will remember it.' },
     },
     roles: { [RL.sense]: { name: 'sense', shared: true }, [RL.grip]: { name: 'grip', shared: false }, [RL.move]: { name: 'move', shared: true }, [RL.fly]: { name: 'fly', shared: true }, [RL.strike]: { name: 'strike', shared: false }, [RL.speech]: { name: 'speech', shared: true } },
@@ -992,7 +1192,12 @@ export function prototypeLibrary(): Library {
       [DU.span_crossbow]: { id: DU.span_crossbow, name: 'Span a crossbow', effort: 'base', seconds: 0, readies: DU.crossbow_shot },
       // voice (AT11f-g): barks stay free (AE7); the words said before a break are heard
       [DU.battle_cry]: { id: DU.battle_cry, name: 'Battle Cry', effort: 'all_out', seconds: 1 },
-      [DU.talk]: { id: DU.talk, name: 'Talking (a word)', effort: 'base', seconds: 0.4, perWord: true, output: 'share', onBreak: [{ upTo: 1, then: 'share' }] },
+      [DU.rally]: { id: DU.rally, name: 'Rally', effort: 'all_out', seconds: 1 }, // TC39 a: like Battle Cry
+      [DU.play_dead]: { id: DU.play_dead, name: 'Play dead', effort: 'light', seconds: 1 }, // TC44 a: dropping as if Down takes the turn
+      // TK6: plain talk in a fight takes no time; TK1 c: persuading, lying or threatening takes a fixed time however long the
+      // words (haggling is a trade), and so does a turn of plain talk outside a fight (the world moves on while you talk)
+      [DU.talk]: { id: DU.talk, name: 'Talking in a fight', effort: 'base', seconds: 0 },
+      [DU.speech]: { id: DU.speech, name: 'Persuade, lie or threaten; talking outside a fight', effort: 'base', seconds: 3 },
       // gear and things in hand (AT11h-j): changing gear is instant and costs no strain (less realism)
       [DU.draw]: { id: DU.draw, name: 'Draw a weapon', effort: 'base', seconds: 0 },
       [DU.stow]: { id: DU.stow, name: 'Stow a weapon', effort: 'base', seconds: 0 },
@@ -1008,13 +1213,14 @@ export function prototypeLibrary(): Library {
       // taking something out of a container you carry (a sack): instant, like all gear
       [DU.from_pack]: { id: DU.from_pack, name: 'Get something out of a container', effort: 'base', seconds: 0 },
       [DU.break_open]: { id: DU.break_open, name: 'Break something open', effort: 'hard', seconds: 6, locksMove: true, focus: 'steady' }, // BF31
+      // BW13 a: its seconds come from strength and the material (src/ruleset/breaking.ts); work done stays on the wall or barrier
+      [DU.break_through]: { id: DU.break_through, name: 'Break through a wall or barrier', effort: 'hard', seconds: 0, locksMove: true, focus: 'steady', onBreak: [{ upTo: 1, then: 'kept' }] },
       [DU.pick_lock]: { id: DU.pick_lock, name: 'Pick a lock', effort: 'moderate', seconds: 30, locksMove: true, focus: 'careful', onBreak: [{ upTo: 1, then: 'kept' }],
         speed: { fn: FN.lockpicking, halving: CONFIG.PICK_HALVING_PER, fastCap: CONFIG.PICK_FAST_CAP } },
       // care (AT11m-n): a bandage broken off is not used up
       [DU.bandage]: { id: DU.bandage, name: 'Bandage', effort: 'moderate', seconds: 20, locksMove: true, focus: 'careful' },
       [DU.drink]: { id: DU.drink, name: 'Drink a potion', effort: 'base', seconds: 3 },
       // senses (AT11o)
-      [DU.vanish_in_place]: { id: DU.vanish_in_place, name: 'Vanish in place', effort: 'moderate', seconds: 2, locksMove: true },
       [DU.look]: { id: DU.look, name: 'Look around', effort: 'light', seconds: 3, focus: 'steady' },
       // armour on and off (AT12): instant and no strain, like all gear (heavy alone keeps ARMOR_ALONE_MULT, × 0 today)
       [DU.armor_light_on]: { id: DU.armor_light_on, name: 'Put on light armour', effort: 'base', seconds: 0, ...ARMOR_TIME },
@@ -1038,43 +1244,51 @@ export function prototypeLibrary(): Library {
       // on the ground as a horse: walk about 1.8 m/s, gallop about 12 (flight not modelled, D-323). AB17 a: about 1,000 kg,
       // twice a horse: (1000 ÷ 70)^(2/3) = 5.9. AB16: it bites and lashes its tail as the big beasts do (it had no attacks of its own)
       [RC.dragon]: { id: RC.dragon, name: 'Dragon', bodyTypeId: BT.winged_quadruped, hpMultiplier: 5.9, speed: { walk: 1.8, run: 12 }, innatePerks: [], innateQuirks: [], tags: [], intelligence: 'semi', ageStages: AGES.dragon,
-        naturalAttacks: [nat(AM.bite, 'heavy', 1.5, 'head', 'bite'), nat(AM.slam, 'slam', 2, 'tail', 'tail lash', SK.tail)] },
+        naturalAttacks: [nat(AM.bite, 'heavy', 0.8, 'head', 'bite'), nat(AM.slam, 'slam', 2, 'tail', 'tail lash', SK.tail)] },
       // Animals (NR14, NR15). hpMultiplier (AB6 a): (mass ÷ a 70 kg person)^(2/3), rounded: dog 30 kg, wolf 40, tiger 220,
       // bear 300, boar 90, horse 500, Komodo 70, python 75. Run = the cited burst; walk = an everyday gait (estimates unless cited).
       // Attack class by bite or blow force [Proposed]: a weak bite light, a tiger's or bear's (about 1,000 psi, National
-      // Geographic) or a horse's kick heavy. Reach in metres: head and neck forward of the chest, a foreleg's swipe, a kick behind.
+      // Geographic) or a horse's kick heavy. SZ9: reach is metres past the body's edge: the neck's stretch past the nose, a
+      // foreleg's swipe, a kick behind the rump (estimates unless cited). SZ3: size from head-and-body length (no tail), widest
+      // width (estimates: rarely published) and shoulder height, from the species' Wikipedia measures unless cited.
       [RC.dog]: { id: RC.dog, name: 'Dog', bodyTypeId: BT.quadruped, hpMultiplier: 0.6, intelligence: 'semi', ageStages: AGES.dog,
         speed: { walk: 1.4, run: 8.9 }, // AKC: most dogs 15–20 mph
-        naturalAttacks: [nat(AM.bite, 'light', 0.4, 'head', 'bite')],
+        ...sized(BT.quadruped, [1, 0.3, 0.57]), // a Labrador: 0.57 m at the shoulder (AKC standard)
+        naturalAttacks: [nat(AM.bite, 'light', 0.2, 'head', 'bite')],
         innatePerks: [PK.keen_ear], innateQuirks: [], tags: [] }, // dogs hear sounds about 10 dB fainter than people at their best pitch (Heffner 1983)
       [RC.wolf]: { id: RC.wolf, name: 'Wolf', bodyTypeId: BT.quadruped, hpMultiplier: 0.7, intelligence: 'semi', ageStages: AGES.wolf,
         speed: { walk: 2.4, run: 15.6 }, // travels at 8.7 km/h (Mech, J. Mammalogy 1994, USGS); bursts 56–64 km/h (Mech and Boitani 2003)
-        naturalAttacks: [nat(AM.bite, 'light', 0.5, 'head', 'bite')],
+        naturalAttacks: [nat(AM.bite, 'light', 0.2, 'head', 'bite')], // the Quadruped's own size
         innatePerks: [PK.keen_ear], innateQuirks: [], tags: [] },
       [RC.tiger]: { id: RC.tiger, name: 'Tiger', bodyTypeId: BT.quadruped, hpMultiplier: 2.1, intelligence: 'semi', ageStages: AGES.tiger,
         speed: { walk: 1.4, run: 15.6 }, // short bursts of about 56 km/h
-        naturalAttacks: [nat(AM.bite, 'heavy', 0.6, 'head', 'bite'), nat(AM.claw, 'medium', 1, 'forelegs', 'claws')],
+        ...sized(BT.quadruped, [1.9, 0.45, 1]),
+        naturalAttacks: [nat(AM.bite, 'heavy', 0.3, 'head', 'bite'), nat(AM.claw, 'medium', 0.6, FORELEGS, 'claws')],
         innatePerks: [PK.night_eyes], innateQuirks: [], tags: [] }, // a cat sees in about a sixth of the light a person needs
       [RC.bear]: { id: RC.bear, name: 'Bear', bodyTypeId: BT.quadruped, hpMultiplier: 2.6, intelligence: 'semi', ageStages: AGES.bear,
         speed: { walk: 1.4, run: 15.6 }, // a brown bear charges at up to about 56 km/h
-        naturalAttacks: [nat(AM.bite, 'heavy', 0.6, 'head', 'bite'), nat(AM.claw, 'heavy', 1, 'forelegs', 'claws')],
+        ...sized(BT.quadruped, [2, 0.6, 1.1]),
+        naturalAttacks: [nat(AM.bite, 'heavy', 0.3, 'head', 'bite'), nat(AM.claw, 'heavy', 0.6, FORELEGS, 'claws')],
         innatePerks: [], innateQuirks: [], tags: [] },
       [RC.boar]: { id: RC.boar, name: 'Wild boar', bodyTypeId: BT.quadruped, hpMultiplier: 1.2, intelligence: 'semi', ageStages: AGES.boar,
         speed: { walk: 1.4, run: 11.1 }, // about 40 km/h
-        naturalAttacks: [nat(AM.gore, 'medium', 0.5, 'head', 'tusks')],
+        ...sized(BT.quadruped, [1.4, 0.35, 0.85]),
+        naturalAttacks: [nat(AM.gore, 'medium', 0.3, 'head', 'tusks')],
         naturalArmor: { covers: ['general'], ...HIDE(1) }, // AB13 a: a shoulder shield of gristle up to about 5 cm thick
         innatePerks: [], innateQuirks: [], tags: [] },
       [RC.horse]: { id: RC.horse, name: 'Horse', bodyTypeId: BT.quadruped, hpMultiplier: 3.7, intelligence: 'semi', ageStages: AGES.horse,
         speed: { walk: 1.8, run: 12 }, // walk about 1.8 m/s, gallop about 12 m/s (as the winged quadruped)
         // the head and neck reach about 1.5 m forward (FR4); a kick lands up to about 1.8 m (6 ft) behind
-        naturalAttacks: [nat(AM.kick, 'heavy', 1.8, 'hind_legs', 'kick'), nat(AM.bite, 'light', 1.5, 'head', 'bite')],
+        ...sized(BT.quadruped, [2.4, 0.65, 1.6]), // nose to buttock about 2.4 m, 1.6 m (about 16 hands) at the withers
+        naturalAttacks: [nat(AM.kick, 'heavy', 1.8, HIND_LEGS, 'kick'), nat(AM.bite, 'light', 0.5, 'head', 'bite')],
         innatePerks: [], innateQuirks: [], tags: [] },
       // a monitor lizard sized as the largest, the Komodo dragon: about 3 m long, half of it tail; bursts to about 20 km/h; a weak
       // bite (about 39 N, Fry et al., PNAS 2009) that tears with serrated teeth
       [RC.lizard]: { id: RC.lizard, name: 'Monitor lizard', bodyTypeId: BT.quadruped, hpMultiplier: 1, intelligence: 'unintelligent', ageStages: AGES.lizard,
         speed: { walk: 1, run: 5.6 },
-        naturalAttacks: [nat(AM.bite, 'light', 0.4, 'head', 'bite'), nat(AM.slam, 'slam', 1.5, 'tail', 'tail lash', SK.tail)],
-        naturalArmor: { covers: ['general', 'forelegs', 'hind_legs', 'tail'], ...HIDE(0.8) }, // AB13 a: small bony scales (osteoderms) in the skin, a lighter hide than the boar's shield (estimate)
+        ...sized(BT.quadruped, [1.3, 0.35, 0.35]), // a Komodo dragon: about 2.6 m, half of it tail
+        naturalAttacks: [nat(AM.bite, 'light', 0.2, 'head', 'bite'), nat(AM.slam, 'slam', 1.3, 'tail', 'tail lash', SK.tail)],
+        naturalArmor: { covers: ['general', ...FORELEGS, ...HIND_LEGS, 'tail'], ...HIDE(0.8) }, // AB13 a: small bony scales (osteoderms) in the skin, a lighter hide than the boar's shield (estimate)
         innatePerks: [], innateQuirks: [], tags: [] },
       // a large constrictor (reticulated or Burmese python, 5–6 m): strikes about a third of its length, then coils and squeezes;
       // slow on land. Venomous snakes wait on a venom rule.
@@ -1086,53 +1300,61 @@ export function prototypeLibrary(): Library {
       // venom waits on D-322.
       [RC.spider]: { id: RC.spider, name: 'Giant spider', bodyTypeId: BT.eight_legged, hpMultiplier: 0.7, intelligence: 'unintelligent', ageStages: AGES.spider,
         speed: { walk: 0.5, run: 3.6 }, // an Australian huntsman spider sprints 3.59 m/s (EWN news report, July 2026; study not yet peer reviewed)
-        naturalAttacks: [nat(AM.bite, 'light', 0.5, 'head', 'fangs')],
+        naturalAttacks: [nat(AM.bite, 'light', 0.2, 'head', 'fangs')], // the Eight-legged's own size
         innatePerks: [], innateQuirks: [], tags: [] },
       // AB14 a: more predators on the Quadruped
       [RC.lion]: { id: RC.lion, name: 'Lion', bodyTypeId: BT.quadruped, hpMultiplier: 1.9, intelligence: 'semi', ageStages: AGES.lion,
         speed: { walk: 1.4, run: 15.6 }, // short bursts of about 50–60 km/h; 190 kg
-        naturalAttacks: [nat(AM.bite, 'heavy', 0.6, 'head', 'bite'), nat(AM.claw, 'medium', 1, 'forelegs', 'claws')],
+        ...sized(BT.quadruped, [1.9, 0.45, 1.2]),
+        naturalAttacks: [nat(AM.bite, 'heavy', 0.3, 'head', 'bite'), nat(AM.claw, 'medium', 0.6, FORELEGS, 'claws')],
         innatePerks: [PK.night_eyes], innateQuirks: [], tags: [] },
       [RC.leopard]: { id: RC.leopard, name: 'Leopard', bodyTypeId: BT.quadruped, hpMultiplier: 0.9, intelligence: 'semi', ageStages: AGES.leopard,
         speed: { walk: 1.4, run: 16.1 }, // about 58 km/h; 60 kg; a smaller bite than the big cats'
-        naturalAttacks: [nat(AM.bite, 'medium', 0.5, 'head', 'bite'), nat(AM.claw, 'medium', 0.8, 'forelegs', 'claws')],
+        ...sized(BT.quadruped, [1.3, 0.3, 0.65]),
+        naturalAttacks: [nat(AM.bite, 'medium', 0.3, 'head', 'bite'), nat(AM.claw, 'medium', 0.6, FORELEGS, 'claws')],
         innatePerks: [PK.night_eyes], innateQuirks: [], tags: [] },
       [RC.hyena]: { id: RC.hyena, name: 'Hyena', bodyTypeId: BT.quadruped, hpMultiplier: 0.9, intelligence: 'semi', ageStages: AGES.hyena,
         speed: { walk: 1.4, run: 16.7 }, // a spotted hyena: up to about 60 km/h; 60 kg; bites about 1,100 psi, as a bear
-        naturalAttacks: [nat(AM.bite, 'heavy', 0.5, 'head', 'bite')],
+        ...sized(BT.quadruped, [1.3, 0.35, 0.8]),
+        naturalAttacks: [nat(AM.bite, 'heavy', 0.3, 'head', 'bite')],
         innatePerks: [], innateQuirks: [], tags: [] },
       // a Nile crocodile, about 400 kg: about 14 km/h on land; the strongest bite measured (saltwater crocodile about 3,700 psi,
       // Erickson et al. 2012); swimming is not modelled
       [RC.crocodile]: { id: RC.crocodile, name: 'Crocodile', bodyTypeId: BT.quadruped, hpMultiplier: 3.2, intelligence: 'unintelligent', ageStages: AGES.crocodile,
         speed: { walk: 0.5, run: 3.9 },
-        naturalAttacks: [nat(AM.bite, 'heavy', 0.8, 'head', 'bite'), nat(AM.slam, 'slam', 1.5, 'tail', 'tail lash', SK.tail)],
-        naturalArmor: { covers: ['general', 'forelegs', 'hind_legs', 'tail'], ...HIDE(1.5) }, // AB13 a: large bony plates (scutes) along the back, the heaviest hide here (estimate)
+        ...sized(BT.quadruped, [2.2, 0.6, 0.5]), // about 4 m, nearly half of it tail
+        naturalAttacks: [nat(AM.bite, 'heavy', 0.4, 'head', 'bite'), nat(AM.slam, 'slam', 1.8, 'tail', 'tail lash', SK.tail)],
+        naturalArmor: { covers: ['general', ...FORELEGS, ...HIND_LEGS, 'tail'], ...HIDE(1.5) }, // AB13 a: large bony plates (scutes) along the back, the heaviest hide here (estimate)
         innatePerks: [], innateQuirks: [], tags: [] },
     },
     // Z3. Outdoor zones' own light is lamps or fires only; the sky adds daylight (T3a).
     // gear classes (GC): the class sets which skill an item asks for; its level sets how much (EQUIP_NEED)
+    gearTypes: GEAR_TYPES, // IR23: reach and coverage by type
+    itemFamilies: ITEM_FAMILIES, // IR30: Mundane and the special families
     gearClasses: Object.fromEntries(([
       [GC.melee_light, 'Light melee weapon', SK.melee_light, 'melee'], [GC.melee_medium, 'Medium melee weapon', SK.melee_medium, 'melee'], [GC.melee_heavy, 'Heavy melee weapon', SK.melee_heavy, 'melee'],
       [GC.ranged_light, 'Light ranged weapon', SK.ranged_light, 'ranged'], [GC.ranged_medium, 'Medium ranged weapon', SK.ranged_medium, 'ranged'], [GC.ranged_heavy, 'Heavy ranged weapon', SK.ranged_heavy, 'ranged'],
       [GC.improvised, 'Improvised weapon', SK.unarmed_improvised, 'improvised'], [GC.armor_light, 'Light armor', SK.light_armor, 'armor'], [GC.armor_medium, 'Medium armor', SK.medium_armor, 'armor'],
-      [GC.armor_heavy, 'Heavy armor', SK.heavy_armor, 'armor'], [GC.shield, 'Shield', SK.block, 'shield'],
+      [GC.armor_heavy, 'Heavy armor', SK.heavy_armor, 'armor'], [GC.shield, 'Shield', SK.block, 'shield'], [GC.gauntlets, 'Gauntlets', SK.unarmed_strike, 'unarmed'],
     ] as const).map(([id, name, skill, use]) => [id, { id, name, skill, use }])),
     // attack modes: what an attack does; weapon modes and natural attacks name one by id
     // Throw carries the throw action's combined roll for every weapon that lists it; a throw mode's reachM is its own throw range (CONFIG.THROW_M)
     attackModes: Object.fromEntries(Object.entries(AM).map(([w, id]) => [id, { id, name: w[0].toUpperCase() + w.slice(1),
       ...(id === AM.throw ? { blend: CONFIG.THROW_BLEND } : {}) }])),
-    // CO16 default size and CO15 default edge per kind: indoors walled, outdoors open
+    // PZ14 a: title kinds are drawing templates: a roof or not, the light word drawn as a source (PZ5), default size and
+    // aspect, and every side's wall kind unless named (roofed: a wall; open sky: none). No cover or light columns: clutter is
+    // the land and objects (PZ6), light is sources (PZ5)
     zoneKinds: Object.fromEntries(([
-      [ZK.room, 'Room', false, 'some', 'dim', 'room', 1], [ZK.corridor, 'Corridor', false, 'none', 'dim', 'small', 4], [ZK.stairs, 'Stairs', false, 'none', 'dim', 'cramped', 2],
-      [ZK.cellar, 'Cellar or cave', false, 'some', 'dark', 'room', 1], [ZK.street, 'Street', true, 'none', 'dark', 'yard', 4], [ZK.square, 'Square', true, 'none', 'dark', 'open', 1],
-      [ZK.gate, 'Gate', true, 'none', 'dark', 'small', 2], [ZK.yard, 'Yard', true, 'some', 'dark', 'yard', 1], [ZK.field, 'Field', true, 'none', 'dark', 'open', 1],
-      [ZK.woods, 'Woods', true, 'heavy', 'dark', 'open', 1], [ZK.road, 'Road', true, 'none', 'dark', 'vast', 1],
-    ] as const).map(([id, name, outdoor, cover, light, size, aspect]) => [id, { id, name, outdoor, cover, light, size, aspect, edge: outdoor ? EK.open : EK.wall,
-      ...(id === ZK.road ? { road: true as const } : {}), ...(ONWARD_KINDS.has(id) ? { onward: true as const } : {}),
+      [ZK.room, 'Room', true, 'lamplit', 'room', 1], [ZK.corridor, 'Corridor', true, 'dim', 'small', 4], [ZK.stairs, 'Stairs', true, 'dim', 'cramped', 2],
+      [ZK.cellar, 'Cellar or cave', true, 'dark', 'room', 1], [ZK.street, 'Street', false, 'dark', 'yard', 4], [ZK.square, 'Square', false, 'dark', 'open', 1],
+      [ZK.gate, 'Gate', false, 'dark', 'small', 2], [ZK.yard, 'Yard', false, 'dark', 'yard', 1], [ZK.field, 'Field', false, 'dark', 'open', 1],
+      [ZK.woods, 'Woods', false, 'dark', 'open', 1],
+    ] as const).map(([id, name, roof, light, size, aspect]) => [id, { id, name, roof, light, size, aspect, wall: roof ? WK.wall : WK.open,
+      ...(ONWARD_KINDS.has(id) ? { onward: true as const } : {}),
       ...(KIND_FURNITURE[id] ? { furniture: KIND_FURNITURE[id] } : {}) }])),
     // FR1: what furniture can be (a piece's kind sets its map icon; its name is the story's)
-    furnitureKinds: Object.fromEntries(Object.entries(FU).map(([k, id]) => [id, { id, name: k.replace(/_/g, ' ') }])),
-    // TV3/TV4: a road is one long zone; its length and danger words
+    furnitureKinds: Object.fromEntries(Object.entries(FU).map(([k, id]) => [id, { id, name: k.replace(/_/g, ' '), ...(FURNITURE_SIZE_M[id] ? { sizeM: FURNITURE_SIZE_M[id] } : {}) }])),
+    // TV3/TV4, PZ9: a road's length and danger words (a road with no land line under it)
     roadLengths: Object.fromEntries(ROAD_LENGTHS.keys.map((k) => [k, { id: k, name: ROAD_LENGTHS.name(k), km: CONFIG.ROAD_LENGTH_KM[k] }])),
     roadDangers: Object.fromEntries(ROAD_DANGERS.keys.map((k) => [k, { id: k, name: ROAD_DANGERS.name(k), encounterPct: CONFIG.ROAD_ENCOUNTER_PCT[k] }])),
     // WZ11 region kinds (placeholders): relief in metres, wild shares by land cover, settlements per region (WZ3: one
@@ -1156,7 +1378,7 @@ export function prototypeLibrary(): Library {
       [LC.farmland, 'Farmland', 'none', 0, 'Open fields of crops round a village'],
       [LC.pasture, 'Pasture', 'none', 0, 'Grass and meadow grazed by sheep and cattle'],
       [LC.woods, 'Woods', 'heavy', 20, 'Trees: a mature English oak stands about 20 to 25 m'],
-      [LC.heath, 'Heath', 'some', 1, 'Heather, gorse and bracken, about knee to waist high'],
+      [LC.heath, 'Heath', 'light', 1, 'Heather, gorse and bracken, about knee to waist high'],
       [LC.moor, 'Moor', 'none', 0.5, 'Open upland of heather and rough grass'],
       [LC.marsh, 'Marsh', 'some', 2, 'Wet ground and reed beds; common reed grows to about 2 to 3 m'],
       [LC.rock, 'Crag and scree', 'some', 0, 'Bare rock, cliffs and loose stone'],
@@ -1167,20 +1389,76 @@ export function prototypeLibrary(): Library {
       [LM.quarry, 'Quarry', 'hill'], [LM.mill, 'Mill', 'river'], [LM.ruin, 'Ruin', 'remote'], [LM.shrine, 'Shrine', 'hill'],
       [LM.tower, 'Tower', 'hill'], [LM.mine, 'Mine', 'hill'], [LM.standing_stones, 'Standing stones', 'hill'], [LM.camp, 'Camp', 'woods'],
     ] as const).map(([id, name, seek]) => [id, { id, name, seek }])),
-    edgeKinds: Object.fromEntries(([
-      [EK.wall, 'Wall', false, false, false, false, 'wall', 'Solid: no seeing or walking across; doorways in it are the zone\'s links.'],
-      [EK.open, 'Open', true, true, true, false, 'open', 'Nothing in the way: walk and see across anywhere along it.'],
-      [EK.low, 'Low', false, true, true, true, 'open', 'A counter, fence or rail: see and reach across it, cross it by climbing.'],
-      [EK.window, 'Window', false, true, false, false, 'window', 'See through it; no walking or reaching across.'],
-    ] as const).map(([id, name, walk, see, reach, climb, sound, text]) => [id, { id, name, walk, see, reach, climb, sound, text }])),
-    // SD3–SD5: barriers on ways. A grate is bars you see through; rubble is a blockage only clearing opens (the walls thread)
+    // PZ2 a: wall kinds on the floor plan (placeholders): a low wall is a bar counter's height, about 1.1 m; a fence or rail
+    // about 1.2 m; the rest stand a storey. Open draws no wall.
+    wallKinds: Object.fromEntries(([
+      [WK.wall, 'Wall', false, false, false, false, 'wall', undefined, 'Solid: no seeing, reaching or walking across; its doorways and windows are the ways through.'],
+      [WK.open, 'Open', true, true, true, false, 'open', undefined, 'Nothing in the way: no wall is drawn.'],
+      [WK.low, 'Low wall', false, false, true, true, 'open', CONFIG.LOW_WALL_M, 'A counter or low wall: seen and reached over above its top, crossed by climbing.'],
+      [WK.glazed, 'Glazed', false, true, false, false, 'window', undefined, 'A wall of windows: seen through, never walked or reached across.'],
+      [WK.fence, 'Fence', false, true, true, true, 'open', CONFIG.FENCE_M, 'A fence or rail: seen through and reached over, crossed by climbing.'],
+      [WK.arcade, 'Arcade', false, true, false, false, 'open', undefined, 'Arches on piers with a rail between: seen and heard through, not walked across.'],
+    ] as [string, string, boolean, boolean, boolean, boolean, import('../scales').SoundLossKey, number | undefined, string][]).map(([id, name, walk, see, reach, climb, sound, heightM, text]) =>
+      [id, { id, name, walk, see, reach, climb, sound, ...(heightM !== undefined ? { heightM } : {}), ...(id === WK.open ? { none: true as const } : {}), text, ...(WALL_MATERIAL[id] ? { material: WALL_MATERIAL[id] } : {}) }])),
+    // PZ2 a: kinds of way. A doorway is CONFIG.DOORWAY_M unless its barrier gives its own size (SZ7); a gap is as wide as the
+    // ground the two titles share; a window (a drop, SD7) is a casement's size and sill unless its barrier gives one (PC3);
+    // stairs about a metre wide (an estimate)
+    openingKinds: Object.fromEntries(([
+      [OP.doorway, 'Doorway', false, true, undefined, CONFIG.DOORWAY_M, undefined, 'A doorway in a wall: walked through; the far side shows only while its door stands open.'],
+      [OP.gap, 'Gap', true, true, undefined, undefined, undefined, 'An open way: an arch, a gap in a wall, or open ground between two titles.'],
+      [OP.window, 'Window', true, false, undefined, [0.6, 1], 0.9, 'A window or ledge over lower ground: seen through, and only ever jumped down.'],
+      [OP.stairs, 'Stairs', false, true, true, [1, 2], undefined, 'Stairs, a ladder or a hatch to the floor above or below.'],
+    ] as [string, string, boolean, boolean, true | undefined, [number, number] | undefined, number | undefined, string][]).map(([id, name, seeThrough, walk, floors, sizeM, sillM, text]) =>
+      [id, { id, name, seeThrough, walk, ...(floors ? { floors } : {}), ...(sizeM ? { sizeM } : {}), ...(sillM !== undefined ? { sillM } : {}), text }])),
+    // PZ5 a, D-391: light sources and their brightness in candela (placeholders: a candle is about 1 cd by the unit's own
+    // history; the rest are estimates); a title's lights are set per source, bright enough for its light word
+    lightKinds: Object.fromEntries(([
+      [LS.candle, 'Candle', 1, false, 'A tallow or wax candle (about 1 candela)'],
+      [LS.oil_lamp, 'Oil lamp', 10, false, 'A clay or brass oil lamp (an estimate, about 10 candela)'],
+      [LS.lantern, 'Lantern', 15, false, 'A horn or glass lantern round a candle or wick (an estimate)'],
+      [LS.torch, 'Torch', 100, false, 'A burning torch or brand (an estimate, about 100 candela)'],
+      [LS.hearth, 'Hearth fire', 300, false, 'A wood fire in a hearth or brazier (an estimate)'],
+      [LS.lights, 'Lights', 0, true, 'The lamps, candles or fire a title is lit by: as bright as its light word needs out to its far corner'],
+    ] as const).map(([id, name, candela, scaled, like]) => [id, { id, name, candela, ...(scaled ? { scaled: true as const } : {}), like }])),
+    // SD3–SD5: barriers on ways. A grate is bars you see through; rubble is a blockage only clearing opens (the walls thread).
+    // SZ7: the opening each leaves, width × height in metres: a house door about 0.9 × 2 m (CONFIG.DOORWAY_M); a farm or
+    // yard gate wide enough for a cart, about 3 m (an estimate); a grate across a passage about a door's (an estimate); a
+    // trapdoor about 0.7 × 0.7 m, gone through upright (an estimate)
     barrierKinds: Object.fromEntries(([
-      [BK.door, 'Door', true, true, false, false, 'door', 'A wooden door: it may be locked with a key, or barred from one side.'],
-      [BK.gate, 'Gate', true, true, false, false, 'door', 'A gate in a wall or fence: locked, or barred from the inside.'],
-      [BK.grate, 'Grate', true, true, false, true, 'open', 'Iron bars across a way: you see through it, but it may be locked or barred.'],
-      [BK.hatch, 'Hatch', true, true, false, false, 'door', 'A trapdoor in a floor or ceiling: locked, or bolted from one side.'],
+      [BK.door, 'Door', true, true, false, false, 'door', 'A wooden door: it may be locked with a key, or barred from one side.', CONFIG.DOORWAY_M],
+      [BK.gate, 'Gate', true, true, false, false, 'door', 'A gate in a wall or fence: locked, or barred from the inside.', [3, 2.5]],
+      [BK.grate, 'Grate', true, true, false, true, 'open', 'Iron bars across a way: you see through it, but it may be locked or barred.', CONFIG.DOORWAY_M],
+      [BK.hatch, 'Hatch', true, true, false, false, 'door', 'A trapdoor in a floor or ceiling: locked, or bolted from one side.', [0.7, 0.7], true],
       [BK.rubble, 'Rubble', false, false, true, false, 'wall', 'A cave-in or fallen stone: no way through until it is cleared.'],
-    ] as const).map(([id, name, lock, bar, blocked, seeThrough, sound, text]) => [id, { id, name, lock, bar, blocked, seeThrough, sound, text }])),
+      // PC3, PC4: windows, each only on a drop (placeholders). A common casement about 0.6 × 1 m, sill 0.9 m, behind shutters;
+      // an arrow slit (medieval arrow loops: 5-10 cm wide, 1-1.5 m tall) always open and too narrow to climb; bars over a
+      // casement, seen and shot through, never climbed unless broken; a hall's or shop's large window behind shutters
+      [BK.window, 'Shuttered window', true, true, false, false, 'window', 'Wooden shutters over a window: you see, shoot and jump through it only while they are open; they may be locked, or barred from inside.', [0.6, 1], undefined, 0.9],
+      [BK.arrow_slit, 'Arrow slit', false, false, false, true, 'window', 'A narrow slit in thick stone, splayed wide inside: an archer behind it sees the whole field, but only a strip of the archer shows, and no one fits through.', [0.1, 1.2], undefined, 1, true],
+      [BK.barred_window, 'Barred window', false, false, false, true, 'window', 'Iron bars over a window: you see and shoot through it, but no one climbs through until the bars are broken.', [0.6, 1], undefined, 0.9, true],
+      [BK.large_window, 'Large window', true, true, false, false, 'window', 'A tall window of a hall or a shop front behind shutters: open, it shows most of a room and is easy to climb through; they may be locked, or barred from inside.', [1.2, 1.5], undefined, 0.6],
+    ] as [string, string, boolean, boolean, boolean, boolean, import('../scales').SoundLossKey, string, [number, number]?, true?, number?, true?][]).map(([id, name, lock, bar, blocked, seeThrough, sound, text, openingM, vertical, sillM, fixed]) =>
+      [id, { id, name, lock, bar, blocked, seeThrough, sound, text, ...(openingM ? { openingM } : {}), ...(vertical ? { vertical } : {}), ...(sillM !== undefined ? { window: true as const, sillM } : {}), ...(fixed ? { fixed } : {}), ...(BARRIER_MATERIAL[id] ? { material: BARRIER_MATERIAL[id] } : {}) }])),
+    // BW24 a, BW8 a: what walls, barriers and rubble are made of. secondsAt50 is a working professional with the right tool
+    // making a person-sized hole through exampleCm (time grows with thickness, src/ruleset/breaking.ts). The everyday rows
+    // carry their source; where none was found the row says it is an estimate. Fantasy rows are placeholders. BW9 b: no
+    // warded stone until magic exists (D-332).
+    barrierMaterials: Object.fromEntries(([
+      [BM.wattle, 'Wattle and daub', [10, 20], 15, 90, 'raised', undefined, 'Nearest source: a 2×4 stud wall with wood panel, 1.5 min to penetrate (NCEL TN-1425, Tancreto 1976, Table 1, NBS tests); wattle is no stronger.', 'Woven sticks packed with clay: village cottages and sheds.'],
+      [BM.planks, 'Timber planks', [3, 8], 5, 90, 'loud', undefined, 'A 2×4 stud wall with wood panel, 1.5 min to penetrate (NCEL TN-1425, Tancreto 1976, Table 1, NBS tests).', 'Board partitions, stables, shutters, fences.'],
+      [BM.oak, 'Oak', [4, 8], 5, 300, 'loud', undefined, 'EN 1627 resistance class RC3 (hammer, crowbar, screwdrivers): 5 min of working time.', 'A stout door, hatch or gate of oak; its lock or bar breaks with it.'],
+      [BM.brick, 'Brick', [10, 34], 20, 120, 'loud', undefined, 'An 8-in (20 cm) mortar-filled concrete block wall, 10 lb sledgehammer: 2.0 min (NCEL TN-1425, Tancreto 1976, Table 3).', 'Town houses and cellars: half a brick is about 10 cm, a brick about 22 cm.'],
+      [BM.iron, 'Iron bars', [2, 6], 3, 600, 'blaring', undefined, 'EN 1627 resistance class RC4 (saws, axes, hammers, chisels): 10 min of working time.', 'Cell bars, a grate, an iron-bound gate, bars over a window.'],
+      [BM.stone, 'Stone', [20, 400], 20, 660, 'blaring', undefined, 'Nearest source: 8-in (20 cm) unreinforced concrete with drill, sledgehammer and punch, 11 min (NCEL TN-1425, Tancreto 1976, Table 3; NBSIR 73-101).', 'Mortared stone: a cottage wall is about 60 cm, a castle curtain wall metres.'],
+      [BM.glass, 'Glass', [0.3, 1], 0.5, 1, 'loud', undefined, 'An estimate (no source found): one blow breaks a pane.', 'Window panes and glazed walls.'],
+      [BM.rubble, 'Rubble', [30, 300], 100, 1050, 'raised', undefined, 'About 150 shovels to the cubic yard (EngineersEdge, Typical capacities of earth-handling methods); a person-sized passage 1 m deep is about 2.4 cubic yards, at an estimated 3 s a shovel.', 'A cave-in or fallen stone, cleared by digging; its thickness is how deep it lies.'],
+      [BM.ice, 'Ice', [30, 200], 100, 1200, 'raised', undefined, 'A placeholder (fantasy).', 'A frozen cavern deep in the wild: soft for its size.', true],
+      [BM.living_wood, 'Living wood', [20, 100], 40, 1800, 'loud', 'regrows', 'A placeholder (fantasy).', 'A grown hedge-wall or a hollow giant tree: stop working and it closes again.', true],
+      [BM.slime_membrane, 'Slime membrane', [10, 50], 30, 120, 'murmur', 'regrows', 'A placeholder (fantasy).', 'The wet wall of a slime nest: quick to cut, quick to close, almost silent.', true],
+      [BM.lair_stone, 'Lair stone', [50, 500], 100, 14400, 'blaring', 'deeper', 'A placeholder (fantasy).', 'The walls of a dungeon or lair: harder the deeper the wild goes (waits on D-331).', true],
+      [BM.starmetal, 'Starmetal', [5, 30], 20, 1e7, 'deafening', undefined, 'A placeholder (fantasy): about four months at 50, so a Mythic needs half a day and a Transcendent minutes.', 'A vault or sealed tomb door of sky-fallen metal.', true],
+    ] as [string, string, [number, number], number, number, import('../scales').NoiseKey, 'regrows' | 'deeper' | undefined, string, string, true?][]).map(([id, name, thicknessCm, exampleCm, secondsAt50, noise, trait, source, text, fantasy]) =>
+      [id, { id, name, thicknessCm, exampleCm, secondsAt50, noise, ...(trait ? { trait } : {}), ...(fantasy ? { fantasy } : {}), source, text }])),
     zoneSizes: Object.fromEntries(ZONE_SIZES.keys.map((k) => [k, { id: k, name: ZONE_SIZES.name(k), m2: CONFIG.ZONE_SIZE_M2[k], like: ({
       cramped: 'A ship\'s cabin, a cell, a closet (about 3 × 3 m)',
       small: 'A peasant cottage\'s one room, an inn bedroom (about 5 × 5 m)',
@@ -1204,11 +1482,13 @@ export function prototypeLibrary(): Library {
     } as Record<string, string>)[k] }])),
     visibilityLevels: Object.fromEntries(VISIBILITY.keys.map((k) => [k, { id: k, name: VISIBILITY.name(k), clearM: CONFIG.SIGHT_M[k]?.[0] ?? null, glimpsedM: CONFIG.SIGHT_M[k]?.[1] ?? null, like: ({
       unseen: 'Nothing to see: keeping still out of sight',
-      faint: 'A palmed coin, a hand slipping to a purse: made out within half a metre, glimpsed within 2 m',
+      faint: 'A palmed coin, a note passed hand to hand: made out within half a metre, glimpsed within 2 m',
+      slight: 'Lips moving, a lockpick being worked, a hand slipping into a purse: made out at 2 m, glimpsed at 6 m',
       close: 'A nod, a hand sign, a change of expression: read at about 6 m, noticed out to about 20 m',
       low: 'Someone sitting still or resting: a face known at about 15 m (where witnesses stop naming faces reliably), a shape noticed at 60 m',
       normal: 'Someone walking or talking: who it is at about 25 m, a figure moving across open ground at 200 m',
       high: 'A fight, someone running or waving: who is who by build and clothes at 50 m, the movement caught at 500 m',
+      bright: 'A galloping rider, a banner waving, a crowd on the move: made out at 100 m, seen 1 km off',
       glaring: 'A fire, a torch or a lit window at night, sun flashing on steel: made out at 200 m, seen 2 km off',
     } as Record<string, string>)[k] }])),
     layouts: LAYOUTS,
@@ -1218,7 +1498,7 @@ export function prototypeLibrary(): Library {
     themes: THEMES,
     // NR37 a: the first beast prefix; later ones (mana, demons) add traits on top. A creature carries at most one
     // NR37 a: Dire's third part, one body size larger, waits for a body-size rule (D-354)
-    prefixes: { [PF.dire]: { id: PF.dire, name: 'Dire', text: 'A bigger, fiercer kind of the same beast: one rank up, half again the health.', rankStep: 1, hpMult: 1.5 } },
+    prefixes: { [PF.dire]: { id: PF.dire, name: 'Dire', text: 'A bigger, fiercer kind of the same beast: one rank up, half again the health, a fifth more skill.', rankStep: 1, hpMult: 1.5, skillMult: 1.2 } },
     hookKinds: HOOK_KINDS,
     groups: GROUPS,
     // NR17 a: hooks by settlement size (the crowd is text); must = always there, the rest rolled from pool without repeats first
@@ -1226,6 +1506,10 @@ export function prototypeLibrary(): Library {
       hamlet: { count: [1, 2], must: [], pool: [HK.face, HK.threat], theme: TH.village_folk },
       village: { count: [3, 5], must: [HK.leader, HK.service, HK.seat], pool: [HK.face, HK.face, HK.threat, HK.rival], theme: TH.village_folk },
       town: { count: [6, 10], must: [HK.leader, HK.service, HK.seat, HK.trader, HK.watch, HK.rival], pool: [HK.service, HK.face, HK.face, HK.trader, HK.threat], theme: TH.town_folk },
+      // TL24 / NR21 a: a city holds a Beyond and a realm's court a Mythic. The land draws no cities or courts yet (a region
+      // holds one town at most); these rows are ready for when a region brief or a bigger region places one
+      city: { count: [10, 16], must: [HK.leader, HK.service, HK.seat, HK.trader, HK.watch, HK.rival, HK.threat], pool: [HK.service, HK.face, HK.face, HK.face, HK.trader, HK.rival, HK.threat], theme: TH.town_folk },
+      court: { count: [5, 8], must: [HK.leader, HK.seat, HK.watch, HK.rival], pool: [HK.rival, HK.face, HK.face, HK.service, HK.trader], theme: TH.lords_household },
     },
     // NR18 a: who travels a road, by danger (only who brings gain or danger); code rolls a stretch when the land is drawn
     roadPeople: {
@@ -1303,7 +1587,7 @@ export function prototypeLibrary(): Library {
       [ACH.crits_100]: { id: ACH.crits_100, name: 'Master of the Moment ({group})', level: 'iii', rule: 'crits', tags: ['skill'], count: 100, by: 'group', after: ACH.crits_50, standIn: 0.2 },
       [ACH.beyond_1]: { id: ACH.beyond_1, name: 'Beyond Perfect', level: 'i', rule: 'beyond_crit', tags: ['skill'], count: 1 },
       [ACH.beyond_2]: { id: ACH.beyond_2, name: 'Past the Limit', level: 'ii', rule: 'beyond_crit', tags: ['skill'], count: 2, after: ACH.beyond_1 },
-      [ACH.beyond_3]: { id: ACH.beyond_3, name: 'Touched by Fate', level: 'iii', rule: 'beyond_crit', tags: ['skill'], count: 3, after: ACH.beyond_2 },
+      [ACH.beyond_3]: { id: ACH.beyond_3, name: 'Touched by Fate', level: 'iii', rule: 'beyond_crit', tags: ['skill'], count: 3, after: ACH.beyond_2, tierUnlocks: [{ roll: 'any', side: 'up', steps: 1 }] },
       [ACH.beyond_group_1]: { id: ACH.beyond_group_1, name: 'Beyond Perfect ({group})', level: 'i', rule: 'beyond_crit', tags: ['skill'], count: 1, by: 'group', branchOf: ACH.beyond_1, skillAddByKind: 1 },
       [ACH.beyond_group_2]: { id: ACH.beyond_group_2, name: 'Past the Limit ({group})', level: 'ii', rule: 'beyond_crit', tags: ['skill'], count: 2, by: 'group', after: ACH.beyond_group_1, skillAddByKind: 1 },
       [ACH.beyond_group_3]: { id: ACH.beyond_group_3, name: 'Touched by Fate ({group})', level: 'iii', rule: 'beyond_crit', tags: ['skill'], count: 3, by: 'group', after: ACH.beyond_group_2, skillAddByKind: 1 },
@@ -1327,10 +1611,10 @@ export function prototypeLibrary(): Library {
       [ACH.quests_abandoned_1]: { id: ACH.quests_abandoned_1, name: 'Left Undone', level: 'zero', rule: 'quests_abandoned', tags: ['social'], count: 1, scar: true }, // TM29: the first one (placeholder name)
       [ACH.quests_abandoned_5]: { id: ACH.quests_abandoned_5, name: 'Word Not Kept', level: 'i', rule: 'quests_abandoned', tags: ['social'], count: 5, after: ACH.quests_abandoned_1, scar: true, personality: ap({ [PA.honesty]: -1 }) },
       // TM8: 1 / 10 / 100 / 500 (the first of an act is an achievement; the first row's name is a placeholder)
-      [ACH.clean_1]: { id: ACH.clean_1, name: 'Turned Aside', level: 'zero', rule: 'clean_defense', tags: ['combat'], count: 1 },
-      [ACH.clean_10]: { id: ACH.clean_10, name: 'Not Here', level: 'i', rule: 'clean_defense', tags: ['combat'], count: 10, after: ACH.clean_1 },
-      [ACH.clean_100]: { id: ACH.clean_100, name: 'Wall of Steel', level: 'ii', rule: 'clean_defense', tags: ['combat'], count: 100, after: ACH.clean_10 },
-      [ACH.clean_500]: { id: ACH.clean_500, name: 'Nothing Lands', level: 'iii', rule: 'clean_defense', tags: ['combat'], count: 500, after: ACH.clean_100 },
+      [ACH.clean_1]: { id: ACH.clean_1, name: 'Turned Aside', level: 'zero', rule: 'clean_defense', tags: ['combat'], count: 1, defenseRoll: 1 },
+      [ACH.clean_10]: { id: ACH.clean_10, name: 'Not Here', level: 'i', rule: 'clean_defense', tags: ['combat'], count: 10, after: ACH.clean_1, defenseRoll: 2 },
+      [ACH.clean_100]: { id: ACH.clean_100, name: 'Wall of Steel', level: 'ii', rule: 'clean_defense', tags: ['combat'], count: 100, after: ACH.clean_10, defenseRoll: 3 },
+      [ACH.clean_500]: { id: ACH.clean_500, name: 'Nothing Lands', level: 'iii', rule: 'clean_defense', tags: ['combat'], count: 500, after: ACH.clean_100, defenseRoll: 4 },
       [ACH.unseen_1]: { id: ACH.unseen_1, name: 'Unnoticed', level: 'zero', rule: 'unseen_moves', tags: ['stealth'], count: 1 }, // TM24 (placeholder name)
       [ACH.unseen_10]: { id: ACH.unseen_10, name: 'Under Their Noses', level: 'i', rule: 'unseen_moves', tags: ['stealth'], count: 10, after: ACH.unseen_1, skillAdd: { [SK.sneaking]: 1 } },
       [ACH.unseen_50]: { id: ACH.unseen_50, name: 'Slipped Past', level: 'ii', rule: 'unseen_moves', tags: ['stealth'], count: 50, after: ACH.unseen_10, skillAdd: { [SK.sneaking]: 2 } },
@@ -1340,17 +1624,18 @@ export function prototypeLibrary(): Library {
       [ACH.vanished_25]: { id: ACH.vanished_25, name: 'Smoke on the Wind', level: 'ii', rule: 'vanished', tags: ['stealth'], count: 25, after: ACH.vanished_5, skillAdd: { [SK.vanishing]: 2 } },
       [ACH.vanished_50]: { id: ACH.vanished_50, name: 'As If Never There', level: 'iii', rule: 'vanished', tags: ['stealth'], count: 50, after: ACH.vanished_25, skillAdd: { [SK.vanishing]: 3 } }, // XR16 (placeholder name)
       [ACH.spotted_10]: { id: ACH.spotted_10, name: 'Nothing Gets Past', level: 'i', rule: 'spotted', tags: ['stealth'], count: 10 },
-      [ACH.spotted_100]: { id: ACH.spotted_100, name: 'Eyes in the Back of Your Head', level: 'ii', rule: 'spotted', tags: ['stealth'], count: 100, after: ACH.spotted_10 },
+      [ACH.spotted_100]: { id: ACH.spotted_100, name: 'Eyes in the Back of Your Head', level: 'ii', rule: 'spotted', tags: ['stealth'], count: 100, after: ACH.spotted_10, spotRoll: 1 },
+      [ACH.spotted_250]: { id: ACH.spotted_250, name: 'Nothing Moves Unseen', level: 'iii', rule: 'spotted', tags: ['stealth'], count: 250, after: ACH.spotted_100, spotRoll: 2 },
       [ACH.spotted_fn_1]: { id: ACH.spotted_fn_1, name: 'Sharp {function}', level: 'zero', rule: 'spotted', tags: ['stealth'], count: 1, by: 'function', branchOf: ACH.spotted_10 },
       [ACH.spotted_fn_10]: { id: ACH.spotted_fn_10, name: '{function} That Never Sleeps', level: 'i', rule: 'spotted', tags: ['stealth'], count: 10, after: ACH.spotted_fn_1, by: 'function', skillAddByKind: 2 },
       [ACH.spotted_fn_100]: { id: ACH.spotted_fn_100, name: 'Nothing Hides from Your {function}', level: 'ii', rule: 'spotted', tags: ['stealth'], count: 100, after: ACH.spotted_fn_10, by: 'function', skillAddByKind: 2 },
       [ACH.speech_1]: { id: ACH.speech_1, name: 'First Word Won ({skill})', level: 'zero', rule: 'speech_won', tags: ['social'], count: 1, by: 'skill' }, // TM20 (placeholder name)
-      [ACH.speech_10]: { id: ACH.speech_10, name: 'Practised Speaker ({skill})', level: 'i', rule: 'speech_won', tags: ['social'], count: 10, by: 'skill', after: ACH.speech_1, personality: ap({ [PA.sociability]: 1 }), personalityByKind: { [SK.lying]: ap({ [PA.honesty]: -1 }) } },
-      [ACH.speech_100]: { id: ACH.speech_100, name: 'Voice That Carries ({skill})', level: 'ii', rule: 'speech_won', tags: ['social'], count: 100, after: ACH.speech_10, by: 'skill', personality: ap({ [PA.sociability]: 1 }), personalityByKind: { [SK.lying]: ap({ [PA.honesty]: -1 }) } },
-      [ACH.speech_250]: { id: ACH.speech_250, name: 'Words That Move Crowds ({skill})', level: 'iii', rule: 'speech_won', tags: ['social'], count: 250, after: ACH.speech_100, by: 'skill', personality: ap({ [PA.sociability]: 1 }), personalityByKind: { [SK.lying]: ap({ [PA.honesty]: -1 }) } },
-      [ACH.talked_down_1]: { id: ACH.talked_down_1, name: 'Blood Unspilled', level: 'i', rule: 'talked_down', tags: ['social'], count: 1, personality: ap({ [PA.temper]: -1 }) },
-      [ACH.talked_down_10]: { id: ACH.talked_down_10, name: 'Peacemaker', level: 'ii', rule: 'talked_down', tags: ['social'], count: 10, after: ACH.talked_down_1, personality: ap({ [PA.temper]: -1 }) },
-      [ACH.talked_down_50]: { id: ACH.talked_down_50, name: 'Every Fight Ends in Talk', level: 'iii', rule: 'talked_down', tags: ['social'], count: 50, after: ACH.talked_down_10, personality: ap({ [PA.temper]: -1 }) },
+      [ACH.speech_10]: { id: ACH.speech_10, name: 'Practised Speaker ({skill})', level: 'i', rule: 'speech_won', tags: ['social'], count: 10, by: 'skill', after: ACH.speech_1, skillAddByKind: 2, personality: ap({ [PA.sociability]: 1 }), personalityByKind: { [SK.lying]: ap({ [PA.honesty]: -1 }) } },
+      [ACH.speech_100]: { id: ACH.speech_100, name: 'Voice That Carries ({skill})', level: 'ii', rule: 'speech_won', tags: ['social'], count: 100, after: ACH.speech_10, by: 'skill', skillAddByKind: 2, personality: ap({ [PA.sociability]: 1 }), personalityByKind: { [SK.lying]: ap({ [PA.honesty]: -1 }) } },
+      [ACH.speech_250]: { id: ACH.speech_250, name: 'Words That Move Crowds ({skill})', level: 'iii', rule: 'speech_won', tags: ['social'], count: 250, after: ACH.speech_100, by: 'skill', skillAddByKind: 2, personality: ap({ [PA.sociability]: 1 }), personalityByKind: { [SK.lying]: ap({ [PA.honesty]: -1 }) } },
+      [ACH.talked_down_1]: { id: ACH.talked_down_1, name: 'Blood Unspilled', level: 'i', rule: 'talked_down', tags: ['social'], count: 1, skillAdd: { [SK.persuasion]: 2 }, personality: ap({ [PA.temper]: -1 }) },
+      [ACH.talked_down_10]: { id: ACH.talked_down_10, name: 'Peacemaker', level: 'ii', rule: 'talked_down', tags: ['social'], count: 10, after: ACH.talked_down_1, skillAdd: { [SK.persuasion]: 2 }, personality: ap({ [PA.temper]: -1 }) },
+      [ACH.talked_down_50]: { id: ACH.talked_down_50, name: 'Every Fight Ends in Talk', level: 'iii', rule: 'talked_down', tags: ['social'], count: 50, after: ACH.talked_down_10, skillAdd: { [SK.persuasion]: 2 }, personality: ap({ [PA.temper]: -1 }) },
       [ACH.outmatched_1]: { id: ACH.outmatched_1, name: 'Against the Odds', level: 'i', rule: 'outmatched', tags: ['skill'], count: 1 },
       [ACH.outmatched_10]: { id: ACH.outmatched_10, name: 'No Match for You', level: 'ii', rule: 'outmatched', tags: ['skill'], count: 10, after: ACH.outmatched_1 },
       [ACH.outmatched_fn_1]: { id: ACH.outmatched_fn_1, name: 'Better {function}', level: 'zero', rule: 'outmatched', tags: ['skill'], count: 1, by: 'function', branchOf: ACH.outmatched_1 },
@@ -1368,7 +1653,7 @@ export function prototypeLibrary(): Library {
       [ACH.mended_1]: { id: ACH.mended_1, name: 'Mended', level: 'zero', rule: 'mended', tags: ['survival'], count: 1 },
       [ACH.mended_10]: { id: ACH.mended_10, name: 'Patched and Stitched', level: 'i', rule: 'mended', tags: ['survival'], count: 10, after: ACH.mended_1 },
       [ACH.mended_50]: { id: ACH.mended_50, name: 'Hard to Keep Down', level: 'ii', rule: 'mended', tags: ['survival'], count: 50, after: ACH.mended_10 },
-      [ACH.back_from_down_1]: { id: ACH.back_from_down_1, name: 'Not Done Yet', level: 'i', rule: 'back_from_down', tags: ['survival'], count: 1 },
+      [ACH.back_from_down_1]: { id: ACH.back_from_down_1, name: 'Not Done Yet', level: 'i', rule: 'back_from_down', tags: ['survival'], count: 1, maxMorale: 5 },
       // the deepest of the near-death depths (Critical, Down and back, the survival roll): depth pays more than count
       [ACH.survival_roll_1]: { id: ACH.survival_roll_1, name: 'Woke Up Anyway', level: 'ii', rule: 'survival_rolls', tags: ['combat', 'survival'], count: 1, maxMorale: 10 },
       // D-292: one time; your contest rolls can go one tier past Critical Success (name and reward level are placeholders)
@@ -1462,8 +1747,8 @@ export function prototypeLibrary(): Library {
       [ACH.calmed_perk_2500]: { id: ACH.calmed_perk_2500, name: 'Unshakable by Habit', level: 'ii', rule: 'calmed', by: 'morale_source', only: CP.perk, tags: ['survival'], count: 2500, after: ACH.calmed_perk_500 },
       // flat HP and morale points lost, from any cause; counts are placeholders
       [ACH.hp_lost_100]: { id: ACH.hp_lost_100, name: 'Bled For It', level: 'zero', rule: 'hp_lost', tags: ['survival'], count: 100 },
-      [ACH.hp_lost_1000]: { id: ACH.hp_lost_1000, name: 'Hard to Count the Wounds', level: 'i', rule: 'hp_lost', tags: ['survival'], count: 1000, after: ACH.hp_lost_100 },
-      [ACH.hp_lost_10000]: { id: ACH.hp_lost_10000, name: 'Made of Old Wounds', level: 'ii', rule: 'hp_lost', tags: ['survival'], count: 10000, after: ACH.hp_lost_1000 },
+      [ACH.hp_lost_1000]: { id: ACH.hp_lost_1000, name: 'Hard to Count the Wounds', level: 'i', rule: 'hp_lost', tags: ['survival'], count: 1000, after: ACH.hp_lost_100, fearFrom: { fear: FR.own_level, steps: 1 } },
+      [ACH.hp_lost_10000]: { id: ACH.hp_lost_10000, name: 'Made of Old Wounds', level: 'ii', rule: 'hp_lost', tags: ['survival'], count: 10000, after: ACH.hp_lost_1000, fearFrom: { fear: FR.own_level, steps: 1 } },
       [ACH.morale_lost_100]: { id: ACH.morale_lost_100, name: 'Nerves Worn Thin', level: 'zero', rule: 'morale_lost', tags: ['survival'], count: 100, maxMorale: 5 },
       [ACH.morale_lost_1000]: { id: ACH.morale_lost_1000, name: 'Seen Too Much', level: 'i', rule: 'morale_lost', tags: ['survival'], count: 1000, after: ACH.morale_lost_100, maxMorale: 5 },
       [ACH.morale_lost_10000]: { id: ACH.morale_lost_10000, name: 'Fear Is an Old Friend', level: 'ii', rule: 'morale_lost', tags: ['survival'], count: 10000, after: ACH.morale_lost_1000, maxMorale: 5 },
@@ -1501,6 +1786,12 @@ export function prototypeLibrary(): Library {
       [ACH.zones_50]: { id: ACH.zones_50, name: 'Wanderer', level: 'i', rule: 'zones', tags: ['exploration'], count: 50, after: ACH.zones_25, personality: ap({ [PA.curiosity]: 1 }) },
       [ACH.zones_150]: { id: ACH.zones_150, name: 'Pathfinder', level: 'ii', rule: 'zones', tags: ['exploration'], count: 150, after: ACH.zones_50, personality: ap({ [PA.curiosity]: 1 }) },
       [ACH.zones_300]: { id: ACH.zones_300, name: 'Walker of Every Road', level: 'iii', rule: 'zones', tags: ['exploration'], count: 300, after: ACH.zones_150, personality: ap({ [PA.curiosity]: 1 }) },
+      // PZ17: new ground: distinct REGION_CELL_M land cells stood in, 1 / 25 / 100 / 500 / 2,500; XP only, curiosity from zero
+      [ACH.ground_1]: { id: ACH.ground_1, name: 'New Ground', level: 'minus_1', rule: 'ground', tags: ['exploration'], count: 1, branchOf: ACH_HEADS.areas },
+      [ACH.ground_25]: { id: ACH.ground_25, name: 'Footloose', level: 'zero', rule: 'ground', tags: ['exploration'], count: 25, after: ACH.ground_1, personality: ap({ [PA.curiosity]: 1 }) },
+      [ACH.ground_100]: { id: ACH.ground_100, name: 'Far Afield', level: 'i', rule: 'ground', tags: ['exploration'], count: 100, after: ACH.ground_25, personality: ap({ [PA.curiosity]: 1 }) },
+      [ACH.ground_500]: { id: ACH.ground_500, name: 'Long Roads Behind', level: 'ii', rule: 'ground', tags: ['exploration'], count: 500, after: ACH.ground_100, personality: ap({ [PA.curiosity]: 1 }) },
+      [ACH.ground_2500]: { id: ACH.ground_2500, name: 'Map in the Bones', level: 'iii', rule: 'ground', tags: ['exploration'], count: 2500, after: ACH.ground_500, personality: ap({ [PA.curiosity]: 1 }) },
       [ACH.places_1]: { id: ACH.places_1, name: 'Set Foot in a {place_kind}', level: 'zero', rule: 'places', by: 'place_kind', tags: ['exploration'], count: 1, branchOf: ACH_HEADS.areas },
       [ACH.places_5]: { id: ACH.places_5, name: 'Roamer ({place_kind})', level: 'i', rule: 'places', by: 'place_kind', tags: ['exploration'], count: 5, after: ACH.places_1 },
       [ACH.places_10]: { id: ACH.places_10, name: 'Traveller ({place_kind})', level: 'ii', rule: 'places', by: 'place_kind', tags: ['exploration'], count: 10, after: ACH.places_5, personality: ap({ [PA.curiosity]: 1 }) },
@@ -1526,10 +1817,10 @@ export function prototypeLibrary(): Library {
       [ACH.class_max_tier_2]: { id: ACH.class_max_tier_2, name: 'Twin Peaks of the {tier}', level: 'ii', rule: 'class_max', tags: ['progression'], count: 2, by: 'class_tier', after: ACH.class_max_tier_1 },
       [ACH.class_max_tier_3]: { id: ACH.class_max_tier_3, name: 'Crown of the {tier}', level: 'iii', rule: 'class_max', tags: ['progression'], count: 3, by: 'class_tier', after: ACH.class_max_tier_2 },
       [ACH.class_tiers_2]: { id: ACH.class_tiers_2, name: 'Across Two Heights', level: 'ii', rule: 'class_max_tiers', tags: ['progression'], count: 2, freeLevels: 1, branchOf: ACH.class_max_1 },
-      [ACH.class_tiers_3]: { id: ACH.class_tiers_3, name: 'Across Three Heights', level: 'iii', rule: 'class_max_tiers', tags: ['progression'], count: 3, after: ACH.class_tiers_2, freeLevels: 2 },
-      [ACH.class_tiers_4]: { id: ACH.class_tiers_4, name: 'Across Four Heights', level: 'iv', rule: 'class_max_tiers', tags: ['progression'], count: 4, after: ACH.class_tiers_3, freeLevels: 3 },
-      [ACH.class_tiers_5]: { id: ACH.class_tiers_5, name: 'Across Five Heights', level: 'v', rule: 'class_max_tiers', tags: ['progression'], count: 5, after: ACH.class_tiers_4, freeLevels: 4 },
-      [ACH.class_tiers_all]: { id: ACH.class_tiers_all, name: 'Every Height Climbed', level: 'vi', rule: 'class_max_tiers', tags: ['progression'], count: CLASS_TIERS.keys.length, after: ACH.class_tiers_5, freeLevels: 5 },
+      [ACH.class_tiers_3]: { id: ACH.class_tiers_3, name: 'Across Three Heights', level: 'iii', rule: 'class_max_tiers', tags: ['progression'], count: 3, after: ACH.class_tiers_2, freeLevels: 1.5 },
+      [ACH.class_tiers_4]: { id: ACH.class_tiers_4, name: 'Across Four Heights', level: 'iv', rule: 'class_max_tiers', tags: ['progression'], count: 4, after: ACH.class_tiers_3, freeLevels: 2 },
+      [ACH.class_tiers_5]: { id: ACH.class_tiers_5, name: 'Across Five Heights', level: 'v', rule: 'class_max_tiers', tags: ['progression'], count: 5, after: ACH.class_tiers_4, freeLevels: 2.5 },
+      [ACH.class_tiers_all]: { id: ACH.class_tiers_all, name: 'Every Height Climbed', level: 'vi', rule: 'class_max_tiers', tags: ['progression'], count: CLASS_TIERS.keys.length, after: ACH.class_tiers_5, freeLevels: 3 },
       [ACH.char_level_10]: { id: ACH.char_level_10, name: 'Woven Past Counting ({level})', level: 'minus_1', rule: 'char_level', tags: ['progression'], count: 10, every: 10, levelStep: 1,
         names: { 10: 'No Longer Green', 20: 'Steady Hand', 30: 'Battle-Tested', 40: 'A Name Worth Knowing', 50: 'Half a Hundred Roads',
           60: 'Something Tugs at the Edges', 70: 'The Pattern Takes Notice', 80: 'Caught in the Weave', 90: 'A Thread That Will Not Fray', 100: 'One Who Pulls the Threads' } },
@@ -1556,5 +1847,9 @@ export function prototypeLibrary(): Library {
   // Perception: eyes and ears are not for the amorphous (TA6); animals and slimes smell, anyone else only through an essence (AB18 a)
   for (const id of [SK.eyesight, SK.earshot, SK.insight]) lib.skills[id].access = { blockedBy: [AMORPHOUS] };
   lib.skills[SK.scent].access = { either: [RC.slime, ...ANIMALS].map((id) => ({ kind: 'race' as const, id })) };
+  // TC9 a: the Tactics tree is closed to unintelligent races; Command needs an intelligent one
+  const racesAt = (lvl: string) => Object.values(lib.races ?? {}).filter((r) => r.intelligence === lvl).map((r) => ({ kind: 'race' as const, id: r.id }));
+  lib.trees[TR.tactics].access = { blockedBy: [AMORPHOUS, ...racesAt('unintelligent')] };
+  lib.skills[SK.command].access = { either: racesAt('intelligent') };
   return lib;
 }

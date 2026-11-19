@@ -16,7 +16,7 @@ import { TR } from '../../src/library/treeIds';
 import { BT, RC } from '../../src/library/raceIds';
 import { TP } from '../../src/library/templateIds';
 import { GP, HK, RO, TH } from '../../src/library/npcLayerIds';
-import { AM, DU, GC, HL, PA, PY, RL, TN, VL, ZK } from '../../src/library/tableIds';
+import { AM, BM, DU, GC, HL, PA, PY, RL, TN, VL, ZK } from '../../src/library/tableIds';
 import { modeSkill } from '../../src/ruleset/gear';
 import { ARMOR_SKILL } from '../../src/library/skillIds';
 import { modeIdOf } from '../../src/ruleset/gear';
@@ -34,7 +34,7 @@ const TABLES: [string, string, Record<string, string>][] = [
   ['skills', 'SK', SK], ['classes', 'CL', CL], ['achievements', 'AC', ACH], ['services', 'SV', SV], ['gods', 'GD', GD], ['starts', 'ST', ST], ['perks', 'PK', PK], ['items', 'IT', IT], ['trees', 'TR', TR], ['npcRoles', 'RO', RO], ['themes', 'TH', TH],
   ['races', 'RC', RC], ['bodyTypes', 'BT', BT], ['templates', 'TP', TP], ['hookKinds', 'HK', HK], ['groups', 'GP', GP],
   ['roles', 'RL', RL], ['healing', 'HL', HL], ['durations', 'DU', DU], ['zoneKinds', 'ZK', ZK], ['attackModes', 'AM', AM], ['gearClasses', 'GC', GC],
-  ['personalityAxes', 'PA', PA], ['values', 'VL', VL], ['personalityTypes', 'PY', PY], ['tensions', 'TN', TN],
+  ['personalityAxes', 'PA', PA], ['values', 'VL', VL], ['personalityTypes', 'PY', PY], ['tensions', 'TN', TN], ['barrierMaterials', 'BM', BM],
 ];
 
 describe('typed IDs', () => {
@@ -70,7 +70,6 @@ describe('typed IDs', () => {
       for (const id of Object.values(c.levelPerks ?? {}).flat()) known(id, `${c.id} levelPerks`);
       for (const id of c.capstone ?? []) known(id, `${c.id} capstone`);
       for (const x of c.capstones ?? []) known(x.perk, `${c.id} capstones`);
-      if (c.unlockPerk) known(c.unlockPerk, `${c.id} unlockPerk`);
     }
     for (const r of Object.values(L.races ?? {})) for (const id of [...(r.innatePerks ?? []), ...(r.innateQuirks ?? [])]) known(id, `race ${r.id}`);
     for (const t of Object.values(L.templates)) for (const id of t.perks ?? []) known(id, `template ${t.id}`);

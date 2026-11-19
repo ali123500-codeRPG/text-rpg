@@ -34,7 +34,7 @@ describe('player creation', () => {
   });
   it('builds the sheet: StartingTotal, tags, starting gear, coin', () => {
     const p = createPlayer(recommendedBuild(), 's1');
-    expect(p.progression!.startingTotal).toBe(100 - 40 - 25 - 15);
+    expect(p.progression!.startingTotal).toBeCloseTo(100 - 40 - 25 - 15 - 10 * CONFIG.TAG_BURDEN_GROUP_PCT / 100); // D-374: dodge shares Defense with tagged parry
     expect(p.core.skills[SK.parry]).toEqual({ raw: 25, state: 'tagged' });
     expect(p.core.inventory.map((i) => [i.itemId, i.equippedIn?.[0], i.qty])).toEqual([
       // the starter kit: per gear class the highest 'starter' item met (Medium Weapons 40: the Common hand axe; no Light Armor: the
@@ -58,7 +58,7 @@ describe('NPC generation by rank, role and theme (NG1–NG9)', () => {
     expect([s[SK.melee_medium].raw, s[SK.block].raw]).toEqual([50, 50]);
     expect([s[SK.medium_armor].raw, s[SK.endurance].raw, s[SK.eyesight].raw]).toEqual([40, 40, 40]);
     expect([s[SK.parry].raw, s[SK.earshot].raw]).toEqual([30, 30]); // earshot: a common skill (NG8)
-    expect(Object.entries(s).filter(([, e]) => e.state === 'tagged').map(([k]) => k).sort()).toEqual([SK.block, SK.melee_medium].sort());
+    expect(Object.entries(s).filter(([, e]) => e.state === 'tagged').map(([k]) => k).sort()).toEqual([SK.block, SK.melee_medium, SK.battle_sense].sort());
     expect(s[SK.melee_light]).toBeUndefined(); // no spill into the tree
     expect(s[SK.barter]).toBeUndefined();
   });

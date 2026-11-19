@@ -28,6 +28,7 @@ describe('139 quest achievements', () => {
   });
   it('giving up five quests leaves the scar Word Not Kept, paying one reward level lower', () => {
     const s = makeVillage();
+  CONFIG.ACH_LEVEL_SHARE = { floor: 0, atI: 0, power: 1 }; // the ladder alone (the level share has its own test, s379)
     for (let n = 1; n <= 4; n++) abandonQuest(s, quest(s, n, 'active').id);
     expect(earned(s)).not.toContain(ACH.quests_abandoned_5);
     const xp = s.player.progression!.xp;

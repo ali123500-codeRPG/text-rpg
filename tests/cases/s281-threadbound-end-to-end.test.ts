@@ -2,7 +2,7 @@
 // achievements that open its abilities, a passive changes the next scenario's event roll, and an active fires by itself
 // on the essence roll when the player beats a notable foe in a real fight turn.
 import { describe, expect, it } from 'vitest';
-import { makeVillage, forcedRng } from '../harness';
+import { makeVillage, forcedRng, lay } from '../harness';
 import { play, intent } from './w4-kit';
 import { replayScenarioStart } from '../../src/scenario/director';
 import { endScenario } from '../../src/engine/scenarioEnd';
@@ -33,8 +33,10 @@ describe('281 a Threadbound item from start to use', () => {
     expect(loop(s)?.boundTo).toBe('player');
     expect(s.player.core.perks.some((p) => p.source === 'item')).toBe(false); // nothing earned yet
 
-    // 2. A scenario starts on a natural 100: Critical Success. The next turn earns the achievement and opens Loose Odds
+    // 2. A scenario starts on a natural 100: Critical Success. Its end grants the achievement (BG-272), which opens Loose Odds
     expect(scenario(s, 100).tier).toBe('critical_success');
+    expect(earned(s, ACH.event_crit_1)).toBe(false); // not at once: it waits for that scenario's end
+    endScenario(s, 'interrupted');
     play(s, { intent: intent({}) });
     expect(earned(s, ACH.event_crit_1)).toBe(true);
     expect(itemPerk(s, PK.loose_odds)).toBe(true);
@@ -71,10 +73,9 @@ describe('281 a Threadbound item from start to use', () => {
     }
 
     // 6. Set down, the abilities leave at the end of the turn; summoned back from the ground, they return
-    const here = s.places.flatMap((p) => p.zones).find((z) => z.id === s.player.zone)!;
     const inst = loop(s)!;
     s.player.core.inventory.splice(s.player.core.inventory.indexOf(inst), 1);
-    here.groundItems.push(inst);
+    lay(s, s.player.zone, inst, s.player.pos);
     play(s, { intent: intent({}) });
     expect(itemPerk(s, PK.loose_odds)).toBe(false);
     play(s, { intent: { ...intent({}), gear: [{ op: 'summon', item: inst.id }] } as never });

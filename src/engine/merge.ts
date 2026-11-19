@@ -6,12 +6,17 @@ import { CONFIG } from '../config';
 import { SPEECH_ACTIONS } from '../types';
 import { VOLUME_NOISE } from '../perception/noise';
 import { hearsClearly } from '../perception';
-import { alertOrders, brokenOrder, fallbackOrder, followMove, nerveHolds, routineOrder, staying } from '../minds';
-import { actorById, isEngaged, reachesAcross, seesAcross, zoneById } from './relations';
+import { alertOrders, brokenHolds, brokenOrder, fallbackOrder, followMove, routineOrder, staying } from '../minds';
+import { actorById, isActive, isEngaged, reachesAcross } from './relations';
+import { drawnTo, spendDrawn } from './perkMarks';
+import { fooledBy } from './playDead';
+import { codePerkMove } from './npcPerkMoves';
+import { codeWarn } from './warnings';
 import type { AcceptedAgentOutput, TurnInput } from './types';
 import { slotMetres } from './speed';
-import { M_EPS, distM, gateAhead, spotPoint, walkLeg, withinM, type Located } from './position';
+import { M_EPS, distM, gateAhead, seeingM, spotPoint, walkLeg, withinM, type Located } from './position';
 import { canSpeak } from '../ruleset/body';
+import { withTactics } from '../views/tactics';
 
 /** FR4: the one approach table: what each action needs of the actor's distance to its target, for every actor, player
  * or NPC. voice: the target hears it clearly (words, an order called out: BG-74, BG-78); approachMove plans the step up
@@ -40,7 +45,7 @@ export function approachMove(state: GameState, actor: Actor, act: { type: string
   const t = actorById(state, act.target), here = actor.zone;
   if (!t || t.id === actor.id || need === 'weapon') return m; // a foe is closed in on when the blow comes (resolve.ts closeIn)
   const noise: NoiseKey = TRADE_KINDS.includes(act.type) ? CONFIG.ORDER_NOISE : VOLUME_NOISE[act.volume ?? 'normal'];
-  const inView = t.zone === here || !!zoneById(state, here)?.links.some((l) => l.to === t.zone && seesAcross(state, l));
+  const inView = seeingM(state, actor, t) !== null; // BG-309: a sight line between them, not the same zone
   if (!m && !act.way && need === 'voice' && inView && !hearsClearly(state, actor, t, noise)) m = { toZone: t.zone };
   if (!m || m.after || m.jump || act.way) return m;
   if (t.zone === here) {
@@ -98,6 +103,7 @@ export function fromIntent(state: GameState, intent: Intent | null, aimed: boole
     ...(mv?.spot ? { moveSpot: mv.spot } : {}),
     ...(mv?.jump ? { jump: true as const } : {}),
     ...(intent?.perkMove ? { perkMove: intent.perkMove } : {}),
+    ...(intent?.warn ? { warn: intent.warn } : {}), // WN9 a
     ...(intent?.way ? { way: intent.way } : {}),
     targetPart: a?.targetPart ?? null,
     aimed: (!!aimed || (!!a?.aimed && !!a.targetPart)) && a?.type === 'attack', // BG-200: the Aim button, or words that aim at a part
@@ -120,7 +126,7 @@ export function npcActionToOrder(actorId: string, action: NpcAction, extra: Part
 }
 
 /** Q2: a Planner or Responder's move beside its action, as the player's; an action that is itself a move keeps only that */
-const MOVE_ACTIONS = ['move', 'flee', 'sneak', 'vanish'];
+const MOVE_ACTIONS = ['move', 'flee', 'sneak'];
 function npcMove(state: GameState, o: AcceptedAgentOutput): Partial<Order> {
   const act = o.output.action;
   if (MOVE_ACTIONS.includes(act.type)) return {};
@@ -169,7 +175,8 @@ export function mergeOrders(state: GameState, input: TurnInput, views: Map<strin
   const agent = new Map<string, Order>();
   for (const o of usableAgentOutputs(input)) {
     if (!views.has(o.actorId) || agent.has(o.actorId)) continue;
-    const order = npcActionToOrder(o.actorId, o.output.action, { gear: o.output.gear, line: agentLine(o, state.player.id), ...npcMove(state, o) });
+    const pm = o.agent !== 'voice' && o.output.perkMove ? { perkMove: o.output.perkMove } : {}; // TC49: an agent's perk move, as the player's
+    const order = npcActionToOrder(o.actorId, o.output.action, { gear: o.output.gear, line: agentLine(o, state.player.id), ...npcMove(state, o), ...pm });
     // BG-34: a follower out of a fight walks after the player beside the action its agent gave
     const follow = !order.move && !MOVE_ACTIONS.includes(order.type) && !isEngaged(state, actorById(state, o.actorId)!) ? followMove(views.get(o.actorId)!) : null;
     agent.set(o.actorId, follow ? { ...order, move: follow } : order);
@@ -194,9 +201,26 @@ export function mergeOrders(state: GameState, input: TurnInput, views: Map<strin
     const a = actorById(state, id)!;
     // BF11: one staying where its own agent took it holds there instead of walking its routine
     const watch = isEngaged(state, a) ? undefined : suspicionOrder(state, a, v); // GD3: a code-run guard keeps close to someone it suspects
-    out.set(id, isEngaged(state, a) ? fallbackOrder(v, rng) : watch ?? (staying(state, a) ? { actorId: id, type: 'hold', target: null, skill: null, intent: 'stays put', source: 'routine' } : routineOrder(v)));
+    // TC53-TC59 a: the perk moves it owns are weighed on the order its fight list gave; WN8 a row W1: then a warning beside it
+    out.set(id, isEngaged(state, a) ? codeWarn(state, a, codePerkMove(state, a, v, fallbackOrder(withTactics(state, a, v), rng))) : watch ?? (staying(state, a) ? { actorId: id, type: 'hold', target: null, skill: null, intent: 'stays put', source: 'routine' } : routineOrder(v)));
   }
-  // BF37: a broken nerve takes away any walk, attack or perk move; with nothing allowed left the actor cowers
-  for (const id of ids) if (views.get(id)!.self.broken && !views.get(id)!.self.surrendered) out.set(id, nerveHolds(out.get(id)!).order);
+  // TC31 a Draw Them In: a drawn foe spends this turn coming at the one who drew it, whatever it chose (its words stay)
+  for (const id of ids) {
+    const a = actorById(state, id)!, to = drawnTo(state, a);
+    if (!to) continue;
+    spendDrawn(a);
+    const v = views.get(id)!, t = actorById(state, to);
+    if (!t || !isActive(t) || v.self.broken || v.self.surrendered || a.playingDead) continue; // TC59 a: one lying still stays down
+    const was = out.get(id);
+    out.set(id, { actorId: id, type: 'attack', target: to, skill: v.self.attackSkill, intent: 'drawn in', source: was?.source ?? 'fallback', targetPart: null, aimed: false, ...(was?.line ? { line: was.line } : {}) });
+  }
+  // TC32 a Play Dead: a foe that takes someone for Down stops attacking it, whatever chose the blow, and fights on by its list
+  for (const id of ids) {
+    const o = out.get(id)!, a = actorById(state, id)!;
+    if (o.type === 'attack' && o.target && fooledBy(a, actorById(state, o.target))) out.set(id, { ...fallbackOrder(withTactics(state, a, views.get(id)!), rng), ...(o.line ? { line: o.line } : {}) });
+  }
+  // BF37/BF79: a broken nerve takes away any attack or perk move (and a walk toward a foe, where it runs); with nothing
+  // allowed left the actor flees, or cowers when cornered or at Cowering
+  for (const id of ids) if (views.get(id)!.self.broken && !views.get(id)!.self.surrendered) out.set(id, brokenHolds(views.get(id)!, out.get(id)!));
   return out;
 }

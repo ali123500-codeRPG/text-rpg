@@ -8,9 +8,16 @@ import { tierReach } from '../../src/ruleset/achRewards';
 import { getLibrary } from '../../src/library';
 import { ACH } from '../../src/library/achievementIds';
 import type { GameState } from '../../src/types';
+import { atScenarioEnd, grantAchievement } from '../../src/engine/xp';
 
 const earned = (s: GameState) => (s.player.progression!.achievements ?? []).filter((a) => !a.replacedBy).map((a) => a.key!);
-const ev = (s: GameState, d: number) => tierName(ruleset.eventRoll(s.player, s, forcedRng([d])));
+const grantHeld = (s: GameState) => atScenarioEnd(() => {
+  const pr = s.player.progression!, q = pr.pendingAchievements ?? [];
+  delete pr.pendingAchievements;
+  for (const x of q) grantAchievement(s, x.key, x.of, x.reached, true, x.turn);
+});
+/** an event roll, then the end of the scenario it opens: what the roll earned is granted there (BG-272) */
+const ev = (s: GameState, d: number) => { const t = tierName(ruleset.eventRoll(s.player, s, forcedRng([d]))); grantHeld(s); return t; };
 
 describe('181 event-roll criticals open tiers past Critical', () => {
   it('without an unlock a natural 00 stops at Critical Success and earns level 1', () => {

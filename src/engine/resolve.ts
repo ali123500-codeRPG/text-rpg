@@ -1,46 +1,55 @@
 // The Resolution engine: one turn of pure resolution. Same state + same input + same rng = same events.
+import { roofed, wayTo } from '../plan/where';
 import { checkScenarioEnd, closeScenario, noteIdle } from './scenarioEnd';
 import { checkRoam, updateChase } from './chase';
 import { noticeGoals, runSteps } from './goals';
 import { noteHappened } from './happened';
 import { noteLeft, noteZonesSeen } from './trail';
 import { heightOf } from '../scenario/heights';
-import { CP, DU, FR, HL, RL } from '../library/tableIds';
+import { CP, DU, FR, FX, HL, RL } from '../library/tableIds';
 import { passiveFatigue, payMove, payRow, payStrain, restRecover, sleepMinutes, tooSpent } from './fatigue';
 import { payFear } from './morale';
-import { healthFear, moraleLevel, partFearCost, partFears } from '../ruleset/morale';
+import { nerveCowers, nerveLetsWalk } from './nerve';
+import { healthFear, isBrokenLevel, isCoweringLevel, moraleLevel, partFearCost, partFears } from '../ruleset/morale';
 import { bestReward } from '../ruleset/achRewards';
 import { isHeld, parryItem, rollFnSkills } from '../ruleset/gear';
-import { freeGrips, levelMaxPct } from '../ruleset/body';
+import { freeGrips, healShare, levelMaxPct } from '../ruleset/body';
 import { FN } from '../library/functionIds';
-import type { Actor, ActorView, AttackResult, Barrier, CheckResult, Grade, RollResult, ZoneLink, ContestResult, Effect, DurationDef, GameEvent, GameState, GearOp, Intent, ItemInstance, Mod, Order, Rng, TierShift, WayDid } from '../types';
+import type { Actor, ActorView, AttackResult, Barrier, CheckResult, Grade, RollResult, ContestResult, Effect, DurationDef, GameEvent, GameState, GearOp, Intent, ItemInstance, Mod, Order, Rng, TierShift, WayDid } from '../types';
 import { GRADED_ACTS } from '../types';
-import { barrierOn, noteTried, openWay, passage, shutBy, wayOp, type WayOp } from './barriers';
-import { actionRow, actionSeconds, attackRowIds, reactSeconds } from '../ruleset/actionTime';
+import { barrierOn, broken, noteTried, openWay, passage, shutBy, wayOp, type WayOp } from './barriers';
+import { actionRow, actionSeconds, attackRowIds, reactSeconds, timeFactor } from '../ruleset/actionTime';
 import { busyNow } from './busy';
 import { CONFIG } from '../config';
 import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
 import { moveSpeed, slotMetres } from './speed';
-import { travel, travelSpeed, tripGoal } from './travel';
-import { M_EPS, distM, distOrNull, gateAhead, placeAll, roomAround, sightDistM, spotOnTheWay, spotPoint, walkLeg, wayLeftM, wayPoint, withinM, type Located } from './position';
+import { companions, travel, travelSpeed, tripGoal, type TripWorld } from './travel';
+import { M_EPS, closeInM, distM, faceToward, floorGap, distOrNull, gateAhead, placeAll, reachesM, roomAround, sightDistM, spotOnTheWay, spotPoint, walkLeg, wayLeftM, wayPoint, withinM, type Located } from './position';
 import { applyHealing, calm, healFromPerk, passiveHealing, wouldHeal } from './heal';
-import { FOCUS, HEALTH_LEVELS, TIERS, type BodyPoseKey } from '../scales';
-import { defaultMode, effectiveSkill, gradeMod, gradeMods, obstacleGate, trueSkill, pickSeconds, pickTool, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, roleOff, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
+import { FOCUS, HEALTH_LEVELS, MORALE_LEVELS, TIERS, type BodyPoseKey } from '../scales';
+import { defaultMode, effectiveSkill, gradeMod, gradeMods, obstacleGate, trueSkill, pickSeconds, pickTool, hasPerk, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markUse, markEndurance, modeSkill, partStates, roleOff, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
 import { VOLUME_NOISE } from '../perception/noise';
 import { makeOut } from './makeOut';
 import { applyBeliefDecay, beliefStatus, carryingNoise, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, perceptionOf, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView, seesClearlyNow } from '../views';
+import { neverFlatFooted, noteSeen } from './flatFooted';
+import { endPlayDead, fooledBy, openPlayDead, playDeadChecks, startPlayDead } from './playDead';
+import { expireFeint, fooledByFeint, startFeint } from './feint';
+import { withTactics } from '../views/tactics';
+import { markReaction } from './tacticsMarks';
 import { UNREACHABLE } from '../minds/routines';
-import { alertOrders, brokenOrder, nerveHolds, desiredState, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, searchFor, searchItems, searchPerson, searchSecrets, markAgainst, gripOn, openToGrip, revealItems, letSearch, staying, stealthDetect, updateAlarms } from '../minds';
+import { alertOrders, brokenHolds, brokenOrder, nerveHolds, desiredState, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, searchFor, searchItems, searchPerson, searchSecrets, markAgainst, gripOn, openToGrip, revealItems, letSearch, staying, stealthDetect, updateAlarms } from '../minds';
 import { noteFighting, updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
-import { afterAttack, blindSpotNow, bluffed, coverFor, spendBluff, expireMarks, slowed } from './perkMarks';
-import { battleCry, engagementAuras, sightDread } from './auras';
+import { afterAttack, bluffed, coverFor, drawIn, spendBluff, expireMarks, slowed } from './perkMarks';
+import { battleCry, engagementAuras, rallyCall, sightDread } from './auras';
 import { grantAllSteps, shareSpotted } from '../ruleset/allSteps';
 import { syncPerkLinks } from '../ruleset/perkLinks';
 import { grantThreadboundItem, syncThreadboundItemPerks } from '../ruleset/threadboundItems';
 import { applyHold, breakFree, releaseHolds, restrain } from './held';
 import { countPerkMove, hasFreeGrip, perkMoveBlock, resolvePerkMove } from './perkMoves';
-import { actorById, allActors, atLeast, foe, isActive, isAsleep, isEngaged, hostile, knowsShut, reachesAcross, shortestPath, sparBetween, stance, wary, wayPath, zoneById } from './relations';
+import { TRICK, sawThrough, warnedShift } from './ruses';
+import { giveWarning, warnEvent, warnedChecks } from './warnings';
+import { actorById, allActors, atLeast, countsInFight, fitsThrough, foe, isActive, isAsleep, isEngaged, hostile, knowsShut, reachesAcross, shortestPath, sparBetween, stance, wary, wayPath, zoneById } from './relations';
 import { checkOut, endSparsOf, heldBack, sparOf, updateSpars, yieldSpar } from './spar';
 import { needOf, fromIntent, mergeOrders, usableAgentOutputs } from './merge';
 import { fireMidTurnTrigger, firedOrders } from './triggers';
@@ -57,16 +66,16 @@ import { buy, sell } from './trade';
 import { applyAgentEffects, learnNames, logCode, loseNerve } from './effects';
 import { falseName, r1 } from '../words';
 import { gutFeelings } from './hunches';
-import { PUSH_TYPES, SPEECH_SKILL, applySpeech, isSpeech, overhearLie, pushContest, speechSkill as speechSkillOf } from './speech';
-import { bested, growthWaits, payDefeats, tally, unlockClasses } from './xp';
+import { PUSH_TYPES, SPEECH_SKILL, applySpeech, isSpeech, overhearLie, pushContest, sizeUp, speechSkill as speechSkillOf } from './speech';
+import { bested, growthWaits, notePower, payDefeats, tally, unlockClasses } from './xp';
 import { noteGains } from './growth';
 import { expireOffers, offersFromDefeats } from './essence';
 import { cantExtract, extractEssence } from './extract';
 import { handInQuests, unpaidQuests, updateQuests } from './quests';
-import { fightEnded, gaveUpFeats, outmatchedOnce, turnFeats, type ActContest } from './feats';
+import { contestFeat, fightEnded, gaveUpFeats, outmatchedOnce, turnFeats, type ActContest } from './feats';
 import { answerMercy, answerYield, askMercy, finishers, perceivesNow, playerYields, settleMercy, yieldBars } from './yield';
-import { answerOffer, answerOffers, canOffer, makeOffer, OFFER_TYPES, playerOffer, speaks, truceBars, type StoodDown, type TalkedYield } from './offer';
-import { minutesUntil, nextTimeOfDay, noteTurnEnd, now, timeOfDay, zoneLight } from '../time';
+import { answerOffer, answerOffers, canOffer, feelsThreats, makeOffer, OFFER_TYPES, playerOffer, speaks, truceBars, type StoodDown, type TalkedYield } from './offer';
+import { minutesUntil, nextTimeOfDay, noteTurnEnd, now, timeOfDay } from '../time';
 import { advanceAging } from '../ruleset/age';
 import { NOISE, TIME_OF_DAY, WAIT_SOMEONE, type NoiseKey } from '../scales';
 import type { ExchangeSpeech, TurnInput } from './types';
@@ -76,19 +85,23 @@ import { met, struck } from '../ruleset/hits';
 import { busyCheck, checkNear, contact, inSenses, startWatch, stepS, type NearStop } from './comingNear';
 import { fightInSenses } from './mode';
 import { applyNightPhase, hostilesNear, nextChange, planNight, settleSleepers, wakeByEvent, wakeCalls, wakeCheck, wakeChecksNear, wake } from './sleep';
-import { wornArmor } from '../ruleset/slots';
+import { pieceOn, stackCost, wornPieces } from '../ruleset/worn';
+import { addWear, breakJob, jobAt, regrow, secondsLeft, toolCheck, walkBreaks } from './breakThrough';
+import { barrierStuff, wallStuff } from '../ruleset/breaking';
+import { cutHole, holeSpot } from '../plan/holes';
 
 /** CS5: how loud and how visible each engine-made event is (the spec's event noise and sight table); a kind not listed is quiet
  * and normal. Placeholders to tune. */
 const SENSE: Record<string, [GameEvent['noise'], GameEvent['visibility']]> = {
-  travel: ['quiet', 'normal'], attack: ['normal', 'high'], wasted: ['normal', 'high'], move: ['quiet', 'normal'], hold: ['silent', 'low'], speak: ['normal', 'normal'], call_help: ['loud', 'normal'], battle_cry: ['loud', 'high'], alarm: ['deafening', 'high'],
+  travel: ['quiet', 'normal'], attack: ['normal', 'high'], wasted: ['normal', 'high'], move: ['quiet', 'normal'], hold: ['silent', 'low'], speak: ['normal', 'normal'], call_help: ['loud', 'normal'], battle_cry: ['loud', 'high'], rally: ['loud', 'high'], play_dead: ['quiet', 'normal'], feint: ['quiet', 'normal'], body_checked: ['silent', 'low'], warn: ['loud', 'normal'], alarm: ['deafening', 'high'],
   rest: ['silent', 'low'], item_dropped: ['quiet', 'normal'], set_down: ['quiet', 'normal'], put_in: ['quiet', 'normal'], pick_up: ['quiet', 'normal'],
-  way: ['quiet', 'normal'], pick: ['hushed', 'low'], break_open: [VOLUME_NOISE.shout, 'high'], // BF31: breaking a lock is heard like a shout // SD3–SD5: a key turned, a bar slid, a door tried; BA2: picking is a whisper
+  way: ['quiet', 'normal'], pick: ['hushed', 'slight'], break_open: [VOLUME_NOISE.shout, 'high'], // BF31: breaking a lock is heard like a shout // SD3–SD5: a key turned, a bar slid, a door tried; BA2: picking is a whisper, made out only up close (Slight)
   stash: ['hushed', 'low'], // SE9: tucking something away
-  filch: ['hushed', 'close'], // a filch's own contest sets both (src/engine/filch.ts)
+  break_through: ['loud', 'high'], // BW10 a: each turn's blows sound as the material's noise (set on the event)
+  filch: ['hushed', 'slight'], // a filch's own contest sets both (src/engine/filch.ts)
 };
 /** AN2: event kinds that move the body, so worn armor makes them louder (CONFIG.ARMOR_NOISE_STEPS) */
-const BODY_MOVING = new Set(['move', 'travel', 'attack', 'perk_move', 'break_free', 'restrain', 'pick_up']);
+const BODY_MOVING = new Set(['move', 'travel', 'attack', 'perk_move', 'play_dead', 'break_free', 'restrain', 'pick_up']);
 /** first build: checks only change beliefs (OQ-22). */
 const CHECK_TYPES = new Set<string>(GRADED_ACTS);
 
@@ -120,7 +133,7 @@ const slotsOf = (ctx: Ctx, a: Actor): Slots => {
 const useMain = (ctx: Ctx, a: Actor, cost?: { row?: DurationDef; seconds?: number; lockPaid?: boolean }): boolean => {
   const s = slotsOf(ctx, a);
   if (s.main <= T_EPS) return false;
-  const seconds = cost?.seconds ?? (cost?.row ? actionSeconds(cost.row) : undefined);
+  const seconds = cost?.seconds ?? (cost?.row ? actionSeconds(cost.row, undefined, timeFactor(a)) : undefined);
   const take = seconds === undefined ? s.main : Math.min(s.main, seconds);
   s.main -= take;
   if (cost?.row?.locksMove && !cost.lockPaid) s.move = Math.max(0, s.move - take);
@@ -153,7 +166,7 @@ function useGearTime(ctx: Ctx, a: Actor, ops: GearOp[], pack: Set<GearOp> = new 
     const id = op.op === 'draw' ? DU.draw : op.op === 'stow' || op.op === 'set_down' ? DU.stow : op.op === 'swap' ? DU.swap : op.op === 'pick_up' ? (op.from ? DU.pick_up_reach : DU.pick_up_ground) : undefined;
     for (const row of [pack.has(op) ? actionRow(DU.from_pack) : undefined, id ? actionRow(id) : undefined]) {
     if (!row) continue;
-    const s = slotsOf(ctx, a), take = Math.min(s.main, actionSeconds(row));
+    const s = slotsOf(ctx, a), take = Math.min(s.main, actionSeconds(row, undefined, timeFactor(a)));
     s.main -= take;
     if (row.locksMove) s.move = Math.max(0, s.move - take);
     ctx.clock.set(a.id, (ctx.clock.get(a.id) ?? 0) + take);
@@ -165,7 +178,7 @@ function useGearTime(ctx: Ctx, a: Actor, ops: GearOp[], pack: Set<GearOp> = new 
  * short and `mainToo` (nothing else planned) it takes main time only. False when neither has room */
 function useWayTime(ctx: Ctx, a: Actor, op: WayOp, mainToo: boolean): boolean {
   const row = actionRow(op === 'lock' || op === 'unlock' ? DU.key : op === 'bar' || op === 'unbar' ? DU.bar : DU.door)!;
-  const s = slotsOf(ctx, a), secs = actionSeconds(row);
+  const s = slotsOf(ctx, a), secs = actionSeconds(row, undefined, timeFactor(a));
   if (s.move + T_EPS < secs && !(mainToo && s.main + T_EPS >= secs)) return false;
   s.move = Math.max(0, s.move - secs);
   s.main = Math.max(0, s.main - secs);
@@ -175,8 +188,9 @@ function useWayTime(ctx: Ctx, a: Actor, op: WayOp, mainToo: boolean): boolean {
 }
 /** AT11: the Action times row an order's action uses, and its seconds (a crossbow's shot includes its spanning until
  * spanning is an action of its own); undefined when the order names no row (it takes the turn's main time) */
-function orderCost(state: GameState, a: Actor, o: Order): { row: DurationDef; seconds: number } | undefined {
-  const of = (id: string | undefined, extra = 0) => { const row = id ? actionRow(id) : undefined; return row ? { row, seconds: actionSeconds(row) + extra } : undefined; };
+export function orderCost(state: GameState, a: Actor, o: Order): { row: DurationDef; seconds: number } | undefined {
+  const f = timeFactor(a); // VS8: sneaking multiplies the time
+  const of = (id: string | undefined, extra = 0) => { const row = id ? actionRow(id) : undefined; return row ? { row, seconds: actionSeconds(row, undefined, f) + extra } : undefined; };
   const inv = (ref: string | null | undefined) => (ref ? a.core.inventory.find((i) => i.id === ref || i.itemId === ref) : undefined);
   switch (o.type) {
     case 'attack': {
@@ -185,15 +199,18 @@ function orderCost(state: GameState, a: Actor, o: Order): { row: DurationDef; se
       const it = inv(m.itemId), ids = attackRowIds(it ? itemDef(state, it.itemId) : undefined, m.mode);
       // AT11c: a crossbow spans, then shoots: one long action under the spanning row (its focus, its work kept when broken off)
       const rows = ids.map(actionRow).filter((r): r is DurationDef => !!r);
-      return rows.length ? { row: rows[0], seconds: rows.reduce((n, r) => n + actionSeconds(r), 0) } : undefined;
+      return rows.length ? { row: rows[0], seconds: rows.reduce((n, r) => n + actionSeconds(r, undefined, f), 0) } : undefined;
     }
     case 'use_item': {
       const it = inv(o.item), heal = it ? itemDef(state, it.itemId).heal : undefined;
       return of(heal === HL.bandage ? DU.bandage : heal === HL.draught ? DU.drink : undefined);
     }
     case 'heal': return of(DU.bandage); // NR34: hands-on, as long as binding a wound
-    case 'vanish': return of(DU.vanish_in_place); // A19 Melt Away: the only Vanish left after setPosture
-    case 'break': return of(DU.break_open); // BF31
+    case 'break': { // BF31: a container; BW13 a: a wall or a barrier, for as long as the breaker still needs (a spell at most out of a fight)
+      const job = findContainer(state, o.target) ? undefined : breakJob(state, a, o.target);
+      const row = job && job !== 'open' ? actionRow(DU.break_through) : undefined;
+      return row && job && job !== 'open' ? { row, seconds: Math.min(secondsLeft(state, a, job) * f, CONFIG.BREAK_SPELL_S) } : of(DU.break_open);
+    }
     case 'rest': return of(DU.rest); // AT8: in a fight a long action; outside one the world clock runs it (runStretch)
     case 'search': case 'observe': return of(DU.look);
     case 'give': case 'take': return of(DU.hand_over); // BF34: taking is a hand-over too
@@ -203,11 +220,10 @@ function orderCost(state: GameState, a: Actor, o: Order): { row: DurationDef; se
       return of(w === 'heavy' ? DU.armor_heavy_on : w === 'medium' ? DU.armor_medium_on : w === 'light' ? DU.armor_light_on : undefined);
     }
     default:
-      // TP6 c: in a fight plain talk is no action (its time stays and carries); words that use a skill (persuade, lie,
-      // threaten, haggle) take their words' time
-      if (o.type === 'talk' && state.mode === 'tactical') return { row: actionRow(DU.talk)!, seconds: 0 };
-      if (isSpeech(o.type) && o.line) { const row = actionRow(DU.talk)!; return { row, seconds: actionSeconds(row) * o.line.text.trim().split(/\s+/).length }; }
-      return undefined;
+      // TP6 c, TK6: plain talk in a fight takes no time (its time stays and carries); TK1 c: words that use a skill (persuade,
+      // lie, threaten) take the Speech row's fixed time however long they are, and so does a turn of plain talk outside a
+      // fight (the world moves on while you talk; it costs you nothing there, as nothing competes for it)
+      return o.type === 'talk' && state.mode === 'tactical' ? of(DU.talk) : isSpeech(o.type) ? of(DU.speech) : undefined;
   }
 }
 
@@ -231,6 +247,8 @@ type Ctx = {
   /** speakers whose main action was their words in the exchange: their turn in order still runs gear, defence and move */
   spoke: Set<string>;
   surprised: Set<string>;
+  /** TC32 a Play Dead: an owner that got up this turn, and the foes that still believed it (its first blow on one is unaware) */
+  risen: Map<string, string[]>;
   defenses: Map<string, number>;
   /** D-337: parry strike-backs and Counters used, keyed by kind, roundKey and (with Every Answer) the attacker */
   strikeBacks: Map<string, number>;
@@ -246,6 +264,8 @@ type Ctx = {
   own?: { over: number; fill: number };
   /** BG-185: the player's walk taken before their words in the exchange (its move is then spent from the order) */
   saidOnWay?: Order;
+  /** BW13 a: the seconds the break through resolving now puts in this fight turn */
+  breakS?: number;
 };
 /** AT56/AT65: a span of time the player's order covers, run by the world clock: its length, the pose it is spent in (how
  * soon the player is ready, AT67), and the event its outcome goes on */
@@ -262,9 +282,8 @@ function mk(ctx: Ctx, a: Actor, kind: string, extra: Partial<GameEvent> = {}): G
  * a Stealthy move is one step quieter */
 function armorNoise(state: GameState, a: Actor, kind: string, noise: NoiseKey): NoiseKey {
   if (!BODY_MOVING.has(kind)) return noise;
-  const worn = wornArmor(a.core.inventory);
-  const w = worn && itemDef(state, worn.itemId).armor?.weight;
-  const steps = w ? Math.max(0, (CONFIG.ARMOR_NOISE_STEPS[w] ?? 0) - (hasPerk(a, PK.quiet_mail) ? 1 : 0)) : 0;
+  const loud = Math.round(stackCost(wornPieces(state, a).map(({ armor }) => CONFIG.ARMOR_NOISE_STEPS[armor.weight] ?? 0))); // IR24 a: each piece, stacked
+  const steps = loud ? Math.max(0, loud - (hasPerk(a, PK.quiet_mail) ? 1 : 0)) : 0;
   const soft = kind === 'move' && a.posture === 'stealthy' && hasPerk(a, PK.soft_tread) ? 1 : 0;
   const quiet = kind === 'move' ? bestReward(a, 'quieter')?.value ?? 0 : 0; // an achievement reward
   return NOISE.at(NOISE.pos(noise) + steps - soft - quiet);
@@ -292,14 +311,14 @@ function initiativeOrder(state: GameState, ids: string[], orders: Map<string, Or
   const delay = new Map<string, number>();
   const rows = ids.map((id) => {
     const a = actorById(state, id)!;
-    const caught = attackers(id).some((x) => beliefStatus(state, a, x) === 'unaware' && !hearsItComing(state, a, x, armorNoise(state, x, 'attack', SENSE.attack[0])));
+    const caught = attackers(id).some((x) => beliefStatus(state, a, x) === 'unaware' && !neverFlatFooted(a, x) && !hearsItComing(state, a, x, armorNoise(state, x, 'attack', SENSE.attack[0])));
     // AT58: in a fight, the reaction rolled when the actor's fight started: its first turn starts that many seconds in, and
     // the roll orders it for the rest of the fight; outside a fight the roll is fresh each turn, as before
     let init: number, wait = 0;
     if (!fight) init = ruleset.initiative(a, state, rng);
     else {
       const fresh = !a.react || a.react.turn !== state.turn - 1;
-      if (fresh) { const total = ruleset.initiative(a, state, rng); a.react = { s: reactSeconds(total), init: total, turn: state.turn }; }
+      if (fresh) { const total = ruleset.initiative(a, state, rng); a.react = { s: reactSeconds(total), init: total, turn: state.turn }; markReaction(state, a); } // TC6 a
       else a.react!.turn = state.turn;
       init = a.react!.init;
       if (fresh) wait += a.react!.s;
@@ -418,10 +437,9 @@ function struckSeen(ctx: Ctx, t: Actor, ev: GameEvent, before: { lost: number; a
  * missed target notices it here. It shows where it landed, never where it came from. */
 function landImpact(ctx: Ctx, t: Actor, ev: GameEvent, res: AttackResult, struckBy: GameEvent['perception']): void {
   const { state } = ctx;
-  const worn = wornArmor(t.core.inventory);
-  const armored = !!res.location && !!worn && !!itemDef(state, worn.itemId).armor?.covers.includes(res.location);
+  const armored = !!pieceOn(state, t, res.location);
   const hit = struck(res.outcome);
-  const hard = res.location === 'shield' || (hit ? armored : met(res.outcome) || !zoneById(state, t.zone)?.outdoor); // blocked or parried: on a shield or weapon
+  const hard = res.location === 'shield' || (hit ? armored : met(res.outcome) || roofed(state, zoneById(state, t.zone))); // blocked or parried: on a shield or weapon
   const kind = hard ? 'hard' as const : 'soft' as const;
   const s = mk(ctx, t, 'impact', { impact: kind, noise: CONFIG.IMPACT_NOISE[kind], visibility: 'normal', ...(ev.spar ? { spar: true as const } : {}) });
   s.perception = computePerception(s, state, ctx.rng);
@@ -461,15 +479,34 @@ function fear(ctx: Ctx, a: Actor, id: string, o: { gap?: number; mult?: number; 
   const { state } = ctx;
   { const f = getLibrary().fears?.[id]; if (f?.rolled && !f.unengaged && !isEngaged(state, a)) return; } // the player too (MB11): isEngaged reads who is fighting them
   const r = payFear(state, ctx.rng, a, id, o);
-  if (!r) return;
+  if (!r) return gritAuto(ctx, a);
   // SP5: in a spar with no real foe, a surrender or a break just yields the spar
   if (sparOf(state, a.id) && !allActors(state).some((x) => x !== a && isActive(x) && (hostile(state, a, x) || hostile(state, x, a)))) { yieldSpar(state, a); return; }
   if (a === state.player) { tally(state, 'morale_breaks'); return; } // MB12: you keep control but cannot attack (doAttack)
   loseNerve(state, a, r);
-  // BF37: broken, what it has yet to do loses any walk, attack or perk move (cowering if nothing is left); surrendered, it holds
-  if (!ctx.acted.has(a.id) && ctx.orders.has(a.id)) { const v = buildActorView(state, a.id); ctx.orders.set(a.id, v.self.broken && !v.self.surrendered ? nerveHolds(ctx.orders.get(a.id)!).order : brokenOrder(v)); }
+  // BF37/BF79: broken, what it has yet to do loses any attack or perk move (fleeing if nothing is left); surrendered, it holds
+  if (!ctx.acted.has(a.id) && ctx.orders.has(a.id)) { const v = buildActorView(state, a.id); ctx.orders.set(a.id, v.self.broken && !v.self.surrendered ? brokenHolds(v, ctx.orders.get(a.id)!) : brokenOrder(v)); }
   // MB23: bandmates who perceived it are frightened too
   for (const p of allActors(state)) if (p !== a && !!a.bandId && p.bandId === a.bandId && seen[p.id]) fear(ctx, p, FR.bandmate_broken, {}, seen);
+}
+
+/** SY1 steadying yourself: the event, the roll, and a loss through fear() (which applies a break). `o` carries the words said
+ * with it; the free move (Grit Your Teeth) and its automatic steady have none */
+function doSteady(ctx: Ctx, a: Actor, o?: Order): void {
+  const ev = mk(ctx, a, 'steady', {});
+  emit(ctx, o ? bark(ev, o) : ev);
+  const r = steady(ctx.state, a, ctx.rng, (cost) => fear(ctx, a, FR.steady_slipped, { cost }));
+  Object.assign(ev, { tier: r.roll.tier, roll: r.roll, steady: { points: Math.round(r.points), ...(r.buff ? { buff: true } : {}) } });
+}
+
+/** LG7 Grit Your Teeth (Resolve 20): the first time in a fight a morale loss leaves the owner at GRIT_AUTO_FROM or worse, it
+ * steadies itself at once, free, with the normal roll, cooldown and risk */
+function gritAuto(ctx: Ctx, a: Actor): void {
+  const key = `${PK.grit_your_teeth}:auto`;
+  if (!hasPerk(a, PK.grit_your_teeth) || MORALE_LEVELS.pos(moraleLevel(a)) < MORALE_LEVELS.pos(CONFIG.GRIT_AUTO_FROM)) return;
+  if (!a.engagement || !usableThisEngagement(a, key) || cantSteady(ctx.state, a)) return;
+  useThisEngagement(a, key);
+  doSteady(ctx, a);
 }
 
 // ---------- actions ----------
@@ -495,11 +532,11 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
   // A8 Hold: a held actor's move is its try to break free; it stays in the zone either way
   const bf = a.heldBy ? breakFree(state, a, ctx.rng) : null;
   if (bf) {
-    const ev = mk(ctx, a, 'break_free', { target: String(bf.effect.data.by), effects: [bf.effect] });
+    const ev = mk(ctx, a, 'break_free', { target: String(bf.effect.data.by), effects: [bf.effect], contest: bf.contest }); // BG-282
     emit(ctx, withBark ? bark(ev, o) : ev);
     return 'spent';
   }
-  const link = zoneById(state, a.zone)?.links.find((l) => l.to === goal.zone);
+  const link = wayTo(state, a.zone, goal.zone);
   if (link?.frontier) {
     if (a.kind !== 'player') {
       // NW3/NW8: an NPC waits at the edge with its move spent. If the player crosses this frontier this turn it follows
@@ -517,11 +554,13 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
   }
   // SD7: a jump down a window or ledge: straight into the zone below, with a landing roll and flat fall damage
   if (o.jump && link?.drop && a.kind === 'player') {
+    const shutters = barrierOn(state, link.opening); // PC3: a window's shutters must be open, and the body must fit the opening
+    if ((shutters && !shutters.open && !broken(shutters)) || !fitsThrough(state, a, link)) return null;
     const up = zoneById(state, a.zone)!, down = zoneById(state, goal.zone)!;
     const drop = Math.max(0, heightOf(up) - heightOf(down)), was = a.pos && { ...a.pos };
     a.zone = down.id;
     a.placeId = down.placeId;
-    delete a.pos;
+    if (link.opening.to) a.pos = { x: link.opening.to.x, y: link.opening.to.y }; else delete a.pos; // PZ2: it lands below the window
     noteLeft(state, up.id);
     const f = landFall(state, a, drop, ctx.rng);
     const ev = mk(ctx, a, 'move', { metres: 0, fromZone: up.id, ...(was ? { fromPos: was } : {}), fall: { metres: drop, damage: f.damage, landing: f.landing }, effects: f.effects });
@@ -538,8 +577,8 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
   if (walked <= 0 && a.zone === from) return 0; // a doorway right where the walker stands is crossed in 0 m: still a move
   if (a === state.player && a.zone !== from) noteLeft(state, from);
   // a leg inside the zone (closing in, a step) names who it heads for and carries no fromZone; every leg keeps where it set off
-  const leg = { metres: r1(walked), ...(fromPos ? { fromPos } : {}), ...(a.zone !== from ? { fromZone: from } : toward ? { target: toward, ...(goal.zone !== a.zone ? toGo(state, a, goal.zone) : reachedSpot(a, goal, stopShort) ? { beside: true as const } : {}) } : goal.zone !== a.zone ? { heading: goal.zone, ...toGo(state, a, goal.zone) } : {}), ...(spot && a.zone === goal.zone ? { spot: reachedSpot(a, goal, stopShort) ? spot : spotOnTheWay(spot), ...(o.moveSpot?.lastSeen && o.moveSpot.near ? { lastSeenOf: o.moveSpot.near } : {}) } : {}) };
-  let ev = withActivity(ctx, a, mk(ctx, a, 'move', { ...leg, ...(round ? { round } : {}), ...(o.vanish ? { vanish: true as const } : {}) }), o.activity);
+  const leg = { metres: r1(walked), ...(fromPos ? { fromPos } : {}), ...(a.zone !== from ? { fromZone: from } : toward ? { target: toward, ...(goal.zone !== a.zone ? toGo(state, a, goal.zone) : reachedSpot(state, a, goal, stopShort) ? { beside: true as const } : {}) } : goal.zone !== a.zone ? { heading: goal.zone, ...toGo(state, a, goal.zone) } : {}), ...(spot && a.zone === goal.zone ? { spot: reachedSpot(state, a, goal, stopShort) ? spot : spotOnTheWay(spot), ...(o.moveSpot?.lastSeen && o.moveSpot.near ? { lastSeenOf: o.moveSpot.near } : {}) } : {}) };
+  let ev = withActivity(ctx, a, mk(ctx, a, 'move', { ...leg, ...(round ? { round } : {}) }), o.activity);
   if (withBark) ev = bark(ev, o);
   emit(ctx, ev);
   return walked;
@@ -547,14 +586,14 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
 
 /** BG-148: the way straight into `goal` that the walker knows is shut, when its walk goes round it instead: never silent */
 function roundShut(state: GameState, a: Actor, goal: string): { way: string; shut: 'blocked' | 'barred' | 'locked' } | undefined {
-  const l = zoneById(state, a.zone)?.links.find((x) => x.to === goal), b = barrierOn(state, l);
+  const l = wayTo(state, a.zone, goal), b = l && barrierOn(state, l.opening);
   if (!l || !b || passage(b, a, a.zone) !== 'shut' || !knowsShut(state, b, a, a.zone) || wayPath(state, a.zone, goal, a)?.[0] === goal) return undefined;
   return { way: l.label, shut: shutBy(b, a.zone) };
 }
 
-/** BG-81: the walker stands at the spot it walked for (within its stopShort, and a step's rounding) */
-function reachedSpot(a: Actor, goal: Located, stopShort: number): boolean {
-  return !goal.pos || !a.pos || Math.hypot(a.pos.x - goal.pos.x, a.pos.y - goal.pos.y) <= stopShort + 0.1;
+/** BG-81: the walker stands at the spot it walked for (within its stopShort, and a step's rounding: withinM) */
+function reachedSpot(state: GameState, a: Actor, goal: Located, stopShort: number): boolean {
+  return !goal.pos || !a.pos || withinM(floorGap(state, a, goal), stopShort); // SZ5: body to body, or to the spot
 }
 
 /** BG-47: on a leg that stops short of the way to another zone, how far that way still is (whole metres; none once there) */
@@ -590,13 +629,21 @@ function moveGoal(state: GameState, a: Actor, o: Order): { goal: Located; opts: 
   };
 }
 
+/** BF79: the order's walk is one the walker's nerve turns back (toward a foe while broken, any walk at Cowering) */
+export function nerveTurnsBack(state: GameState, a: Actor, o: Order): boolean {
+  return !!o.move && !nerveLetsWalk(state, a, moveGoal(state, a, o).goal);
+}
+
 /** ZP2: walks toward `goal` on move slots: each slot walks slotMetres of it (a move slot walks; a main slot spent on it, a
  * dash, runs the rest of the turn), one leg at a time, until it gets there, the slots run out, or the move is spent or
  * dropped. `slot` pays for each new slot (null: none left); with `stopShort`, the walk ends that far from the goal's point
  * (closing in to strike). Returns false when the move was dropped. */
 function walk(ctx: Ctx, a: Actor, goal: Located, o: Order, slot: (n: number) => Paid | null, opts: { bark?: boolean; stopShort?: number; toward?: string; spot?: string; enter?: boolean } = {}): boolean {
   const start = ctx.events.length;
-  const ok = walkLegs(ctx, a, goal, o, slot, opts);
+  // BF79: a broken nerve walks only away from its foes (none at all at Cowering): any other walk is turned back
+  const nerve = nerveLetsWalk(ctx.state, a, goal);
+  if (!nerve) logCode(ctx.state, 'nerve_turned_back', { actorId: a.id, to: goal.zone, cowering: nerveCowers(a) });
+  const ok = nerve && walkLegs(ctx, a, goal, o, slot, opts);
   // BG-118: words said with a move are never lost: a move that left no event to carry them (a wait at a frontier, a
   // dropped walk, a doorway underfoot) still says them, standing where the walker is
   if (opts.bark && o.line && !ctx.events.slice(start).some((e) => e.actorId === a.id && e.line)) emit(ctx, bark(mk(ctx, a, 'hold'), o));
@@ -634,6 +681,7 @@ function walkLegs(ctx: Ctx, a: Actor, goal: Located, o: Order, slot: (n: number)
       fresh = true;
     }
     const zone = a.zone;
+    walkThrough(ctx, a, goal, left); // BW21 a: walls and barriers too weak to stop the walker break as they go
     const r = doMove(ctx, a, goal, o, !!opts.bark && legs === 0, left, opts.stopShort ?? 0, opts.toward, opts.spot);
     if (r === null) return false;
     if (r === 'spent') return true;
@@ -644,6 +692,23 @@ function walkLegs(ctx: Ctx, a: Actor, goal: Located, o: Order, slot: (n: number)
     fresh = false;
   }
   return true;
+  }
+}
+
+/** BW21 a: a walker strong enough goes straight through what lies on its way within this leg's metres (walkBreaks): each
+ * wall gets a hole at the spot, each shut barrier is Destroyed, with the breakthrough's noise (one step past the
+ * material's) */
+function walkThrough(ctx: Ctx, a: Actor, goal: Located, metres: number): void {
+  const { state } = ctx;
+  for (const x of walkBreaks(state, a, goal, metres) ?? []) {
+    const stuff = 'wall' in x ? wallStuff(x.wall) : barrierStuff(x.barrier);
+    let to: string | undefined;
+    if ('wall' in x) { cutHole(state, x.wall, holeSpot(state, x.wall, x.at) ?? x.at, x.from, false); to = x.to?.id; }
+    else { x.barrier.state = 'destroyed'; delete x.barrier.wear; delete x.barrier.wornTurn; to = x.opening.joins.find((j) => j !== a.zone); }
+    emit(ctx, mk(ctx, a, 'break_through', {
+      ...(to ? { target: to } : {}), noise: NOISE.at(NOISE.pos(stuff?.material.noise ?? 'loud') + 1),
+      breakThrough: { ...('wall' in x ? { wall: x.wall.id } : { barrier: x.barrier.id }), ...(to ? { to } : {}), share: 1, state: 'destroyed', walked: true },
+    }));
   }
 }
 
@@ -668,7 +733,7 @@ function dropped(ctx: Ctx, a: Actor, o: Order): void {
   const { state } = ctx;
   logCode(state, 'order_dropped', { actorId: a.id, type: o.type, target: o.target });
   if (a.kind === 'npc' && o.source !== 'fallback' && isEngaged(state, a)) {
-    const f = fallbackOrder(buildActorView(state, a.id), ctx.rng);
+    const f = fallbackOrder(withTactics(state, a, buildActorView(state, a.id)), ctx.rng);
     const near = reachOf(state, a, f); // TP2: the move time left closes in on the new target, as any blow's would (ZP3)
     if (near && !near.ok()) closeInOn(ctx, a, f, near);
     if (f.type === 'attack' && near && !near.ok() && runOn(ctx, a, f, near)) { const line = f.line ?? o.line; if (line) hold(ctx, a, { ...f, line }); return; } // BG-255: words said where the run ends
@@ -708,10 +773,16 @@ function doSpeak(ctx: Ctx, a: Actor, o: Order): void {
   const { state } = ctx;
   // BG-50: a speak with no words (a code-run beat, or a call that gave no line) carries no line at all, never an empty one
   const line = o.line?.text?.trim() ? o.line : undefined;
+  const faced = o.target ? actorById(state, o.target) : undefined;
+  if (faced && faced !== a) faceToward(a, faced); // SZ4
   const ev = mk(ctx, a, 'speak', { target: o.target ?? undefined, ...(line ? { line } : {}), noise: VOLUME_NOISE[line?.volume ?? 'normal'] });
   if (a.kind === 'player') ev.speech = { skill: speechSkillOf(o.type), addressees: o.addressees ?? [] };
   // NV5: words aimed at a creature that cannot understand them (a slime, a beast): the story says it does not understand
-  if (a.kind === 'player') for (const id of new Set([o.target, ...(o.addressees ?? [])])) { const x = id ? actorById(state, id) : undefined; if (x && x !== a && isActive(x) && !speaks(x)) ev.effects.push({ kind: 'not_understood', actorId: x.id, data: {} }); }
+  // BF88: a threat needs no words: a beast with some wits is stared down instead (Intimidation against its own), and it is
+  // never told as words not understood
+  const stared = a.kind === 'player' && o.type === 'intimidate' && o.target ? actorById(state, o.target) : undefined;
+  const beast = stared && stared !== a && isActive(stared) && !speaks(stared) && feelsThreats(stared) ? stared : undefined;
+  if (a.kind === 'player') for (const id of new Set([o.target, ...(o.addressees ?? [])])) { const x = id ? actorById(state, id) : undefined; if (x && x !== a && x !== beast && isActive(x) && !speaks(x)) ev.effects.push({ kind: 'not_understood', actorId: x.id, data: {} }); }
   // OQ-29: an NPC's persuade, deceive, intimidate or barter at the player rolls when the player hears it; the player answers.
   // NL1/NL2: a lie at another NPC rolls the same way (D-155: other speech at NPCs stays banked)
   const p = state.player;
@@ -731,6 +802,16 @@ function doSpeak(ctx: Ctx, a: Actor, o: Order): void {
       if (to === p && OFFER_TYPES.includes(type) && type !== 'barter' && canOffer(state, a, p)) ev.push.offer = makeOffer(state, a, p, type, contest, []).landed;
     }
   }
+  if (beast) {
+    ev.perception = computePerception(ev, state, ctx.rng);
+    if (ev.perception[beast.id]) {
+      const contest = pushContest(state, a, 'intimidate', ctx.rng, beast);
+      ev.contest = contest;
+      const took = applySpeech(a, beast, 'intimidate', contest).status === 'shaken';
+      if (took) fear(ctx, beast, FR.lost_intimidation, { gap: contest.gap });
+      ev.effects.push({ kind: took ? 'threat_took' : 'threat_shrugged', actorId: beast.id, data: { by: a.id } });
+    }
+  }
   // Voice shares: only facts from its knows list
   const voice = o.source === 'agent' ? usableAgentOutputs(ctx.input).find((x) => x.actorId === a.id && x.agent === 'voice') : undefined;
   if (voice?.agent === 'voice') {
@@ -740,7 +821,7 @@ function doSpeak(ctx: Ctx, a: Actor, o: Order): void {
       else logCode(state, 'invalid_share', { actorId: a.id, factId: id });
     }
   }
-  emit(ctx, ev, undefined, push);
+  emit(ctx, ev, undefined, push || !!beast);
   if (type === 'deceive') overhearLie(state, ev, ev.push ? [ev.push.listener] : [], ctx.rng, ev.contest?.a); // LI5a
 }
 
@@ -761,10 +842,12 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
   if (!t || t === a) return wasted('no_target'); // BG-149: always a reason
   if (healthLevel(t) === 'dead') return wasted('already_dead');
   if (t === state.player && !isActive(t)) return wasted('already_down'); // a downed player's fate is the survival roll's (D-54)
-  if (a === state.player && moraleLevel(a) === 'broken') { logCode(state, 'broken_no_attack', { actorId: a.id }); return wasted('nerve_broken'); } // MB12
+  if (a !== state.player && fooledBy(a, t)) return wasted('already_down'); // TC32 a: an NPC fooled by Play Dead leaves the "body" be
+  if (a === state.player && isBrokenLevel(moraleLevel(a))) { logCode(state, 'broken_no_attack', { actorId: a.id }); return wasted('nerve_broken'); } // MB12
   if (yieldBars(state, a, t)) { logCode(state, 'yield_no_attack', { actorId: a.id, target: t.id }); return wasted('yielded_to'); } // MB43
   if (truceBars(state, a, t)) { logCode(state, 'truce_no_attack', { actorId: a.id, target: t.id }); return wasted('truce'); } // TF16
   if (heldBack(state, a, t)) { logCode(state, 'spar_blow_held', { actorId: a.id, target: t.id }); return wasted('spar_held'); }
+  faceToward(a, t); // SZ4
   const dist = sightDistM(state, a, t);
   if (notInHand(state, a, o)) return wasted('not_in_hand'); // BG-186: never a fist in its place
   const named = namedMode(state, a, o);
@@ -778,6 +861,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
     return wasted(r !== undefined && t.zone === a.zone && !roomAround(state, a, t, r) ? 'no_room' : 'out_of_reach');
   }
   const fromHiding = a.posture === 'stealthy'; // All-50 Strike and Fade
+  const sawBefore = fromHiding ? allActors(state).filter((x) => x !== a && atLeast(beliefStatus(state, x, a), 'aware')).map((x) => x.id) : null; // VS3
   const inAndOut = fromHiding && m.mode.tree !== 'ranged' && hasPerk(a, PK.in_and_out); // A23 In and Out: only the target sees you
   const shows = fromHiding && m.mode.tree !== 'ranged' && !inAndOut;
   if (shows) a.posture = 'open'; // ST5: a melee blow shows you
@@ -786,10 +870,16 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
   // BG-25: someone down can't defend: the blow lands as on someone unaware
   let surprised = !isActive(t) || isAsleep(t); // NW14: a sleeper is struck as unaware (Never Surprised doesn't help it)
   // NS6: a stealthy NPC can ambush the player too; the player's belief is cleared only after the blow
+  // TC35 b Never Flat-Footed: a foe the target has seen this fight is no ambush (bystanders still roll to notice it)
   if (!surprised && !atLeast(beliefStatus(state, t, a), 'suspicious')) {
-    surprised = resolveAmbush(state, a.id, t.id, ev, rng).surprised && !hearsItComing(state, t, { zone: ev.zone, pos: ev.pos }, ev.noise);
+    surprised = resolveAmbush(state, a.id, t.id, ev, rng).surprised && !hearsItComing(state, t, { zone: ev.zone, pos: ev.pos }, ev.noise) && !neverFlatFooted(t, a);
     if (surprised) ctx.surprised.add(t.id);
   }
+  // TC32 a Play Dead: the owner's first blow on a foe that took it for Down lands as on an unaware foe
+  if (!surprised && ctx.risen.get(a.id)?.includes(t.id)) { surprised = true; ctx.surprised.add(t.id); ctx.risen.delete(a.id); }
+  // TC51 a: a feigned flight's turn-around blow on a foe that believed it lands as on an unaware foe; any blow ends the feint
+  if (!surprised && fooledByFeint(state, t, a)) { surprised = true; ctx.surprised.add(t.id); }
+  delete a.feint;
   if (shows) stealthEnd(state, a);
   if (inAndOut) updateBeliefs(state, { kind: 'detection', observerId: t.id, aboutId: a.id, status: 'aware', event: ev });
   // A11 Cover Ally: a friend in the zone steps into the path of a ranged attack and defends in the target's place
@@ -809,23 +899,26 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
   const helpless = !isActive(t) ? 'down' as const : isAsleep(t) ? 'asleep' as const : t.heldBy ? 'held' as const : undefined;
   const opening = openingShifts(ctx, a, t, m.mode.tree);
   // LR1 Ghost Blade: Hidden Strike also lands on a target only suspicious of the owner, once per target per engagement
-  if (!surprised && hasPerk(a, PK.ghost_blade) && beliefStatus(state, t, a) === 'suspicious' && onceThisEngagement(state, a, `${PK.ghost_blade}:${t.id}`)) {
+  if (!surprised && hasPerk(a, PK.ghost_blade) && beliefStatus(state, t, a) === 'suspicious' && !neverFlatFooted(t, a) && onceThisEngagement(state, a, `${PK.ghost_blade}:${t.id}`)) {
     opening.attackerShifts = [...(opening.attackerShifts ?? []), { source: 'Ghost Blade', value: 1 }];
   }
   gaveUpFeats(state, a, t); // AS1–AS11: striking someone who already gave up, before this blow changes anything
   if (flurry) opening.attackerShifts = [...(opening.attackerShifts ?? []), { source: 'Flurry', value: -1 }]; // AT79: one tier less sure
   const res = ruleset.attack(
     { attackerId: a.id, targetId: t.id, weaponId: m.itemId, modeId: m.mode.id, targetPart: o.targetPart ?? null, aimed: !!o.aimed,
-      context: { defenderUnaware: surprised, ...(fromHiding ? { fromHiding } : {}), ...(helpless ? { helpless } : {}), defensesThisTurn: ctx.defenses.get(roundKey(ctx, t.id)) ?? 0, ...opening } },
+      context: { defenderUnaware: surprised, ...(!surprised && !neverFlatFooted(t, a) && beliefStatus(state, t, a) === 'suspicious' ? { defenderSuspicious: true } : {}), ...(fromHiding ? { fromHiding } : {}), ...(o.intent === PARRY_STRIKE ? { strikeBack: true } : {}), ...(helpless ? { helpless } : {}), defensesThisTurn: ctx.defenses.get(roundKey(ctx, t.id)) ?? 0, ...opening } },
     state, rng,
   );
+  // TC45 a: defending gives the act away to every foe
+  if (res.defense && !helpless && t.playingDead) { endPlayDead(t); ev.effects.push({ kind: 'play_dead_ends', actorId: t.id, data: { why: 'defends' } }); }
   if (res.defense && !helpless) { ctx.defenses.set(roundKey(ctx, t.id), (ctx.defenses.get(roundKey(ctx, t.id)) ?? 0) + 1); payStrain(state, t, CONFIG.DEFENSE_EFFORT); } // FT5: a dodge, block or parry
   ev.effects = [...ev.effects, ...ruleset.applyEffects(res, state)];
   afterAttack(state, a, t, res, m.mode.tree === 'ranged', modeSkill(m.mode), oneTwo); // perk marks (A2, A5, A10, B15, LR2)
+  if (met(res.outcome)) openPlayDead(state, t); // TC44 a
   const hold = applyHold(a, t, res, modeSkill(m.mode)); // A8 Hold
   if (hold) ev.effects.push(hold);
   ruleset.recordUse(a, res.attack.skill, res, state);
-  markEndurance(state, t, t.core.condition.hpLostPct - before.lost);
+  markEndurance(state, t, t.core.condition.hpLostPct - before.lost, res);
   if (spar) checkOut(state, spar); // SP4: at the limit, the fighter is out: a later blow on it is a real attack (SP7)
   ev.tier = res.attack.tier;
   ev.attack = res;
@@ -853,14 +946,14 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
   // B16 One-Two: an improvised hit with a Grip part free is followed by a free punch at the same foe
   if (!followUp && modeSkill(m.mode) === SK.unarmed_improvised && met(res.outcome) && hasPerk(a, PK.one_two)
     && isActive(t) && hasFreeGrip(state, a)) {
-    const fist = usableModes(state, a).find((x) => modeSkill(x.mode) === SK.unarmed_strike && x.mode.reach >= 0);
+    const fist = usableModes(state, a).find((x) => modeSkill(x.mode) === SK.unarmed_strike);
     if (fist && withinM(sightDistM(state, a, t), fist.mode.reach)) { ctx.oneTwo = true; doAttack(ctx, a, { ...o, target: t.id, item: fist.itemId, mode: fist.mode.id, skill: SK.unarmed_strike, targetPart: null, aimed: false, line: null }, true); }
   }
   // AT79 Flurry: every unarmed strike thrown with two Grip parts free, hit or miss, brings one free strike at the same target
   // at once (no time, no action). Its own free strike never sets it off again; One-Two's free punch does
   if (!flurry && modeSkill(m.mode) === SK.unarmed_strike && hasPerk(a, PK.flurry) && isActive(t) && freeGrips(state, a).length >= 2
     && withinM(sightDistM(state, a, t), m.mode.reach)) doAttack(ctx, a, { ...o, target: t.id, item: m.itemId, mode: m.mode.id, skill: SK.unarmed_strike, targetPart: null, aimed: false, line: null }, followUp, true);
-  allFiftyAfterAttack(ctx, a, t, m.mode.tree === 'ranged', m.itemId, res, fromHiding, followUp);
+  allFiftyAfterAttack(ctx, a, t, m.mode.tree === 'ranged', m.itemId, res, sawBefore, followUp);
   if (o.intent !== PARRY_STRIKE) parryStrike(ctx, a, t, res); // a strike back earns none: a parried one ends the exchange
 }
 
@@ -873,8 +966,8 @@ function parryStrike(ctx: Ctx, a: Actor, t: Actor, res: AttackResult): void {
   if (!res.strikeBack || !isActive(t) || !isActive(a)) return;
   const weapon = parryItem(state, t);
   const modes = usableModes(state, t);
-  const back = weapon ? modes.find((x) => x.itemId === weapon.id && x.mode.tree === 'melee' && x.mode.reach >= 0)
-    : modes.find((x) => modeSkill(x.mode) === SK.unarmed_strike && x.mode.reach >= 0);
+  const back = weapon ? modes.find((x) => x.itemId === weapon.id && x.mode.tree === 'melee')
+    : modes.find((x) => modeSkill(x.mode) === SK.unarmed_strike);
   if (!back || !withinM(sightDistM(state, t, a), back.mode.reach)) return; // the blow back reaches only as far as its weapon (metres)
   if (!strikeBackAllowed(ctx, t, a, 'parry')) return;
   doAttack(ctx, t, { ...nullOrder(t.id), type: 'attack', target: a.id, item: back.itemId, mode: back.mode.id, intent: PARRY_STRIKE }, true);
@@ -902,6 +995,7 @@ const nullOrder = (actorId: string): Order => ({ actorId, type: 'hold', target: 
 /** an engagement-limited All-50 part can be used (a use outside an engagement starts one, as perk moves do) */
 function readyThisEngagement(state: GameState, a: Actor, id: string): boolean {
   if (!a.engagement) a.engagement = { start: state.turn, last: state.turn, kinds: ['fight'] };
+  notePower(state, a); // GR44
   return usableThisEngagement(a, id);
 }
 function onceThisEngagement(state: GameState, a: Actor, id: string): boolean {
@@ -926,7 +1020,7 @@ function openingShifts(ctx: Ctx, a: Actor, t: Actor, tree: string): { attackerSh
 }
 
 /** All-50 parts that act after an attack (src/library/allPerks.ts) */
-function allFiftyAfterAttack(ctx: Ctx, a: Actor, t: Actor, ranged: boolean, itemId: string | null, res: AttackResult, fromHiding: boolean, followUp: boolean): void {
+function allFiftyAfterAttack(ctx: Ctx, a: Actor, t: Actor, ranged: boolean, itemId: string | null, res: AttackResult, sawBefore: string[] | null, followUp: boolean): void {
   const { state, rng } = ctx;
   // T4b Second Wind: once per engagement, at Wounded or worse (not down), the health track moves one level better
   const L = CONFIG.HEALTH_TRACK;
@@ -953,10 +1047,11 @@ function allFiftyAfterAttack(ctx: Ctx, a: Actor, t: Actor, ranged: boolean, item
       doAttack(ctx, a, { ...nullOrder(a.id), type: 'attack', target: pick.id, item: mode.itemId, mode: mode.mode.id }, true);
     }
   }
-  // T6a Strike and Fade: right after an attack from hiding, a free Vanishing roll in place
-  if (fromHiding && hasPerk(a, PK.strike_and_fade) && isActive(a)) {
+  // T6a Strike and Fade (VS3): right after an attack from hiding, those the attack made aware roll against Vanishing at once
+  if (sawBefore && hasPerk(a, PK.strike_and_fade) && isActive(a)) {
     if (a.posture !== 'stealthy') { a.posture = 'stealthy'; stealthStart(state, a); }
-    const ev = mk(ctx, a, 'vanish', { vanish: true });
+    const spotted = allActors(state).filter((x) => x !== a && !sawBefore.includes(x.id) && atLeast(beliefStatus(state, x, a), 'aware')).map((x) => x.id);
+    const ev = mk(ctx, a, 'vanish', { spotted });
     ev.effects.push({ kind: PK.strike_and_fade, actorId: a.id, data: {} });
     emit(ctx, ev);
   }
@@ -992,10 +1087,6 @@ function restRow(state: GameState, a: Actor): string {
   return Object.values(getLibrary().healing ?? {}).find((h) => h.placeKinds?.includes(kind) && a.paid?.includes(h.id))?.id ?? HL.rest;
 }
 
-/** an active hostile shares the zone with `a` (what blocks a rest) */
-export const threatHere = (state: GameState, a: Actor): boolean =>
-  allActors(state).some((x) => x !== a && isActive(x) && x.zone === a.zone && (foe(state, a, x) || foe(state, x, a)));
-
 /** T6: the player waits until a time of day (o.target; none = the next one) or sleeps (the durations table's sleep row).
  * Either can always be started (AT8): a wait runs on the world clock at the end of the turn and stops when the clock
  * pauses (runStretch); in a fight the clock is already paused, so it does nothing. A time skip never ends the scenario. */
@@ -1020,10 +1111,11 @@ function doWait(ctx: Ctx, a: Actor, o: Order): void {
     }
     const until = named ?? nextTimeOfDay(timeOfDay(t));
     if (o.type === 'sleep') {
-      // NW12/NW15: the night: alone, until rested (FT9) or the time named; with companions, one watch each. "Sleep" again
+      // NW12/NW15: the night: alone, until rested (FT9) or the time named; with companions, one watch each (BG-295: those who
+      // would hear the sleeper shout, WAKE_NOISE, wherever they stand). "Sleep" again
       // during a night that was stopped (on watch, or after someone came and went) carries it on.
       const sleepMin = named ? minutesUntil(t, named) : sleepMinutes(state, a);
-      if (!state.night) state.night = planNight(state, sleepMin, allActors(state).filter((x) => x !== a && isActive(x) && !isAsleep(x) && x.zone === a.zone && x.bandId === a.bandId && !!x.mind?.routine && routine(x.mind.routine.id).kind === 'follow'));
+      if (!state.night) state.night = planNight(state, sleepMin, allActors(state).filter((x) => x !== a && isActive(x) && !isAsleep(x) && hears(state, x, a, CONFIG.WAKE_NOISE) && x.bandId === a.bandId && !!x.mind?.routine && routine(x.mind.routine.id).kind === 'follow'));
       logCode(state, 'night_started', { actorId: a.id, end: state.night.end, watches: state.night.watches });
       runNight(ctx);
     } else {
@@ -1117,7 +1209,7 @@ function huntOnCode(ctx: Ctx, seconds: number, onLeg?: OnLeg): { reached: string
     };
     if (o.type === 'attack' && t) {
       // BF71: it closes to its blow's reach (stepping round anyone in the way), not to a set distance
-      if (!inReach(state, x, o)) { const m = attackMode(state, x, o).m ?? defaultMode(state, x, 0); walk(t, m ? Math.max(0, m.mode.reach - M_EPS) : CONFIG.HOSTILE_NEAR_M / 2, t.id); }
+      if (!inReach(state, x, o)) { const m = attackMode(state, x, o).m ?? defaultMode(state, x, 0); walk(t, m ? Math.max(0, closeInM(m.mode.reach) - M_EPS) : CONFIG.HOSTILE_NEAR_STEP_M, t.id); }
       if (!inReach(state, x, o)) continue;
       if (t === p) { reached.push(x.id); continue; }
       fighting = true;
@@ -1187,6 +1279,7 @@ function runStretch(ctx: Ctx, st: Stretch, onLeg?: OnLeg): void {
     const b = p.busy;
     if (b) { const was = b.done; b.done = Math.min(b.need, b.done + ran); payRow(state, p, actionRow(b.row), b.done - was); }
     if (b && b.done >= b.need - T_EPS) { delete p.busy; doMain(ctx, p, st.order!); } // AT45: its time is done: it takes effect
+    else if (b && b.row === DU.break_through) { delete p.busy; if (b.done > T_EPS) doBreakThrough(ctx, p, st.order!, b.done); } // BW13 a: the work done stays on the wall
     else if (b && stop && actionRow(b.row)?.focus === 'deep') breakOff(state, p, st.ev); // AT65: deep breaks on any stop; else it waits for the same order again
   } else if (st.kind === 'rest') {
     const share = st.seconds > 0 ? Math.min(1, ran / st.seconds) : 1;
@@ -1343,12 +1436,7 @@ function doHealItem(ctx: Ctx, a: Actor, o: Order): boolean {
 
 /** NR34 (placeholders): Heal, open at true Healing CONFIG.HEAL_UNLOCK, on someone within grip reach or oneself. A Healing
  * roll at moderate difficulty gives back CONFIG.HEAL_TIER_SHARE (by tier, plus HEAL_PAST_STEP per step past Critical
- * Success) of what is missing, of health and of each part up to Damaged (the heal row's reach). Below Near Miss, nothing. */
-export const healShare = (level: number): number => {
-  const top = TIERS.pos('critical_success');
-  if (level > top) return Math.min(1, CONFIG.HEAL_TIER_SHARE.critical_success + (level - top) * CONFIG.HEAL_PAST_STEP);
-  return CONFIG.HEAL_TIER_SHARE[TIERS.at(level)] ?? 0;
-};
+ * Success, healShare in ruleset/body.ts) of what is missing, of health and of each part up to Damaged (the heal row's reach). Below Near Miss, nothing. */
 function doHeal(ctx: Ctx, a: Actor, o: Order): void {
   const { state, rng } = ctx;
   const t = (o.target && actorById(state, o.target)) || a;
@@ -1380,10 +1468,11 @@ function doGeneric(ctx: Ctx, a: Actor, o: Order): void {
   const kind = o.type === 'idle' ? 'idle' : o.type;
   const ev = bark(withActivity(ctx, a, mk(ctx, a, kind, { target: o.target ?? undefined }), o.activity), o);
   // BG-65: checking a door or other way out of the zone says what holds it: open, shut but theirs to open, or locked/barred/blocked
-  const link = o.type === 'interact' && o.target ? zoneById(state, a.zone)?.links.find((l) => l.to === o.target) : undefined;
+  const link = o.type === 'interact' && o.target ? wayTo(state, a.zone, o.target) : undefined;
+  const person = o.target ? actorById(state, o.target) : undefined;
   if (link && !atDoor(state, a, link.to)) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason: 'out_of_reach' }), o)); // BG-86
   if (link) {
-    const b = barrierOn(state, link), pass = b ? passage(b, a, a.zone) : 'open';
+    const b = barrierOn(state, link.opening), pass = b ? passage(b, a, a.zone) : 'open';
     if (b && pass === 'shut') noteTried(b, a);
     ev.way = { to: link.to, ...(b ? { barrier: b.id } : {}), did: pass === 'open' ? 'found_open' : pass === 'opens' ? 'found_opens' : (`found_${shutBy(b!, a.zone)}` as WayDid) };
   }
@@ -1400,12 +1489,19 @@ function doGeneric(ctx: Ctx, a: Actor, o: Order): void {
     if (tierAtLeast(r.tier, 'success')) lookAround(state);
     ev.effects.push(...foundEffects(a, searchFor(state, a, ev, rng, { look: fn }))); // SE14: also a weak search
     ruleset.recordUse(a, r.skill, { actorId: a.id, skill: r.skill, target, passed: tierAtLeast(r.tier, 'success'), modifiers }, state);
+  } else if (o.skill === SK.insight && o.type === 'observe' && person && person !== a) {
+    // BF97 a: sizing someone up is Insight against their Lying, never a roll against a grade; out of clear sight, nothing
+    const r = sizeUp(state, a, person, rng);
+    if (!r) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: person.id, reason: 'out_of_sight' }), o));
+    ev.contest = r.contest;
+    if (r.read) ev.read = r.read;
   } else if (o.skill && CHECK_TYPES.has(o.type)) {
     // OD1 b/OD3: an act on a thing rolls against the thing's own grade only when in doubt; OD5: code holds what each tier does
     const thing = gradedThing(state, o, link);
     const grade = thing?.grade ?? o.grade ?? 'moderate';
-    // OD14 a: a grade the actor's agent (Parser, Planner, Responder) left out is flagged every time, and is Moderate
-    if (!thing?.grade && !o.grade) logCode(state, 'grade_gap', { actorId: a.id, type: o.type, skill: o.skill, ...(o.target ? { target: o.target } : {}), intent: o.intent.slice(0, 200) });
+    // OD14 a: a grade the actor's agent (Parser, Planner, Responder) left out is flagged every time, and is Moderate.
+    // BF97 a: an act on a person is never graded, so it is never flagged
+    if (!thing?.grade && !o.grade && !person) logCode(state, 'grade_gap', { actorId: a.id, type: o.type, skill: o.skill, ...(o.target ? { target: o.target } : {}), intent: o.intent.slice(0, 200) });
     if (thing && !thing.grade && o.grade) thing.grade = o.grade; // OD3: kept on the thing, so asking again can't regrade it
     if (thing && !(thing.graded ??= []).includes(a.id)) thing.graded.push(a.id); // OD12: trying it shows its grade
     const used = o.type === 'use_item' ? a.core.inventory.find((i) => i.id === o.item || i.itemId === o.item) : undefined;
@@ -1450,7 +1546,7 @@ function tierResult(ctx: Ctx, a: Actor, o: Order, ev: GameEvent, r: RollResult, 
 }
 
 /** OD2: what an act acts on that can carry a grade: a piece of furniture, a container, or the barrier on the way checked */
-function gradedThing(state: GameState, o: Order, link: ZoneLink | undefined): { grade?: Grade; graded?: string[]; beyond?: Record<string, number> } | undefined {
+function gradedThing(state: GameState, o: Order, link: { barrier?: string } | undefined): { grade?: Grade; graded?: string[]; beyond?: Record<string, number> } | undefined {
   if (!o.target) return undefined;
   if (link) return barrierOn(state, link);
   return furnitureRecord(state, o.target) ?? findContainer(state, o.target)?.inst;
@@ -1511,10 +1607,10 @@ function doStash(ctx: Ctx, a: Actor, o: Order): void {
 
 /** the barrier on the way from `a`'s zone to `to`, and that link */
 const barrierTo = (state: GameState, a: Actor, to: string | null | undefined): Barrier | undefined =>
-  to ? barrierOn(state, zoneById(state, a.zone)?.links.find((l) => l.to === to)) : undefined;
+  to ? barrierOn(state, wayTo(state, a.zone, to)?.opening) : undefined;
 
 /** BG-144: why a way op came to nothing, in the words a wasted event carries */
-const WAY_DROP_WORDS: Record<string, string> = { no_move: 'no_time_left', no_barrier: 'nothing_to_work', no_bar: 'nothing_to_work', no_lock: 'nothing_to_work', already: 'already_done', far_side: 'from_the_wrong_side', no_key: 'no_key' };
+const WAY_DROP_WORDS: Record<string, string> = { no_move: 'no_time_left', no_barrier: 'nothing_to_work', fixed: 'nothing_to_work', no_bar: 'nothing_to_work', no_lock: 'nothing_to_work', already: 'already_done', far_side: 'from_the_wrong_side', no_key: 'no_key' };
 
 /** BA3/BA4: a key turned or a bar slid on purpose, in the move slot (o.way); it stands in for the turn's move. `mainToo`:
  * with the move slot gone on the walk to the door (BG-86), the free main action does it */
@@ -1578,7 +1674,7 @@ function doPick(ctx: Ctx, a: Actor, o: Order): void {
     (b.beyond ??= {})[a.id] = eff;
     return emit(ctx, way('beyond', extra));
   }
-  const need = pickSeconds(eff);
+  const need = pickSeconds(eff, timeFactor(a));
   if (state.mode === 'tactical') {
     const work = ((b.work ??= {})[a.id] = (b.work[a.id] ?? 0) + ctx.turnS);
     payRow(state, a, actionRow(DU.pick_lock), ctx.turnS); // FT24: picking has no order row of its own, so it pays here
@@ -1617,6 +1713,7 @@ function doOpen(ctx: Ctx, a: Actor, o: Order): void {
 function doBreak(ctx: Ctx, a: Actor, o: Order): void {
   const { state, rng } = ctx;
   const c = findContainer(state, o.target);
+  if (!c && o.target && breakJob(state, a, o.target)) return doBreakThrough(ctx, a, o);
   const why = !c ? 'no_container' : !withinGrip(state, a, c.at) ? 'out_of_reach' : c.inst.open ? 'already_open' : !c.inst.lock?.locked ? 'not_locked' : null;
   if (why || !c) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, ...(c ? { itemId: c.inst.id } : {}), reason: why ?? 'no_container' }), o));
   const owner = theft(state, a, c) ? ownerOf(state, c) : undefined;
@@ -1645,6 +1742,35 @@ function doBreak(ctx: Ctx, a: Actor, o: Order): void {
   if (opened) open();
   if (opened && a === state.player) tally(state, 'broke_open');
   done(ev(opened, { roll: r, tier: r.tier, breakOpen: { opened, ...(broke.length ? { broke: broke.map((i) => i.id) } : {}) } }));
+}
+
+/** BW8-BW26: a turn (or, out of a fight, a spell) of breaking through a wall or the barrier on a way, within grip reach of
+ * it: the work goes onto it at the breaker's speed (src/engine/breakThrough.ts), Crippled at half and Destroyed when done
+ * (BW11 a). It sounds as the material's noise, one step louder the turn it breaks through (BW10 a). `spent`: seconds already
+ * run (a stretch stopped early); else the fight turn's (ctx.breakS) or, out of a fight, all it needs up to a spell. */
+function doBreakThrough(ctx: Ctx, a: Actor, o: Order, spent?: number): void {
+  const { state } = ctx;
+  const job = breakJob(state, a, o.target);
+  const wasted = (reason: string) => emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason }), o));
+  if (!job) return wasted('nothing_to_break');
+  if (job === 'open') return wasted('already_done');
+  if (!withinGrip(state, a, jobAt(state, a, job))) return wasted('out_of_reach');
+  regrow(state, job);
+  const f = timeFactor(a), need = secondsLeft(state, a, job) * f;
+  const s = Math.min(need, spent ?? (state.mode === 'tactical' ? ctx.breakS ?? ctx.turnS : CONFIG.BREAK_SPELL_S));
+  delete ctx.breakS;
+  if (s <= T_EPS) return wasted('no_time_left');
+  const r = addWear(state, a, job, s / f);
+  const check = s >= CONFIG.BREAK_SPELL_S - T_EPS ? toolCheck(state, a, ctx.rng) : {}; // BW23 a: a full spell is one breakage check
+  const noise = r.reached === 'destroyed' ? NOISE.at(NOISE.pos(job.stuff.material.noise) + 1) : job.stuff.material.noise;
+  const left = Math.max(0, secondsLeft(state, a, job));
+  emit(ctx, bark(mk(ctx, a, 'break_through', {
+    target: o.target ?? undefined, noise,
+    breakThrough: {
+      ...(job.kind === 'wall' ? { wall: job.w.id } : { barrier: job.b.id }), ...(job.to ? { to: job.to } : {}), share: Math.round(r.share * 100) / 100,
+      ...(r.reached ? { state: r.reached } : {}), ...(r.share < 1 ? { left: Math.round(left) } : {}), ...(check.tool ? { tool: check.tool } : {}), ...(check.broke ? { toolBroke: true as const } : {}),
+    },
+  }), o));
 }
 
 /** BK6: a container its owner guards forced open is theft seen, with no Filching contest: everyone outside the breaker's
@@ -1763,11 +1889,7 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
     case 'steady': { // SY1: steadying yourself (engine/steady.ts); a loss goes through fear(), which applies a break
       const why = cantSteady(state, a);
       if (why) return emit(ctx, bark(mk(ctx, a, 'wasted', { reason: why }), o));
-      const ev = mk(ctx, a, 'steady', {});
-      emit(ctx, bark(ev, o));
-      const r = steady(state, a, ctx.rng, (cost) => fear(ctx, a, FR.steady_slipped, { cost }));
-      Object.assign(ev, { tier: r.roll.tier, roll: r.roll, steady: { points: Math.round(r.points), ...(r.buff ? { buff: true } : {}) } });
-      return;
+      return doSteady(ctx, a, o);
     }
     case 'search':
       return doSearch(ctx, a, o);
@@ -1782,11 +1904,10 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
       const t = o.target ? actorById(state, o.target) : undefined;
       const why = !t || t === a ? 'no_target' : !isActive(t) ? 'already_down' : !withinGrip(state, a, t) ? (roomAround(state, a, t, gripReachM(state, a)) ? 'out_of_reach' : 'no_room') : t.heldBy === a.id ? 'already_holding' : null;
       if (why) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason: why }), o));
-      return emit(ctx, bark(mk(ctx, a, 'restrain', { target: t!.id, effects: [restrain(state, a, t!, ctx.rng).effect] }), o));
+      // BG-282: the grab's contest goes on the event, so its roll shows like any other
+      const grab = restrain(state, a, t!, ctx.rng);
+      return emit(ctx, bark(mk(ctx, a, 'restrain', { target: t!.id, effects: [grab.effect], contest: grab.contest }), o));
     }
-    case 'vanish':
-      // A19 Melt Away: a Vanish in place is a Vanishing contest per observer (stealthDetect)
-      return emit(ctx, bark(mk(ctx, a, 'vanish', { vanish: true }), o));
     case 'wait':
     case 'sleep':
       return doWait(ctx, a, o);
@@ -1844,7 +1965,18 @@ function step(ctx: Ctx, id: string): void {
   if (!a || !isActive(a)) return; // downed: order dropped
   ctx.acted.add(id);
   const o = ctx.orders.get(id)!;
+  // TC32 a: lying still is a hold with no move, words, gear or way; anything else gets the owner up, for every foe
+  if (a.playingDead && !(o.type === 'hold' && !o.move && !o.line && !o.gear?.length && !o.perkMove && !o.way && !o.warn)) {
+    ctx.risen.set(id, endPlayDead(a));
+    emit(ctx, mk(ctx, a, 'perk_move', { effects: [{ kind: 'play_dead_ends', actorId: a.id, data: { why: 'acts' } }] }));
+  }
   if (o.defense) a.core.standingDefense = o.defense;
+  if (o.rule && a.mind) (a.mind.rowsUsed ??= {})[o.rule] = state.turn; // D-17: a fight row used (B1 calls for help once a fight)
+  if (o.rule === FX.feigned_flight && o.type !== 'attack' && !a.feint) { // S3 (TC50-TC52 a): the run begins; onlookers roll
+    const ev = mk(ctx, a, 'feint', { effects: startFeint(state, a, ctx.rng) });
+    ev.perception = computePerception(ev, state, ctx.rng);
+    emit(ctx, ev);
+  }
   // FR2: a pick-up out of grip reach waits for the walk over to it (closeIn); the rest are free, before the action
   const later = (o.gear ?? []).filter((op) => op.op === 'pick_up' && !reachable(state, a, op));
   const gearNow = (o.gear ?? []).filter((op) => !later.includes(op));
@@ -1887,7 +2019,11 @@ function step(ctx: Ctx, id: string): void {
     if (o.move && !walk(ctx, a, goal, o, (n) => useMoveSlot(ctx, a, mainToo && n > 0), opts)) logCode(state, 'move_dropped', { actorId: id, to: o.move });
   };
   const from = { zone: a.zone, pos: a.pos && { ...a.pos } };
-  const closer = () => { if (closeIn && !near!.ok()) closeInOn(ctx, a, o, near!, behind); };
+  // BG-284 (BF91 a): a take with nothing else to do (hold) walks over as a dash does, on the dash's own payment (the move
+  // time, then the main time), so a body across the zone is reached in one turn when a run gets there. Only within the
+  // zone ("Take things here"): a thing in another zone is still walked to at walking pace (BG-85)
+  const takeDash = o.type === 'hold' && !o.way && later.length > 0 && near?.at.zone === a.zone;
+  const closer = () => { if (closeIn && !near!.ok()) closeInOn(ctx, a, o, near!, behind, false, takeDash); };
   // BA3/BA4: the key or the bar takes the move slot; BG-54: a way op that can't be done leaves the move to happen.
   // BG-86: out of reach of the door, the move slot walks to it, and the op takes the main action if that is free
   let turned = false;
@@ -1909,11 +2045,19 @@ function step(ctx: Ctx, id: string): void {
   if (!turned && !o.moveAfter) move(o.type === 'hold');
   if (!o.way) closer();
   if (later.length) {
-    const g2 = applyGearOps(state, a, later);
+    // still out of reach after the walk: the take waits for the next turn. That is play, not a bug (pick_up_short), and
+    // the story says how far short it fell (BG-163); a take the walk could not help (the thing is gone) is still invalid_gear
+    const short = later.filter((op) => !reachable(state, a, op) && !!pickUpAt(state, op, a));
+    const g2 = applyGearOps(state, a, later.filter((op) => !short.includes(op)));
     for (const p of g2.picked) emit(ctx, mk(ctx, a, 'pick_up', { itemId: p.itemId, target: p.from }));
     if (g2.invalid.length) logCode(state, 'invalid_gear', { actorId: id, ops: g2.invalid, reason: 'out_of_reach' });
+    if (short.length) {
+      logCode(state, 'pick_up_short', { actorId: id, ops: short });
+      emit(ctx, mk(ctx, a, 'wasted', { ...(short[0].from ? { target: short[0].from } : {}), itemId: short[0].item, reason: 'out_of_reach' }));
+    }
   }
   if (o.perkMove) doPerkMove(ctx, a, o.perkMove);
+  if (o.warn) doWarn(ctx, a, o.warn);
   // BG-16: a move with nothing else to do is just the move: no "holds" after it (narrated as standing and waiting); BG-253: nor
   // after words said at the turn's start
   const moved = a.zone !== from.zone || (!!a.pos && !!from.pos && distM(state, a, { zone: a.zone, pos: from.pos }) > M_EPS);
@@ -1929,6 +2073,8 @@ function step(ctx: Ctx, id: string): void {
   }
   // AT2/AT17: an action longer than the turn goes on over turns; one that ends this turn spends only what is left of it
   if (a.busy && (!cost || ctx.spoke.has(id))) setAside(state, a);
+  // BW13 a: in a fight a break through puts the turn's time into the wall or barrier, its work kept there (not a long action)
+  if (cost?.row.id === DU.break_through && state.mode === 'tactical') cost = { ...cost, seconds: ctx.breakS = Math.min(cost.seconds, mainLeft(ctx, a)) };
   if (cost && !ctx.spoke.has(id)) {
     const long = longAction(ctx, a, o, cost);
     if (long === 'busy') { if (o.moveAfter && !turned) move(false); return; }
@@ -2091,20 +2237,60 @@ function noteCarry(ctx: Ctx): void {
   }
 }
 
+/** BF2a-d: each catch-up leg is a move event, perceived by the normal rules (nobody near: still silent). BF2e: on a longer
+ * turn (a trade, a rest, a wait, a trip) the legs are summed up for the Narrator (cameAndWent); asleep, the player notices none */
+function legsOf(ctx: Ctx, long: boolean): OnLeg | undefined {
+  return !long || !isAsleep(ctx.state.player) ? (m: Actor, from: Located, metres: number, toward: string) => {
+    const leg = { metres: r1(metres), ...(from.pos ? { fromPos: from.pos } : {}), ...(m.zone !== from.zone ? { fromZone: from.zone } : { heading: toward }), ...(long ? { summed: true as const } : {}) };
+    emit(ctx, withActivity(ctx, m, mk(ctx, m, 'move', leg), 'walk'));
+  } : undefined;
+}
+
+/** RE5: a trip runs on the world clock as a walk does (AT65): each step everyone else moves toward their routines (catchUp),
+ * and it stops at contact, the coming-near check, someone new in the senses (seen ahead on the road), or a fight in them.
+ * Those walking with the player are part of the trip, not anyone met. */
+function tripWorld(ctx: Ctx, group: string[]): TripWorld<{ before: Map<string, Located>; from: number }> {
+  const { state } = ctx;
+  const p = state.player;
+  const watch = startWatch(state, p, 'standing');
+  let sensed = inSenses(state, p), first = true;
+  const along = (by: string[]) => by.filter((id) => !group.includes(id));
+  return {
+    stepS: () => stepS(state, watch),
+    mark: () => ({ before: new Map<string, Located>(allActors(state).map((x) => [x.id, { zone: x.zone, ...(x.pos ? { pos: { ...x.pos } } : {}) }])), from: ctx.events.length }),
+    after: (minutes, { before, from }) => {
+      catchUp(state, minutes, first, legsOf(ctx, true)); // the turn's own walks count once
+      if (first) { state.scratch!.agentRun = [...group]; first = false; } // AT63: then everyone else runs on code; the group travels
+      headArrivals(state); runSteps(state); // UG16
+      const touched = contact(p, ctx.events.slice(from)), near = checkNear(state, watch, before, minutes * 60);
+      const now = inSenses(state, p), came = along([...now].filter((id) => !sensed.has(id)));
+      sensed = now;
+      for (const c of [touched, near]) if (c && along(c.by).length) return { why: c.why, by: along(c.by) };
+      if (fightInSenses(state)) return { why: 'fight', by: [] };
+      return came.length ? { why: 'appeared', by: came } : null;
+    },
+  };
+}
+
 /** TV1–TV8: the trip: one travel event where it ends; an encounter breaks the scenario (the next one starts there, with the
  * encounter's event roll); reaching a frontier at the road's end crosses it */
 function doTravel(ctx: Ctx, a: Actor, o: Order, t: NonNullable<ReturnType<typeof tripGoal>>): void {
   const { state } = ctx;
-  const trip = travel(state, a, t.goal, o, ctx.rng);
+  const group = [a.id, ...companions(state, a).map((x) => x.id)];
+  const t0 = now(state);
+  const trip = travel(state, a, t.goal, o, ctx.rng, a === state.player ? tripWorld(ctx, group) : undefined);
+  if (a === state.player) { (state.scratch ??= {}).caughtUp = ((state.scratch.caughtUp as number | undefined) ?? 0) + (now(state) - t0); noteMeanwhile(state, trip.minutes * 60); }
   for (const id of [a.id, ...trip.companions]) noteWalked(state, { id } as Actor, Infinity); // NW11: they spent the turn on the road
   if (a.zone !== trip.fromZone) noteLeft(state, trip.fromZone);
   const detail = { metres: Math.round(trip.metres), minutes: Math.round(trip.minutes), night: trip.night, stop: trip.stop, companions: trip.companions };
   logCode(state, 'travelled', { actorId: a.id, ...detail });
   if (trip.minutes > 0) logCode(state, 'time_passed', { actorId: a.id, minutes: trip.minutes, travel: true });
   if (a.id === state.player.id) noteIdle(state, trip.minutes); // BG-240: a trip is not acting time
-  emit(ctx, mk(ctx, a, 'travel', { metres: detail.metres, ...(a.zone !== trip.fromZone ? { fromZone: trip.fromZone } : {}), effects: [{ kind: 'travelled', actorId: a.id, data: detail }] }));
+  const stopped = trip.met ? [{ kind: 'stopped', actorId: a.id, data: { why: trip.met.why, by: trip.met.by, seconds: Math.round(trip.minutes * 60) } }] : [];
+  if (trip.met) logCode(state, 'stretch_stopped', { actorId: a.id, kind: 'trip', why: trip.met.why, by: trip.met.by, seconds: Math.round(trip.minutes * 60) });
+  emit(ctx, mk(ctx, a, 'travel', { metres: detail.metres, ...(a.zone !== trip.fromZone ? { fromZone: trip.fromZone } : {}), effects: [{ kind: 'travelled', actorId: a.id, data: detail }, ...stopped] }));
   if (trip.encounter) {
-    state.stage.encounter = { eventRoll: trip.encounter.eventRoll, noticed: trip.encounter.noticed, zone: a.zone, at: trip.encounter.at };
+    state.stage.encounter = { eventRoll: trip.encounter.eventRoll, zone: a.zone, at: trip.encounter.at };
     state.stage.breakCause = 'encounter';
   } else if (t.frontier && trip.stop === 'arrived') doMove(ctx, a, { zone: t.frontier }, o, false, 0);
 }
@@ -2115,8 +2301,64 @@ function doPerkMove(ctx: Ctx, a: Actor, pm: NonNullable<Order['perkMove']>): voi
   if (why) return logCode(ctx.state, 'perk_move_dropped', { actorId: a.id, perk: pm.perk, reason: why });
   if (pm.perk === PK.battle_cry && tooSpent(a, actionRow(DU.battle_cry)?.effort)) return logCode(ctx.state, 'perk_move_dropped', { actorId: a.id, perk: pm.perk, reason: 'spent' }); // FT10
   if (pm.perk === PK.battle_cry) return doBattleCry(ctx, a);
+  if (pm.perk === PK.rally && tooSpent(a, actionRow(DU.rally)?.effort)) return logCode(ctx.state, 'perk_move_dropped', { actorId: a.id, perk: pm.perk, reason: 'spent' });
+  if (pm.perk === PK.rally) return doRally(ctx, a);
+  if (pm.perk === PK.draw_them_in) return doDrawThemIn(ctx, a);
+  if (pm.perk === PK.play_dead) return doPlayDead(ctx, a);
+  if (pm.perk === PK.grit_your_teeth) return doSteady(ctx, a); // LG7: steadying as a free move
   const r = resolvePerkMove(ctx.state, a, pm.perk, pm.target!, ctx.rng);
   emit(ctx, mk(ctx, a, 'perk_move', { target: pm.target ?? undefined, effects: r.effects, ...(r.result ? { contest: r.result } : {}) }), r.result);
+}
+
+/** WN1-WN9: a warning shouted (or cried) about a foe, beside the action, at no time (WN6 a); its allies take it in */
+function doWarn(ctx: Ctx, a: Actor, about: string): void {
+  if (!actorById(ctx.state, about)) return logCode(ctx.state, 'warn_dropped', { actorId: a.id, about });
+  const ev = mk(ctx, a, 'warn', { target: about, ...warnEvent(ctx.state, a, about) });
+  emit(ctx, ev);
+  ev.effects.push(...giveWarning(ctx.state, a, about, ev));
+}
+
+/** TC44 a Play Dead (Guile 20): the turn's main action; the owner drops as if Down and each foe that sees it clearly rolls */
+function doPlayDead(ctx: Ctx, a: Actor): void {
+  useMain(ctx, a, { row: actionRow(DU.play_dead) });
+  const ev = mk(ctx, a, 'play_dead');
+  ev.effects.push(...startPlayDead(ctx.state, a, ctx.rng));
+  ev.perception = computePerception(ev, ctx.state, ctx.rng);
+  emit(ctx, ev, undefined, true);
+}
+
+/** TC31 a Draw Them In: free, once a fight; each foe that sees the owner clearly rolls Insight against its Stratagem, and one
+ * that does not win is drawn in (perkMarks drawIn: it comes at the owner next turn, merge.ts; the owner's next attack on it +1) */
+function doDrawThemIn(ctx: Ctx, a: Actor): void {
+  const { state, rng } = ctx;
+  countPerkMove(state, a, PK.draw_them_in, null);
+  const ev = mk(ctx, a, 'perk_move', {});
+  const req = (id: string, skill: string) => ({ actorId: id, skill, modifiers: [], tierShifts: [] });
+  const watchers = allActors(state).filter((x) => x !== a && !!x.mind && countsInFight(x) && (foe(state, x, a) || foe(state, a, x)) && seesClearlyNow(state, x, a.id))
+    .sort((x, y) => x.id.localeCompare(y.id));
+  for (const x of watchers) {
+    const c = ruleset.contested(req(a.id, SK.stratagem), { ...req(x.id, SK.insight), tierShifts: warnedShift(x, a.id, TRICK.draw_them_in) }, state, rng); // WN11
+    markUse(state, a, c.a.skill, c);
+    contestFeat(state, c);
+    markUse(state, x, c.b.skill, c);
+    const drawn = c.winner !== 'b'; // the foe must win outright to see through it
+    if (drawn) drawIn(state, a, x);
+    else sawThrough(state, x, a, TRICK.draw_them_in); // WN11, WN8
+    ev.effects.push({ kind: drawn ? 'drawn_in' : 'draw_seen_through', actorId: x.id, data: { by: a.id, perk: PK.draw_them_in } });
+  }
+  emit(ctx, ev);
+}
+
+/** TC39 a Rally (Command 100): the main action, once a fight; a Loud call, and each ally it reaches makes the rally roll
+ * with the owner's Command (rallyCall in auras.ts) */
+function doRally(ctx: Ctx, a: Actor): void {
+  const { state, rng } = ctx;
+  countPerkMove(state, a, PK.rally, null);
+  useMain(ctx, a, { row: actionRow(DU.rally) });
+  const ev = mk(ctx, a, 'rally');
+  ev.perception = computePerception(ev, state, rng);
+  emit(ctx, ev, undefined, true);
+  for (const r of rallyCall(state, a, ev, rng)) ev.effects.push({ kind: r.tiers ? 'rallied' : 'rally_unmoved', actorId: r.target.id, data: { by: a.id, perk: PK.rally, tiers: r.tiers } });
 }
 
 /** I9 Battle Cry: the main action; a Loud roar heard at any level, however far (battleCry in auras.ts) */
@@ -2127,7 +2369,7 @@ function doBattleCry(ctx: Ctx, a: Actor): void {
   const ev = mk(ctx, a, 'battle_cry');
   ev.perception = computePerception(ev, state, rng);
   emit(ctx, ev, undefined, true);
-  for (const r of battleCry(state, a, ev, rng, (t, id, gap, overwhelm) => fear(ctx, t, id, { ...(gap === undefined ? {} : { gap }), ...(overwhelm ? { overwhelm } : {}) }))) {
+  for (const r of battleCry(state, a, ev, rng, (t, id, gap, overwhelm, mult) => fear(ctx, t, id, { ...(gap === undefined ? {} : { gap }), ...(overwhelm ? { overwhelm } : {}), ...(mult && mult !== 1 ? { mult } : {}) }))) {
     ev.effects.push({ kind: r.rallied ? 'rallied' : r.took ? 'cry_took' : 'cry_resisted', actorId: r.target.id, data: { by: a.id, perk: PK.battle_cry, ...(r.overwhelmed ? { overwhelmed: true } : {}) } });
   }
 }
@@ -2144,13 +2386,14 @@ function attackMode(state: GameState, a: Actor, o: Order, from: Located = a) {
   const dist = t ? sightDistM(state, from, t) : Infinity;
   return { m: namedMode(state, a, o) ?? defaultMode(state, a, dist), dist };
 }
-const inReach = (state: GameState, a: Actor, o: Order, from: Located = a) => { const { m, dist } = attackMode(state, a, o, from); return !!m && withinM(dist, m.mode.reach); };
+/** IC12 a: a decision, so the exact reach (reachesM); the blow itself allows withinM's margin */
+const inReach = (state: GameState, a: Actor, o: Order, from: Located = a) => { const { m, dist } = attackMode(state, a, o, from); return !!m && reachesM(dist, m.mode.reach); };
 /** FR4 (the NEEDS table): where this turn's action is done and whether the actor is near enough: a foe within the attack's
  * reach (melee), someone to hand to within both grip reaches, the doorway of a way worked, picked or tried within grip
  * reach; with none, the first item to pick up out of reach. null: nothing to close in on. */
 function reachOf(state: GameState, a: Actor, o: Order): { at: Located; m: number; toward?: string; ok: () => boolean } | null {
   const door = (to: string | null | undefined): Located | null => {
-    if (!to || !zoneById(state, a.zone)?.links.some((l) => l.to === to)) return null;
+    if (!to || !wayTo(state, a.zone, to)) return null;
     const p = wayPoint(state, a.zone, to, a);
     return { zone: a.zone, ...(p ? { pos: p } : {}) };
   };
@@ -2160,11 +2403,12 @@ function reachOf(state: GameState, a: Actor, o: Order): { at: Located; m: number
   const need = needOf(state, a, o.type), t = o.target ? actorById(state, o.target) : undefined;
   if (need === 'weapon' && t && t !== a && healthLevel(t) !== 'dead' && !notInHand(state, a, o) && !rangedHere(state, a, o)) { // BG-162: someone down can be struck (doAttack), so is closed in on
     const m = attackMode(state, a, o).m ?? defaultMode(state, a, 0);
-    if (m) return { at: t, m: m.mode.reach, toward: t.id, ok: () => inReach(state, a, o) };
+    if (m) return { at: t, m: closeInM(m.mode.reach), toward: t.id, ok: () => inReach(state, a, o) };
   }
   if (o.type === 'search' && t && t !== a && openToGrip(state, a, t)) return grip(t, 0, t.id); // BG-152: a body, a sleeper or a yielded foe is searched hands-on
   if (need === 'grip' && t && t !== a) return grip(t, o.type === 'restrain' || o.type === 'use_item' || o.type === 'filch' ? 0 : gripReachM(state, t), t.id); // handed over: both grip reaches; a grab (BF5), tending (BF13) or a filch (FL2): the user's
-  const d = need === 'grip' && !t ? findContainer(state, o.target)?.at ?? door(o.target) : null; // CT3: a container, or a door
+  const wallJob = o.type === 'break' && !t ? breakJob(state, a, o.target) : undefined; // BW12 a: a spot on a wall
+  const d = need === 'grip' && !t ? findContainer(state, o.target)?.at ?? (typeof wallJob === 'object' && wallJob.kind === 'wall' ? jobAt(state, a, wallJob) : null) ?? door(o.target) : null; // CT3: a container, or a door
   if (d) return grip(d);
   for (const op of o.gear ?? []) if (op.op === 'pick_up' && !reachable(state, a, op)) { const p = pickUpAt(state, op, a); if (p) return grip(p); }
   return null;
@@ -2181,12 +2425,13 @@ const reachable = (state: GameState, a: Actor, op: GearOp) => { const p = pickUp
 
 /** ZP3/FR4 closing in: walks at the target on the move slot, stopping once within reach; across a counter, fence or rail
  * from the actor's zone it is reached over from the actor's side of it (BG-62), unless the actor goes behind it (BG-183) */
-function closeInOn(ctx: Ctx, a: Actor, o: Order, near: NonNullable<ReturnType<typeof reachOf>>, behind = false, dash = false): void {
+function closeInOn(ctx: Ctx, a: Actor, o: Order, near: NonNullable<ReturnType<typeof reachOf>>, behind = false, dash = false, asDash = false): void {
   const { state } = ctx;
   const over = !behind && near.at.zone !== a.zone && reachesAcross(state, a.zone, near.at.zone);
   const p = over ? wayPoint(state, a.zone, near.at.zone, a) : null;
   const goal: Located = p ? { zone: a.zone, pos: p } : near.at;
-  walk(ctx, a, goal, o, (n) => (n === 0 ? useMoveSlot(ctx, a, dash) : null), { stopShort: p ? 0 : Math.max(0, near.m - M_EPS), ...(near.toward ? { toward: near.toward } : {}) });
+  // asDash: paid leg by leg exactly as a dash's move (move(true)): the move time, then the main time
+  walk(ctx, a, goal, o, asDash ? (n) => useMoveSlot(ctx, a, n > 0) : (n) => (n === 0 ? useMoveSlot(ctx, a, dash) : null), { stopShort: p ? 0 : Math.max(0, near.m - M_EPS), ...(near.toward ? { toward: near.toward } : {}) });
 }
 
 /** BG-255 (NV9 b): a melee blow still out of reach after the close-in walk is not swung at nothing: the actor runs on at
@@ -2259,34 +2504,28 @@ function settleOffers(ctx: Ctx): void {
 const rangedHere = (state: GameState, a: Actor, o: Order) => {
   const here = attackMode(state, a, o);
   const next = o.move ? shortestPath(state, a.zone, o.move)?.[0] : undefined;
-  const m = here.m && withinM(here.dist, here.m.mode.reach) ? here.m : next ? attackMode(state, a, o, { zone: next }).m : here.m;
+  const m = here.m && reachesM(here.dist, here.m.mode.reach) ? here.m : next ? attackMode(state, a, o, { zone: next }).m : here.m;
   return m?.mode.tree === 'ranged';
 };
 /** AE2: no running (the move role switched off by the shared-role rule, CS8) stops a dash, and so does Leg Bolt's slow (A6) */
 const lame = (state: GameState, a: Actor) => slowed(state, a) || roleOff(state, a, RL.move);
 
-/** ST3/ST5/NS1, NS8, NS9: posture from the turn's order, for any actor. Sneaking is a free switch; a
- * Vanish is the turn's move (in place, with Melt Away, the main action), contested with Vanishing (ST13); words above a whisper end the posture. An NPC's sneak or
- * vanish names the zone it goes to. A stealthy routine (the thief's prowl) keeps the actor stealthy, and a companion
+/** ST3/ST5/NS1, NS8, NS9: posture from the turn's order, for any actor. Sneaking is a free switch (there is no Vanish
+ * action: VS1, its roll comes with the sneak, stealthDetect); words above a whisper end the posture. An NPC's sneak names
+ * the zone it goes to. A stealthy routine (the thief's prowl) keeps the actor stealthy, and a companion
  * following the player copies the player's posture (NS9). */
 function setPosture(state: GameState, a: Actor, o: Order): void {
   const was = a.posture ?? 'open';
   const npc = a !== state.player;
   const goTo = npc && o.target && o.target !== a.zone && zoneById(state, o.target) ? o.target : null;
-  if (o.type === 'sneak' || (o.type === 'vanish' && !o.vanish)) {
+  if (o.type === 'sneak') {
     a.posture = 'stealthy';
-    if (o.type === 'vanish' && (npc ? goTo : o.move)) o.vanish = true;
-    // A19 Melt Away: a Vanish with nowhere to go vanishes in place, as the main action, where cover or shade allows
-    const zone = zoneById(state, a.zone);
-    // LR3 Blind Spot: with a foe's sight spoiled by Dirt in the Eyes, Melt Away needs no cover or shade
-    const inPlace = o.type === 'vanish' && !o.vanish && hasPerk(a, PK.melt_away) && !!zone && (blindSpotNow(state, a) || meltAwayHere(zone.cover, zoneLight(state, zone)));
-    if (inPlace) o.vanish = true;
-    o.type = inPlace ? 'vanish' : goTo ? 'move' : 'hold';
+    o.type = goTo ? 'move' : 'hold';
   }
   const r = npc && a.mind?.routine ? routine(a.mind.routine.id) : undefined;
   if (npc && o.source === 'routine' && r?.posture === 'stealthy') a.posture = 'stealthy';
   if (npc && r?.kind === 'follow' && a.bandId === state.player.bandId) a.posture = state.player.posture ?? 'open';
-  if (o.line ? o.line.volume !== 'whisper' : isSpeech(o.type)) a.posture = 'open'; // BG-202: a whisper keeps you stealthy, whatever action carries it
+  if (o.warn || (o.line ? o.line.volume !== 'whisper' : isSpeech(o.type))) a.posture = 'open'; // WN6 a: a warning is a shout or a cry // BG-202: a whisper keeps you stealthy, whatever action carries it
   if (!npc || a.posture === was) return;
   if (a.posture === 'stealthy') stealthStart(state, a);
   else stealthEnd(state, a);
@@ -2345,7 +2584,7 @@ export function catchUp(state: GameState, minutes: number, deductWalked = true, 
 export type FrontierWait = { actorId: string; frontier: string };
 
 export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameEvent[] {
-  if (state.scratch) { delete state.scratch.frontierWaits; delete state.scratch.walked; delete state.scratch.caughtUp; delete state.scratch.nightStopped; } // NW3/NW11: this turn's only
+  if (state.scratch) { delete state.scratch.frontierWaits; delete state.scratch.walked; delete state.scratch.caughtUp; delete state.scratch.nightStopped; delete state.scratch.fightFinished; } // NW3/NW11: this turn's only
   (state.scratch ??= {}).agentRun = usableAgentOutputs(input).map((o) => o.actorId); // NW11: their agent moved them this turn
   const clockStart = now(state);
   const startPos = new Map<string, Located>(allActors(state).map((x) => [x.id, { zone: x.zone, ...(x.pos ? { pos: { ...x.pos } } : {}) }])); // AT67: where everyone stood
@@ -2370,10 +2609,11 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
     playerOrder.item = improvise(state, state.player, imp);
     playerOrder.gear = [{ op: 'swap', item: playerOrder.item }, ...(playerOrder.gear ?? [])];
   }
-  // BF37: with a broken nerve the player's walk, attack, grab, filch or perk move comes to nothing; words and the allowed
-  // actions still happen, and with nothing allowed left the player cowers where they stand
-  if (isActive(state.player) && moraleLevel(state.player) === 'broken') {
-    const { order, blocked } = nerveHolds(playerOrder);
+  // BF37/BF79: with a broken nerve the player's attack, grab, filch or perk move comes to nothing (at Cowering the walk too),
+  // and a walk toward a foe is turned back where it runs (walk); words and the allowed actions still happen, and with
+  // nothing allowed left the player cowers where they stand
+  if (isActive(state.player) && isBrokenLevel(moraleLevel(state.player))) {
+    const { order, blocked } = nerveHolds(playerOrder, isCoweringLevel(moraleLevel(state.player)));
     if (blocked) logCode(state, 'broken_cowers', { actorId: state.player.id, wanted: playerOrder.type });
     for (const k of Object.keys(playerOrder) as (keyof Order)[]) if (!(k in order)) delete playerOrder[k];
     Object.assign(playerOrder, order);
@@ -2395,13 +2635,13 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   // the player first: a companion copies the player's new posture
   for (const id of [...orders.keys()].sort((x, y) => (x === state.player.id ? -1 : y === state.player.id ? 1 : 0))) setPosture(state, actorById(state, id)!, orders.get(id)!);
   const ctx: Ctx = {
-    state, rng, input, events: [], orders, acted: new Set(), slots: new Map(), surprised: new Set(), defenses: new Map(), strikeBacks: new Map(), exchangeEvents: [],
+    state, rng, input, events: [], orders, acted: new Set(), slots: new Map(), surprised: new Set(), risen: new Map(), defenses: new Map(), strikeBacks: new Map(), exchangeEvents: [],
     turnS: state.mode === 'tactical' ? turnSeconds(state, playerOrder) : CONFIG.FIGHT_TURN_S, clock: new Map(), at: 0, finished: new Set(), stopped: new Set(), spoke: new Set(),
   };
   // Dreaded on Sight: whoever first sees the owner pays its fear and turns colder, before anyone acts
-  for (const c of sightDread(state, (a, id) => fear(ctx, a, id))) logCode(state, 'dreaded_on_sight', { actorId: c.target.id, by: c.owner.id, perk: c.perk });
+  for (const c of sightDread(state, (a, id, _g, _o, mult) => fear(ctx, a, id, mult && mult !== 1 ? { mult } : {}))) logCode(state, 'dreaded_on_sight', { actorId: c.target.id, by: c.owner.id, perk: c.perk });
   // NT14/I4: engagement auras check each newly qualifying target before anyone acts
-  for (const c of engagementAuras(state, rng, (a, id, gap, overwhelm) => fear(ctx, a, id, { gap, ...(overwhelm ? { overwhelm } : {}) }))) {
+  for (const c of engagementAuras(state, rng, (a, id, gap, overwhelm, mult) => fear(ctx, a, id, { gap, ...(overwhelm ? { overwhelm } : {}), ...(mult && mult !== 1 ? { mult } : {}) }))) {
     emit(ctx, mk(ctx, c.owner, 'aura', { target: c.target.id, effects: [{ kind: c.took ? 'aura_took' : 'aura_resisted', actorId: c.target.id, data: { by: c.owner.id, perk: c.aura.perk, ...(c.overwhelmed ? { overwhelmed: true } : {}) } }] }), c.contest);
   }
   // LI5b Gut Feeling: a hunch of a hidden watcher, from its zone; the owner turns suspicious of it there
@@ -2515,12 +2755,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   offersFromDefeats(state, defeated, rng); // growth proposal 2.3: a notable foe beaten may offer an essence
   expireOffers(state);
   updatePacing(state, ctx.events, learnedBefore);
-  // BF2a-d: each catch-up leg is a move event, perceived by the normal rules (nobody near: still silent). BF2e: on a longer
-  // turn (a trade, a rest, a wait) the legs are summed up for the Narrator (cameAndWent); asleep, the player notices none
-  const legs = (long: boolean) => !long || !isAsleep(state.player) ? (m: Actor, from: Located, metres: number, toward: string) => {
-    const leg = { metres: r1(metres), ...(from.pos ? { fromPos: from.pos } : {}), ...(m.zone !== from.zone ? { fromZone: from.zone } : { heading: toward }), ...(long ? { summed: true as const } : {}) };
-    emit(ctx, withActivity(ctx, m, mk(ctx, m, 'move', leg), 'walk'));
-  } : undefined;
+  const legs = (long: boolean) => legsOf(ctx, long);
   // AT45/AT46/AT49: the player's walk. Outside a fight it is one turn whatever its length: what the turn's move time left,
   // the world clock walks; in a fight a walk not yet at its goal carries on next turn by itself. At its goal, at a way found
   // shut (BG-69), after a road trip, or with another long thing to do, it ends (BG-184: at its goal it always ends)
@@ -2564,6 +2799,20 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   // E1: engagements (talk and fights); SP3: marked skills roll when the player's engagement ends, or when the scenario breaks
   const fight = state.player.engagement?.fight;
   const ended = updateEngagements(state, ctx.events);
+  noteSeen(state); // TC35 b: who each Never Flat-Footed owner has seen this fight
+  // TC46 a, TC47 a: newcomers and believers close up roll against a Play Dead
+  for (const c of playDeadChecks(state, rng)) for (const f of c.effects) {
+    const x = actorById(state, f.actorId)!;
+    const ev = mk(ctx, x, 'body_checked', { target: c.owner.id, effects: [f] });
+    ev.perception = computePerception(ev, state, rng);
+    emit(ctx, ev);
+  }
+  // WN3 a, WN13 a: a believer that learned the trick this turn looks again, knowing it
+  for (const w of warnedChecks(state, rng)) {
+    const ev = mk(ctx, w.x, 'body_checked', { target: w.owner.id, effects: [w.effect] });
+    ev.perception = computePerception(ev, state, rng);
+    emit(ctx, ev);
+  }
   if (ended) unpaidQuests(state); // QT23
   if (ended && fight) fightEnded(state, fight, ctx.events);
   turnFeats(state, ctx.events);
@@ -2571,7 +2820,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   // SM3: marks still count per engagement (or per scenario) for stacking
   if (!CONFIG.GROWTH_AT_SCENARIO_END) { improveMarked(state, rng); unlockClasses(state); }
   if (ended || state.stage.breakCause) clearMarkCounts(state.player);
-  for (const x of allActors(state)) expireMarks(state, x);
+  for (const x of allActors(state)) { expireMarks(state, x); expireFeint(state, x); }
   bindCarriedCharms(state); // D-218: a Threadbound charm binds to the player carrying it
   for (const x of allActors(state)) { if (x !== state.player || !growthWaits(state)) grantAllSteps(state, x); // D-226: the player's wait for the scenario's end
     syncPerkLinks(x, state.turn); syncThreadboundItemPerks(x, state.turn); } grantThreadboundItem(state.player, state); // All-50 parts and mastery achievements; linked perks; D-218 Threadbound perks

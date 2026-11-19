@@ -6,10 +6,9 @@ import type { Actor, GameState, HealNote, HealingDef, HealthLevel, PartState } f
 import { partName, SHOWN_LEVELS } from '../ruleset/body';
 import { HEALTH_LEVELS, PART_STATES } from '../scales';
 import { getLibrary, itemDef } from '../library';
-import { h } from './kit';
+import { h, safe } from './kit';
 import { cap } from '../words';
 
-const safe = <T>(f: () => T): T | null => { try { return f(); } catch { return null; } };
 export { partName };
 
 /** a health level's or part state's colour class: by its position in its scale */

@@ -1,22 +1,31 @@
-// The action deck on Play (AD1–AD16): the suggested action, the Aim and Stance rows, and every action the code allows in
+// The action deck on Play (AD1–AD16): the Aim toggle, the Defense row, and every action the code allows in
 // its groups. Clicking an action asks what it still needs (whom, with what, which part) in a small pop-up, then plays
 // the turn at once with no Parser call (AD6, AD7); a move planned on the minimap rides along (AD12). Actions that need
 // your words wait for the Say box. No keys pick actions (AD10), so typing never plays one by mistake.
-import type { GameApi, GameState, PlayerView } from '../types';
+import type { DefenseKind, GameApi, GameState, PlayerView } from '../types';
+import { canDefend, defenseValue, usableDefense } from '../ruleset/gear';
 import { personalityOf } from '../ruleset/personality';
-import { moraleLevel } from '../ruleset/morale';
-import { buildPlayerView } from '../views';
-import { h } from './kit';
+import { isBrokenLevel, isCoweringLevel, moraleLevel } from '../ruleset/morale';
+import { buildPlayerView, findInstance } from '../views';
+import { cap } from '../words';
+import { hideTip, showTip } from './pages';
+import { h, safe } from './kit';
 import { closePop, openPop } from './pop';
 import { deck, actionsOn, type Choice, type DeckAction, type DeckCtx, type Order, type Pick } from './deck';
-import { suggestions, type Suggestion } from './suggest';
 import { openLoot } from './loot';
-import { instanceIcon } from './itemIcons';
+import { ICONS, instanceIcon } from './itemIcons';
+import { AGAINST_NATURE } from './ideaLeans';
 import type { MinimapPoint } from './minimap';
 
 export type SayMode = { action: DeckAction; choice: Choice; to: string };
-type Stance = 'careful' | 'normal' | 'reckless';
-const STANCES: [Stance, string][] = [['careful', 'Careful'], ['normal', 'Normal'], ['reckless', 'Reckless']];
+
+/** the Defense row: each standing defense, what it does, and what it needs when it can't be used now */
+const DEFENSES: { kind: DefenseKind; tip: string; lack?: string; needs?: string }[] = [
+  { kind: 'dodge', tip: 'Dodge: get out of the way of every blow and missile' },
+  { kind: 'parry', tip: "Parry: turn melee blows with your weapon. It can't stop missiles: against those you use your best other defense", lack: 'no weapon', needs: 'a melee weapon in hand' },
+  { kind: 'block', tip: 'Block: catch blows and missiles on your shield', lack: 'no shield', needs: 'a shield in hand' },
+];
+const figure = (n: number) => String(+n.toFixed(2)); // fractions shown, as the Character page does
 
 /** the order with the move planned on the minimap first (a way op takes the move itself, so it plays alone) */
 export function withPlanned(o: Order, p: MinimapPoint | null): Order {
@@ -37,9 +46,9 @@ export function deckView(api: GameApi, o: {
   /** an action waits for words: the Say box takes them (null: it no longer waits) */
   sayMode(m: SayMode | null): void;
 }) {
-  let aim = false, stance: Stance = 'normal', sugAt = 0, sayMode: SayMode | null = null;
-  let groups: ReturnType<typeof deck> = [], sugs: Suggestion[] = [], ctx: DeckCtx | null = null, disabled = false;
-  const ctxOf = (s: GameState, pv: PlayerView): DeckCtx => ({ pv, s, stance, aim, broken: moraleLevel(s.player) === 'broken', self: personalityOf(s.player) });
+  let aim = false, sayMode: SayMode | null = null;
+  let groups: ReturnType<typeof deck> = [], ctx: DeckCtx | null = null, disabled = false;
+  const ctxOf = (s: GameState, pv: PlayerView): DeckCtx => ({ pv, s, aim, broken: isBrokenLevel(moraleLevel(s.player)), cowering: isCoweringLevel(moraleLevel(s.player)), self: personalityOf(s.player) });
 
   async function play(order: Order, aimed: boolean) {
     if (disabled || api.busy()) return;
@@ -59,7 +68,8 @@ export function deckView(api: GameApi, o: {
   /** asks the action's next missing step; with nothing missing, plays it */
   function run(a: DeckAction, c: Choice = {}, opener: HTMLElement | null = null) {
     if (disabled) return;
-    if (a.kind === 'loot') { const s = api.state(), pv = ctx?.pv; if (s && pv) openLoot(pv, opener, (line, gear) => void play({ line, intent: { ...NO_ORDER, gear } }, false), (id) => instanceIcon(s, id, 'iico lico')); return; }
+    if (a.kind === 'loot') { const s = api.state(), pv = ctx?.pv; if (s && pv) openLoot(pv, opener, (line, gear) => void play({ line, intent: { ...NO_ORDER, gear } }, false), (id) => instanceIcon(s, id, 'iico lico'),
+      (id, at) => { const it = at && findInstance(s, id); if (it) showTip(s, it, at!); else hideTip(); }); return; }
     const next = a.steps.find((st) => !(st.key in c));
     if (!next) { closePop(); void play(a.play(c), !!c.part); return; }
     if (next.key === 'words') { closePop(); setSay({ action: a, choice: c, to: (pickLabel(a, c) ?? '').replace(/^(A|An|The) /, (x) => x.toLowerCase()) }); return; }
@@ -83,67 +93,72 @@ export function deckView(api: GameApi, o: {
   }
 
   // ---- the parts on screen ----
-  const sugBtn = h('button', { type: 'button', class: 'dk-go' });
-  const sugWhy = h('p', { class: 'dk-why' });
-  const altBtn = h('button', { type: 'button', class: 'hs-btn-text dk-alt', title: 'Show the next best idea', onclick: () => { sugAt = (sugAt + 1) % Math.max(1, sugs.length); paintSug(); } }, '↻ Another');
-  const sugEl = h('section', { class: 'dk-sug', 'aria-label': 'Suggested action' }, h('p', { class: 'hs-label dk-sl' }, 'Suggested'), sugBtn, altBtn, sugWhy);
-  function paintSug() {
-    const x = sugs[sugAt];
-    sugEl.hidden = !x;
-    if (!x) return;
-    const who = pickLabel(x.action, x.choice);
-    sugBtn.textContent = who && !x.action.label.includes(who) ? `${x.action.label} ${who}` : x.action.label;
-    sugBtn.onclick = () => run(x.action, x.choice, sugBtn);
-    sugBtn.disabled = disabled;
-    sugWhy.textContent = x.reason;
-    altBtn.hidden = sugs.length < 2;
-  }
-
   const aimBtn = h('button', { type: 'button', class: 'dk-tog', 'aria-pressed': 'false', title: 'When on, an attack asks which body part to aim at', onclick: () => { aim = !aim; repaint(); } }, 'Aim');
-  const stanceBtns = STANCES.map(([k, name]) => h('button', { type: 'button', 'data-stance': k, 'aria-pressed': String(k === stance), onclick: () => { stance = k; repaint(); } }, name));
-  const mods = h('div', { class: 'dk-mods' }, aimBtn, h('span', { class: 'hs-label' }, 'Stance'), h('span', { class: 'dk-seg', role: 'group', 'aria-label': 'Stance' }, ...stanceBtns));
+  // the Defense row: free, no turn; a choice that can't be used now stays chosen and the note names the fallback
+  const defBtns = DEFENSES.map((d) => h('button', { type: 'button', 'data-def': d.kind, onclick: () => {
+    const s = api.state();
+    if (!disabled && s && canDefend(s, s.player, d.kind)) api.setDefense(d.kind);
+  } }));
+  const defNote = h('span', { class: 'dk-defnote', hidden: true });
+  const mods = h('div', { class: 'dk-mods' }, aimBtn, h('span', { class: 'hs-label', id: 'dk-def-h' }, 'Defense'),
+    h('span', { class: 'dk-seg dk-def', role: 'group', 'aria-labelledby': 'dk-def-h' }, ...defBtns), defNote);
+  function paintDefense(s: GameState) {
+    const p = s.player, chosen = p.core.standingDefense, used = safe(() => usableDefense(s, p, false)) ?? chosen;
+    DEFENSES.forEach((d, i) => {
+      const b = defBtns[i], can = canDefend(s, p, d.kind), v = can ? safe(() => defenseValue(s, p, d.kind)) : null;
+      const text = can ? (v === null ? '' : figure(v)) : d.lack!;
+      b.replaceChildren(h('span', {}, cap(d.kind)), h('span', { class: 'dv' }, text));
+      b.setAttribute('aria-pressed', String(d.kind === chosen));
+      if (can) b.removeAttribute('aria-disabled'); else b.setAttribute('aria-disabled', 'true');
+      b.title = can ? d.tip : `Needs ${d.needs}`;
+    });
+    const why = DEFENSES.find((d) => d.kind === chosen)?.needs;
+    defNote.hidden = used === chosen;
+    defNote.textContent = used === chosen ? '' : `${cap(chosen)} needs ${why}, so you ${used} for now`;
+  }
   const cols = h('div', { class: 'dk-groups' });
   const el = h('div', { class: 'deck' }, mods, cols);
-  let html = '';
+  let html = '', wasLimited = new Set<string>();
+  const actOf = (b: HTMLElement) => groups[Array.from(cols.children).indexOf(b.closest('.dk-col')!)]?.actions[Number(b.dataset.i)];
 
   function repaint() {
     aimBtn.setAttribute('aria-pressed', String(aim));
     aimBtn.textContent = aim ? '✓ Aim' : 'Aim';
-    for (const b of stanceBtns) b.setAttribute('aria-pressed', String(b.dataset.stance === stance));
     update(true);
   }
 
   /** rebuilt from the game each redraw; a redraw that changes nothing keeps the old buttons (M-74) */
   function update(force = false) {
     const s = api.state();
+    if (s) paintDefense(s);
     const pv = s ? safePv(s) : null;
     ctx = s && pv ? ctxOf(s, pv) : null;
     groups = ctx ? deck(ctx) : [];
-    const before = sugs[sugAt]?.reason;
-    sugs = ctx ? suggestions(groups, ctx) : [];
-    if (!sugs.some((x) => x.reason === before)) sugAt = 0; // a new moment starts from the best idea again
     if (sayMode && !groups.some((g) => g.actions.some((a) => a.kind === sayMode!.action.kind))) setSay(null);
-    paintSug();
     const kids = groups.map((g) => h('div', { class: `dk-col g-${g.group}` }, h('p', { class: 'dk-h' }, g.name),
-      ...g.actions.map((a, i) => h('button', { type: 'button', class: 'dk-act' + (a.hot ? ' hot' : ''), 'data-kind': a.kind, 'data-i': String(i) },
-        h('span', { class: 't' }, a.label), a.note ? h('span', { class: 'n' }, a.note) : null))));
+      ...g.actions.map((a, i) => h('button', { type: 'button', class: 'dk-act' + (a.hot ? ' hot' : '') + (a.limit ? ' dk-lim' : ''), 'data-kind': a.kind, 'data-i': String(i),
+        ...(a.limit ? { 'aria-disabled': 'true', 'aria-label': `${a.label}, ${a.limit.tip}` } : {}), title: [a.limit?.tip, a.time].filter(Boolean).join(' · ') },
+        h('span', { class: 't' }, limitMark(a), a.label, freeMark(a), natureMark(a)), a.note ? h('span', { class: 'n' }, a.note) : null))));
     const now = kids.map((k) => k.outerHTML).join('');
     if (now === html && !force) return;
     html = now;
     cols.replaceChildren(...kids);
+    // A3: a move whose limit ran out since the last redraw pulses once
+    const limited = new Set(groups.flatMap((g) => g.actions.filter((a) => a.limit).map(keyOf)));
+    cols.querySelectorAll<HTMLButtonElement>('.dk-act:not(.dk-lim)').forEach((b) => { const a = actOf(b); if (a && wasLimited.has(keyOf(a))) b.classList.add('dk-ready'); });
+    wasLimited = limited;
     // the buttons find their action by group and place, so a rebuilt list never keeps a stale handler
     cols.querySelectorAll<HTMLButtonElement>('.dk-act').forEach((b) => {
-      const gi = Array.from(cols.children).indexOf(b.closest('.dk-col')!);
-      const a = groups[gi]?.actions[Number(b.dataset.i)];
-      if (a) b.onclick = () => run(a, {}, b);
+      const a = actOf(b);
+      if (a && !a.limit) b.onclick = () => run(a, {}, b);
     });
     lock();
   }
   /** M-06: while a turn runs every action is off, with nothing rebuilt */
-  function lock() { el.querySelectorAll<HTMLButtonElement>("button").forEach((b) => { b.disabled = disabled; }); sugBtn.disabled = disabled; altBtn.disabled = disabled; }
+  function lock() { el.querySelectorAll<HTMLButtonElement>("button").forEach((b) => { b.disabled = disabled; }); }
 
   return {
-    el, sugEl, mods, update, personMenu,
+    el, mods, update, personMenu,
     aimOn: () => aim,
     toggleAim() { aim = !aim; repaint(); },
     /** the first action of this kind, with what is already chosen (the heal slot uses it) */
@@ -159,6 +174,30 @@ export function deckView(api: GameApi, o: {
     },
     cancelSay() { setSay(null); },
   };
+}
+
+const keyOf = (a: DeckAction) => `${a.kind}|${a.label}`;
+/** A3: a used move's hollow mark with a slash; a waiting one's ring, filled by the share of the wait gone */
+/** a lightning bolt after the name of a free action (beside your action, not instead of it): only free ones are marked */
+function freeMark(a: DeckAction): HTMLElement | null {
+  if (!a.free) return null;
+  const el = h('span', { class: 'dk-mk dk-free', role: 'img', 'aria-label': 'Free' });
+  el.innerHTML = ICONS.free_action;
+  return el;
+}
+
+/** a cracked mask after the name of an action the character is pulled away from; its name says so on hover and to a screen reader */
+function natureMark(a: DeckAction): HTMLElement | null {
+  if (!a.against) return null;
+  const el = h('span', { class: 'dk-mk', role: 'img', title: AGAINST_NATURE, 'aria-label': AGAINST_NATURE });
+  el.innerHTML = ICONS.against_nature;
+  return el;
+}
+
+function limitMark(a: DeckAction): HTMLElement | null {
+  if (!a.limit) return null;
+  return 'used' in a.limit ? h('span', { class: 'dk-mark used', 'aria-hidden': 'true' })
+    : h('span', { class: 'dk-mark wait', 'aria-hidden': 'true', style: `--share:${+a.limit.share.toFixed(2)}` });
 }
 
 const safePv = (s: GameState): PlayerView | null => { try { return buildPlayerView(s); } catch { return null; } };

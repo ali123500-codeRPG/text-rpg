@@ -1,12 +1,12 @@
 // Dialogue turns: spokespeople, the player's speech check, impressions (Dialogue input table), SLIPS.
 import { talkedPast } from './suspicion';
 import { FN } from '../library/functionIds';
-import type { Actor, ContestResult, GameEvent, GameState, Intent, Rng, RollResult, Secret, Tier } from '../types';
+import type { Actor, ContestResult, GameEvent, GameState, Intent, PersonRead, Rng, RollResult, Secret, Tier, TierShift } from '../types';
 import { SPEECH_ACTIONS } from '../types';
 import { CONFIG } from '../config';
 import { hasPerk, markUse, ruleset, tierAtLeast, toContest } from '../ruleset';
 import { getLibrary } from '../library';
-import { isActive, isEngaged, nameBook, wary } from './relations';
+import { isActive, isEngaged, nameBook, stance, wary } from './relations';
 import { bribeMod, OFFER_WORDS, playerOffer, speaks } from './offer';
 import { distM, type Located } from './position';
 import { falseName } from '../words';
@@ -17,7 +17,9 @@ import { bested, tally } from './xp';
 import { contestFeat } from './feats';
 import { applyHaggle, isSeller } from './trade';
 import { countTry, repeatTryMods } from '../ruleset/pressure';
-import { hears, hearsClearly, hearsWords } from '../perception';
+import { hears, hearsClearly, hearsWords, sightAt } from '../perception';
+import { moraleLevel } from '../ruleset/morale';
+import { MORALE_LEVELS } from '../scales';
 import { speakingSpot } from './merge';
 import { VOLUME_NOISE } from '../perception/noise';
 
@@ -86,7 +88,7 @@ export function fillSpeech(state: GameState, intent: Intent, text: string): Inte
   if (!intent.action && !intent.perkMove && intent.spoken?.trim() && !intent.yields) {
     const to = intent.addressees?.find((x) => state.actors.some((y) => y.id === x)) ?? null;
     const talk = talkingWith(state);
-    return { ...intent, action: { type: 'talk', skill: '', target: to, targetPart: null, item: null, mode: null, approach: '', stance: 'normal' }, addressees: intent.addressees?.length ? intent.addressees : talk.length ? talk : ['everyone'] };
+    return { ...intent, action: { type: 'talk', skill: '', target: to, targetPart: null, item: null, mode: null, approach: '' }, addressees: intent.addressees?.length ? intent.addressees : talk.length ? talk : ['everyone'] };
   }
   const a = intent.action;
   // OA1: words beside a deed that name no one are for the one the deed is aimed at, else whoever the player was just talking with
@@ -259,9 +261,9 @@ export const tellFor = (listener: Actor | undefined, gap?: number): string =>
 
 /** a listener's answering roll (answerSkill), against the speaker; All-50 Easy Speaker answers one outcome better;
  * Takes One to Know One (LI1a) answers a lie with the better of Insight and Lying */
-export function answerRoll(state: GameState, listener: Actor, skill: string, speakerId: string, rng: Rng): RollResult {
+export function answerRoll(state: GameState, listener: Actor, skill: string, speakerId: string, rng: Rng, extra: TierShift[] = []): RollResult {
   const knows = skill === SK.insight && hasPerk(listener, PK.takes_one_to_know_one);
-  return ruleset.roll({ actorId: listener.id, skill, modifiers: [], tierShifts: hasPerk(listener, PK.easy_speaker) ? [{ source: 'Easy Speaker', value: 1 }] : [], against: speakerId, contest: true, ...(knows ? { fullValue: [SK.lying] } : {}) }, state, rng);
+  return ruleset.roll({ actorId: listener.id, skill, modifiers: [], tierShifts: [...(hasPerk(listener, PK.easy_speaker) ? [{ source: 'Easy Speaker', value: 1 }] : []), ...extra], against: speakerId, contest: true, ...(knows ? { fullValue: [SK.lying] } : {}) }, state, rng);
 }
 
 /** OQ-29: an NPC's speech roll at the player (NL1: or a lie at another NPC); the listener answers (answerSkill; the speaker is side a) */
@@ -273,6 +275,24 @@ export function pushContest(state: GameState, speaker: Actor, type: string, rng:
   contestFeat(state, contest);
   markUse(state, listener, contest.b.skill, contest);
   return contest;
+}
+
+/** BF97 a: sizing someone up is a contest, the looker's Insight against the other's Lying (the face they keep), the same
+ * pair as seeing through a lie. Only someone the looker sees clearly can be read; null when it can't be tried. A win
+ * reads what they show: their mood, how they feel about the looker, and whether they hide something (a secret they hold,
+ * or a lie they told lately), never what. A loss or a tie reads nothing beyond plain sight. */
+export function sizeUp(state: GameState, looker: Actor, them: Actor, rng: Rng): { contest: ContestResult; read?: PersonRead } | null {
+  if (them === looker || sightAt(state, looker, them, 'normal') !== 'full') return null;
+  const contest = ruleset.contested({ actorId: looker.id, skill: SK.insight, modifiers: [], tierShifts: [] }, { actorId: them.id, skill: SK.lying, modifiers: [], tierShifts: [] }, state, rng);
+  contestFeat(state, contest);
+  markUse(state, looker, contest.a.skill, contest);
+  markUse(state, them, contest.b.skill, contest);
+  if (contest.winner !== 'a') return { contest };
+  const lied = [...(state.recentEvents ?? []), ...state.events].some((e) => e.actorId === them.id && (e.kind === 'deceive' || e.push?.type === 'deceive'));
+  const read: PersonRead = { turn: state.turn, mood: MORALE_LEVELS.name(moraleLevel(them)), feels: stance(state, them, looker), hiding: lied || state.hidden.secrets.some((s) => s.holderId === them.id) };
+  const b = looker.mind?.knowledge[them.id];
+  if (b) b.read = read;
+  return { contest, read };
 }
 
 /** LI5a Overheard: a lie (`ev`, a speak event) told to someone else, heard by an owner of Overheard (the words or the

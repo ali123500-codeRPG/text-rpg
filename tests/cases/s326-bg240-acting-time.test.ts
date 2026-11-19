@@ -3,9 +3,8 @@
 // a long walk) are left out, noted on the scenario as idle minutes (and on the outer one). The budgets are sized for turns
 // of about 30 seconds (Moment 5, Situation 15, Episode 45 acting minutes); Journey and Venture still count all game time.
 import { describe, expect, it } from 'vitest';
-import { makeVillage } from '../harness';
+import { makeVillage, withRoad } from '../harness';
 import { intent, play } from './w4-kit';
-import { placeZones } from '../../src/scenario/geometry';
 import { roadShape } from '../../src/scenario/apply';
 import { placeAll } from '../../src/engine/position';
 import { budgetUsed, checkScenarioEnd, frameOf, noteIdle } from '../../src/engine/scenarioEnd';
@@ -19,29 +18,6 @@ import type { GameState, PlanEnding, Zone } from '../../src/types';
 const judged: PlanEnding[] = [{ when: { kind: 'judged' }, as: 'resolved', text: 'x' }, { when: { kind: 'judged' }, as: 'lost', text: 'y' }];
 const frame = (s: GameState, scale = 'situation') => { s.stage.scenario = frameOf(s, { question: 'q', stake: 's', scale, endings: judged }, 'success', (_k, r) => r); s.stage.scenario.lastCheckin = s.turn; return s.stage.scenario; };
 const tavern = () => makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'trader'] });
-/** the test village laid out on the map, with a road north out of the gate to Ashford (or to a frontier) */
-function withRoad(km: number, danger: 'safe' | 'quiet' | 'wild' | 'dangerous' = 'safe', frontier = false): GameState {
-  const s = makeVillage({ playerZone: 'gate_inner' });
-  s.actors = s.actors.filter((a) => !a.id.startsWith('slime')); // the field's slimes would notice the player on the way
-  const gate = s.places.flatMap((p) => p.zones).find((z) => z.id === 'gate_inner')!;
-  const road: Zone = { id: 'north_road', placeId: 'gate', kind: ZK.road, name: 'the north road', look: 'a cart track', links: [{ to: 'gate_inner', label: 'back to the gate, south', sight: true }], cover: 'none', light: 'dark', outdoor: true, groundItems: [], ...roadShape(km, danger) };
-  gate.links.push({ to: 'north_road', label: 'the north road', sight: true });
-  const zones = [road];
-  if (frontier) road.links.push({ to: 'onward', label: 'onward, north', sight: false, frontier: true });
-  else {
-    const ash: Zone = { id: 'ashford_gate', placeId: 'gate', kind: ZK.gate, name: 'Ashford gate', look: 'a stone arch', links: [{ to: 'north_road', label: 'the road south', sight: true }], cover: 'none', light: 'dark', outdoor: true, area: 100, groundItems: [] };
-    road.links.push({ to: 'ashford_gate', label: 'Ashford, north', sight: true });
-    zones.push(ash);
-  }
-  s.places.find((p) => p.id === 'gate')!.zones.push(...zones);
-  s.stage.zoneIds.push(...zones.map((z) => z.id));
-  const all = s.places.flatMap((p) => p.zones);
-  for (const z of all) if (!z.area) z.area = CONFIG.ZONE_SIZE_M2[z.id.startsWith('field') ? 'open' : z.id.startsWith('street') || z.id.startsWith('gate') ? 'yard' : 'room'];
-  placeZones(s, all);
-  placeAll(s);
-  s.clocks.time = 7 * 60; // day 1, morning
-  return s;
-}
 
 describe('326 scenario budgets count acting time (BG-240)', () => {
   it('the budgets fit 30-second turns; the small scales count acting time only, Journey and Venture all game time', () => {

@@ -15,7 +15,7 @@ export function smugglerPlan(): StagePlan {
   p.cast = p.cast.filter((c) => c.band !== 'slimes');
   p.bands = p.bands.filter((b) => b.key !== 'slimes').map((b) => ({ ...b, relations: {} }));
   p.scenario!.endings[0].when = { kind: 'band_out', band: 'smugglers' };
-  p.bands.push({ key: 'smugglers', name: 'cellar folk', goals: 'move the crates unseen', temperament: 'cagey', tactics: 'competent', lethal: true, relations: { village_watch: 'hostile' } });
+  p.bands.push({ key: 'smugglers', name: 'cellar folk', goals: 'move the crates unseen', temperament: 'cagey', lethal: true, relations: { village_watch: 'hostile' } });
   const smuggler = (key: string, name: string) => ({
     template: TP.patron, key, label: 'a hooded drinker', name, appearance: 'a hood pulled low',
     band: 'smugglers', routineSetId: 'patron', slots: { seat: 'tav_cellar', refuge: 'tav_cellar', exit: 'street_door' },

@@ -14,6 +14,9 @@ export const SK = {
   lying: 'SK31', insight: 'SK32', shrewd_dealing: 'SK33', resolve: 'SK34', parry: 'SK35', filching: 'SK36', stamina: 'SK37',
   bite: 'SK38', claws: 'SK39', hooves_horns: 'SK40', tail: 'SK41', scent: 'SK42', hide: 'SK43', // AB16, AB18, AB20
   healing: 'SK44', // NR33: the Medicine tree; Heal opens at 50 (NR2, NR34)
+  // Tactics tree (TR19, D-17; Tactics skill tree page TC11 d): how well someone fights as a tactician
+  battle_sense: 'SK45', command: 'SK46', fieldcraft: 'SK47', stratagem: 'SK48',
+  guile: 'SK49', // TC24, TC26: Trickery's lying with the body (feigned flight, playing dead), rolled against Insight
 } as const;
 export type SkillId = (typeof SK)[keyof typeof SK];
 /** a standing defense (dodge, block or parry, a choice, not a skill) and the skill it rolls */
@@ -40,7 +43,3 @@ export function skillIdOf(x: string, names: Record<string, string>): string {
   const byName = Object.entries(names).find(([, n]) => n.toLowerCase() === x.trim().toLowerCase());
   return byName ? byName[0] : x;
 }
-
-/** the name-based skill IDs used before fixed IDs, so an older save's skills load under their IDs (library status) */
-export const OLD_SKILL_IDS: Record<string, SkillId> = Object.fromEntries(
-  Object.entries(SK).map(([k, id]) => [({ eyesight: 'sight', earshot: 'hearing' } as Record<string, string>)[k] ?? k, id]));

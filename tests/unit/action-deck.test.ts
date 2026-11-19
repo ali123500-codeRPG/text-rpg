@@ -10,6 +10,8 @@ import { PARSER_ACTIONS, type GameState, type GearOp } from '../../src/types';
 import type { WayOp } from '../../src/engine/barriers';
 import { DECK_KINDS, DECK_LEFT_OUT, actionsOn, deck } from '../../src/ui/deck';
 import { suggestions } from '../../src/ui/suggest';
+import { actionRow } from '../../src/ruleset/actionTime';
+import { DU } from '../../src/library/tableIds';
 import { walkOrder, withPlanned } from '../../src/ui/deckView';
 
 const GEAR_OPS = ['draw', 'stow', 'swap', 'wear_acc', 'remove_acc', 'pick_up', 'summon', 'set_down'] as const;
@@ -53,7 +55,20 @@ describe('the action deck covers everything (AD10: "make sure you covered EVERYT
     const go = all.find((a) => a.kind === 'go')!;
     const to = go.steps[0].key === 'target' ? go.steps[0].picks({})[0].id : '';
     expect(go.play({ target: to }).intent).toMatchObject({ move: { toZone: to }, action: null });
-    expect(go.note).toMatch(/dash/);
+    expect(go.note).toBeUndefined();
+  });
+
+  it('only free actions are marked (an icon, not words); every action says on hover how long it takes', () => {
+    const s = makeVillage();
+    const all = deck({ pv: buildPlayerView(s), s }).flatMap((g) => g.actions);
+    const of = (k: string) => all.find((a) => a.kind === k)!;
+    expect(all.some((a) => /your action|free/.test(a.note ?? ''))).toBe(false);
+    expect(of('look')).toMatchObject({ free: true, time: 'Free: beside your action, not instead of it' });
+    expect(of('search').free).toBeUndefined();
+    expect(of('search').time).toBe(`Takes ${actionRow(DU.look)!.seconds} s`); // the Action times row the order uses
+    expect(of('go').time).toBe('Takes as long as the way there');
+    const f = fight(), atk = deck({ pv: buildPlayerView(f), s: f }).flatMap((g) => g.actions).find((a) => a.kind === 'attack')!;
+    expect(atk.time).toMatch(/^Each blow takes \d+ s$/);
   });
 
   it('with Aim on, an attack asks for a body part after whom, and the order carries it aimed (AD5)', () => {

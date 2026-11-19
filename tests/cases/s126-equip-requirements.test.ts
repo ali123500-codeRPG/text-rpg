@@ -3,7 +3,7 @@
 // per 10 points short; worn armor reaches Dodge and stealth rolls; templates carry what their loadout asks. AR5: a hit
 // your armor covers marks the armor skill when the attacker or the armor is near your level.
 import { describe, expect, it } from 'vitest';
-import { forcedRng, makeVillage, place } from '../harness';
+import { createRng, forcedRng, makeVillage, place } from '../harness';
 import { buildOppositionView } from '../../src/views';
 import { ruleset } from '../../src/ruleset';
 import { itemLevel, requirement, shortBy, shortShifts } from '../../src/ruleset/requirements';
@@ -77,7 +77,7 @@ describe('126 Equip requirements', () => {
 
   it('EQ5/AR9: every template meets the requirements of its loadout', () => {
     for (const t of Object.values(getLibrary().templates)) {
-      const a = spawnNpc(null, t.id, { id: `x_${t.id}`, zone: 'z', placeId: 'p', bandId: 'b', name: 'X', storyId: 'test' });
+      const a = spawnNpc(null, t.id, { id: `x_${t.id}`, zone: 'z', placeId: 'p', bandId: 'b', name: 'X', storyId: 'test' }, createRng(1)); // a rolled template needs its seeded rng
       for (const id of t.loadout ?? []) expect([t.id, id, shortBy(a, itemDef(null, id))]).toEqual([t.id, id, 0]);
     }
   });

@@ -16,7 +16,8 @@ export interface Rng {
   d100(): number;
 }
 
-export type ModType = 'roll_perk' | 'wounds' | 'situational' | 'aim' | 'gear' | 'achievement' | 'foe_perk' | 'status';
+/** rating: a rating riding on a roll (GR26: Strength on a Grapple roll to break free or hold on) */
+export type ModType = 'roll_perk' | 'wounds' | 'situational' | 'aim' | 'gear' | 'achievement' | 'foe_perk' | 'status' | 'rating';
 /** pct: a wound's % of the average roll that `value` came from (PW5 a) */
 export type Mod = { source: string; type: ModType; value: number; pct?: number };
 export type TierShift = { source: string; value: number };
@@ -55,6 +56,8 @@ export type RollRequest = {
   blend?: { skill: string; share: number }[];
   /** body-part roles whose wounds count, instead of the skill's own (ST10: hiding is stealth without the move role) */
   roles?: import('./library').RoleId[];
+  /** an attack roll's kind (melee or ranged, by the attack mode), for perks whose numbers work with one kind (PerkDef.numbersForAttack) */
+  attackKind?: import('./library').AttackKind;
   /** the opposing actor (attacks, defenses, contests): Bane bonuses read its race and body type (D-111) */
   against?: string;
   /** a roll made as one side of a contest: tier unlocks for roll 'contest' apply (D-292) */
@@ -101,11 +104,13 @@ export type AttackRequest = {
   /** situational context computed by the engine */
   context?: {
     defenderUnaware?: boolean; // ambush surprise: unaware modifier on the defense
+    defenderSuspicious?: boolean; // LG11: the defender only suspects the attacker (matters with Unseen Strike)
     helpless?: 'down' | 'asleep' | 'held'; // BG-207 (BF30): the defender can't defend: its defense roll fails outright (Critical Failure, no dice)
     defensesThisTurn?: number; // defenses the target already made this turn (outnumbered)
     attackerMods?: Mod[];
     defenderMods?: Mod[];
     fromHiding?: boolean; // the attacker was stealthy as it struck (CN6 Patient Knife)
+    strikeBack?: boolean; // the free blow back after a parry (PA4); Sharp Answer (Parry 40) adds damage to it
     attackerShifts?: TierShift[]; // engine-side shifts on the attack roll (All-50 Opening Strike)
     defenderShifts?: TierShift[]; // engine-side shifts on the defense roll (All-50 Unerring)
   };
@@ -152,7 +157,7 @@ export interface Ruleset {
 export type OrderSource = 'player' | 'agent' | 'trigger' | 'onAlert' | 'routine' | 'fallback' | 'broken';
 
 /** every order type the engine knows (trigger orders are checked against it) */
-export const ORDER_TYPES = ['attack', 'move', 'search', 'sneak', 'vanish', 'hold', 'call_help', 'alarm', 'flee', 'talk', 'persuade', 'deceive', 'barter',
+export const ORDER_TYPES = ['attack', 'move', 'search', 'sneak', 'hold', 'call_help', 'alarm', 'flee', 'talk', 'persuade', 'deceive', 'barter',
   'intimidate', 'use_item', 'equip', 'give', 'take', 'buy', 'sell', 'observe', 'interact', 'rest', 'wait', 'sleep', 'idle', 'pick', 'stash', 'open', 'break', 'restrain', 'filch', 'steady', 'show', 'extract', 'heal', 'other'] as const;
 /** BG-128: orders aimed at a way (a zone), never at a person: picking a lock (the player may also pick a container's, CT3) */
 export const WAY_ORDERS: readonly string[] = ['pick'];
@@ -171,8 +176,8 @@ export type Order = {
   moveSpot?: import('./agents').MoveSpot; // BG-12: where in the move's zone the player heads
   jump?: true; // SD7: the move jumps down a drop link (a window, a ledge)
   way?: { toZone: string; op: import('../engine/barriers').WayOp }; // BA3/BA4: a key turned or a bar slid on purpose, in the move slot
-  vanish?: true; // ST13: the player's move is a Vanish
   perkMove?: { perk: string; target: string | null }; // AE5/AE8: a perk move (perkMoves.ts)
+  warn?: string; // WN1/WN6 a: a warning shouted (or cried) about this foe, beside the action, at no time (engine/warnings.ts)
   targetPart?: string | null;
   aimed?: boolean;
   defense?: DefenseKind | null;
@@ -185,6 +190,7 @@ export type Order = {
   activity?: string; // routine idle/move activity
   addressees?: string[];
   triggerId?: string;
+  rule?: string; // D-17: the FIGHT_RULES row (FX id) a code-run NPC's order comes from; counted once used this engagement
 };
 
 export type { GameEvent };

@@ -14,6 +14,7 @@ import { SK } from '../../src/library/skillIds';
 import { PK } from '../../src/library/perkIds';
 import { IT } from '../../src/library/itemIds';
 import { CL } from '../../src/library/classIds';
+import { waysOut } from '../../src/plan/where';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const npc = (s: GameState, id: string) => s.actors.find((a) => a.id === id)!;
@@ -43,7 +44,7 @@ const setup = () => {
 describe('153 Parry', () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it('the parry table: harsher failures, partial turns at +1 and +2, a full stop with a strike from +3', () => {
+  it('the parry table: harsher failures, a partial turn at +1, a full stop (clean) from +2 and a strike back from +3', () => {
     const s = setup();
     const seen = new Set<number>();
     for (const r of swings(s)) {
@@ -52,7 +53,7 @@ describe('153 Parry', () => {
       const g = Math.max(-5, Math.min(5, r.gap!));
       seen.add(g);
       expect(r.multiplier).toBe(CONFIG.GAP_LADDER.parry[g]);
-      if (g >= 3) expect(r.outcome).toBe('parried');
+      if (g >= CONFIG.CLEAN_GAP) expect(r.outcome).toBe('parried');
       else if (g >= 1) expect(r.outcome).toBe('blocked');
       expect(!!r.strikeBack).toBe(g >= 3);
     }
@@ -71,11 +72,30 @@ describe('153 Parry', () => {
     s.player.core.standingDefense = 'parry';
     const p = npc(s, 'patron_1');
     hold(p, [IT.shortbow]);
-    s.player.zone = s.zones.find((z) => z.links.length && z.id !== p.zone && s.zones.find((y) => y.id === p.zone)!.links.some((l) => l.to === z.id))?.id ?? s.player.zone;
+    s.player.zone = s.zones.find((z) => waysOut(s, z.id).length && z.id !== p.zone && waysOut(s, p.zone).some((l) => l.to === z.id))?.id ?? s.player.zone;
     const shot = ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'patron_1_h0', targetPart: null, aimed: false }, s, forcedRng([90, 50, 50, 50]));
     expect(shot.defenseType).toBe('block');
     hold(s.player, [IT.arming_sword]);
     expect(ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'patron_1_h0', targetPart: null, aimed: false }, s, forcedRng([90, 50, 50, 50])).defenseType).toBe('dodge');
+  });
+
+  it('Deflect (Parry 20, LG1): with a melee weapon in hand a shot can be parried, never answered with a strike back', () => {
+    const s = setup();
+    s.player.core.standingDefense = 'parry';
+    const p = npc(s, 'patron_1');
+    hold(p, [IT.shortbow]);
+    s.player.zone = s.zones.find((z) => waysOut(s, z.id).length && z.id !== p.zone && waysOut(s, p.zone).some((l) => l.to === z.id))?.id ?? s.player.zone;
+    hold(s.player, [IT.arming_sword]);
+    const shoot = (d: number) => ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'patron_1_h0', targetPart: null, aimed: false }, s, forcedRng([60, d, 50, 50]));
+    expect(shoot(100).defenseType).toBe('dodge'); // without the perk: no parry against a missile
+    give(s.player, PK.deflect);
+    for (const d of DICE) {
+      const r = shoot(d);
+      expect(r.defenseType).toBe('parry');
+      expect(r.strikeBack).toBeFalsy();
+    }
+    hold(s.player, []); // no weapon in hand: nothing to deflect with
+    expect(shoot(100).defenseType).toBe('dodge');
   });
 
   it('a heavy weapon is −1 gap against a parry', () => {
@@ -146,6 +166,33 @@ describe('153 Parry', () => {
     expect(strikeBackLimit(both.p)).toBe(Infinity);
   });
 
+  it('Sharp Answer (Parry 40, LG2): the strike back after a parry, and only it, deals ×SHARP_ANSWER_MULT damage', () => {
+    const s = setup();
+    const p = npc(s, 'patron_1');
+    hold(p, [IT.arming_sword]);
+    p.core.standingDefense = 'parry';
+    hold(s.player, []);
+    const marked: boolean[] = [];
+    const real = ruleset.attack;
+    vi.spyOn(ruleset, 'attack').mockImplementation((req, st) => {
+      const r = real(req, st, forcedRng([50, 50, 50, 50]));
+      if (req.attackerId === 'patron_1') marked.push(!!req.context?.strikeBack);
+      return req.targetId === 'patron_1' ? { ...r, defenseType: 'parry', gap: 3, outcome: 'parried', multiplier: 0, damage: 0, location: null, strikeBack: true } as AttackResult
+        : { ...r, outcome: 'missed', multiplier: 0, damage: 0, location: null } as AttackResult;
+    });
+    play(s, { intent: intent({ action: { type: 'attack', target: 'patron_1', skill: SK.unarmed_strike } }) });
+    vi.restoreAllMocks();
+    expect(marked.length).toBeGreaterThan(0);
+    expect(marked.every(Boolean)).toBe(true); // every blow back: the engine tells the attack it is a strike back
+    s.player.core.inventory = s.player.core.inventory.filter((i) => !i.equippedIn?.includes('armor'));
+    const blow = (back: boolean) => ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'patron_1_h0', targetPart: null, aimed: false, ...(back ? { context: { strikeBack: true } } : {}) }, s, forcedRng([95, 5, 50, 50])).damage;
+    const plain = blow(true);
+    expect(plain).toBeGreaterThan(0);
+    give(p, PK.sharp_answer);
+    expect(blow(true)).toBeCloseTo(plain * CONFIG.SHARP_ANSWER_MULT, 6);
+    expect(blow(false)).toBeCloseTo(plain, 6); // any other blow: unchanged
+  });
+
   it('Every Answer (Riposte 20) counts the limit per attacker; parry strike-backs and Counters count apart (D-337)', () => {
     const s = setup();
     const owner = npc(s, 'patron_1'), a = s.player, b = npc(s, 'guard_1');
@@ -183,7 +230,8 @@ describe('153 Parry', () => {
     const dodge = effectiveSkill(s, s.player, SK.dodge).value;
     s.player.core.skills[SK.riposte] = { raw: 20, state: 'normal' };
     s.player.core.skills[SK.blade_dance] = { raw: 15, state: 'normal' };
-    s.player.core.classes.push({ classId: CL.sword_dancer, state: 'previous', level: 1 }); // Blade Dance's tree opens with a level in the class
+    s.player.core.classes.push({ classId: CL.sword_dancer, state: 'previous', level: 1 });
+    for (const perkId of [PK.blade_against_blade, PK.first_steps_of_the_dance]) s.player.core.perks.push({ perkId, source: 'class', gainedTurn: 0 }); // the level 1 perks open Riposte and Blade Dance
     expect(effectiveSkill(s, s.player, SK.parry).value).toBeCloseTo(parry + 20);
     expect(effectiveSkill(s, s.player, SK.dodge).value).toBeCloseTo(dodge + 15);
   });

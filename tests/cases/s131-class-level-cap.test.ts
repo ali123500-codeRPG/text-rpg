@@ -1,11 +1,11 @@
 // 131 Class level cap: a class's top level is set by its tier (tier 0 → 5, +5 a tier, at most CLASS_MAX_LEVEL 20).
 // XP past it banks until a class with room is picked, then every banked level is taken at once. The default class
-// (Commoner, tier 0) opens at the top level; its capstone at 5 unlocks A Nobody, the class of a Start, with Quick Study at
+// (Commoner, tier 0) opens at the top level; reaching 5 unlocks A Nobody, and its capstone Nobody Special gives +1 perk point. A Nobody has Quick Study at
 // level 1 and the capstone Every Fall a Lesson at its top level (15, tier 2). Capstones come at the top level.
 import { RC } from '../../src/library/raceIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
-import { awardXp, charLevel, keepCapstone, levelTarget, spendXp, swapCapstone, xpToNext } from '../../src/engine/xp';
+import { awardXp, charLevel, keepCapstone, levelCost, levelTarget, spendXp, swapCapstone, xpToNext } from '../../src/engine/xp';
 import { getLibrary } from '../../src/library';
 import { classMaxLevel } from '../../src/library/spawn';
 import { CONFIG } from '../../src/config';
@@ -22,36 +22,41 @@ describe('131 Class level cap', () => {
     const p = s.player, pr = p.progression!;
     expect(CONFIG.CLASS_MAX_LEVEL).toBe(20);
     expect(getLibrary().classes[CL.commoner].name).toBe('Commoner');
-    p.core.classes = [{ classId: CL.swordsman, state: 'current', level: 9 }];
+    p.core.classes = [{ classId: CL.guard, state: 'current', level: 9 }];
     p.core.perks = [];
-    awardXp(s, xpToNext(p), 'test'); // 9 → 10, the Swordsman's top level (tier 1)
+    awardXp(s, xpToNext(p), 'test'); // 9 → 10, the Guard's top level (tier 1)
     expect(p.core.classes[0].level).toBe(10);
     expect(levelTarget(p)).toBeUndefined();
     expect(p.core.classes).toContainEqual({ classId: CL.commoner, state: 'unlocked', level: 0 });
     const before = pr.xp; // XP from the class achievements reached at the top level
-    const banked = CONFIG.LEVEL_XP * (10 + 11 + 12);
+    const banked = levelCost(10) + levelCost(11) + levelCost(12);
     awardXp(s, banked + 5, 'test');
     expect(charLevel(p)).toBe(10); // banked, no level
     expect(pr.xp).toBe(before + banked + 5);
     pr.nextClass = CL.commoner; // the sheet's picker
     spendXp(s);
-    expect(p.core.classes.map((c) => [c.classId, c.state, c.level])).toEqual([[CL.swordsman, 'previous', 10], [CL.commoner, 'current', 3]]);
+    expect(p.core.classes.map((c) => [c.classId, c.state, c.level])).toEqual([[CL.guard, 'previous', 10], [CL.commoner, 'current', 3]]);
     expect(pr.xp).toBe(before + 5);
     expect(p.core.perks.filter((x) => x.source === 'class')).toEqual([]);
     p.core.classes[1].level = 4;
-    awardXp(s, xpToNext(p), 'test'); // Commoner 4 → 5, its top level: the capstone Nobody Special unlocks A Nobody
+    const pts = pr.unspentPerkPoints;
+    awardXp(s, xpToNext(p), 'test'); // Commoner 4 → 5, its top level: A Nobody unlocks, and the capstone Nobody Special comes
     expect(p.core.perks.map((x) => x.perkId)).toContain(PK.nobody_special);
+    expect(charLevel(p)).toBe(15); // an odd level: no level perk point
+    expect(pr.unspentPerkPoints).toBe(pts + 1); // Nobody Special's one perk point
+    spendXp(s);
+    expect(pr.unspentPerkPoints).toBe(pts + 1); // given once
     expect(p.core.classes).toContainEqual({ classId: CL.a_nobody, state: 'unlocked', level: 0 });
     expect(levelTarget(p)).toBeUndefined(); // Commoner is at its top level too: XP banks until A Nobody is picked
   });
 
   it('a class\'s top level comes from its tier, and the capstone comes at it', () => {
-    expect([CL.commoner, CL.swordsman, CL.sword_dancer, CL.a_nobody, CL.late_bloomer].map(classMaxLevel)).toEqual([5, 10, 10, 15, 20]);
+    expect([CL.commoner, CL.swordsman, CL.sword_dancer, CL.a_nobody, CL.late_bloomer].map(classMaxLevel)).toEqual([5, 15, 15, 15, 20]);
     const lib = getLibrary();
     for (const c of Object.values(lib.classes)) for (const id of c.capstone ?? []) expect(lib.perks[id]?.classLevel, id).toEqual({ classId: c.id, level: classMaxLevel(c.id) });
   });
 
-  it('A Nobody: Quick Study at level 1 (its Start is gone, CC3; Commoner\'s capstone opens it)', () => {
+  it('A Nobody: Quick Study at level 1 (its Start is gone, CC3; Commoner\'s top level opens it)', () => {
     expect(getLibrary().classes[CL.a_nobody].name).toBe('A Nobody');
     expect(getLibrary().classes[CL.a_nobody].levelPerks?.[1]).toEqual([PK.quick_study]);
     expect(Object.values(getLibrary().starts).some((s) => s.classId === CL.a_nobody)).toBe(false);
@@ -82,7 +87,7 @@ describe('131 Class level cap', () => {
         { perk: PK.nobody_special, needs: { must: [{ kind: 'race', id: RC.dragon }] } }];
       p.core.skills[SK.dodge] = { raw: dodge, state: 'normal' };
       p.core.perks = [];
-      p.core.classes = [{ classId: CL.swordsman, state: 'current', level: 9 }];
+      p.core.classes = [{ classId: CL.swordsman, state: 'current', level: classMaxLevel(CL.swordsman) - 1 }];
       awardXp(s, xpToNext(p), 'test');
       return { s, p };
     };
@@ -107,6 +112,6 @@ describe('131 Class level cap', () => {
     const lib = getLibrary();
     for (const c of Object.values(lib.classes)) expect(CLASS_TIERS.has(c.tier), c.name).toBe(true);
     const tier = (id: string) => CLASS_TIERS.pos(lib.classes[id].tier);
-    expect([CL.commoner, CL.swordsman, CL.sword_dancer, CL.a_nobody, CL.late_bloomer].map(tier)).toEqual([0, 1, 1, 2, 5]);
+    expect([CL.commoner, CL.swordsman, CL.sword_dancer, CL.a_nobody, CL.late_bloomer].map(tier)).toEqual([0, 2, 2, 2, 5]);
   });
 });

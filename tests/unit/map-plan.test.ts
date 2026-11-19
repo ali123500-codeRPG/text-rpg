@@ -8,8 +8,10 @@ import { FAKE_STAGES } from '../../src/ui/fakeStages';
 import { wholeTurn } from '../harness/turn';
 import { intent } from '../cases/w4-kit';
 import type { GameState } from '../../src/types';
-import { brokenLayouts, relayBroken } from '../../src/scenario/geometry';
-import { makeFurniture } from '../../src/engine/furniture';
+import { brokenLayouts } from '../../src/scenario/geometry';
+import { furnish } from '../harness';
+import { roofed } from '../../src/plan/where';
+import { boxOf } from '../../src/plan/geom';
 import { FU } from '../../src/library/tableIds';
 import { noteLeft, noteZonesSeen, visitedZoneIds } from '../../src/engine/trail';
 
@@ -53,7 +55,7 @@ describe('MAP-52 test stages', () => {
     });
   }
   it('the Bent Nail is one building: the high lane runs beside it, and the bar sits north of the common room', () => {
-    const st = stageState('bent-nail'), z = (id: string) => st.places.flatMap((p) => p.zones).find((x) => x.id === id)!.rect!;
+    const st = stageState('bent-nail'), z = (id: string) => boxOf(st.places.flatMap((p) => p.zones).find((x) => x.id === id)!.outline);
     const common = z('tavern.common'), bar = z('tavern.bar');
     expect(bar.y - bar.d / 2).toBeCloseTo(common.y + common.d / 2); // touching, on the north wall
     const { zones, places } = sceneOf(st, 1);
@@ -68,26 +70,15 @@ describe('MAP-52 test stages', () => {
   it('the stages exist as the fake preview names them', () => expect(Object.keys(FAKE_STAGES)).toEqual(['bent-nail', 'bent-nail-saved', 'one-room', 'long-names']));
 });
 
-describe('MR2: a stored layout that breaks the map rules is placed again once', () => {
-  it('the live save\'s Bent Nail is re-placed: on the grid, the lane beside the tavern, people keep their spot', () => {
-    const st = stageState('bent-nail-saved');
-    expect(brokenLayouts(st).map((b) => b.placeId).sort()).toEqual(['tavern', 'thornbury']);
-    const zoneOf = (id: string) => st.places.flatMap((p) => p.zones).find((z) => z.id === id)!;
-    const guard = st.actors.find((a) => a.zone === 'high_lane' && a.pos)!, r0 = { ...zoneOf('high_lane').rect! };
-    const share = { x: (guard.pos!.x - r0.x) / r0.w, y: (guard.pos!.y - r0.y) / r0.d };
-    expect(relayBroken(st).length).toBe(2);
-    expect(brokenLayouts(st)).toEqual([]);
-    const { zones, places } = sceneOf(st, 1);
-    expect(checkStage(zones, places)).toEqual([]);
-    const r1 = zoneOf('high_lane').rect!;
-    expect((guard.pos!.x - r1.x) / r1.w).toBeCloseTo(share.x);
-    expect((guard.pos!.y - r1.y) / r1.d).toBeCloseTo(share.y);
-    expect(relayBroken(st)).toEqual([]); // once: nothing moves on the next load
+describe('MR2: a stored layout that breaks the map rules is named, never moved (PZ16 b: plans are kept as drawn)', () => {
+  it('the live save\'s Bent Nail is named: off the grid, and the lane through the tavern; nothing moves', () => {
+    const st = stageState('bent-nail-saved'), before = JSON.stringify(st.zones.map((z) => z.outline));
+    expect(brokenLayouts(st, (z) => roofed(st, z)).map((b) => b.placeId).sort()).toEqual(['tavern', 'thornbury']);
+    expect(JSON.stringify(st.zones.map((z) => z.outline))).toBe(before);
   });
-  it('a layout already clean never moves (MAP-03)', () => {
-    const st = stageState('bent-nail'), before = JSON.stringify(st.places);
-    expect(relayBroken(st)).toEqual([]);
-    expect(JSON.stringify(st.places)).toBe(before);
+  it('a layout already clean is named by nothing (MAP-03)', () => {
+    const st = stageState('bent-nail');
+    expect(brokenLayouts(st, (z) => roofed(st, z))).toEqual([]);
   });
 });
 
@@ -200,7 +191,7 @@ describe('BG-216: marks keep their spot in their zone at every zoom', () => {
 describe('whole turn', () => {
   it('BG-216: after a turn, the map\'s furniture sits at the same share of its zone at two zooms', async () => {
     const g = wholeTurn({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
-    g.game.state()!.places.flatMap((p) => p.zones).find((z) => z.id === 'tav_common')!.furniture = makeFurniture('tav_common',
+    furnish(g.game.state()!, 'tav_common',
       [{ kind: FU.counter, name: 'scarred counter', at: 'n' }, { kind: FU.hearth, name: 'hearth', at: 'w' }, { kind: FU.table, name: 'long table' }]);
     await g.turn(intent({ action: { type: 'wait' } }));
     const a = sceneOf(g.game.state()!, 1.2).sc, b = sceneOf(g.game.state()!, 2).sc;

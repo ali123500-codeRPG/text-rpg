@@ -22,6 +22,8 @@ import { achLevel, achXp, bonusLevelsOwed, freeLevelsOwed, rewardLines, rewardNa
 import { ACH_RULE_ONE, ACH_RULE_TEXT } from '../library/achievementIds';
 import { r1 } from '../words';
 import { levelCost, perkPointAt, xpToReach } from '../ruleset/levels';
+import { combatLevel, refFighter } from './fightModel';
+import { nonCombatGroups, nonCombatPart } from './nonCombat';
 export { achLevel, achXp, bonusLevelsOwed, freeLevelsOwed };
 
 /** character level: every class's level, plus bonus levels (levels no class gets) */
@@ -34,8 +36,6 @@ export function xpFill(a: Actor): { level: number; xp: number; need: number; pct
   return { level: charLevel(a), xp, need, pct: need > 0 ? Math.max(0, Math.min(100, (xp / need) * 100)) : 100 };
 }
 export { levelCost, perkPointAt, perkPointsUpTo, xpToReach } from '../ruleset/levels';
-/** Part 1 §6 Total: raw skills, Tagged excluded. */
-export const skillTotal = (a: Actor) => Object.values(a.core.skills).reduce((n, s) => n + (s.state === 'tagged' ? 0 : s.raw), 0);
 
 /** Award XP to the player with a trail entry, then level up as often as the XP allows (X9: into the chosen class). */
 export function awardXp(state: GameState, amount: number, source: string, why?: DefeatWhy): void {
@@ -70,8 +70,9 @@ export function spendXp(state: GameState): void {
     logCode(state, 'level_up', up);
   }
   takeBonusLevels(state); // a class perk can give bonus levels too
+  takePerkPoints(p); // and perk points (Nobody Special)
   classFeats(state);
-  unlockClasses(state); // a class-level perk can unlock a class (Commoner 5 opens A Nobody)
+  unlockClasses(state); // a class level or class-level perk can unlock a class (Commoner 5 opens A Nobody)
   const cur = p.core.classes.find((c) => c.state === 'current');
   if (cur && capped(cur)) for (const c of Object.values(getLibrary().classes)) { // the default class opens at the top level
     if (!c.fallback || p.core.classes.some((x) => x.classId === c.id)) continue;
@@ -90,6 +91,18 @@ function takeBonusLevels(state: GameState): void {
     (pr.xpLog ??= []).push({ source: 'bonus level', amount: 0, turn: state.turn, levelUp: up });
     logCode(state, 'level_up', up);
   }
+}
+
+/** perk points that active perks give (PerkDef.perkPoints) and that are not yet added */
+export const perkPointsOwed = (a: Actor) => Math.max(0, a.core.perks.filter((x) => !x.dormant)
+  .reduce((n, x) => n + (getLibrary().perks[x.perkId]?.perkPoints ?? 0), 0) - (a.progression?.perkPointsTaken ?? 0));
+
+/** add the perk points perks give to the unspent pool, once each */
+function takePerkPoints(p: Actor): void {
+  const pr = p.progression, owed = perkPointsOwed(p);
+  if (!pr || !owed) return;
+  pr.unspentPerkPoints += owed;
+  pr.perkPointsTaken = (pr.perkPointsTaken ?? 0) + owed;
 }
 
 /** a class the player doesn't have unlocks at level 0, however it opens, and earns {class} Awakened */
@@ -151,6 +164,7 @@ export function keepCapstone(p: Actor, classId: string): boolean {
   if (!pr?.capstoneOptions?.[classId]) return false;
   for (const x of capstonePerks(p, classId)) delete x.dormant;
   delete pr.capstoneOptions[classId];
+  takePerkPoints(p);
   return true;
 }
 
@@ -162,6 +176,7 @@ export function swapCapstone(state: GameState, classId: string, perkId: string):
   p.core.perks = p.core.perks.filter((x) => !(x.source === 'class' && base.includes(x.perkId)));
   p.core.perks.push({ perkId, source: 'class', gainedTurn: turn });
   delete pr.capstoneOptions![classId];
+  takePerkPoints(p);
   openEveryClass(state);
   return true;
 }
@@ -175,21 +190,20 @@ function openEveryClass(state: GameState): void {
 }
 
 /** Classes the player doesn't have unlock once every skill in ClassDef.unlock reaches its true skill and, when
- * ClassDef.unlockAny is listed, at least one of those does, and when ClassDef.unlockPerk is listed, the player has that perk (for example Swordsman at Parry 40 and Medium or Heavy Weapons 40;
- * Sword-dancer at Dodge 40 and Light or Medium Weapons 40). An unlocked class sits at level 0 until a level goes into it (X9). */
+ * ClassDef.unlockAny is listed, at least one of those does, and every class in ClassDef.unlockClass is at its level (Swordsman at Parry 80 and
+ * Medium or Heavy Weapons 60; A Nobody at Commoner's top level). A capstone never unlocks a class: the class level does. An unlocked class sits at level 0 until a level goes into it (X9). */
 export function unlockClasses(state: GameState): void {
   const p = state.player;
   openEveryClass(state);
   for (const c of Object.values(getLibrary().classes)) {
-    if (!(c.unlock || c.unlockAny || c.unlockPerk || c.unlockPerkWith || c.unlockClass || c.orUnlocks || c.blessedBy) || p.core.classes.some((x) => x.classId === c.id)) continue;
+    if (!(c.unlock || c.unlockAny || c.unlockPerkWith || c.unlockClass || c.orUnlocks || c.blessedBy) || p.core.classes.some((x) => x.classId === c.id)) continue;
     if (c.blessedBy && !blessedBy(p, c.blessedBy)) continue; // DX1: a god's Blessed class opens on being blessed by that god
-    if (c.unlockPerk && !p.core.perks.some((x) => x.perkId === c.unlockPerk && !x.dormant)) continue;
     const met = ([sk, need]: [string, number]) => trueSkill(p, sk) >= need;
     const rules = (r: Pick<ClassDef, 'unlock' | 'unlockAny' | 'unlockClass'>) => Object.entries(r.unlock ?? {}).every(met)
       && (r.unlockAny ?? []).every((group) => Object.entries(group).some(met))
       && Object.entries(r.unlockClass ?? {}).every(([id, lv]) => (p.core.classes.find((x) => x.classId === id)?.level ?? 0) >= (lv === 'max' ? classMaxLevel(id) : lv));
     const perkWith = !c.unlockPerkWith || Object.entries(c.unlockPerkWith).every(([k, n]) => p.core.perks.some((x) => !x.dormant && (getLibrary().perks[x.perkId]?.[k as 'hearingDb'] ?? 0) >= n));
-    if (!((rules(c) && perkWith) || (c.orUnlocks ?? []).some(rules))) continue; // NR36: any other way in will do
+    if (!((rules(c) && perkWith) || (c.orUnlocks ?? []).some(rules))) continue; // NR36: any other way in will do (Merchant: Trader 5, or Barter 75)
     openClass(state, c.id);
   }
 }
@@ -267,11 +281,6 @@ export function ratingGroups(a: Actor): RatingGroup[] {
   });
 }
 
-/** X18–X23: an actor's stat rating, the same for the player and a foe: its level part plus its skill groups */
-export function rating(a: Actor, state?: GameState): number {
-  return levelRating(a, state) + ratingGroups(a).reduce((n, g) => n + g.adds, 0);
-}
-
 /** an actor's level: its full character level (free and bonus levels count), else an NPC's level from its own true skills
  * (NR39: its High-band skills on the rank table, essences included; a unique keeps its sheet's). `state` finds a story's own
  * templates (a composed NPC's blueprint). */
@@ -284,35 +293,39 @@ export function actorLevel(a: Actor, state?: GameState): number {
 /** levels in the rating (the thread the foe wove): LEVEL_RATING_SHARE × what the XP curve asks to reach that level */
 export const levelRating = (a: Actor, state?: GameState): number => CONFIG.LEVEL_RATING_SHARE * xpToReach(actorLevel(a, state));
 
-/** a foe's gear in its rating: GEAR_RATING_FACTOR × the coin value of what it holds and wears (gear coin is priced at
- * about one coin per skill point of power). Carried spares and coin don't count. */
-export function gearRating(state: GameState, a: Actor): number {
-  return gearRatingItems(state, a).reduce((n, g) => n + g.adds, 0);
-}
-/** the gear rating item by item: each held or worn item's coin value and what it adds (GEAR_RATING_FACTOR × coin) */
-export function gearRatingItems(state: GameState, a: Actor): { id: string; itemId: string; coin: number; adds: number }[] {
-  return a.core.inventory.filter((i) => isHeld(i) || isWorn(i)).map((i) => {
-    const coin = itemValue(state, itemDef(state, i.itemId));
-    return { id: i.id, itemId: i.itemId, coin, adds: CONFIG.GEAR_RATING_FACTOR * coin };
-  });
+/** GR45 (PLACEHOLDER): the combat part: what the skill part (ratingGroups) gives the reference fighter at a level */
+export const refSkillPart = (state: GameState, L: number): number => ratingGroups(refFighter(state, L, '__ref').ref).reduce((n, g) => n + g.adds, 0);
+/** GR45: the actor's combat part: the reference's skill part at the actor's combat level (the fight model, engine/fightModel.ts) */
+export const combatPart = (state: GameState, a: Actor): number => refSkillPart(state, combatLevel(state, a));
+
+/** An actor's power (GR45, PLACEHOLDER): its level part + its combat part + its non-combat part (engine/nonCombat.ts).
+ * The one measure of how strong someone is, used by defeat XP and by the stronger-foe achievements, so a change here
+ * changes both. Gear counts through the fight (weapons, armor, shields) and through skill lines, never by its coin. */
+export const power = (state: GameState, a: Actor): number => levelRating(a, state) + combatPart(state, a) + nonCombatPart(state, a);
+
+/** GR44: the power an actor had when it joined the fight it is in (kept on its engagement until the fight ends), else its
+ * power now. Defeat XP and the stronger-foe achievements read this, so dropping a shield before the last blow changes nothing. */
+export const fightPower = (state: GameState, a: Actor): number => a.engagement?.power ?? power(state, a);
+/** GR44: note an actor's power on its engagement once it is in a fight (first time only) */
+export function notePower(state: GameState, a: Actor): void {
+  const e = a.engagement;
+  if (e && e.power === undefined && e.kinds.includes('fight')) e.power = power(state, a);
 }
 
-/** An actor's power: its rating plus its gear rating. The one measure of how strong someone is, used by defeat XP and by
- * the stronger-foe achievements, so a change here changes both. */
-export const power = (state: GameState, a: Actor): number => rating(a, state) + gearRating(state, a);
-
-/** power() in its parts, for the character sheet: level, each skill group, gear; the parts add up to power() */
+/** power() in its parts, for the character sheet: level, combat (its combat level), each non-combat group; they add up to power() */
 export function powerParts(state: GameState, a: Actor) {
-  return { level: actorLevel(a, state), levelAdds: levelRating(a, state), groups: ratingGroups(a), gear: gearRatingItems(state, a), total: power(state, a) };
+  const L = combatLevel(state, a), nonCombat = nonCombatGroups(state, a);
+  const levelAdds = levelRating(a, state), combatAdds = refSkillPart(state, L);
+  return { level: actorLevel(a, state), levelAdds, combatLevel: L, combatAdds, nonCombat, total: levelAdds + combatAdds + nonCombat.reduce((n, g) => n + g.adds, 0) };
 }
 
 /** XP shrinks for foes much weaker than the player: min(1, TAPER × theirs ÷ mine) (X19). Defeat XP and defeat quests (QX2) share it. */
 export const weakFoeTaper = (theirs: number, mine: number) => (mine > 0 ? Math.min(1, (CONFIG.DEFEAT_XP_TAPER * theirs) / mine) : 1);
 
 /** Defeat XP = foe power × taper (weak foes, X19) × DEFEAT_XP_MULT (X20). Stats only: no dice, no override (X13).
- * Power counts gear on both sides. */
+ * GR44: both powers are the ones taken when each side joined the fight (fightPower). */
 export function defeatXp(state: GameState, t: Actor): number {
-  const theirs = power(state, t), mine = power(state, state.player);
+  const theirs = fightPower(state, t), mine = fightPower(state, state.player);
   const taper = weakFoeTaper(theirs, mine);
   return r1(theirs * taper * CONFIG.DEFEAT_XP_MULT);
 }
@@ -380,7 +393,7 @@ export function grantAchievement(state: GameState, key: string, of?: string, rea
     for (const x of pr.achievements ?? []) if (x.key === k && x.of === of && !x.replacedBy) x.replacedBy = id;
   (pr.achievements ??= []).push({ id, key, ...(of ? { of } : {}), ...(reached !== undefined ? { reached } : {}), turn: at ?? state.turn });
   if (d.perk && !state.player.core.perks.some((x) => x.perkId === d.perk)) state.player.core.perks.push({ perkId: d.perk, source: 'achievement', gainedTurn: state.turn });
-  const xp = achXp(d, of);
+  const xp = achXp(d, of, xpToNext(state.player)); // AL3: the player's own XP to the next level, as earned
   logCode(state, 'achievement', { id, xp });
   awardXp(state, xp, `achievement:${id}`);
   if (d.freeLevels || d.bonusLevels) spendXp(state); // free and bonus levels need no XP to arrive
@@ -391,8 +404,11 @@ export function grantAchievement(state: GameState, key: string, of?: string, rea
 
 /** D-226: the player's growth waits for the running scenario's end (CONFIG.GROWTH_AT_SCENARIO_END); in free roam, for the next
  * scenario's end (BG-217) */
-export const growthWaits = (state: GameState): boolean => CONFIG.GROWTH_AT_SCENARIO_END && (!!state.stage.scenario || !!state.stage.roam) && !flushing;
-let flushing = 0;
+export const growthWaits = (state: GameState): boolean => CONFIG.GROWTH_AT_SCENARIO_END && (!!state.stage.scenario || !!state.stage.roam || holding > 0) && !flushing;
+let flushing = 0, holding = 0;
+/** BG-272: runs `fn` as part of a scenario's start (its event roll): growth earned inside it waits for that scenario's end,
+ * even before the scenario has begun (the story's opening, or a start right after a story beat closed the last one) */
+export function forScenarioAhead<T>(fn: () => T): T { holding++; try { return fn(); } finally { holding--; } }
 /** runs `fn` as the scenario's ending moment: growth granted inside it lands at once (flushGrowth) */
 export function atScenarioEnd<T>(fn: () => T): T { flushing++; try { return fn(); } finally { flushing--; } }
 
@@ -412,10 +428,10 @@ export const wearable = (state: GameState) => {
 };
 
 /** Display name of an earned achievement, read from the library table now. */
-export function achievementName(state: GameState, a: { id: string; key?: string; of?: string; name?: string }): string {
+export function achievementName(state: GameState, a: { id: string; key?: string; of?: string }): string {
   const lib = getLibrary();
   const d = a.key ? lib.achievements?.[a.key] : undefined;
-  if (!d) return a.name ?? a.id;
+  if (!d) return a.id;
   if (a.of && d.names?.[a.of]) return d.names[a.of]; // a name of its own for this earning
   return d.name.replace(/\{(body_type|race|tree|group|class|tier|level|function|skill|size|giver|source|place_kind|health_level)\}/g, title(kindName(state, d, a.of)));
 }
@@ -475,6 +491,5 @@ export function achievementInfo(state: GameState, a: { id: string; key?: string;
   const why = reached !== undefined && !d.every && reached !== d.count
     ? `Turn ${a.turn}: you reached ${fmtCount(reached)}; this needs ${earnedAt}.`
     : `Turn ${a.turn}: you reached ${earnedAt}.`;
-  return { id: a.id, name, level, levelName: rewardName(level), xp: achXp(d, a.of), scar: !!d.scar, earnedAt, why, rewards: rewardLines(d) };
+  return { id: a.id, name, level, levelName: rewardName(level), xp: state.player.progression?.xpLog?.find((x) => x.source === `achievement:${a.id}`)?.amount ?? achXp(d, a.of), scar: !!d.scar, earnedAt, why, rewards: rewardLines(d) };
 }
-export type AchievementInfo = ReturnType<typeof achievementInfo>;

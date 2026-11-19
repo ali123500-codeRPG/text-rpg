@@ -13,6 +13,8 @@ import { knownIds } from '../../src/agents/legality';
 import { distM } from '../../src/engine/position';
 import { IT } from '../../src/library/itemIds';
 import { BK } from '../../src/library/tableIds';
+import { layAll } from '../harness';
+import { setBarrier } from '../harness';
 
 const quiet = (zone = 'tav_common') => makeVillage({ playerZone: zone, without: ['slime_1', 'slime_2', 'guard_1'] });
 const bandage = (s: GameState) => { s.player.core.inventory.push({ id: 'band', itemId: IT.bandage, qty: 2 }); };
@@ -32,15 +34,14 @@ it('BF13: a bandage used on someone else heals them, after stepping up to them',
 
 it('BF13: an NPC can take what an open chest shows', () => {
   const s = quiet();
-  zoneById(s, 'tav_common')!.groundItems.push({ id: 'box', itemId: IT.chest, open: true, contents: [{ id: 'roll', itemId: IT.bandage }] });
+  layAll(s, 'tav_common', { id: 'box', itemId: IT.chest, open: true, contents: [{ id: 'roll', itemId: IT.bandage }] });
   expect(knownIds(buildActorView(s, 'patron_1')).ground.has('roll')).toBe(true);
 });
 
 function grate(s: GameState, kind: string = BK.grate): void {
   const bar: Barrier = { id: 'bars', kind, grade: 'minor', lock: { locked: true } };
   (s.barriers ??= {})[bar.id] = bar;
-  zoneById(s, 'street_door')!.links.find((l) => l.to === 'tav_common')!.barrier = bar.id;
-  zoneById(s, 'tav_common')!.links.find((l) => l.to === 'street_door')!.barrier = bar.id;
+  setBarrier(s, 'street_door', 'tav_common', bar.id);
 }
 const handOver = () => intent({ action: { type: 'give', target: 'patron_1', item: 'player_coin', qty: 1 } });
 const coinsOf = (s: GameState) => actorById(s, 'patron_1')!.core.inventory.find((i) => i.itemId === IT.coin)?.qty ?? 0;

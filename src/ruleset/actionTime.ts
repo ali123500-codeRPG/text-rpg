@@ -2,7 +2,7 @@
 // × the actor's time factor, sped by the row's speed function when it names one.
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
-import type { AttackMode, DurationDef, ItemDef } from '../types';
+import type { Actor, AttackMode, DurationDef, ItemDef } from '../types';
 import { FN } from '../library/functionIds';
 import { DU } from '../library/tableIds';
 
@@ -16,8 +16,10 @@ export function attackRowIds(def: ItemDef | undefined, mode: AttackMode): string
   return [...(def?.spanTime ? [def.spanTime] : []), def?.shotTime ?? DU.bow_light];
 }
 
-/** AT22: an actor's time factor; 1 for everyone until the speed skills exist (D-248) */
-export const timeFactor = (): number => 1;
+/** AT22: an actor's time factor, multiplying every action's seconds (movement too: speedFactor is its inverse). VS8: a
+ * stealthy actor takes CONFIG.SNEAK_TIME_MULT; 1 otherwise, until the speed skills exist (D-248). Reaction time is no
+ * action and keeps no actor's factor */
+export const timeFactor = (a?: Actor): number => (a?.posture === 'stealthy' ? CONFIG.SNEAK_TIME_MULT : 1);
 
 /** an Action times row by its DU id */
 export const actionRow = (id: string): DurationDef | undefined => getLibrary().durations?.[id];

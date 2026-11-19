@@ -1,9 +1,10 @@
 // The turn pipeline (Part 2, Architecture: one turn) behind GameApi.
 // Order per turn: Parser → [dialogue calls] → BACKGROUND_WINDOW gate → collect Planners → resolveTurn → scenario setup
 // → plan updates → save → NarrationView → advance (turn N+1 pending, background Planners) → Narrator → [DIALOGUE_WINDOW] → display.
+import { waysOut } from '../plan/where';
 import { gripWord, gripsOf } from '../ruleset/gear';
 import { coinWords, coins, countWords } from '../engine/trade';
-import { moraleLevel } from '../ruleset/morale';
+import { isBrokenLevel, isCoweringLevel, moraleLevel } from '../ruleset/morale';
 import { IT } from '../library/itemIds';
 import type { AgentName, StoryOwner, TierRoll, DefeatWhy, XpAward, TierShift,
   AgentTurnLog, ClaudeClient, ClaudeErrorCode, Clock, CreationBuild, DialogueInput, GameApi, GameEvent, GameState,
@@ -14,7 +15,7 @@ import { pendingEnding } from '../engine/scenarioEnd';
 import { barrierName } from '../engine/barriers';
 import { scenarioGainsNow } from '../engine/growth';
 import { CONFIG, defaultSettings } from '../config';
-import { advanceClock, clockText, DAY_MINUTES, dayOf, durationText, now, now as gameNow, timeOfDay, timeView } from '../time';
+import { advanceClock, clockText, DAY_MINUTES, dayOf, durationText, noteTurnEnd, now, now as gameNow, timeOfDay, timeView } from '../time';
 import { outcomeText } from '../ruleset/hits';
 import { GRADE_LEVELS, HEALTH_LEVELS, PART_STATES, TIME_OF_DAY, type TimeOfDay } from '../scales';
 import { createRng } from '../rng';
@@ -22,7 +23,7 @@ import * as engine from '../engine';
 import { hasAgenda } from '../engine/relations';
 import type { AcceptedAgentOutput, ExchangeSpeech, TurnInput } from '../engine';
 import { busyNow } from '../engine/busy';
-import { NERVE_BLOCKED } from '../minds';
+import { NERVE_BLOCKED, NERVE_MOVES } from '../minds';
 import * as views from '../views';
 import * as save from '../save';
 import type { Store } from '../save';
@@ -34,7 +35,7 @@ import { skillName } from '../library/skillNames';
 import { createPlayer, refreshCopies, validateBuild } from '../library/spawn';
 import { threadboundInWorld } from '../ruleset/threadboundItems';
 import { achievementName, wearable, wornTitle } from '../engine/xp';
-import { defaultStandingDefense, healthLevel, isDownLevel, partStates, TAG_MARK, takePerk, tierAt, tierAtLeast, tierLevel, tierName, tierPart, undoPerk, usedOffSheet } from '../ruleset';
+import { defaultStandingDefense, healthLevel, isDownLevel, partStates, FLAW_MARK, TAG_MARK, takePerk, tierAt, tierAtLeast, tierLevel, tierName, tierPart, undoPerk, usedOffSheet } from '../ruleset';
 import { StopPlay, callGate, modelFor, type AgentCtx, type RunResult } from './call';
 import { echoPast, fameEntry } from './fame';
 import { echoSheet } from '../library/echo';
@@ -93,18 +94,28 @@ const HELP_TEXT =
   'Type what you do in plain words. Commands: /stats, /inv, /quests, /achievements, /undo (rewind one turn; dice are not rolled back), ' +
   '/help, /strike <who> [at <body part>] (a blow with what you hold), /shoot <who> [at <body part>], /throw <what> at <who> [at <body part>], /aim (put it in front of an attack that names a body part, e.g. /aim /strike the guard at his left leg: a harder roll that, if it hits, lands on that part; aiming never picks a person), /title [number or off] (wear an achievement as your title), /essence (essences on offer and held: take, pass, remove), /yield [words] (give up the fight you are in), /stuck [what is wrong] (the scenario can go nowhere: the story finds a way forward, and a bug is filed). The story saves every turn.';
 
-/** NB5/BF37: what the game says when only what a broken nerve blocks was asked (a walk, an attack, a grab, a filch, a perk
- * move); the order is turned away and no time passes */
-export const NERVE_REFUSED = "Your nerve is broken: you can't bring yourself to move or attack. Nothing happened and no time passed. You can still talk, beg, yield, give, use an item such as a bandage, pick something up, or open a door or container within reach. With nothing else to do, you cower where you stand.";
-/** BF37: the intent asks only for what a broken nerve blocks: a walk, an attack, a grab, a filch or a perk move, and no words */
-function nerveBlocksAll(i: Intent): boolean {
-  const blocked = (t?: string) => !!t && NERVE_BLOCKED.includes(t);
-  const wants = !!i.move || !!i.perkMove || blocked(i.action?.type);
-  const allowed = !!i.spoken || !!i.gear?.length || !!i.way || (!!i.action && !blocked(i.action.type));
+/** NB5/BF37/BF79: what the game says when only what a broken nerve blocks was asked (an attack, a grab, a filch, a perk
+ * move, a walk toward a foe); the order is turned away and no time passes */
+export const NERVE_REFUSED = "Your nerve is broken: you can't bring yourself to attack or go toward a foe. Nothing happened and no time passed. You can still back away or run, talk, beg, yield, give, use an item such as a bandage, pick something up, or open a door or container within reach.";
+/** BF79: the same at Cowering, below Broken, where not even flight is left */
+export const NERVE_COWERING_REFUSED = "You are cowering: you can't bring yourself to move or attack. Nothing happened and no time passed. You can still talk, beg, yield, give, use an item such as a bandage, pick something up, or open a door or container within reach. With nothing else to do, you cower where you stand.";
+/** BF37/BF79: the intent asks only for what a broken nerve blocks (an attack, a grab, a filch, a perk move, a walk it turns
+ * back: toward a foe, or any walk at Cowering) and no words */
+function nerveBlocksAll(s: GameState, i: Intent): boolean {
+  const cowering = isCoweringLevel(moraleLevel(s.player));
+  const stops = cowering ? [...NERVE_BLOCKED, ...NERVE_MOVES] : NERVE_BLOCKED;
+  const blocked = (t?: string) => !!t && stops.includes(t);
+  const walkBack = !!i.move && engine.nerveTurnsBack(s, s.player, engine.fromIntent(s, i, false));
+  const wants = walkBack || !!i.perkMove || blocked(i.action?.type);
+  const allowed = !!i.spoken || !!i.gear?.length || !!i.way || (!!i.move && !walkBack) || (!!i.action && !blocked(i.action.type) && !NERVE_MOVES.includes(i.action.type));
   return wants && !allowed;
 }
 export const ASLEEP_TEXT = '(asleep)';
 export const DOWN_TEXT = '(down)'; // D-239: the turn the foes decide whether to spare the downed player
+/** IQ7 a: said when Finish the fight is asked for with no fight far below the player */
+export const FINISH_REFUSED = 'There is no fight here so far below you that it can be played out in one go.';
+/** IQ4 a: a finished fight's blow each round: an attack on that foe with what is in hand */
+const finishAttack = (target: string): Intent => ({ move: null, action: { type: 'attack', skill: '', target, targetPart: null, item: null, mode: null, approach: '' }, gear: null, spoken: null, addressees: null, deferred: [], clarify: null });
 /** the bands of the people the player can see (the Parser's legality reads them) */
 const bandsOf = (s: GameState, pv: import('../types').PlayerView) => pv.actors.map((a) => s.actors.find((x) => x.id === a.id)?.bandId ?? '').filter(Boolean);
 /** NW18: a turn played while the player sleeps */
@@ -334,14 +345,15 @@ export function createGame(deps: GameDeps): Game {
     return { agent: 'voice', actorId: id, output: r.output };
   }
 
-  /** given: AD7, an order code built from a clicked action: it skips the Parser and passes the same checks */
-  async function playTurn(text: string, aimed: boolean, given?: Intent): Promise<void> {
+  /** given: AD7, an order code built from a clicked action: it skips the Parser and passes the same checks; rest (D-20 b):
+   * the steps of the player's order still queued after this one */
+  async function playTurn(text: string, aimed: boolean, given?: Intent, rest: string[] = []): Promise<void> {
     const s = state!;
     const submitAt = clock.now();
     const before = snapTurn(s); // TQ1: the turn checker compares the world after the turn with this
     const answer = answering(lines, s.turn); // BF72: read before this order joins the story
     lines.push({ turn: s.turn, kind: 'player', text, ...(aimed ? { aimed: true } : {}) });
-    const gearBefore = gearSnap(s, s.player), coinBefore = coins(s.player), brokenBefore = moraleLevel(s.player) === 'broken';
+    const gearBefore = gearSnap(s, s.player), coinBefore = coins(s.player), brokenBefore = isBrokenLevel(moraleLevel(s.player));
     const partsBefore = partStates(s, s.player), zonesBefore = [...visitedZoneIds(s)];
     emit();
     if (!(await save.acquireTurnLock(store, s.storyId, owner))) {
@@ -369,6 +381,12 @@ export function createGame(deps: GameDeps): Game {
     }
     const intent = engine.fillSpeech(s, parsed.intent, text);
     if (yieldNext) intent.yields = true;
+    // IQ7 a: Finish the fight only while the fight is far below the player (IQ6 a); else nothing happens and no time passes
+    if (intent.finish && !engine.farBelow(s)) {
+      lines.push({ turn: s.turn, kind: 'clarify', text: FINISH_REFUSED });
+      lastLog = [...turnLog];
+      return;
+    }
     // OQ-27 (c): ask who is meant, from code: no Claude call, no turn spent
     const unclear = engine.unclearAddressee(s, intent, pv.actors.map((a) => a.id));
     if (unclear) {
@@ -378,8 +396,8 @@ export function createGame(deps: GameDeps): Game {
     }
     // NB5/BF37: with a broken nerve, an order of only what it blocks is turned away before the turn: nothing happens and no
     // time passes. Words or an allowed action beside it go ahead, and the engine takes the blocked part away (nerveHolds)
-    if (moraleLevel(s.player) === 'broken' && nerveBlocksAll(intent)) {
-      lines.push({ turn: s.turn, kind: 'clarify', text: NERVE_REFUSED });
+    if (isBrokenLevel(moraleLevel(s.player)) && nerveBlocksAll(s, intent)) {
+      lines.push({ turn: s.turn, kind: 'clarify', text: isCoweringLevel(moraleLevel(s.player)) ? NERVE_COWERING_REFUSED : NERVE_REFUSED });
       lastLog = [...turnLog];
       return;
     }
@@ -387,6 +405,7 @@ export function createGame(deps: GameDeps): Game {
     if (intent.action?.noSkillFits) s.log.push({ turn: s.turn, code: 'skill_gap', detail: { words: text.slice(0, 300), type: intent.action.type, skill: intent.action.skill, target: intent.action.target } });
     const rngBefore = s.rngState;
     const rng = createRng(s.rngState);
+    const watch = engine.watchOrder(s); // D-20 b: what is news to the player after the turn
     const quick = engine.quickWord(s, intent); // A15 in a fight, OA1 asides outside one: a line beside a deed, replied to for free
     const speech = !!intent.action && ((SPEECH_ACTIONS as readonly string[]).includes(intent.action.type) || quick) && !!intent.addressees?.length;
     const spokespeople = speech ? engine.selectSpokespeople(s, intent) : [];
@@ -433,7 +452,9 @@ export function createGame(deps: GameDeps): Game {
     agentOutputs.push(...collectPlanners([...spokespeople, ...beat]));
     agentOutputs.sort((a, b) => (a.actorId < b.actorId ? -1 : a.actorId > b.actorId ? 1 : 0));
     const input: TurnInput = { intent, aimed, agentOutputs, spokespeople, ...(beat.length ? { beatSpeakers: beat } : {}), ...(exchange ? { exchange } : {}), ...(quick && exchange ? { quickWord: true } : {}) };
-    const events = engine.resolveTurn(s, input, rng);
+    // IQ4 a: a finished fight plays its rounds on code in this one turn, the player striking each round (finishAttack)
+    const events = intent.finish ? engine.finishFight(s, input, rng, (t) => acceptIntent(finishAttack(t), views.buildPlayerView(s), bandsOf(s, views.buildPlayerView(s)), []).intent).events
+      : engine.resolveTurn(s, input, rng);
     s.rngState = rng.state; // plan updates were applied (with triggers sanitized) inside resolveTurn
     // SD1: the play page can start the ending moment now, while the next scenario's Weaver and the Narrator run
     const ended = pendingEnding(s);
@@ -446,17 +467,19 @@ export function createGame(deps: GameDeps): Game {
     for (const b of checkTurn(s, before, events)) s.log.push({ turn: s.turn, code: 'turn_check', detail: { ...b } });
     aimNext = false;
     yieldNext = false;
-    await finishTurn(s, events, { playerInput: text, rngBefore, aimed, intent, gearBefore, coinBefore, brokenBefore, partsBefore, zonesBefore, doingBefore, ...(ended ? { ended } : {}) }, spokespeople.length ? submitAt : null);
+    const queue = [...(intent.deferred ?? []), ...rest];
+    const queueStops = queue.length > 0 && engine.orderStops(s, watch, events, spokespeople);
+    await finishTurn(s, events, { playerInput: text, rngBefore, aimed, intent, gearBefore, coinBefore, brokenBefore, partsBefore, zonesBefore, doingBefore, queue, queueStops, ...(ended ? { ended } : {}) }, spokespeople.length ? submitAt : null);
   }
 
   /** save → NarrationView → advance → Narrator → display (shared by every turn and by story start) */
-  async function finishTurn(s: GameState, events: GameEvent[], rec: { playerInput: string; rngBefore: number; aimed: boolean; intent: Intent | null; gearBefore?: GearSnap; coinBefore?: number; brokenBefore?: boolean; doingBefore?: DoingSnap; partsBefore?: { id: string; state: PartState }[]; zonesBefore?: string[]; ended?: import('../types').ScenarioEnding; opening?: true }, dialogueSubmitAt: number | null): Promise<void> {
+  async function finishTurn(s: GameState, events: GameEvent[], rec: { playerInput: string; rngBefore: number; aimed: boolean; intent: Intent | null; gearBefore?: GearSnap; coinBefore?: number; brokenBefore?: boolean; doingBefore?: DoingSnap; queue?: string[]; queueStops?: boolean; partsBefore?: { id: string; state: PartState }[]; zonesBefore?: string[]; ended?: import('../types').ScenarioEnding; opening?: true }, dialogueSubmitAt: number | null): Promise<void> {
     s.events = events;
     // saved with the engine page, so a reloaded story resolves the next turn exactly as continuous play would
     s.recentEvents = pruneRecent(s, [...(s.recentEvents ?? []), ...events]);
     s.agentLog = [...turnLog];
     const record: TurnRecord = {
-      storyId: s.storyId, turn: s.turn, libraryVersion: s.libraryVersion, schemaVersion: CONFIG.SCHEMA_VERSION, rngBefore: rec.rngBefore, playerInput: rec.playerInput,
+      storyId: s.storyId, turn: s.turn, libraryVersion: s.libraryVersion, rngBefore: rec.rngBefore, playerInput: rec.playerInput,
       agentLog: s.agentLog, events, factsAdded: [], log: s.log, aimed: rec.aimed, ...(rec.opening ? { opening: true as const } : {}),
       ...(s.scratch?.eventRoll ? { eventRoll: s.scratch.eventRoll as TurnRecord['eventRoll'] } : {}),
     };
@@ -511,8 +534,8 @@ export function createGame(deps: GameDeps): Game {
     // the turn's change in coin, shown as its own row (coin is left out of the gear rows)
     const coin = rec.coinBefore === undefined ? 0 : coins(s.player) - rec.coinBefore;
     // MB12: the player's nerve broke this turn, or a walk or attack was taken away because it is broken (shown again after a reload)
-    const nerveBroke = rec.brokenBefore === false && moraleLevel(s.player) === 'broken';
-    const nerveRefused = events.some((e) => e.actorId === s.player.id && e.kind === 'wasted' && e.reason === 'nerve_broken') || s.log.some((l) => l.code === 'broken_cowers'); // BF37
+    const nerveBroke = rec.brokenBefore === false && isBrokenLevel(moraleLevel(s.player));
+    const nerveRefused = events.some((e) => e.actorId === s.player.id && e.kind === 'wasted' && e.reason === 'nerve_broken') || s.log.some((l) => l.code === 'broken_cowers' || (l.code === 'nerve_turned_back' && l.detail?.actorId === s.player.id)); // BF37, BF79
     // AT11a: the long actions the player saw: going on (seconds to go), finished, broken off or set aside
     const actions = rec.doingBefore ? actionNotes(s, rec.doingBefore, doingSnap(views.buildPlayerView(s))) : [];
     const where = { ...(gear.length ? { gear } : {}), ...(coin ? { coin } : {}), ...(actions.length ? { actions } : {}), ...(nerveBroke ? { nerveBroke: true as const } : {}), ...(nerveRefused ? { nerveRefused: true as const } : {}), ...(ways.length ? { ways } : {}), ...(wounds.length ? { wounds } : {}), place: { id: s.player.placeId, name: placeName(s), ...zoneOf(s) }, scenario: s.stage.scenarioNumber };
@@ -527,7 +550,7 @@ export function createGame(deps: GameDeps): Game {
     endingNow = null;
     // rolls are kept on every line, so Show rolls also shows past turns' (the screen hides them while it is off)
     lines.push({ turn, kind: 'narration', text: narr.output.text, ...scenarioEnd, ...(CONFIG.SHOW_MECHANICS && mechanics.length ? { mechanics } : {}),
-      ...lineExtras(s, events, nv, narr.output.text), ...notes, ...where, ...(rec.intent?.deferred?.length ? { next: rec.intent.deferred.join('. ') } : {}),
+      ...lineExtras(s, events, nv, narr.output.text), ...notes, ...where, ...(rec.queue?.length ? (rec.queueStops ? { next: rec.queue.join('. ') } : { queue: rec.queue }) : {}),
       length: { band, words: wordCount(narr.output.text), top: views.lengthTop(s, band) } }); // LN7: measured, never re-asked
     lastLog = narrLog;
     lastDisplayAt = clock.now();
@@ -561,9 +584,9 @@ export function createGame(deps: GameDeps): Game {
         const p = s.player;
         // ✦ marks a tagged skill, as on the Character page (the play screen shows "Tagged" on hover); − a flawed one
         const sheet = Object.entries(p.core.skills);
-        const skills = sheet.map(([k, v]) => `${skillName(k)} ${v.raw}${v.state === 'tagged' ? TAG_MARK : v.state === 'flawed' ? '−' : ''}`);
+        const skills = sheet.map(([k, v]) => `${skillName(k)} ${v.raw}${v.state === 'tagged' ? TAG_MARK : v.state === 'flawed' ? FLAW_MARK : ''}`);
         const off = usedOffSheet(p).map((k) => `${skillName(k)} 0`); // rolled but not on the sheet yet, e.g. fists use Strike
-        const key = [sheet.some(([, v]) => v.state === 'tagged') ? `${TAG_MARK} tagged` : '', sheet.some(([, v]) => v.state === 'flawed') ? '− flawed' : ''].filter(Boolean).join(', ');
+        const key = [sheet.some(([, v]) => v.state === 'tagged') ? `${TAG_MARK} tagged` : '', sheet.some(([, v]) => v.state === 'flawed') ? `${FLAW_MARK} flawed` : ''].filter(Boolean).join(', ');
         return say(`${p.names.current}, ${p.core.classes.map((c) => `${getLibrary().classes[c.classId]?.name ?? c.classId} ${c.level}`).join(', ')}. Health: ${healthWord(p)}. Skills: ${skills.join(', ')}.`
           + (off.length ? ` Also used, not on your sheet yet: ${off.join(', ')}.` : '') + (key ? ` (${key})` : ''));
       }
@@ -679,10 +702,12 @@ export function createGame(deps: GameDeps): Game {
     busy = true;
     emit();
     try {
-      await playTurn(state.player.asleep ? ASLEEP_TEXT : t, opts.aimed || aimNext, state.player.asleep ? undefined : given);
+      // D-20 b: sending the next queued step of the player's order plays it and keeps the rest; anything else drops the rest
+      const queued = engine.queuedSteps(lines), rest = !given && queued[0] === t ? queued.slice(1) : [];
+      await playTurn(state.player.asleep ? ASLEEP_TEXT : t, opts.aimed || aimNext, state.player.asleep ? undefined : given, rest);
       // NW18/AT42: while you stay asleep the game plays your turns: the night runs on as one stretch between them, so each
       // moves the clock on; a turn that doesn't (nothing left to run) waits for you
-      for (let t = -1; state?.player.asleep && !stopped && gameNow(state) > t; ) { t = gameNow(state); await playTurn(ASLEEP_TEXT, false); }
+      for (let t = -1; state?.player.asleep && !stopped && gameNow(state) > t; ) { t = gameNow(state); await playTurn(ASLEEP_TEXT, false, undefined, engine.queuedSteps(lines)); }
       if (state?.mercy && !stopped) await playTurn(DOWN_TEXT, false); // D-239: the foes answer while you lie there
     } catch (e) {
       if (e instanceof StopPlay) stop(e.code);
@@ -735,6 +760,7 @@ export function createGame(deps: GameDeps): Game {
       const rng = createRng(seed);
       const events = await director.startStory(state, rng, ctxFor(0, turnLog));
       state.rngState = rng.state;
+      noteTurnEnd(state); // BG-275: the opening is a turn too: timers and the turn check count from its end
       await finishTurn(state, events, { playerInput: '', rngBefore: seed, aimed: false, intent: null, opening: true }, null);
       if (await save.storySaved(store, storyId).catch(() => false)) await save.clearPendingStart(store, owner).catch(() => {});
     } catch (e) {
@@ -930,6 +956,7 @@ export function createGame(deps: GameDeps): Game {
     abandonQuest(id) { if (state && !busy && abandonQuest(state, id)) { amend((x) => { abandonQuest(x, id); }); emit(); } },
     pinQuest(id) { if (state && !busy) { pinQuest(state, id); amend((x) => pinQuest(x, id)); emit(); } },
     setSignatures(lines) { if (state && !busy) { setSignatures(state.player, lines); amend((x) => setSignatures(x.player, lines)); emit(); } },
+    setDefense(kind) { if (state && !busy) { state.player.core.standingDefense = kind; amend((x) => { x.player.core.standingDefense = kind; }); emit(); } },
     adopt(s) {
       abortBackground();
       state = s;
@@ -953,7 +980,7 @@ function zoneDistances(s: GameState, from: string): Map<string, number> {
   const queue = [from];
   while (queue.length) {
     const z = queue.shift()!;
-    for (const l of s.zones.find((x) => x.id === z)?.links ?? []) {
+    for (const l of waysOut(s, z)) {
       if (l.frontier || dist.has(l.to)) continue;
       dist.set(l.to, dist.get(z)! + 1);
       queue.push(l.to);
@@ -988,7 +1015,7 @@ export const inFight = (s: GameState, a: Actor): boolean => fightSides(s, a).len
  * (an ally falls), a nerve breaks or someone surrenders, or someone yields */
 export function fightKey(s: GameState, a: Actor): string {
   const yielded = (x: Actor) => (x === s.player ? !!s.yielding && !s.yielding.ended : Object.values(x.mind?.overrides ?? {}).includes('yielded'));
-  return fightSides(s, a).map((x) => `${x.id}:${isActive(x) ? 'up' : 'down'}:${x.mind?.moraleState ?? (moraleLevel(x) === 'broken' ? 'broken' : '')}:${yielded(x) ? 'yielded' : ''}`).sort().join('|');
+  return fightSides(s, a).map((x) => `${x.id}:${isActive(x) ? 'up' : 'down'}:${x.mind?.moraleState ?? (isBrokenLevel(moraleLevel(x)) ? 'broken' : '')}:${yielded(x) ? 'yielded' : ''}`).sort().join('|');
 }
 /** NV1 b: an offer to stand down, a demand to surrender or the player's yield waits for this AI-run foe's answer */
 const answerDue = (s: GameState, a: Actor): boolean => !!s.yielding?.pending.includes(a.id) || !!s.offers?.pending.some((o) => o.to === a.id);
@@ -1020,7 +1047,7 @@ export function worldIds(s: GameState): Set<string> {
   return new Set([
     ...all.map((a) => a.id),
     ...s.zones.map((z) => z.id),
-    ...s.zones.flatMap((z) => [...z.links.map((l) => l.to), ...z.groundItems.map((i) => i.id)]),
+    ...s.openings.flatMap((o) => o.joins), ...s.ground.map((i) => i.id),
     ...all.flatMap((a) => a.core.inventory.map((i) => i.id)),
     ...s.places.map((p) => p.id),
   ]);
@@ -1171,18 +1198,23 @@ export function gearSnap(s: GameState, p: Actor): GearSnap {
 }
 /** ready-to-show rows for what a turn changed in the player's gear: "Picked up: …", "Now held: right hand · …" */
 export function gearRows(a: GearSnap, b: GearSnap): string[] {
-  const rows: string[] = [];
+  // A1: rows for the same item merge and say how many ("Picked up: arrow ×3"), in the order they first come
+  const rows = new Map<string, { head: string; name: string; n: number }>();
+  const add = (head: string, name: string, n: number) => {
+    const r = rows.get(`${head}\0${name}`);
+    if (r) r.n += n; else rows.set(`${head}\0${name}`, { head, name, n });
+  };
   for (const [id, x] of b) {
     const was = a.get(id);
-    if (!was || x.qty > was.qty) rows.push(`Picked up: ${x.name}`);
-    else if (x.qty < was.qty) rows.push(`Used: ${x.name}`);
+    if (!was || x.qty > was.qty) add('Picked up', x.name, x.qty - (was?.qty ?? 0));
+    else if (x.qty < was.qty) add('Used', x.name, was.qty - x.qty);
     if (was && was.where === x.where) continue;
-    if (x.where.startsWith('held:')) rows.push(`Now held: ${x.where.slice(5)} · ${x.name}`);
-    else if (x.where === 'worn') rows.push(`Now worn: ${x.name}`);
-    else if (was) rows.push(`Put away: ${x.name}`);
+    if (x.where.startsWith('held:')) add(`Now held: ${x.where.slice(5)}`, x.name, x.qty);
+    else if (x.where === 'worn') add('Now worn', x.name, x.qty);
+    else if (was) add('Put away', x.name, x.qty);
   }
-  for (const [id, x] of a) if (!b.has(id)) rows.push(`Gone: ${x.name}`);
-  return rows;
+  for (const [id, x] of a) if (!b.has(id)) add('Gone', x.name, x.qty);
+  return [...rows.values()].map((r) => `${r.head}${r.head.startsWith('Now held') ? ' ·' : ':'} ${r.name}${r.n > 1 ? ` ×${r.n}` : ''}`);
 }
 
 /** what the player did at a barrier, as the play screen's Way row words it (BG-65: a way with nothing on it says "way") */
@@ -1449,7 +1481,7 @@ export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: Tu
     const d = l.detail as { actorId: string; kind: string; why: string; seconds: number; row?: string };
     if (d.actorId !== s.player.id) continue;
     const why = ({ contact: 'someone or something reached you', closing: 'someone is coming at you', change: 'someone near changed what they were doing', fight: 'a fight in sight or hearing', appeared: 'someone came into sight or hearing' } as Record<string, string>)[d.why] ?? d.why;
-    const what = (d.row && getLibrary().durations?.[d.row]?.name) || ({ rest: 'Rest', wait: 'Wait', walk: 'Walk' } as Record<string, string>)[d.kind] || d.kind; // AT45: a long action by its row's name
+    const what = (d.row && getLibrary().durations?.[d.row]?.name) || ({ rest: 'Rest', wait: 'Wait', walk: 'Walk', trip: 'Trip' } as Record<string, string>)[d.kind] || d.kind; // AT45: a long action by its row's name
     out.push(`${what} stopped ${d.seconds < 60 ? 'at once' : `after ${durationText(d.seconds / 60)}`}: ${why}`);
   }
   // NW15/NW18: the night watch, and what woke you
@@ -1489,13 +1521,14 @@ function newState(storyId: string, seed: number, player: Actor, createdAt: strin
   const settings = defaultSettings();
   return {
     storyId, turn: 0, mode: 'explore', zones: [], player, actors: [],
-    bands: [{ id: 'player_band', name: 'the player', goals: '', temperament: '', tactics: 'simple', lethal: true, relations: {} }],
+    bands: [{ id: 'player_band', name: 'the player', goals: '', temperament: '', lethal: true, relations: {} }],
     hidden: { plans: {}, memory: {}, secrets: [], firedLog: [], weaverNote: '', stage: { eventSummary: '', challenge: 'none', gain: 'none', hiddenTerms: [] } },
     events: [], agentLog: [], log: [], rngSeed: seed, rngState: seed,
     pending: { turn: 0, mode: 'explore', engaged: [], fired: [] },
-    places: [], facts: [], stage: { zoneIds: [], tier: 'success', scenarioNumber: 0, scenarioStartTurn: 0 },
-    scenarioCaps: { promotions: 0, minted: 0 }, clocks: {}, flags: {}, quests: [], settings,
+    places: [], facts: [], stage: { tier: 'success', scenarioNumber: 0, scenarioStartTurn: 0 },
+    scenarioCaps: { promotions: 0, minted: 0 }, clocks: {}, quests: [], settings,
     libraryVersion: getLibrary().version, blueprints: [],
+    walls: [], openings: [], roofs: [], lights: [], furniture: [], ground: [],
     meta: { storyId, title: CONFIG.STORY_PREMISE, schemaVersion: CONFIG.SCHEMA_VERSION, createdAt, settings },
   };
 }

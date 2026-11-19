@@ -13,7 +13,7 @@ import { SK } from '../../src/library/skillIds';
 
 const act = (type: NonNullable<Intent['action']>['type'], target: string | null = null): Intent => ({
   move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null,
-  action: { type, skill: type === 'attack' ? SK.melee_medium : '', target, targetPart: null, item: null, mode: null, approach: '', stance: 'normal' },
+  action: { type, skill: type === 'attack' ? SK.melee_medium : '', target, targetPart: null, item: null, mode: null, approach: '' },
 });
 const turn = (s: GameState, intent: Intent | null, seed = 1) => { s.turn += 1; return resolveTurn(s, { intent, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(seed)); };
 const beat = (endsScenario: boolean): Trigger => ({
@@ -65,7 +65,7 @@ describe('105 Story pacing', () => {
     s.stage.breakCause = 'story_beat';
     s.stage.quiet = 5;
     const scenario = s.stage.scenarioNumber;
-    const client = new ScriptedClaude().push('weaver', { ...villageStagePlan('success'), places: [], bands: [], cast: [], rewards: [], frontiers: [], hiddenTerms: [] });
+    const client = new ScriptedClaude().push('weaver', { ...villageStagePlan('success'), places: [], zones: [], bands: [], cast: [], rewards: [], frontiers: [], hiddenTerms: [] });
     const clock = new VirtualClock();
     await createDirector(clock).afterResolve(s, [], createRng(1), { client, clock, turn: s.turn, log: () => {} });
     expect(client.callsFor('weaver')).toHaveLength(1);

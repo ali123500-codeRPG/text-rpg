@@ -110,13 +110,13 @@ describe('121 NPC stealth', () => {
     expect(inView(s)).toMatchObject({ label: 'someone', level: 'partial' });
   });
 
-  it('NS10: an NPC vanishes from you; with Unblinking you also need beating at Sneaking', () => {
+  it('NS10: an NPC slips away from you with a sneak move (VS1); with Unblinking you also need beating at Sneaking', () => {
     const s = makeVillage();
     place(s, 'player', 'street_square');
     thief(s, 'street_square');
     byDoor(s, 'thief_1', 'street_square', 'street_door', 1); // a step from the street outside the tavern
     rig({ player: -1 });
-    turn(s, { thief_1: act('vanish', 'street_door') });
+    turn(s, { thief_1: act('sneak', 'street_door') });
     expect(s.actors.find((a) => a.id === 'thief_1')!.zone).toBe('street_door');
     expect(seen(s)).toBe('suspicious');
 
@@ -126,7 +126,7 @@ describe('121 NPC stealth', () => {
     byDoor(s2, 'thief_1', 'street_square', 'street_door', 1);
     s2.player.core.perks.push({ perkId: PK.unblinking, source: 'level', gainedTurn: 0 });
     const calls = rig({ player: [-1, 1] });
-    turn(s2, { thief_1: act('vanish', 'street_door') });
+    turn(s2, { thief_1: act('sneak', 'street_door') });
     expect(calls.filter(([, b]) => b.actorId === 'player').map(([a]) => a.skill)).toEqual([SK.vanishing, SK.sneaking]);
     expect(seen(s2)).toBe('aware');
   });
@@ -177,10 +177,10 @@ describe('121 NPC stealth', () => {
     installRoutines(c, 'companion', {}, undefined, s.turn, createRng(1));
     s.actors.push(c);
     rig();
-    turn(s, {}, { ...hold, action: { type: 'sneak', skill: '', target: null, targetPart: null, item: null, mode: null, approach: '', stance: 'normal' } });
+    turn(s, {}, { ...hold, action: { type: 'sneak', skill: '', target: null, targetPart: null, item: null, mode: null, approach: '' } });
     expect(s.player.posture).toBe('stealthy');
     expect(c.posture).toBe('stealthy');
-    turn(s, {}, { ...hold, spoken: 'Now!' , action: { type: 'other', skill: '', target: null, targetPart: null, item: null, mode: null, approach: '', stance: 'normal' } });
+    turn(s, {}, { ...hold, spoken: 'Now!' , action: { type: 'other', skill: '', target: null, targetPart: null, item: null, mode: null, approach: '' } });
     expect(s.player.posture).toBe('open');
     expect(c.posture).toBe('open');
   });

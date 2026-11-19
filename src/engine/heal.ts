@@ -4,7 +4,7 @@ import { CP, HL } from '../library/tableIds';
 import type { Actor, GameState } from '../types';
 import { getLibrary } from '../library';
 import { PART_STATES } from '../scales';
-import { boostMult, healthLevel, partStates, totalHp, trueSkill } from '../ruleset';
+import { recoveryMult, healthLevel, partStates, totalHp, trueSkill } from '../ruleset';
 import { isActive } from './relations';
 import { logCode } from './effects';
 import { bestReward } from '../ruleset/achRewards';
@@ -31,12 +31,12 @@ export function creditHealing(state: GameState, a: Actor, sourceId: string, pct:
 }
 
 /** Restores morale from a composure-table row (the morale twin of applyHealing): the row's pct of max morale (or its flat
- * `points`), or `pct` for hourly rows. Every morale restore goes through here, so achievements count it by source (morale-writes.test.ts enforces).
+ * `points`, × `times` when given, e.g. per tier of a rally roll), or `pct` for hourly rows. Every morale restore goes through here, so achievements count it by source (morale-writes.test.ts enforces).
  * Returns the morale points restored. */
-export function calm(state: GameState, a: Actor, sourceId: string, opts: { pct?: number } = {}): number {
+export function calm(state: GameState, a: Actor, sourceId: string, opts: { pct?: number; times?: number } = {}): number {
   const src = getLibrary().composure?.[sourceId];
   if (!src || src.countOnly) return 0;
-  const got = src.points !== undefined && opts.pct === undefined ? -setMoraleLost(a, moraleLost(a) - src.points) : -restoreMorale(a, opts.pct ?? src.pct);
+  const got = src.points !== undefined && opts.pct === undefined ? -setMoraleLost(a, moraleLost(a) - src.points * (opts.times ?? 1)) : -restoreMorale(a, opts.pct ?? src.pct);
   creditCalm(state, a, sourceId, got);
   return got;
 }
@@ -112,20 +112,20 @@ export function wouldHeal(state: GameState, a: Actor, sourceId: string): boolean
 const hourlyPct = (a: Actor, row: { skill: string; pctPerPoint: number }, minutes: number): number => trueSkill(a, row.skill) * row.pctPerPoint * (minutes / 60);
 
 /** H12–H14: hourly rows (natural recovery, and natural composure from the composure table) heal every active actor on the
- * stage for the game minutes that passed, fights included. Off-stage healing waits for offscreen changes (D-67). */
+ * world for the game minutes that passed, fights included (WI8 a: no ground is off the stage). */
 export function passiveHealing(state: GameState, minutes: number): void {
   if (minutes <= 0) return;
-  const stage = new Set(state.stage.zoneIds);
+  const stage = new Set(state.zones.map((z) => z.id));
   const rows = Object.values(getLibrary().healing ?? {}).filter((h) => h.hourly);
   const calmRows = Object.values(getLibrary().composure ?? {}).filter((c) => c.hourly && !c.countOnly);
   for (const a of [state.player, ...state.actors]) {
     if (!isActive(a) || (a !== state.player && !stage.has(a.zone))) continue;
     for (const h of rows) {
-      const pct = hourlyPct(a, h.hourly!, minutes) * boostMult(a, h.hourly!.skill, 'recoveryMult'); // 40/80/120 perk: Quick Mend
+      const pct = hourlyPct(a, h.hourly!, minutes) * recoveryMult(a); // Fast Healer
       if (pct > 0) applyHealing(state, a, h.id, { pct, quiet: true });
     }
     for (const c of calmRows) { // MB34
-      const pct = hourlyPct(a, c.hourly!, minutes);
+      const pct = hourlyPct(a, c.hourly!, minutes) * recoveryMult(a); // Fast Healer: morale's natural recovery too
       if (pct > 0) calm(state, a, c.id, { pct });
     }
   }

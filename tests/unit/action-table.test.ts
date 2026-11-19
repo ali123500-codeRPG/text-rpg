@@ -15,7 +15,6 @@ type Row = {
 const ROWS: Record<string, Row> = {
   attack: { need: 'weapon', who: 'both' },
   sneak: { need: 'none', who: 'both' },
-  vanish: { need: 'none', who: 'both' },
   search: { need: 'none', who: 'both' },
   talk: { need: 'voice', who: 'both' },
   persuade: { need: 'voice', who: 'both' },
@@ -37,7 +36,7 @@ const ROWS: Record<string, Row> = {
   wait: { need: 'none', who: 'player only: an NPC holds' },
   sleep: { need: 'none', who: 'player only: NPC sleep comes from routines' },
   open: { need: 'grip', who: 'both' }, // BG-173: an NPC opens its own chest
-  break: { need: 'grip', who: 'player only: not built for NPCs yet' }, // BF31
+  break: { need: 'grip', who: 'both' }, // BF31 (a container); BW12 a: a wall or a way's barrier, NPCs too
   restrain: { need: 'grip', who: 'player only: not built for NPCs yet' },
   filch: { need: 'grip', who: 'both' }, // FL7: NPCs filch too
   show: { need: 'none', who: 'both' }, // BF16: turning out your own pockets

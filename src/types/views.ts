@@ -16,12 +16,12 @@ export type BodyAttackView = { mode: string; name: string; handsFull?: string };
  * once it stands open. The Weaver's view (no viewer) has it all, and its owner. shut: a shut one (BG-175), so a mind knows to
  * open it */
 export type ContainerView = { open?: true; shut?: true; fixed?: true; lock?: 'locked' | 'unlocked'; grade?: string; key?: true; contents?: { id: string; name: string; qty?: number }[]; owner?: string }; // contents qty: PI1, how many of a stack; fixed: CT1, it stays where it stands (a chest)
-export type OwnGearView = { id: string; itemId: string; name: string; look: string; kind: string; equippedIn: string[]; modes: { id: string; name: string }[]; classLabel?: string; weightLabel?: string; qty?: number; container?: ContainerView; beyondYou?: string }; // beyondYou: BF70, how far its requirement is past the holder's skill
+export type OwnGearView = { id: string; itemId: string; name: string; look: string; kind: string; equippedIn: string[]; modes: { id: string; name: string }[]; classLabel?: string; weightLabel?: string; qty?: number; container?: ContainerView; beyondYou?: string; cantSwing?: true }; // cantSwing: BG-283, held but no grip can use it (a crippled arm); beyondYou: BF70, how far its requirement is past the holder's skill
 export type SeenGearView = { id: string; name: string; look: string; where: 'held' | 'shield' | 'armor' | 'accessory' | 'pack' | 'carried'; container?: ContainerView; stolenFromYou?: true }; // stolenFromYou: FL6, the viewer knows it on sight // carried: stowed, found by a search (SE11)
 /** SD3–SD5: a barrier on a way as a viewer knows it (WayFull: the Weaver's view, everything) */
 export type WayView = { kind: string; grade?: string; blocked?: true; locked?: true; barred?: true; key?: true; broken?: string };
 export type WayFull = { kind: string; grade: string; lock?: string; bar?: string; blocked?: true; guarded?: true };
-export type ZoneView = { id: string; name: string; look: string; cover: string; light: string; links: { to: string; label: string; sight: boolean; frontier?: boolean; drop?: boolean; way?: WayView | WayFull }[]; groundItems: { id: string; name: string; container?: ContainerView }[]; furniture?: { id: string; name: string; where: string; grade?: string }[] }; // furniture: FR1/FR5, what stands there; grade: OD12, once tried
+export type ZoneView = { id: string; name: string; look: string; cover: string; light: string; links: { to: string; label: string; sight: boolean; frontier?: boolean; drop?: boolean; crack?: boolean; way?: WayView | WayFull }[]; walls?: { id: string; of: string; to?: string; behind: string; broken?: number }[]; groundItems: { id: string; name: string; container?: ContainerView }[]; furniture?: { id: string; name: string; where: string; grade?: string }[] }; // furniture: FR1/FR5, what stands there; grade: OD12, once tried; crack: BW11 a, a hole broken halfway (only an amorphous body passes); walls: BW12 a, the viewer's own title's walls that can be broken, what of, the title behind (to; none: unbuilt ground) and the share already broken at the nearest dent
 export type MapZone = { id: string; links: { to: string; sight: boolean; frontier?: boolean; drop?: boolean; shut?: boolean }[] }; // geometry only, for code minds' pathing; shut: a barrier this actor can't open
 
 export type BeliefView = {
@@ -40,6 +40,7 @@ export type BeliefView = {
   label: string; // public label or known name
   name?: string; // BG-95: the player's name, once self has heard it (label stays 'player')
   title?: string; // T18: the title the player wears, only once self has seen them (not heard of or told about them)
+  read?: { turn: number; mood: string; feels: Stance; hiding: boolean }; // BF97 a: the last time self sized them up with Insight and won
 };
 
 export type EventView = {
@@ -88,11 +89,14 @@ export type SeenActor = {
   stance?: string; // LI2b Read Their Face: a speaker's stance toward the viewer
   crippled?: string[]; destroyed?: string[];
   tended?: string; // BG-181: what its wounds were last treated with (a bandage), until its next wound
-  damaged?: string[]; // A13 Read Wounds: a foe's Damaged parts
+  damaged?: string[]; // A13 Read Wounds: their Damaged parts
   gear: SeenGearView[];
   wares?: WareView[]; // a seller the player sees, at the player's prices
   offers?: OfferView[]; // SL9: what that Trader would pay for each item the player could sell it now
   doing?: DoingView; // AT11a: a long action it is at (full sight only)
+  mute?: true; // BG-280: seen clearly as one who cannot talk (a slime, a beast): no talk, trade or giving
+  lying?: true; // BG-278: half seen and lying still (down, dead or asleep: the viewer cannot tell which)
+  foe?: { strikes?: string }; // BG-265: in a fight, one fighting the viewer (beasts too), or one it saw strike first at someone not fighting it (strikes: whom)
   talkDown?: true; // TF13: in a fight, a foe the player can offer a stand-down (it speaks and fights the player)
   holdsOut?: { item: string; name: string }; // BF34: what this person holds out to the viewer: it is the viewer's once they take it (action take, item that id)
   demandYield?: true; // TF19: a foe the player can demand surrender from (as talkDown, or it cowers Broken)
@@ -119,12 +123,13 @@ export type PlayerView = {
     /** how far each weapon in hand reaches at its longest, in metres (Who's here hover: in reach or not) */
     reaches?: { name: string; metres: number }[];
     bodyAttacks?: BodyAttackView[]; // BG-193: the body's own attacks (fists, a grapple), named by mode even with a weapon in hand
-    perkMoves?: { id: string; name: string; does: string; action?: true; inRange?: string[] }[]; // AE8: owned perk moves (the Parser's perkMove.perk is the id); does: what it looks like; action: it is the turn's main action; inRange: seen people near enough to aim it at
+    playingDead?: true; // TC32 a: lying as if Down; anything but a still hold gets it up
+    perkMoves?: PerkMoveView[]; // AE8: owned perk moves (the Parser's perkMove.perk is the id)
+    warnable?: { id: string; why: 'trick' | 'hidden' }[]; // WN9 a: foes it can warn its allies about now (the Parser's warn is the id)
     health: HealthLevel; parts: { id: string; state: PartState }[];
     tended?: string; // BG-181: what its wounds were last treated with, until its next wound
     morale: string; // the morale bar's level (MB11)
     mentallySteady?: true; // SY1: the next morale loss is halved
-    blindSpot?: true; // LR3 Blind Spot: Melt Away works here without cover or shade (a foe's sight is spoiled by Dirt in the Eyes)
     stamina: StaminaView; // FT20: the stamina bar and its short line
     inventory: OwnGearView[];
     posture: 'open' | 'stealthy';
@@ -133,6 +138,7 @@ export type PlayerView = {
     spar?: SparView; // SP1: the spar the player fights in
     yielded?: YieldView; // MB40: the player yielded in a real fight this scenario
     standDownOffers?: { id: string; name: string; landed: string }[]; // TF11: foes offering the player a stand-down; landed: how it struck the player
+    finishable?: true; // IQ6 a, IQ7 a: the fight is far below the player, so it can be finished on code in one turn (intent finish)
   };
   zone: ZoneView;
   zones: ZoneView[]; // zones the player perceives (own + sight links)
@@ -142,7 +148,7 @@ export type PlayerView = {
   known?: { id: string; name: string }[];
   actors: SeenActor[];
   /** people seen clearly earlier who are out of sight now, and the zone they were last seen in */
-  lastSeen?: { id: string; name: string; zone: string; pronouns?: string; wares?: WareView[]; gone?: true }[]; // wares: BG-155, a seller known to sell; gone: BG-164, their last-seen spot is in sight and empty
+  lastSeen?: { id: string; name: string; zone: string; pronouns?: string; wares?: WareView[]; gone?: true; mute?: true }[]; // wares: BG-155, a seller known to sell; gone: BG-164, their last-seen spot is in sight and empty
   /** NM2: names the player has heard but cannot yet put a face to */
   heardOf?: string[];
   /** BG-55: who the player was just talking with (actor ids); words with no one named are for them */
@@ -162,6 +168,18 @@ export type JobView = { id: string; text: string; state: string; giver?: string;
 /** T4/T5: the day number and time of day; never minutes */
 export type TimeView = { day: number; timeOfDay: string };
 
+/** a walk a Fieldcraft row picks: the zone, stepping in through the way from `via` (its doorway) */
+export type TacticsWalk = { zone: string; via: string };
+/** D-17: what a code-run NPC's fight rows need, built from what it perceives (src/views/tactics.ts). rows: the FIGHT_RULES
+ * ids it may use; outnumbered: its fight has more foes than its side; calledHelp: it called for help this fight (B1);
+ * allyFoe: a foe an ally is fighting within one move of it (B2); freeAlly: a bandmate in sight who is not fighting (B4);
+ * hurtFoe: the foe in its fight that looks the most hurt, when it faces two or more (B5); outOfSight, intoCover, intoDark:
+ * the Fieldcraft walks F1 to F3; drawTo: the bandmate S1 falls back toward */
+export type TacticsView = { rows: string[]; outnumbered?: true; calledHelp?: true; allyFoe?: ActorId; freeAlly?: { id: ActorId; zone: string }; hurtFoe?: ActorId;
+  outOfSight?: TacticsWalk; intoCover?: TacticsWalk; intoDark?: TacticsWalk; drawTo?: { id: ActorId; zone: string };
+  feint?: 'start' | 'run'; turnOn?: ActorId; // S3: begin or keep up a feigned flight; turnOn: the lone believer to strike
+  readyShield?: string }; // B3: the stowed shield (item instance id) to draw, beside the order
+
 export type ActorView = {
   turn: number;
   time: TimeView;
@@ -174,13 +192,16 @@ export type ActorView = {
     morale: string; // the morale bar's level
     mentallySteady?: true; // SY1: the next morale loss is halved
     fatigue: string; // FT1: its fatigue level (Collapsed awake: Spent, nothing above Light)
-    active: boolean; broken: boolean; surrendered: boolean;
+    active: boolean; broken: boolean; surrendered: boolean; cowering?: true;
+    fallBackTo?: { id: ActorId; zone: string }; // TC36 c Fall Back on Me: broken, it may run to this ally instead of away // BF79: broken past Broken, at Cowering: it cannot even flee
     control: 'agent' | 'code';
     standingDefense: DefenseKind;
     heldBy?: ActorId; // A8 Hold: who holds this actor; trying to leave is a break-free try
     gear: OwnGearView[];
     attackSkill: string; // BG-258: the held weapon's skill, else fallback.attackSkill (template, else body type)
     bodyAttacks?: BodyAttackView[]; // BG-193
+    perkMoves?: PerkMoveView[]; // TC49: the perk moves it owns, offered to its agent as to the player
+    playingDead?: true; // TC32 a: lying as if Down; anything but a still hold gets it up
     /** elapsed (NW10): game minutes since it started; dayPart: the time of day now */
     routine?: { id: string; anchorTurn: number; elapsed: number; dayPart: import('../scales').TimeOfDay };
     routines: { id: string; brief: string }[];
@@ -199,6 +220,7 @@ export type ActorView = {
     wares?: WareView[]; // PY2: what it sells, at the prices the player pays
     offers?: OfferView[]; // SL9: what it would pay for the player's items
     suspects?: { id: ActorId; name: string; item: string }[]; // GD3: whom it suspects over a locked container its search found
+    withinStrike?: ActorId[]; // BG-306: people it perceives whom one move plus its melee reach would reach this turn
     chaseZones?: string[]; // CH5: a code-run actor's chase range as zones it may chase into (absent: anywhere)
     atChaseLine?: true; // ZR12: it stands at the end of its near chase range, CHASE_NEAR_M past the ground: it turns back
   };
@@ -216,21 +238,26 @@ export type ActorView = {
   agreements?: AgreementView[]; // PM3: the deals it is in
   secrets: Secret[]; // its own
   firedTriggers: { triggerId: string; turn: number }[]; // "already happened"
-  band: { id: string; name: string; goals: string; temperament: string; tactics: Tactics; relations: Record<string, Stance> };
+  band: { id: string; name: string; goals: string; temperament: string; relations: Record<string, Stance> };
   personality: string; // PL1, PL9: Nerve with the mood, archetype and its "but" traits, drives and tensions (CHARACTER only; never the Voice)
   title?: string; // a rolled NPC's title, given with its name in CHARACTER only
   map: MapZone[]; // stage geometry
   zones: ZoneView[]; // zones it perceives
   seen: SeenActor[]; // actors it currently perceives
   jobs?: JobView[]; // QT5: the player's jobs from it or sending the player to it
+  tacticsWord: Tactics; // TC4 a: how it reads a fight, from its own Battle Sense (CONFIG.TACTICS_FROM); the Planner's CHARACTER.tactics, never the Voice's
+  tactics?: TacticsView; // D-17: set only for the code-run fight list (views/tactics.ts withTactics), never for an agent
 };
 
 // ---------- OppositionView: Agent Planner and Responder ----------
+/** AE8: an owned perk move (perkMove.perk is the id); does: what it looks like; action: it is the turn's main action;
+ * inRange: seen people near enough to aim it at (left out for a move aimed at no one) */
+export type PerkMoveView = { id: string; name: string; does: string; action?: true; inRange?: string[]; used?: true }; // used: spent for this engagement (A3)
 export type OppositionView = ActorView; // formatted for the prompt by the agent wrapper
 
 // ---------- DialogueView: Agent Voice ----------
 export type DialogueInput = { spoken: string; impression: string | null }[]; // one entry per speech action this turn
-export type DialogueView = Omit<ActorView, 'plan' | 'goals' | 'steps' | 'thinkWhy' | 'memory' | 'agreements' | 'secrets' | 'firedTriggers'> & {
+export type DialogueView = Omit<ActorView, 'tacticsWord' | 'tactics' | 'plan' | 'goals' | 'steps' | 'thinkWhy' | 'memory' | 'agreements' | 'secrets' | 'firedTriggers'> & {
   knows: Fact[];
   dialogue: DialogueInput;
 };
@@ -274,8 +301,10 @@ export type NarrationEvent = {
   standDown?: { with: string[]; coin?: string }; // TF16: a stand-down: who went with it (names), coin paid in coin words
   surrender?: { with: string[] }; // TF19: someone talked into surrendering: who gave up with them (names)
   breakOpen?: { opened: boolean; cut?: true; broke?: string[]; beyond?: true }; // BF31: a container broken open (or not); cut: a blade cut a soft one open; broke: BK2, the names of what broke inside (now "broken ..."); beyond: OD13, past the breaker (no roll)
+  breakThrough?: { what: string; to?: string; share: number; state?: 'crippled' | 'destroyed'; toolBroke?: true; walked?: true }; // BW8-BW26: a wall or barrier broken into (what: its name), the share through, its state reached this turn
   beyond?: true; // OD1 b: an act on a thing past the actor's reach: it comes to nothing, with no roll
   graded?: true; // OD5: an act on something with a grade, whose tier says what it did
+  read?: { mood: string; feels: Stance; hiding: boolean }; // BF97 a: the player sized someone up and won: what they made out
   mishap?: { kind: 'tool' | 'fall' | 'noise'; item?: string }; // OD5: a graded act's Critical Failure: the tool that broke (its name), a fall, or a loud noise
   mentallySteady?: true; // SY1: it left them Mentally steady
   extract?: { essence: string }; // DX3: an essence pulled out of the target: its name (the target is left Hollowed)
@@ -303,7 +332,7 @@ export type NarrationView = {
   cameAndWent?: string[]; // BF2e: who the player noticed coming and going over a long turn, one line each, in order
   style: { tone: string; length: string };
   time: TimeView;
-  approach?: string; stance?: string; // the player's flavor
+  approach?: string; // the player's flavor
   events: NarrationEvent[];
   player: { name: string; pronouns?: Pronouns; health: HealthLevel; morale: string; fatigue: string; mentallySteady?: true; parts: { id: string; state: PartState }[]; tended?: string; zone: string; stealthy?: true; gear?: string[]; title?: string; personality?: string; age?: string; yielded?: YieldView }; // personality: the player's sheet words, narration flavour only // ST3: moving or hiding unseen; gear: everything the character has
   surroundings: ZoneView[]; // own zone + sight links (frontiers by label)
@@ -314,6 +343,8 @@ export type NarrationView = {
   notices?: string[]; // out-of-character notices (none sent to the Narrator by default)
   /** SD1: this turn ended a scenario, and how (an ending name: escaped, resolved...); the Narrator gives a closing line */
   scenarioEnded?: string;
+  /** IQ4 a: this turn finished a fight far below the player on code: how many rounds it played and why it stopped */
+  fightFinished?: { rounds: number; stop: string };
 };
 
 // ---------- WeaverView: Agent Weaver ----------
@@ -323,6 +354,8 @@ export type LandView = {
   region: string; name: string; look: string; kind: string; start?: string;
   sites: { id: string; size: string; name: string; look: string; where: string; place?: string; roster?: RosterView[] }[];
   roads: { id: string; kind: string; from: string; to: string; km: number; danger: string; crosses?: string; zone?: string; travellers?: RosterView[] }[];
+  /** WI2 a: where roads meet, with the zone built there once someone has */
+  junctions: { id: string; where: string; roads: number; zone?: string }[];
   landmarks: { name: string; kind: string; look: string; where: string; people?: RosterView[] }[];
   beyond: Record<string, string>;
   /** NR19: the World builder's view only: who can be met on each land cover here, at this time of day */
@@ -345,13 +378,16 @@ export type WeaverView = {
     ahead?: true;
     /** WB3: the Weaver's short brief for the ground beyond this frontier (World builder) */
     brief?: string;
+    /** WI2 a: the frontier is the land's own: its first zone must be this road's zone, this junction's, or a settlement on this site */
+    land?: import('../scenario/ways').LandTarget;
     /** SC8: why this check-in was asked, and the running scenario it is about */
     reason?: import('./hidden').CheckinReason;
     scenario?: { question: string; stake?: string; scale: string; endings: { when: import('./hidden').EndCheck; as: string; text: string }[]; turns: number; budget: string; used: number; overTime: boolean;
       /** BG-41: what happened since it began (oldest first), and the memory lines people on the stage kept since then */
       happened: { turn: number; text: string }[]; remembered: { who: string; turn: number; text: string }[] };
-    /** TV4/TV8: something meets the travelling player on this road zone; noticed: the player saw it coming */
-    encounter?: { zone: string; danger: string; noticed: boolean };
+    /** TV4: something meets the travelling player on this road zone. RE4: who it can be: the road's unfilled travellers (cast
+     * roster: key) and who roams the land cover there (cast group) */
+    encounter?: { zone: string; danger: string; travellers?: RosterView[]; wild?: { group: string; who: string; weight: number }[] };
     /** SW3 a / WB6: what started this scenario, or opened this window, in free roam: why, what happened in the roam, who saw them */
     cause?: { why: string; happened: { turn: number; text: string }[]; seenBy: string[] } };
   headlines: string[];
@@ -362,7 +398,6 @@ export type WeaverView = {
     areas: ZoneView[];
     people: { id: string; label: string; name: string; zone: string; band: string; templateId?: string; plan?: Plan; secrets: Secret[] }[] }[];
   quests: { id: string; state: string; text: string }[];
-  flags: Record<string, string | number | boolean>;
   bands: { id: string; name: string; goals: string; relations: Record<string, Stance>; chase?: string }[];
   player: { level: number; pronouns?: Pronouns; currentClass: { id: string; name: string } | null; health: HealthLevel;
     /** HF9: rating + gear rating, to set a unique's power against */
@@ -393,7 +428,8 @@ export type WeaverView = {
     skills: { id: string; name: string }[];
     personality: { nerve: string[]; types: { id: string; name: string; hint: string }[]; values: { id: string; name: string }[] }; // PL12
     zoneKinds: import('./library').ZoneKind[]; // Z2
-    edgeKinds: import('./library').EdgeKind[]; // CO15
+    wallKinds: import('./library').WallKind[]; // PZ2: what each kind of wall lets by
+    openingKinds: import('./library').OpeningKind[]; // PZ2
     furnitureKinds: import('./library').FurnitureKind[]; // FR1
     barrierKinds: import('./library').BarrierKind[]; // SD3–SD5
     layouts: { id: string; name: string; building: string; entry: string; zones: { key: string; name: string; furniture?: string[] }[] }[]; // CO17; furniture: FR2, the names it comes with

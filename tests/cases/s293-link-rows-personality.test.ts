@@ -21,6 +21,8 @@ import { personalityOf } from '../../src/ruleset/personality';
 import { trueSkill } from '../../src/ruleset/perks';
 import { checkParserLegality } from '../../src/agents/legality';
 import { buildPlayerView } from '../../src/views';
+import { LC } from '../../src/library/tableIds';
+import { landUnder } from '../harness';
 
 const give = (a: Actor, ...perks: string[]) => { for (const perkId of perks) a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 }); };
 const owns = (a: Actor, perkId: string) => a.core.perks.some((p) => p.perkId === perkId);
@@ -81,20 +83,17 @@ describe('293 link rows and personality nudges', () => {
   it('LR3 Blind Spot: with a foe blinded by Dirt in the Eyes, Melt Away works in a bare, bright zone', () => {
     const run = (dirt: boolean) => {
       const s = makeVillage({ playerZone: 'tav_counter' });
-      zoneById(s, 'tav_counter')!.cover = 'none';
+      landUnder(s, zoneById(s, 'tav_counter')!.outline, LC.pasture);
       give(s.player, PK.dirt_in_the_eyes, PK.melt_away, PK.blind_spot);
       const foe = place(s, 'patron_1', 'tav_counter');
       foe.mind!.overrides = { player: 'hostile' };
+      foe.mind!.knowledge.player = { status: 'aware', source: 'seen', lastKnownZone: 'tav_counter', lastSeenTurn: s.turn, revealed: [] };
       if (dirt) markForRounds(s, foe, PK.dirt_in_the_eyes);
-      const i = intent({ action: { type: 'vanish' } });
-      const legal = checkParserLegality(i, buildPlayerView(s)).illegal;
-      const ev = play(s, { intent: i });
-      return { legal, vanished: ev.some((e) => e.actorId === 'player' && e.kind === 'vanish' && e.vanish) };
+      play(s, { intent: intent({ action: { type: 'sneak' } }) });
+      return s.log.filter((l) => l.code === 'stealth_contest' && (l.detail as { observerId: string; skill: string }).observerId === 'patron_1' && (l.detail as { skill: string }).skill === SK.vanishing).length;
     };
-    expect(run(false).legal).toContain('action.vanish');
-    const r = run(true);
-    expect(r.legal).not.toContain('action.vanish');
-    expect(r.vanished).toBe(true);
+    expect(run(false)).toBe(0);
+    expect(run(true)).toBe(1);
   });
 
   it('LR4 Bulwark: Cover Ally covers a melee attack on a friend too', () => {
@@ -136,16 +135,17 @@ describe('293 link rows and personality nudges', () => {
     expect(personalityOf(p).traits[PA.honesty] ?? 0).toBe(0);
   });
 
-  it('SH1-SH4/SH7: a 120 perk adds 5% of its skill (not +5), and +1 and 1% of it to its group; shares read flat skill and add in full (RN3)', () => {
+  it('SH1-SH4/SH7: a 120 perk adds 5% of its skill (not +5), and 1% of it to its group (no +1); shares read flat skill and add in full (RN3)', () => {
     const s = makeVillage();
     const p = s.player;
     p.core.skills[SK.stamina] = { raw: 200, state: 'normal' };
     const flat = trueSkill(p, SK.stamina);
     give(p, PK.bottomless);
-    // own: 5% and the group's 1% (Stamina is alone in its group), both in full; and the +1
-    const f = flat + 1;
-    expect(trueSkill(p, SK.stamina)).toBeCloseTo(f + CONFIG.HIGH_PERK_SHARE * f + CONFIG.HIGH_PERK_SPREAD * f);
+    // own: 5% and the group's 1% (Stamina is alone in its group), both in full; no flat +1, the group share covers it
+    expect(trueSkill(p, SK.stamina)).toBeCloseTo(flat + CONFIG.HIGH_PERK_SHARE * flat + CONFIG.HIGH_PERK_SPREAD * flat);
     expect(getLibrary().perks[PK.bottomless].trueSkill).toBeUndefined();
+    expect(getLibrary().perks[PK.bottomless].functionBoost).toBeUndefined();
+    expect(getLibrary().perks[PK.deep_lungs].functionBoost).toBe(1); // the 80 keeps its +1
     expect(getLibrary().perks[PK.deep_lungs].trueSkill).toBe(5); // the 80 stays flat (SH3)
   });
 });

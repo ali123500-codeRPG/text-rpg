@@ -9,6 +9,7 @@ import { zoneById } from '../../src/engine/relations';
 import { IT } from '../../src/library/itemIds';
 import { checkParserLegality } from '../../src/agents/legality';
 import { buildPlayerView } from '../../src/views';
+import { groundIn } from '../../src/engine/ground';
 
 it('OA4: setting part of a stack down is free gear: it lies where you stand, and the action still happens', () => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
@@ -17,7 +18,7 @@ it('OA4: setting part of a stack down is free gear: it lies where you stand, and
   expect(checkParserLegality(i, buildPlayerView(s)).gearErrors).toEqual([]);
   const ev = play(s, { intent: i });
   expect(s.player.core.inventory.find((x) => x.id === 'purse')?.qty).toBe(8);
-  expect(zoneById(s, 'tav_common')!.groundItems.find((x) => x.itemId === IT.coin)?.qty).toBe(2);
+  expect(groundIn(s, 'tav_common').find((x) => x.itemId === IT.coin)?.qty).toBe(2);
   expect(ev.some((e) => e.kind === 'set_down' && e.qty === 2)).toBe(true);
 });
 

@@ -1,7 +1,8 @@
 // NR17 to NR20, NR27, NR31: who the world holds. Code rolls, seeded by the land's own ids so a roll never changes, which
 // hooks a settlement holds, which groups travel a road and who stands at a landmark; the World builder fills them as cast
 // entries naming the roster key. Everyone else is crowd, written into how a place looks.
-import type { GameState, LandFeature, LandView, Region, RoadLine, Site } from '../types';
+import type { GameState, LandFeature, LandView, Pt, Region, RoadLine, Site } from '../types';
+import { cellAt, regionAt } from './sight';
 import type { RosterView } from '../types/views';
 import type { GroupDef, GroupPart, MeetRow } from '../types/library';
 import { getLibrary } from '../library';
@@ -75,7 +76,8 @@ export function landmarkRoster(f: LandFeature): RosterEntry[] {
 }
 
 /** NR19 a: who can be met on each land cover the region has, at this time of day (the World builder casts from it) */
-export function wildTable(r: Region, night: boolean): { cover: string; meet: { group: string; who: string; weight: number }[] }[] {
+type WildRow = { cover: string; meet: { group: string; who: string; weight: number }[] };
+export function wildTable(r: Region, night: boolean): WildRow[] {
   const lib = getLibrary(), covers = [...new Set(r.cover)].map((ch) => `LC${parseInt(ch, 36)}`);
   return covers.flatMap((c) => {
     const rows = (lib.wildPeople?.[c] ?? []).filter((m) => !m.when || m.when === (night ? 'night' : 'day'));
@@ -109,16 +111,32 @@ export function groupMembers(g: GroupDef, rank: string, seed: string, direPct = 
   return [one(g.lead, true), ...Array.from({ length: n }, () => one(g.follow!, false))];
 }
 
+/** the roster entries not yet filled, as a planner sees them (is = who code rolled) */
+function rosterViews(state: GameState, es: RosterEntry[]): RosterView[] {
+  const lib = getLibrary(), filled = new Set(state.hidden.rosterFilled ?? []);
+  const rankName = (k: string) => RANKS.name(k as never);
+  return es.filter((e) => !filled.has(e.key)).map((e) => ({ key: e.key, who: e.who, gives: e.gives,
+    is: e.group ? `${lib.groups?.[e.group.id]?.name ?? e.group.id}, ${rankName(e.group.rank)}`
+      : `${lib.races?.[e.compose!.race]?.name ?? e.compose!.race} ${lib.npcRoles?.[e.compose!.role]?.name ?? e.compose!.role}, ${rankName(e.compose!.rank)}`,
+    ...(e.goals ? { goals: true as const } : {}) }));
+}
+
+/** RE4: who an encounter on a road can be, for its Weaver: the road's unfilled travellers (NR18) and the wild table for the
+ * land cover at the encounter point (NR19) */
+export function encounterPeople(state: GameState, roadId: string | undefined, at: Pt, night: boolean): { travellers?: RosterView[]; wild?: WildRow['meet'] } {
+  const road = roadId ? state.regions?.flatMap((x) => x.roads).find((x) => x.id === roadId) : undefined;
+  const travellers = road ? rosterViews(state, roadRoster(road)) : [];
+  const r = regionAt(state, at), i = r ? cellAt(r, at) : -1;
+  const cover = r && i >= 0 ? getLibrary().landCovers?.[`LC${parseInt(r.cover[i], 36)}`]?.name : undefined;
+  const wild = r && cover ? wildTable(r, night).find((x) => x.cover === cover)?.meet : undefined;
+  return { ...(travellers.length ? { travellers } : {}), ...(wild?.length ? { wild } : {}) };
+}
+
 /** NR17 to NR20: the World builder's land view: each unfilled roster entry beside its site, road or landmark, and the wild table */
 export function withRosters(state: GameState, land: LandView, night: boolean): LandView {
   const r = state.regions?.find((x) => x.id === land.region);
   if (!r) return land;
-  const lib = getLibrary(), filled = new Set(state.hidden.rosterFilled ?? []);
-  const rankName = (k: string) => RANKS.name(k as never);
-  const view = (es: RosterEntry[]): RosterView[] => es.filter((e) => !filled.has(e.key)).map((e) => ({ key: e.key, who: e.who, gives: e.gives,
-    is: e.group ? `${lib.groups?.[e.group.id]?.name ?? e.group.id}, ${rankName(e.group.rank)}`
-      : `${lib.races?.[e.compose!.race]?.name ?? e.compose!.race} ${lib.npcRoles?.[e.compose!.role]?.name ?? e.compose!.role}, ${rankName(e.compose!.rank)}`,
-    ...(e.goals ? { goals: true as const } : {}) }));
+  const view = (es: RosterEntry[]) => rosterViews(state, es);
   const nonEmpty = <T extends object>(k: string, xs: RosterView[], o: T) => (xs.length ? { ...o, [k]: xs } : o);
   return {
     ...land,

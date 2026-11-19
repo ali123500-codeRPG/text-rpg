@@ -17,10 +17,11 @@ import { CONFIG } from '../../src/config';
 import type { GameState, Intent, ParserActionType } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
 import { getLibrary } from '../../src/library';
+import { setTitleLight } from '../../src/plan/draw';
 
 const act = (type: ParserActionType, target: string | null = null): Intent => ({
   move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null,
-  action: { type, skill: '', target, targetPart: null, item: null, mode: null, approach: '', stance: 'normal' },
+  action: { type, skill: '', target, targetPart: null, item: null, mode: null, approach: '' },
 });
 const turn = (s: GameState, intent: Intent) => { s.turn += 1; return resolveTurn(s, { intent, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(1)); };
 const zone = (s: GameState, id: string) => s.zones.find((z) => z.id === id)!;
@@ -85,13 +86,12 @@ describe('111 game clock', () => {
   it('outdoor zones follow the sky unless their own light is brighter; indoors do not', () => {
     const s = makeVillage();
     const field = zone(s, 'field_mid');
-    field.outdoor = true;
-    field.light = 'dark'; // no lamps: only the sky lights it
+    setTitleLight(s, field, 'dark'); // no lamps: only the sky lights it
     startClock(s, 'night');
-    expect(zoneLight(s, field)).toBe('dark');
-    expect(zoneView(s, field).light).toBe('dark');
+    expect(zoneLight(s, field)).toBe('moonlit'); // LT3: one flat night level, the sky's moonlight
+    expect(zoneView(s, field).light).toBe('moonlit');
     expect(zoneLight(s, zone(s, 'tav_common'))).toBe('bright');
-    field.light = 'dim'; // torches
+    setTitleLight(s, field, 'dim'); // torches
     expect(zoneLight(s, field)).toBe('dim');
     startClock(s, 'morning');
     expect(zoneLight(s, field)).toBe('bright');

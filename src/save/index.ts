@@ -2,8 +2,10 @@
 import type { CreationBuild, Bookmark, EnginePage, GameState, Head, Library, LogLine, PageRef, StoryMeta, StoryOwner, TurnRecord, FameEntry } from '../types';
 import { CONFIG } from '../config';
 import { PAGE_LIMIT, byteLength, fromPages, hashPage, stableStringify, toPages, type Pages } from './pages';
-import { relayBroken } from '../scenario/geometry';
-import { checkInvariants, checkShape, migrate, LAND_SCHEMA, newReport, reconcile, repairReferences, type CheckReport } from './checks';
+import { brokenLayouts } from '../scenario/geometry';
+import { roofed } from '../plan/where';
+import { worldCheck } from '../scenario/ways';
+import { checkInvariants, checkShape, migrate, newReport, reconcile, repairReferences, type CheckReport } from './checks';
 export { memoryStore, artifactDbStore, type MemoryStore, type DB } from './store';
 export { universeDay, reachDay } from './universe';
 export { carryOn, pastCharacterId } from './world';
@@ -205,7 +207,12 @@ export async function loadStory(store: Store, storyId: string, library: Library)
     }
     const state = fromPages(meta, next, pages);
     // MR2: a layout stored before the map rules (MAP-10/11/12) is placed again once; the next save keeps the new one
-    for (const b of relayBroken(state)) r.repairs.push(`map: placed ${b.placeId} again (${b.why})`);
+    // WI9 a: a land rule the save still breaks is filed as a bug (once per rule broken), and the game loads anyway
+    for (const m of worldCheck(state)) {
+      r.warnings.push(`world check: ${m}`);
+      if (!state.log.some((l) => l.code === 'world_check' && l.detail?.broken === m)) state.log.push({ turn: state.turn, code: 'world_check', detail: { broken: m } });
+    }
+    for (const b of brokenLayouts(state, (z) => roofed(state, z))) r.warnings.push(`map: ${b.placeId} ${b.why}`);
     return { state, report: [...r.repairs, ...r.warnings.map((w) => `warning: ${w}`)] };
   });
 }
@@ -317,10 +324,10 @@ async function freeWorlds(store: Store, owner: StoryOwner): Promise<(FreeWorld &
   for (const m of await allMetas(store)) if ((m.owner ?? 'player') === owner) byWorld.set(worldOf(m), [...(byWorld.get(worldOf(m)) ?? []), m]);
   const free: (FreeWorld & { at: string })[] = [];
   for (const [worldId, ms] of byWorld) {
-    if (ms.some((m) => !m.archivedAt || !m.end)) continue; // someone lives there (or an old save that kept no ending)
+    if (ms.some((m) => !m.archivedAt || !m.end)) continue; // someone lives there (a story with no ending predates them and is too old to carry on anyway)
     ms.sort((a, b) => a.archivedAt!.localeCompare(b.archivedAt!));
     const last = ms.at(-1)!, title = await store.get<{ name: string }>(worldTitle(worldId));
-    if ((last.schemaVersion ?? 0) < LAND_SCHEMA) continue; // WZ12: a world from before the land ends with its saves
+    if ((last.schemaVersion ?? 0) < CONFIG.OLDEST_SAVE_SCHEMA) continue; // a world too old to load ends with its saves
     free.push({ worldId, name: title?.name || `${ms[0].end!.name}’s world`, lastStoryId: last.storyId, day: last.end!.day,
       past: ms.map((m) => ({ name: m.end!.name, fell: !!m.fame })), threadbound: last.end!.threadbound, at: last.archivedAt! });
   }

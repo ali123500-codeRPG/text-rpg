@@ -6,12 +6,14 @@ import type { NpcTemplate } from './actor';
 import type { ActivityDef, Routine, RoutineSet } from './hidden';
 import type { EntryStatus } from './state';
 import type { FN, GR } from '../library/functionIds';
-import type { GrandeurKey, HealthLevelKey, PartStateKey, SkillTierKey } from '../scales';
+import type { GrandeurKey, HealthLevelKey, PartStateKey, Past100Key, SkillTierKey } from '../scales';
 
 /** F1–F8: a skill lists one or more narrow functions; stand-ins read them. Each function belongs to one
  * broad group (FUNCTION_GROUP, src/library/functionNames.ts); the 40 perk's +1 and the XP category read the group. */
 export type SkillFunction = (typeof FN)[keyof typeof FN]; // fixed IDs: src/library/functionIds.ts
 export type SkillGroup = (typeof GR)[keyof typeof GR];
+/** the kind of an attack, by its mode: 'ranged' = a ranged-tree mode (shots and throws), 'melee' = every other (melee and unarmed, natural attacks included) */
+export type AttackKind = 'melee' | 'ranged';
 /** Situation tags (ST21): a situational table (CONFIG.SITUATION_TAGS) affects a roll whose skill has its tag. */
 export type SituationTag = 'sight' | 'hearing' | 'stealth' | 'hide' | 'ranged';
 export type RoleId = (typeof import('../library/tableIds').RL)[keyof typeof import('../library/tableIds').RL];
@@ -64,7 +66,7 @@ export type NpcRoleDef = { id: LibraryRef; name: string; kind: 'combat' | 'civil
   /** NG10: the gear classes (GC…) its work uses; spawn picks the best item of each its skill meets, up to its theme's wealth */
   gear?: readonly LibraryRef[] };
 /** NR37: a beast prefix: its name in a label (a dire wolf), the rank steps it adds to the sheet, and its health multiplier */
-export type PrefixDef = { id: LibraryRef; name: string; text: string; rankStep: number; hpMult: number };
+export type PrefixDef = { id: LibraryRef; name: string; text: string; rankStep: number; hpMult: number; /** NR46: every banded skill × this, after the rank step */ skillMult?: number };
 /** NR17: a kind of hook: what the person gives play, who can fill it (roles, or a group), and its rank kind (CONFIG.ROSTER_RANKS) */
 export type HookKindDef = { id: LibraryRef; name: string; gives: string; roles?: readonly LibraryRef[]; groups?: readonly LibraryRef[]; theme?: LibraryRef; class?: LibraryRef;
   rank: 'face' | 'lead' | 'threat' | 'seat'; goals?: true };
@@ -84,13 +86,17 @@ export type ThemeDef = { id: LibraryRef; name: string; bands?: SkillBands; leans
   /** NG10: the highest equip level its people's gear reaches (an EQUIP_LEVELS key); none = no picked gear */
   wealth?: import('../scales').EquipLevelKey; rankNames?: Partial<Record<import('../scales').RankKey, string>>; talent?: import('../scales').TalentKey /* AG25: its presets' talent when they name none */ };
 
+/** skill id → bound (a number, or a Past100Key: 'beyond', 'mythic', 'transcendent', 'divine') */
+export type EssenceBounds = Record<string, number | Past100Key>;
 /** growth proposal 2.2: an essence row. A beaten foe of its race or body type, or a scenario's deeds, can offer it; its points
  * are true skill split over `skills` by weight; a deed row (deed: true) puts its points on the scenario's most-marked skill */
 export type EssenceDef = {
   id: string; name: string;
-  /** echo: one echo's own essence, on its template's hand-set list only (EN3 b), never on a worked-out list */
-  from: { race?: string; bodyType?: string; deed?: true; echo?: true };
-  weight: number;
+  /** echo: one echo's own essence, on its template's hand-set list only (EN3 b), never on a worked-out list; role: only NPCs
+   * of that role (RO id); over: only when that skill is above every skill in the role's high band (a beast's weapons);
+   * min / max: only when each named skill of the owner (raw × tier) is at least / at most that value, a number or a step of
+   * the ladder past 100 ('beyond' 150 … 'divine' 400), so a row can be kept for Divine owners or kept from them */
+  from: { race?: string; bodyType?: string; role?: string; over?: string; min?: EssenceBounds; max?: EssenceBounds; deed?: true; echo?: true };
   skills: { skill: string; weight: number }[];
   trait?: string; quirk?: string; // perk rows (OwnedPerk source 'essence'); one so far, Tavern Brawler's Fists Do the Talking (a placeholder; content round D-229)
   story: string;
@@ -134,15 +140,14 @@ export type ClassDef = {
   orUnlocks?: { unlock?: Record<string, number>; unlockAny?: Record<string, number>[]; unlockClass?: Record<string, number | 'max'> }[];
   /** the default class: unlocked for a player whose current class reaches its top level, so banked XP has somewhere to go */
   fallback?: true;
-  /** a perk that unlocks the class for a character who has it (for example a class-level perk of another class) */
-  unlockPerk?: string;
   /** alternate capstones: each can replace the default capstone when its conditions hold as the class reaches its
    * top level (Must / Either of / Blocked by, as in tree access) */
   capstones?: { perk: string; needs: TreeAccess }[];
 };
 
-/** reachM (grip parts): how far the part reaches to take or hand over something, metres from the body (FR2) */
-export type PartDef = { id: string; size: SizeId; impact: ImpactId; roles: RoleId[]; adjacent?: string[]; reachM?: number };
+/** reachM (grip parts): how far the part reaches to take or hand over something, metres from the body (FR2); arm: an arm,
+ * whose reach comes from the body's size instead (SZ8, library/bodySize armReachM) */
+export type PartDef = { id: string; size: SizeId; impact: ImpactId; roles: RoleId[]; adjacent?: string[]; reachM?: number; arm?: true };
 /** AB20: natural armor stops ARMOR_FACTOR × the owner's Hide skill × `hide` (the race's multiplier), then multiplies as worn armor */
 export type NaturalArmor = { covers: string[]; hide: number; multiplier: number; pools?: Record<string, number> };
 /** BR1: a body type is the shape only: parts, general area, silhouette, and the attacks the shape
@@ -159,7 +164,12 @@ export type BodyType = {
   sleepNeed?: number;
   /** optional body figure for the sheet: an SVG path per part id ('general' for the general area) */
   figure?: { viewBox: string; parts: Record<string, string> };
+  /** SZ1–SZ3: the shape's usual size in metres (a race multiplies it, RaceDef.sizeMult): length nose to rump (head and body,
+   * no tail), width at the widest point, height standing (stature upright, shoulder height for beasts). Left out (a story's own body type) = the Humanoid's */
+  size?: BodySize;
 };
+/** SZ2: a body's length, width and height in metres */
+export type BodySize = { lengthM: number; widthM: number; heightM: number };
 
 /** PL6: one personality axis; `low` and `high` are the words for its two ends, each with a short behaviour hint */
 export type PersonalityAxisDef = { id: string; name: string; low: string; high: string; lowHint: string; highHint: string };
@@ -205,7 +215,7 @@ export type Library = {
   hookKinds?: Record<string, HookKindDef>; // NR17: HK…, why a real person stands in a place
   groups?: Record<string, GroupDef>; // NR27 (D-308): GP…, cast as one entry
   /** NR17: the hooks each settlement size holds; code rolls them per site, the World builder fills them */
-  rosters?: Record<'hamlet' | 'village' | 'town', { count: [number, number]; must: LibraryRef[]; pool: LibraryRef[]; theme: LibraryRef }>;
+  rosters?: Record<'hamlet' | 'village' | 'town' | 'city' | 'court', { count: [number, number]; must: LibraryRef[]; pool: LibraryRef[]; theme: LibraryRef }>;
   /** NR18: who travels a road, by its danger: how many groups a stretch holds, and from which rows */
   roadPeople?: Record<string, { count: [number, number]; rows: MeetRow[] }>;
   wildPeople?: Record<string, MeetRow[]>; // NR19: by land cover (LC…), who can be met for danger or gain
@@ -215,9 +225,12 @@ export type Library = {
   races?: Record<string, RaceDef>; // Part 4 §4: a race sets the body type and its innate perks and quirks
   achievements?: Record<string, AchievementDef>; // X6: awarded by code rules only
   zoneKinds?: Record<string, ZoneKind>; // Z2: every Weaver zone names one
-  edgeKinds?: Record<string, EdgeKind>; // CO15
+  wallKinds?: Record<string, WallKind>; // PZ2: WK…
+  openingKinds?: Record<string, OpeningKind>; // PZ2: OP…
+  lightKinds?: Record<string, LightKind>; // PZ5: LK…
   furnitureKinds?: Record<string, FurnitureKind>; // FR1
   barrierKinds?: Record<string, BarrierKind>; // SD3–SD5: what can stand on a way
+  barrierMaterials?: Record<string, BarrierMaterial>; // BW24: what walls, barriers and rubble are made of, and how long they take to break
   zoneSizes?: Record<string, ZoneSize>; // CO16
   roadLengths?: Record<string, RoadLength>; // TV3
   roadDangers?: Record<string, RoadDanger>; // TV4
@@ -227,38 +240,59 @@ export type Library = {
   noiseLevels?: Record<string, NoiseLevel>;
   visibilityLevels?: Record<string, VisibilityLevel>;
   layouts?: Record<string, LayoutDef>; // CO17
-  gearClasses?: Record<string, { id: string; name: string; skill: string; use: 'melee' | 'ranged' | 'improvised' | 'armor' | 'shield' }>; // GC…: the skill an item of the class asks for
+  itemFamilies?: Record<string, { id: string; name: string; rule: string }>; // IF…: Mundane and the special families (IR30)
+  gearTypes?: Record<string, { id: string; name: string; reachM?: number; lengthM?: number; covers?: string[] }>; // GT…: a gear type's reach, length past the hand (SZ8) or coverage (IR23)
+  gearClasses?: Record<string, { id: string; name: string; skill: string; use: 'melee' | 'ranged' | 'improvised' | 'armor' | 'shield' | 'unarmed' }>; // GC…: the skill an item of the class asks for
   attackModes?: Record<string, { id: string; name: string; blend?: { weapon: number; ranged: number } }>; // attack modes by fixed ID (AM…); AttackMode.id names one
 };
 
-/** Z1–Z3: a zone is one open space with nothing in the way inside it, about a room across. A kind fixes
- * indoor or outdoor and gives the default cover and light, which the Weaver may change. */
+/** PZ14 a: a title kind is a drawing template: how code draws a title of this kind. roof: a roof goes over it (indoors);
+ * wall: the wall kind (WK) each side gets unless the Weaver or a layout names another (none: no wall); light: the light word
+ * it is drawn lit to (a source at its middle, PZ5); size and aspect: its footprint. */
 export type ZoneKind = {
-  id: string; name: string; outdoor: boolean; cover: import('./core').Cover; light: import('./core').Light;
-  /** CO16 default size, and CO15 the edge kind every side gets unless the Weaver names another */
-  size: import('../scales').ZoneSizeKey; edge: string;
-  /** FR2: furniture every zone of this kind gets unless a layout or the Weaver gives its own */
+  id: string; name: string; roof: boolean; light: import('./core').Light;
+  size: import('../scales').ZoneSizeKey; wall: string;
+  /** FR2: furniture every title of this kind gets unless a layout or the Weaver gives its own */
   furniture?: PlanFurniture[];
-  /** long side ÷ short side of the zone's rectangle (1 = square) */
+  /** long side ÷ short side of its footprint (1 = square) */
   aspect: number;
-  /** TV3 a road: one long zone whose length and danger the Weaver names (ROAD_LENGTHS, ROAD_DANGERS) */
-  road?: true;
-  /** NW4 a zone of this kind leads onward: besides the way in, it must link to another zone or a frontier (no dead-end streets) */
+  /** NW4 a title of this kind leads onward: besides the way in, it must have another way or a frontier (no dead-end streets) */
   onward?: true;
 };
+/** PZ2: a kind of wall: walk = walked across, see = seen through, reach = struck or handed over across it, climb = crossed by
+ * climbing; heightM: how high it stands above its floor (none: a storey); sound: what a sound loses crossing it (HB4); none:
+ * an open side, drawn as no wall at all */
+export type WallKind = { id: string; name: string; walk: boolean; see: boolean; reach: boolean; climb: boolean; sound: import('../scales').SoundLossKey; heightM?: number; none?: true; text: string;
+  /** BW26: the material (barrierMaterials, BM) a wall of this kind is made of when it names none, read at that material's example thickness */ material?: string };
+/** BW24: a material walls, barriers and rubble are made of (library barrierMaterials, BM). thicknessCm: its real range;
+ * exampleCm: the thickness secondsAt50 is for; secondsAt50: a working professional with the right tool breaking a
+ * person-sized hole through exampleCm of it (BW8: from the cited source; time grows with thickness); noise: each blow (BW10);
+ * trait: regrows (work left idle is lost, BW9) or deeper (harder deeper in the wild, waits on D-331); source: where the time comes from */
+export type BarrierMaterial = { id: string; name: string; thicknessCm: [number, number]; exampleCm: number; secondsAt50: number; noise: import('../scales').NoiseKey; trait?: 'regrows' | 'deeper'; fantasy?: true; source: string; text: string };
+/** PZ2: a kind of way: a doorway, gap, window or stairs. seeThrough: the far side shows (with no barrier shut in it); walk:
+ * walked through (a window is only jumped down, SD7); floors: it joins two floors (stairs, a ladder, a hatch); sizeM:
+ * [width, height] when no barrier gives one (none: as wide as the ground the two titles share); sillM: a window's sill */
+export type OpeningKind = { id: string; name: string; seeThrough: boolean; walk: boolean; floors?: true; sizeM?: [number, number]; sillM?: number; text: string };
+/** PZ5 a: a kind of light source and its brightness in candela (placeholders); scaled: its brightness is set per source
+ * (a title's lights, drawn bright enough for its light word) */
+export type LightKind = { id: string; name: string; candela: number; scaled?: true; like: string };
 /** SD3–SD5: a kind of barrier on a way. lock / bar: whether one of this kind can carry a lock or a bar; blocked: it is a
  * blockage (rubble), shut until cleared; seeThrough: sight passes it while shut (a grate). The walls thread adds material. */
-export type BarrierKind = { id: string; name: string; lock: boolean; bar: boolean; blocked: boolean; seeThrough: boolean; /** HB4 what sound loses crossing it */ sound: import('../scales').SoundLossKey; text: string };
+export type BarrierKind = { id: string; name: string; lock: boolean; bar: boolean; blocked: boolean; seeThrough: boolean; /** HB4 what sound loses crossing it */ sound: import('../scales').SoundLossKey; text: string;
+  /** SZ7: the opening in metres, [width, height] (a hatch: [width, length], walked through upright) */ openingM?: [number, number]; vertical?: true;
+  /** PC3: a window's shutters: it goes only on a drop (seen, shot and jumped through, never walked); sillM = how high its sill stands above the inside floor */ window?: true; sillM?: number;
+  /** PC4: nothing to open or shut (an arrow slit, bars): it stays as it is until broken */ fixed?: true;
+  /** BW24: what it is made of when the barrier names no material (barrierMaterials, BM), read at that material's example thickness */ material?: string };
 /** FR1/FR2: furniture as a layout, a zone kind or the Weaver writes it: a kind from catalogs.furnitureKinds, its name, where it stands */
 export type PlanFurniture = { kind: string; name: string; at?: string; edge?: boolean; grade?: import('./core').Grade };
-export type FurnitureKind = { id: string; name: string };
-/** CO17 a prebuilt layout: zones with keys local to it; links are [zone key, label, sight] */
+/** PC1: sizeM = [length, width, height] in metres (placeholders): it hides what is behind it (ruleset/objectCover) */
+export type FurnitureKind = { id: string; name: string; sizeM?: [number, number, number] };
+/** CO17, PZ14 a: a prebuilt layout, a small floor plan: titles with keys local to it, the wall kind of any side that differs
+ * from the kind's (walls), and its ways: [title key, label, way kind] (WAY_KINDS: open, door, window, up, down) */
 export type LayoutDef = {
   id: string; name: string; building: string; entry: string;
-  zones: { key: string; kind: string; name: string; look: string; size?: import('../scales').ZoneSizeKey; edges?: Partial<Record<import('./core').Side, string>>; links: [string, string, boolean][]; furniture?: PlanFurniture[] }[];
+  zones: { key: string; kind: string; name: string; look: string; size?: import('../scales').ZoneSizeKey; walls?: Partial<Record<import('./core').Side, string>>; ways: [string, string, import('./core').WayKind][]; furniture?: PlanFurniture[] }[];
 };
-/** CO15 what one side of a zone is: walk = cross it anywhere, see = see across, reach = strike or hand over across it, climb = cross it by climbing */
-export type EdgeKind = { id: string; name: string; walk: boolean; see: boolean; reach: boolean; climb: boolean; /** HB4 what sound loses crossing it */ sound: import('../scales').SoundLossKey; text: string };
 /** a NOISE level: its decibels at 1 m (CONFIG.NOISE_DB), a real reference, and how far it carries clearly and at all in the open in a quiet place (openAirReachM) */
 export type NoiseLevel = { id: import('../scales').NoiseKey; name: string; decibels: number | null; like: string; clearTo: string; heardTo: string };
 export type VisibilityLevel = { id: import('../scales').VisibilityKey; name: string; clearM: number | null; glimpsedM: number | null; like: string };
@@ -305,6 +339,13 @@ export type PerkDef = {
   /** 40/80/120 perks (40/80/120): true skill added to other skills, +functionBoost to the ladder skill itself and every other
    * skill sharing a group with it (F1), and the ladder skill's own numbers (src/library/boostPerks.ts) */
   trueSkillTo?: Record<string, number>; functionBoost?: number; numbers?: BoostNumbers;
+  /** a 40 perk's one extra when code reads it by the perk's id: the config number it changes (Deeper Soak: DEEPER_SOAK_MULT) */
+  ownRule?: string;
+  /** the skills a ladder perk's `numbers` work with (Keen Edge: every melee weapon skill); none = the perk's own skill */
+  numbersFor?: string[];
+  /** the kind of attack its numbers work with instead of skills: 'melee' (melee and unarmed attacks, natural ones included)
+   * or 'ranged' (shots and throws), whatever skill rolls it; wins over numbersFor */
+  numbersForAttack?: AttackKind;
   /** SH1/SH4: 120 perks: a share of the ladder skill's true skill (read without shares) added as true skill, to the ladder skill
    * itself (shareOwn) and to it and every skill sharing a group with it (shareGroup); several shares on one skill stack (SH7 b) */
   shareOwn?: number; shareGroup?: number;
@@ -331,9 +372,10 @@ export type PerkDef = {
   /** a class-level perk (ClassDef.levelPerks): the class and level that grant it */
   classLevel?: { classId: string; level: number };
   /** improvement rolls a marked skill gets while its raw value is below `below` (Quick Study: 2 below 15) */
-  improveRolls?: { below: number; rolls: number };
+  improveRolls?: { below?: number; belowShare?: number; rolls: number }; // belowShare (Late Bloom): below this share of the owner's highest raw skill
   freeLevels?: number; // free levels: this many level-ups that cost no XP, given while the perk is owned and active
   bonusLevels?: number; // bonus levels: this many character levels outside every class, given while the perk is owned and active
+  perkPoints?: number; // perk points: this many added once to the owner's unspent perk points when the perk is owned and active (Nobody Special)
   searchArea?: number; // SE24: + this % on the owner's search area (and so its fight-turn reach), while owned and active
   searchReach?: number; // SE24: + this many metres of fight-turn search reach (and SEARCH_M2_PER_FIGHT_M m² of search area per metre)
   /** while owned, skill `from` augments `skill` as a SkillDef.augments entry would (true skill × share × tier; its tree open; kind as AugmentKind).
@@ -374,8 +416,6 @@ export type DurationDef = {
   id: string; name: string; seconds: number; orders?: string[];
   /** FT24: the effort tier it pays strain at (once, or per STRAIN_LONG_S seconds for a row longer than that) */
   effort: import('../scales').EffortKey;
-  /** the seconds are per word said (talking) */
-  perWord?: boolean;
   /** AT19: the action takes the same seconds from move time */
   locksMove?: boolean;
   /** AT25/AT57: what breaks it from outside (FOCUS key) */
@@ -453,6 +493,8 @@ export type RaceDef = {
   /** RD7, AB1 c: base speeds in m/s, from real references: walk (a move slot) and run (a dash); worn armor lowers both
    * (engine/speed). On the race, not the body type: one Quadruped shape serves a dog and a tiger */
   speed: { walk: number; run: number };
+  /** SZ1: × the body type's size, per measure (left out = 1); written from the race's cited metres (data.ts sized) */
+  sizeMult?: { length: number; width: number; height: number };
   innatePerks?: string[]; innateQuirks?: string[];
   tags?: string[]; // 'speaks': the race can talk, which opens persuasion and barter
   playable?: true; // CC7 a: the player can pick this race on the creation screen
@@ -462,7 +504,7 @@ export type RaceDef = {
 };
 
 /** what an achievement counts (unordered: names are the ids); its text lives in ACH_RULE_TEXT (achievementIds.ts) */
-export type AchievementRule = 'places' | 'health_reached' | 'struck_surrendered' | 'killed_surrendered' | 'struck_fleeing' | 'defeats' | 'mastery' | 'unaware_defeats' | 'yielded' | 'crits' | 'beyond_crit' | 'crippled_defeats' | 'zones' | 'deals' | 'days'
+export type AchievementRule = 'places' | 'health_reached' | 'struck_surrendered' | 'killed_surrendered' | 'struck_fleeing' | 'defeats' | 'mastery' | 'unaware_defeats' | 'yielded' | 'crits' | 'beyond_crit' | 'crippled_defeats' | 'zones' | 'ground' | 'deals' | 'days'
   | 'class_unlock' | 'flawless' | 'outnumbered' | 'brink' | 'class_max' | 'class_max_tiers' | 'char_level' | 'held_line' | 'quests_done' | 'quests_abandoned'
   | 'clean_defense' | 'unseen_moves' | 'vanished' | 'spotted' | 'speech_won' | 'talked_down' | 'outmatched' | 'enemy_to_friend' | 'won_without_blow'
   | 'coin_spent' | 'coin_earned' | 'mended' | 'back_from_down' | 'holds' | 'aimed_hits'
@@ -476,7 +518,7 @@ export type AchievementTag = 'combat' | 'stealth' | 'social' | 'exploration' | '
 /** a reward field of AchievementDef */
 export type AchievementReward = 'perk' | 'unawareShift' | 'quieter' | 'readsHealth' | 'skillAdd' | 'renown' | 'deathsDoor' | 'firstSight'
   | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels' | 'personality' | 'personalityByKind' | 'tierUnlocks'
-  | 'searchArea' | 'searchReach' | 'maxMorale' | 'aimEase' | 'safeBreak' | 'skillAddByKind' | 'sellPct' | 'questPayPct' | 'essenceSlots';
+  | 'searchArea' | 'searchReach' | 'maxMorale' | 'aimEase' | 'safeBreak' | 'skillAddByKind' | 'sellPct' | 'questPayPct' | 'essenceSlots' | 'defenseRoll' | 'spotRoll' | 'fearFrom';
 /** X6/X11: a library achievement, keyed by its fixed id (ACH in src/library/achievementIds.ts), with a name. 'defeats' is
  * earned at `count` defeats (first defeat = count 1). With `by`, it is earned once per kind (body type, race …): the granted
  * id is <id>:<kind> and {body_type}/{race} in the name become what was defeated. 'mastery' once per tree when enough of its
@@ -510,6 +552,8 @@ export type AchievementDef = { id: string; name: string; level: string; rule: Ac
   sellPct?: number; // XR2: + this % on what traders pay the owner (the mirror of pricePct)
   questPayPct?: number; // XR2: + this % on the coin a quest giver promises the owner
   essenceSlots?: number; // XR2: this many more essence slots
+  defenseRoll?: number; // XR7: + this on the owner's defense rolls (dodge, block, parry)
+  spotRoll?: number; // XR37: + this on the owner's spotting rolls (sight, hearing and smell perception rolls)
   deathsDoor?: number; // a charge: a hit that would take the owner Down leaves them at Critical; refills after this many game days
   excludes?: AchievementReward[]; // lower levels' rewards this level does not carry up
   standIn?: number; // + this share for stand-ins on rolls of a skill in the achievement's group

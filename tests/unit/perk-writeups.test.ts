@@ -20,7 +20,7 @@ describe('perk write-ups (story and rules views)', () => {
   it('the 20 milestone picks are in the library; only built ones can be taken', () => {
     resetLibrary();
     const twenties = PERK_WRITEUPS.filter((p) => p.place === '20');
-    expect(twenties).toHaveLength(26); // A1–A17 but A15 Quick Word (everyone's rule since TP6 c), then A18–A23, Bluff (LI1c), Overheard (LI5a), Catnap (SS1) and Every Answer (LG3) for the skills added later
+    expect(twenties).toHaveLength(34); // A1–A17 but A15 Quick Word (everyone's rule since TP6 c), then A18–A23, Bluff (LI1c), Overheard (LI5a), Catnap (SS1), Every Answer (LG3), Deflect (LG1), Grit Your Teeth (LG7) and Hear Me Out (LG9) for the skills added later, and the Tactics tree's Press the Opening, Fall Back on Me, Hug the Cover, Draw Them In, Play Dead (TC28, TC36, TC30, TC31, TC32)
     const L = getLibrary().perks;
     for (const p of twenties) expect(L[p.id]).toMatchObject({ ladder: { skill: p.skill, milestone: 20 }, built: BUILT_PERKS.has(p.id), story: p.story });
     for (const id of BUILT_PERKS) expect(L[id]).toBeDefined(); // no stale ids

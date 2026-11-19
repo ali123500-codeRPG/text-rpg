@@ -28,6 +28,8 @@ export function boxOf(el: Element): { left: number; top: number; right: number; 
 }
 export const pointOf = (e: { clientX: number; clientY: number }): { x: number; y: number } => { const z = pageZoom(); return { x: e.clientX / z, y: e.clientY / z }; };
 
+/** f's value, or null when it throws (a view that can't be built yet shows nothing) */
+export const safe = <T>(f: () => T): T | null => { try { return f(); } catch { return null; } };
 export function h<K extends keyof HTMLElementTagNameMap>(tag: K, attrs: Attrs = {}, ...kids: (Child | Child[])[]): HTMLElementTagNameMap[K] {
   const el = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) {
@@ -98,9 +100,9 @@ export type Col = { key: string; title: string; right?: boolean };
 /** an order another page drafts for the Play box (Take out on the Inventory): Play puts it in the box once and clears it; nothing is sent */
 export const playDraft: { text: string | null } = { text: null };
 
-/** tones: a per-cell colour (bad = red, muted = grey), e.g. the inventory's Needs column (EQ7) */
-export type TRow = { id: string; cells: Record<string, string>; sortKey?: number; tones?: Record<string, 'bad' | 'muted'>; drag?: boolean /* the row can be dragged (the Inventory's put in / take out) */ };
-export type TGroup = { id: string; title: string; color?: string; rows: TRow[]; combined: Record<string, string>; combinedTones?: Record<string, 'bad' | 'muted'> };
+/** tones: a per-cell colour (bad = red, muted = grey, gold = ready, as a quest to hand in), e.g. the inventory's Needs column (EQ7) */
+export type TRow = { id: string; cells: Record<string, string>; sortKey?: number; tones?: Record<string, 'bad' | 'muted' | 'gold'>; drag?: boolean /* the row can be dragged (the Inventory's put in / take out) */ };
+export type TGroup = { id: string; title: string; color?: string; rows: TRow[]; combined: Record<string, string>; combinedTones?: TRow['tones'] };
 
 /** natural-number title order: "Slime 2" before "Slime 10" */
 export const natural = (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
@@ -109,8 +111,14 @@ export function groupedTable(opts: {
   cols: Col[]; groups: TGroup[]; open: Set<string>; sort: { key: string; dir: 0 | 1 | -1 };
   onField: (row: TRow, key: string) => void; redraw: () => void; emptyText: string;
 }): HTMLElement {
-  const { cols, groups, open, sort } = opts;
+  const { groups, open, sort } = opts;
   if (!groups.length) return h('p', { class: 'empty' }, opts.emptyText);
+  // P4: a column whose every filled cell is a number is right-aligned, like one marked `right`
+  const isNum = (v: string) => /^[−-]?\d[\d.,]*%?$/.test(v.trim());
+  const cols = opts.cols.map((c) => {
+    const vals = groups.flatMap((g) => g.rows.map((r) => r.cells[c.key] ?? '')).filter((v) => v.trim());
+    return c.right || !vals.length || !vals.every(isNum) ? c : { ...c, right: true };
+  });
   const cmp = (a: TRow, b: TRow) => {
     if (!sort.dir) return (a.sortKey ?? 0) - (b.sortKey ?? 0);
     const x = a.cells[sort.key] ?? '', y = b.cells[sort.key] ?? '';
@@ -127,27 +135,53 @@ export function groupedTable(opts: {
     const rows = [...g.rows].sort(cmp);
     const single = rows.length === 1;
     const toggle = () => { open.has(g.id) ? open.delete(g.id) : open.add(g.id); opts.redraw(); };
-    if (single) { body.append(dataRow(rows[0], cols, opts.onField, null, g)); continue; }
+    if (single) { body.append(dataRow(rows[0], cols, opts.onField, false, g)); continue; }
     const isOpen = open.has(g.id);
     body.append(h('tr', { class: 'grp', id: 'grp-' + g.id, 'data-group': g.id, onclick: (e: Event) => { if (!(e.target as HTMLElement).closest('.fld')) toggle(); } },
       cols.map((c, i) => h('td', { class: c.right ? 'r' : '' },
         i === 0 ? [h('span', { class: 'hs-chev' }, isOpen ? '⌄' : '›'), g.color ? h('i', { class: 'hs-sq', style: `background:var(--${g.color})` }) : null, g.title,
-          h('button', { class: 'hs-chip', type: 'button', title: isOpen ? 'Fold the rows' : `Open the ${rows.length} rows`, onclick: (e: Event) => { e.stopPropagation(); toggle(); } }, `↻${rows.length}`)]
+          h('button', { class: 'hs-chip', type: 'button', title: isOpen ? 'Fold the rows' : `Open the ${rows.length} rows`, onclick: (e: Event) => { e.stopPropagation(); toggle(); } }, String(rows.length))]
           : g.combinedTones?.[c.key] ? h('span', { class: 'tone-' + g.combinedTones[c.key] }, g.combined[c.key] ?? '') : g.combined[c.key] ?? ''))));
-    if (isOpen) rows.forEach((r, i) => body.append(dataRow(r, cols, opts.onField, i + 1, g)));
+    if (isOpen) rows.forEach((r) => body.append(dataRow(r, cols, opts.onField, true, g)));
   }
   return h('table', { class: 'hs-tbl' }, h('thead', {}, h('tr', {}, th)), body);
 }
 
-function dataRow(r: TRow, cols: Col[], onField: (row: TRow, key: string) => void, n: number | null, g: TGroup): HTMLElement {
+function dataRow(r: TRow, cols: Col[], onField: (row: TRow, key: string) => void, sub: boolean, g: TGroup): HTMLElement {
   return h('tr', { 'data-row': r.id, draggable: r.drag || undefined }, cols.map((c, i) => h('td', { class: c.right ? 'r' : '' },
-    i === 0 && n !== null ? h('span', { class: 'sn' }, `${n}.`) : null,
-    i === 0 && n === null && g.color ? h('i', { class: 'hs-sq', style: `background:var(--${g.color})` }) : null,
+    i === 0 && !sub && g.color ? h('i', { class: 'hs-sq', style: `background:var(--${g.color})` }) : null,
     h('span', { class: 'fld' + (r.tones?.[c.key] ? ' tone-' + r.tones[c.key] : ''), onclick: () => onField(r, c.key) }, r.cells[c.key] ?? '–'))));
 }
 
 // ---------- Side panel ----------
-export type PanelRow = { k: string; v: string | Node; edit?: boolean };
+/** A7: a hover tip waits --m-tip-delay (150 ms); keyboard focus (`now`) shows it at once, and so does hovering while
+ *  another tip is open or has just closed, so moving along a row of items doesn't wait each time. Leaving hides at once */
+let tipUp = false, tipDown = -1e9, tipWait = 0;
+const tipDelay = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--m-tip-delay')) || 150;
+export function tipOn(show: () => void, now = false): void {
+  clearTimeout(tipWait);
+  const go = () => { tipUp = true; show(); };
+  if (now || tipUp || performance.now() - tipDown < 2 * tipDelay()) go();
+  else tipWait = window.setTimeout(go, tipDelay());
+}
+export function tipOff(hide: () => void): void {
+  clearTimeout(tipWait);
+  if (tipUp) tipDown = performance.now();
+  tipUp = false;
+  hide();
+}
+
+/** A6: a choice that can't be undone asks once, in place: `host`'s contents give way to a row saying what is lost, with
+ *  the choice and a way back that restores them. Never a browser dialog, never hold-to-confirm; focus goes to the way back */
+export function askInPlace(host: HTMLElement, lost: string, yes: string, onYes: () => void, no = 'Cancel'): void {
+  const before = Array.from(host.childNodes);
+  const back = h('button', { type: 'button', class: 'hs-btn-text', onclick: () => host.replaceChildren(...before) }, no);
+  host.replaceChildren(h('div', { class: 'ask-row', role: 'group', 'aria-label': yes }, h('span', { class: 'ask-what' }, lost),
+    h('button', { type: 'button', class: 'hs-btn-main ask-yes', onclick: onYes }, yes), back));
+  back.focus();
+}
+
+export type PanelRow = { k: string; v: string | Node; picked?: boolean /* the field the player clicked, highlighted */; tone?: string /* a class for the value, e.g. tone-good */; split?: true /* starts a new block of rows, set apart by a rule */ };
 let panelHost: HTMLElement | null = null;
 export function setPanelHost(el: HTMLElement) { panelHost = el; }
 export function closePanel() { if (panelHost) { panelHost.hidden = true; panelHost.replaceChildren(); } }
@@ -156,11 +190,10 @@ export function openPanel(title: string, rows: PanelRow[], note?: string, head?:
   panelHost.hidden = false;
   panelHost.replaceChildren(
     h('div', { class: 'hs-panel-head' }, h('span', {}, title), head ?? null, h('button', { class: 'hs-icon-btn', type: 'button', 'aria-label': 'Close', title: 'Close', onclick: closePanel }, '×')),
-    ...rows.map((r) => h('div', { class: 'hs-panel-row' + (r.edit ? ' edit' : '') }, h('span', { class: 'k' }, r.k),
-      r.edit && typeof r.v === 'string' ? h('input', { class: 'hs-input', value: r.v, readOnly: true, 'aria-label': r.k }) : h('span', {}, r.v))),
+    ...rows.map((r) => h('div', { class: 'hs-panel-row' + (r.picked ? ' picked' : '') }, h('span', { class: 'k' }, r.k), h('span', { class: r.tone }, r.v))),
     note ? h('p', { class: 'hs-note', style: 'padding-top:12px' }, note) : '',
   );
-  (panelHost.querySelector('.edit input') as HTMLInputElement | null)?.focus();
+  (panelHost.querySelector('.picked input') as HTMLInputElement | null)?.focus();
 }
 
 /** a scroll box without a visible scrollbar: the wheel scrolls it, and so does dragging it with the mouse.

@@ -1,6 +1,6 @@
 // 206 NW4, NW6: NPCs stay in the world. The Weaver sees the stage sorted by place (each place named, with its areas
 // and the people in them) and where the player stands, so it plans in the right town without hiding anyone (NW6).
-// A street, square, gate, field, woods or road leads onward: besides the way in, it links to another zone or a
+// A street, square, gate, field or woods leads onward (a road is a line on the land, PZ9): besides the way in, it links to another zone or a
 // frontier, so the scenario builder never leaves a dead-end street (NW4); the repair retry fixes a miss.
 import { describe, expect, it } from 'vitest';
 import type { StagePlan } from '../../src/types';
@@ -17,7 +17,7 @@ const plan = (zones: Zone[], frontiers: StagePlan['frontiers'] = []): StagePlan 
   zones, cast: [], seeds: { plans: [], triggers: [], secrets: [] },
 });
 const zone = (key: string, kind: string, links: [string, string][]): Zone =>
-  ({ key, place: 'street', kind, name: key, look: 'a place', links: links.map(([to, label]) => ({ to, label, sight: true })) });
+  ({ key, place: 'street', kind, name: key, look: 'a place', ways: links.map(([to, label]) => ({ to, label })) });
 const deadEnds = (p: StagePlan, ctx: Partial<Parameters<typeof validateStagePlan>[2]> = {}) =>
   validateStagePlan(quiet(), p, { kind: 'extension', tier: 'success', placeId: 'street', ...ctx }).filter((e) => e.code === 'dead_end');
 
@@ -25,7 +25,7 @@ describe('206 NPCs stay in the world (NW4, NW6)', () => {
   it('NW4: the onward kinds are marked on the zone kinds table', () => {
     makeVillage();
     const onward = Object.values(getLibrary().zoneKinds ?? {}).filter((k) => k.onward).map((k) => k.id).sort();
-    expect(onward).toEqual([ZK.street, ZK.square, ZK.gate, ZK.field, ZK.woods, ZK.road].sort());
+    expect(onward).toEqual([ZK.street, ZK.square, ZK.gate, ZK.field, ZK.woods].sort());
   });
   it('NW4: a street with only its way in is a dead end; one more link or a frontier fixes it', () => {
     expect(deadEnds(plan([zone('tanners_row', ZK.street, [['street_square', 'back to the square']])]))).toHaveLength(1);
@@ -60,7 +60,7 @@ describe('206 NPCs stay in the world (NW4, NW6)', () => {
     expect(tavern.areas.map((a) => a.id).sort()).toEqual(['tav_cellar', 'tav_common', 'tav_counter']);
     // nobody is hidden: every NPC on the stage is listed under the place of its zone
     const people = v.places.flatMap((p) => p.people.map((x) => [x.id, p.id]));
-    expect(people.map(([id]) => id).sort()).toEqual(s.actors.filter((a) => s.stage.zoneIds.includes(a.zone)).map((a) => a.id).sort());
+    expect(people.map(([id]) => id).sort()).toEqual(s.actors.filter((a) => s.zones.some((z) => z.id === a.zone)).map((a) => a.id).sort());
     for (const [id, place] of people) expect(s.actors.find((a) => a.id === id)!.placeId).toBe(place);
   });
 });

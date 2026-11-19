@@ -7,11 +7,12 @@ import { act, intent, play, plannerOut } from './w4-kit';
 import { zoneById, actorById } from '../../src/engine/relations';
 import { buildActorView } from '../../src/views';
 import { IT } from '../../src/library/itemIds';
+import { layAll } from '../harness';
 
 it('an NPC sees its chest is shut and why its last action came to nothing', () => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
   actorById(s, 'patron_1')!.mind!.control = 'agent';
-  zoneById(s, 'tav_common')!.groundItems.push({ id: 'box', itemId: IT.chest, at: { x: s.player.pos!.x + 2, y: s.player.pos!.y }, contents: [{ id: 'roll', itemId: IT.bandage }] } as never);
+  layAll(s, 'tav_common', { id: 'box', itemId: IT.chest, at: { x: s.player.pos!.x + 2, y: s.player.pos!.y }, contents: [{ id: 'roll', itemId: IT.bandage }] } as never);
   beside(s, 'patron_1', 'player', 1);
   play(s, { intent: intent(), agentOutputs: [plannerOut('patron_1', { ...act('use_item', 'player'), item: null })] });
   const v = buildActorView(s, 'patron_1');

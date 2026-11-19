@@ -2,16 +2,19 @@
 // compact side sheet on the Play screen. Display only: every number comes from the ruleset or the saved actor.
 import type { Actor, GameState, HealthLevel, LogLine, PartState } from '../types';
 import { CONFIG } from '../config';
-import { actorBody, getLibrary, itemDef } from '../library';
-import { defaultMode, effectiveSkill, healthLevel, modeSkill, TAG_MARK, totalHp, trueSkill, usedOffSheet } from '../ruleset';
-import { partName, poolState, SHOWN_LEVELS, shownLevel } from '../ruleset/body';
-import { augmentsOf, defenseItem, isHeld, tradesOut } from '../ruleset/gear';
+import { actorBody, getLibrary, itemDef, raceSize } from '../library';
+import { figureKey, figureUpright } from '../library/figureModels';
+import { BT, RC } from '../library/raceIds';
+import { figure3d } from './figure3d';
+import { defaultMode, effectiveSkill, FLAW_MARK, healthLevel, modeSkill, TAG_MARK, totalHp, trueSkill, usedOffSheet } from '../ruleset';
+import { partName, poolState, SHOWN_LEVELS, shownLevel, type FigPart } from '../ruleset/body';
+import { augmentsOf, defenseItem, isHeld, tradesOut, usableDefense } from '../ruleset/gear';
 import { hollowedMult, type SkillPart } from '../ruleset/perks';
 import { charLevel, freeLevelsOwed, keepCapstone, levelTarget, swapCapstone, xpFill, xpToNext } from '../engine/xp';
 import { essenceSlots } from '../engine/essence';
 import { treeBlock } from '../ruleset/access';
-import { augmentWindow, burdenOf, burdenParts, learningWindow } from '../ruleset/improve';
-import { h } from './kit';
+import { augmentWindow, burdenOf, burdenParts, groupRollBonus, learningWindow } from '../ruleset/improve';
+import { h, safe } from './kit';
 import { classIcon } from './itemIcons';
 import { openPop } from './pop';
 import { powerFigure } from './power';
@@ -21,17 +24,16 @@ import { fatigueLevel } from '../ruleset/fatigue';
 import { skillName, SKILL_SUB, TREE_VIEW } from './creation';
 import { DEFENSE_SKILL } from '../library/skillIds';
 import { CLASS_TIERS, FATIGUE_LEVELS, HEALTH_LEVELS, MORALE_LEVELS, PART_STATES, type MoraleLevel } from '../scales';
-import { maxMorale, moraleLevel, moraleLostPct } from '../ruleset/morale';
+import { isBrokenLevel, isCoweringLevel, maxMorale, moraleLevel, moraleLostPct, moralePenalty } from '../ruleset/morale';
 import { coins, coinWords } from '../engine/trade';
 import { engagementEndS } from '../ruleset/actionTime';
-import { cap, r1, theName } from '../words';
+import { cap, r1, termAttrs, theName } from '../words';
 
 /** Set by a gear link on the character card; the Inventory page opens that item once. */
 export const invFocus: { id: string | null } = { id: null };
 /** Set by a link from another page; the Character page opens that pop-up once on arrival (CP1: its big sections live in pop-ups) */
 export const charFocus: { open: 'essences' | 'perks' | 'classes' | null } = { open: null };
 
-const safe = <T>(f: () => T): T | null => { try { return f(); } catch { return null; } };
 const BAR_SCALE = CONFIG.SKILL_CAP; // display only: the bar fills at the mortal limit; true skill can pass it
 
 export function hpLeft(s: GameState, p: Actor): { hp: number | null; total: number | null } {
@@ -39,20 +41,68 @@ export function hpLeft(s: GameState, p: Actor): { hp: number | null; total: numb
   return { total, hp: total === null ? null : total * (1 - p.core.condition.hpLostPct / 100) };
 }
 
-function standing(s: GameState, p: Actor): { kind: string; value: number | null } {
-  const kind = p.core.standingDefense;
-  const value = safe(() => effectiveSkill(s, p, DEFENSE_SKILL[kind], { itemId: defenseItem(s, p, kind)?.id }).value);
-  return { kind, value };
+/** the effective-skill call behind standing defense and standing attack: the card's figure and its pop-up both use it.
+ * The defense actually used against a melee blow: the chosen one, or the fallback when it can't be used now */
+function defenseCall(s: GameState, p: Actor) {
+  const kind = usableDefense(s, p, false);
+  return { kind, skill: DEFENSE_SKILL[kind], ctx: { itemId: defenseItem(s, p, kind)?.id } };
+}
+export function standing(s: GameState, p: Actor): { kind: string; value: number | null } {
+  const c = defenseCall(s, p);
+  return { kind: c.kind, value: safe(() => effectiveSkill(s, p, c.skill, c.ctx).value) };
 }
 
-/** Standing attack: the first usable weapon mode at reach 0 and its effective skill (same as the creation preview). */
-function attackOf(s: GameState, p: Actor): { name: string; value: number | null } | null {
+function attackCall(s: GameState, p: Actor) {
   const m = safe(() => defaultMode(s, p, 0));
   if (!m) return null;
   const inst = p.core.inventory.find((i) => i.id === m.itemId);
   const natural = m.itemId.startsWith('natural:') ? getLibrary().attackModes?.[m.mode.id]?.name?.toLowerCase() ?? m.mode.id : undefined; // a body attack has no item: name its mode (fists)
-  return { name: natural ?? safe(() => itemDef(s, inst!.itemId).name) ?? m.itemId, value: safe(() => effectiveSkill(s, p, modeSkill(m.mode), { itemId: m.itemId, modeId: m.mode.id }).value) };
+  return { name: natural ?? safe(() => itemDef(s, inst!.itemId).name) ?? m.itemId, skill: modeSkill(m.mode), ctx: { itemId: m.itemId, modeId: m.mode.id } };
 }
+/** Standing attack: the first usable weapon mode at reach 0 and its effective skill (same as the creation preview). */
+export function attackOf(s: GameState, p: Actor): { name: string; value: number | null } | null {
+  const c = attackCall(s, p);
+  return c && { name: c.name, value: safe(() => effectiveSkill(s, p, c.skill, c.ctx).value) };
+}
+
+/** P2: an effective skill's lines (its own true skill at its share and tier, then each gear, trade and augment line), which add up to it */
+function effectiveParts(s: GameState, p: Actor, skill: string, ctx: Parameters<typeof effectiveSkill>[3]): { value: number; parts: FigPart[] } {
+  const e = effectiveSkill(s, p, skill, ctx);
+  const own = `${skillName(e.skill)}${e.skill !== skill ? ` (standing in for ${skillName(skill)}${e.share !== 1 ? `, ×${whole(e.share)}` : ''})` : ''}`;
+  return { value: e.value, parts: [{ label: own, adds: e.base }, ...e.gear.map((g) => ({ label: cap(g.source), adds: g.value }))] };
+}
+
+/** P2: a card figure's make-up in a pop-up, each line from the function that makes the figure, then the figure itself */
+function openFigPop(title: string, note: string, parts: FigPart[], total: number, left: number | null, opener?: HTMLElement | null): void {
+  const line = (x: FigPart, cls = '') => h('div', { class: `sk-line ${cls}${(x.adds ?? 0) < 0 || (x.times ?? 1) < 1 ? ' sk-bad' : ''}` }, h('span', {}, x.label), h('b', {}, x.times !== undefined ? `×${whole(x.times)}` : signed(x.adds ?? 0)));
+  openPop({ title, cls: 'sk-pop', opener, body: [
+    h('p', { class: 'hs-note' }, note),
+    h('div', { class: 'sk-list' }, ...parts.map((x) => line(x)), h('div', { class: 'sk-line sk-sum' }, h('span', {}, title), h('b', {}, whole(total)))),
+    // health and morale: what is lost and what is left, under the total
+    left !== null && total - left > 0 ? h('div', { class: 'sk-list' }, line({ label: 'Lost', adds: -(total - left) }), h('div', { class: 'sk-line sk-sum' }, h('span', {}, 'Left'), h('b', {}, whole(left)))) : null,
+  ] });
+}
+const openAttackPop = (s: GameState, p: Actor, opener: HTMLElement) => {
+  const c = attackCall(s, p);
+  if (!c) return;
+  const f = effectiveParts(s, p, c.skill, c.ctx);
+  openFigPop('Standing attack', `Your skill with your ${c.name} at arm's length, before the roll's situation (light, wounds, cover).`, f.parts, f.value, null, opener);
+};
+const openDefensePop = (s: GameState, p: Actor, opener: HTMLElement) => {
+  const c = defenseCall(s, p), f = effectiveParts(s, p, c.skill, c.ctx);
+  openFigPop('Standing defense', `How you meet a blow by default (${c.kind}), before the roll's situation.`, f.parts, f.value, null, opener);
+};
+const openHealthPop = (s: GameState, p: Actor, opener: HTMLElement) => {
+  const parts: FigPart[] = [], total = totalHp(s, p, parts), left = hpLeft(s, p).hp ?? total;
+  openFigPop('Total health', 'Your HP when unhurt.', parts, total, left, opener);
+};
+const openMoralePop = (p: Actor, opener: HTMLElement) => {
+  const parts: FigPart[] = [], max = maxMorale(p, parts), left = max * (100 - Math.max(0, Math.min(100, moraleLostPct(p)))) / 100;
+  openFigPop('Max morale', 'Your morale when calm.', parts, max, left, opener);
+};
+/** a figure that opens its parts: a quiet button around the number */
+const figBtn = (cls: string, title: string, open: (el: HTMLElement) => void, ...kids: (Node | string | null)[]) =>
+  h('button', { type: 'button', class: cls, 'aria-haspopup': 'dialog', title, onclick: (e: Event) => open(e.currentTarget as HTMLElement) }, ...kids);
 
 /** Trees the player has points in, each with its open skills. */
 export function trees(p: Actor, withZero: boolean) {
@@ -60,13 +110,15 @@ export function trees(p: Actor, withZero: boolean) {
   return TREE_VIEW.filter((t) => lib.trees[t.id]).map((t) => {
     // a skill rolled but not on the sheet yet shows at 0 (fists use Strike), so the player sees it learning
     const ks = lib.trees[t.id].skills.filter((k) => p.core.skills[k] !== undefined || used.includes(k));
-    const rows = ks.map((k) => ({ id: k, raw: p.core.skills[k]?.raw ?? 0, tagged: p.core.skills[k]?.state === 'tagged', off: p.core.skills[k] === undefined }));
+    const rows = ks.map((k) => ({ id: k, raw: p.core.skills[k]?.raw ?? 0, tagged: p.core.skills[k]?.state === 'tagged', flawed: p.core.skills[k]?.state === 'flawed', off: p.core.skills[k] === undefined }));
     return { id: t.id, c: t.c, name: lib.trees[t.id].name, block: treeBlock(p, t.id), sum: rows.reduce((a, r) => a + r.raw, 0), rows: withZero ? rows : rows.filter((r) => r.raw > 0 || r.off) };
   }).filter((t) => t.sum > 0 || t.rows.some((r) => r.off));
 }
 
 /** a tagged skill's mark; hovering it says Tagged */
 export const tag = () => h('span', { class: 'tag', title: 'Tagged', 'aria-label': 'tagged' }, TAG_MARK);
+/** FC5: a flawed skill's mark; hovering it says Flawed */
+export const flaw = () => h('span', { class: 'flaw', title: 'Flawed', 'aria-label': 'flawed' }, FLAW_MARK);
 const offNote = () => h('small', { class: 'off', title: 'You have used this skill. It is not on your sheet yet and learns as you use it.' }, 'used');
 /** V3a: a skill marked for an improvement roll */
 const markDot = () => h('span', { class: 'mk-dot', title: 'Marked: rolls to improve when this fight ends', 'aria-label': 'marked to improve' });
@@ -108,7 +160,7 @@ export function charCard(s: GameState, p: Actor, openClasses?: (opener: HTMLElem
     h('div', { class: 'cs-who' }, h('div', { class: 'cs-sigil', 'aria-hidden': 'true' }, '⚔'),
       h('div', {}, h('b', {}, p.names.current || (getLibrary().classes[cls]?.name ?? cls)), h('span', {}, [ageText(s, p), place ? `In ${theName(place)}` : ''].filter(Boolean).join(' · ')))), // AG16
     h('div', { class: 'cs-track' },
-      h('div', { class: 'cs-row' }, h('span', {}, 'Health'), h('b', {}, `${HEALTH_LEVELS.name(level)} · ${whole(hp)} HP`)),
+      h('div', { class: 'cs-row' }, h('span', {}, 'Health'), h('b', {}, `${HEALTH_LEVELS.name(level)} · `, figBtn('cs-figlink', 'What makes up your total health', (el) => openHealthPop(s, p, el), `${whole(hp)} HP`))),
       // each level named at its segment, alternating one above the bar and one below
       steps(boxes, level, 0),
       h('div', { class: 'cs-hp', title: `Health track: ${levels.map(HEALTH_LEVELS.name).join(', ')}` }, boxes.map((l) => h('i', { class: at <= levels.indexOf(l) ? 'on' : '', title: HEALTH_LEVELS.name(l), 'aria-label': HEALTH_LEVELS.name(l) }))),
@@ -119,17 +171,20 @@ export function charCard(s: GameState, p: Actor, openClasses?: (opener: HTMLElem
     h('div', { class: 'cs-bodyrow' }, bodyButton(s, p),
       h('div', { class: 'cs-figs' },
         powerFigure(s, p),
-        h('div', {}, h('b', {}, whole(atk?.value ?? null)), h('span', {}, atk ? `Standing attack · ${atk.name}` : 'Standing attack · no weapon')),
-        h('div', {}, h('b', {}, whole(def.value)), h('span', {}, `Standing defense · ${def.kind}`)))));
+        atk ? figBtn('cs-fig', 'What makes up your standing attack', (el) => openAttackPop(s, p, el), h('b', {}, whole(atk.value)), h('span', {}, `Standing attack · ${atk.name}`))
+          : h('div', {}, h('b', {}, '—'), h('span', {}, 'Standing attack · no weapon')),
+        figBtn('cs-fig', 'What makes up your standing defense', (el) => openDefensePop(s, p, el), h('b', {}, whole(def.value)), h('span', {}, `Standing defense · ${def.kind}`)))));
 }
 
 /** the card's body figure as one button: a click (on a part, or anywhere on it) opens every part's state in a pop-up */
 function bodyButton(s: GameState, p: Actor): HTMLElement | null {
-  const fig = bodyFigure(s, p);
+  let picked: string | undefined;
+  // a click on a part opens the pop-up at that part; a drag only turns the figure (figure3d stops that click)
+  const fig = bodyFigure(s, p, new Set(), 'card', (id) => { picked = id ?? undefined; });
   if (!fig) return null;
-  const svg = fig.querySelector('.bf-svg')!;
-  const btn: HTMLElement = h('button', { type: 'button', class: 'cs-bfbtn', 'aria-haspopup': 'dialog', title: 'Each body part and its state', 'aria-label': 'Body parts: open each part and its state' }, svg);
-  btn.addEventListener('click', (e) => openBodyPop(s, p, btn, (e.target as Element).closest('[data-part]')?.getAttribute('data-part') ?? undefined));
+  const shown = fig.querySelector('.bf-fig')!;
+  const btn: HTMLElement = h('button', { type: 'button', class: 'cs-bfbtn', 'aria-haspopup': 'dialog', title: 'Each body part and its state (drag to turn)', 'aria-label': 'Body parts: open each part and its state' }, shown);
+  btn.addEventListener('click', () => { const id = picked; picked = undefined; openBodyPop(s, p, btn, id); });
   return btn;
 }
 
@@ -143,7 +198,12 @@ export function openBodyPop(s: GameState, p: Actor, opener?: HTMLElement | null,
     return h('div', { class: 'bp-row' + (id === part ? ' on' : ''), 'data-part': id }, h('i', { class: `bf-${st}`, 'aria-hidden': 'true' }), h('b', {}, name),
       h('span', { class: 'bp-st' }, PART_STATES.name(st)), h('span', { class: 'bp-amt' }, amount));
   };
+  // BV1 b: the turnable figure; a click on a part marks its row
+  const fig = bodyFigure(s, p, new Set(), 'pop', (id) => {
+    document.querySelectorAll('.bp-pop .bp-row').forEach((r) => r.classList.toggle('on', r.getAttribute('data-part') === id));
+  });
   openPop({ title: 'Body', cls: 'bp-pop', opener, body: [
+    fig?.querySelector('.bf-fig') ?? null,
     h('div', { class: 'bp-list' },
       row('general', cap(ct.general.name), 100 - p.core.condition.hpLostPct, `${whole(hp)} of ${whole(total)} HP`),
       ...ct.parts.map((d) => {
@@ -216,7 +276,7 @@ export function treeBars(p: Actor): HTMLElement {
       t.rows.map((r) => h('div', { class: 'cs-sk' + (r.raw ? '' : ' zero'), role: 'button', tabindex: '0', 'aria-haspopup': 'dialog', 'data-skill': r.id,
         title: 'What makes up this skill', onclick: (e: Event) => openSkillPop(p, r.id, e.currentTarget as HTMLElement),
         onkeydown: (e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openSkillPop(p, r.id, e.currentTarget as HTMLElement); } } },
-        h('div', { class: 'n' }, skillName(r.id), r.tagged ? [' ', tag()] : null, r.off ? [' ', offNote()] : null, marked(p, r.id) ? markDot() : null, SKILL_SUB[r.id] ? h('small', {}, SKILL_SUB[r.id]) : null),
+        h('div', { class: 'n' }, skillName(r.id), r.tagged ? [' ', tag()] : null, r.flawed ? [' ', flaw()] : null, r.off ? [' ', offNote()] : null, marked(p, r.id) ? markDot() : null, SKILL_SUB[r.id] ? h('small', {}, SKILL_SUB[r.id]) : null),
         bar(r.raw, windowOf(p, r.id)), ((w) => h('div', { class: 'lwn', title: winTitle(w) }, winText(w)))(windowOf(p, r.id)), skillNum(trueSkill(p, r.id), r.raw))))));
 }
 
@@ -239,16 +299,17 @@ export function skillFacts(p: Actor, id: string) {
     window: windowOf(p, id), next, toNext: next - value,
     // BU3: what Burden takes off this skill's improvement rolls (0 for a tagged skill, or with no progression record)
     burden: p.progression && p.core.skills[id]?.state !== 'tagged' ? { by: burdenOf(p), ...burdenParts(p) } : { by: 0, total: 0, potential: 0 },
+    groupBonus: p.progression ? groupRollBonus(p, id) : 0, // D-374 TB5: what tagged group-mates add to its improvement rolls
   };
 }
 
 export function openSkillPop(p: Actor, id: string, opener?: HTMLElement | null): void {
   const f = skillFacts(p, id);
-  const line = (label: string, v: string, cls = '') => h('div', { class: 'sk-line ' + cls }, h('span', {}, label), h('b', {}, v));
-  const tagged = p.core.skills[id]?.state === 'tagged';
+  const line = (label: string, v: string, cls = '', tip: Record<string, string> = {}) => h('div', { class: 'sk-line ' + cls }, h('span', tip, label), h('b', {}, v));
+  const tagged = p.core.skills[id]?.state === 'tagged', flawed = p.core.skills[id]?.state === 'flawed';
   openPop({ title: skillName(id), cls: 'sk-pop', opener, body: [
     h('div', { class: 'sk-top' }, h('b', { class: 'sk-v' }, whole(f.value)), h('span', {}, f.value === f.raw ? 'Skill' : `True skill · raw ${f.raw}`),
-      tagged ? h('span', { class: 'sk-chip' }, tag(), ' Tagged') : null, marked(p, id) ? h('span', { class: 'sk-chip' }, markDot(), ' Marked to improve') : null),
+      tagged ? h('span', { class: 'sk-chip' }, tag(), ' Tagged') : null, flawed ? h('span', { class: 'sk-chip' }, flaw(), ' Flawed') : null, marked(p, id) ? h('span', { class: 'sk-chip' }, markDot(), ' Marked to improve') : null),
     SKILL_SUB[id] && !f.gives.length ? h('p', { class: 'hs-note' }, cap(SKILL_SUB[id]) + '.') : null,
     h('div', { class: 'sk-list', 'aria-label': 'What adds to it' },
       line('Raw', whole(f.raw), 'sk-raw'), ...f.parts.map((x) => line(x.label, signed(x.adds))),
@@ -258,9 +319,11 @@ export function openSkillPop(p: Actor, id: string, opener?: HTMLElement | null):
     f.gives.length ? h('p', {}, `Adds to ${f.gives.join(' and ')} rolls.`) : null,
     h('div', { class: 'sk-list' },
       line('Learns from', winText(f.window)),
+      flawed ? line('Flawed', `learns slower, stops at ${CONFIG.SKILL_CAP - CONFIG.FLAW_CAP_PENALTY}`, 'sk-bad') : null,
       // BU3 b: shown only once Burden is above 0, and only here
-      f.burden.by > 0 ? line('Burden', `−${f.burden.by} to improve`, 'sk-bad') : null,
-      f.burden.by > 0 ? h('p', { class: 'hs-note' }, `Your untagged skills add up to ${f.burden.total}, past your Potential of ${f.burden.potential}. Every ${CONFIG.K} points past it makes each untagged skill 1 harder to improve. Tagged skills carry no Burden.`) : null,
+      f.burden.by > 0 ? line('Burden', `−${f.burden.by} to improve`, 'sk-bad', termAttrs('Burden')) : null,
+      f.burden.by > 0 ? h('p', { class: 'hs-note' }, `Your skills add up to ${whole(f.burden.total)} (a tag counts 0, each tag in a group takes ${CONFIG.TAG_BURDEN_GROUP_PCT}% off every skill in it and each flaw adds ${CONFIG.FLAW_BURDEN_GROUP_PCT}%), past your Potential of ${f.burden.potential}. Every ${CONFIG.K} points past it makes each untagged skill 1 harder to improve. Tagged skills carry no Burden.`) : null,
+      f.groupBonus > 0 ? line('Tagged group-mates', `+${whole(f.groupBonus)} to improve`) : null,
       line('Next perk milestone', `${f.next} · ${whole(f.toNext)} to go`)),
   ] });
 }
@@ -275,11 +338,17 @@ function skillNum(value: number, raw: number): HTMLElement {
 const partOpen = { on: false, autoTurn: -1 }; // body-part list under the health bar, kept open across turns; opens once on a turn that healed a part (H2 a)
 const esc = (t: string) => t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 
-/** Body figure: the body type's silhouette, each part tinted by its state; the general area shows
- * total health. Clicking a part names it with its state and amount. Null for body types without a figure. */
-export function bodyFigure(s: GameState, p: Actor, healed: Set<string> = new Set()): HTMLElement | null {
+/** BV1 b: where the figure is drawn: still and small in the side sheet; turnable on the character card and in the pop-up */
+const FIG_SIZE = { side: { width: 104, height: 112, turnable: false, ground: false }, card: { width: 168, height: 176, turnable: true, ground: false },
+  pop: { width: 300, height: 260, turnable: true, ground: true } } as const;
+/** BV4 a: a state's colour (the part list beside the figure names it in words) */
+const STATE_TOKEN: Record<PartState, string> = { healthy: '--ok', damaged: '--warn', crippled: '--danger', destroyed: '--c3' };
+export const stateToken = (st: PartState) => STATE_TOKEN[st];
+
+/** the 3D body figure (BV1-BV6): every part tinted by its state, Destroyed see-through; a click names the part */
+export function bodyFigure(s: GameState, p: Actor, healed: Set<string> = new Set(), where: keyof typeof FIG_SIZE = 'side', onPick?: (part: string | null) => void): HTMLElement | null {
   const ct = safe(() => actorBody(s, p));
-  if (!ct?.figure) return null;
+  if (!ct) return null;
   const { hp, total } = hpLeft(s, p);
   const info = (id: string): { name: string; state: PartState; amount: string } => {
     if (id === 'general') return { name: cap(ct.general.name), state: poolState(100 - p.core.condition.hpLostPct), amount: `${whole(hp)} of ${whole(total)} HP` };
@@ -288,24 +357,23 @@ export function bodyFigure(s: GameState, p: Actor, healed: Set<string> = new Set
     const pool = total === null || !d ? null : total * (CONFIG.PART_SHARE[d.size] ?? 0);
     return { name: partName(id), state: poolState(pct), amount: pool === null ? '' : `${whole(Math.max(0, pool * pct / 100))} of ${whole(pool)}` };
   };
-  const shapes = Object.entries(ct.figure.parts).map(([id, d]) => {
-    const i = info(id);
-    const hl = healed.has(id) ? ' · healed this turn' : '';
-    return `<path data-part="${esc(id)}" class="bf-${i.state}${hl ? ' bf-healed' : ''}" d="${esc(d)}"><title>${esc(i.name)} · ${PART_STATES.name(i.state)}${hl}</title></path>`;
-  }).join('');
-  const svg = h('div', { class: 'bf-svg' });
-  svg.innerHTML = `<svg viewBox="${esc(ct.figure.viewBox)}" role="img" aria-label="Body parts"><defs><pattern id="bf-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" style="fill:var(--c3)"/><rect width="2.5" height="6" style="fill:var(--bg)" fill-opacity=".6"/></pattern></defs>${shapes}</svg>`;
   const out = h('p', { class: 'bf-out', 'aria-live': 'polite' });
-  svg.addEventListener('click', (e) => {
-    const el = (e.target as Element).closest('[data-part]');
-    svg.querySelectorAll('.on').forEach((x) => x.classList.remove('on'));
-    if (!el) { out.textContent = ''; return; }
-    el.classList.add('on');
-    const i = info(el.getAttribute('data-part')!);
-    out.textContent = [i.name, PART_STATES.name(i.state), i.amount, healed.has(el.getAttribute('data-part')!) ? 'healed this turn' : ''].filter(Boolean).join(' · ');
+  const key = figureKey(p.core.raceId, p.core.bodyTypeId, p.pronouns), F = FIG_SIZE[where];
+  const states = ['general', ...ct.parts.map((d) => d.id)].map((id) => `${info(id).name} ${PART_STATES.name(info(id).state)}`).join(', ');
+  const fig = figure3d({
+    key, upright: figureUpright(key), size: ct.size, raceSize: raceSize(p.core.bodyTypeId, p.core.raceId), personSize: raceSize(BT.humanoid, RC.human),
+    tint: (id) => { const st = info(id).state; return { token: STATE_TOKEN[st], seeThrough: st === 'destroyed' }; },
+    label: `Body: ${states}`, ...F,
+    onPick: (id) => {
+      if (onPick) { onPick(id); return; }
+      if (!id) { out.textContent = ''; return; }
+      const i = info(id);
+      out.textContent = [i.name, PART_STATES.name(i.state), i.amount, healed.has(id) ? 'healed this turn' : ''].filter(Boolean).join(' · ');
+    },
   });
-  const key = h('p', { class: 'bf-key' }, PART_STATES.keys.map((st) => h('span', {}, h('i', { class: `bf-${st}` }), PART_STATES.name(st))));
-  return h('div', { class: 'bf' }, svg, out, key);
+  fig.classList.add('bf-fig');
+  const keyRow = h('p', { class: 'bf-key' }, PART_STATES.keys.map((st) => h('span', {}, h('i', { class: `bf-${st}` }), PART_STATES.name(st))));
+  return h('div', { class: 'bf' }, fig, out, keyRow);
 }
 
 /** width of the side sheet bar's Unhurt section, in % of the bar */
@@ -321,12 +389,9 @@ function healthBar(s: GameState, p: Actor, healed: Set<string>, turn: number, ch
   // segments by % left: Bruised 85–100, Hurt 70–85 … Critical 0–25 (Unhurt is only the full bar, Incapacitated the empty one)
   const track = SHOWN_LEVELS();
   const segs = track.slice(1, -1).map(([l, max], i, all) => ({ l, from: 100 - Math.min(100, max), to: i ? 100 - all[i - 1][1] : 100 }));
-  // each segment's level named mid-segment, alternating one above the bar and one below; Unhurt (the full bar) and
-  // Incapacitated (the empty one) are not named
   // the Unhurt section is the bar's 7th section, on the right; the six damage sections share the rest by their % ranges
   // (a separate box read as detached)
   const scale = (100 - UNHURT_SECTION) / 100;
-  const marks = [...segs].reverse().map((x) => ({ l: x.l, at: ((x.from + x.to) / 2) * scale }));
   const fill = level === 'unhurt' ? 100 : left * scale;
   const parts = h('div', { class: 'cs-parts', hidden: !partOpen.on, 'aria-label': 'Body parts' },
     h('p', { class: 'hs-label' }, 'Body parts'),
@@ -338,17 +403,13 @@ function healthBar(s: GameState, p: Actor, healed: Set<string>, turn: number, ch
         h('span', {}, partName(d.id)), h('div', { class: 'cs-bar' }, h('b', { style: `width:${Math.max(0, Math.min(100, pct))}%` })),
         h('span', { class: 'w' + (st === 'healthy' ? '' : ' bad') }, PART_STATES.name(st)));
     })) ?? []);
-  const sideSteps = (odd: 0 | 1) => h('span', { class: 'cs-hpsteps' }, marks.map((x, i) => (i % 2 === odd
-    ? h('span', { class: x.l === level ? 'now' : '', style: `left:${x.at}%` }, HEALTH_LEVELS.name(x.l)) : null)));
   const btn = h('button', { class: 'cs-hpbtn', type: 'button', 'aria-expanded': String(partOpen.on), title: 'Click to show or hide each body part',
     onclick: () => { partOpen.on = !partOpen.on; parts.hidden = !partOpen.on; btn.setAttribute('aria-expanded', String(partOpen.on)); } },
-    // the current level sits beside the HP number, as on the character card
-    h('span', { class: 'cs-row' }, h('span', {}, `Health ${partOpen.on ? '⌄' : '›'}`), h('b', {}, h('span', { 'data-m': 'hp-level' }, HEALTH_LEVELS.name(level)), ' · ', h('span', { 'data-m': 'hp' }, whole(hp)), ' HP')),
-    sideSteps(0),
+    // the condition sheet names no health level, on the button or the track: the HP and the bar say it
+    h('span', { class: 'cs-row' }, h('span', {}, `Health ${partOpen.on ? '⌄' : '›'}`), h('b', {}, h('span', { 'data-m': 'hp' }, whole(hp)), ' HP')),
     // the 7th section lights only when Unhurt, so a full Bruised bar can't be read as Unhurt
-    h('span', { class: 'cs-hptrack', title: 'Health track, Unhurt on the right', 'data-m': 'hp-track' }, h('b', { style: `width:${fill}%` }),
-      [...segs.slice(0, -1).map((x) => x.from * scale), 100 - UNHURT_SECTION].map((at) => h('i', { style: `left:${at}%` }))),
-    sideSteps(1));
+    h('span', { class: 'cs-hptrack', title: 'Health track, full on the right', 'data-m': 'hp-track' }, h('b', { style: `width:${fill}%` }),
+      [...segs.slice(0, -1).map((x) => x.from * scale), 100 - UNHURT_SECTION].map((at) => h('i', { style: `left:${at}%` }))));
   btn.addEventListener('click', () => { (btn.querySelector('.cs-row span') as HTMLElement).textContent = `Health ${partOpen.on ? '⌄' : '›'}`; });
   return [btn, partChips(s, p), parts];
 }
@@ -361,10 +422,11 @@ export function partChips(s: GameState, p: Actor): HTMLElement {
 
 /** MB12 in plain words, one source for the sheet, the story card and the input's chips: how a broken nerve passes
  * (the engagement ending gives morale back, rest too) and what still works while it lasts */
-export const NERVE_UNTIL = "You can't walk, run or attack until the fight is behind you: with nothing else to do you cower where you stand.";
+export const NERVE_UNTIL = "You can't attack or go toward a foe until the fight is behind you; you can still back away or run.";
+/** BF79: at Cowering, below Broken, not even flight is left */
+export const NERVE_COWERING = "You can't move or attack until the fight is behind you: you cower where you stand.";
 export const NERVE_PASSES = () => `That is once no one has fought you for ${engagementEndS()} s, your yield is taken, this scenario ends, or you rest.`;
 export const NERVE_STILL = 'You can still talk, beg, yield, give, hide, use an item such as a bandage, pick something up, or open a door or container within reach.';
-const moraleRoll = (k: string) => CONFIG.MORALE_TRACK.find(([x]) => x === k)?.[2] ?? 0;
 /** NB2: a level word that carries what it costs as a tip, shown on hover or keyboard focus (dotted underline as the cue);
  * screen readers get it as the word's description */
 function tipped(word: string, tip: string, m: string, tm: string): HTMLElement {
@@ -374,10 +436,10 @@ function tipped(word: string, tip: string, m: string, tm: string): HTMLElement {
 }
 /** the stakes under the morale level, from CONFIG.MORALE_HINT_FROM down (a tip above Broken, a line at Broken); null above it */
 export function moraleHint(k: MoraleLevel): string | null {
-  if (MORALE_LEVELS.pos(k) < MORALE_LEVELS.pos(CONFIG.MORALE_HINT_FROM as MoraleLevel)) return null;
-  if (k === 'broken') return `${NERVE_PASSES()} ${NERVE_STILL}`;
-  const roll = moraleRoll(k), last = MORALE_LEVELS.pos('broken') - MORALE_LEVELS.pos(k) === 1;
-  return `${roll ? `−${Math.abs(roll)}% on every roll. ` : ''}${last ? 'One more fright and your nerve breaks' : 'If your nerve breaks'}: you won't be able to walk away or attack.`;
+  if (MORALE_LEVELS.pos(k) < MORALE_LEVELS.pos(CONFIG.MORALE_HINT_FROM)) return null;
+  if (isBrokenLevel(k)) return `${NERVE_PASSES()} ${NERVE_STILL}`;
+  const roll = moralePenalty(k), last = MORALE_LEVELS.pos('broken') - MORALE_LEVELS.pos(k) === 1;
+  return `${roll ? `−${Math.abs(roll)}% on every roll. ` : ''}${last ? 'One more fright and your nerve breaks' : 'If your nerve breaks'}: you won't be able to attack or go toward a foe.`;
 }
 
 /** MB11: the player's morale bar, a second bar under health: level word, how much is left, and the track's thresholds as ticks */
@@ -393,13 +455,13 @@ export function moraleBar(p: Actor, full: boolean): HTMLElement[] {
       // SY1: a Great Success or better at steadying yourself halves the next morale loss, then it is gone
       p.core.condition.mentallySteady ? h('span', { class: 'cs-steady', 'data-m': 'steady', title: 'Mentally steady: your next morale loss is halved' }, 'Mentally steady') : null),
       // NB2: above Broken the stakes are a tip on the level word (hover or focus), never a line of their own
-      h('b', {}, hint && key !== 'broken' ? tipped(level, hint, 'morale-level', 'morale-hint') : h('span', { 'data-m': 'morale-level' }, level),
-      full ? [' · ', h('span', { 'data-m': 'morale-left' }, String(left)), ` / ${max}`] : null)),
+      h('b', {}, hint && !isBrokenLevel(key) ? tipped(level, hint, 'morale-level', 'morale-hint') : h('span', { 'data-m': 'morale-level' }, level),
+      full ? [' · ', figBtn('cs-figlink', 'What makes up your max morale', (el) => openMoralePop(p, el), h('span', { 'data-m': 'morale-left' }, String(left)), ` / ${max}`)] : null)),
     h('span', { class: 'cs-hptrack cs-morale', title: 'Morale track, Calm on the right', role: 'img', 'aria-label': `Morale: ${level}`, 'data-m': 'morale-track' },
       h('b', { style: `width:${100 - lost}%` }), ...ticks),
     // NB3: at Broken the line stays under the bar: no attacks until the fight is behind you, how that comes, what still works
-    ...(hint && key === 'broken' ? [h('span', { class: 'cs-mhint broken', 'data-m': 'morale-hint', role: 'status' },
-      h('b', { 'data-m': 'morale-until' }, NERVE_UNTIL), ' ', hint)] : []),
+    ...(hint && isBrokenLevel(key) ? [h('span', { class: 'cs-mhint broken', 'data-m': 'morale-hint', role: 'status' },
+      h('b', { 'data-m': 'morale-until' }, isCoweringLevel(key) ? NERVE_COWERING : NERVE_UNTIL), ' ', hint)] : []),
   ];
 }
 
@@ -468,13 +530,6 @@ function gearLine(s: GameState, p: Actor, held: boolean): HTMLElement[] {
   });
 }
 
-/** what the character holds and wears, by item name: "arming sword · round shield" */
-export function heldWorn(s: GameState, p: Actor): { held: string[]; worn: string[] } {
-  const on = p.core.inventory.filter((i) => i.equippedIn?.length);
-  const name = (i: Actor['core']['inventory'][number]) => safe(() => itemDef(s, i.itemId).name) ?? i.itemId;
-  return { held: on.filter(isHeld).map(name), worn: on.filter((i) => !isHeld(i)).map(name) };
-}
-
 /** Layout A: the narrow status strip beside the story (health word and bar, damaged parts, what is held); a click opens the full sheet */
 export function statusStrip(s: GameState, p: Actor): HTMLElement[] {
   const level = shownLevel(healthLevel(p));
@@ -516,7 +571,7 @@ export function sideSheet(s: GameState, p: Actor, last?: LogLine, changed?: Set<
     ...trees(p, false).map((t) => h('div', { class: 'cs-mini', style: `--t:var(--${t.c})` },
       h('div', { class: 'th' }, h('span', {}, t.name.replace(/^Combat – /, '')), h('span', {}, String(t.sum))),
       t.rows.map((r) => h('div', { class: 'r' + (gains[r.id] ? ' up' : ''), 'data-skill': r.id },
-        h('span', {}, skillName(r.id), r.tagged ? [' ', tag()] : null, r.off ? [' ', offNote()] : null, marked(p, r.id) ? markDot() : null, gains[r.id] ? h('span', { class: 'gain', title: 'Improved this turn' }, `▲${gains[r.id]}`) : null),
+        h('span', {}, skillName(r.id), r.tagged ? [' ', tag()] : null, r.flawed ? [' ', flaw()] : null, r.off ? [' ', offNote()] : null, marked(p, r.id) ? markDot() : null, gains[r.id] ? h('span', { class: 'gain', title: 'Improved this turn' }, `▲${gains[r.id]}`) : null),
         bar(r.raw, windowOf(p, r.id)), h('b', { 'data-m': 'skill' }, String(r.raw)))))),
   ];
 }

@@ -152,7 +152,7 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean): Scene {
   const used = new Set<string>(zones.map((x) => `state:${x.state}`));
   for (const { z } of zones) {
     used.add(z.outdoor ? 'outdoor' : 'indoor');
-    for (const side of ['n', 'e', 's', 'w']) used.add(`edge:${(z.edges as Record<string, string> | undefined)?.[side] ?? (z.outdoor ? 'open' : 'wall')}`);
+    for (const w of z.walls ?? []) used.add(`edge:${w.cls}`);
     if (!z.inView) used.add('remembered');
   }
   // every mark placed so far, with its role: later marks keep clear of them

@@ -1,16 +1,16 @@
-// 161 D-177 fights against a hostile foe stronger than you: power = rating + gear rating, on both sides. Surviving
+// 161 D-177 fights against a hostile foe stronger than you: power = level + combat + non-combat parts, on both sides. Surviving
 // (on your feet at the end) and winning each have a chain by points above you (100/250/500) and one by % above (25/50/100).
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { actor } from '../harness/village';
 import { fightEnded, turnFeats } from '../../src/engine/feats';
-import { gearRating, rating } from '../../src/engine/xp';
+import { combatPart, levelRating, power } from '../../src/engine/xp';
+import { nonCombatPart } from '../../src/engine/nonCombat';
 import { ACH } from '../../src/library/achievementIds';
 import type { Actor, GameState } from '../../src/types';
 
 const know = (a: Actor, b: Actor) => { a.mind!.knowledge[b.id] = { status: 'engaged', lastKnownZone: b.zone, source: 'seen', revealed: [] }; };
 const earned = (s: GameState) => (s.player.progression!.achievements ?? []).filter((a) => !a.replacedBy).map((a) => a.key!);
-const power = (s: GameState, a: Actor) => rating(a) + gearRating(s, a); // written out: must equal engine power()
 
 describe('161 stronger foes', () => {
   it('a fight turn records how far the strongest hostile foe is above you, in points and in %', () => {
@@ -49,12 +49,12 @@ describe('161 stronger foes', () => {
 });
 
 describe('161 one power measure', () => {
-  it('defeat XP and the stronger-foe gap read the same power (rating + gear rating)', async () => {
-    const { power, defeatXp } = await import('../../src/engine/xp');
+  it('defeat XP and the stronger-foe gap read the same power (level + combat + non-combat parts)', async () => {
+    const { defeatXp } = await import('../../src/engine/xp');
     const { CONFIG } = await import('../../src/config');
     const s = makeVillage();
     const guard = actor(s, 'guard_1');
-    expect(power(s, guard)).toBeCloseTo(rating(guard) + gearRating(s, guard), 5);
+    expect(power(s, guard)).toBeCloseTo(levelRating(guard, s) + combatPart(s, guard) + nonCombatPart(s, guard), 5);
     const t = Math.min(1, CONFIG.DEFEAT_XP_TAPER * power(s, guard) / power(s, s.player));
     expect(defeatXp(s, guard)).toBeCloseTo(power(s, guard) * t * CONFIG.DEFEAT_XP_MULT, 1);
   });

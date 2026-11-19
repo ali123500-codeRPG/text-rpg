@@ -12,8 +12,8 @@ import { groupsOf } from '../library/functionNames';
 import { SENSE_SKILL } from '../library/skillIds';
 import { levelMaxPct } from './body';
 
-type Reward = 'unawareShift' | 'quieter' | 'deathsDoor' | 'renown' | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels' | 'searchArea' | 'searchReach' | 'maxMorale' | 'aimEase' | 'safeBreak' | 'sellPct' | 'questPayPct' | 'essenceSlots';
-const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'eventRoll', 'freeLevels', 'bonusLevels', 'personality', 'personalityByKind', 'tierUnlocks', 'searchArea', 'searchReach', 'maxMorale', 'aimEase', 'safeBreak', 'skillAddByKind', 'sellPct', 'questPayPct', 'essenceSlots'];
+type Reward = 'unawareShift' | 'quieter' | 'deathsDoor' | 'renown' | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels' | 'searchArea' | 'searchReach' | 'maxMorale' | 'aimEase' | 'safeBreak' | 'sellPct' | 'questPayPct' | 'essenceSlots' | 'defenseRoll' | 'spotRoll';
+const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'eventRoll', 'freeLevels', 'bonusLevels', 'personality', 'personalityByKind', 'tierUnlocks', 'searchArea', 'searchReach', 'maxMorale', 'aimEase', 'safeBreak', 'skillAddByKind', 'sellPct', 'questPayPct', 'essenceSlots', 'defenseRoll', 'spotRoll', 'fearFrom'];
 
 /** the actor's current achievements (not replaced), with their library rows */
 export function currentAchievements(a: Actor): { key: string; of?: string; d: AchievementDef }[] {
@@ -47,6 +47,15 @@ export function bestReward(a: Actor, f: Reward, only: (x: { key: string; of?: st
   const dir = f === 'deathsDoor' ? 1 : -1;
   const best = currentAchievements(a).filter(only).map((x) => ({ ...x, v: rewardOf(x.d, f) })).filter((x) => x.v > 0).sort((x, y) => dir * (x.v - y.v))[0];
   return best ? { key: best.key, name: best.d.name, value: best.v } : undefined;
+}
+const DEFENSE_ROLLS: RollKind[] = ['dodge', 'block', 'parry'];
+/** XR7/XR37: the roll bonus of the owner's best current achievement for this roll: defense rolls take defenseRoll, spotting
+ * rolls (a perception roll of sight, hearing or smell) take spotRoll. Type achievement, so it stacks with Bane and
+ * total-defeats bonuses as one modifier type. */
+export function achievementRollMods(a: Actor, kind: RollKind | undefined, fn?: string): Mod[] {
+  const f = kind && DEFENSE_ROLLS.includes(kind) ? 'defenseRoll' : kind === 'perception' && fn && fn in SENSE_SKILL ? 'spotRoll' : undefined;
+  const b = f && bestReward(a, f);
+  return b ? [{ source: `achievement: ${b.name}`, type: 'achievement', value: b.value }] : [];
 }
 /** readsHealth: the viewer sees the other's health level when it holds a current achievement with readsHealth for the
  * other's body type or race */
@@ -154,8 +163,8 @@ export function rewardSum(a: Actor, f: 'freeLevels' | 'bonusLevels' | 'searchAre
     + a.core.perks.filter((p) => !p.dormant).reduce((n, p) => n + ((perks[p.perkId] as Partial<Record<typeof f, number>> | undefined)?.[f] ?? 0), 0);
 }
 export const freeLevelsEarned = (a: Actor) => rewardSum(a, 'freeLevels');
-/** free levels earned and not yet taken */
-export const freeLevelsOwed = (a: Actor) => Math.max(0, rewardSum(a, 'freeLevels') - (a.progression?.freeLevelsTaken ?? 0));
+/** free levels earned and not yet taken: halves add up over every source first, and only whole levels are given */
+export const freeLevelsOwed = (a: Actor) => Math.max(0, Math.floor(rewardSum(a, 'freeLevels')) - (a.progression?.freeLevelsTaken ?? 0));
 /** bonus levels earned and not yet taken */
 export const bonusLevelsOwed = (a: Actor) => Math.max(0, rewardSum(a, 'bonusLevels') - (a.progression?.bonusLevelsTaken ?? 0));
 
@@ -174,6 +183,10 @@ function linesOf(d: AchievementDef, f: AchievementReward): string[] {
     case 'skillAddByKind': return [`+${d.skillAddByKind} true skill in ${d.by === 'group' ? 'every skill of that group' : d.by === 'function' ? 'that sense\'s skill' : 'that skill'}`];
     case 'sellPct': return [`traders pay you +${d.sellPct}% for what you sell`];
     case 'questPayPct': return [`+${d.questPayPct}% on the coin a quest giver promises you`];
+    case 'defenseRoll': return [`+${d.defenseRoll} on your defense rolls (dodge, block, parry)`];
+    case 'spotRoll': return [`+${d.spotRoll} on your spotting rolls (sight, hearing, smell)`];
+    case 'fearFrom': { const f = getLibrary().fears?.[d.fearFrom!.fear];
+      return [`the fear "${f?.name ?? d.fearFrom!.fear}" starts ${steps(d.fearFrom!.steps, 'health level')} later`]; }
     case 'essenceSlots': return [`+${d.essenceSlots} essence slot${d.essenceSlots === 1 ? '' : 's'}`];
     case 'safeBreak': return [`forcing a container open breaks less: every fragility line ${steps(d.safeBreak!, 'tier')} worse`];
     case 'firstSight': {
@@ -204,7 +217,7 @@ function personalityLines(add?: Record<string, number>): string[] {
 const kindLabel = (d: AchievementDef, kind: string): string => (d.by === 'skill' ? skillName(kind) : kind);
 /** number rewards that add up along a chain: shown as one total with its parts (BG-256) */
 const SUMMED: Reward[] = ['unawareShift', 'quieter', 'renown', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'eventRoll', 'freeLevels', 'bonusLevels',
-  'searchArea', 'searchReach', 'maxMorale', 'aimEase', 'safeBreak', 'sellPct', 'questPayPct', 'essenceSlots'];
+  'searchArea', 'searchReach', 'maxMorale', 'aimEase', 'safeBreak', 'sellPct', 'questPayPct', 'essenceSlots', 'defenseRoll', 'spotRoll'];
 const SUMMED_BY_KIND: AchievementReward[] = ['skillAddByKind'];
 /** the rewards of one achievement row beyond XP and roll bonuses, as plain lines for display. A number reward the row
  * carries up from lower levels (chain linkage) shows as one total, then its parts: "+15 max morale in all (+5 from
@@ -238,19 +251,24 @@ export function rewardLines(d: AchievementDef): string[] {
   return out;
 }
 
-/** Reward levels are the rows of REWARD_LEVELS (−1 to XV); a level past the top stays at the top. These helpers are the
+/** Reward levels are the rows of REWARD_LEVELS (−2 to XV); a level past the top stays at the top. These helpers are the
  * one way to read a reward level's position, name and XP. */
 const TOP = () => REWARD_LEVELS.keys.length - 1;
 export const rewardPos = (key: string): number => (REWARD_LEVELS.has(key) ? REWARD_LEVELS.pos(key as 'i') : -1);
 export const rewardKeyAt = (pos: number): string => REWARD_LEVELS.at(Math.min(TOP(), Math.max(0, pos)));
 export const rewardName = (key: string): string => (REWARD_LEVELS.has(key) ? REWARD_LEVELS.name(key as 'i') : key);
-/** the XP of the reward level at place p (0 = level 0, I = 1, −1 = −1): the one reward-XP equation (REWARD_XP_CURVE) */
-export function rewardXpAt(p: number): number {
-  const c = CONFIG.REWARD_XP_CURVE;
-  return Math.round(c.base * Math.max(0, (p + c.shift) / c.div) ** c.power);
+/** the XP of the reward level at place p (0 = level 0, I = 1, −1 = −1): the one reward-XP equation. A fixed part
+ * (REWARD_XP_CURVE) plus a share of `need`, the earner's XP to the next level (ACH_LEVEL_SHARE, AL1-AL8); need 0 = the fixed part */
+export function rewardXpAt(p: number, need = 0): number {
+  const c = CONFIG.REWARD_XP_CURVE, s = CONFIG.ACH_LEVEL_SHARE;
+  return Math.round(c.base * Math.max(0, (p + c.shift) / c.div) ** c.power + (s.floor + (s.atI - s.floor) * Math.max(0, p) ** s.power) * need);
 }
 /** a reward level's XP, for achievements and quests alike (quest levels are REWARD_LEVELS keys too) */
-export const rewardXp = (key: string): number => (REWARD_LEVELS.has(key) ? rewardXpAt(REWARD_LEVELS.pos(key as 'i') - REWARD_LEVELS.pos('zero')) : 0);
+export const rewardXp = (key: string, need = 0): number => (REWARD_LEVELS.has(key) ? rewardXpAt(REWARD_LEVELS.pos(key as 'i') - REWARD_LEVELS.pos('zero'), need) : 0);
+/** the achievement reward level whose XP a quest of this level pays: CONFIG.QUEST_XP_LEVELS_UP places higher */
+export const questXpLevel = (key: string): string => rewardKeyAt(rewardPos(key) + CONFIG.QUEST_XP_LEVELS_UP);
+/** a quest reward level's XP: the XP of its achievement level (questXpLevel), share of `need` included */
+export const questLevelXp = (key: string, need = 0): number => rewardXp(questXpLevel(key), need);
 
 /** an achievement's reward level for one earning: its row's level, + levelUp for that kind, + levelStep for each `every`
  * step past its first count (an every-N row climbs as it is earned again), capped at the top level (XV). */
@@ -260,10 +278,9 @@ export function achLevel(d: { level: string; levelUp?: Partial<Record<string, nu
   return up && rewardPos(d.level) >= 0 ? rewardKeyAt(rewardPos(d.level) + up) : d.level;
 }
 
-/** the XP an achievement pays: its reward level's XP; a scar pays the level one step below (none below the lowest) */
-export function achXp(d: { level: string; levelUp?: Partial<Record<string, number>>; count?: number; every?: number; levelStep?: number; scar?: true }, of?: string): number {
+/** the XP an achievement pays: its reward level's XP; a scar pays the place one step below (below the lowest: no fixed part,
+ * only the share). need: the earner's XP to the next level (0 = the fixed part only, as the library and report card read it) */
+export function achXp(d: { level: string; levelUp?: Partial<Record<string, number>>; count?: number; every?: number; levelStep?: number; scar?: true }, of?: string, need = 0): number {
   const lv = achLevel(d, of);
-  if (!d.scar) return rewardXp(lv);
-  const i = rewardPos(lv);
-  return i > 0 ? rewardXp(rewardKeyAt(i - 1)) : 0;
+  return REWARD_LEVELS.has(lv) ? rewardXpAt(rewardPos(lv) - rewardPos('zero') - (d.scar ? 1 : 0), need) : 0;
 }

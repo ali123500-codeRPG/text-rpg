@@ -1,12 +1,15 @@
 // In-memory fake GameApi with canned lines, for building and screenshotting the screens until W7's pipeline lands.
-import { placeZones } from '../scenario/geometry';
-import { BK, EK, PA, VL, ZK } from '../library/tableIds';
+import { drawTitles } from '../plan/draw';
+import { middle } from '../plan/where';
+import { boxOf } from '../plan/geom';
+import { dropOnGround, groundIn } from '../engine/ground';
+import { BK, PA, VL, WK } from '../library/tableIds';
 import { roadShape } from '../scenario/apply';
 import { HL } from '../library/tableIds';
 import { TP } from '../library/templateIds';
-import type { CreationBuild, GameApi, GameState, GmSnapshot, LogLine, Notice, XpPart } from '../types';
+import type { CreationBuild, GameApi, GameState, GmSnapshot, LogLine, Notice, TitleSpec, WayKind, XpPart } from '../types';
 import { CONFIG, defaultSettings } from '../config';
-import { maxMorale, moraleLevel, setMoraleLost } from '../ruleset/morale';
+import { maxMorale, isBrokenLevel, moraleLevel, setMoraleLost } from '../ruleset/morale';
 import { getLibrary } from '../library';
 import { takePerk, undoPerk } from '../ruleset';
 import { abandonQuest, pinQuest } from '../engine/quests';
@@ -26,11 +29,11 @@ import { passEssence, takeEssence } from '../engine/essence';
 import { ES } from '../library/essenceIds';
 import { now } from '../time';
 import { DU, FU } from '../library/tableIds';
-import { makeFurniture } from '../engine/furniture';
 import { FAKE_STAGES, type FakeStage } from './fakeStages';
 import { drawRegion } from '../land/generate';
 import { cellsInSight } from '../land/sight';
 import { pointAlong } from './mapData';
+import { lineLength } from '../land/generate';
 import { LM, RK } from '../library/tableIds';
 
 const NARRATION = [
@@ -102,9 +105,8 @@ function lootTurn(st: GameState): void {
   const add = (itemId: string, qty = 1) => { const it = { id: newInstanceId(), itemId, qty }; g.core.inventory.push(it); return it; };
   const found = [add(IT.bandage), add(IT.healing_draught), add(IT.coin, 14), add(IT.key)];
   p.journal = { ...p.journal!, revealed: [...(p.journal?.revealed ?? []), ...found.map((i) => `item:${i.id}`)] };
-  const zone = zoneById(st, p.zone);
-  if (zone && !zone.groundItems.some((i) => i.itemId === IT.chest)) {
-    zone.groundItems.push({ id: newInstanceId(), itemId: IT.chest, open: true, contents: [{ id: newInstanceId(), itemId: IT.lockpicks }, { id: newInstanceId(), itemId: IT.curio }] } as never,
+  if (!groundIn(st, p.zone).some((i) => i.itemId === IT.chest)) {
+    dropOnGround(st, p, { id: newInstanceId(), itemId: IT.chest, open: true, contents: [{ id: newInstanceId(), itemId: IT.lockpicks }, { id: newInstanceId(), itemId: IT.curio }] } as never,
       { id: newInstanceId(), itemId: IT.sack } as never);
   }
 }
@@ -169,39 +171,47 @@ function endTurn(st: GameState): Partial<LogLine> {
 
 export const validateBuildLocal = (b: CreationBuild): string[] => validateBuild(b);
 
-// the fake world for the Map page: a village, the tavern inside it and the field east of it (the cellar and the north road unexplored)
-type FakeZone = GameState['places'][number]['zones'][number];
-const FZ = (id: string, placeId: string, name: string, look: string, links: [string, string, boolean?, true?][], extra: Partial<FakeZone> = {}): FakeZone =>
-  ({ id, placeId, name, look, links: links.map(([to, label, sight = true, frontier]) => ({ to, label, sight, ...(frontier ? { frontier } : {}) })), cover: 'some', light: 'dim', groundItems: [], ...extra });
-const FP = (id: string, kind: string, parentId: string | null, name: string, zones: FakeZone[]): GameState['places'][number] =>
-  ({ id, storyId: 'fake', kind, parentId, names: { current: name, past: [] }, zones, state: {}, headlines: [] });
-const FAKE_PLACES = (): GameState['places'] => placed([
-  FP('village', 'village', null, 'Millbrook', [
-    FZ('v_square', 'village', 'village square', 'A muddy square around a well, with the tavern sign creaking over it.', [['tav_common', 'the Kettle’s front door', false], ['field_edge', 'the east lane'], ['w_road', 'the west road', false]], { outdoor: true, light: 'bright', cover: 'none', area: 1600 }),
-  ]),
-  FP('ashford', 'village', null, 'Ashford', [
-    FZ('ash_gate', 'ashford', 'Ashford gate', 'A timber gate in a low wall, a day’s walk west of Millbrook.', [['w_road', 'the east road', false], ['f_ash', 'the market, north', false, true]], { outdoor: true, light: 'bright', cover: 'none', area: 25, aspect: 2 }),
-  ]),
+// the fake world for the Map page: a village, the tavern inside it and the field east of it (the cellar and the north road
+// unexplored). Each title is listed by its ways, as the Weaver hands one over, and drawn on the plan by the game's own code
+type FakeWay = [to: string, label: string, kind?: WayKind, frontier?: true];
+const FZ = (id: string, placeId: string, name: string, look: string, ways: FakeWay[], extra: Partial<TitleSpec> = {}): TitleSpec =>
+  ({ id, placeId, name, look, ways: ways.map(([to, label, kind = 'open', frontier]) => ({ to, label, kind, ...(frontier ? { frontier } : {}) })), light: 'dim', roof: true, ...extra });
+const FP = (id: string, kind: string, parentId: string | null, name: string): GameState['places'][number] =>
+  ({ id, storyId: 'fake', kind, parentId, names: { current: name, past: [] }, zones: [], state: {}, headlines: [] });
+const OUT = { roof: false, light: 'bright' } as const;
+const FAKE_PLACES = (): GameState['places'] => [FP('village', 'village', null, 'Millbrook'), FP('ashford', 'village', null, 'Ashford'), FP('west_road', 'road', null, 'the west road'),
+  FP('tavern', 'tavern', 'village', 'the Crooked Kettle'), FP('field', 'field', 'village', 'the slime field')];
+const FAKE_TITLES = (): TitleSpec[] => [
+  FZ('v_square', 'village', 'village square', 'A muddy square around a well, with the tavern sign creaking over it.', [['tav_common', 'the Kettle’s front door', 'door'], ['field_edge', 'the east lane'], ['w_road', 'the west road']], { ...OUT, area: 1600 }),
+  FZ('ash_gate', 'ashford', 'Ashford gate', 'A timber gate in a low wall, a day’s walk west of Millbrook.', [['w_road', 'the east road'], ['f_ash', 'the market, north', 'open', true]], { ...OUT, area: 25, aspect: 2 }),
   // the west road, a day's walk (30 km) of real road from Millbrook's square to Ashford's gate, so the World shows the two
   // villages that far apart (CO9); "travel" sets you partway along it
-  FP('west_road', 'road', null, 'the west road', [
-    FZ('w_road', 'west_road', 'the west road', 'A rutted cart road between hedges.', [['v_square', 'Millbrook, east', false], ['ash_gate', 'Ashford, west', false]],
-      { outdoor: true, light: 'bright', cover: 'none', kind: ZK.road, ...roadShape('day', 'quiet') }),
-  ]),
-  FP('tavern', 'tavern', 'village', 'the Crooked Kettle', [
-    FZ('tav_common', 'tavern', 'common room', 'A low room with a hearth, benches and a scarred counter.', [['tav_kitchen', 'the kitchen door, west', false], ['v_square', 'out the front door, south', false], ['tav_yard', 'the back door, east'], ['tav_upstairs', 'the stairs up', false]], { area: 64, edges: { n: EK.wall, e: EK.wall, s: EK.window, w: EK.wall }, furniture: makeFurniture('tav_common', [{ kind: FU.counter, name: 'scarred counter', at: 'n' }, { kind: FU.hearth, name: 'hearth', at: 'w' }, { kind: FU.table, name: 'long table' }, { kind: FU.bench, name: 'bench', at: 'se' }, { kind: FU.barrels, name: 'ale barrels', at: 'ne' }]) }),
-    FZ('tav_kitchen', 'tavern', 'kitchen', 'Copper pots, a long table and the smell of onions.', [['tav_common', 'the common room, east', false], ['tav_cellar', 'the cellar hatch, down', false]], { area: 25 }),
-    FZ('tav_yard', 'tavern', 'back yard', 'A walled yard of firewood and a rain barrel.', [['tav_common', 'the back door, west'], ['f_lane', 'the gate to the lane', true, true]], { outdoor: true, cover: 'some', area: 150, edges: { n: EK.low, e: EK.low, s: EK.low, w: EK.wall }, furniture: makeFurniture('tav_yard', [{ kind: FU.woodpile, name: 'woodpile', at: 'nw' }, { kind: FU.water_barrel, name: 'rain barrel', at: 'sw' }, { kind: FU.cart, name: 'hand cart', at: 'e' }]) }),
-    FZ('tav_upstairs', 'tavern', 'upstairs landing', 'A narrow landing with three doors.', [['tav_common', 'the stairs down', false]], { light: 'dark', height: 3, area: 9, aspect: 2 }),
-    FZ('tav_cellar', 'tavern', 'cellar', 'A damp cellar of barrels.', [['tav_kitchen', 'the hatch, up', false]], { light: 'dark', height: -3, area: 60 }),
-  ]),
-  FP('field', 'field', 'village', 'the slime field', [
-    FZ('field_edge', 'field', 'field edge', 'Long grass streaked with silver trails.', [['v_square', 'the lane back west'], ['field_mid', 'into the field, north']], { outdoor: true, light: 'bright', cover: 'none', area: 1600 }),
-    FZ('field_mid', 'field', 'middle of the field', 'Trampled grass around a shallow pond.', [['field_edge', 'the field edge, south'], ['f_trees', 'the trees, east', true, true]], { outdoor: true, light: 'bright', cover: 'some', area: 1600 }),
-  ]),
-]);
-/** code places every fake zone in metres, as applyStagePlan does for real ones */
-function placed(ps: GameState['places']): GameState['places'] { placeZones({ places: ps } as GameState, ps.flatMap((p) => p.zones)); return ps; }
+  FZ('w_road', 'west_road', 'the west road', 'A rutted cart road between hedges.', [['v_square', 'Millbrook, east'], ['ash_gate', 'Ashford, west']], { ...OUT, ...roadShape('day', 'quiet') }),
+  FZ('tav_common', 'tavern', 'common room', 'A low room with a hearth, benches and a scarred counter.', [['tav_kitchen', 'the kitchen door, west', 'door'], ['v_square', 'out the front door, south', 'door'], ['tav_yard', 'the back door, east', 'door'], ['tav_upstairs', 'the stairs up', 'up']],
+    { area: 64, furniture: [{ kind: FU.counter, name: 'scarred counter', at: 'n' }, { kind: FU.hearth, name: 'hearth', at: 'w' }, { kind: FU.table, name: 'long table' }, { kind: FU.bench, name: 'bench', at: 'se' }, { kind: FU.barrels, name: 'ale barrels', at: 'ne' }] }),
+  FZ('tav_kitchen', 'tavern', 'kitchen', 'Copper pots, a long table and the smell of onions.', [['tav_common', 'the common room, east', 'door'], ['tav_cellar', 'the cellar hatch, down', 'down']], { area: 25 }),
+  FZ('tav_yard', 'tavern', 'back yard', 'A walled yard of firewood and a rain barrel.', [['tav_common', 'the back door, west', 'door'], ['f_lane', 'the gate to the lane', 'open', true]],
+    { roof: false, light: 'dim', area: 150, walls: { n: WK.low, e: WK.low, s: WK.low, w: WK.wall }, furniture: [{ kind: FU.woodpile, name: 'woodpile', at: 'nw' }, { kind: FU.water_barrel, name: 'rain barrel', at: 'sw' }, { kind: FU.cart, name: 'hand cart', at: 'e' }] }),
+  FZ('tav_upstairs', 'tavern', 'upstairs landing', 'A narrow landing with three doors.', [['tav_common', 'the stairs down', 'down']], { light: 'dark', area: 9, aspect: 2 }),
+  FZ('tav_cellar', 'tavern', 'cellar', 'A damp cellar of barrels.', [['tav_kitchen', 'the hatch, up', 'up']], { light: 'dark', area: 60 }),
+  FZ('field_edge', 'field', 'field edge', 'Long grass streaked with silver trails.', [['v_square', 'the lane back west'], ['field_mid', 'into the field, north']], { ...OUT, area: 1600 }),
+  FZ('field_mid', 'field', 'middle of the field', 'Trampled grass around a shallow pond.', [['field_edge', 'the field edge, south'], ['f_trees', 'the trees, east', 'open', true]], { ...OUT, area: 1600 }),
+];
+/** code draws every fake title on the plan, as applyStagePlan does for real ones */
+function drawFake(st: GameState): void { st.places = FAKE_PLACES(); drawTitles(st, FAKE_TITLES()); }
+/** moves every title and plan record of the world by (dx, dy) metres */
+function shiftWorld(st: GameState, dx: number, dy: number): void {
+  const m = <T extends { x: number; y: number }>(q: T): T => ({ ...q, x: q.x + dx, y: q.y + dy });
+  for (const z of st.zones) { z.outline = z.outline.map(m); if (z.line) z.line = z.line.map(m); }
+  for (const w of st.walls) { w.a = m(w.a); w.b = m(w.b); }
+  for (const o of st.openings) { o.at = m(o.at); if (o.to) o.to = m(o.to); }
+  for (const r of st.roofs) r.outline = r.outline.map(m);
+  for (const l of st.lights) l.at = m(l.at);
+  for (const f of st.furniture) f.pos = m(f.pos);
+  for (const i of st.ground) if (i.at) i.at = m(i.at);
+}
+/** the opening between two titles (either way round) */
+const wayBetween = (st: GameState, a: string, b: string) => st.openings.find((o) => (o.joins[0] === a && o.joins[1] === b) || (o.joins[0] === b && o.joins[1] === a));
 
 /** WZ1/WZ4: the fake world's land, one region drawn from a fixed seed (drawn once: it takes about a second). Millbrook stands
  *  on its village site, the mill road runs along a road line out of it, and the player has made out the land around the
@@ -214,10 +224,9 @@ function fakeLand(st: GameState): void {
       { size: 'village', name: 'Thornbury', look: '' }, { size: 'hamlet', name: 'Hob End', look: '' }, { size: 'hamlet', name: 'Sallow', look: '', where: 'woods' }],
     features: [{ kind: LM.mill, name: 'the old mill', look: '', where: 'river' }, { kind: LM.ruin, name: 'the burnt tower', look: '', where: 'hill' }],
   }));
-  const site = r.sites.find((x) => x.name === 'Millbrook')!, sq = st.places.flatMap((p) => p.zones).find((z) => z.id === 'v_square')!.rect!;
+  const site = r.sites.find((x) => x.name === 'Millbrook')!, sq = middle(st.zones.find((z) => z.id === 'v_square')!);
   // the fake places keep their shapes and move as one, so the village square sits on its site
-  const dx = site.at.x - sq.x, dy = site.at.y - sq.y;
-  for (const z of st.places.flatMap((p) => p.zones)) if (z.rect) z.rect = { ...z.rect, x: z.rect.x + dx, y: z.rect.y + dy };
+  shiftWorld(st, site.at.x - sq.x, site.at.y - sq.y);
   site.placeId = 'village';
   st.places.find((p) => p.id === 'village')!.site = site.id;
   // the longest road line out of Millbrook, as the mill road's zone
@@ -226,12 +235,9 @@ function fakeLand(st: GameState): void {
   const pts = line.ends[0] === node.id ? line.pts : [...line.pts].reverse();
   if (pts !== line.pts) line.ends = [line.ends[1], line.ends[0]];
   line.pts = pts; line.zone = 'm_road';
-  const xs = pts.map((q) => q.x), ys = pts.map((q) => q.y), [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
-  st.places.push(FP('mill_road', 'road', null, 'the mill road', [
-    FZ('m_road', 'mill_road', 'the mill road', 'A cart track along the valley, rutted where the mill carts go.', [['v_square', 'back to Millbrook', false], ['m_road_far', 'on along the road', false, true]],
-      { outdoor: true, light: 'bright', cover: 'none', kind: ZK.road, road: line.id, rect: { x: (x0 + x1) / 2, y: (y0 + y1) / 2, w: Math.max(4, x1 - x0), d: Math.max(4, y1 - y0) } }),
-  ]));
-  st.places.find((p) => p.id === 'village')!.zones[0].links.push({ to: 'm_road', label: 'the mill road', sight: false });
+  st.places.push(FP('mill_road', 'road', null, 'the mill road'));
+  drawTitles(st, [FZ('m_road', 'mill_road', 'the mill road', 'A cart track along the valley, rutted where the mill carts go.', [['v_square', 'back to Millbrook'], ['m_road_far', 'on along the road', 'open', true]],
+    { ...OUT, road: line.id, line: pts.map((q) => ({ ...q })) })]);
   // what the character has made out: the land round the village, and along the road as far as they have walked it
   const N = Math.round(r.size / r.cell), bits = new Uint8Array(Math.ceil((N * N) / 8));
   const look = (at: { x: number; y: number }, range: number) => { for (const i of cellsInSight(r, at, CONFIG.LAND_EYE_M, range)) bits[i >> 3] |= 1 << (i & 7); };
@@ -247,7 +253,8 @@ function fakeLand(st: GameState): void {
 function fakeBarriers(st: GameState): void {
   const put = (id: string, a: string, b: string, rec: Omit<import('../types').Barrier, 'id'>) => {
     (st.barriers ??= {})[id] = { id, ...rec };
-    for (const z of st.places.flatMap((p) => p.zones)) for (const l of z.links) if ((z.id === a && l.to === b) || (z.id === b && l.to === a)) l.barrier = id;
+    const o = wayBetween(st, a, b);
+    if (o) o.barrier = id;
   };
   put('fb_kitchen', 'tav_common', 'tav_kitchen', { kind: BK.door, grade: 'moderate', lock: { locked: true }, tried: [st.player.id] });
   put('fb_back', 'tav_common', 'tav_yard', { kind: BK.door, grade: 'minor', bar: { side: 'tav_yard', drawn: true }, tried: [st.player.id] });
@@ -260,15 +267,15 @@ function fakeBarriers(st: GameState): void {
 function useStage(st: GameState, stage: FakeStage): void {
   const p = st.player;
   st.places = stage.places;
+  Object.assign(st, structuredClone(stage.plan)); // its titles and floor plan
   st.mode = 'explore';
   st.pending = { ...st.pending!, mode: 'explore', engaged: [] };
   p.zone = stage.zone; p.placeId = stage.placeId;
   p.journal = { ...p.journal!, zonesSeen: stage.seen, trail: stage.trail.map((zone, i) => ({ zone, left: st.turn - 1 - i })), clearSight: {} };
-  const rectOf = (id: string) => st.places.flatMap((x) => x.zones).find((z) => z.id === id)?.rect;
-  const at = (id: string, d: [number, number]) => { const r = rectOf(id); return r ? { x: r.x + d[0], y: r.y + d[1] } : undefined; };
+  const at = (id: string, d: [number, number]) => { const z = st.zones.find((q) => q.id === id); if (!z?.outline.length) return undefined; const c = middle(z); return { x: c.x + d[0], y: c.y + d[1] }; };
   p.pos = at(stage.zone, stage.you);
   st.actors = stage.people.map((x) => {
-    const zone = st.places.flatMap((q) => q.zones).find((z) => z.id === x.zone)!;
+    const zone = st.zones.find((z) => z.id === x.zone)!;
     const a = spawnNpc(null, TP.patron, { id: x.id, zone: x.zone, placeId: zone.placeId, bandId: `band_${x.id}`, storyId: 'fake', label: x.label });
     const pos = x.at ? at(x.zone, x.at) : undefined;
     if (pos) a.pos = pos;
@@ -278,7 +285,8 @@ function useStage(st: GameState, stage: FakeStage): void {
   st.barriers = {};
   for (const b of stage.barriers) {
     st.barriers[b.id] = { id: b.id, ...b.rec, ...(b.rec.tried ? { tried: [p.id] } : {}) };
-    for (const z of st.places.flatMap((q) => q.zones)) for (const l of z.links) if ((z.id === b.a && l.to === b.b) || (z.id === b.b && l.to === b.a)) l.barrier = b.id;
+    const o = wayBetween(st, b.a, b.b);
+    if (o) o.barrier = b.id;
   }
 }
 
@@ -301,14 +309,14 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     slime.mind!.knowledge = { player: { status: 'aware', lastKnownZone: 'field_edge', lastSeenTurn: 2, source: 'seen', revealed: [] } };
     const guard = spawnNpc(null, TP.guard, { id: 'guard_1', zone: 'tav_common', placeId: 'tavern', bandId: 'village_watch', storyId: 'fake', name: 'Bren' });
     state = {
-      storyId: 'fake', turn: 4, mode: 'tactical', zones: [], player, actors: [slime, guard], bands: [], events: [],
+      storyId: 'fake', turn: 4, mode: 'tactical', zones: [], walls: [], openings: [], roofs: [], lights: [], furniture: [], ground: [], player, actors: [slime, guard], bands: [], events: [],
       hidden: { plans: { slime_1: { goal: 'drive the stranger off the field', steps: ['slam', 'retreat to the trees'], triggers: [], createdTurn: 2 } }, memory: {}, secrets: [], firedLog: [], agreements: [{ id: 'ag_1', parties: ['player', 'guard_1'], text: 'He lets you back in after dark; you tell him if you see the thief.', madeTurn: 2, madeBy: 'guard_1' }], weaverNote: 'the slimes are fleeing something in the woods', stage: { eventSummary: 'slimes trouble the village', challenge: 'moderate', gain: 'minor', hiddenTerms: ['woods_beast'] } },
       agentLog: [{ turn: 3, agent: 'narrator', input: { view: 'NarrationView…' }, output: { text: NARRATION[2] }, status: 'ok', errors: [], modelTierApplied: 'complex' } as GameState['agentLog'][number],
         { turn: 3, agent: 'parser', input: { text: 'block and cut back' }, output: { intent: 'attack', target: 'slime_1' }, status: 'ok', errors: [], modelTierApplied: 'quick' } as GameState['agentLog'][number],
         { turn: 3, agent: 'voice', actorId: 'guard_1', input: { view: 'DialogueView…', heard: 'block and cut back' }, output: { dialogue: { line: 'That’s one! Watch your left!' } }, status: 'ok', errors: [], modelTierApplied: 'quick' } as GameState['agentLog'][number]],
       log: [{ turn: 3, code: 'planner_late' }, { turn: 3, code: 'skill_improved', detail: { skill: SK.block, from: 37, to: 40, milestone: 40 } }], rngSeed: 1, rngState: 1, pending: { turn: 3, mode: 'tactical', engaged: ['slime_1'], fired: [] },
-      places: FAKE_PLACES(), facts: [], stage: { zoneIds: [], tier: 'success', scenarioNumber: 2, scenarioStartTurn: 2, ...(opts.banner ? { fallback: { reason: 'Scenario planning failed: placeholder area', turn: 2 } } : {}) },
-      scenarioCaps: { promotions: 0, minted: 0 }, clocks: {}, flags: {},
+      places: [], facts: [], stage: { tier: 'success', scenarioNumber: 2, scenarioStartTurn: 2, ...(opts.banner ? { fallback: { reason: 'Scenario planning failed: placeholder area', turn: 2 } } : {}) },
+      scenarioCaps: { promotions: 0, minted: 0 }, clocks: {},
       quests: [
         { id: 'q0', state: 'done', text: 'Find a bed for the night', giver: 'guard_1', dealId: 'deal_0', goal: { kind: 'other' }, progress: 0, level: 'zero', startTurn: 1, endTurn: 2 },
         { id: 'q1', state: 'active', text: 'Clear the slimes from the field', giver: 'guard_1', dealId: 'ag_1', goal: { kind: 'defeat', by: 'race', of: slime.core.raceId!, count: 3, noun: 'slimes' }, progress: 1, level: 'i', startTurn: 2, after: 'q0', pay: { coin: 10 }, paid: { coin: 0, qty: 0 }, due: 3 * 1440 + 1080, dueBy: 'dusk' },
@@ -316,16 +324,16 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       settings, libraryVersion: 1, blueprints: [{ storyId: 'fake', id: `${IT.short_sword}_m2_1`, kind: 'item', data: { id: `${IT.short_sword}_m2_1`, kind: 'weapon', name: 'Wim’s old blade', look: 'a notched short sword with a wire-bound grip', base: { itemId: IT.short_sword, quality: 'fine' } } }], meta: { storyId: 'fake', title: 'The slime field', schemaVersion: CONFIG.SCHEMA_VERSION, createdAt: '2026-11-07', settings },
     };
     if (player.progression) { player.progression.marks = [SK.dodge, SK.eyesight]; player.progression.unspentPerkPoints = 1; }
+    drawFake(state);
     fakeBarriers(state);
     if (opts.achievements) seedAchievements(state);
     const stage = opts.stage ? FAKE_STAGES[opts.stage] : undefined;
     if (stage) useStage(state, stage());
     else fakeLand(state);
     // where people stand in the common room (Actor.pos), so the to-scale Map shows each at their own point
-    const common = state.places.flatMap((x) => x.zones).find((z) => z.id === 'tav_common')?.rect;
+    const commonZ = state.zones.find((z) => z.id === 'tav_common'), common = commonZ?.outline.length ? boxOf(commonZ.outline) : undefined;
     if (common) { player.pos = { x: common.x - common.w / 4, y: common.y - common.d / 4 }; guard.pos = { x: common.x + common.w / 3, y: common.y + common.d / 5 }; }
-    // the minimap's walks (AD16) go through the stage's zones, as in the game; a little move time carried from last turn (TP4)
-    state.stage.zoneIds = state.places.flatMap((x) => x.zones.map((z) => z.id));
+    // a little move time carried from last turn (TP4)
     if (state.mode === 'tactical') player.carry = [{ main: 0, move: 2.4, turn: state.turn - 1 }];
     player.core.inventory.push({ id: 'player_draught', itemId: IT.healing_draught, qty: 2 }, { id: 'player_draught_2', itemId: IT.healing_draught, qty: 1 }, { id: 'player_bandage', itemId: IT.bandage, qty: 2 },
       { id: 'player_shield', itemId: IT.round_shield, qty: 1, equippedIn: ['grip:left_arm'], pools: { shield: 70 } }); // the shield the story says you raise
@@ -355,7 +363,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
         mechanics: ['Slime slam: d100 71 + 30×0.5 + 10 → Great Success', 'Your block: d100 64 + 65×0.5 → Success · gap −1 · blocked (shield 30 → 18)', 'Your cut: d100 82 + 75×0.5 → Great Success · dodge 0 · full hit · 25 damage to body'] },
     ];
   }
-  if (opts.autoStart) start({ name: 'Aldric', skills: { [SK.melee_medium]: 50, [SK.parry]: 40, [SK.dodge]: 30, [SK.endurance]: 50, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.riposte]: 20, [SK.resolve]: 45 }, tagged: [SK.melee_medium, SK.parry, SK.endurance],
+  if (opts.autoStart) start({ name: 'Aldric', skills: { [SK.melee_medium]: 50, [SK.parry]: 40, [SK.dodge]: 30, [SK.endurance]: 50, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.riposte]: 20, [SK.resolve]: 45 }, tagged: [SK.melee_medium, SK.parry, SK.endurance], flawed: [SK.persuasion, SK.barter, SK.sneaking],
     personality: { nerve: 40, traits: { [PA.honesty]: 50, [PA.pride]: 25, [PA.sociability]: -30 }, values: [VL.duty, VL.freedom] } });
 
   return {
@@ -373,7 +381,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       return [{ name: 'Aldric', pronouns: 'he', title: 'Slime-Bane', classes: [{ name: 'Swordsman', level: 6 }], level: 6, owner: 'player' as const, storyId: 'story_fake',
         skills: [{ name: 'Medium weapons', value: 58 }, { name: 'Parry', value: 47 }, { name: 'Endurance', value: 50 }, { name: 'Dodge', value: 31 }],
         perks: ['Keen Ear', 'Turn the Blade'], achievements: ['First Blood', 'Slime-Bane'], scars: ['First Crack'], defeats: 12, turn: 48, day: 3,
-        place: 'The back yard · The Lantern & Ladle', downedBy: { by: 'a lanky youth', weapon: 'dagger', part: 'neck', outcome: 'crushing hit' }, fellAt: '2026-11-10T21:00:00.000Z' }];
+        place: 'The back yard · The Lantern & Ladle', downedBy: { by: 'a lanky youth', weapon: 'dagger', part: 'neck', outcome: 'crushing hit' }, card: { combat: 'rank_2', achievements: 'rank_1', reputation: 'rank_1' }, fellAt: '2026-11-10T21:00:00.000Z' }];
     },
     async sendHero(storyId: string) { return { id: `unique_${storyId}` }; },
     async sendBlueprint(id: string) { return { id: `item_story_fake_${id}` }; },
@@ -406,7 +414,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       if (/^end\b/i.test(text)) ending = { as: 'resolved', name: 'resolved' }; // the ending's rule draws while the turn runs (SD1)
       emit();
       // NB5: with a broken nerve a punch is turned away before the turn, as the game does (no time passes)
-      if (/^(i )?punch\b/i.test(text) && moraleLevel(state.player) === 'broken') { lines = [...lines, { turn: t, kind: 'clarify', text: NERVE_REFUSED }]; busy = false; emit(); return; }
+      if (/^(i )?punch\b/i.test(text) && isBrokenLevel(moraleLevel(state.player))) { lines = [...lines, { turn: t, kind: 'clarify', text: NERVE_REFUSED }]; busy = false; emit(); return; }
       // "punch the man": the game asks back which man, naming the guard and the field, to show the tappable names (no turn)
       if (/^(i )?punch the man\b/i.test(text)) { lines = [...lines, { turn: t, kind: 'clarify', text: 'Which man do you mean to punch: the village guard by the door, or do you mean the slime?' }]; busy = false; emit(); return; }
       await new Promise((r) => setTimeout(r, 600));
@@ -415,7 +423,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       // "door" tries and opens doors, to show the play screen's Way rows
       const ways = /^door\b/i.test(text) ? { ways: ['Door to kitchen: locked', 'Door to back yard: barred from the other side', 'Door to village square: unlocked with your key on the way through'] } : null;
       state.turn = t + 1;
-      if (/^(sneak|vanish)\b/i.test(text)) state.player.posture = 'stealthy'; // shows the stealthy badge and bar
+      if (/^sneak\b/i.test(text)) state.player.posture = 'stealthy'; // shows the stealthy badge and bar
       const drop = /^charge\b/i.test(text); // "charge" drops the player, to show the fall on the fake page
       if (drop) fell = true;
       // "attack" trades blows, to show the play screen's motion: health and a crippled arm lost, a skill, XP and coin gained
@@ -430,19 +438,19 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       } else if (/^travel\b/i.test(text)) {
         const road = state.places.find((x) => x.id === 'west_road')!.zones[0];
         state.player.zone = road.id; state.player.placeId = road.placeId;
-        if (road.rect) state.player.pos = { x: road.rect.x - road.rect.w * 0.1, y: road.rect.y };
+        if (road.line) state.player.pos = pointAlong(road.line, lineLength(road.line) * 0.4);
         (state.player.journal?.zonesSeen ?? []).push(road.id);
       }
       // "fear" drops the player's morale to the next level down (Terrified, Panicking, Broken), and "calm" brings back a quarter,
       // to show the nerve's warning on the play screen (MW1–MW3)
-      const wasBroken = moraleLevel(state.player) === 'broken';
+      const wasBroken = isBrokenLevel(moraleLevel(state.player));
       if (/^(fear|calm)\b/i.test(text)) {
         const p = state.player, max = maxMorale(p), lostPct = (100 * (p.core.condition.moraleLost ?? 0)) / max;
         const next = CONFIG.MORALE_TRACK.find(([, at]) => at > lostPct + 0.001)?.[1] ?? 100;
         setMoraleLost(p, /^fear/i.test(text) ? (Math.min(100, next) / 100) * max : (p.core.condition.moraleLost ?? 0) - max / 4);
       }
       // the turn "fear" breaks the nerve shows the Nerve broken card; "punch" while Broken is refused (MB12)
-      const nerve = !wasBroken && moraleLevel(state.player) === 'broken' ? { nerveBroke: true as const } : null;
+      const nerve = !wasBroken && isBrokenLevel(moraleLevel(state.player)) ? { nerveBroke: true as const } : null;
       // "rob" has a pickpocket lift coin from the purse, to show the Coin row and the sheet's coin losing it
       const robbed = /^rob\b/i.test(text) ? robTurn(state) : null;
       if (/^loot\b/i.test(text)) lootTurn(state);
@@ -451,14 +459,12 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       // (AT49); "stop" ends it
       if (/^walk\b/i.test(text)) {
         state.player.walking = { toZone: text.split(/\s+/)[1] || 'tav_upstairs' };
-        if (!state.stage.zoneIds.length) state.stage.zoneIds = state.places.flatMap((x) => x.zones.map((z) => z.id)); // a way to walk
       }
       if (/^stop\b/i.test(text)) { delete state.player.walking; delete state.player.followLost; }
       // "follow" has you following Bren up to the landing (BG-190); "lose" loses him there, slipped out of sight
       if (/^follow\b/i.test(text)) {
         delete state.player.followLost;
         state.player.walking = { toZone: 'tav_upstairs', spot: { near: 'guard_1', follow: true } };
-        if (!state.stage.zoneIds.length) state.stage.zoneIds = state.places.flatMap((x) => x.zones.map((z) => z.id));
       }
       if (/^lose\b/i.test(text)) { delete state.player.walking; state.player.followLost = { who: 'guard_1', why: 'slipped_away', zone: 'tav_upstairs' }; }
       // "tire" adds sleep debt (a fatigue level's worth) and spends half the breath line; "breathe" fills the line again, to
@@ -497,5 +503,6 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     abandonQuest(id) { if (state && abandonQuest(state, id)) emit(); },
     pinQuest(id) { if (state) { pinQuest(state, id); emit(); } },
     setSignatures(lines) { if (state) { setSignatures(state.player, lines); emit(); } },
+    setDefense(kind) { if (state) { state.player.core.standingDefense = kind; emit(); } },
   };
 }

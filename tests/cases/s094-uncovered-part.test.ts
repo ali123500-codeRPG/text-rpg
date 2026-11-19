@@ -2,6 +2,7 @@ import { IT } from '../../src/library/itemIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage, place, forcedRng } from '../harness';
 import { ruleset } from '../../src/ruleset';
+import { itemDef } from '../../src/library';
 import { SK } from '../../src/library/skillIds';
 
 // guard wears a mail hauberk (general area and arms) and parries with its sword: 40 + 15 − 63.5 → Near Miss (-1)
@@ -10,6 +11,7 @@ describe('94 Uncovered part', () => {
     const s = makeVillage();
     place(s, 'guard_1', 'tav_common');
     const g = s.actors.find((a) => a.id === 'guard_1')!;
+    g.core.inventory = g.core.inventory.filter((i) => !itemDef(null, i.itemId).armor?.covers.includes('head')); // bare-headed: no helmet (IR21)
     g.core.skills[SK.parry] = { raw: 30, state: 'normal' }; // the numbers below assume the template minimum, before level points
     g.core.standingDefense = 'parry'; // the guard carries a shield too; this case is about parry
     // aimed head: 95 + 37.5 − 30 − 63.5 = 39 → Great Success (1); gap −2, a failed parry lets 1.25× through
@@ -20,6 +22,6 @@ describe('94 Uncovered part', () => {
     // torso: 65 + 37.5 − 63.5 = 39 → Great Success; location roll 80 → general
     const torso = ruleset.attack({ attackerId: 'player', targetId: 'guard_1', weaponId: `player_${IT.arming_sword}_1`, targetPart: null, aimed: false }, s, forcedRng([65, 40, 80]));
     expect(torso.location).toBe('general');
-    expect(torso.damage).toBeCloseTo((25 * 1.25 - 4) * 0.65, 9); // 17.7125, not rounded (OQ-25)
+    expect(torso.damage).toBeCloseTo(25 * 1.25 * 0.65 - 6, 9); // D-368: share first, then mail's soak 4 × 1.5; 14.3125, not rounded (OQ-25)
   });
 });
