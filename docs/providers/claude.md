@@ -78,8 +78,12 @@ Links to `claude.ai/artifact/...` open only for the owner and for Claude session
 - The owner's Claude account holds a copy of every skill in `docs/skills.md`. The repo's `.agents/skills/` copy is the
   master for the owner's own skills. A change to one is a PR here first; the account copy is then updated to match
   through a skill proposal the owner saves.
-- Claude Code loads skills from `.claude/skills/`, which this repo ignores, and from the account. It does not load
-  `.agents/skills/` by itself. Open the `SKILL.md` named in `AGENTS.md` when the account copy is missing.
+- Claude Code loads skills from `.claude/skills/` and from the account, not from `.agents/skills/`. Here
+  `.claude/skills/<name>` links to `.agents/skills/<name>`. A cloud session outside a project, and Claude Code on a
+  computer, load those links. A project thread loads skills only from the account: open the `SKILL.md` named in
+  `AGENTS.md` when the account copy is missing.
+- A Claude account without the copies gets them from `npm run skills-zip`: one zip per skill in `dist/skills/`,
+  which the owner uploads under Customize, Skills.
 - Account copies of skills arrive without the executable bit. Run their scripts through an interpreter:
   `sh <skill folder>/scripts/impeccable context` and `python3 <skill folder>/scripts/search.py "<query>" --domain <domain>`.
 - **Other agents:** read `docs/skills.md`. Third-party skills are fetched from the master links there, at their
