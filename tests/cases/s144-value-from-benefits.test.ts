@@ -12,6 +12,7 @@ import { getLibrary, itemDef, resetLibrary } from '../../src/library';
 import { CONFIG } from '../../src/config';
 import { IT } from '../../src/library/itemIds';
 import { SK } from '../../src/library/skillIds';
+import { damageGrowth } from '../../src/library/gearScale';
 
 afterEach(() => resetLibrary());
 
@@ -19,11 +20,12 @@ const V = CONFIG.ITEM_VALUE;
 const val = (id: string) => itemValue(null, itemDef(null, id));
 
 it('144a weapons: kit bonus, damage a second and reach', () => {
-  const dps = (cls: string, row: string) => (CONFIG.WEAPON_CLASSES[cls].damage / actionSeconds(actionRow(row)!)) * V.dps; // IR4
-  expect(val(IT.arming_sword)).toBe(Math.round(20 * V.skillPoint + dps('medium', DU.blow_medium) + 1.6 * V.reachM)); // kit 0.4 × need 50
-  expect(val(IT.shortbow)).toBe(Math.round(10 * V.skillPoint + dps('light', DU.bow_light) + 50 * V.reachRangedM)); // a bow's range at its own rate
-  expect(val(IT.dagger)).toBe(Math.round(10 * V.skillPoint + dps('light', DU.blow) + CONFIG.THROW_M.knife * V.reachM)); // its throw: 7 m
-  expect(modeDps(itemDef(null, IT.dagger), itemDef(null, IT.dagger).weapon!.modes[0])).toBeCloseTo(20 / 3); // light: 20 damage, a 3 s blow
+  // IR4: damage a second, the class's damage grown with the item's need (the damage step's own growth)
+  const dps = (cls: string, row: string, need: number) => ((CONFIG.WEAPON_CLASSES[cls].damage * damageGrowth(need)) / actionSeconds(actionRow(row)!)) * V.dps;
+  expect(val(IT.arming_sword)).toBe(Math.round(20 * V.skillPoint + dps('medium', DU.blow_medium, 50) + 1.6 * V.reachM)); // kit 0.4 × need 50
+  expect(val(IT.shortbow)).toBe(Math.round(10 * V.skillPoint + dps('light', DU.bow_light, 25) + 50 * V.reachRangedM)); // a bow's range at its own rate
+  expect(val(IT.dagger)).toBe(Math.round(10 * V.skillPoint + dps('light', DU.blow, 25) + CONFIG.THROW_M.knife * V.reachM)); // its throw: 7 m
+  expect(modeDps(itemDef(null, IT.dagger), itemDef(null, IT.dagger).weapon!.modes[0])).toBeCloseTo((20 * 1.25) / 3); // light: 20 damage × 1.25 (need 25), a 3 s blow
   expect(val(IT.improvised_medium)).toBe(0);
 });
 

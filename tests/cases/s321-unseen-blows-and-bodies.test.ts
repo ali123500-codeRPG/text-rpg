@@ -74,6 +74,7 @@ describe('321 unseen blows and bodies', () => {
   it('a sleeper struck awake is no longer shown asleep while its routine still says sleep', () => {
     const s = hidden(true);
     const p = s.actors.find((a) => a.id === 'patron_1')!;
+    p.core.skills[SK.endurance] = { raw: 3000, state: 'normal' }; // sturdy enough to wake from the blow: a fist grows with the striker's own skill
     play(s); // night: it drops off where it is (no bed given)
     expect(p.asleep).toBeDefined();
     hit(s);
