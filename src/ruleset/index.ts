@@ -405,7 +405,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   if (aimedPart) am.push({ source: `aim: ${aimedPart.id}`, type: 'aim', value: CONFIG.AIM_PENALTY[aimedPart.size] * boostMult(A, skill, 'aimMult', kind) * (1 - achievementAimEase(A, aimedPart.size)) }); // 40/80/120 perk aimMult (none uses it today); TM26 by-size achievements
   am.push(...weaponHitMods(mode, name));
   const joints = coveredJointsMod(state, D, aimedPart?.id);
-  if (joints) am.push({ source: perkName(PK.covered_joints), type: 'situational', value: joints });
+  if (joints) am.push({ source: perkName(PK.covered_joints), type: 'foe_perk', value: joints });
   if (ranged) {
     const far = rangeMod(dist / seenSizeFactor(state, A, D), mode.reach); // SZ13: a bigger target is as easy as a person nearer
     am.push(...rangeMods(far));
