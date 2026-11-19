@@ -14,7 +14,7 @@ import { IT } from '../../src/library/itemIds';
 import { SK } from '../../src/library/skillIds';
 import type { Actor, GameEvent, GameState } from '../../src/types';
 import { setTitleLight } from '../../src/plan/draw';
-import { LC, WK } from '../../src/library/tableIds';
+import { BK, LC, WK } from '../../src/library/tableIds';
 import { landCellsUnder } from '../harness/plan';
 import { waysOut } from '../../src/plan/where';
 
@@ -75,7 +75,8 @@ describe('375 Fieldcraft fight rows', () => {
 
   it('F1: shot at from beyond reach, it walks where the shooter can\'t see (Fieldcraft 30); not shot, it does not', () => {
     const { s, g } = archerDuel({ zone: 'field_edge', x: 70 });
-    for (const [a, b] of [['gate_inner', 'street_square'], ['street_square', 'gate_inner']]) waysOut(s, a).find((l) => l.to === b)!.opening.seeThrough = false;
+    waysOut(s, 'gate_inner').find((l) => l.to === 'street_square')!.opening.barrier = 'gate_door'; // a shut door hides the square
+    (s.barriers ??= {}).gate_door = { id: 'gate_door', kind: BK.door, grade: 'minor' };
     skill(g, SK.fieldcraft, 30);
     expect(tacticsOf(s, g)?.outOfSight).toBeUndefined();
     shotAt(s, g);

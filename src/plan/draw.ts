@@ -7,7 +7,7 @@ import type { Furniture, GameState, Light, LightSource, Opening, PlanFurniture, 
 import { GRADES } from '../types';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
-import { FU, LS, OP, WK } from '../library/tableIds';
+import { BK, FU, LS, OP, WK } from '../library/tableIds';
 import { LIGHT } from '../scales';
 import { compassOf, placeZones, type PlaceInput, type PlaceJoin } from '../scenario/geometry';
 import { areaOf, bandOutline, boxOf, dist, lerp, middleOf, nearestEdge, NEAR_M, outward, rectOutline, sharedSides, sidesOf } from './geom';
@@ -68,21 +68,22 @@ export function addTitles(state: GameState, specs: TitleSpec[]): Draft {
       continue;
     }
     const back = draft.specs.get(to.id)?.ways.find((x) => x.to === from.id && !x.frontier);
-    makeOpening(state, from, to, w, back?.label ?? w.back);
+    makeOpening(state, from, to, back?.doorless ? { ...w, doorless: true } : w, back?.label ?? w.back);
   }
   return draft;
 }
 
-/** an opening between two titles for way `w` from `from` (its kind, size and seen-through from the way and its barrier); it
- * is placed now when both titles are drawn, else by drawPlan */
+/** an opening between two titles for way `w` from `from` (its kind and size from the way and its barrier); it is placed now
+ * when both titles are drawn, else by drawPlan. BG-312: a doorway holds a plain door, shut and unlocked, unless the way
+ * gives another barrier or is doorless */
 function makeOpening(state: GameState, from: Zone, to: Zone, w: WaySpec, back?: string): Opening {
   const kind = w.kind ?? 'open';
   const def = getLibrary().openingKinds?.[OPENING_OF[kind]];
   const o: Opening = {
     id: openingId(state, from.placeId), placeId: from.placeId, kind: OPENING_OF[kind], at: { x: NaN, y: NaN }, floor: NaN,
     widthM: def?.sizeM?.[0] ?? 0, heightM: def?.sizeM?.[1] ?? 0, ...(def?.sillM !== undefined ? { sillM: def.sillM } : {}),
-    joins: [from.id, to.id], labels: [w.label, back ?? from.name], seeThrough: w.sight ?? def?.seeThrough ?? true,
-    ...(kind === 'window' ? { drop: true as const } : {}), ...(w.barrier ? { barrier: w.barrier } : {}),
+    joins: [from.id, to.id], labels: [w.label, back ?? from.name],
+    ...(kind === 'window' ? { drop: true as const } : {}), ...(w.barrier ? { barrier: w.barrier } : kind === 'door' && !w.doorless ? { barrier: plainDoor(state, from, to) } : {}),
   };
   pendingClimb.set(o, kind === 'up' ? 1 : kind === 'down' ? -1 : 0);
   state.openings.push(o);
@@ -92,12 +93,19 @@ function makeOpening(state: GameState, from: Zone, to: Zone, w: WaySpec, back?: 
   return o;
 }
 
+/** BG-312: a plain wooden door for a doorway between two titles: shut, unlocked, no scenario's (BA8 counts only the Weaver's) */
+function plainDoor(state: GameState, from: Zone, to: Zone): string {
+  const id = freshId(`door_${from.id}_${to.id}`, new Set(Object.keys(state.barriers ?? {})));
+  (state.barriers ??= {})[id] = { id, kind: BK.door, grade: 'minor' };
+  return id;
+}
+
 /** WI5 a: the one way to join two drawn titles: an opening between them unless one is there already (kept as it is) */
-export function joinWay(state: GameState, a: Zone, b: Zone, opts: { label?: string; back?: string; kind?: WayKind; sight?: boolean } = {}): Opening | undefined {
+export function joinWay(state: GameState, a: Zone, b: Zone, opts: { label?: string; back?: string; kind?: WayKind } = {}): Opening | undefined {
   if (a === b) return undefined;
   const there = state.openings.find((o) => !o.frontier && ((o.joins[0] === a.id && o.joins[1] === b.id) || (o.joins[0] === b.id && o.joins[1] === a.id)));
   if (there) return there;
-  return makeOpening(state, a, b, { to: b.id, label: opts.label ?? b.name, kind: opts.kind ?? (roofed(state, a) || roofed(state, b) ? 'door' : 'open'), ...(opts.sight !== undefined ? { sight: opts.sight } : {}) }, opts.back ?? a.name);
+  return makeOpening(state, a, b, { to: b.id, label: opts.label ?? b.name, kind: opts.kind ?? (roofed(state, a) || roofed(state, b) ? 'door' : 'open') }, opts.back ?? a.name);
 }
 
 /** a frontier: a way out of `from` to ground not built yet (`key`), on the side its label's compass names (else a side
@@ -110,7 +118,7 @@ export function addFrontier(state: GameState, from: Zone, key: string, label: st
   const o: Opening = {
     id: openingId(state, from.placeId), placeId: from.placeId, kind: OPENING_OF[kind === 'up' || kind === 'down' || kind === 'window' ? 'door' : kind], at: { x: NaN, y: NaN }, floor: NaN,
     widthM: def?.sizeM?.[0] ?? CONFIG.DOORWAY_M[0], heightM: def?.sizeM?.[1] ?? CONFIG.DOORWAY_M[1],
-    joins: [from.id, key], labels: [label, ''], seeThrough: w.sight ?? def?.seeThrough ?? true, frontier: true,
+    joins: [from.id, key], labels: [label, ''], frontier: true,
   };
   state.openings.push(o);
   if (from.outline.length && Number.isFinite(from.floor)) placeFrontier(state, o, from);

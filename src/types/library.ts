@@ -291,7 +291,7 @@ export type FurnitureKind = { id: string; name: string; sizeM?: [number, number,
  * from the kind's (walls), and its ways: [title key, label, way kind] (WAY_KINDS: open, door, window, up, down) */
 export type LayoutDef = {
   id: string; name: string; building: string; entry: string;
-  zones: { key: string; kind: string; name: string; look: string; size?: import('../scales').ZoneSizeKey; walls?: Partial<Record<import('./core').Side, string>>; ways: [string, string, import('./core').WayKind][]; furniture?: PlanFurniture[] }[];
+  zones: { key: string; kind: string; name: string; look: string; size?: import('../scales').ZoneSizeKey; walls?: Partial<Record<import('./core').Side, string>>; ways: [string, string, import('./core').WayKind, 'doorless'?][]; furniture?: PlanFurniture[] }[];
 };
 /** a NOISE level: its decibels at 1 m (CONFIG.NOISE_DB), a real reference, and how far it carries clearly and at all in the open in a quiet place (openAirReachM) */
 export type NoiseLevel = { id: import('../scales').NoiseKey; name: string; decibels: number | null; like: string; clearTo: string; heardTo: string };

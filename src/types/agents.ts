@@ -200,7 +200,7 @@ export type StagePlan = {
     /** PZ10, PZ14: the ways out: to a title key, a frontier key or a land id; kind open (a gap, seen through), door, window
      * (only jumped down), up or down (stairs, a ladder: the title is a storey above or below); open outdoors, door indoors
      * when left out */
-    ways: { to: string; label: string; kind?: import('./core').WayKind; barrier?: PlanBarrier }[];
+    ways: { to: string; label: string; kind?: import('./core').WayKind; barrier?: PlanBarrier; doorless?: boolean }[];
   }[];
   /** brief (WB3): one short line for the World builder on what lies beyond */
   frontiers: { key: string; label: string; brief?: string }[];

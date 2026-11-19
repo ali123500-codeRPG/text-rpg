@@ -52,7 +52,7 @@ export function applyCheckinPlan(state: GameState, a: CheckinAnswer, rng: Rng): 
     const key = freshId(fr.key, taken);
     taken.add(key);
     if (fr.brief?.trim()) (state.hidden.frontierBriefs ??= {})[key] = fr.brief.trim(); // WB3: for the World builder
-    addFrontier(state, zoneById(state, fr.zone)!, key, fr.label, { sight: false });
+    addFrontier(state, zoneById(state, fr.zone)!, key, fr.label);
   }
   return { changed: !!a.change, arrivals: plan?.cast.length ?? 0, frontiers: a.frontiers?.length ?? 0 };
 }

@@ -98,7 +98,7 @@ export function expandLayouts(plan: StagePlan): void {
       key: `${p.key}.${z.key}`, place: p.key, kind: z.kind, name: p.names?.[z.key] ?? z.name, look: p.looks?.[z.key] ?? z.look,
       ...(z.size ? { size: z.size } : {}), ...(z.walls ? { walls: { ...z.walls } } : {}), fromLayout: true,
       ...(p.furniture?.[z.key] ?? z.furniture ? { furniture: (p.furniture?.[z.key] ?? z.furniture)!.map((x) => ({ ...x })) } : {}), // FR2
-      ways: z.ways.map(([to, label, kind]) => ({ to: `${p.key}.${to}`, label, kind })),
+      ways: z.ways.map(([to, label, kind, doorless]) => ({ to: `${p.key}.${to}`, label, kind, ...(doorless ? { doorless: true } : {}) })),
     });
   }
 }
@@ -379,6 +379,8 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
       text(`zone ${z.key} way label`, l.label, true);
       if (!isZone(l.to) && !isFrontier(l.to)) err('bad_link', `zone ${z.key}: way to ${l.to} is not a zone in the plan, a built zone, or a frontier`);
       if (l.kind !== undefined && !WAY_KINDS.includes(l.kind as WayKind)) err('bad_link', `zone ${z.key}: a way's kind is ${WAY_KINDS.join(', ')}`);
+      // BG-312: doorless is an open doorway: only on a "door" way, with no barrier
+      if (l.doorless && (l.kind !== 'door' || l.barrier)) err('bad_link', `zone ${z.key}: "doorless" goes only on a "door" way with no barrier (an open doorway)`);
       // SD3–SD5: a barrier on the way
       const b = l.barrier;
       if (b) {

@@ -1404,7 +1404,7 @@ export function prototypeLibrary(): Library {
     // ground the two titles share; a window (a drop, SD7) is a casement's size and sill unless its barrier gives one (PC3);
     // stairs about a metre wide (an estimate)
     openingKinds: Object.fromEntries(([
-      [OP.doorway, 'Doorway', false, true, undefined, CONFIG.DOORWAY_M, undefined, 'A doorway in a wall: walked through; the far side shows only while its door stands open.'],
+      [OP.doorway, 'Doorway', true, true, undefined, CONFIG.DOORWAY_M, undefined, 'A doorway in a wall: walked through. It holds a plain door unless it is doorless (an open doorway, as into a hall); the far side shows while the door stands open, or always with none (BG-312).'],
       [OP.gap, 'Gap', true, true, undefined, undefined, undefined, 'An open way: an arch, a gap in a wall, or open ground between two titles.'],
       [OP.window, 'Window', true, false, undefined, [0.6, 1], 0.9, 'A window or ledge over lower ground: seen through, and only ever jumped down.'],
       [OP.stairs, 'Stairs', false, true, true, [1, 2], undefined, 'Stairs, a ladder or a hatch to the floor above or below.'],

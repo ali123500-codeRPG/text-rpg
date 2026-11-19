@@ -1,18 +1,37 @@
 // Load checks (Part 4 §7–8): migration steps, library reconcile, shape, invariants, references.
-import type { Actor, BlueprintPage, BodyType, EnginePage, FactsPage, GameState, HiddenPage, ItemDef, Library, Place, GroundPage } from '../types';
+import type { Actor, BlueprintPage, BodyType, EnginePage, FactsPage, GameState, HiddenPage, ItemDef, Library, Opening, Place, GroundPage } from '../types';
 import { resolveAlias } from '../library';
 import { CONFIG } from '../config';
 import type { Pages } from './pages';
 import { ageYears, youngestAge } from '../ruleset/age';
 import { gripSlot, gripsOf } from '../ruleset/slots';
+import { BK, OP } from '../library/tableIds';
+import { freshId } from '../ids';
 
 export type CheckReport = { errors: string[]; repairs: string[]; warnings: string[]; changed: Set<string> };
 export const newReport = (): CheckReport => ({ errors: [], repairs: [], warnings: [], changed: new Set() });
 
 // ---------- migrations ----------
-/** step from version v to v + 1, keyed by v. Defaults for missing fields go only here. Empty while the prototype keeps no
- * old saves (D-116: before release, each change to the save's shape adds its step here). */
-export const MIGRATIONS: Record<number, (pages: Pages) => void> = {};
+/** step from version v to v + 1, keyed by v. Defaults for missing fields go only here (D-116: before release, each change to
+ * the save's shape adds its step here). */
+export const MIGRATIONS: Record<number, (pages: Pages) => void> = {
+  // BG-312: a doorway kept shut by its old fixed see-through flag gets the plain door it stood for (shut, unlocked), so a
+  // world plays as before until someone opens one; one the flag left open stays doorless; the flag goes
+  10: (pages) => {
+    const engine = pages.engine as EnginePage;
+    for (const [k, page] of Object.entries(pages)) {
+      if (!k.startsWith('plan.')) continue;
+      for (const o of (page as { openings: (Opening & { seeThrough?: boolean })[] }).openings) {
+        if (o.kind === OP.doorway && !o.barrier && !o.frontier && o.seeThrough === false) {
+          const id = freshId(`door_${o.joins[0]}_${o.joins[1]}`, new Set(Object.keys(engine.barriers ?? {})));
+          (engine.barriers ??= {})[id] = { id, kind: BK.door, grade: 'minor' };
+          o.barrier = id;
+        }
+        delete o.seeThrough;
+      }
+    }
+  },
+};
 
 /** run steps from → to in order; returns false (and an error) when the save is too old, too new or a step is missing. */
 export function migrate(pages: Pages, from: number, to: number, r: CheckReport): boolean {
