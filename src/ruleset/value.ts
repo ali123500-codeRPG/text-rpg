@@ -6,13 +6,16 @@ import { qualityMult } from './quality';
 import { CONFIG } from '../config';
 import { itemDef } from '../library';
 import { effectValue, modeReach } from './gear';
+import { requirement } from './requirements';
+import { damageGrowth } from '../library/gearScale';
 import { actionRow, actionSeconds, attackRowIds } from './actionTime';
 
 const V = () => CONFIG.ITEM_VALUE;
 
-/** IR4: a mode's damage per second: the class's damage (+ the mode's damageAdj) over the seconds its attack rows take. */
+/** IR4: a mode's damage per second: the class's damage (+ the mode's damageAdj), grown with the item's need (CE11), over
+ * the seconds its attack rows take. */
 export function modeDps(def: ItemDef, m: AttackMode): number {
-  const dmg = (CONFIG.WEAPON_CLASSES[m.class]?.damage ?? 0) + (m.damageAdj ?? 0);
+  const dmg = ((CONFIG.WEAPON_CLASSES[m.class]?.damage ?? 0) + (m.damageAdj ?? 0)) * damageGrowth(requirement(def)?.need ?? 0);
   const secs = attackRowIds(def, m).reduce((n, id) => { const r = actionRow(id); return n + (r ? actionSeconds(r) : 0); }, 0);
   return dmg > 0 && secs > 0 ? dmg / secs : 0;
 }

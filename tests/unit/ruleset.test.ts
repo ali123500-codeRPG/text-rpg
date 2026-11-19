@@ -131,16 +131,16 @@ describe('ruleset methods', () => {
     // player 50 → Success; patron dodge 30 → Failure: gap −2; location 20 → left arm
     const r = ruleset.attack({ attackerId: 'player', targetId: 'patron_1', weaponId: sword, targetPart: null, aimed: false }, s, forcedRng([50, 30, 20]));
     expect(JSON.stringify(s)).toBe(before);
-    const dmg = 25 * CONFIG.GAP_LADDER.dodge[-2]; // a dodge at gap −2 lets the blow through at its ladder multiplier
+    const dmg = 25 * 1.5 * CONFIG.GAP_LADDER.dodge[-2]; // a Fine sword (requirement 50: × 1.5); a dodge at gap −2 lets the blow through at its ladder multiplier
     expect(r).toMatchObject({ location: 'left_arm', damage: dmg, outcome: 'full_hit', modeId: AM.cut });
     const fx = ruleset.applyEffects(r, s);
     const p = actor(s, 'patron_1'); // 50 HP, arm pool 15
     expect(p.core.condition.parts.left_arm).toBeCloseTo(100 - (dmg / 15) * 100);
     expect(p.core.condition.hpLostPct).toBeCloseTo((dmg / 50) * 100);
-    // 31.25 (25 × the −2 dodge multiplier) wrecks a 15-point arm and takes 62.5% of 50 HP
+    // 46.875 (37.5 × the −2 dodge multiplier) wrecks a 15-point arm and takes 93.75% of 50 HP
     expect(fx).toEqual([
       { kind: 'part_state_changed', actorId: 'patron_1', data: { part: 'left_arm', from: 'healthy', to: 'destroyed' } },
-      { kind: 'threshold_crossed', actorId: 'patron_1', data: { who: 'patron_1', from: 'unhurt', to: 'mauled' } },
+      { kind: 'threshold_crossed', actorId: 'patron_1', data: { who: 'patron_1', from: 'unhurt', to: 'critical' } },
     ]);
   });
   it('a Destroyed arm drops its item; a Destroyed essential part sets HP to 0', () => {

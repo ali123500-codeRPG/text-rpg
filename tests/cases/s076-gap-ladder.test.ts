@@ -16,7 +16,7 @@ describe('76 Gap ladder', () => {
     expect(r.gap).toBe(1);
     expect(r.multiplier).toBe(0.8);
     expect(r.outcome).toBe('grazed');
-    expect(r.damage).toBe(20); // 25 × 0.8, torso, no armor
+    expect(r.damage).toBe(30); // 25 × 1.5 (a Fine sword: requirement 50) × 0.8, torso, no armor
   });
   it('gap 0 against parry lands on a Non-essential part or the general area', () => {
     const s = makeVillage();

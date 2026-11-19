@@ -64,6 +64,10 @@ const DEFAULTS = {
   QUALITY_HIT_FACTOR: 0.04,
   /** QE2: a minted weapon's damage boost = QUALITY_DAMAGE_FACTOR × need × quality × the mode's class factor × its tree factor */
   QUALITY_DAMAGE_FACTOR: 0.02,
+  /** PLACEHOLDER (CE11): a weapon's damage grows with its need: (class damage + damageAdj) × (1 + DAMAGE_NEED_RATE × need),
+   * +1% a point (library/gearScale.ts damageGrowth). A natural attack or a bare hand has no need: the attacker's skill
+   * with it stands in (CE8), as Hide does for natural armor. A straight line, like armor's soak and health. */
+  DAMAGE_NEED_RATE: 0.01,
   /** QE2 type levers: class factors follow class damage over medium's (20/25, 25/25, 30/25); melee and ranged start equal (placeholder) */
   DAMAGE_CLASS_FACTOR: { light: 0.8, medium: 1, heavy: 1.2 } as Record<string, number>,
   DAMAGE_TREE_FACTOR: { melee: 1, ranged: 1 } as Record<string, number>,
@@ -1032,8 +1036,8 @@ const DEFAULTS = {
   /** levels in the rating, both sides: this share of the XP the actor's levels cost (xpToReach) */
   LEVEL_RATING_SHARE: 0.02,
   DEFEAT_XP_TAPER: 2, // × min(1, TAPER × foe rating ÷ player rating) (X19)
-  // PLACEHOLDER: the combat rating's fight model (src/engine/fightModel.ts). An actor's combat level is the level of the
-  // reference fighter it fights evenly; every number below is a placeholder until the model is redone.
+  // PLACEHOLDER: the combat rating's equation (src/engine/combatLevel.ts). An actor's combat level is the level of the
+  // reference fighter (the standard soldier) it fights evenly; the equation has no lever of its own: only who the soldier is.
   /** extra tier bands each way the model's rolls reach (balance models count tiers with no end) */
   MODEL_TIER_REACH: 40,
   /** the reference fighter: a human with these skills all at the level, holding and wearing this kit, standing in this defense */
@@ -1044,11 +1048,6 @@ const DEFAULTS = {
   /** GR34, GR42: the XP rating's non-combat groups and how each one's share of an equal fight is worked out
    * (engine/nonCombat.ts): slip past or filch unseen, catch a sneaker, talk a fight down, heal */
   NONCOMBAT_SHARES: { [GR.stealth]: 'slip', [GR.notice]: 'catch', [GR.sleight]: 'slip', [GR.medicine]: 'heal', [GR.influence]: 'talk_down' } as Record<string, import('./engine/nonCombat').ShareRule>,
-  /** the matched-level search: its first upper guess (doubled until the actor no longer fights evenly), its ceiling, and
-   * how narrow (levels) its bracket gets before it stops */
-  MODEL_LEVEL_FIRST: 64,
-  MODEL_LEVEL_TOP: 1000,
-  MODEL_LEVEL_TOL: 0.05,
   /** D-111 Bane bonuses: an achievement earned against a race or body type gives this much skill on
    * top of the bonus of the lower level it builds on, its own step growing with its place (BG-256: I = +5, II = +15, III = +30), on rolls against that race or type. The best race one and the best body type one both count, stacked as one modifier type */
   BANE_SKILL_PER_LEVEL: 5,

@@ -24,7 +24,7 @@ import { afterRollShifts, foeMods } from './allSteps';
 import { hugReady, markShifts } from '../engine/perkMarks';
 import { forScenarioAhead, rollFeats, tally } from '../engine/xp';
 import { killedSurrenderedFeat } from '../engine/feats';
-import { shortShifts } from './requirements';
+import { requirement, shortShifts } from './requirements';
 import { powerStack } from './stacking';
 import { lineMax, lineUsed } from './fatigue';
 import { payStrain } from '../engine/fatigue';
@@ -33,6 +33,7 @@ import { SK, DEFENSE_SKILL } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { FN } from '../library/functionIds';
 import { pieceOn } from './worn';
+import { damageGrowth } from '../library/gearScale';
 
 export { totalHp, healthLevel, isDownLevel, othersHealthWord, SHOWN_LEVELS, shownLevel, partStates, roleOff, woundsMods, hitTable } from './body';
 export { improveMarked, payRolls, growthRoll, skillCap, owedBySkill, burdenOf, burdenParts, groupRollBonus, clearMarkCounts, markEndurance, markStamina, markUse } from './improve';
@@ -167,7 +168,7 @@ function overdrive(actor: Actor, skill: string): Mod[] {
 }
 
 /** everything a roll is made of before the dice: the skill it rolls at, its modifiers, its tier shifts and its reach past
- * the table's ends. roll() throws the d100 on it; the ratings' fight model (src/ruleset/expect.ts) takes every d100 on it,
+ * the table's ends. roll() throws the d100 on it; the ratings' expectations (src/ruleset/expect.ts) take every d100 on it,
  * so dice and expectation read one set of rules. `actor` defaults to the request's actor in the state. */
 export type RollSetup = { actor: Actor; eff: { skill: string; value: number; parts?: string[] }; modifiers: Mod[]; shifts: TierShift[]; reach: Reach };
 export function rollSetup(req: RollRequest, state: GameState, actor: Actor = mustActor(state, req.actorId)): RollSetup {
@@ -191,7 +192,7 @@ export function rollSetup(req: RollRequest, state: GameState, actor: Actor = mus
   return { actor, eff, modifiers, shifts, reach: tierReach(actor, req.rollKind, !!req.contest) };
 }
 /** the tier level a d100 gives on a set-up roll (unclamped, Part 1 §4), with the after-roll shifts it sets off; `reach`
- * replaces the setup's own (the fight model's endless tiers) */
+ * replaces the setup's own (the ratings' endless tiers) */
 export function rollLevel(su: RollSetup, d: number, auto = true, nearMissUp?: string, reach: Reach = su.reach): { level: number; shifts: TierShift[] } {
   const shifts = [...su.shifts];
   let level = tierOf(d, su.eff.value, su.modifiers, shifts, reach);
@@ -317,6 +318,26 @@ export function restricted(state: GameState, D: Actor, type: DefenseKind, g: num
   const impact = actorBody(state, D).parts.find((p) => p.id === location)?.impact;
   return !!impact && ((rule === 'no_essential' && impact === 'essential') || (rule === 'non_essential_only' && impact !== 'non_essential'));
 }
+/** one layer of armor over a part: the share of a blow it lets through and the flat soak it then takes off */
+export type ArmorLayer = { multiplier: number; reduction: number };
+/** the armor over `at`, outermost first: the worn piece (LG18 Deeper Soak on heavy armor), then the body's own hide */
+export function armorLayers(state: GameState, D: Actor, at: string): ArmorLayer[] {
+  const ct = actorBody(state, D);
+  const nat = ct.naturalArmor && { ...ct.naturalArmor, reduction: naturalReduction(state, D, ct.naturalArmor) };
+  const worn = pieceOn(state, D, at)?.armor;
+  const deeper = worn?.weight === 'heavy' && hasPerk(D, PK.deeper_soak) ? CONFIG.DEEPER_SOAK_MULT : 1;
+  const out: ArmorLayer[] = [];
+  if (worn?.covers.includes(at)) out.push({ multiplier: worn.multiplier, reduction: worn.reduction * deeper });
+  if (nat?.covers.includes(at)) out.push({ multiplier: nat.multiplier, reduction: nat.reduction });
+  return out;
+}
+/** what layers of armor do to a blow (D-368: each takes its share first, then its flat soak, less the attacker's pierce):
+ * the blow × share − soak gets through. The damage step and the combat level's equation both read it. */
+export function throughArmor(layers: ArmorLayer[], pierce = 0): { share: number; soak: number } {
+  let share = 1, soak = 0;
+  for (const a of layers) { share *= a.multiplier; soak = soak * a.multiplier + Math.max(0, a.reduction - pierce); }
+  return { share, soak };
+}
 /** LG11: the defense modifier for a defender unaware or only suspicious of the attacker (CONFIG.AWARENESS_DEFENSE by step;
  * Unseen Strike, the attacker's Combat Stealth 40, moves it one step on) */
 export function awarenessMod(A: Actor, awareness: 'unaware' | 'suspicious' | undefined): Mod | undefined {
@@ -325,27 +346,32 @@ export function awarenessMod(A: Actor, awareness: 'unaware' | 'suspicious' | und
   const value = t[Math.min(step, t.length - 1)];
   return value ? { source: awareness, type: 'situational', value } : undefined;
 }
+/** CE8, CE11: the need a blow's damage grows with: a made weapon's requirement, as armor's soak grows with the armor's.
+ * A natural attack or a bare hand has no requirement, so the attacker's skill with it stands in (as Hide does for natural
+ * armor). `weaponId`: the item instance attacking ('unarmed', 'natural:<mode>'); left out, the held weapon with this mode. */
+export function damageNeed(state: GameState, A: Actor, mode: AttackMode, weaponId?: string): number {
+  const inst = weaponId !== undefined ? A.core.inventory.find((i) => i.id === weaponId)
+    : A.core.inventory.find((i) => isHeld(i) && !!itemDef(state, i.itemId).weapon?.modes.some((m) => m.id === mode.id));
+  if (inst) return requirement(itemDef(state, inst.itemId))?.need ?? 0;
+  return (mode.blend ? blendedSkill(state, A, mode.blend, { itemId: weaponId, standInFns: mode.standInFns }) : effectiveSkill(state, A, modeSkill(mode), { itemId: weaponId })).value;
+}
 /** the damage step (Part 5 §6): a blow's health lost on `location` at this gap multiplier, through the perks on both sides,
  * worn and natural armor (D-368: the share first, then the flat soak) and Fighter's Frame. On the shield it is the raw
- * blow (its pool takes it in applyEffects). Dice and the ratings' fight model both call it. */
-export function blowDamage(state: GameState, A: Actor, D: Actor, mode: AttackMode, location: string, multiplier: number, openArm: string | null): { damage: number; generalShare: number } {
-  const ct = actorBody(state, D), skill = modeSkill(mode), ranged = mode.tree === 'ranged';
+ * blow (its pool takes it in applyEffects). Dice and the combat level's equation both call it. */
+export function blowDamage(state: GameState, A: Actor, D: Actor, mode: AttackMode, location: string, multiplier: number, openArm: string | null, weaponId?: string): { damage: number; generalShare: number } {
+  const skill = modeSkill(mode), ranged = mode.tree === 'ranged';
   const kind: AttackKind = ranged ? 'ranged' : 'melee';
   const pierce = boostAdd(A, skill, 'armorPierce', kind); // 40/80/120 perk: Armor Piercer
   const afterArmor = (raw: number, at: string) => {
-    let d = raw;
-    const nat = ct.naturalArmor && { ...ct.naturalArmor, reduction: naturalReduction(state, D, ct.naturalArmor) };
-    const worn = pieceOn(state, D, at)?.armor;
-    const soak = (a: unknown) => (a === worn && worn?.weight === 'heavy' && hasPerk(D, PK.deeper_soak) ? CONFIG.DEEPER_SOAK_MULT : 1); // LG18 Deeper Soak
-    for (const a of [worn, nat]) if (a?.covers.includes(at)) d = d * a.multiplier - Math.max(0, a.reduction * soak(a) - pierce); // D-368: the share first, then the flat soak
-    return Math.max(0, d); // fractions allowed, no rounding (OQ-25, decided)
+    const { share, soak } = throughArmor(armorLayers(state, D, at), pierce);
+    return Math.max(0, raw * share - soak); // fractions allowed, no rounding (OQ-25, decided)
   };
   const frame = !ranged && hasPerk(D, PK.fighters_frame) ? CONFIG.FIGHTERS_FRAME_MULT : 1; // All-50: Fighter's Frame, on health lost (after armor)
   const knuckles = mode.tree === 'unarmed' && hasPerk(A, PK.iron_knuckles) ? CONFIG.IRON_KNUCKLES_MULT : 1; // All-50: Iron Knuckles
   const improvised = skill === SK.unarmed_improvised || !!mode.blend?.some((b) => b.skill === SK.unarmed_improvised);
   const junk = improvised && hasPerk(A, PK.junk_arsenal) ? CONFIG.JUNK_ARSENAL_MULT : 1; // All-50: Junk Arsenal
   const cls = modeClass(mode);
-  const raw = (cls.damage + (mode.damageAdj ?? 0)) * multiplier * boostMult(A, skill, 'damageMult', kind) * knuckles * junk; // 40/80/120 perk: Heavy Hand
+  const raw = (cls.damage + (mode.damageAdj ?? 0)) * damageGrowth(damageNeed(state, A, mode, weaponId)) * multiplier * boostMult(A, skill, 'damageMult', kind) * knuckles * junk; // 40/80/120 perk: Heavy Hand
   const hide = location !== 'shield' && hasPerk(D, PK.thick_hide) ? CONFIG.THICK_HIDE_MULT : 1; // All-50: Thick Hide, on the body hit before armor
   const body = raw * hide;
   const generalShare = openArm ? afterArmor(body * (1 - CONFIG.OPEN_HAND_ARM_SHARE), 'general') * frame : 0;
@@ -479,7 +505,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
 
   // 6. damage step (Part 5 §6); armor pools drain in applyEffects
   const answer = req.context?.strikeBack && hasPerk(A, PK.sharp_answer) ? CONFIG.SHARP_ANSWER_MULT : 1; // LG2 Sharp Answer (Parry 40)
-  const { damage, generalShare } = blowDamage(state, A, D, mode, location, multiplier * answer, openArm);
+  const { damage, generalShare } = blowDamage(state, A, D, mode, location, multiplier * answer, openArm, req.weaponId);
   // A6 Leg Bolt: a medium or heavy ranged hit that does damage to a part with the move role
   const legBolt = ranged && (mode.class === 'medium' || mode.class === 'heavy') && damage > 0 && hasPerk(A, PK.leg_bolt)
     && !!ct.parts.find((p) => p.id === location)?.roles.includes(RL.move);

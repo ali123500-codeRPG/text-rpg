@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest';
 import { wholeTurn, intent } from '../harness/turn';
 import { power } from '../../src/engine/xp';
-import { combatLevel } from '../../src/engine/fightModel';
+import { combatLevel } from '../../src/engine/combatLevel';
 import { powerLines, ratingLines } from '../../src/ui/power';
 import { compoundRating } from '../../src/ruleset/ratings';
 import { RT } from '../../src/library/functionIds';
