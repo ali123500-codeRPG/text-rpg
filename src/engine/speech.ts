@@ -18,6 +18,7 @@ import { bested, tally } from './xp';
 import { contestFeat } from './feats';
 import { applyHaggle, isSeller } from './trade';
 import { countTry, repeatTryMods } from '../ruleset/pressure';
+import { effectiveSkill } from '../ruleset/gear';
 import { hears, hearsClearly, hearsWords, sightAt } from '../perception';
 import { moraleLevel } from '../ruleset/morale';
 import { MORALE_LEVELS } from '../scales';
@@ -260,11 +261,16 @@ export const PLAIN = 'it is a lie';
 export const tellFor = (listener: Actor | undefined, gap?: number): string =>
   gap === undefined ? (hasPerk(listener, PK.plain_as_day) ? PLAIN : TELL) : gap >= CONFIG.LIE_PLAIN_GAP || (gap >= 1 && hasPerk(listener, PK.plain_as_day)) ? PLAIN : TELL;
 
-/** a listener's answering roll (answerSkill), against the speaker; All-50 Easy Speaker answers one outcome better;
- * Takes One to Know One (LI1a) answers a lie with the better of Insight and Falsehood */
-export function answerRoll(state: GameState, listener: Actor, skill: string, speakerId: string, rng: Rng, extra: TierShift[] = []): RollResult {
+/** a lie told in words (deceive, Bluff, Overheard) or with the body (Play Dead, feigned flight) */
+export type LieKind = 'spoken' | 'body';
+/** a listener's answering roll (answerSkill), against the speaker; All-50 Easy Speaker answers one outcome better.
+ * Takes One to Know One (LI1a, GU2 b) answers a lie with the better of Insight and the liar's skill (Falsehood in words,
+ * Guile with the body); the other skill of the pair augments that roll (the perk's augments, by `when`) */
+export function answerRoll(state: GameState, listener: Actor, skill: string, speakerId: string, rng: Rng, extra: TierShift[] = [], lie: LieKind = 'spoken'): RollResult {
   const knows = skill === SK.insight && hasPerk(listener, PK.takes_one_to_know_one);
-  return ruleset.roll({ actorId: listener.id, skill, modifiers: [], tierShifts: [...(hasPerk(listener, PK.easy_speaker) ? [{ source: perkName(PK.easy_speaker), value: 1 }] : []), ...extra], against: speakerId, contest: true, ...(knows ? { fullValue: [SK.falsehood] } : {}) }, state, rng);
+  const pair = lie === 'body' ? SK.guile : SK.falsehood;
+  const pick = knows && effectiveSkill(state, listener, pair).value > effectiveSkill(state, listener, skill).value ? pair : skill;
+  return ruleset.roll({ actorId: listener.id, skill: pick, modifiers: [], tierShifts: [...(hasPerk(listener, PK.easy_speaker) ? [{ source: perkName(PK.easy_speaker), value: 1 }] : []), ...extra], against: speakerId, contest: true, ...(knows ? { when: [lie === 'body' ? 'answer_body_lie' as const : 'answer_spoken_lie' as const] } : {}) }, state, rng);
 }
 
 /** OQ-29: an NPC's speech roll at the player (NL1: or a lie at another NPC); the listener answers (answerSkill; the speaker is side a) */

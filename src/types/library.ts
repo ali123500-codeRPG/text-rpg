@@ -25,8 +25,9 @@ export type ImpactId = 'non_essential' | 'normal' | 'essential';
  * lose what it gives (points moved, never made; always on). percent: the giving skill's true skill ÷ 100 × share (the rate,
  * default CONFIG.AUGMENT_PERCENT_RATE) × the receiving skill's own true skill; several on one skill add in full (RN3 c). */
 export type AugmentKind = 'plain' | 'trade' | 'percent';
-/** a situation an augment needs on the roll (RollRequest.when): from_hiding, an attack made while stealthy (CN6 Patient Knife) */
-export type AugmentWhen = 'from_hiding';
+/** a situation an augment needs on the roll (RollRequest.when): from_hiding, an attack made while stealthy (CN6 Patient Knife);
+ * answer_spoken_lie / answer_body_lie, an answer to a lie in words or told with the body (GU2 b, Takes One to Know One) */
+export type AugmentWhen = 'from_hiding' | 'answer_spoken_lie' | 'answer_body_lie';
 
 export type SkillDef = {
   id: string;

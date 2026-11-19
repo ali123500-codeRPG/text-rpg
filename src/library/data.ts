@@ -691,9 +691,9 @@ export const NPC_ROLES: Record<string, NpcRoleDef> = Object.fromEntries([
   role(RO.skirmisher, 'Skirmisher', 'combat', 'ordinary', { high: [SK.melee_light, SK.dodge], moderate: [SK.light_armor, SK.ranged_light, SK.battle_sense], low: [SK.sneaking, SK.endurance] }, { traits: { [PA.levity]: 20 } }, [PK.second_wind], [GC.melee_light, GC.armor_light]),
   role(RO.brute, 'Brute', 'combat', 'ordinary', { high: [SK.melee_heavy, SK.unarmed_strike], moderate: [SK.endurance, SK.intimidation, SK.unarmed_grapple], low: [SK.heavy_armor] }, { traits: { [PA.temper]: 40 } }, [PK.second_wind, PK.heavy_sleeper], [GC.melee_heavy, GC.armor_heavy]),
   role(RO.shooter, 'Shooter', 'combat', 'ordinary', { high: [SK.ranged_medium], moderate: [SK.ranged_light, SK.eyesight, SK.dodge], low: [SK.light_armor, SK.melee_light] }, { traits: { [PA.discipline]: 20 } }, undefined, [GC.ranged_medium, GC.armor_light]),
-  role(RO.sneak, 'Sneak', 'combat', 'ordinary', { high: [SK.sneaking, SK.melee_light, SK.stratagem], moderate: [SK.combat_stealth, SK.vanishing, SK.dodge], low: [SK.light_armor, SK.falsehood, SK.filching, SK.lockpicking] }, { traits: { [PA.honesty]: -40 }, values: [VL.wealth] }, [PK.insomniac], [GC.melee_light, GC.armor_light]),
+  role(RO.sneak, 'Sneak', 'combat', 'ordinary', { high: [SK.sneaking, SK.melee_light, SK.stratagem], moderate: [SK.combat_stealth, SK.vanishing, SK.dodge], low: [SK.light_armor, SK.falsehood, SK.guile, SK.filching, SK.lockpicking] }, { traits: { [PA.honesty]: -40 }, values: [VL.wealth] }, [PK.insomniac], [GC.melee_light, GC.armor_light]),
   role(RO.watcher, 'Watcher', 'combat', 'ordinary', { high: [SK.eyesight, SK.earshot], moderate: [SK.insight, SK.intimidation], low: [SK.melee_medium, SK.persuasion] }, { traits: { [PA.curiosity]: 20 } }, [PK.insomniac], [GC.melee_medium]),
-  role(RO.talker, 'Talker', 'civilian', 'ordinary', { high: [SK.persuasion, SK.barter], moderate: [SK.insight, SK.falsehood, SK.earshot], low: [SK.eyesight] }, { traits: { [PA.sociability]: 20 }, values: [VL.wealth] }),
+  role(RO.talker, 'Talker', 'civilian', 'ordinary', { high: [SK.persuasion, SK.barter], moderate: [SK.insight, SK.falsehood, SK.guile, SK.earshot], low: [SK.eyesight] }, { traits: { [PA.sociability]: 20 }, values: [VL.wealth] }),
   role(RO.worker, 'Worker', 'civilian', 'mundane', { high: [SK.endurance], moderate: [SK.unarmed_strike, SK.stamina], low: [SK.persuasion] }, { traits: { [PA.sociability]: 20 } }, [PK.heavy_sleeper]),
   // NR4: woods folk who live by the bow (hunters, foresters, trappers, poachers); civilian, Commoner class line (NR2)
   role(RO.hunter, 'Hunter', 'civilian', 'mundane', { high: [SK.ranged_medium, SK.sneaking, SK.fieldcraft], moderate: [SK.eyesight, SK.earshot, SK.endurance], low: [SK.melee_light, SK.stamina] }, { traits: { [PA.curiosity]: 20 }, values: [VL.nature, VL.freedom] }, undefined, [GC.ranged_medium, GC.melee_light, GC.armor_light]),
@@ -785,7 +785,7 @@ export const TEMPLATES: Record<string, NpcTemplate> = {
   // NS7: a village thief, the first stealthy NPC
   [TP.thief]: {
     id: TP.thief, raceId: RC.human, generation: 'copy',
-    minimums: { [SK.sneaking]: 40, [SK.combat_stealth]: 30, [SK.vanishing]: 30, [SK.melee_light]: 35, [SK.light_armor]: 25, [SK.dodge]: 30, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.falsehood]: 30 }, roleId: RO.sneak, themeId: TH.village_folk, rank: 'rank_2',
+    minimums: { [SK.sneaking]: 40, [SK.combat_stealth]: 30, [SK.vanishing]: 30, [SK.melee_light]: 35, [SK.light_armor]: 25, [SK.dodge]: 30, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.falsehood]: 30, [SK.guile]: 30 }, roleId: RO.sneak, themeId: TH.village_folk, rank: 'rank_2',
     resolve: 30, control: 'agent', label: 'a shifty villager', // its dagger and gambeson are picked by role and wealth (NG10) chase: 'post',
   },
   [TP.patron]: {

@@ -12,6 +12,9 @@ import { bindTemplate } from '../../src/minds/routines';
 import { buildActorView, buildNarrationView } from '../../src/views';
 import { CHECKIN_SHAPE, PARSER_INSTRUCTIONS, PLANNER_INSTRUCTIONS, PLANNER_SHAPE, RESPONDER_INSTRUCTIONS, WEAVER_SHAPE, gradeRule } from '../../src/agents/prompts';
 import { SK } from '../../src/library/skillIds';
+import { getLibrary } from '../../src/library';
+import { RO } from '../../src/library/npcLayerIds';
+import { TP } from '../../src/library/templateIds';
 import { intent } from './w4-kit';
 
 const village = (): GameState => {
@@ -104,5 +107,14 @@ describe('359 every act that takes a difficulty can be given one (BF96 a)', () =
       const then = shape.slice(shape.lastIndexOf('"then":'));
       expect(then.slice(0, then.indexOf('}'))).toMatch(/"grade"\?:.*"fall"\?:metres/);
     }
+  });
+  it('NPCs who lie in words also keep a face: Guile sits beside Falsehood in the Sneak and Talker roles, the thief at least 30 (GU1 a)', () => {
+    const lib = getLibrary();
+    for (const ro of [RO.sneak, RO.talker]) {
+      const b = lib.npcRoles![ro].bands as Record<string, string[] | undefined>;
+      const band = (id: string) => Object.keys(b).find((k) => b[k]?.includes(id));
+      expect(band(SK.guile), ro).toBe(band(SK.falsehood));
+    }
+    expect(lib.templates[TP.thief].minimums?.[SK.guile]).toBe(lib.templates[TP.thief].minimums?.[SK.falsehood]);
   });
 });

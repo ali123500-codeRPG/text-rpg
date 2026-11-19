@@ -1,6 +1,7 @@
 // 150 Falsehood and Insight perks (LI1, LI2): Bluff (Falsehood 20), a free perk move once per foe per engagement: a Falsehood roll
-// against the foe's answer to a lie; unless the foe wins, it acts last next turn. Takes One to Know One (Falsehood 60): a lie
-// is answered with the better of Insight and Falsehood. Plain as Day (Insight 60): a lie seen through is called a lie.
+// against the foe's answer to a lie; unless the foe wins, it acts last next turn. Takes One to Know One (Falsehood 60, GU2 b): a
+// lie in words is answered with the better of Insight and Falsehood, a lie told with the body with the better of Insight and
+// Guile, and the other skill of the pair augments the roll by CONFIG.TAKES_ONE_SHARE. Plain as Day (Insight 60): a lie seen through is called a lie.
 // Read Their Face (Insight 100): the stance toward the owner of anyone who spoke to the owner this scenario shows.
 import { tick } from '../harness/time';
 import { CONFIG } from '../../src/config';
@@ -13,6 +14,7 @@ import { SK } from '../../src/library/skillIds';
 import { perkMoveBlock, resolvePerkMove } from '../../src/engine/perkMoves';
 import { bluffed } from '../../src/engine/perkMarks';
 import { answerRoll, pressedWords, tellFor, PLAIN, TELL } from '../../src/engine/speech';
+import { augmentsOf, tierMult } from '../../src/ruleset/gear';
 import { buildPlayerView } from '../../src/views';
 import { deck } from '../../src/ui/deck';
 import type { Actor, GameEvent, GameState } from '../../src/types';
@@ -96,6 +98,34 @@ describe('150 Falsehood and Insight perks', () => {
     give(wim, PK.takes_one_to_know_one);
     expect(answerRoll(s, wim, SK.insight, 'player', forcedRng([50])).skill).toBe(SK.falsehood);
     expect(answerRoll(s, wim, SK.persuasion, 'player', forcedRng([50])).skill).not.toBe(SK.falsehood); // only lies
+  });
+
+  it('Takes One to Know One answers a lie told with the body with the better of Insight and Guile (GU2 b)', () => {
+    const s = makeVillage();
+    const wim = npc(s, 'patron_1');
+    skill(wim, SK.insight, 30);
+    skill(wim, SK.falsehood, 60);
+    skill(wim, SK.guile, 40);
+    give(wim, PK.takes_one_to_know_one);
+    expect(answerRoll(s, wim, SK.insight, 'player', forcedRng([50]), [], 'body').skill).toBe(SK.guile);
+    skill(wim, SK.guile, 0);
+    expect(answerRoll(s, wim, SK.insight, 'player', forcedRng([50]), [], 'body').skill).toBe(SK.insight); // Falsehood 60 is not the pair
+    expect(answerRoll(s, wim, SK.insight, 'player', forcedRng([50])).skill).toBe(SK.falsehood); // a lie in words: it is
+  });
+
+  it('the unpicked skill of the pair augments the picked one by TAKES_ONE_SHARE, only on that kind of answer', () => {
+    const s = makeVillage();
+    const wim = npc(s, 'patron_1');
+    skill(wim, SK.insight, 20);
+    skill(wim, SK.falsehood, 60);
+    skill(wim, SK.guile, 40);
+    give(wim, PK.takes_one_to_know_one);
+    const add = (to: string, when: 'answer_spoken_lie' | 'answer_body_lie') => augmentsOf(wim, to, undefined, [when]).reduce((n, a) => n + a.value, 0);
+    expect(add(SK.falsehood, 'answer_spoken_lie')).toBeCloseTo(20 * CONFIG.TAKES_ONE_SHARE * tierMult(SK.insight));
+    expect(add(SK.guile, 'answer_body_lie')).toBeCloseTo(20 * CONFIG.TAKES_ONE_SHARE * tierMult(SK.insight));
+    expect(add(SK.insight, 'answer_body_lie')).toBeCloseTo(40 * CONFIG.TAKES_ONE_SHARE * tierMult(SK.guile));
+    expect(add(SK.falsehood, 'answer_body_lie')).toBe(0);
+    expect(augmentsOf(wim, SK.falsehood).reduce((n, a) => n + a.value, 0)).toBe(0); // never on Falsehood's own rolls
   });
 
   it('Plain as Day says a lie seen through is a lie', () => {
