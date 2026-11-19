@@ -4,6 +4,8 @@
 import type { Actor, GameState, TierShift } from '../types';
 import { CONFIG } from '../config';
 import { updateBeliefs } from '../perception';
+import { hasPerk } from '../ruleset/perks';
+import { PK } from '../library/perkIds';
 
 /** the tricks a foe can see through and pass on (stable keys; the fact is 'ruse:<key>') */
 export const TRICK = { play_dead: 'play_dead', feint: 'feint', bluff: 'bluff', draw_them_in: 'draw_them_in' } as const;
@@ -18,9 +20,10 @@ export function knowsTrick(x: Actor, ownerId: string, t: Trick): boolean {
   if (x.kind === 'player') return !!x.journal?.ruses?.[ownerId]?.includes(t);
   return !!x.mind?.knowledge[ownerId]?.revealed?.includes(RUSE + t);
 }
-/** WN3/WN11: the shift on x's answer to owner's trick */
+/** WN3/WN11: the shift on x's answer to owner's trick. LG20 a Read the Feint (Insight 40): its owner answers every trick
+ * as if it knew it */
 export const warnedShift = (x: Actor, ownerId: string, t: Trick): TierShift[] =>
-  knowsTrick(x, ownerId, t) ? [{ source: 'Knows the trick', value: CONFIG.WARNED_SHIFT }] : [];
+  knowsTrick(x, ownerId, t) || hasPerk(x, PK.read_the_feint) ? [{ source: 'Knows the trick', value: CONFIG.WARNED_SHIFT }] : [];
 
 /** the tricks x knows of owner */
 export const tricksKnown = (x: Actor, ownerId: string): Trick[] => (Object.values(TRICK) as Trick[]).filter((t) => knowsTrick(x, ownerId, t));

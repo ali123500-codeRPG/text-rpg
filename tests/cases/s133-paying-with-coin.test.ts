@@ -8,7 +8,8 @@ import { intent, play } from './w4-kit';
 import { buildNarrationView, buildPlayerView } from '../../src/views';
 import { checkParserLegality } from '../../src/agents/legality';
 import { actorById } from '../../src/engine/relations';
-import { applyHaggle, buy, coinWords, coins, hearsOrder, warePrice } from '../../src/engine/trade';
+import { applyHaggle, buy, coinWords, coins, hearsOrder, keepHaggles, warePrice } from '../../src/engine/trade';
+import { DAY_MINUTES, advanceClock, dayOf, now } from '../../src/time';
 import { SV } from '../../src/library/serviceIds';
 import { CONFIG, resetConfig } from '../../src/config';
 import type { ContestResult, GameState } from '../../src/types';
@@ -78,6 +79,25 @@ it('133d haggling and Hard Bargain', () => {
   delete p.haggle;
   p.core.perks.push({ perkId: PK.haggler, source: 'level', turn: 0 } as never);
   expect(warePrice(s, p, mags, `goods:${IT.healing_draught}`)).toBe(18); // 20 × 0.9
+});
+
+it('133d LG13 b: a won haggle holds for the rest of the day, past the end of the talk; a bad loss ends with it', () => {
+  const s = shop();
+  const mags = actorById(s, 'trader')!;
+  const p = s.player;
+  const today = () => dayOf(now(s));
+  applyHaggle(p, mags, gap(-1)); // won
+  keepHaggles(p, today(), true); // the talk ends the same day
+  expect(warePrice(s, p, mags, `goods:${IT.healing_draught}`)).toBe(16);
+  advanceClock(s, DAY_MINUTES);
+  keepHaggles(p, today(), false); // a new day
+  expect(warePrice(s, p, mags, `goods:${IT.healing_draught}`)).toBe(20);
+  expect(p.haggle).toBeUndefined();
+  applyHaggle(p, mags, gap(2)); // lost by two
+  keepHaggles(p, today(), false);
+  expect(warePrice(s, p, mags, `goods:${IT.healing_draught}`)).toBe(24); // still talking
+  keepHaggles(p, today(), true);
+  expect(warePrice(s, p, mags, `goods:${IT.healing_draught}`)).toBe(20); // the talk is over
 });
 
 it('133e clinic care is bought, then used by resting in the clinic', () => {

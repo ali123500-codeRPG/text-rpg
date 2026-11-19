@@ -511,6 +511,15 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** +5 true skill in Parry. +1 true skill in every skill of group Defense. The free strike back after the owner's parry deals ×1.25 damage, before armor (SHARP_ANSWER_MULT, placeholder). Other free attacks, Riposte's counters among them, are unchanged.
 - **Lasts:** Always.
 
+### Read the Feint (Insight) · LG20
+
+*Story:* +5 Insight, +1 Notice. You have seen every trick before: a feint, a bluff, a fall that is not real, a retreat that is a trap. You meet each one as if you had been warned.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in Insight. +1 true skill in every skill of group Notice. The owner answers every trick (a feint, a bluff, Play Dead, Draw Them In) as if it knew it: 2 tiers better on that roll (WARNED_SHIFT), the first time too.
+- **Lasts:** Always.
+
 ### Guarded Answer (Riposte) · LG4
 
 *Story:* +5 Riposte, +1 Defense. Every answer starts with a guard: +10 Parry.

@@ -73,8 +73,10 @@ export type Actor = {
   wares?: { items: string[]; services: string[] };
   /** ES6 a: essences a seller bought and holds to sell on (it has no room, or no slots, to take them in) */
   essenceStock?: HeldEssence[];
-  /** PY6: price multipliers this actor won or lost haggling, by seller; cleared when its engagement ends */
+  /** PY6: price multipliers this actor won or lost haggling, by seller. LG13 b: a won one lasts the rest of the day it was
+   * won (haggleDay); a bad loss is cleared when the actor's engagement ends (keepHaggles, src/engine/trade.ts) */
   haggle?: Record<ActorId, number>;
+  haggleDay?: Record<ActorId, number>;
   /** OQ-29: penalties from speech contests this actor lost, by speaker (positive numbers); cleared when its engagement ends */
   pressure?: Record<ActorId, { shaken?: number; swayed?: number }>;
   hunches?: { scenario: number; ids: string[]; tried?: Record<string, number> }; // LI5b Gut Feeling: watchers that set off the owner's hunch this scenario (scenarioStartTurn); tried: the turn each watcher was last rolled against (AT74)

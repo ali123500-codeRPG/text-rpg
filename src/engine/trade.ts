@@ -75,12 +75,26 @@ export function wareList(state: GameState, buyer: Actor, seller: Actor): { id: s
   return [...goods, ...services].map((w) => ({ ...w, price: coinWords(warePrice(state, buyer, seller, w.id)!) }));
 }
 
-/** PY6: a barter contest against a seller: a win lowers the buyer's prices there, a loss by HAGGLE_BAD_GAP tiers or more
- * raises them, until the buyer's engagement ends; anything between leaves them as they were */
+/** PY6: a barter contest against a seller: a win lowers the buyer's prices there for the rest of the day (LG13 b), a loss by
+ * HAGGLE_BAD_GAP tiers or more raises them until the buyer's engagement ends; anything between leaves them as they were */
 export function applyHaggle(buyer: Actor, seller: Actor, contest: ContestResult): void {
   if (!isSeller(seller)) return;
   const mult = contest.gap < 0 ? CONFIG.HAGGLE_WIN : contest.gap >= CONFIG.HAGGLE_BAD_GAP ? CONFIG.HAGGLE_BAD_LOSS : undefined;
-  if (mult !== undefined) (buyer.haggle ??= {})[seller.id] = mult;
+  if (mult === undefined) return;
+  (buyer.haggle ??= {})[seller.id] = mult;
+  if (buyer.haggleDay) delete buyer.haggleDay[seller.id]; // dated afresh at turn end (keepHaggles)
+}
+
+/** LG13 b, at each turn's end: a won haggle (below 1) holds for the rest of the day it was won, then goes; a bad loss goes
+ * when the buyer's engagement ends (`ended`). Each haggle is dated the first time this sees it. */
+export function keepHaggles(a: Actor, today: number, ended: boolean): void {
+  if (!a.haggle) return;
+  const days = (a.haggleDay ??= {});
+  for (const [id, h] of Object.entries(a.haggle)) {
+    const day = (days[id] ??= today);
+    if (h < 1 ? day !== today : ended) { delete a.haggle[id]; delete days[id]; }
+  }
+  if (!Object.keys(a.haggle).length) { delete a.haggle; delete a.haggleDay; }
 }
 
 /** moves n of the buyer's coin into the seller's purse (both stacks merge by item id) */

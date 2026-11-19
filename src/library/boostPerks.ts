@@ -64,6 +64,9 @@ const ROWS: Row[] = [
   { id: PK.sharp_answer, ref: 'LG2', skill: SK.parry, group: GR.defense, name: 'Sharp Answer', effect: 'attack',
     extra: { ownRule: 'SHARP_ANSWER_MULT', story: 'A parry is there to earn the strike, and you make the strike count: the free blow back after a parry hits a quarter harder.',
       rule: `The free strike back after the owner's parry deals ×${CONFIG.SHARP_ANSWER_MULT} damage, before armor (SHARP_ANSWER_MULT, placeholder). Other free attacks, Riposte's counters among them, are unchanged.` } },
+  { id: PK.read_the_feint, ref: 'LG20', skill: SK.insight, group: GR.notice, name: 'Read the Feint', effect: 'senses',
+    extra: { ownRule: 'WARNED_SHIFT', story: 'You have seen every trick before: a feint, a bluff, a fall that is not real, a retreat that is a trap. You meet each one as if you had been warned.',
+      rule: `The owner answers every trick (a feint, a bluff, Play Dead, Draw Them In) as if it knew it: ${CONFIG.WARNED_SHIFT} tiers better on that roll (WARNED_SHIFT), the first time too.` } },
   // Missing 40 perks (LG4-LG19): some give +10 to a related skill; the rest change one of the skill's own rule numbers (placeholders)
   { id: PK.guarded_answer, ref: 'LG4', skill: SK.riposte, group: GR.defense, name: 'Guarded Answer', effect: 'defense',
     extra: { story: `Every answer starts with a guard: +10 ${skillName(SK.parry)}.`, rule: `+10 true skill in ${skillName(SK.parry)}.`, trueSkillTo: { [SK.parry]: 10 } } },

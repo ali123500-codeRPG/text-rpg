@@ -22,6 +22,7 @@ import { perkMoveBlock } from '../../src/engine/perkMoves';
 import { fearMult } from '../../src/engine/auras';
 import { actorById } from '../../src/engine/relations';
 import { landed, tiersToConvince } from '../../src/engine/offer';
+import { TRICK, warnedShift } from '../../src/engine/ruses';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const npc = (s: GameState, id: string) => actorById(s, id)!;
@@ -36,7 +37,7 @@ describe('403 missing 20 and 40 perks', () => {
       [PK.guarded_answer, SK.riposte, 40], [PK.dancers_feet, SK.blade_dance, 40], [PK.deep_reserves, SK.resolve, 40],
       [PK.silver_tongue, SK.persuasion, 40], [PK.unseen_strike, SK.combat_stealth, 40], [PK.fear_bites_deeper, SK.intimidation, 40],
       [PK.shadow_work, SK.sneaking, 40], [PK.thick_of_it, SK.vanishing, 40], [PK.free_movement, SK.light_armor, 40],
-      [PK.deeper_soak, SK.heavy_armor, 40], [PK.honest_face, SK.lying, 40], [PK.sharp_answer, SK.parry, 40],
+      [PK.deeper_soak, SK.heavy_armor, 40], [PK.honest_face, SK.lying, 40], [PK.sharp_answer, SK.parry, 40], [PK.read_the_feint, SK.insight, 40],
     ] as const) {
       expect(perks[id]?.ladder, id).toEqual({ skill: sk, milestone: m });
       expect(BUILT_PERKS.has(id), id).toBe(true);
@@ -85,6 +86,13 @@ describe('403 missing 20 and 40 perks', () => {
     };
     expect(lost(false)).toBeGreaterThan(0);
     expect(lost(true)).toBeCloseTo(CONFIG.FEAR_BITES_MULT * lost(false), 6);
+  });
+
+  it('LG20 a Read the Feint: the owner answers every trick as if it knew it, the first time too', () => {
+    const s = makeVillage(), x = npc(s, 'patron_1');
+    for (const t of Object.values(TRICK)) expect(warnedShift(x, 'player', t)).toEqual([]);
+    give(x, PK.read_the_feint);
+    for (const t of Object.values(TRICK)) expect(warnedShift(x, 'player', t)).toEqual([{ source: 'Knows the trick', value: CONFIG.WARNED_SHIFT }]);
   });
 
   it('LG9 Hear Me Out: to the owner\'s persuasion offers a fresh foe counts as shaken; not to another skill', () => {
