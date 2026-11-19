@@ -1,6 +1,10 @@
 # Workstream rules (integration owner: W0)
 
-Source of truth: `docs/build-spec.md` (Build Spec v0.6). Every rule there is binding. Values marked placeholder live in
+Kept as history: these were the rules for the parallel workstreams of the first build. The current rules are
+`AGENTS.md` and `docs/instructions.md`, and they win where the two differ (for example, branches are now pushed and
+every change is a PR).
+
+Source of truth: `docs/build-spec.md`. Every rule there is binding. Values marked placeholder live in
 `src/config.ts`. Items marked [Proposed] are built as written. Do not invent mechanics: if the spec has a gap, pick the
 smallest reading, mark it `// GAP:` in code with a one-line note, and list it in your final report.
 

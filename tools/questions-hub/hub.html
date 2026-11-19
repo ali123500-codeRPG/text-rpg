@@ -1,0 +1,550 @@
+<meta charset="utf-8">
+<title>Questions</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+@font-face { font-family: "HISAB Round"; font-weight: 400 600; font-display: block; src: url(kit/HISABRound-Regular.woff2) format("woff2"); }
+@font-face { font-family: "HISAB Round"; font-weight: 700; font-display: block; src: url(kit/HISABRound-Bold.woff2) format("woff2"); }
+@font-face { font-family: "HISAB Round"; font-weight: 800 900; font-display: block; src: url(kit/HISABRound-ExtraBold.woff2) format("woff2"); }
+@font-face { font-family: "Literata"; font-weight: 400; font-style: normal; font-display: block; src: url(kit/Literata-Regular.woff2) format("woff2"); }
+/* Questions hub: the kit questions layout, one artifact for every questionnaire. Pages and answers live in its db. */
+:root {
+  --font-round: "HISAB Round", "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+  --font-story: "Literata", Georgia, serif;
+  --bg: #0b1330; --surface: #16214a; --surface-2: #1c2a5a; --text: #eef4ff; --muted: #bccbec; --faint: #adbde2; --border: #2a3b70; --rule: #34477f;
+  --accent: #93c5ff; --accent-soft: #1b3160; --ok: #5cc97a; --warn: #f2b552; --danger: #ff6b6b; --gold: #ffd36e; --c5: #c49be8; --c3: #9aa6b2;
+  /* question kinds and note kinds: one colour each */
+  --k-core: var(--gold); --k-detail: var(--accent); --k-confirm: var(--c3);
+  --k-broken: var(--danger); --k-gap: var(--warn); --k-side: var(--c3); --k-game: var(--c5);
+  --sky: url(kit/night-sky.webp);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body { margin: 0; font: 14px/1.5 var(--font-round); color: var(--text); font-variant-numeric: tabular-nums;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg) 55%, transparent), color-mix(in srgb, var(--bg) 92%, transparent) 30%, var(--bg) 100%) fixed, var(--sky) center top / cover no-repeat fixed, var(--bg);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 48px; }
+@media (min-width: 900px) { body { padding-left: max(32px, env(safe-area-inset-left, 0px)); padding-right: max(32px, env(safe-area-inset-right, 0px)); } }
+h1, h2, h3, p { margin: 0; }
+button, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+.lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--faint); }
+code { font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; color: var(--text); background: color-mix(in srgb, var(--surface-2) 70%, transparent); padding: 0 4px; border-radius: 3px; }
+/* ---- answer bar */
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 9; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 24px; padding: 14px 0 12px;
+  background: color-mix(in srgb, var(--bg) 94%, transparent); backdrop-filter: blur(6px); border-bottom: 1px solid var(--border); }
+.top h1 { font-size: 22px; font-weight: 800; }
+.top h1::before { content: "\2726"; color: var(--gold); margin-right: 10px; font-size: 16px; }
+.top .sub { color: var(--muted); font-size: 13px; }
+.top .grow { flex: 1 1 360px; min-width: 0; display: grid; gap: 2px; }
+.top .tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.btn { border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 7px 14px; font-weight: 700; font-size: 13px; }
+.btn:hover { border-color: var(--accent); }
+.btn.main { background: linear-gradient(120deg in oklch, oklch(.50 .135 252) 8%, oklch(.53 .14 148) 92%); border-color: transparent; color: #fff; padding: 8px 18px; }
+.btn:active { transform: scale(.97); }
+.prog { font-size: 13px; color: var(--muted); white-space: nowrap; }
+.prog b { color: var(--text); }
+.wake { display: grid; gap: 6px; width: 100%; }
+.wake[hidden], .copybox[hidden] { display: none; }
+.copybox { display: flex; gap: 8px; align-items: stretch; }
+.copybox pre { flex: 1; min-width: 0; margin: 0; padding: 10px 12px; border-radius: 6px; background: #050a1d; border: 1px solid var(--rule); font: 13px/1.45 ui-monospace, Consolas, monospace; white-space: pre-wrap; word-break: break-word; }
+.copied { font-size: 13px; color: var(--ok); font-weight: 700; }
+/* ---- legend and map */
+.legend { display: flex; flex-wrap: wrap; gap: 8px 22px; padding: 16px 0 6px; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend i { width: 12px; height: 12px; border-radius: 3px; background: var(--k); }
+.legend b { color: var(--k); }
+.map { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); gap: 6px; margin-top: 8px; }
+.map a { display: flex; gap: 8px; align-items: baseline; padding: 6px 10px; border-radius: 6px; text-decoration: none; color: var(--text); font-size: 13px;
+  background: color-mix(in srgb, var(--k) 13%, var(--surface)); border-left: 4px solid var(--k); min-width: 0; }
+.map a:hover { background: color-mix(in srgb, var(--k) 24%, var(--surface)); }
+.map a b { color: var(--k); font-weight: 800; white-space: nowrap; }
+.map a span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.counts { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); margin-top: 10px; }
+.counts b { color: var(--k); font-size: 15px; }
+/* ---- notes (today's code, other games) */
+section { margin-top: 30px; }
+.sec-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; padding: 0 0 10px; border-bottom: 2px solid var(--rule); }
+.sec-h h2 { font-size: 18px; font-weight: 800; }
+.sec-h p { color: var(--muted); font-size: 13px; flex: 1 1 300px; min-width: 0; }
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 14px 24px; margin-top: 14px; }
+.notes div { border-left: 3px solid var(--k, var(--border)); padding: 2px 12px; color: var(--muted); font-size: 13.5px; }
+.notes b { color: var(--text); display: block; }
+.notes .pill { margin: 0 0 4px; }
+.notes .to { display: block; margin-top: 4px; color: var(--k); font-size: 12.5px; font-weight: 700; }
+.pill.ans { background: var(--ok); margin-left: 6px; }
+.pill.ans[hidden] { display: none; }
+.pill { display: inline-block; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; padding: 1px 9px; border-radius: 999px; color: #0b1020; background: var(--k); margin-bottom: 6px; }
+.scale { --sk: var(--ok); margin-top: 10px; padding: 7px 11px; border-radius: 6px; font-size: 13px; color: var(--muted); border-left: 3px solid var(--sk); background: color-mix(in srgb, var(--sk) 9%, var(--surface)); }
+.scale.flag { --sk: var(--danger); }
+.scale .lbl { color: var(--sk); display: block; margin-bottom: 2px; }
+.levels { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); gap: 10px; margin-top: 14px; }
+.levels div { padding: 10px 12px; border-radius: 6px; background: color-mix(in srgb, var(--k) 10%, var(--surface)); border-top: 3px solid var(--k); font-size: 13px; color: var(--muted); }
+.levels b { display: block; color: var(--text); font-size: 20px; font-weight: 800; }
+.levels i { display: block; font-style: normal; color: var(--k); font-weight: 700; margin-bottom: 6px; }
+.levels span { display: block; }
+/* ---- proposed flow */
+.flow { margin: 14px 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 12px; counter-reset: step; }
+.flow li { counter-increment: step; padding: 10px 12px 10px 44px; position: relative; border-radius: 6px; background: color-mix(in srgb, var(--surface) 85%, transparent); border: 1px solid var(--border); font-size: 13.5px; color: var(--muted); }
+.flow li::before { content: counter(step); position: absolute; left: 12px; top: 9px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 12px; color: #0b1020; background: var(--gold); }
+.flow li b { color: var(--text); }
+/* ---- decisions */
+.q { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(240px, 1fr); gap: 10px 22px; padding: 14px 0 14px 14px; border-bottom: 1px solid var(--border); border-left: 4px solid var(--k); scroll-margin-top: 120px; }
+.q:target { background: color-mix(in srgb, var(--k) 8%, transparent); }
+.q h3 { font-size: 16px; font-weight: 800; }
+.q h3 .id { color: var(--k); margin-right: 8px; }
+.q .ctx { color: var(--muted); font-size: 13.5px; margin-top: 4px; }
+.opts { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; padding: 0; list-style: none; }
+.opts li { font-size: 13px; padding: 3px 9px; border-radius: 6px; background: color-mix(in srgb, var(--surface-2) 80%, transparent); border: 1px solid var(--border); }
+.opts li b { color: var(--k); margin-right: 6px; }
+.q .rec { font-size: 13.5px; padding: 8px 12px; border-radius: 6px; background: color-mix(in srgb, var(--k) 9%, var(--surface)); align-self: start; }
+.q .rec .lbl { color: var(--k); display: block; }
+/* a recommendation that is only an option letter shows that option's words under it */
+.q .rec .pick { display: block; margin-top: 2px; }
+.q .rec .pick b { color: var(--k); font-weight: 800; margin-right: 6px; }
+/* the options sit inside the recommendation box, under the recommendation, one per line */
+.q .rec .opts { flex-direction: column; margin-top: 10px; padding-top: 8px; border-top: 1px solid color-mix(in srgb, var(--k) 30%, transparent); }
+.q.done .rec { background: color-mix(in srgb, var(--ok) 12%, var(--surface)); }
+.q.done .rec .lbl { color: var(--ok); }
+.box { display: grid; gap: 4px; align-content: start; }
+.box textarea { width: 100%; min-height: 64px; resize: vertical; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border); background: #0a1230; font-size: 13.5px; }
+.box textarea:focus { border-color: var(--accent); outline: none; }
+/* the "Your answer" line: tinted in the question's colour, and lit in full colour on the question you are reading */
+.box .lbl { justify-self: start; padding: 3px 10px; border-radius: 6px; border-left: 3px solid var(--k); color: var(--k); background: color-mix(in srgb, var(--k) 14%, var(--surface)); transition: background .18s, color .18s, box-shadow .18s; }
+.q.now .box .lbl { color: #0b1020; background: var(--k); box-shadow: 0 0 0 3px color-mix(in srgb, var(--k) 30%, transparent); }
+.q.now .box textarea { border-color: var(--k); }
+@media (prefers-reduced-motion: reduce) { .box .lbl { transition: none; } }
+/* the answer box takes its colour from the answer's state, not the question's kind: orange open, green answered, red answer again, grey closed */
+.box { --k: var(--warn); }
+.box[data-state="ok"] { --k: var(--ok); }
+.box[data-state="again"] { --k: var(--danger); }
+.box[data-state="off"] { --k: var(--muted); }
+/* open questions keep the highlight all the time; closed ones (decided or withdrawn) get none, also while scrolling */
+.q:not(.done):not(.withdrawn) .box .lbl { color: #0b1020; background: var(--k); }
+.q:not(.done):not(.withdrawn) .box textarea { border-color: var(--k); }
+.q.done .box .lbl, .q.withdrawn .box .lbl { padding: 0; border: 0; background: none; box-shadow: none; color: var(--faint); }
+.q.done .box textarea:not(:focus), .q.withdrawn .box textarea:not(:focus) { border-color: var(--border); }
+/* a withdrawn question's box reads as withdrawn: dashed, faded, its label in the grey Withdrawn tag */
+.q.withdrawn .box textarea { border-style: dashed; background: transparent; opacity: .7; }
+.q.withdrawn .box .lbl { padding: 3px 10px; border-radius: 6px; background: var(--muted); color: #0b1020; }
+/* a re-asked question: the earlier answer stays readable above the new, empty box */
+.box .prev { padding: 6px 10px; border-radius: 6px; border: 1px dashed var(--rule); color: var(--muted); font-size: 13px; }
+.box .prev p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.box .prev .was { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--faint); }
+/* the "write your new answer" line: a solid red tag, with a glow on the question you are reading */
+.box .st.again { justify-self: start; padding: 3px 10px; border-radius: 6px; font-size: 13px; font-weight: 800; color: #0b1020; background: var(--danger); transition: box-shadow .18s; }
+.q.now .box .st.again { box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 35%, transparent), 0 0 18px color-mix(in srgb, var(--danger) 55%, transparent); }
+@media (prefers-reduced-motion: reduce) { .box .st.again { transition: none; } }
+.box .st { font-size: 12px; color: var(--faint); min-height: 1em; }
+.box .st.saved { color: var(--ok); }
+/* "Read by Claude" is its own check, in blue, apart from your green "Saved" */
+.box .st .rd { color: var(--accent); margin-left: 8px; }
+.box .st .unrd { color: var(--muted); margin-left: 8px; font-weight: 400; }
+@media (max-width: 1100px) { .q { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .q .box { grid-column: 1 / -1; } }
+@media (max-width: 700px) { .q { grid-template-columns: minmax(0, 1fr); padding-left: 10px; } }
+/* ---- paste list */
+.paste { margin-top: 12px; }
+.paste .copybox pre { max-height: 60vh; overflow: auto; font: 13px/1.55 ui-monospace, Consolas, monospace; }
+.paste .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 8px; color: var(--muted); font-size: 13px; }
+/* withdrawn questions: Claude took them back, so they are not open and not counted */
+.pill.wd { background: var(--muted); margin-left: 6px; }
+.q.withdrawn .rec { background: color-mix(in srgb, var(--muted) 10%, var(--surface)); }
+.q.withdrawn .rec .lbl { color: var(--muted); }
+.map a.wd span { text-decoration: line-through; color: var(--muted); }
+/* answer again: Claude needs a new answer, so an older one doesn't count */
+.pill.again { background: var(--warn); margin-left: 6px; }
+.pill.again[hidden] { display: none; }
+.pages { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 10px; margin-top: 14px; }
+.pages a { display: grid; gap: 2px; padding: 10px 14px; border-radius: 6px; border-left: 3px solid var(--k); text-decoration: none; color: var(--muted); font-size: 13px;
+  background: color-mix(in srgb, var(--k) 8%, var(--surface)); }
+.pages a:hover { background: color-mix(in srgb, var(--k) 20%, var(--surface)); }
+.pages a b { color: var(--text); font-size: 15px; font-weight: 800; }
+.pages a i { font-style: normal; color: var(--k); font-weight: 700; }
+.empty { color: var(--muted); padding: 16px 0; }
+[hidden] { display: none !important; }
+/* home tabs: Open (waiting for you or for Claude) and Completed; Completed is built only when its tab is opened */
+.tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 14px; border-bottom: 1px solid var(--border); }
+.tabs button { background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; min-height: 44px; padding: 8px 14px;
+  font-size: 15px; font-weight: 800; color: var(--muted); }
+.tabs button:hover { color: var(--text); }
+.tabs button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--k); }
+.tabs button b { margin-left: 6px; color: var(--k); font-weight: 800; }
+.pages[aria-busy="true"] { opacity: .75; }
+.opts li:has(> b), .opts p:has(> b) { cursor: pointer; }
+.opts li:has(> b):hover, .opts p:has(> b):hover { border-color: var(--k); }
+/* question layout blocks (README "Question layout", helpers in blocks.py): Today grey, Problem red, Proposal blue, Formula gold, Example violet */
+.blk{--b:var(--c3);border-left:3px solid var(--b);background:color-mix(in srgb,var(--b) 9%,var(--surface));padding:7px 11px;border-radius:6px;margin-top:8px;font-size:13.5px;color:var(--muted)}
+.blk>.tag{display:block;color:var(--b);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px}
+.blk.today{--b:var(--c3)}.blk.prob{--b:var(--danger)}.blk.prop{--b:var(--accent)}.blk.form{--b:var(--gold)}.blk.ex{--b:var(--c5)}
+.blk.wrong{--b:var(--danger)}.blk.cause{--b:var(--warn)}.blk.fix{--b:var(--ok)}.blk.tests{--b:var(--c5)}
+.blk b{color:var(--text)}
+.eq{display:block;font:13px/1.5 ui-monospace,Consolas,monospace;color:var(--gold);background:#050a1d;border-radius:4px;padding:4px 8px;margin:4px 0;white-space:pre-wrap;word-break:break-word}
+.exr{margin-top:7px}.exr>b{display:block;color:var(--text);font-size:13px}
+.exr .cells{display:flex;flex-wrap:wrap;gap:5px;margin-top:3px}
+.exr .cells span{font-size:12.5px;padding:2px 8px;border-radius:5px;background:color-mix(in srgb,var(--c5) 13%,var(--surface));color:var(--text)}
+.exr .cells i{font-style:normal;color:var(--muted);margin-right:4px}
+.exr .cells .up,.up{color:var(--ok);font-weight:800;background:none;padding:0}.exr .cells .down,.down{color:var(--danger);font-weight:800;background:none;padding:0}
+.ckey{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--muted);margin-top:8px}
+.ckey span{display:inline-flex;align-items:center;gap:6px}.ckey i{width:10px;height:10px;border-radius:2px;background:var(--b)}
+/* on a phone the reading text is two sizes (2px) bigger */
+@media (max-width: 700px) {
+  body { font-size: 16px; }
+  .q h3 { font-size: 18px; }
+  .q .ctx, .blk, .q .rec, .box textarea, .notes div { font-size: 15.5px; }
+  .opts li, .box .prev, .sec-h p, .top .sub, #intro, .counts, .map a, .legend, .flow li, .levels div { font-size: 15px; }
+  .eq, .exr .cells span, .exr > b, .ckey { font-size: 14.5px; }
+}
+</style>
+
+<header class="top">
+  <div class="grow"><h1 id="title">Questions</h1></div>
+  <div class="tools">
+    <button class="btn" id="backBtn" type="button" hidden>‹ All questionnaires</button>
+    <button class="btn" id="nextBtn" type="button" hidden>Next unanswered ↓</button>
+    <span class="prog" id="prog"></span>
+    <button class="btn main" id="saveBtn" type="button" hidden>Submit</button>
+  </div>
+  <div class="wake" id="wake" hidden>
+    <span class="copied" id="copied"></span>
+    <div class="copybox"><pre id="wakeText"></pre><button class="btn" id="copyAgain" type="button">Copy</button></div>
+  </div>
+</header>
+<div id="intro" style="display:grid;gap:4px;padding-top:12px;color:var(--muted);font-size:13px"></div>
+
+<main id="home">
+  <section>
+    <div class="sec-h"><h2>Questionnaires</h2><p>Newest first; each card shows how many questions wait for you, and how many of your answers Claude hasn't read yet. Completed ones (all answered and read) wait in their own tab and load only when you open it.</p></div>
+    <div class="tabs" role="tablist" aria-label="Questionnaires">
+      <button type="button" role="tab" id="tabOpen" aria-controls="pageList" aria-selected="true" style="--k:var(--warn)">Open<b id="nOpen"></b></button>
+      <button type="button" role="tab" id="tabDone" aria-controls="pageList" aria-selected="false" tabindex="-1" style="--k:var(--ok)">Completed<b id="nDone"></b></button>
+    </div>
+    <div class="pages" id="pageList" role="tabpanel"><p class="empty">Loading…</p></div>
+  </section>
+</main>
+
+<main id="page" hidden>
+  <div class="legend" id="legend"></div>
+  <section id="decisions">
+    <div class="sec-h"><h2>Questions</h2><p>Left: the question. Middle: my recommendation. Right: your answer. Write yes, no, or your own idea. Answered questions come first; the ones waiting for you are below them, newest at the bottom.</p></div>
+    <div id="qList"></div>
+  </section>
+  <section id="index">
+    <div class="sec-h"><h2>Every question</h2><p>Jump to any question.</p></div>
+    <div class="counts" id="counts"></div>
+    <nav class="map" id="map" aria-label="Every question by kind"></nav>
+  </section>
+  <div id="extra"></div>
+  <section id="final">
+    <div class="sec-h"><h2 id="rulesTitle">Rules, ready to paste</h2><p id="rulesIntro">Every rule in its final wording if each recommendation is accepted. Each rule starts with the question it hangs on.</p></div>
+    <div class="paste">
+      <div class="row"><button class="btn" id="copyRules" type="button">Copy all rules</button><span id="copiedRules"></span></div>
+      <div class="copybox"><pre id="rulesText"></pre></div>
+    </div>
+  </section>
+</main>
+
+<style id="pageCss"></style>
+<script>
+(() => {
+// Questions hub: one artifact, published once. Each questionnaire is a db doc pages/<PAGE> whose `spec` field holds
+// its header (title, intro, K, NOTE, sections, rules, css), as JSON text or an object. Each round and each question is its own
+// small doc, so a new round or a question marked done writes only those docs (and bumps the page's `updated`):
+// rounds/<PAGE>/items/<g> = { title, sub, n } and qs/<PAGE>/items/<ID> = the question's fields + { g, i }. Rounds sort by n,
+// questions by round, then i. Older pages may still keep GROUPS / QS inside spec: they come first, and a doc with the same
+// id is laid over that entry where it stands (a null field clears it). Answers: answers/<PAGE>/items/<ID> = { text, at, prev }.
+// A re-asked question (q.reask) gets a fresh box: the new answer is `text`, the answer it replaces is kept in `prev`. Claude writes pages
+// with ArtifactData (no publish); the page renders them.
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
+const ddmmyyyy = (iso) => { const d = new Date(iso); return isNaN(d) ? '' : `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`; };
+const copy = (text) => { const t = document.createElement('textarea'); t.value = text; t.setAttribute('readonly', ''); t.style.cssText = 'position:fixed;top:0;left:0;opacity:0'; document.body.append(t); t.select(); let ok = false; try { ok = document.execCommand('copy'); } catch (e) {} t.remove(); return ok ? Promise.resolve(true) : (navigator.clipboard?.writeText(text).then(() => true, () => false) ?? Promise.resolve(false)); };
+function selectNode(el) { const r = document.createRange(); r.selectNodeContents(el); const s = getSelection(); s.removeAllRanges(); s.addRange(r); }
+const parse = (d) => { try { const s = d?.spec; return s && typeof s === 'object' ? s : JSON.parse(s || '{}'); } catch (e) { return null; } };
+const docsOf = (snap) => snap.docs.map((d) => ({ ...d.data(), id: d.id }));
+// one questionnaire from its header, its round docs and its question docs (see the top of this script)
+function assemble(sp, rounds, qs) {
+  if (!sp) return null;
+  const G = (sp.GROUPS || []).map(([g, title, sub], n) => ({ g, title, sub, n: -1e15 + n }));
+  for (const r of rounds || []) { const j = G.findIndex((x) => x.g === r.id), x = { g: r.id, title: r.title, sub: r.sub, n: +r.n || 0 }; if (j < 0) G.push(x); else G[j] = { ...x, n: G[j].n }; }
+  G.sort((a, b) => a.n - b.n);
+  const Q = (sp.QS || []).map((q, i) => ({ ...q, _k: -1e15 + i })), at = new Map(Q.map((q, i) => [q.id, i]));
+  for (const d of qs || []) { const j = at.get(d.id); if (j == null) Q.push({ ...d, _k: +d.i || 0 }); else Q[j] = { ...Q[j], ...d, _k: Q[j]._k }; }
+  const rank = new Map(G.map((x, i) => [String(x.g), i])), r = (q) => rank.get(String(q.g)) ?? G.length;
+  Q.sort((a, b) => r(a) - r(b) || a._k - b._k);
+  return { ...sp, GROUPS: G.map((x) => [x.g, x.title, x.sub]), QS: Q.map(({ _k, i, ...q }) => q) };
+}
+const openIds = (S) => (S?.QS || []).filter((q) => !q.done && !q.withdrawn);
+// read by Claude: Claude decided the question after the answer was saved, so it has read and acted on it
+// answers saved before the read check went live count as read; only later ones are tracked
+const READ_TRACKED_FROM = Date.parse('2026-11-17T15:20:00Z');
+const readBy = (q, a, updated) => !!a && (Date.parse(a.at || 0) < READ_TRACKED_FROM || (!!q.done && Date.parse(a.at || 0) < Date.parse(updated || 0)));
+// when a question was asked again: its reask time, but never later than the page write that asked it.
+// A reask without a date (e.g. true) counts as the page's last update (BG-292); one in the future is cut back to it (BG-298).
+const reaskAt = (q, updated) => { const r = Date.parse(q.reask), u = updated ? Date.parse(updated) : NaN;
+  return isNaN(r) ? (isNaN(u) ? 0 : u) : (!isNaN(u) && r > u ? u : r); };
+const answeredBy = (q, a, updated) => !!a && (!q.reask || Date.parse(a.at || 0) > reaskAt(q, updated));
+
+let db = null, PAGE = null, S = null, pageAt = '', unsubPage = null, unsubAns = null, unsubParts = [];
+const saved = {}, savedAt = {}, prevTxt = {}, timers = {}, chain = {}, fresh = new Set();
+// answers typed on this visit are new answers, whatever the device clock says, so they never become the "earlier answer"
+const mine = new Set();
+const remember = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} if (db) db.doc('view/' + k.replace(/[^\w-]/g, '_')).set({ v }).catch(() => {}); };
+const recall = async (k) => { try { const v = JSON.parse(localStorage.getItem(k)); if (v != null) return v; } catch (e) {}
+  try { return db ? (await db.doc('view/' + k.replace(/[^\w-]/g, '_')).get()).data()?.v ?? null : null; } catch (e) { return null; } };
+
+// ---- home: every questionnaire
+// The list comes from a small index (hub/index: one row per questionnaire, no specs), so it shows after two small reads:
+// the index, and the questionnaires written since it was saved (`updated` later than its `seen`). Then, in the background,
+// open questionnaires recount their answers and the one just left is read again. Completed ones are read again only when
+// their tab is opened. Rows of open questionnaires keep `qs` ([id, done, reask] per question) so a recount needs no spec.
+let homeTab = 'open', rowsById = null, doneChecked = false, homeSeq = 0, savedIdx = '', lastList = '';
+const left = new Map(); // questionnaires left since the index was saved, with their row counted from this visit
+const isDone = (r) => !r.waiting && !r.unread;
+const homeMsg = (t) => { lastList = ''; $('pageList').innerHTML = `<p class="empty">${esc(t)}</p>`; };
+const qsOf = (sp) => (sp?.QS || []).filter((q) => !q.withdrawn).map((q) => [q.id, q.done ? 1 : 0, q.reask || 0]);
+const statusOf = (r, a) => { let waiting = 0, unread = 0;
+  for (const [id, d, re] of r.qs) { const q = { id, done: !!d, reask: re || undefined }, ok = answeredBy(q, a[id], r.updated);
+    if (!d && !ok) waiting++; if (ok && !readBy(q, a[id], r.updated)) unread++; }
+  return { waiting, unread }; };
+const answersOf = async (id) => { const a = {}; (await db.collection(`answers/${id}/items`).get()).docs.forEach((r) => { a[r.id] = r.data(); }); return a; };
+const rowFrom = (id, x, sp, a) => { const r = { id, title: x.title || sp?.title || id, updated: x.updated || '', qs: qsOf(sp) }; r.total = r.qs.length;
+  if (a) Object.assign(r, statusOf(r, a)); else { r.waiting = r.qs.filter((q) => !q[1]).length; r.unread = 0; } return r; };
+const qsDocs = async (id) => { try { return docsOf(await db.collection(`qs/${id}/items`).get()); } catch (e) { return []; } };
+const rowOf = async (id, x) => { let a = null; const qs = qsDocs(id); try { a = await answersOf(id); } catch (e) {} return rowFrom(id, x, assemble(parse(x), [], await qs), a); };
+// one questionnaire again: its row, null when it was deleted, undefined when the read failed (keep the old row)
+const reread = async (id) => { try { const d = await db.doc('pages/' + id).get(); return d.exists ? await rowOf(id, d.data()) : null; } catch (e) { return undefined; } };
+const recount = async (r) => { if (!r.qs) return reread(r.id); try { return { ...r, ...statusOf(r, await answersOf(r.id)) }; } catch (e) { return undefined; } };
+const apply = (rows, ids, got) => ids.forEach((id, i) => { if (got[i] === null) delete rows[id]; else if (got[i]) rows[id] = got[i]; });
+function saveIndex() {
+  const rows = {}; let seen = '';
+  for (const r of Object.values(rowsById)) { const { qs, ...rest } = r; rows[r.id] = isDone(r) ? rest : r; if (r.updated > seen) seen = r.updated; }
+  const s = JSON.stringify({ rows, seen });
+  if (s !== savedIdx) { savedIdx = s; db.doc('hub/index').set({ rows, seen, at: new Date().toISOString() }).catch(() => { savedIdx = ''; }); }
+}
+async function loadRows() {
+  let idx = null; try { idx = (await db.doc('hub/index').get()).data(); } catch (e) {}
+  const rows = {};
+  if (!idx?.rows) { // no index yet: read every questionnaire once
+    const snap = await db.collection('pages').get();
+    (await Promise.all(snap.docs.map((d) => rowOf(d.id, d.data())))).forEach((r) => { rows[r.id] = r; });
+    doneChecked = true; left.clear(); return { rows, changed: null };
+  }
+  Object.assign(rows, idx.rows); savedIdx = JSON.stringify({ rows: idx.rows, seen: idx.seen });
+  const snap = await db.collection('pages').where('updated', '>', idx.seen || '').get();
+  (await Promise.all(snap.docs.map((d) => rowOf(d.id, d.data())))).forEach((r) => { rows[r.id] = r; });
+  const changed = new Set(snap.docs.map((d) => d.id));
+  for (const [id, r] of left) if (rows[id] && !changed.has(id)) rows[id] = r;
+  return { rows, changed };
+}
+// background: recount open questionnaires and the ones left (a done row has no `qs`, so it is read again)
+async function refreshRows(rows, changed) {
+  const ids = Object.values(rows).filter((r) => !changed.has(r.id) && (!isDone(r) || left.has(r.id))).map((r) => r.id); left.clear();
+  apply(rows, ids, await Promise.all(ids.map((id) => recount(rows[id]))));
+}
+// Completed tab opened: read those questionnaires again once per visit, in case one changed without a new `updated`
+async function checkDone() {
+  if (doneChecked || !rowsById) return; doneChecked = true;
+  const ids = Object.values(rowsById).filter(isDone).map((r) => r.id); if (!ids.length) return;
+  $('pageList').setAttribute('aria-busy', 'true');
+  apply(rowsById, ids, await Promise.all(ids.map(reread)));
+  $('pageList').removeAttribute('aria-busy'); saveIndex(); if (!PAGE) renderHome();
+}
+const card = (r) => `<a href="#${esc(r.id)}" data-page="${esc(r.id)}" style="--k:${r.waiting ? 'var(--warn)' : r.unread ? 'var(--accent)' : 'var(--ok)'}"><b>${esc(r.title)}</b><i>${[r.waiting ? `${r.waiting} waiting for you` : '', r.unread ? `${r.unread} not read by Claude yet` : ''].filter(Boolean).join(' · ') || 'All answered and read'}</i><span>${r.total} question${r.total === 1 ? "" : "s"} · updated ${ddmmyyyy(r.updated)}</span></a>`;
+function renderHome() {
+  const all = Object.values(rowsById).sort((a, b) => (b.updated > a.updated ? 1 : -1)), open = all.filter((r) => !isDone(r)), done = all.filter(isDone);
+  $('nOpen').textContent = open.length; $('nDone').textContent = done.length;
+  for (const [t, el] of [['open', $('tabOpen')], ['done', $('tabDone')]]) { el.setAttribute('aria-selected', String(homeTab === t)); el.tabIndex = homeTab === t ? 0 : -1; }
+  const list = homeTab === 'done' ? done : open;
+  const html = list.length ? list.map(card).join('') : `<p class="empty">${homeTab === 'done' ? 'Nothing completed yet.' : 'Nothing waiting for you.'}</p>`;
+  if (html !== lastList) { lastList = html; $('pageList').innerHTML = html; } // unchanged: leave the cards alone so a click in progress lands
+}
+function setTab(t, focus) { homeTab = t; if (focus) $(t === 'done' ? 'tabDone' : 'tabOpen').focus(); if (rowsById) { renderHome(); if (t === 'done') checkDone(); } }
+$('tabOpen').addEventListener('click', () => setTab('open'));
+$('tabDone').addEventListener('click', () => setTab('done'));
+document.querySelector('.tabs').addEventListener('keydown', (e) => { if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) { e.preventDefault(); setTab(homeTab === 'open' ? 'done' : 'open', true); } });
+function showHome() {
+  Object.keys(timers).forEach(store); // save typing still waiting before leaving
+  if (PAGE && S) { // the questionnaire just left, counted from what this visit saw (answers typed now count as new)
+    const a = {}; for (const id in saved) if (saved[id]) a[id] = { text: saved[id], at: mine.has(id) ? new Date().toISOString() : savedAt[id] };
+    const r = rowFrom(PAGE, { title: S.title, updated: pageAt }, S, a); left.set(PAGE, r); if (rowsById) rowsById[PAGE] = r; }
+  PAGE = null; S = null; unsubPage?.(); unsubAns?.(); unsubParts.forEach((u) => u?.()); unsubPage = unsubAns = null; unsubParts = [];
+  $('home').hidden = false; $('page').hidden = true; $('backBtn').hidden = true; $('nextBtn').hidden = true; $('saveBtn').hidden = true; $('wake').hidden = true;
+  $('title').textContent = 'Questions'; $('intro').textContent = ''; $('prog').textContent = ''; document.title = 'Questions';
+  remember('qhub:last', '');
+  if (!db) { homeMsg('This view cannot reach the questions database. Open the page signed in to claude.ai.'); return; }
+  if (rowsById) renderHome(); else homeMsg('Loading…');
+  const seq = ++homeSeq, timer = setTimeout(() => { if (!rowsById) homeMsg('Still loading. Check your connection.'); }, 10000);
+  loadRows().then(async ({ rows, changed }) => {
+    clearTimeout(timer); if (seq !== homeSeq) return;
+    rowsById = rows; if (!PAGE) { renderHome(); if (homeTab === 'done') checkDone(); }
+    if (changed) { await refreshRows(rows, changed); if (seq !== homeSeq) return; }
+    saveIndex(); if (!PAGE) renderHome();
+  }, () => { clearTimeout(timer); if (seq === homeSeq && !rowsById) homeMsg('Could not load the questionnaires.'); });
+}
+$('pageList').addEventListener('click', (e) => { const a = e.target.closest('a[data-page]'); if (!a) return; e.preventDefault(); openPage(a.dataset.page); });
+// back: the button, the mouse's back button and the browser's Back all return to the list of questionnaires
+function goHome() { if (!PAGE) return; const pushed = history.state?.q; showHome(); if (pushed) try { history.back(); } catch (e) {} }
+$('backBtn').addEventListener('click', goHome);
+// jump to the next unanswered question below the one at the top of the screen, back to the first after the last
+$('nextBtn').addEventListener('click', () => { const ids = new Set(unanswered().map((q) => q.id));
+  const arts = [...document.querySelectorAll('#qList article.q')].filter((a) => ids.has(a.id)); if (!arts.length) return;
+  (arts.find((a) => a.getBoundingClientRect().top > 140) || arts[0]).scrollIntoView({ block: 'start' }); });
+for (const ev of ['mousedown', 'mouseup', 'auxclick']) addEventListener(ev, (e) => { if (e.button !== 3 || !PAGE) return; e.preventDefault(); if (ev === 'mouseup') goHome(); }, true);
+addEventListener('popstate', (e) => { const q = e.state?.q; if (q && db) { if (q !== PAGE) openPage(q, true); } else if (PAGE) showHome(); });
+
+// ---- one questionnaire
+function openPage(id, noPush) {
+  unsubPage?.(); unsubAns?.(); unsubParts.forEach((u) => u?.()); unsubParts = [];
+  if (!noPush && history.state?.q !== id) try { history.pushState({ q: id }, ''); } catch (e) {}
+  PAGE = id; for (const o of [saved, savedAt, prevTxt, timers, chain]) for (const k in o) delete o[k]; fresh.clear(); mine.clear(); scrolled = false;
+  $('home').hidden = true; $('page').hidden = false; $('backBtn').hidden = false; $('saveBtn').hidden = false; $('wake').hidden = true;
+  $('qList').innerHTML = '<p class="empty">Loading…</p>';
+  remember('qhub:last', id);
+  // the header, the rounds and the questions arrive apart: draw once all three are in, then again on every change
+  const got = { page: undefined, rounds: undefined, qs: undefined }, draw = () => { if (PAGE !== id || Object.values(got).includes(undefined) || !got.page) return;
+    const sp = assemble(got.page, got.rounds, got.qs); if (sp) render(sp); };
+  unsubPage = db.doc('pages/' + id).onSnapshot((d) => { const sp = parse(d.data()); if (!sp) return; pageAt = d.data()?.updated || ''; got.page = sp; draw(); }, () => {});
+  unsubParts = ['rounds', 'qs'].map((c) => db.collection(`${c}/${id}/items`).onSnapshot((snap) => { got[c] = docsOf(snap); draw(); }, () => { got[c] = got[c] || []; draw(); }));
+  unsubAns = db.collection(`answers/${id}/items`).onSnapshot((snap) => {
+    snap.docs.forEach((d) => { const x = d.data(); if (!x) return; saved[d.id] = x.text; savedAt[d.id] = x.at || ''; prevTxt[d.id] = x.prev || ''; if (x.auto) fresh.add(d.id);
+      const ta = $('a-' + d.id); if (ta && !ta.value.trim() && document.activeElement !== ta && !stale(d.id)) ta.value = x.text; paint(d.id); });
+    progress();
+  }, () => {});
+}
+const isAnswered = (q) => (mine.has(q.id) && !!saved[q.id]) || answeredBy(q, saved[q.id] ? { at: savedAt[q.id] } : null, pageAt);
+const isRead = (q) => readBy(q, saved[q.id] ? { at: savedAt[q.id] } : null, pageAt);
+// stale: the question was asked again after the saved answer, so that answer is the earlier one and the box is for a new one
+const stale = (id) => { const q = S?.QS.find((x) => x.id === id); return !!(q?.reask && saved[id] && !isAnswered(q)); };
+const paint = (id) => { const q = S?.QS.find((x) => x.id === id) || { id }, ok = isAnswered(q), st = $('st-' + id);
+  const old = stale(id) ? saved[id] : prevTxt[id], pv = $('prev-' + id), lb = $('lbl-' + id);
+  if (pv) { pv.hidden = !old; pv.lastElementChild.textContent = old || ''; }
+  if (lb) lb.textContent = q.withdrawn ? `Withdrawn \u00b7 ${id} \u00b7 no answer needed` : `${old ? 'Your new answer' : 'Your answer'} \u00b7 ${id}`;
+  const ta = $('a-' + id); if (ta) ta.placeholder = q.withdrawn ? 'Withdrawn: no answer needed' : 'Yes, no, or your own idea';
+  if (st && saved[id]) { if (ok) st.innerHTML = isRead(q) ? '<b>\u2713 Saved</b> <b class="rd">\u2713 Read by Claude</b>' : '<b>\u2713 Saved</b> <span class="unrd">Claude hasn\u2019t read it yet</span>'; else st.textContent = 'Asked again: write your new answer in this box'; st.className = ok ? 'st saved' : 'st again'; }
+  if (st) st.parentNode.dataset.state = ok ? 'ok' : q.reask ? 'again' : q.withdrawn || q.done ? 'off' : 'open';
+  const p = $('ans-' + id); if (p) p.hidden = !ok; const a = $('again-' + id); if (a) a.hidden = ok; };
+// questions still waiting for an answer: not decided, not withdrawn, no answer that counts
+const unanswered = () => (S?.QS || []).filter((q) => !q.done && !q.withdrawn && !isAnswered(q));
+const progress = () => { if (!S) return; const un = unanswered().length; $('nextBtn').hidden = !un; $('nextBtn').textContent = `Next unanswered (${un}) ↓`; const wd = S.QS.filter((q) => q.withdrawn).length, done = S.QS.filter((q) => isAnswered(q) && !q.withdrawn).length, unread = S.QS.filter((q) => isAnswered(q) && !q.withdrawn && !isRead(q)).length;
+  $('prog').innerHTML = `<b>${done}</b> of ${S.QS.length - wd} questions answered${unread ? ` · <b>${unread}</b> not read by Claude yet` : ''}${wd ? ` · ${wd} withdrawn` : ''}`; };
+// the question at reading height gets .now, so its "Your answer" line lights up as you scroll
+let markT = 0;
+function mark() { const y = innerHeight * .4; let best = null, bd = Infinity;
+  for (const a of document.querySelectorAll('article.q')) { const r = a.getBoundingClientRect(), d = r.top > y ? r.top - y : r.bottom < y ? y - r.bottom : 0; if (d < bd) { bd = d; best = a; } }
+  const old = document.querySelector('article.q.now'); if (old !== best) { old?.classList.remove('now'); best?.classList.add('now'); } }
+for (const ev of ['scroll', 'resize']) addEventListener(ev, () => { if (!markT) markT = requestAnimationFrame(() => { markT = 0; mark(); }); }, { passive: true });
+function render(sp) {
+  const keep = {}; document.querySelectorAll('textarea[data-id]').forEach((t) => { keep[t.dataset.id] = t.value; });
+  S = { K: {}, NOTE: {}, GROUPS: [], QS: [], sections: [], ...sp };
+  const { K, NOTE, GROUPS, QS } = S, fmt = esc;
+  document.title = S.title; $('title').textContent = S.title; $('pageCss').textContent = S.css || '';
+  $('intro').innerHTML = [].concat(S.intro || []).map((p) => `<p class="sub">${esc(p)}</p>`).join('');
+  $('legend').innerHTML = Object.values(K).map((x) => `<span style="--k:${x.k}"><i></i><b>${esc(x.name)}</b> ${esc(x.meaning)}</span>`).join('');
+  const n = (k) => QS.filter((q) => q.k === k && !q.withdrawn).length, wd = QS.filter((q) => q.withdrawn).length;
+  $('counts').innerHTML = `<span>${QS.length - wd} questions${wd ? ` (${wd} withdrawn, not counted)` : ''}:</span>` + Object.entries(K).map(([k, x]) => `<span style="--k:${x.k}"><b>${n(k)}</b> ${esc(x.name.toLowerCase())}</span>`).join('');
+  const inG = new Set(GROUPS.map(([g]) => g)), order = [...GROUPS.flatMap(([g]) => QS.filter((q) => q.g === g)), ...QS.filter((q) => !inG.has(q.g))]; // asked order; a question without a group goes last, never lost
+  $('map').innerHTML = order.map((q) => `<a href="#${q.id}"${q.withdrawn ? ' class="wd"' : ''} style="--k:${K[q.k]?.k}"><b>${q.id}</b><span>${q.sc && q.sc[0] === 'flag' ? '⚑ ' : ''}${esc(q.title)}</span></a>`).join('');
+  const box = (id) => `<div class="box"><div class="prev" id="prev-${id}" hidden><span class="was">Your earlier answer · ${id}</span><p></p></div><label class="lbl" id="lbl-${id}" for="a-${id}">Your answer · ${id}</label><textarea id="a-${id}" data-id="${id}" placeholder="Yes, no, or your own idea"></textarea><span class="st" id="st-${id}"></span></div>`;
+  // a recommendation that only names option letters ("a", "a.", "a + c") gets each option's words written under it
+  const recText = (q) => { const t = String(q.rec ?? '').trim().split(/[\s,+&\/]+|\band\b|\bor\b/).map((x) => x.replace(/[.):]+$/, '')).filter(Boolean);
+    const picks = t.map((l) => (q.o || []).find(([k]) => String(k).toLowerCase() === l.toLowerCase()));
+    return t.length && picks.every(Boolean) ? picks.map(([l, x]) => `<span class="pick"><b>${esc(l)}</b>${esc(x)}</span>`).join('') : fmt(q.rec); };
+  let html = '';
+  // answered first, waiting below, so a new question always lands at the very bottom
+  for (const [title, sub, qs] of [['Answered', 'Your answers, and what each one means for the build.', order.filter((x) => x.done)], ['Waiting for you', 'The questions still open, newest at the bottom.', order.filter((x) => !x.done)]]) {
+    if (!qs.length) continue;
+    html += `<div class="sec-h" style="margin-top:22px;border-bottom-width:1px"><h3 style="font-size:15px;font-weight:800">${title}</h3><p>${sub}</p></div>`;
+    for (const q of qs) {
+      const opts = q.o ? `<ul class="opts">${q.o.map(([l, t]) => `<li><b>${esc(l)}</b>${esc(t)}</li>`).join('')}</ul>` : '';
+      html += `<article class="q${q.done ? ' done' : ''}${q.withdrawn ? ' withdrawn' : ''}" id="${q.id}" style="--k:${K[q.k]?.k}">
+      ${q.body != null ? `<div>${q.body}${/class="opts"/.test(q.body + (q.recHtml || '')) ? '' : opts}</div>` : `<div><span class="pill">${esc(K[q.k]?.name)}</span><span class="pill ans" id="ans-${q.id}" hidden>Answered</span>${q.reask ? `<span class="pill again" id="again-${q.id}">Answer again</span>` : ''}${q.withdrawn ? '<span class="pill wd">Withdrawn</span>' : ''}<h3><span class="id">${q.id}</span>${esc(q.title)}</h3><p class="ctx">${fmt(q.ctx)}</p>${opts}${q.sc ? `<div class="scale ${q.sc[0]}"><span class="lbl">${q.sc[0] === 'flag' ? 'How it scales · flagged' : 'How it scales'}</span>${fmt(q.sc[1])}</div>` : ''}</div>`}
+      ${q.recHtml != null ? `<div class="rec">${q.recHtml}</div>` : `<div class="rec"><span class="lbl">${q.withdrawn ? 'Withdrawn' : q.done ? 'Decided' : 'Recommendation'}</span>${q.done ? fmt(q.done) : recText(q)}</div>`}
+      ${box(q.id)}
+    </article>`;
+    }
+  }
+  $('qList').innerHTML = html;
+  // move each question's options out of the question column to under its recommendation
+  for (const a of $('qList').querySelectorAll('article.q')) { const rec = a.querySelector(':scope > .rec'); if (rec) a.querySelectorAll(':scope > div:first-child .opts').forEach((o) => rec.append(o)); }
+  // extra sections: notes (coloured by NOTE kind) or Claude-written html (levels, flow)
+  $('extra').innerHTML = S.sections.map((s) => `<section id="${esc(s.id)}"><div class="sec-h"><h2>${esc(s.title)}</h2><p>${esc(s.sub)}</p></div>${s.notes
+    ? `<div class="notes">${s.notes.map(([k, t, b, to]) => `<div style="--k:${NOTE[k]?.k || 'var(--k-game)'}">${NOTE[k] ? `<span class="pill">${esc(NOTE[k].name)}</span>` : ''}<b>${esc(t)}</b>${esc(b)}${to ? `<span class="to">${esc(to)}</span>` : ''}</div>`).join('')}</div>`
+    : s.html || ''}</section>`).join('');
+  const R = S.rules || {}; $('final').hidden = !QS.some((q) => q.f) && !S.rulesText;
+  $('rulesTitle').textContent = R.title || 'Rules, ready to paste'; if (R.intro) $('rulesIntro').textContent = R.intro;
+  let txt = R.lead ? R.lead + '\n' : '';
+  for (const [g, title] of GROUPS) { const qs = QS.filter((x) => x.g === g && x.f); if (qs.length) txt += `\n${title}\n` + qs.map((q) => `${q.id} ${q.f}\n`).join(''); }
+  $('rulesText').textContent = S.rulesText || txt.trim();
+  for (const t of document.querySelectorAll('textarea[data-id]')) { const id = t.dataset.id; const k = keep[id]; t.value = stale(id) ? (k != null && k.trim() !== saved[id] ? k : '') : k ?? saved[id] ?? ''; paint(id); }
+  progress(); restoreScroll(); mark();
+}
+$('copyRules').addEventListener('click', async () => {
+  const ok = await copy($('rulesText').textContent), c = $('copiedRules'); c.className = 'copied'; c.style.color = ok ? 'var(--ok)' : 'var(--warn)';
+  c.textContent = ok ? 'Copied' : 'Copy did not work here. The text is selected; copy it yourself.'; if (!ok) selectNode($('rulesText'));
+});
+
+// ---- answers save as you type; Submit copies first (while the click still counts), then marks them sent
+const wake = $('wake'), wakeText = $('wakeText'), copied = $('copied');
+const boxOf = (id) => document.querySelector(`textarea[data-id="${id}"]`), val = (id) => (boxOf(id)?.value || '').trim();
+const status = (id, s) => { const st = $('st-' + id); if (st) { st.textContent = s; st.className = 'st'; } };
+const store = (id) => { clearTimeout(timers[id]); delete timers[id];
+  if (!boxOf(id) || !PAGE) return;
+  if (!db) return status(id, 'Not saved here: Submit copies it');
+  const v = val(id), ref = db.doc(`answers/${PAGE}/items/${id}`); if (v) fresh.add(id); else fresh.delete(id);
+  if (!v && stale(id)) return status(id, ''), paint(id); // an empty new box never deletes the earlier answer
+  return chain[id] = (chain[id] || Promise.resolve()).then(async () => {
+    const q = S?.QS.find((x) => x.id === id), at = new Date().toISOString(), prev = stale(id) ? saved[id] : prevTxt[id];
+    if (v) { await ref.set({ text: v, at, auto: true, ...(prev ? { prev } : {}) }); mine.add(id); saved[id] = v; savedAt[id] = at; prevTxt[id] = prev || ''; }
+    else if (prevTxt[id] && q?.reask) { // erasing a new answer brings the earlier one back as it was; it never deletes it (BG-299)
+      const was = new Date(reaskAt(q, pageAt) - 1000).toISOString(); mine.delete(id); fresh.delete(id);
+      await ref.set({ text: prevTxt[id], at: was }); saved[id] = prevTxt[id]; savedAt[id] = was; prevTxt[id] = ''; status(id, ''); }
+    else { await ref.delete(); delete saved[id]; delete prevTxt[id]; status(id, ''); }
+    paint(id); progress();
+  }).catch(() => status(id, 'Not saved: Submit copies it'));
+};
+document.addEventListener('input', (e) => { const id = e.target.dataset?.id; if (e.target.tagName !== 'TEXTAREA' || !id) return;
+  status(id, 'Saving…'); clearTimeout(timers[id]); timers[id] = setTimeout(() => store(id), 600); });
+document.addEventListener('focusout', (e) => { const id = e.target.dataset?.id; if (id && timers[id]) store(id); });
+$('saveBtn').addEventListener('click', async () => {
+  const boxes = [...document.querySelectorAll('textarea[data-id]')], order = boxes.map((t) => t.dataset.id);
+  // an answer Claude already acted on (its question decided after it was saved) is not new, even if it was never submitted
+  const acted = (id) => !timers[id] && isRead(S.QS.find((q) => q.id === id) || { id });
+  const ids = [...new Set([...fresh, ...Object.keys(timers)])].filter((id) => val(id) && !acted(id)).sort((a, b) => order.indexOf(a) - order.indexOf(b));
+  const changed = boxes.filter((t) => t.value.trim());
+  let text = '';
+  if (db && ids.length) text = `I answered ${ids.join(', ')} in "${S.title}". Please read and act.`;
+  if (!db && changed.length) text = `My answers in "${S.title}" (the page could not save them):\n` + changed.map((t) => `${t.dataset.id}: ${t.value.trim()}`).join('\n');
+  wake.hidden = false; wakeText.textContent = text; wakeText.parentNode.hidden = !text;
+  if (!text) { copied.textContent = 'Nothing new since your last Submit.'; copied.style.color = 'var(--muted)'; return; }
+  const copying = copy(text);
+  if (db) try { await Promise.all(Object.keys(timers).map(store));
+    for (const id of ids) { await chain[id]; const v = val(id); if (v) await db.doc(`answers/${PAGE}/items/${id}`).set({ text: v, at: new Date().toISOString(), ...(prevTxt[id] ? { prev: prevTxt[id] } : {}) }); fresh.delete(id); }
+  } catch (e) {}
+  const ok = await copying;
+  copied.style.color = ok ? 'var(--ok)' : 'var(--warn)';
+  copied.textContent = ok ? 'Copied — paste it in the thread' : 'Copy was blocked here. The text below is selected: press Ctrl+C.';
+  if (!ok) selectNode(wakeText);
+  progress();
+});
+// click an option's box to add its letter and a dot ("b.") to that question's answer (added, never replacing what is there)
+document.addEventListener('click', (e) => { if (getSelection()?.toString()) return; const l = e.target.closest('.opts li, .opts p')?.querySelector(':scope > b'); const art = l?.closest('article.q'); const ta = art?.querySelector('textarea[data-id]'); if (!ta) return;
+  const v = ta.value.replace(/\s+$/, ''); const k = l.textContent.trim().replace(/\.$/, '') + '.'; ta.value = (v ? v + ' ' : '') + k; ta.dispatchEvent(new Event('input', { bubbles: true })); store(ta.dataset.id); });
+$('copyAgain').addEventListener('click', async () => { const ok = await copy(wakeText.textContent); copied.textContent = ok ? 'Copied — paste it in the thread' : 'Select the text and copy it.'; if (!ok) selectNode(wakeText); });
+
+// ---- reopen where you were: the last questionnaire, and the question at the top of the screen in each one
+let posT, skipUntil = 0, moved = false, lastPos = '', scrolled = false;
+const where = () => { const vis = (q) => [...document.querySelectorAll(q)].find((e) => e.getBoundingClientRect().bottom > 90), a = vis('article[id]') || vis('section[id]');
+  return { y: Math.round(scrollY), id: a?.id || '', off: a ? Math.round(a.getBoundingClientRect().top) : 0 }; };
+const goTo = (p) => { if (!p || moved) return; const a = p.id && $(p.id); skipUntil = Date.now() + 400; scrollTo(0, a ? scrollY + a.getBoundingClientRect().top - p.off : p.y); };
+async function restoreScroll() { if (scrolled || !PAGE) return; scrolled = true; moved = false; const p = await recall('qpos:' + PAGE); goTo(p); document.fonts?.ready.then(() => goTo(p)); }
+addEventListener('scroll', () => { if (Date.now() < skipUntil || !PAGE) return; moved = true; clearTimeout(posT);
+  posT = setTimeout(() => { const p = where(), s = JSON.stringify(p); if (s !== lastPos) { lastPos = s; remember('qpos:' + PAGE, p); } }, 700); }, { passive: true });
+
+(async () => {
+  try { db = window.claude?.use ? await window.claude.use('db') : null; } catch (e) { db = null; }
+  const last = db ? await recall('qhub:last') : null;
+  if (db && last) openPage(last); else showHome();
+})();
+})();
+</script>
