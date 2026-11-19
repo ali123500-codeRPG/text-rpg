@@ -12,10 +12,17 @@ numbers are never here: a file names the setting and where it lives.
 - [playtest-known-intended.md](playtest-known-intended.md): decision. Playtest outcomes confirmed as intended.
 - [process-decisions.md](process-decisions.md): decision. How changes land, where long runs go, why the repo is public.
 - [ui-decisions.md](ui-decisions.md): decision. Details panels, viewer search, the look, the map rules.
+- [history-positions-land-titles.md](history-positions-land-titles.md): context. From linked zones to metres,
+  land and titles on a floor plan.
+- [history-roads-travel-worlds.md](history-roads-travel-worlds.md): context. NPCs in the world, travel, road
+  encounters, carrying a world on.
+- [history-doors-cover-walls-map.md](history-doors-cover-walls-map.md): context. Doors, obstacle grades, cover,
+  light, breaking walls, the Map.
 - [working-notes-code.md](working-notes-code.md): working note. Traps in the code that tests do not catch.
 - [working-notes-git.md](working-notes-git.md): working note. Branching, merges and pushes in this repo.
 - [working-notes-testing.md](working-notes-testing.md): working note. Checking behaviour, motion and playtests.
 
-Still in the Claude project's in-app memory and moving here slice by slice: the topic histories (which questions
-each design topic answered and which PR built it). Until a slice moves, the spec's "Deferred items" table and the
-merged PRs on GitHub are the record for those topics.
+The `history-` files are topic histories: which questions each design topic answered, what replaced what, and
+which PR built it. They move here from the Claude project's in-app memory slice by slice; the world and places
+slice is in. Until a topic's slice moves, the spec's "Deferred items" table and the merged PRs on GitHub are its
+record.
