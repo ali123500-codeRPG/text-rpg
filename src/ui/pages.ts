@@ -753,7 +753,7 @@ export function journalPage(api: GameApi) {
       sec('People', `A label until you learn the name. Health shows only from ${HEALTH_LEVELS.name(CONFIG.HEALTH_SHOWN_FROM)} down. Heard of: names you have heard for people you have never met.`,
         groupedTable({ cols: [{ key: 'name', title: 'Name' }, { key: 'label', title: 'Looks like' }, { key: 'where', title: 'Where' }, { key: 'health', title: 'Health' }],
           groups: pGroups, open: opened.people, sort: sorts.people, onField: field('Person'), redraw: update, emptyText: 'Nobody yet. People you meet are written here.' })),
-      sec('Places', 'Places you have been in or heard facts about, folded under the place they belong to. The Map page draws their zones.',
+      sec('Places', 'Places you have been in or heard facts about, folded under the place they belong to.',
         groupedTable({ cols: [{ key: 'name', title: 'Place' }, { key: 'parent', title: 'Part of' }, { key: 'facts', title: 'What you know' }],
           groups: plGroups, open: opened.places, sort: sorts.places, onField: field('Place'), redraw: update, emptyText: 'No places yet. Places you visit or hear of are written here.' })),
       sec('Timeline', 'Turns played since this page was opened, oldest first.',
