@@ -49,7 +49,7 @@ export function famePage(api: GameApi) {
     list('Perks', c.perks), list('Achievements', c.achievements), list('Scars', c.scars)));
   function draw() {
     el.replaceChildren(
-      h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Hall of fame'), h('p', {}, 'Everyone who fell, as they were when they went down. Newest first.'))),
+      h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Hall of fame'))),
       rows === null ? h('p', { class: 'empty', role: 'status' }, failed ? 'The hall of fame couldn’t be read from the save.' : 'Reading the save…')
         : rows.length ? h('div', { class: 'fame-grid' }, rows.map(card)) : h('p', { class: 'empty' }, 'Nobody has fallen yet.'));
   }

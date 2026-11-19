@@ -16,6 +16,12 @@ export function lineIcon(cls: string, paths: string | readonly string[]): SVGSVG
   return s;
 }
 type Child = Node | string | number | null | undefined | false;
+/** a small icon mark after a name for the exception (locked, damaged, Threadbound): its words are its tip and its accessible name */
+export function iconMark(svg: string, label: string, cls = ''): HTMLElement {
+  const el = h('span', { class: `ic-mk${cls ? ` ${cls}` : ''}`, role: 'img', title: label, 'aria-label': label });
+  el.innerHTML = svg;
+  return el;
+}
 
 /** BG-219: on 2400px+ screens the page is zoomed 1.3x (styles.css), so the window's size, element boxes and pointer
  * positions come in screen pixels while a fixed element's left and top are page pixels. These give them in page pixels,
@@ -73,7 +79,7 @@ export function readouts(items: Readout[], howEl?: HTMLElement): HTMLElement {
 export type VisState = 'shown' | 'out' | 'off';
 export type VisTile = { id: string; label: string; value: string; unit: string; sub: string; how: string };
 const NEXT: Record<VisState, VisState> = { off: 'shown', shown: 'out', out: 'off' };
-const NEXT_TIP: Record<VisState, string> = { off: 'Click for Shown (several Shown = either)', shown: 'Click for Left out', out: 'Click to clear' };
+const NEXT_TIP: Record<VisState, string> = { off: 'Click: once for Shown (several Shown = either), twice for Left out, three times to clear', shown: 'Click for Left out', out: 'Click to clear' };
 
 export function visTiles(tiles: VisTile[], picks: Record<string, VisState>, onChange: () => void, onOpen: (id: string) => void, howEl: HTMLElement): HTMLElement {
   return h('div', { class: 'hs-readouts' }, tiles.map((t) => {
@@ -84,8 +90,9 @@ export function visTiles(tiles: VisTile[], picks: Record<string, VisState>, onCh
         onclick: () => { picks[t.id] = NEXT[st]; onChange(); } },
         h('div', { class: 'v' }, t.value, h('small', {}, t.unit), st === 'shown' ? h('span', { class: 'st' }, 'Shown') : st === 'out' ? h('span', { class: 'st' }, 'Left out') : null),
         h('div', { class: 'sub' }, h('span', {}, st === 'out' ? 'left out' : t.sub))),
-      h('button', { class: 'hs-ro-i vis-i', type: 'button', title: `How it’s worked out · ${t.label}`, 'aria-label': `How it’s worked out · ${t.label}`,
-        onclick: () => { howEl.replaceChildren(h('b', {}, `How it’s worked out · ${t.label}: `), t.how); howEl.hidden = false; } }, 'ⓘ'));
+      // a tile whose how only repeats its label has no ⓘ (one cue per thing)
+      t.how ? h('button', { class: 'hs-ro-i vis-i', type: 'button', title: `How it’s worked out · ${t.label}`, 'aria-label': `How it’s worked out · ${t.label}`,
+        onclick: () => { howEl.replaceChildren(h('b', {}, `How it’s worked out · ${t.label}: `), t.how); howEl.hidden = false; } }, 'ⓘ') : null);
   }));
 }
 

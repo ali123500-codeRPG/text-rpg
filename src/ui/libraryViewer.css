@@ -35,7 +35,7 @@ body { --rail-w: 96px; grid-template-columns: var(--rail-w) minmax(0, 1fr); heig
 .lv-link:hover { text-decoration: underline; }
 .lv-raw summary { cursor: pointer; color: var(--faint); font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: .1em; }
 .lv-raw pre { margin: var(--space-2) 0 0; padding: var(--space-3); background: var(--bg); border-radius: var(--r-md); font: 12px/1.45 var(--font-mono); overflow: auto; max-height: 420px; }
-.lv-rules { display: grid; gap: var(--space-1); border-left: 2px solid var(--accent); padding-left: var(--space-3); }
+.lv-rules { display: grid; gap: var(--space-1); padding: var(--space-2) var(--space-3); border-radius: var(--r-md); background: color-mix(in srgb, var(--accent) 6%, transparent); }
 .lv-armor { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--space-4); align-items: start; }
 .lv-fig { display: grid; justify-items: center; gap: 2px; }
 .lv-credit { margin: 0; max-width: 170px; font-size: 11px; line-height: 1.35; color: var(--faint); text-align: center; }
@@ -52,7 +52,8 @@ body { --rail-w: 96px; grid-template-columns: var(--rail-w) minmax(0, 1fr); heig
 .lv-cell + .lv-cell { margin-top: var(--space-1); }
 .lv-cell:hover { border-color: var(--accent); }
 .lv-cell.unbuilt { border-style: dashed; background: transparent; }
-.lv-cell.quirk { box-shadow: inset 3px 0 0 var(--danger); }
+/* a quirk: a wavy underline (a shape, not a colour alone) on a faint red tint; its tip says Quirk */
+.lv-cell.quirk { background: color-mix(in srgb, var(--danger) 10%, color-mix(in srgb, var(--tg) var(--tg-k), transparent)); text-decoration: underline wavy color-mix(in srgb, var(--danger) 80%, transparent); text-underline-offset: 3px; }
 .lv-parts { font-size: 14px; }
 /* filter bar: one row of group buttons, each opening a popover of value buttons */
 .lv-filters { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
@@ -89,7 +90,7 @@ body { --rail-w: 96px; grid-template-columns: var(--rail-w) minmax(0, 1fr); heig
 .lv-pop-body .lv-card.lv-toned { background: none; }
 .lv-sw { width: 10px; height: 10px; border-radius: var(--r-sm); background: var(--tone); }
 .lv-fb[style*="--tone"] { border-color: color-mix(in srgb, var(--tone) 55%, var(--rule)); }
-.lv-formula { margin: 0; padding: var(--space-2) var(--space-3); border-left: 2px solid var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); font-family: var(--font-mono); font-size: 14px; line-height: 1.5; }
+.lv-formula { margin: 0; padding: var(--space-2) var(--space-3); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); border-radius: var(--r-md); background: color-mix(in srgb, var(--accent) 8%, transparent); font-family: var(--font-mono); font-size: 14px; line-height: 1.5; }
 .lv-steps { margin: var(--space-1) 0 var(--space-3); padding-left: var(--space-6); display: grid; gap: var(--space-1); }
 .lv-tabs { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: var(--space-3) 0; border-bottom: 1px solid var(--rule); padding-bottom: var(--space-2); }
 .lv-tabs button { display: inline-flex; align-items: center; gap: var(--space-2); min-height: var(--control-h); padding: 0 var(--space-3); border-radius: var(--r-md);
@@ -108,8 +109,8 @@ body:not(.lv-searching) .lv-group.lv-folded > :not(h2) { display: none !importan
 .lv-foldcard > header > h3::after { content: "\25BE"; margin-left: 8px; font-size: 12px; display: inline-block; transition: transform .15s; }
 body:not(.lv-searching) .lv-foldcard.lv-folded > header > h3::after { transform: rotate(-90deg); }
 body:not(.lv-searching) .lv-foldcard.lv-folded > :not(header) { display: none !important; }
-.lv-refresh { min-height: var(--control-h); padding: 0 var(--space-3); font-size: 12px; margin-left: var(--space-2); vertical-align: middle; }
-.lv-refresh-note { font-size: 12px; color: var(--muted); }
+.lv-refresh { min-height: var(--control-h); padding: 0 var(--space-3); font-size: 13px; margin-left: var(--space-2); vertical-align: middle; }
+.lv-refresh-note { font-size: 13px; color: var(--muted); }
 
 /* sub-tab rail: the right-hand mirror of the table rail */
 .lv-subrail { display: none; border-right: 0; border-left: 1px solid var(--border); }
@@ -147,13 +148,13 @@ body.lv-has-sub .lv-subrail { display: flex; }
 .lv-head-acts { display: flex; align-items: center; gap: var(--space-3); }
 .lv-head-main { min-width: 0; flex: 1; }
 .lv-titlerow { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-4); }
-.head .lv-build { margin: 0; font-size: 12px; color: var(--faint); }
+.lv-foot { margin-top: var(--space-8); padding-top: var(--space-3); border-top: 1px solid var(--border); }
+.lv-foot .lv-build { margin: 0; font-size: 13px; color: var(--faint); }
 .lv-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-4); margin-top: var(--space-1); }
 .lv-meta .lv-results { margin: 0; }
 .lv-caret { margin-left: var(--space-1); color: var(--muted); }
 /* section headings: sentence case, no star, a step up from card titles' labels */
 .lv-group > h2.hs-section { text-transform: none; letter-spacing: 0; font-size: 20px; font-weight: 700; color: var(--text); }
-.lv-group > h2.hs-section::before { content: none; }
 .lv-size { color: var(--faint); font-weight: 400; }
 /* raw code shows in the pop-up only, so the page has fewer stops */
 main .lv-raw { display: none; }
@@ -163,7 +164,7 @@ main .lv-card > header > h3 { margin-right: auto; }
 /* rail groups */
 .lv-railgroup { flex: none; padding: var(--space-3) 0 var(--space-1); text-align: center; font-size: 12px; font-weight: 600; letter-spacing: 0; color: var(--faint); border-top: 1px solid var(--border); }
 .hs-brand + .lv-railgroup { border-top: 0; }
-.lv-notice { margin: 0; padding: var(--space-2) var(--space-3); border-left: 3px solid var(--warn); background: var(--warn-soft); color: var(--text); }
+.lv-notice { margin: 0; padding: var(--space-2) var(--space-3); border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent); border-radius: var(--r-md); background: var(--warn-soft); color: var(--text); }
 .lv-skip { position: fixed; left: var(--space-2); top: var(--space-2); z-index: 30; transform: translateY(-200%); background: var(--surface); color: var(--text); border: 1px solid var(--accent); border-radius: var(--r-md); padding: var(--space-2) var(--space-3); font: inherit; }
 .lv-skip:focus { transform: none; }
 #lv-content:focus { outline: none; }
@@ -240,7 +241,7 @@ body.lv-allmode .lv-body > :not(.lv-allres), body.lv-allmode .lv-filters, body.l
 .lv-subrail .lv-tabs button[data-pane="all"][aria-selected="true"] { background: var(--all); color: var(--on-pill); }
 .lv-subrail .lv-tabs button[data-pane="all"][aria-selected="true"] small { color: var(--on-pill); }
 /* a line holding several chains (one per source): each chain gets a small label over its own track */
-.lv-chainlabel { margin: var(--space-3) 0 var(--space-2); font-size: 14px; font-weight: 600; color: var(--text); padding-left: var(--space-2); border-left: 2px solid var(--accent); }
+.lv-chainlabel { margin: var(--space-3) 0 var(--space-2); font-size: 14px; font-weight: 600; color: var(--text); }
 .lv-chain > h2 + .lv-chainlabel { margin-top: var(--space-1); }
 /* the later levels of an every-N row: medals drawn like the card's face, opening the same card; hidden with it */
 .lv-ghost { background: var(--surface); border-width: 1px; border-style: solid; border-radius: var(--r-lg); }
@@ -289,7 +290,6 @@ body.lv-allmode .lv-body > :not(.lv-allres), body.lv-allmode .lv-filters, body.l
   body, body.lv-has-sub { display: grid; grid-template-columns: minmax(0, 1fr); }
   .lv-phonebar { order: 0; position: sticky; top: 0; z-index: 25; display: flex; align-items: center; gap: var(--space-3); height: var(--bar-h); padding: 0 var(--space-4) 0 var(--space-2);
     background: var(--surface); border-bottom: 1px solid var(--border); }
-  .lv-phonebar::before { content: ""; position: absolute; inset: 0 0 auto; height: 3px; background: var(--grad-deco); }
   .lv-navbtn { display: inline-flex; align-items: center; gap: var(--space-2); min-height: var(--touch); padding: 0 var(--space-3); border: 1px solid var(--rule); border-radius: var(--r-md);
     background: var(--surface); color: var(--text); font: inherit; font-weight: 600; cursor: pointer; flex: none; }
   .lv-navbtn[aria-expanded="true"] { background: var(--accent-soft); border-color: var(--accent); }

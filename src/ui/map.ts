@@ -706,7 +706,6 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
     const svgKey = (...kids: SVGElement[]) => s('svg', { class: 'k-svg', width: 20, height: 20, viewBox: '-10 -10 20 20', 'aria-hidden': 'true' }, ...kids);
     const edge = (id: string, cls: string, text: string) => item(`edge:${id}`, h('i', { class: `k-edge ${cls}` }), text);
     legendSlot.replaceChildren(h('p', { class: 'hs-label' }, 'Key'), h('ul', {},
-      ...item('state:current', sw('here'), 'Where you are'), ...item('you', h('i', { class: 'k-pin' }), 'You'),
       ...item('state:explored', sw('explored'), 'Been there'), ...item('state:seen', sw('seen'), 'Seen, not been in'),
       ...item('remembered', sw('faded'), 'Out of sight now'),
       ...item('outdoor', sw('outdoor'), 'Outdoors'), ...item('indoor', sw('indoor'), 'Indoors'),
@@ -904,7 +903,7 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
       const row = (l: MapLink) => h('li', {}, h('span', {}, placeOf(l.to)?.name ?? l.to), h('span', { class: 'to' }, l.label),
         h('button', { type: 'button', class: 'map-go', title: `Open ${placeOf(l.to)?.name ?? 'its map'}`, 'aria-label': `Open ${placeOf(l.to)?.name ?? 'its map'}`, onclick: () => show(l.to) }, '›'));
       return h('section', { class: 'map-card' },
-        h('div', { class: 'map-card-h' }, h('h2', {}, t.name), h('span', { class: `hs-tg ${t.here ? 'cap' : ''}` }, t.here ? 'You are here' : 'Road')),
+        h('div', { class: 'map-card-h' }, h('h2', {}, t.name), h('span', { class: 'hs-tg' }, 'Road')),
         h('p', { class: 'hs-note' }, t.line ? `A road about ${distText(lineLength(t.line))} long` : t.rect ? `A road about ${distText(Math.max(t.rect.w, t.rect.d))} long` : 'A road'),
         hz?.along ? h('p', { class: 'map-heading', role: 'status' }, h('b', {}, 'You are here'), ` · ${distText(hz.along.m)} from its ${hz.along.from} end`) : '',
         zs[0]?.look ? h('p', { class: 'map-look' }, zs[0].look) : '',
@@ -924,19 +923,27 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
         h('p', { class: 'map-look' }, 'You don’t know what lies that way until you go.'),
         from ? h('button', { type: 'button', class: 'hs-btn-text', onclick: () => { exitSel = null; draw(); } }, `Back to ${from.name}`) : '');
     };
+    // the zone's place under its name, unless it only says the name again (a one-zone place: "tavern", "tavern")
+    const placeLine = (z: MapZone) => { const n = placeOf(z.placeId)?.name ?? ''; return n && n.toLowerCase() !== z.name.toLowerCase() ? h('p', { class: 'hs-note' }, n) : ''; };
+    // SD8: only what is unusual about a zone in view: indoors, light short of bright, any cover; nothing for the plain case
+    const unusualLine = (z: MapZone) => {
+      const bits = [z.outdoor ? '' : 'Indoors', z.light && z.light !== 'bright' ? `${z.light} light` : '', z.cover && z.cover !== 'none' ? `${z.cover} cover` : ''].filter(Boolean);
+      return bits.length ? h('p', { class: 'hs-note' }, cap(bits.join(' · '))) : '';
+    };
     const card = world === WORLD ? (isRoad(selected) ? roadCard(selected) : worldCard()) : exitSel ? exitCard(exitSel) : z ? h('section', { class: 'map-card' },
-      h('div', { class: 'map-card-h' }, h('h2', {}, z.name), h('span', { class: `hs-tg ${z.here ? 'cap' : ''}` }, z.here ? 'You are here' : z.inView ? 'In view' : 'Remembered')),
-      h('p', { class: 'hs-note' }, placeOf(z.placeId)?.name ?? ''),
+      // SD8: where you are is the gold outline and your token, said once; the place's name only when it differs from the zone's
+      h('div', { class: 'map-card-h' }, h('h2', {}, z.name), z.here ? '' : h('span', { class: 'hs-tg' }, z.inView ? 'In view' : 'Remembered')),
+      placeLine(z),
       z.id === walk?.toZone ? h('p', { class: 'map-heading', role: 'status' }, h('b', {}, 'Heading here'), ` · ${walkLeft(walk)}`) : '',
       !z.here && onMove ? h('button', { type: 'button', class: 'hs-btn-main map-move', 'data-move': z.id, title: 'Types the order in the action box for you to send', onclick: () => onMove(moveHere(z)) }, 'Move to here') : '',
-      h('p', { class: 'map-look' }, z.look || 'You have no picture of it.'),
-      z.inView ? h('p', { class: 'hs-note' }, [z.outdoor ? 'Outdoors' : 'Indoors', z.light ? `${z.light} light` : '', z.cover ? `${z.cover} cover` : ''].filter(Boolean).join(' · ')) : h('p', { class: 'hs-note' }, 'Out of sight now, so light, people and things on the ground may have changed.'),
-      h('p', { class: 'hs-label' }, 'Exits'),
-      h('ul', { class: 'map-exits' }, z.links.map((l) => h('li', {},
+      z.look ? h('p', { class: 'map-look' }, z.look) : '',
+      z.inView ? unusualLine(z) : h('p', { class: 'hs-note' }, 'Out of sight now, so light, people and things on the ground may have changed.'),
+      z.links.length ? h('p', { class: 'hs-label' }, 'Exits') : '',
+      z.links.length ? h('ul', { class: 'map-exits' }, z.links.map((l) => h('li', {},
         h('span', {}, l.label),
         h('span', { class: 'to' }, l.known ? `to ${zoneName(l.to) ?? 'a known zone'}${l.otherPlace ? ` (${l.otherPlace})` : ''}${climb(z, l.to)}` : 'unexplored',
           l.way ? h('span', { class: `map-exit-way${l.way.shut ? ` ${l.way.shut}` : ''}${l.way.key ? ' key' : ''}` }, ` · ${wayWords(l.way)}`) : ''),
-        l.known ? h('button', { type: 'button', class: 'map-go', title: 'Show this zone', 'aria-label': `Show ${zoneName(l.to) ?? 'this zone'}`, onclick: () => goTo(l.to) }, '›') : ''))),
+        l.known ? h('button', { type: 'button', class: 'map-go', title: 'Show this zone', 'aria-label': `Show ${zoneName(l.to) ?? 'this zone'}`, onclick: () => goTo(l.to) }, '›') : ''))) : '',
       z.people.length ? h('div', {}, h('p', { class: 'hs-label' }, 'People'), h('p', {}, ...z.people.map((p) => h('span', { class: 'hs-tg' + (p.now ? '' : ' faded') }, p.now ? p.name : `${p.name} (last seen)`)))) : '',
       z.furniture?.length ? h('div', {}, h('p', { class: 'hs-label' }, 'Furniture'), h('p', {}, ...z.furniture.map((f) => h('span', { class: 'hs-tg' }, cap(f.name))))) : '',
       z.items.length ? h('div', {}, h('p', { class: 'hs-label' }, 'On the ground'), h('p', {}, ...z.items.map((x) => h('span', { class: 'hs-tg' }, x)))) : '')
@@ -944,13 +951,13 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
     const count = (p: MapPlace) => cur!.places.filter((q) => inside(q.id, p.id)).reduce((n, q) => n + q.zones.length, 0);
     const placeList = h('section', { class: 'map-places' }, h('p', { class: 'hs-label' }, 'Places you know'),
       h('ul', {}, cur!.places.map((p) => h('li', { style: `--d:${p.depth}` }, h('button', { type: 'button', class: 'map-place' + (p.id === focus && world !== WORLD ? ' on' : ''), onclick: () => show(p.id), 'aria-current': p.id === focus ? 'true' : undefined },
-        h('span', { class: 'n' }, p.name, inside(cur!.placeId, p.id) ? h('span', { class: 'you' }, p.id === cur!.placeId ? ' · you' : '') : ''),
+        h('span', { class: 'n' }, p.name),
         h('span', { class: 'c' }, count(p) ? `${count(p)} zone${count(p) === 1 ? '' : 's'}` : 'no zones known'))))));
     const facts = pl?.facts.length ? h('section', {}, h('p', { class: 'hs-label' }, `What you know about ${pl.name}`), h('ul', { class: 'map-facts' }, pl.facts.map((f) => h('li', {}, f)))) : '';
     const legend = h('section', { class: 'map-legend' }, h('p', { class: 'hs-label' }, 'Key'),
       h('ul', {},
         h('li', {}, h('i', { class: 'k-tile outdoor' }), 'Outdoors'), h('li', {}, h('i', { class: 'k-tile indoor' }), 'Indoors'),
-        h('li', {}, h('i', { class: 'k-tile remembered' }), 'Out of sight now'), h('li', {}, h('i', { class: 'k-pin' }), 'You'),
+        h('li', {}, h('i', { class: 'k-tile remembered' }), 'Out of sight now'),
         h('li', {}, h('i', { class: 'k-line' }), 'You can see across'), h('li', {}, h('i', { class: 'k-line dashed' }), 'The far side is hidden'),
         h('li', {}, h('i', { class: 'k-line stub' }), 'Exit you have not taken'), h('li', {}, h('i', { class: 'k-area' }), 'A place inside this one'), h('li', {}, h('i', { class: 'k-line away' }), 'Road to another map'), h('li', {}, h('i', { class: 'k-stair' }, '▲'), 'Stairs up or down: click to change floor'),
         ...(planned() ? [h('li', {}, h('i', { class: 'k-edge wall' }), 'Wall'), h('li', {}, h('i', { class: 'k-edge low' }), 'Counter or fence'), h('li', {}, h('i', { class: 'k-edge window' }), 'Window'), h('li', {}, h('i', { class: 'k-edge open' }), 'Open side')] : []),
@@ -1038,7 +1045,7 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
     cur = knownMap(st);
     try { walk = st.player.walking ? buildPlayerView(st).player.walking : undefined; } catch { walk = undefined; }
     if (!el.contains(stage)) el.replaceChildren(
-      h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Map'), h('p', {}, 'Every zone you have stood in or seen, with the places inside places outlined; World shows every place you know and the roads between them. Only what your character knows.'))),
+      h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Map'))),
       h('div', { class: 'map-body' }, stage, side));
     const moved = cur.zoneId !== lastHere, was = world;
     if (moved) {

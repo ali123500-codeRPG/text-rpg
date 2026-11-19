@@ -1,10 +1,10 @@
-// Character (/stats) uses the character sheet (charsheet.ts). Inventory (/inv) and Quests (/quests) share one page shape. Visibility tiles on top (one per group; the Inventory has none),
-// figures that can't be filtered in a text line under them, then the grouped table.
+// Character (/stats) uses the character sheet (charsheet.ts). Quests (/quests) use the list page shape: visibility tiles on top,
+// figures that can't be filtered in a text line under them, then the grouped table. The Inventory (/inv) is its pack grid alone.
 import type { GameApi, GameState, ItemInstance, Quest } from '../types';
 import { QUEST_STATES } from '../types';
 import { QUEST_STATE_NAME, dueText, isOpen, payText, questChain } from '../engine/quests';
 import { getLibrary, itemDef } from '../library';
-import { HEALTH_LEVELS, PART_STATES, QUEST_REWARD_LEVELS, THREADBOUND_RANKS } from '../scales';
+import { PART_STATES, QUEST_REWARD_LEVELS, THREADBOUND_RANKS } from '../scales';
 import { achLevel, achievementInfo, achievementName, earnedAtText, xpToNext } from '../engine/xp';
 import { earned } from '../ruleset/threadboundItems';
 import { questLevelXp, rewardName } from '../ruleset/achRewards';
@@ -19,7 +19,7 @@ import { othersHealthWord } from '../ruleset';
 import { buildPlayerView, callName, factText, questGoalText } from '../views';
 import { ESSENCE_ABOUT, essencesBody, essencesSummary } from './essences';
 import { chainCard, chainViews, foldAll, type ChainView } from './achievementThreads';
-import { tipOff, tipOn, boxOf, closePanel, groupedTable, playDraft, type PanelRow, h, viewSize, natural, openPanel, plural, unitOf, visPass, visTiles, type Col, type TGroup, type TRow, type VisState, type VisTile, safe } from './kit';
+import { tipOff, tipOn, boxOf, closePanel, groupedTable, playDraft, type PanelRow, h, viewSize, natural, openPanel, plural, unitOf, visPass, visTiles, iconMark, type Col, type TGroup, type TRow, type VisState, type VisTile, safe } from './kit';
 import { charCard, charFocus, gearNote, invFocus, treeBars } from './charsheet';
 import { closePop, fullOpen, openFull, openPop } from './pop';
 import { personalityBlock, signaturesBox } from './personality';
@@ -36,7 +36,7 @@ import { cap, r1 } from '../words';
 import { compareRows } from './compare';
 
 type Spec = {
-  title: string; intro: string; noun: [string, string]; cols: Col[]; empty: string;
+  title: string; noun: [string, string]; cols: Col[]; empty: string;
   groups: (s: GameState) => (TGroup & { sub: string; value: string; unit: string; how: string })[];
   line: (s: GameState) => string;
   panelTitle: string;
@@ -46,15 +46,11 @@ type Spec = {
   tiles?: (s: GameState) => VisTile[];
   tileOf?: (s: GameState, row: TRow) => string;
   focus?: () => string | null; // a row to open on arrival (consumed once)
-  top?: (redraw: () => void) => HTMLElement; // above the title: the page's sub-tabs
-  lead?: (s: GameState) => HTMLElement; // under the title, above the tiles: the Inventory's equipment panel
-  noTiles?: true; // no visibility tiles: the table alone (the Inventory, where the boxes only repeated the group counts)
-  startOpen?: true; // every group starts open, so the rows themselves show; a heading the player closes stays closed
 };
 
 export function listPage(api: GameApi, spec: Spec): { el: HTMLElement; update: () => void } {
   const picks: Record<string, VisState> = {};
-  const open = new Set<string>(), seen = new Set<string>();
+  const open = new Set<string>();
   const sort = { key: spec.cols[0].key, dir: 0 as 0 | 1 | -1 };
   const el = h('main');
   const how = h('p', { class: 'how', hidden: true });
@@ -63,7 +59,6 @@ export function listPage(api: GameApi, spec: Spec): { el: HTMLElement; update: (
     const s = api.state();
     if (!s) { el.replaceChildren(h('h1', {}, spec.title), h('p', { class: 'empty' }, 'No story yet. Create your character first.')); return; }
     const all = spec.groups(s);
-    if (spec.startOpen) for (const g of all) if (!seen.has(g.id)) { seen.add(g.id); open.add(g.id); }
     const tileOf = spec.tileOf;
     const shown = tileOf ? all.map((g) => ({ ...g, rows: g.rows.filter((r) => visPass(tileOf(s, r), picks)) })).filter((g) => g.rows.length) : all.filter((g) => visPass(g.id, picks));
     const onOpen = (id: string) => {
@@ -83,18 +78,15 @@ export function listPage(api: GameApi, spec: Spec): { el: HTMLElement; update: (
     }
     const picked = Object.entries(picks).filter(([, v]) => v !== 'off');
     const count = shown.reduce((a, g) => a + g.rows.length, 0);
-    const hint = picked.length
-      ? [h('span', {}, `${plural(count, spec.noun[0], spec.noun[1])} shown · `), h('button', { class: 'hs-btn-text', type: 'button', style: 'min-height:0', onclick: () => { for (const k of Object.keys(picks)) delete picks[k]; update(); } }, 'Clear')]
-      : spec.noTiles ? 'Click a heading to open its rows.' : spec.startOpen ? 'Click one to see how it is earned. Click a box: once for Shown, twice for Left out, three times to clear.'
-        : 'Click a box: once for Shown, twice for Left out, three times to clear. Click a heading to open its rows.';
+    // only a filter that hides rows is said (the boxes' own tip says how they cycle)
+    const filtered = picked.length ? h('p', { class: 'hs-note' }, `${plural(count, spec.noun[0], spec.noun[1])} shown · `,
+      h('button', { class: 'hs-btn-text', type: 'button', style: 'min-height:0', onclick: () => { for (const k of Object.keys(picks)) delete picks[k]; update(); } }, 'Clear')) : null;
     el.replaceChildren(
-      ...(spec.top ? [spec.top(update)] : []),
-      h('div', { class: 'head' }, h('div', {}, h('h1', {}, spec.title), h('p', {}, spec.intro))),
-      spec.lead?.(s) ?? '',
+      h('div', { class: 'head' }, h('div', {}, h('h1', {}, spec.title))),
       h('div', { class: 'sec' },
-        all.length && !spec.noTiles ? visTiles(spec.tiles?.(s) ?? all.map((g) => ({ id: g.id, label: g.title, value: g.value, unit: g.unit, sub: g.sub, how: g.how })), picks, update, onOpen, how) : null,
+        all.length ? visTiles(spec.tiles?.(s) ?? all.map((g) => ({ id: g.id, label: g.title, value: g.value, unit: g.unit, sub: g.sub, how: g.how })), picks, update, onOpen, how) : null,
         h('p', { class: 'subline' }, spec.line(s)), how),
-      h('div', { class: 'sec' }, h('div', { class: 'head' }, h('h2', { class: 'hs-section' }, spec.title), all.length ? h('p', { class: 'hs-note' }, hint) : null),
+      h('div', { class: 'sec' }, filtered,
         groupedTable({ cols: spec.cols, groups: shown, open, sort, onField, redraw: update, emptyText: picked.length ? `No ${spec.noun[1]} match these boxes. Pick other boxes or Clear.` : spec.empty })));
   }
   return { el, update };
@@ -178,10 +170,6 @@ function charTiles(s: GameState, open: { essences: (b: HTMLElement) => void; per
     tile('personality', 'Personality', archetypeOf(pe).name, `${nerveTier(p, pe)} · ${cap(nerveLine(pe))} nerve`, (b) => openPop({ title: 'Personality', cls: 'pe-pop', opener: b, body: [personalityBlock(p), signaturesBox(p, open.sign)] })),
   );
 }
-const KIND_GROUP: Record<string, [string, string, string]> = {
-  weapon: ['weapons', 'Weapons', 'c10'], shield: ['shields', 'Shields', 'c1'], armor: ['armor', 'Armor', 'c12'],
-  accessory: ['accessories', 'Accessories', 'c5'], consumable: ['consumables', 'Consumables', 'c6'], tool: ['tools', 'Tools', 'c4'],
-};
 /** EQ7: "Medium Weapons 50" */
 const needText = (r: { skill: string; need: number }) => `${skillName(r.skill)} ${r.need}`;
 
@@ -269,7 +257,10 @@ export function showTip(s: GameState, it: ItemInstance, at: HTMLElement) {
 }
 export const hideTip = () => { if (tipEl) tipEl.hidden = true; };
 
-function equipment(api: GameApi, s: GameState): HTMLElement {
+/** the sacks opened in place in the pack grid, kept while the page is rebuilt */
+const openSacks = new Set<string>();
+
+function equipment(api: GameApi, s: GameState, openItem: (it: InvItem) => void, redraw: () => void): HTMLElement {
   hideTip(); // the panel is rebuilt on every change, so a card left open would point at nothing
   const p = s.player, inv = p.core.inventory.filter((i) => i.itemId !== IT.coin);
   const kindOf = (it: InvItem) => safe(() => itemDef(s, it.itemId))?.kind ?? 'misc';
@@ -278,10 +269,10 @@ function equipment(api: GameApi, s: GameState): HTMLElement {
   const status = h('p', { class: 'hs-note eq-status', role: 'status' });
   const act = (w: { label: string; text: string }) => h('button', {
     type: 'button', class: w.label === 'Equip' ? 'hs-btn-main eq-act' : 'hs-btn-text eq-act', disabled: locked,
-    title: `Sends “${w.text}” as your turn`,
+    title: locked ? 'Wait for the turn to finish' : `Sends “${w.text}” as your turn`,
     onclick: async () => { hideTip(); status.textContent = `${w.text}…`; await api.submit(w.text, { aimed: false }); },
   }, w.label);
-  // hover or keyboard focus shows the stats; the item's name opens the side panel like the table does
+  // hover or keyboard focus shows the stats
   const hover = (el: HTMLElement, it: InvItem) => {
     el.addEventListener('pointerenter', () => tipOn(() => showTip(s, it, el)));
     el.addEventListener('pointerleave', () => tipOff(hideTip));
@@ -299,33 +290,59 @@ function equipment(api: GameApi, s: GameState): HTMLElement {
   const firstSlot = new Map<string, string>(); // a two-grip item shows once, in its first grip
   const slotCards = slots.map((sl) => {
     const it = inv.find((i) => i.equippedIn?.includes(sl.id));
-    if (!it) return h('div', { class: 'eq-slot empty' }, blank(sl.empty), h('div', { class: 'eq-txt' }, h('span', { class: 'hs-label' }, sl.label), h('span', { class: 'eq-none' }, 'Empty')));
+    // an empty slot is its dashed outline: no word for it
+    if (!it) return h('div', { class: 'eq-slot empty' }, blank(sl.empty), h('div', { class: 'eq-txt' }, h('span', { class: 'hs-label' }, sl.label)));
     const again = firstSlot.has(it.id);
     if (!again) firstSlot.set(it.id, sl.id);
     const w = gearWords(s, it);
     return hover(h('div', { class: `eq-slot${again ? ' again' : ''}`, tabindex: '0' }, icon(it),
-      h('div', { class: 'eq-txt' }, h('span', { class: 'hs-label' }, sl.label), h('span', { class: 'eq-name' }, again ? `${nameOf(it)} (both grips)` : nameOf(it))),
+      h('div', { class: 'eq-txt' }, h('span', { class: 'hs-label' }, sl.label), h('span', { class: 'eq-name' }, again ? `${nameOf(it)} (both grips)` : nameOf(it), ...itemMarks(s, it))),
       w && !again ? act(w) : ''), it);
   });
-  // like an MMO bag, plain stacks of the same item show as one tile; worn or damaged pieces (pools) keep their own
+  // like an MMO bag, plain stacks of the same item show as one tile; worn or damaged pieces (pools) and sacks keep their own
+  const boxy = (it: InvItem) => !!safe(() => itemDef(s, it.itemId).container) && !wornPack(it);
   const pack: InvItem[] = [];
   for (const i of inv.filter((x) => !x.equippedIn?.length)) {
-    const same = !i.pools && pack.find((x) => x.itemId === i.itemId && !x.pools);
-    if (same) same.qty = (same.qty ?? 1) + (i.qty ?? 1); else pack.push(i.pools ? i : { ...i });
+    const same = !i.pools && !boxy(i) && pack.find((x) => x.itemId === i.itemId && !x.pools);
+    if (same) same.qty = (same.qty ?? 1) + (i.qty ?? 1); else pack.push(i.pools || boxy(i) ? i : { ...i });
   }
-  const packTiles = pack.map((it) => {
-    const w = gearWords(s, it);
-    return hover(h('div', { class: 'eq-item', tabindex: '0' },
+  // SD11: each item once, as a tile; a sack opens in place (its contents in a box under it) and takes a dragged item.
+  // A click on any other tile opens its side panel (Put in, Take out, the quick slot)
+  const tiles = (it: InvItem, inside: boolean): HTMLElement[] => {
+    const w = inside ? null : gearWords(s, it);
+    const sack = boxy(it), opened = sack && openSacks.has(it.id), box = `eq-in-${it.id}`;
+    const go = () => { if (!sack) { hideTip(); openItem(it); return; } if (opened) openSacks.delete(it.id); else openSacks.add(it.id);
+      redraw(); // the grid is rebuilt, so the sack's name button gets the focus back
+      document.querySelector<HTMLElement>(`.eq [data-row="${CSS.escape(it.id)}"] > .eq-nm > .eq-name`)?.focus(); };
+    const name = h('button', { type: 'button', class: 'eq-name', onclick: (e: Event) => { e.stopPropagation(); go(); },
+      ...(sack ? { 'aria-expanded': String(opened), 'aria-controls': opened ? box : undefined } : {}) },
+      nameOf(it), sack ? h('span', { class: 'th-chev', 'aria-hidden': 'true' }) : null);
+    const tile = hover(h('div', { class: `eq-item${sack ? ' sack' : ''}`, 'data-row': it.id, draggable: inside || !sack || undefined,
+      onclick: (e: Event) => { if (!(e.target as Element).closest('button')) go(); } },
       h('span', { class: 'eq-ico' }, icon(it), it.qty && it.qty > 1 ? h('b', { class: 'eq-qty' }, `×${it.qty}`) : ''),
-      h('span', { class: 'eq-name' }, nameOf(it)), w ? act(w) : h('span', { class: 'eq-cant' }, 'Carried')), it);
-  });
+      h('span', { class: 'eq-nm' }, name, ...itemMarks(s, it)), w ? act(w) : ''), it);
+    if (!opened) return [tile];
+    const what = (safe(() => itemDef(s, it.itemId).name) ?? 'sack').toLowerCase();
+    return [tile, h('div', { class: 'eq-inside', id: box, 'data-group': `in:${it.id}`, role: 'group', 'aria-label': `In your ${what}`, title: `Drag an item here to put it in your ${what}` },
+      ...(it.contents ?? []).flatMap((x) => tiles(x, true)))];
+  };
   return h('section', { class: 'eq', 'aria-label': 'Equipment' },
     h('div', { class: 'eq-col' }, h('h2', { class: 'hs-section' }, 'Equipped'), h('div', { class: 'eq-slots' }, ...slotCards)),
     h('div', { class: 'eq-col' }, h('h2', { class: 'hs-section' }, 'In your pack'),
-      pack.length ? h('div', { class: 'eq-pack' }, ...packTiles) : h('p', { class: 'empty' }, 'Everything you carry is equipped.')),
-    h('p', { class: 'hs-note eq-foot' }, locked ? 'Wait for the turn to finish before changing gear.' : 'Hover an item for its stats. Equip and Unequip take your turn, as if you typed them: drawing and putting away are free, putting armor on or off is your action.'),
+      pack.length ? h('div', { class: 'eq-pack', 'data-group': 'pack' }, ...pack.flatMap((it) => tiles(it, false))) : h('p', { class: 'empty' }, 'Everything you carry is equipped.')),
     status);
 }
+
+/** SD11: an item's exceptions as marks after its name: damaged when a pool is below full, locked while the character is short
+ *  of what it needs; the normal case (whole, usable) has none */
+function itemMarks(s: GameState, it: InvItem): HTMLElement[] {
+  const d = safe(() => itemDef(s, it.itemId)), need = d ? requirement(d) : null, short = d && need ? shortBy(s.player, d) : 0;
+  const hurt = damageText(it);
+  return [hurt ? iconMark(ICONS.damaged, `Damaged: ${hurt}`) : null, need && short > 0 ? iconMark(ICONS.locked, `Needs ${needText(need)} (you have ${r1(need.need - short)})`) : null]
+    .filter((x): x is HTMLElement => !!x);
+}
+/** "shield 60%": the pools below full, or '' for a whole item */
+const damageText = (it: InvItem) => Object.entries(it.pools ?? {}).filter(([, v]) => v < 100).map(([k, v]) => `${k} ${v}%`).join(', ');
 
 /** the Inventory page's coin, in words as the play sheet and the Coin row say it: "Coin: 1 silver and 6 copper", never a bare count */
 export const coinLine = (s: GameState) => `Coin: ${coinWords(coins(s.player))}`;
@@ -365,16 +382,16 @@ export function dropOrder(s: GameState, itemId: string, onto: { row?: string; gr
   return from ? `I take the ${nameOf(it)} out of my ${nameOf(from.box)}` : null;
 }
 
-/** CT1: drag and drop on the Inventory table; a drop drafts the order on Play, as the Put in and Take out buttons do */
+/** CT1: drag and drop in the Inventory's pack grid; a drop drafts the order on Play, as the Put in and Take out buttons do */
 function dragToBoxes(api: GameApi, el: HTMLElement): void {
   let dragId: string | null = null;
   const spot = (e: Event) => {
-    const t = (e.target as Element | null)?.closest?.('tr[data-row], tr[data-group]') as HTMLElement | null;
+    const t = (e.target as Element | null)?.closest?.('[data-row], [data-group]') as HTMLElement | null;
     return t ? { tr: t, onto: { row: t.dataset.row, group: t.dataset.group } } : null;
   };
   const clear = () => el.querySelectorAll('.drop-ok, .dragging').forEach((x) => x.classList.remove('drop-ok', 'dragging'));
   el.addEventListener('dragstart', (e) => {
-    const tr = (e.target as Element).closest?.('tr[data-row]') as HTMLElement | null;
+    const tr = (e.target as Element).closest?.('[data-row]') as HTMLElement | null;
     if (!tr?.draggable) return;
     dragId = tr.dataset.row ?? null;
     e.dataTransfer?.setData('text/plain', dragId ?? '');
@@ -399,88 +416,64 @@ function dragToBoxes(api: GameApi, el: HTMLElement): void {
     playDraft.text = order; closePanel(); location.hash = 'play';
   });
 }
-const holdsText = (b: ItemInstance) => (b.contents?.length ? `Holds ${plural(b.contents.length, 'item')}` : 'Empty');
 
 export function inventoryPage(api: GameApi) {
-  const page = listPage(api, {
-    title: 'Inventory', intro: 'What you carry. Same as /inv. Equipped gear is above, the rest of your pack below. Click an item for its stats; drag one onto a sack to put it in, or out of a sack to take it out.', noun: ['item', 'items'], panelTitle: 'Item', empty: 'Nothing in your pack. Your equipped gear is listed above.',
-    focus: () => { const id = invFocus.id; invFocus.id = null; return id; },
-    lead: (s) => equipment(api, s),
-    detail: (s, id) => {
-      const inside = allInside(s).find((x) => x.it.id === id);
-      const it = s.player.core.inventory.find((i) => i.id === id) ?? inside?.it;
-      if (!it) return [];
-      const rows = itemRows(s, it);
-      // CT1: something in a carried container: where it is, and Take out, which drafts the order on Play (a pick-up)
-      if (inside) {
-        const boxName = safe(() => itemDef(s, inside.box.itemId).name) ?? 'container', name = safe(() => pieceName(s, it)) ?? it.itemId;
-        rows.splice(rows.length - 1, 0, { k: 'Inside', v: `Your ${boxName.toLowerCase()}` },
-          { k: 'Take out', v: h('button', { type: 'button', class: 'hs-btn-text', 'data-chip': 'take-out', style: 'min-height:0;padding:0', title: 'Puts the order in the box on Play. Nothing is sent until Send',
-            onclick: () => { playDraft.text = `I take the ${name.toLowerCase()} out of my ${boxName.toLowerCase()}`; closePanel(); location.hash = 'play'; } }, 'Take it out') });
-      }
-      // CT1: something loose in the pack, while a container is carried: Put in drafts the order on Play (a stow into it)
-      const boxes = putInto(s, it, !!inside);
-      if (boxes.length) {
-        const name = (safe(() => pieceName(s, it)) ?? it.itemId).toLowerCase();
-        rows.splice(rows.length - 1, 0, { k: 'Put in', v: h('span', { class: 'put-in' }, boxes.map((box) =>
-          h('button', { type: 'button', class: 'hs-btn-text', 'data-chip': 'put-in', style: 'min-height:0;padding:0', title: 'Puts the order in the box on Play. Nothing is sent until Send',
-            onclick: () => { playDraft.text = `I put the ${name} in my ${box}`; closePanel(); location.hash = 'play'; } }, `Put it in your ${box}`))) });
-      }
-      const heal = healItems(s, s.player).find((x) => x.itemId === it.itemId);
-      if (heal) {
-        const r = heal.row;
-        rows.splice(rows.length - 1, 0, { k: 'Heals', v: `${r.hpPct}% health and ${r.partPct}% to each body part${PART_STATES.pos(r.reach) >= PART_STATES.pos('crippled') ? ', mends Crippled parts' : ''}` });
-        // H3 b: the player picks which healing item the quick slot beside Aim shows
-        const btn = h('button', { type: 'button', class: 'hs-btn-text', style: 'min-height:0;padding:0' });
-        const draw = () => {
-          const on = quickHeal(s, s.player)?.itemId === heal.itemId;
-          btn.textContent = on ? 'Shown in the quick slot' : 'Show in the quick slot';
-          btn.disabled = on;
-        };
-        btn.onclick = () => { if (s.player.progression) { s.player.progression.quickHeal = heal.itemId; draw(); } };
-        draw();
-        rows.splice(rows.length - 1, 0, { k: 'Quick slot', v: btn });
-      }
-      return rows;
-    },
-    cols: [{ key: 'name', title: 'Item' }, { key: 'needs', title: 'Needs' }, { key: 'qty', title: 'Qty', right: true }, { key: 'cond', title: 'Condition' }],
-    groups: (s) => {
-      const p = s.player, groups = new Map<string, TGroup & { sub: string; value: string; unit: string; how: string }>();
-      // worn and held gear shows in the Equipped panel above, so the table lists only what is in the pack
-      p.core.inventory.filter((i) => i.itemId !== IT.coin && !i.equippedIn?.length).forEach((it, n) => {
-        const d = safe(() => itemDef(s, it.itemId));
-        const [id, title, color] = KIND_GROUP[d?.kind ?? ''] ?? ['other', 'Other', 'c3'];
-        const g = groups.get(id) ?? { id, title, color, rows: [], combined: {}, value: '', unit: 'items', sub: '', how: `Everything of this kind you carry.` };
-        const pools = it.pools ? Object.entries(it.pools).map(([k, v]) => `${k} ${v}%`).join(', ') : 'Whole';
-        const need = d ? requirement(d) : null;
-        const needs = need ? `Needs ${needText(need)}` : '';
-        g.rows.push({ id: it.id, sortKey: n, drag: !d?.container, cells: { name: d?.name ?? it.itemId, needs, qty: String(it.qty ?? 1), cond: d?.container ? holdsText(it) : pools },
-          ...(need ? { tones: { needs: shortBy(p, d!) > 0 ? 'bad' as const : 'muted' as const } } : {}) });
-        groups.set(id, g);
-      });
-      // CT1: each carried container that holds something gets its own group of what is inside, nested containers' contents included
-      const boxes = carriedBoxes(s).filter((b) => b.contents?.length).map((b, k) => {
-        const name = safe(() => itemDef(s, b.itemId).name) ?? 'container';
-        return { id: `in:${b.id}`, title: `In your ${name.toLowerCase()}`, color: 'c4', order: k, how: `What your ${name.toLowerCase()} holds. Click one to take it out.`,
-          rows: insideOf(s, b).map((x, n) => ({ id: x.it.id, sortKey: n, drag: true, cells: { name: x.path, needs: '', qty: String(x.it.qty ?? 1),
-            cond: safe(() => itemDef(s, x.it.itemId).container) ? holdsText(x.it) : x.it.pools ? Object.entries(x.it.pools).map(([k2, v]) => `${k2} ${v}%`).join(', ') : 'Whole' } })) };
-      });
-      const inBoxes = boxes.map((g) => {
-        const qty = g.rows.reduce((a, r) => a + +r.cells.qty, 0);
-        return { id: g.id, title: g.title, color: g.color, rows: g.rows, combined: { qty: String(qty), cond: '', needs: '' }, value: String(qty), unit: unitOf(qty, 'item'), sub: 'inside', how: g.how };
-      });
-      return [...[...groups.values()].map((g) => {
-        const qty = g.rows.reduce((a, r) => a + +r.cells.qty, 0);
-        const cs = [...new Set(g.rows.map((r) => r.cells.cond))];
-        const ns = [...new Set(g.rows.map((r) => r.cells.needs))], ts = [...new Set(g.rows.map((r) => r.tones?.needs))];
-        return { ...g, value: String(qty), unit: unitOf(qty, 'item'), sub: 'in your pack', combined: { qty: String(qty), cond: cs.length === 1 ? cs[0] : 'Mixed', needs: ns.length === 1 ? ns[0] : '' },
-          ...(ns.length === 1 && ts.length === 1 && ts[0] ? { combinedTones: { needs: ts[0] } } : {}) };
-      }).sort((a, b) => (a.id === 'other' ? 1 : 0) - (b.id === 'other' ? 1 : 0) || natural(a.title, b.title)), ...inBoxes];
-    },
-    line: coinLine, noTiles: true,
-  });
-  dragToBoxes(api, page.el);
-  return page;
+  const el = h('main');
+  /** an item's side panel: its exact stats, where it is, and the orders it offers (Take out, Put in, the quick slot) */
+  const openItem = (s: GameState, shown: ItemInstance) => {
+    const inside = allInside(s).find((x) => x.it.id === shown.id);
+    const it = s.player.core.inventory.find((i) => i.id === shown.id) ?? inside?.it;
+    if (!it) return;
+    const rows = itemRows(s, shown);
+    const hurt = damageText(it);
+    if (hurt) rows.splice(1, 0, { k: 'Condition', v: hurt });
+    if (safe(() => itemDef(s, it.itemId).container)) rows.splice(1, 0, { k: 'Holds', v: it.contents?.length ? plural(it.contents.length, 'item') : 'nothing' });
+    // CT1: something in a carried container: where it is, and Take out, which drafts the order on Play (a pick-up)
+    if (inside) {
+      const boxName = safe(() => itemDef(s, inside.box.itemId).name) ?? 'container', name = safe(() => pieceName(s, it)) ?? it.itemId;
+      rows.splice(rows.length - 1, 0, { k: 'Inside', v: `Your ${boxName.toLowerCase()}` },
+        { k: 'Take out', v: h('button', { type: 'button', class: 'hs-btn-text', 'data-chip': 'take-out', style: 'min-height:0;padding:0', title: 'Puts the order in the box on Play. Nothing is sent until Send',
+          onclick: () => { playDraft.text = `I take the ${name.toLowerCase()} out of my ${boxName.toLowerCase()}`; closePanel(); location.hash = 'play'; } }, 'Take it out') });
+    }
+    // CT1: something loose in the pack, while a container is carried: Put in drafts the order on Play (a stow into it)
+    const boxes = it.equippedIn?.length ? [] : putInto(s, it, !!inside);
+    if (boxes.length) {
+      const name = (safe(() => pieceName(s, it)) ?? it.itemId).toLowerCase();
+      rows.splice(rows.length - 1, 0, { k: 'Put in', v: h('span', { class: 'put-in' }, boxes.map((box) =>
+        h('button', { type: 'button', class: 'hs-btn-text', 'data-chip': 'put-in', style: 'min-height:0;padding:0', title: 'Puts the order in the box on Play. Nothing is sent until Send',
+          onclick: () => { playDraft.text = `I put the ${name} in my ${box}`; closePanel(); location.hash = 'play'; } }, `Put it in your ${box}`))) });
+    }
+    const heal = healItems(s, s.player).find((x) => x.itemId === it.itemId);
+    if (heal) {
+      const r = heal.row;
+      rows.splice(rows.length - 1, 0, { k: 'Heals', v: `${r.hpPct}% health and ${r.partPct}% to each body part${PART_STATES.pos(r.reach) >= PART_STATES.pos('crippled') ? ', mends Crippled parts' : ''}` });
+      // H3 b: the player picks which healing item the quick slot beside Aim shows
+      const btn = h('button', { type: 'button', class: 'hs-btn-text', style: 'min-height:0;padding:0' });
+      const draw = () => {
+        const on = quickHeal(s, s.player)?.itemId === heal.itemId;
+        btn.textContent = on ? 'Shown in the quick slot' : 'Show in the quick slot';
+        btn.disabled = on;
+      };
+      btn.onclick = () => { if (s.player.progression) { s.player.progression.quickHeal = heal.itemId; draw(); } };
+      draw();
+      rows.splice(rows.length - 1, 0, { k: 'Quick slot', v: btn });
+    }
+    openPanel(cap(countWords(it.itemId, safe(() => pieceName(s, it)) ?? it.itemId, shown.qty)), rows);
+  };
+  function update() {
+    const s = api.state();
+    if (!s) { el.replaceChildren(h('h1', {}, 'Inventory'), h('p', { class: 'empty' }, 'No story yet. Create your character first.')); return; }
+    el.replaceChildren(h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Inventory'))),
+      equipment(api, s, (it) => openItem(s, it), update),
+      h('div', { class: 'sec' }, h('p', { class: 'subline' }, coinLine(s))));
+    // a piece to open on arrival (the Character page's Open in Inventory), consumed once
+    const want = invFocus.id;
+    invFocus.id = null;
+    const it = want ? s.player.core.inventory.find((i) => i.id === want) ?? allInside(s).find((x) => x.it.id === want)?.it : undefined;
+    if (it) openItem(s, it);
+  }
+  dragToBoxes(api, el);
+  return { el, update };
 }
 
 /** a quest to open on arrival (the Play screen's quest line) */
@@ -501,7 +494,7 @@ function abandonButton(api: GameApi, id: string): HTMLElement {
 export function questsPage(api: GameApi) {
   const quest = (s: GameState, id: string) => s.quests.find((q) => q.id === id);
   return listPage(api, {
-    title: 'Quests', intro: 'Jobs people gave you. Same as /quests.', noun: ['quest', 'quests'], panelTitle: 'Quest', empty: 'No quests yet. Talk to people in the village.',
+    title: 'Quests', noun: ['quest', 'quests'], panelTitle: 'Quest', empty: 'No quests yet. Talk to people in the village.',
     focus: () => { const id = questFocus.id; questFocus.id = null; return id; },
     cols: [{ key: 'text', title: 'Quest' }, { key: 'giver', title: 'Giver' }, { key: 'goal', title: 'Goal' }, { key: 'reward', title: 'Reward' },
       { key: 'pay', title: 'Payment' }, { key: 'due', title: 'Due' }, { key: 'state', title: 'State' }],
@@ -517,14 +510,15 @@ export function questsPage(api: GameApi) {
         const rows = qs.map(row).sort((a, b) => (a.sortKey ?? 0) - (b.sortKey ?? 0) || natural(a.cells.text, b.cells.text));
         const last = rows[rows.length - 1];
         const givers = [...new Set(rows.map((r) => r.cells.giver))];
-        return { id: `chain-${rows[0].id}`, title: rows[0].cells.text, rows, value: String(rows.length), unit: unitOf(rows.length, 'quest'), sub: '', how: '',
+        // SD14: a folded chain is named by its current (latest) step
+        return { id: `chain-${rows[0].id}`, title: last.cells.text, rows, value: String(rows.length), unit: unitOf(rows.length, 'quest'), sub: '', how: '',
           combined: { giver: givers.length === 1 ? givers[0] : 'Mixed', goal: last.cells.goal, pay: last.cells.pay, due: last.cells.due, state: last.cells.state },
           ...(last.tones?.state ? { combinedTones: { state: last.tones.state } } : {}) };
       }).sort((a, b) => (a.rows[0].sortKey ?? 0) - (b.rows[0].sortKey ?? 0));
     },
     tiles: (s) => QUEST_STATES.filter((st) => s.quests.some((q) => q.state === st)).map((st) => {
       const qs = s.quests.filter((q) => q.state === st);
-      return { id: st, label: QUEST_STATE_NAME[st], value: String(qs.length), unit: unitOf(qs.length, 'quest'), sub: `latest: ${qs[qs.length - 1].text}`, how: `Quests whose state is ${QUEST_STATE_NAME[st].toLowerCase()}.` };
+      return { id: st, label: QUEST_STATE_NAME[st], value: String(qs.length), unit: unitOf(qs.length, 'quest'), sub: `latest: ${qs[qs.length - 1].text}`, how: '' }; // its how only repeated the label
     }),
     tileOf: (s, row) => quest(s, row.id)?.state ?? '',
     panelHead: (s, id) => {
@@ -579,17 +573,15 @@ export function achievementsPage(api: GameApi) {
     const noun: [string, string] = scars ? ['scar chain', 'scar chains'] : ['chain', 'chains'];
     const onOpen = (id: string) => { for (const k of Object.keys(picks)) if (k !== id && picks[k] === 'shown') picks[k] = 'off'; if (picks[id] === 'out') picks[id] = 'off'; update(); document.getElementById('ach-' + id)?.scrollIntoView({ block: 'nearest' }); };
     const tiles = tags.map((t) => { const vs = views.filter((v) => v.tag === t), held = vs.reduce((n, v) => n + v.rows, 0);
-      return { id: t, label: ACH_TAGS[t], value: String(vs.length), unit: unitOf(vs.length, noun[0]), sub: `${plural(held, 'level')} held`, how: `${scars ? 'Scar' : 'Achievement'} chains of the ${ACH_TAGS[t]} section.` }; });
+      return { id: t, label: ACH_TAGS[t], value: String(vs.length), unit: unitOf(vs.length, noun[0]), sub: `${plural(held, 'level')} held`, how: '' }; }); // the tile counts the chains; its how only repeated the label
     const detail = (v: ChainView) => () => openPanel(scars ? 'Scar' : 'Achievement', chainDetail(s, v.id, scars));
     el.replaceChildren(
       h('div', { class: 'pk-tabs', role: 'tablist' }, tab(false, 'Achievements'), tab(true, 'Scars')),
-      h('div', { class: 'head' }, h('div', {}, h('h1', {}, title), h('p', {}, scars
-        ? 'What went wrong and left its mark on you. Same as /achievements.'
-        : 'Deeds that earned you a name. Each chain is a thread: a tied knot for every level you hold, a loose one for the next. Open a chain to see its branches; click a name or a knot for the details. Same as /achievements.'))),
+      h('div', { class: 'head' }, h('div', {}, h('h1', {}, title))),
       h('div', { class: 'sec' }, tiles.length ? visTiles(tiles, picks, update, onOpen, how) : null,
         scars ? h('p', { class: 'subline' }, plural((s.player.progression?.achievements ?? []).filter((a) => !!lib[a.key ?? '']?.scar).length, 'scar', 'scars')) : null, how),
       h('div', { class: 'sec' },
-        h('div', { class: 'head' }, h('h2', { class: 'hs-section' }, title), foldAll(shown, update)),
+        foldAll(shown, update),
         views.length ? null : h('p', { class: 'empty' }, scars ? 'No scars yet.' : 'No achievements yet. Defeat foes, win fights, strike deals and explore.'),
         views.length && !shown.length ? h('p', { class: 'empty' }, `No ${noun[1]} match these boxes. Pick other boxes or clear them.`) : null,
         tags.filter((t) => shown.some((v) => v.tag === t)).map((t) => {
@@ -598,7 +590,7 @@ export function achievementsPage(api: GameApi) {
           return h('section', { class: `th-tag${shut ? ' shut' : ''}`, id: 'ach-' + t },
             h('h3', { class: 'th-tagname' }, h('button', { type: 'button', class: 'th-tagfold', 'aria-expanded': String(!shut), 'aria-controls': body,
               onclick: () => { if (shut) shutTags.delete(t); else shutTags.add(t); saveShutTags(); update(); } },
-              h('span', { class: 'th-chev', 'aria-hidden': 'true' }), ACH_TAGS[t], h('span', {}, ` · ${plural(shown.filter((v) => v.tag === t).length, noun[0], noun[1])}`))),
+              h('span', { class: 'th-chev', 'aria-hidden': 'true' }), ACH_TAGS[t])), // the tag tile counts its chains
             h('div', { class: 'th-tagbody', id: body, hidden: shut },
               shown.filter((v) => v.tag === t).sort((a, b) => b.turn - a.turn).map((v) => chainCard(s, v, scars, update, detail(v)))));
         })));
@@ -747,16 +739,16 @@ export function journalPage(api: GameApi) {
       const nar = ls.find((l) => l.kind === 'narration');
       return { id: 't-' + t, title: String(t), combined: {}, rows: [{ id: 't' + t, sortKey: t, cells: { turn: String(t), did: did || '–', happened: nar ? firstSentence(nar.text) : '–' } }] };
     }).filter((g) => g.rows[0].cells.did !== '–' || g.rows[0].cells.happened !== '–');
-    const sec = (title: string, note: string, table: HTMLElement) => h('div', { class: 'sec' }, h('div', { class: 'head' }, h('h2', { class: 'hs-section' }, title), h('p', { class: 'hs-note' }, note)), table);
+    const sec = (title: string, table: HTMLElement) => h('div', { class: 'sec' }, h('div', { class: 'head' }, h('h2', { class: 'hs-section' }, title)), table);
     el.replaceChildren(
-      h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Journal'), h('p', {}, 'What your character knows: people, places and what happened. Only what you saw, heard or were told.'))),
-      sec('People', `A label until you learn the name. Health shows only from ${HEALTH_LEVELS.name(CONFIG.HEALTH_SHOWN_FROM)} down. Heard of: names you have heard for people you have never met.`,
+      h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Journal'))),
+      sec('People',
         groupedTable({ cols: [{ key: 'name', title: 'Name' }, { key: 'label', title: 'Looks like' }, { key: 'where', title: 'Where' }, { key: 'health', title: 'Health' }],
           groups: pGroups, open: opened.people, sort: sorts.people, onField: field('Person'), redraw: update, emptyText: 'Nobody yet. People you meet are written here.' })),
-      sec('Places', 'Places you have been in or heard facts about, folded under the place they belong to.',
+      sec('Places',
         groupedTable({ cols: [{ key: 'name', title: 'Place' }, { key: 'parent', title: 'Part of' }, { key: 'facts', title: 'What you know' }],
           groups: plGroups, open: opened.places, sort: sorts.places, onField: field('Place'), redraw: update, emptyText: 'No places yet. Places you visit or hear of are written here.' })),
-      sec('Timeline', 'Turns played since this page was opened, oldest first.',
+      sec('Timeline',
         groupedTable({ cols: [{ key: 'turn', title: 'Turn', right: true }, { key: 'did', title: 'You did' }, { key: 'happened', title: 'What happened' }],
           groups: tGroups, open: opened.time, sort: sorts.time, onField: field('Turn'), redraw: update, emptyText: 'Nothing yet this session. Each turn you play is written here.' })));
   }

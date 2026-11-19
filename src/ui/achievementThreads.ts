@@ -128,9 +128,9 @@ export function chainCard(s: GameState, v: ChainView, scars: boolean, redraw: ()
     h('header', { class: 'th-head' },
       // the title sits centred over the trunk; the fold toggle keeps to the right
       h('div', { class: 'th-title' },
-        h('button', { type: 'button', class: 'th-name', onclick: detail }, v.name),
-        h('div', { class: 'th-sub' }, v.place ? h('span', { class: 'th-place' }, v.place) : null,
-          h('span', { class: 'th-meta' }, `turn ${v.turn}`))),
+        // the turn of its latest level is the name's tip, not a line on every chain (SD14)
+        h('button', { type: 'button', class: 'th-name', title: `Latest level earned on turn ${v.turn}`, onclick: detail }, v.name),
+        v.place ? h('div', { class: 'th-sub' }, h('span', { class: 'th-place' }, v.place)) : null),
       nBranch && !always ? h('button', { type: 'button', class: 'th-fold', 'aria-expanded': String(open), 'aria-controls': bid, onclick: toggle },
         h('span', { class: 'th-chev', 'aria-hidden': 'true' }), plural(nBranch, 'branch', 'branches')) : null),
     v.trunk ? threadEl(s, v.trunk, scars) : null,

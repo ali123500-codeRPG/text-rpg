@@ -421,6 +421,10 @@ describe('play page smoke (TQ7)', () => {
     await nav('Inventory');
     await page.getByText(/^Coin: /).waitFor();
     expect(await page.locator('.hs-readout.vis').count()).toBe(0); // the group-count boxes are gone from this page only
+    // SD11: each item shows once, in the pack grid; no table lists them again, and no word for the normal case
+    const inv = page.locator('main', { has: page.locator('h1', { hasText: 'Inventory' }) });
+    expect(await inv.locator('table').count()).toBe(0);
+    expect(await inv.getByText(/^(Carried|Empty|Whole)$/).count()).toBe(0);
     await nav('Quests');
     await page.locator('h1', { hasText: 'Quests' }).waitFor();
     expect(errors).toEqual([]);
