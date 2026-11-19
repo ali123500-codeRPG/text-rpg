@@ -38,8 +38,9 @@ Every agent works from the same files. The start-up step differs by tool. Only t
 in this project; the others are written from each tool's documentation and marked untested.
 
 - **Claude (claude.ai project, or Claude Code).** Tested. `CLAUDE.md` imports `AGENTS.md`, so the rules load by
-  themselves. Claude Code does not load `.agents/skills/` by itself; `docs/skills.md` lists the skills and the
-  agent opens the `SKILL.md` it needs. Also read `docs/providers/claude.md`.
+  themselves. Claude Code loads the owner's skills through `.claude/skills/`, which links to `.agents/skills/`. A
+  thread inside a claude.ai project loads skills only from the account: there the agent opens the `SKILL.md` it
+  needs, or the account gets the skills uploaded (`npm run skills-zip`). Also read `docs/providers/claude.md`.
 - **Codex.** Untested. Codex reads `AGENTS.md` at the repo root and skills in `.agents/skills/`.
 - **GitHub Copilot (coding agent).** Untested. It reads `AGENTS.md` and skills in `.agents/skills/`.
 - **Cursor.** Untested. It reads `AGENTS.md` and skills in `.agents/skills/`.
