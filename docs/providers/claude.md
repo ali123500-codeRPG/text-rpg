@@ -18,7 +18,10 @@ Links to `claude.ai/artifact/...` open only for the owner and for Claude session
 - Out-of-scope work gets its own thread, asked for through the coordinator.
 - Browsing the web, or looking at a page together with the owner, uses the Chrome extension by default. Local
   renders, screenshots and test runs use the pre-installed Playwright.
+- The desk label (`docs/instructions.md` section 4, "Claim the work first") is `desk:main` for threads of this
+  project. A Claude project on another account takes its own name and records it here in its first PR.
 - **Other agents:** none of this applies. Work from a branch and a PR, as `docs/instructions.md` section 8 says.
+  Your desk label is `desk:<your provider>`, for example `desk:codex`.
 
 ## Questions: decision cards and the Questions hub
 
