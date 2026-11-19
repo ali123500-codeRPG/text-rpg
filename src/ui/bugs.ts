@@ -6,6 +6,7 @@
 import type { GameApi } from '../types';
 import { isNewReport, type FiledBug } from '../save/bugs';
 import { claudeComments, h, plural, type CommentsApi } from './kit';
+import { cap } from '../words';
 
 const REFRESH_MS = 5000;
 
@@ -15,6 +16,9 @@ export function bugSummary(b: FiledBug): string {
   const text = typeof b.note === 'string' ? b.note : typeof b.detail === 'string' ? b.detail : errs?.[0]?.message ?? '';
   return text.length > 220 ? `${text.slice(0, 217)}…` : text;
 }
+
+/** SD14: a bug's kind in plain words (agent_fallback → Agent fallback); the code itself is the cell's tip */
+export const bugKind = (code: string): string => (code === 'player_report' ? 'Your report' : cap(code.replace(/_/g, ' ')));
 
 export function bugsPage(api: GameApi) {
   const el = h('main', { class: 'bugs' });
@@ -68,13 +72,13 @@ export function bugsPage(api: GameApi) {
 
   const row = (b: FiledBug) => h('tr', {},
     h('td', { class: 'bug-id' }, isNewReport(b) ? 'New' : b.id),
-    h('td', {}, h('span', { class: 'hs-tg' }, b.code === 'player_report' ? 'your report' : b.code)),
+    h('td', {}, h('span', { class: 'hs-tg', title: b.code }, bugKind(b.code))),
     h('td', { class: 'num' }, String(b.turn ?? '')),
     h('td', {}, bugSummary(b)),
     h('td', { class: 'hs-note' }, b.at ? new Date(b.at).toLocaleString() : ''));
   function draw() {
     el.replaceChildren(
-      h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Bugs'), h('p', {}, 'Report what went wrong. New reports get a bug number once Claude has looked at them. New reports and open bugs are listed below, newest first, until a fix marks them done.'))),
+      h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Bugs'))),
       h('section', { class: 'bug-report' }, note, h('div', { class: 'bug-actions' }, report, sendNote)),
       h('div', { class: 'bug-bar' }, h('h2', {}, rows ? `New and open bugs (${rows.length})` : 'New and open bugs'), toClaude, claudeNote),
       rows === null ? h('p', { class: 'empty', role: 'status' }, failed ? 'The bug list couldn’t be read from the save.' : 'Reading the save…')

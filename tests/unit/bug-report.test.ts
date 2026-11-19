@@ -11,3 +11,12 @@ it('openBugs lists new reports newest first, then open numbered bugs newest numb
   for (const [n, status] of [[7, 'open'], [9, 'open'], [8, 'fixed']] as const) await store.set(`bugs/BG-${n}`, { id: `BG-${n}`, code: 'invalid_gear', storyId: 's', turn: 1, status, at: 2 });
   expect((await openBugs(store)).map((x) => x.id)).toEqual(['new-3', 'new-1', 'BG-9', 'BG-7']);
 });
+
+it('SD14: the Kind column says a code in plain words; the raw code stays in the cell tip', async () => {
+  const { bugKind } = await import('../../src/ui/bugs');
+  expect(bugKind('agent_fallback')).toBe('Agent fallback');
+  expect(bugKind('player_report')).toBe('Your report');
+  // @ts-expect-error Node types are not installed; vitest runs in Node
+  const src: string = (await import('node:fs')).readFileSync('src/ui/bugs.ts', 'utf8');
+  expect(src).toMatch(/title: b\.code \}, bugKind\(b\.code\)/);
+});

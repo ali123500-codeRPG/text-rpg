@@ -234,7 +234,7 @@ export function gainsPage(api: GameApi): { el: HTMLElement; update: () => void }
       return d;
     });
     el.replaceChildren(
-      h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Gains'), h('p', {}, 'What each scenario gave you, newest first, as it showed when the scenario ended.'))),
+      h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Gains'))),
       s ? (rows.length ? h('div', { class: 'g-past-list' }, ...rows) : h('p', { class: 'empty' }, 'No scenario has ended with a gain yet.'))
         : h('p', { class: 'empty' }, 'No story yet. Create your character first.'));
   }
