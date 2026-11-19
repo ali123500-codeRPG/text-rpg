@@ -7,6 +7,22 @@ fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 we
 words it, or, where the log only names a PR, that PR's title.
 
 <<<<<<< HEAD
+## BG-321
+
+**What was wrong:** Lying was renamed Falsehood on screen only, so wherever the name was typed by hand it stayed "Lying". The Library's Equations page said Misdirection adds Lying to Vanishing, although it adds Guile, and called the lie roll Lying; the spec's rules, code comments and test names said Lying too. The code still called the skill SK.lying, so writers kept copying the old name.
+
+**What was done:** The code name is now SK.falsehood (the skill's id, SK31, is unchanged, so saves are untouched). The Equations lines read skill and perk names from the library, and the text everywhere says Falsehood. A guard test fails if "Lying" comes back as a skill name in the code or the spec's rules.
+
+**Fixed by:** [PR #1088](https://github.com/ali123500-codeRPG/text-rpg/pull/1088)
+
+## BG-320
+
+**What was wrong:** Sizing someone up rolled the looker's Insight against the other's Falsehood, the skill for spoken lies. The face someone keeps is a lie told with the body, which is Guile. Size-up was built the day before Guile existed, and nobody went back to sort the old rolls into spoken and body lies.
+
+**What was done:** Sizing someone up now rolls Insight against Guile, like Play Dead and feigned flight. Falsehood plays no part in it.
+
+**Fixed by:** [PR #1088](https://github.com/ali123500-codeRPG/text-rpg/pull/1088)
+
 ## BG-318
 
 **What was wrong:** The Journal's Places section said "The Map page draws their zones", but the map stopped being a page when it became a pop-up from the Play header, so the note sent the player looking for something that doesn't exist.
