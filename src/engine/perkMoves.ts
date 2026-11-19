@@ -5,7 +5,7 @@
 //   doPerkMove() by battleCry() in auras.ts.
 //   Dirt in the Eyes (A9): free, once per engagement, needs a free grip; an unarmed_improvised roll against the foe's
 //   dodge; unless the foe wins, its next attack or defense roll is two tiers worse (for PERK_MARK_ROUNDS rounds, AT74).
-//   Bluff (LI1c): free, once per foe per engagement; a Lying roll against the foe's answer to a lie (answerRoll, so
+//   Bluff (LI1c): free, once per foe per engagement; a Falsehood roll against the foe's answer to a lie (answerRoll, so
 //   Takes One to Know One counts); unless the foe wins, it believes the lie and acts last next turn (initiativeOrder).
 import type { Actor, ContestResult, Effect, GameState, Rng } from '../types';
 import { PERK_MOVES, hasPerk, markUse, ruleset, toContest } from '../ruleset';

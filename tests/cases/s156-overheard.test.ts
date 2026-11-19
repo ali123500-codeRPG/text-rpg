@@ -1,5 +1,5 @@
 // 156 Overheard (LI5a, Insight 20): a lie told to someone else, heard by an owner of Overheard (the words or the voice's
-// sound), gets the speaker's Lying against the owner's answer to a lie. An owner that wins sees through it: the hint, or
+// sound), gets the speaker's Falsehood against the owner's answer to a lie. An owner that wins sees through it: the hint, or
 // plainly a lie with Plain as Day. The one lied to, and anyone who already answered it, is not checked again.
 import { describe, expect, it } from 'vitest';
 import { forcedRng, makeVillage } from '../harness';
@@ -34,7 +34,7 @@ describe('156 Overheard', () => {
     overhearLie(s, e, [], forcedRng([5, 95]));
     expect(e.overheard).toBeUndefined(); // nobody owns the perk
     give(s.player, PK.overheard);
-    overhearLie(s, e, [], forcedRng([5, 95])); // the guard's Lying rolls 5, the player's Insight 95
+    overhearLie(s, e, [], forcedRng([5, 95])); // the guard's Falsehood rolls 5, the player's Insight 95
     expect(e.overheard).toEqual(['player']);
     const f = lie(s);
     overhearLie(s, f, [], forcedRng([95, 5]));

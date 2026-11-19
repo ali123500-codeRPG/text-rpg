@@ -139,7 +139,7 @@ function recheck(state: GameState, owner: Actor, x: Actor, t: Trick, rng: Rng): 
     owner.feint!.believers = owner.feint!.believers.filter((id) => id !== x.id);
     return { kind: 'feint_seen_through', actorId: x.id, data: { by: owner.id } };
   }
-  // the second look, as the first was rolled: Bluff is Lying against the answer to a lie, Draw Them In Stratagem against Insight
+  // the second look, as the first was rolled: Bluff is Falsehood against the answer to a lie, Draw Them In Stratagem against Insight
   const seen = (skill: string, theirs: RollResult): boolean => {
     const c = toContest(ruleset.roll({ actorId: owner.id, skill, modifiers: [], tierShifts: [], against: x.id, contest: true }, state, rng), theirs);
     markUse(state, owner, c.a.skill, c);
@@ -148,7 +148,7 @@ function recheck(state: GameState, owner: Actor, x: Actor, t: Trick, rng: Rng): 
     return c.winner === 'b';
   };
   if (t === TRICK.bluff) {
-    if (!bluffedBy(state, x, owner.id) || !seen(SK.lying, answerRoll(state, x, answerSkill('deceive'), owner.id, rng, warnedShift(x, owner.id, t)))) return null;
+    if (!bluffedBy(state, x, owner.id) || !seen(SK.falsehood, answerRoll(state, x, answerSkill('deceive'), owner.id, rng, warnedShift(x, owner.id, t)))) return null;
     spendBluff(x);
     return { kind: 'bluff_seen_through', actorId: x.id, data: { by: owner.id } };
   }

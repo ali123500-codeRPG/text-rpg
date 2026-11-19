@@ -6,6 +6,22 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-316
+
+**What was wrong:** When people walk about on their own between turns, a walker whose way is shut by a door opens it as a quiet background step only if the player can't see that door; a door in view stops them, so the opening happens as a move you can see. "Can't see it" was judged the zone way: the player standing in neither title beside the door. So someone could unlock and open a door in plain view across the street as a background step, with nothing shown.
+
+**What was done:** A door now counts as seen when the player has a clear line to it within a walking person's glimpse range, whatever title the player stands in. Only a door the player truly can't see is opened in the background.
+
+**Fixed by:** [PR #1095](https://github.com/ali123500-codeRPG/text-rpg/pull/1095)
+
+## BG-315
+
+**What was wrong:** Gut Feeling (the hunch that someone hidden is watching you) only counted a watcher when the titles between you were joined by ways you can see through. That is the old zone links' idea of sight. So someone watching you over a garden fence, or across open ground between two titles with no "way" drawn, never set it off, while a watcher behind a wall in a linked title could.
+
+**What was done:** A watcher now counts when the line from their eyes to you is clear, at any distance, whatever titles lie between: over a fence it is, through a wall it isn't.
+
+**Fixed by:** [PR #1092](https://github.com/ali123500-codeRPG/text-rpg/pull/1092)
+
 ## BG-314
 
 **What was wrong:** A search only ever looked inside the title the searcher stood in. Someone hiding 1.6 m away, in plain line, but standing just over a title's edge (the next part of the same yard, say) could never be found. That was the zone-era rule "search your own area" (SE20): titles are only names on the floor plan now, so the rule cut a search off at an invisible line.
@@ -21,6 +37,22 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** The Defense buttons centre their text (align-items: center), the same space above and below.
 
 **Fixed by:** [PR #1086](https://github.com/ali123500-codeRPG/text-rpg/pull/1086)
+
+## BG-321
+
+**What was wrong:** Lying was renamed Falsehood on screen only, so wherever the name was typed by hand it stayed "Lying". The Library's Equations page said Misdirection adds Lying to Vanishing, although it adds Guile, and called the lie roll Lying; the spec's rules, code comments and test names said Lying too. The code still called the skill SK.lying, so writers kept copying the old name.
+
+**What was done:** The code name is now SK.falsehood (the skill's id, SK31, is unchanged, so saves are untouched). The Equations lines read skill and perk names from the library, and the text everywhere says Falsehood. A guard test fails if "Lying" comes back as a skill name in the code or the spec's rules.
+
+**Fixed by:** [PR #1088](https://github.com/ali123500-codeRPG/text-rpg/pull/1088)
+
+## BG-320
+
+**What was wrong:** Sizing someone up rolled the looker's Insight against the other's Falsehood, the skill for spoken lies. The face someone keeps is a lie told with the body, which is Guile. Size-up was built the day before Guile existed, and nobody went back to sort the old rolls into spoken and body lies.
+
+**What was done:** Sizing someone up now rolls Insight against Guile, like Play Dead and feigned flight. Falsehood plays no part in it.
+
+**Fixed by:** [PR #1088](https://github.com/ali123500-codeRPG/text-rpg/pull/1088)
 
 ## BG-318
 

@@ -130,16 +130,16 @@ it('146g a repeat try of the same kind at the same listener costs the speaker 15
   expect(s.player.speechTries).toBeUndefined(); // tries end with the engagement
 });
 
-it('146h a lie rolls Lying and the listener answers with Insight; only the shady template lies (NT16–NT18)', () => {
+it('146h a lie rolls Falsehood and the listener answers with Insight; only the shady template lies (NT16–NT18)', () => {
   const s = makeVillage({ playerZone: 'tav_counter' });
   const c = resolveSpeech(s, intent({ action: { type: 'deceive', target: 'trader' }, spoken: 'I am the reeve.', addressees: ['trader'] }), ['trader'], createRng(2)).perSpokesperson.trader.contest;
   expect(c.b.skill).toBe(SK.insight);
   const p = pushContest(atTheGate(), actorById(atTheGate(), 'guard_1')!, 'deceive', createRng(2));
   expect(p.b.skill).toBe(SK.insight);
   const lib = getLibrary();
-  expect(lib.trees[lib.skills[SK.lying].treeId].name).toBe('Trickery');
+  expect(lib.trees[lib.skills[SK.falsehood].treeId].name).toBe('Trickery');
   expect(lib.trees[lib.skills[SK.insight].treeId].skills).toEqual([SK.eyesight, SK.earshot, SK.insight, SK.scent]);
-  const liars = Object.values(lib.templates).filter((t) => t.minimums[SK.lying]).map((t) => t.id);
+  const liars = Object.values(lib.templates).filter((t) => t.minimums[SK.falsehood]).map((t) => t.id);
   expect(liars).toEqual([TP.thief]);
 });
 
@@ -155,7 +155,7 @@ it('146-NL an NPC lie at another NPC rolls; caught = tell and no alias, believed
     g.mind!.knowledge.trader = { status: 'aware', lastKnownZone: 'tav_common', lastSeenTurn: 1, source: 'seen', revealed: [] } as never;
     const ev = play(s, { agentOutputs: [plannerOut('guard_1', act('talk', 'trader'), { dialogue: { line: "Name's Tam, from the coast.", volume: 'normal' } })] }, seed);
     const e = ev.find((x) => x.kind === 'speak' && x.actorId === 'guard_1')!;
-    expect(e.contest!.a.asked ?? e.contest!.a.skill).toBe(SK.lying); // a stand-in may make the roll
+    expect(e.contest!.a.asked ?? e.contest!.a.skill).toBe(SK.falsehood); // a stand-in may make the roll
     expect(e.contest!.b).toMatchObject({ actorId: 'trader', skill: SK.insight });
     expect(e.push).toMatchObject({ type: 'deceive', listener: 'trader' });
     const tv = buildActorView(s, 'trader').told.find((x) => x.id === e.id);

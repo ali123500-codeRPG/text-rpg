@@ -1,7 +1,7 @@
 // 301 GD1-GD6 ("Breaking things open, guards and locked boxes"): a guard whose search turns up a locked container on
 // someone suspects them (one step colder, remembered, shown to its agent) until it is opened where the guard sees inside
 // (nothing it is after: cleared and the step given back; stolen or forbidden goods: caught) or the suspect wins a
-// Persuasion or Lying contest against it. It lasts until cleared or the scenario ends; anyone can be suspected. A code-run
+// Persuasion or Falsehood contest against it. It lasts until cleared or the scenario ends; anyone can be suspected. A code-run
 // guard keeps close and asks to see inside.
 import { expect, it } from 'vitest';
 import type { GameState } from '../../src/types';

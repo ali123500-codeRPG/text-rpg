@@ -19,6 +19,7 @@ import { bested, tally } from './xp';
 import { contestFeat } from './feats';
 import { applyHaggle, isSeller } from './trade';
 import { countTry, repeatTryMods } from '../ruleset/pressure';
+import { effectiveSkill } from '../ruleset/gear';
 import { hears, hearsClearly, hearsWords, sightAt } from '../perception';
 import { moraleLevel } from '../ruleset/morale';
 import { MORALE_LEVELS } from '../scales';
@@ -26,7 +27,7 @@ import { speakingSpot } from './merge';
 import { VOLUME_NOISE } from '../perception/noise';
 
 export const SPEECH_SKILL: Record<string, string> = {
-  talk: SK.persuasion, persuade: SK.persuasion, deceive: SK.lying, intimidate: SK.intimidation, barter: SK.barter,
+  talk: SK.persuasion, persuade: SK.persuasion, deceive: SK.falsehood, intimidate: SK.intimidation, barter: SK.barter,
 };
 /** what the listener answers with: the speaker's skill, except a lie, which Insight answers (NT17) */
 export const answerSkill = (type: string): string => type === 'deceive' ? SK.insight : speechSkill(type);
@@ -260,11 +261,16 @@ export const PLAIN = 'it is a lie';
  * plainly as a lie; for the player a tie (BF10, a doubt) gives the hint. With no gap given it was a win: plainly. */
 export const tellFor = (gap?: number): string => (gap === undefined || gap >= 1 ? PLAIN : TELL);
 
-/** a listener's answering roll (answerSkill), against the speaker; All-50 Easy Speaker answers one outcome better;
- * Takes One to Know One (LI1a) answers a lie with the better of Insight and Lying */
-export function answerRoll(state: GameState, listener: Actor, skill: string, speakerId: string, rng: Rng, extra: TierShift[] = []): RollResult {
+/** a lie told in words (deceive, Bluff, Overheard) or with the body (Play Dead, feigned flight) */
+export type LieKind = 'spoken' | 'body';
+/** a listener's answering roll (answerSkill), against the speaker; All-50 Easy Speaker answers one outcome better.
+ * Takes One to Know One (LI1a, GU2 b) answers a lie with the better of Insight and the liar's skill (Falsehood in words,
+ * Guile with the body); the other skill of the pair augments that roll (the perk's augments, by `when`) */
+export function answerRoll(state: GameState, listener: Actor, skill: string, speakerId: string, rng: Rng, extra: TierShift[] = [], lie: LieKind = 'spoken'): RollResult {
   const knows = skill === SK.insight && hasPerk(listener, PK.takes_one_to_know_one);
-  return ruleset.roll({ actorId: listener.id, skill, modifiers: [], tierShifts: [...(hasPerk(listener, PK.easy_speaker) ? [{ source: perkName(PK.easy_speaker), value: 1 }] : []), ...extra], against: speakerId, contest: true, ...(knows ? { fullValue: [SK.lying] } : {}) }, state, rng);
+  const pair = lie === 'body' ? SK.guile : SK.falsehood;
+  const pick = knows && effectiveSkill(state, listener, pair).value > effectiveSkill(state, listener, skill).value ? pair : skill;
+  return ruleset.roll({ actorId: listener.id, skill: pick, modifiers: [], tierShifts: [...(hasPerk(listener, PK.easy_speaker) ? [{ source: perkName(PK.easy_speaker), value: 1 }] : []), ...extra], against: speakerId, contest: true, ...(knows ? { when: [lie === 'body' ? 'answer_body_lie' as const : 'answer_spoken_lie' as const] } : {}) }, state, rng);
 }
 
 /** OQ-29: an NPC's speech roll at the player (NL1: or a lie at another NPC); the listener answers (answerSkill; the speaker is side a) */
@@ -278,8 +284,8 @@ export function pushContest(state: GameState, speaker: Actor, type: string, rng:
   return contest;
 }
 
-/** BF97 a: sizing someone up is a contest, the looker's Insight against the other's Lying (the face they keep), the same
- * pair as seeing through a lie. Only someone the looker sees clearly can be read; null when it can't be tried. A win
+/** BF97 a: sizing someone up is a contest, the looker's Insight against the other's Guile (the face they keep: a lie told
+ * with the body, as in Play Dead and feigned flight; BG-320, CONTEST.size_up). Only someone the looker sees clearly can be read; null when it can't be tried. A win
  * reads what they show: their mood, how they feel about the looker, and whether they hide something (a secret they hold,
  * or a lie they told lately), never what. A loss or a tie reads nothing beyond plain sight. */
 export function sizeUp(state: GameState, looker: Actor, them: Actor, rng: Rng): { contest: ContestResult; read?: PersonRead } | null {
@@ -310,7 +316,7 @@ export function quickReads(state: GameState, rng: Rng): void {
 }
 
 /** LI5a Overheard: a lie (`ev`, a speak event) told to someone else, heard by an owner of Overheard (the words or the
- * voice's sound), gets the speaker's Lying against the owner's answer to a lie (answerRoll). `answered` already rolled
+ * voice's sound), gets the speaker's Falsehood against the owner's answer to a lie (answerRoll). `answered` already rolled
  * against it; `lie` is the speaker's roll when it made one, else it rolls once. An owner that wins is listed in
  * ev.overheard and sees through it (tellFor). */
 export function overhearLie(state: GameState, ev: GameEvent, answered: string[], rng: Rng, lie?: RollResult): void {

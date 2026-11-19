@@ -841,11 +841,11 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Takes One to Know One (Falsehood) · LI1a
 
-*Story:* You know every trick in the book, because you wrote half of them. When someone lies to you, you answer with the better of your Insight and your Falsehood.
+*Story:* You know every trick in the book, because you wrote half of them. When someone lies to you, you answer with the better of your Insight and the lying skill they used, and the other one helps.
 
 - **Kind:** Always on
-- **Trigger:** Someone lies to the owner (a lie, or a Bluff).
-- **Effect:** The owner's answering roll uses the better of Insight and Falsehood, each at full value.
+- **Trigger:** Someone lies to the owner: in words (a lie, a Bluff) or with the body (Play Dead, feigned flight).
+- **Effect:** The owner answers a lie in words with the better of Insight and Falsehood, and a lie told with the body with the better of Insight and Guile. The other skill of the pair augments that roll by 0.2 (CONFIG.TAKES_ONE_SHARE, placeholder) × its true skill × its tier, and learns from it as an augment does.
 - **Lasts:** Each answer to a lie.
 
 ### Quick Read (Insight) · LG20b

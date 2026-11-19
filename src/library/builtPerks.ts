@@ -13,8 +13,8 @@ export const BUILT_PERKS = new Set<string>([
   PK.never_flat_footed, // TC35 b (Battle Sense 100): src/engine/flatFooted.ts noteSeen(), neverFlatFooted() in resolve.ts initiativeOrder() and doAttack()
   PK.draw_them_in, // TC31 a (Stratagem 20): src/engine/resolve.ts doDrawThemIn(), src/engine/perkMarks.ts drawIn(); the drawn foe's order in merge.ts
   PK.hug_the_cover, // TC30 a (Fieldcraft 20): src/engine/perkMarks.ts hugReady(), src/ruleset/index.ts attack()
-  PK.bluff, // LI1c (Lying 20): src/engine/perkMoves.ts, the Parser's perkMove; acts last in resolve.ts initiativeOrder()
-  PK.takes_one_to_know_one, // LI1a (Lying 60): src/engine/speech.ts answerRoll()
+  PK.bluff, // LI1c (Falsehood 20): src/engine/perkMoves.ts, the Parser's perkMove; acts last in resolve.ts initiativeOrder()
+  PK.takes_one_to_know_one, // LI1a (Falsehood 60): src/engine/speech.ts answerRoll()
   PK.overheard, // LI5a (Insight 20): src/engine/speech.ts overhearLie(), from doSpeak() and the exchange slot in resolve.ts
   PK.quick_read, // LG20 b, LG26 a (Insight 60): src/engine/speech.ts quickReads(), at each turn's end in resolve.ts
   PK.read_their_face, // LI2b (Insight 100): src/views/index.ts seenActors()

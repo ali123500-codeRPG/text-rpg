@@ -25,8 +25,9 @@ export type ImpactId = 'non_essential' | 'normal' | 'essential';
  * lose what it gives (points moved, never made; always on). percent: the giving skill's true skill ÷ 100 × share (the rate,
  * default CONFIG.AUGMENT_PERCENT_RATE) × the receiving skill's own true skill; several on one skill add in full (RN3 c). */
 export type AugmentKind = 'plain' | 'trade' | 'percent';
-/** a situation an augment needs on the roll (RollRequest.when): from_hiding, an attack made while stealthy (CN6 Patient Knife) */
-export type AugmentWhen = 'from_hiding';
+/** a situation an augment needs on the roll (RollRequest.when): from_hiding, an attack made while stealthy (CN6 Patient Knife);
+ * answer_spoken_lie / answer_body_lie, an answer to a lie in words or told with the body (GU2 b, Takes One to Know One) */
+export type AugmentWhen = 'from_hiding' | 'answer_spoken_lie' | 'answer_body_lie';
 
 export type SkillDef = {
   id: string;
@@ -540,7 +541,7 @@ export type AchievementDef = { id: string; name: string; level: string; rule: Ac
   readsHealth?: true; // the owner sees the health level of every member of the achievement's body type or race
   skillAdd?: Record<string, number>; // true skill added to these skills
   personality?: PersonalityAdd; // PL15: Nerve or trait points added while current
-  /** AP12: extra points while current, only when earned for this kind (`of`, e.g. a skill id on a by-skill row): Lying wins add Honesty −1 step */
+  /** AP12: extra points while current, only when earned for this kind (`of`, e.g. a skill id on a by-skill row): Falsehood wins add Honesty −1 step */
   personalityByKind?: Record<string, PersonalityAdd>;
   renown?: number; // every foe fighting the owner takes this much off its morale rolls (MB24)
   maxMorale?: number; // flat points added to the owner's max morale (ordeals pay nerve, never the skill used)

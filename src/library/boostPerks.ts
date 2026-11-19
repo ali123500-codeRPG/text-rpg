@@ -76,7 +76,7 @@ const ROWS: Row[] = [
     extra: { ownRule: 'DEEP_RESERVES_MULT', story: `There is more of you to wear down: your ${skillName(SK.endurance)}, ${skillName(SK.stamina)} and ${skillName(SK.resolve)} each count a fifth more toward health, stamina and morale.`,
       rule: `Each point of ${skillName(SK.endurance)}, ${skillName(SK.stamina)} and ${skillName(SK.resolve)} counts ×${CONFIG.DEEP_RESERVES_MULT} toward the bar it fills: health (HP_PER_END), the stamina bar (STAMINA_PER_POINT) and max morale (MORALE_PER_RESOLVE). DEEP_RESERVES_MULT, placeholder.` } },
   { id: PK.silver_tongue, ref: 'LG10', skill: SK.persuasion, group: GR.influence, name: 'Silver Tongue', effect: 'speech',
-    extra: { story: `Convincing and deceiving are the same craft: +10 ${skillName(SK.lying)}.`, rule: `+10 true skill in ${skillName(SK.lying)}.`, trueSkillTo: { [SK.lying]: 10 } } },
+    extra: { story: `Convincing and deceiving are the same craft: +10 ${skillName(SK.falsehood)}.`, rule: `+10 true skill in ${skillName(SK.falsehood)}.`, trueSkillTo: { [SK.falsehood]: 10 } } },
   { id: PK.unseen_strike, ref: 'LG11', skill: SK.combat_stealth, group: GR.stealth, name: 'Unseen Strike', effect: 'attack',
     extra: { ownRule: 'AWARENESS_DEFENSE', story: 'Whoever does not see you coming barely defends: a target unaware of you defends at −20, and one only suspicious of you at −10.',
       rule: `A defense roll against the owner's attack takes the awareness modifier one step further on its table (AWARENESS_DEFENSE ${CONFIG.AWARENESS_DEFENSE.join(', ')}): ${CONFIG.AWARENESS_DEFENSE[CONFIG.AWARENESS_STEP.unaware + 1]} when the defender is unaware of the owner, ${CONFIG.AWARENESS_DEFENSE[CONFIG.AWARENESS_STEP.suspicious + 1]} when it is only suspicious. Never Flat-Footed still cancels it.` } },
@@ -96,7 +96,7 @@ const ROWS: Row[] = [
   { id: PK.covered_joints, ref: 'LG24', skill: SK.medium_armor, group: GR.defense, name: 'Covered Joints', effect: 'defense',
     extra: { ownRule: 'COVERED_JOINTS', story: 'You wear your armor so the gaps are never where a blade looks for them: every blow at you has to find a way past it.',
       rule: `An attack at a part the owner's worn armor covers (any weight) takes ${CONFIG.COVERED_JOINTS} on its roll (COVERED_JOINTS, placeholder). An attack that is not aimed takes ${CONFIG.COVERED_JOINTS} × the share of the owner's hit chances its armor covers; one aimed at a bare part takes nothing.` } },
-  { id: PK.honest_face, ref: 'LG19', skill: SK.lying, group: GR.influence, name: 'Honest Face', effect: 'speech',
+  { id: PK.honest_face, ref: 'LG19', skill: SK.falsehood, group: GR.influence, name: 'Honest Face', effect: 'speech',
     extra: { story: `People believe a face like yours, whatever it says: +10 ${skillName(SK.persuasion)}.`, rule: `+10 true skill in ${skillName(SK.persuasion)}.`, trueSkillTo: { [SK.persuasion]: 10 } } },
   // CN8 (D-260): a payoff perk on Intimidation 120 (Battle Cry holds 140), with the 120 boosts like any other
   { id: PK.chorus, ref: 'CN8', skill: SK.intimidation, group: GR.influence, name: 'Chorus', effect: 'speech', milestone: 120,

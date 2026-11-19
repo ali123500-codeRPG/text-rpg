@@ -68,7 +68,7 @@ describe('337 XP-only rewards, round 2', () => {
     expect(achievementSkill(s.player, SK.persuasion)).toBe(0);
     giveOf(s, SK.persuasion, ACH.speech_10, ACH.speech_100, ACH.speech_250);
     expect(achievementSkill(s.player, SK.persuasion)).toBe(6);
-    expect(achievementSkill(s.player, SK.lying)).toBe(0);
+    expect(achievementSkill(s.player, SK.falsehood)).toBe(0);
   });
 
   it('XR28 a: Not Done Yet adds +5 max morale', () => {

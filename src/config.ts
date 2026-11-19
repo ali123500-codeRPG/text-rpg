@@ -1072,6 +1072,7 @@ const DEFAULTS = {
   AUGMENT_PERCENT_RATE: 0.2, // D-276 percentage augment: receiving true skill × this × giving true skill ÷ 100 (placeholder)
   MIND_OVER_BODY_SHARE: 0.25, // All-100 Mind Over Body (Resolve's part): share of Resolve that adds to health, as Endurance does (placeholder)
   GRIT_SHARE: 0.25, // All-50 Grit (Resolve's part): share of Endurance that augments Resolve (placeholder)
+  TAKES_ONE_SHARE: 0.2, // GU2 b: Takes One to Know One: the unpicked skill of the pair augments the picked one by this share (placeholder)
   MISDIRECTION_SHARE: 0.25, // All-50 Misdirection (Vanishing's part): share of Guile that augments Vanishing (placeholder)
   THICK_HIDE_MULT: 0.95, // All-50 Thick Hide: health lost from each hit (placeholder)
   /** XP per reward level (REWARD_LEVELS in src/scales.ts), one equation for achievements and quests with no top:
