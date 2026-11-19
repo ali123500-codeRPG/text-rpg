@@ -55,8 +55,8 @@ const CHANGE_WORD: Record<string, [string, string]> = { combat: ['Combat', 'c10'
 const SPEAKER_COLOURS = ['c15', 'c12', 'c4', 'c5', 'c1', 'c7', 'c14'];
 /** A5: the keys the play screen answers (the keydown handlers below), listed under the commands */
 const KEYS: [string, string][] = [
-  ['Esc', 'Skips what is moving, then closes what is open: a panel, the Say box, a planned move'],
-  ['Enter', 'Sends what is in the box; in an empty box, walks to the move planned on the map'],
+  ['Esc', 'Skips what is moving, then closes what is open: a panel, the Say box, a planned move, the suggestion'],
+  ['Enter', 'Sends what is in the box; in an empty box, walks to the move planned on the map, else plays the next step of your order'],
   ['Tab', 'Takes the suggestion into an empty box'],
   ['PageUp', 'Scrolls the story up while the box has focus'],
   ['PageDown', 'Scrolls the story down while the box has focus'],
@@ -236,6 +236,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const healBtn = h('button', { type: 'button', class: 'itm heal-slot' });
   let open: 'commands' | null = null;
   let suggestion = ''; // Q16: what the player put off last turn, offered in the box until used or cleared
+  let queued = false; // D-20 b: the suggestion is the next step of the player's order, and Enter in the empty box plays it
   const pick = (text: string) => { input.value = text; open = null; update(); input.focus(); };
   const cmdBtn = h('button', { type: 'button', class: 'hs-btn-text', onclick: () => { open = open ? null : 'commands'; update(); } }, 'Commands');
   // BG-190: the last order that played out (a clarify or a command doesn't count), offered back to carry on with it
@@ -353,6 +354,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     // AD12: Enter in an empty box walks to the move planned on the minimap
     const planned = mm.planned();
     if (!text && planned && !byAgent) { mm.clear(); if (!api.busy() && !inputOff()) { finishAll(); await api.act(walkOrder(planned), { aimed: false }); } return; }
+    // D-20 b: Enter in an empty box plays the next step of the player's order
+    if (!text && queued && suggestion && !sayFor && !byAgent) { input.value = suggestion; return submit(); }
     // an action waiting for words (persuade, lie, threaten…) takes the Say box's line and plays at once (AD7)
     if (text && sayFor && !text.startsWith('/') && !byAgent && !api.busy() && !inputOff()) { if (dk.sendWords(text)) return; }
     if (!text || api.busy() || (auto.playing() && !byAgent && !auto.asking())) return;
@@ -663,17 +666,21 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
 
     // Q16: what the player put off last turn is offered as a dimmed suggestion; nothing is typed or sent until they take it
     const nextLine = lines.at(-1);
-    if (nextLine?.next && nextLine !== offered && !api.busy()) { suggestion = nextLine.next; offered = nextLine; }
+    const nextText = nextLine?.queue?.[0] ?? nextLine?.next; // D-20 b: a live queue offers its next step
+    if (nextText && nextLine !== offered && !api.busy()) { suggestion = nextText; queued = !!nextLine!.queue; offered = nextLine!; }
     const offering = !!suggestion && !input.value && !sayFor;
     // an action waiting for words names who they are for, in a chip before the box (✕ or Esc lets it go)
     sayChip.hidden = !sayFor;
     if (sayFor) sayChip.textContent = `${sayFor.action.label}${sayFor.to && !sayFor.action.label.includes(sayFor.to) ? ` ${sayFor.to}` : ''} ✕`;
     input.placeholder = sayFor ? `What do you say${sayFor.to ? ` to ${sayFor.to}` : ''}? Enter plays it` : offering ? suggestion : PLACEHOLDER;
     input.classList.toggle('suggest', offering);
-    const hintNow = offering ? 'offer' : '';
+    const hintNow = offering ? (queued ? 'queue' : 'offer') : '';
     if (hint.dataset.now !== hintNow) {
       hint.dataset.now = hintNow;
-      hint.replaceChildren(...(offering ? ['From last turn · click it or Tab to use, Esc to clear ',
+      hint.replaceChildren(...(offering && queued ? ['Next step of your order · Enter plays it, Esc drops the rest ',
+        h('button', { type: 'button', class: 'hs-btn-text in-use', 'data-chip': 'play-step', onclick: () => void submit() }, 'Play it'),
+        h('button', { type: 'button', class: 'hs-btn-text in-clear', 'data-chip': 'drop-queue', onclick: () => { suggestion = ''; update(); input.focus(); } }, 'Drop the rest')]
+        : offering ? ['From last turn · click it or Tab to use, Esc to clear ',
         h('button', { type: 'button', class: 'hs-btn-text in-use', 'data-chip': 'use-suggestion', onclick: takeSuggestion }, 'Use it'),
         h('button', { type: 'button', class: 'hs-btn-text in-clear', 'data-chip': 'clear-suggestion', onclick: () => { suggestion = ''; update(); input.focus(); } }, 'Clear')] : []));
     }
