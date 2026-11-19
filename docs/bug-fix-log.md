@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** The Defense buttons centre their text (align-items: center), the same space above and below.
 
-**Fixed by:** PR pending
+**Fixed by:** [PR #1086](https://github.com/ali123500-codeRPG/text-rpg/pull/1086)
 
 <<<<<<< HEAD
 ## BG-318
