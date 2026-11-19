@@ -55,17 +55,18 @@ export function fmtDate(iso: string | number | Date | undefined): string {
 export const plural = (n: number, one: string, many = one + 's') => `${n} ${unitOf(n, one, many)}`;
 export const unitOf = (n: number, one: string, many = one + 's') => (n === 1 ? one : many);
 
-// ---------- Readout tiles (every tile: label, figure + unit, one sub-line, ⓘ at the end of the sub-line) ----------
+// ---------- Readout tiles (every tile: label, figure + unit, one sub-line, and how it's worked out: an ⓘ at the end of the sub-line, or the tile's tip) ----------
 export type Readout = { label: string; value: string; unit?: string; sub: string; how: string; tone?: 'ok' | 'warn' };
 
-export function readouts(items: Readout[], howEl: HTMLElement): HTMLElement {
+/** with no howEl, a tile's how is its tip (hover) instead of an ⓘ that opens it in howEl */
+export function readouts(items: Readout[], howEl?: HTMLElement): HTMLElement {
   return h('div', { class: 'hs-readouts' }, items.map((r) =>
-    h('div', { class: 'hs-readout' },
+    h('div', { class: 'hs-readout', title: howEl ? null : r.how },
       h('p', { class: 'hs-label' }, r.label),
       h('div', { class: 'v' + (r.tone ? ' ' + r.tone : '') }, r.value, r.unit ? h('small', {}, r.unit) : null),
       h('div', { class: 'sub' }, h('span', {}, r.sub),
-        h('button', { class: 'hs-ro-i', type: 'button', title: `How it’s worked out · ${r.label}`, 'aria-label': `How it’s worked out · ${r.label}`,
-          onclick: () => { howEl.replaceChildren(h('b', {}, `How it’s worked out · ${r.label}: `), r.how); howEl.hidden = false; } }, 'ⓘ')))));
+        howEl ? h('button', { class: 'hs-ro-i', type: 'button', title: `How it’s worked out · ${r.label}`, 'aria-label': `How it’s worked out · ${r.label}`,
+          onclick: () => { howEl.replaceChildren(h('b', {}, `How it’s worked out · ${r.label}: `), r.how); howEl.hidden = false; } }, 'ⓘ') : null))));
 }
 
 // ---------- Visibility tiles: big box cycles Shown → Left out → off; heading opens the group ----------

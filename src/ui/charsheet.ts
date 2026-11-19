@@ -21,7 +21,7 @@ import { powerFigure } from './power';
 import { ageText } from '../ruleset/age';
 import { callName, staminaOf } from '../views';
 import { fatigueLevel } from '../ruleset/fatigue';
-import { skillName, SKILL_SUB, TREE_VIEW } from './creation';
+import { markIcon, skillName, SKILL_SUB, TREE_VIEW } from './creation';
 import { DEFENSE_SKILL } from '../library/skillIds';
 import { CLASS_TIERS, FATIGUE_LEVELS, HEALTH_LEVELS, MORALE_LEVELS, PART_STATES, type MoraleLevel } from '../scales';
 import { isBrokenLevel, isCoweringLevel, maxMorale, moraleLevel, moraleLostPct, moralePenalty } from '../ruleset/morale';
@@ -35,6 +35,8 @@ export const invFocus: { id: string | null } = { id: null };
 export const charFocus: { open: 'essences' | 'perks' | 'classes' | null } = { open: null };
 
 const BAR_SCALE = CONFIG.SKILL_CAP; // display only: the bar fills at the mortal limit; true skill can pass it
+/** SD2: the Character page's skill bars say so in their tip */
+const BAR_TIP = `Fills at ${BAR_SCALE}, the training cap; a skill can go past it`;
 
 export function hpLeft(s: GameState, p: Actor): { hp: number | null; total: number | null } {
   const total = safe(() => totalHp(s, p));
@@ -117,6 +119,8 @@ export function trees(p: Actor, withZero: boolean) {
 
 /** a tagged skill's mark; hovering it says Tagged */
 export const tag = () => h('span', { class: 'tag', title: 'Tagged', 'aria-label': 'tagged' }, TAG_MARK);
+/** SD2: a tagged skill's mark on the Character page and its pop-ups: the tagged icon; hovering it says Tagged */
+const tagIcon = () => markIcon('tagged', 'Tagged', 'mk-i tag');
 /** FC5: a flawed skill's mark; hovering it says Flawed */
 export const flaw = () => h('span', { class: 'flaw', title: 'Flawed', 'aria-label': 'flawed' }, FLAW_MARK);
 const offNote = () => h('small', { class: 'off', title: 'You have used this skill. It is not on your sheet yet and learns as you use it.' }, 'used');
@@ -134,15 +138,9 @@ const windowOf = (p: Actor, id: string): Win => {
 };
 const winText = (w: Win) => `${w.via ? `via ${w.via} ` : ''}${w.lo}–${w.hi}`;
 const winTitle = (w: Win) => `Learns from opposition ${w.lo} to ${w.hi}${w.via ? `, on ${w.via} rolls it adds to` : ''}`;
-const bar = (raw: number, win?: Win) => h('div', { class: 'cs-bar' }, h('b', { style: `width:${pct(raw)}%` }),
+const bar = (raw: number, win?: Win, tip?: string) => h('div', { class: 'cs-bar', title: tip }, h('b', { style: `width:${pct(raw)}%` }),
   win ? h('i', { class: 'lw' + (win.via ? ' via' : ''), style: `left:${pct(win.lo)}%;width:${pct(win.hi) - pct(win.lo)}%`, title: winTitle(win) }) : null);
 const whole = (n: number | null) => (n === null ? '—' : String(+n.toFixed(2))); // fractions shown, not rounded (OQ-25); toFixed only drops float noise
-
-/** one row of level names over the card's equal boxes, alternating above (0) and below (1) the bar. The boxes run
- * Critical on the left to Bruised, then a 7th box for Unhurt on the right, so the bar empties from the
- * right like the side sheet's. Unhurt and Incapacitated are not named. */
-const steps = (boxes: HealthLevel[], level: HealthLevel, below: 0 | 1) => h('div', { class: `cs-steps ${below ? 'down' : 'up'}` },
-  boxes.map((l, i) => (l !== 'unhurt' && i % 2 === below ? h('span', { class: l === level ? 'now' : '', style: `grid-column:${i + 1}` }, HEALTH_LEVELS.name(l)) : null)));
 
 /** `openClasses` opens the class tree (the class line is its button); without it the line is plain text */
 export function charCard(s: GameState, p: Actor, openClasses?: (opener: HTMLElement) => void): HTMLElement {
@@ -160,11 +158,10 @@ export function charCard(s: GameState, p: Actor, openClasses?: (opener: HTMLElem
     h('div', { class: 'cs-who' }, h('div', { class: 'cs-sigil', 'aria-hidden': 'true' }, '⚔'),
       h('div', {}, h('b', {}, p.names.current || (getLibrary().classes[cls]?.name ?? cls)), h('span', {}, [ageText(s, p), place ? `In ${theName(place)}` : ''].filter(Boolean).join(' · ')))), // AG16
     h('div', { class: 'cs-track' },
-      h('div', { class: 'cs-row' }, h('span', {}, 'Health'), h('b', {}, `${HEALTH_LEVELS.name(level)} · `, figBtn('cs-figlink', 'What makes up your total health', (el) => openHealthPop(s, p, el), `${whole(hp)} HP`))),
-      // each level named at its segment, alternating one above the bar and one below
-      steps(boxes, level, 0),
-      h('div', { class: 'cs-hp', title: `Health track: ${levels.map(HEALTH_LEVELS.name).join(', ')}` }, boxes.map((l) => h('i', { class: at <= levels.indexOf(l) ? 'on' : '', title: HEALTH_LEVELS.name(l), 'aria-label': HEALTH_LEVELS.name(l) }))),
-      steps(boxes, level, 1)),
+      h('div', { class: 'cs-row' }, h('span', {}, 'Health'), h('b', {}, figBtn('cs-figlink', 'What makes up your total health', (el) => openHealthPop(s, p, el), `${whole(hp)} HP`))),
+      // SD5: the boxes (Critical on the left to Bruised, then Unhurt) show the level; its word is the track's tip and name
+      h('div', { class: 'cs-hp', role: 'img', title: HEALTH_LEVELS.name(level), 'aria-label': `Health: ${HEALTH_LEVELS.name(level)}` },
+        boxes.map((l) => h('i', { class: at <= levels.indexOf(l) ? 'on' : '' })))),
     xpTrack(s, p, openClasses),
     capstoneChoice(s, p),
     // the body figure beside the figures (CP5: a click opens each part in a pop-up); gear and personality are tiles under the page
@@ -195,8 +192,9 @@ export function openBodyPop(s: GameState, p: Actor, opener?: HTMLElement | null,
   const { hp, total } = hpLeft(s, p);
   const row = (id: string, name: string, pct: number, amount: string) => {
     const st = poolState(pct);
-    return h('div', { class: 'bp-row' + (id === part ? ' on' : ''), 'data-part': id }, h('i', { class: `bf-${st}`, 'aria-hidden': 'true' }), h('b', {}, name),
-      h('span', { class: 'bp-st' }, PART_STATES.name(st)), h('span', { class: 'bp-amt' }, amount));
+    // SD3: a healthy part names no state (its square and the key say it); Damaged and worse keep their word
+    return h('div', { class: 'bp-row' + (id === part ? ' on' : ''), 'data-part': id }, h('i', { class: `bf-${st}`, role: 'img', title: PART_STATES.name(st), 'aria-label': PART_STATES.name(st) }), h('b', {}, name),
+      h('span', { class: 'bp-st' }, st === 'healthy' ? '' : PART_STATES.name(st)), h('span', { class: 'bp-amt' }, amount));
   };
   // BV1 b: the turnable figure; a click on a part marks its row
   const fig = bodyFigure(s, p, new Set(), 'pop', (id) => {
@@ -230,7 +228,7 @@ function xpTrack(s: GameState, p: Actor, openClasses?: (opener: HTMLElement) => 
     target && target.classId !== cur?.classId ? `next level to ${name(target.classId)}` : ''].filter(Boolean).join(' · ');
   const cls: HTMLElement = openClasses
     ? h('button', { type: 'button', class: 'cs-class', 'aria-haspopup': 'dialog', title: 'Open the class tree: how classes link, and where your next level goes',
-      onclick: () => openClasses(cls) }, h('span', { class: 'hs-label' }, 'Class'), cur ? classIcon(cur.classId) : '', h('b', {}, line), h('span', { class: 'cs-class-go', 'aria-hidden': 'true' }, '›'))
+      onclick: () => openClasses(cls) }, cur ? classIcon(cur.classId) : '', h('b', {}, line), h('span', { class: 'cs-class-go', 'aria-hidden': 'true' }, '›'))
     : h('div', { class: 'cs-row' }, h('span', {}, 'Class'), h('b', {}, cur ? classIcon(cur.classId) : '', line));
   return h('div', { class: 'cs-track' },
     h('div', { class: 'cs-row' }, h('span', {}, `Level ${charLevel(p)}`), h('b', {}, `${+pr.xp.toFixed(6)} / ${need} XP`)),
@@ -276,8 +274,8 @@ export function treeBars(p: Actor): HTMLElement {
       t.rows.map((r) => h('div', { class: 'cs-sk' + (r.raw ? '' : ' zero'), role: 'button', tabindex: '0', 'aria-haspopup': 'dialog', 'data-skill': r.id,
         title: 'What makes up this skill', onclick: (e: Event) => openSkillPop(p, r.id, e.currentTarget as HTMLElement),
         onkeydown: (e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openSkillPop(p, r.id, e.currentTarget as HTMLElement); } } },
-        h('div', { class: 'n' }, skillName(r.id), r.tagged ? [' ', tag()] : null, r.flawed ? [' ', flaw()] : null, r.off ? [' ', offNote()] : null, marked(p, r.id) ? markDot() : null, SKILL_SUB[r.id] ? h('small', {}, SKILL_SUB[r.id]) : null),
-        bar(r.raw, windowOf(p, r.id)), ((w) => h('div', { class: 'lwn', title: winTitle(w) }, winText(w)))(windowOf(p, r.id)), skillNum(trueSkill(p, r.id), r.raw))))));
+        h('div', { class: 'n' }, skillName(r.id), r.tagged ? [' ', tagIcon()] : null, r.flawed ? [' ', flaw()] : null, r.off ? [' ', offNote()] : null, marked(p, r.id) ? markDot() : null, SKILL_SUB[r.id] ? h('small', {}, SKILL_SUB[r.id]) : null),
+        bar(r.raw, windowOf(p, r.id), BAR_TIP), ((w) => h('div', { class: 'lwn', title: winTitle(w) }, winText(w)))(windowOf(p, r.id)), skillNum(trueSkill(p, r.id), r.raw))))));
 }
 
 const signed = (n: number) => `${n < 0 ? '−' : '+'}${whole(Math.abs(n))}`;
@@ -308,11 +306,11 @@ export function openSkillPop(p: Actor, id: string, opener?: HTMLElement | null):
   const line = (label: string, v: string, cls = '', tip: Record<string, string> = {}) => h('div', { class: 'sk-line ' + cls }, h('span', tip, label), h('b', {}, v));
   const tagged = p.core.skills[id]?.state === 'tagged', flawed = p.core.skills[id]?.state === 'flawed';
   openPop({ title: skillName(id), cls: 'sk-pop', opener, body: [
-    h('div', { class: 'sk-top' }, h('b', { class: 'sk-v' }, whole(f.value)), h('span', {}, f.value === f.raw ? 'Skill' : `True skill · raw ${f.raw}`),
-      tagged ? h('span', { class: 'sk-chip' }, tag(), ' Tagged') : null, flawed ? h('span', { class: 'sk-chip' }, flaw(), ' Flawed') : null, marked(p, id) ? h('span', { class: 'sk-chip' }, markDot(), ' Marked to improve') : null),
+    h('div', { class: 'sk-top' }, h('b', { class: 'sk-v' }, whole(f.value)), f.value === f.raw ? null : h('span', {}, `True skill · raw ${f.raw}`),
+      tagged ? h('span', { class: 'sk-chip' }, tagIcon(), ' Tagged') : null, flawed ? h('span', { class: 'sk-chip' }, flaw(), ' Flawed') : null, marked(p, id) ? h('span', { class: 'sk-chip' }, markDot(), ' Marked to improve') : null),
     SKILL_SUB[id] && !f.gives.length ? h('p', { class: 'hs-note' }, cap(SKILL_SUB[id]) + '.') : null,
     h('div', { class: 'sk-list', 'aria-label': 'What adds to it' },
-      line('Raw', whole(f.raw), 'sk-raw'), ...f.parts.map((x) => line(x.label, signed(x.adds))),
+      f.value === f.raw ? null : line('Raw', whole(f.raw), 'sk-raw'), ...f.parts.map((x) => line(x.label, signed(x.adds))),
       f.mult !== 1 ? line('Hollowed', `×${whole(f.mult)}`, 'sk-bad') : null,
       line('True skill', whole(f.value), 'sk-sum')),
     f.rolls.length ? h('div', { class: 'sk-list' }, h('p', { class: 'hs-label' }, 'On its rolls'), ...f.rolls.map((x) => line(cap(x.source), signed(x.value), x.value < 0 ? 'sk-bad' : ''))) : null,

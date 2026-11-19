@@ -81,6 +81,9 @@ export function openEssencePop(api: GameApi, s: GameState, i: number, after: () 
   pop = openPop({ title: 'An essence is offered', tone: 'essence', cls: 'ess-pop', opener, body: essenceOfferBody(s, o, i, run, close) });
 }
 
+/** SD4: what an essence is, the tip on the Essences pop-up's heading */
+export const ESSENCE_ABOUT = 'An essence is a package of true skill points you take into a slot. They are offered by beaten foes and by scenarios you end well. You get one more slot every few character levels.';
+
 /** the Character page's Essences pop-up (CP4): slots (held ones, then the empty ones), then the offers still waiting. Two
  * offers of a pair (EssenceOffer.pair) sit side by side as one choice: taking one lets the other go. */
 export function essencesBody(api: GameApi, s: GameState, after: () => void): (Node | string | null)[] {
@@ -97,10 +100,8 @@ export function essencesBody(api: GameApi, s: GameState, after: () => void): (No
     return [h('div', { class: 'ess-pair', 'data-pair': o.pair }, h('p', { class: 'ess-pair-h' }, 'Take one: the other goes'),
       h('div', { class: 'ess-pair-row' }, both.map(([x, k]) => offer(x, k))))];
   });
+  // SD3: empty says so once, as the dashed Empty slot box (there is always at least one slot, ESSENCE_SLOTS_BASE)
   return [
-    h('p', { class: 'ess-meta' }, slotsText(p)),
-    h('p', { class: 'hs-note' }, 'An essence is a package of true skill points you take into a slot. They are offered by beaten foes and by scenarios you end well. You get one more slot every few character levels.'),
-    !held.length && !offers.length ? h('p', { class: 'empty' }, 'No essences yet. A foe you defeat can offer one.') : null, // G4
     h('div', { class: 'ess-grid' },
       ...held.map((e) => tile(e)),
       ...Array.from({ length: Math.max(0, slots - held.length) }, () => h('div', { class: 'ess-tile ess-empty' }, h('span', {}, 'Empty slot')))),
