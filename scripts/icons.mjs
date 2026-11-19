@@ -17,7 +17,7 @@ const PICKS = {
   swordsman: 'gi:swordman', late_bloomer: 'gi:sprout', sword_dancer: 'gi:sword-spin', commoner: 'gi:farmer', a_nobody: 'gi:hood', a_somebody: 'gi:shouting',
   trader: 'gi:trade', merchant: 'gi:shop', guard: 'fe:guard', threadbounded: 'gi:sewing-string', blessed: 'gi:holy-symbol',
   // marks
-  against_nature: 'gi:cracked-mask',
+  against_nature: 'gi:cracked-mask', free_action: 'fe:high-voltage',
 };
 
 const sets = {};
