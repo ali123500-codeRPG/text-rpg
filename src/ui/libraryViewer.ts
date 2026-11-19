@@ -430,8 +430,11 @@ function perks(): HTMLElement[] {
   const ladderRows = Object.keys(lib.skills).filter((s) => ladder.some((d) => d.ladder!.skill === s))
     .map((s): [string, (c: string) => PerkDef[]] => [skillName(s), (c) => ladder.filter((d) => d.ladder!.skill === s && String(d.ladder!.milestone) === c)]);
   const allSteps = [...new Set(allParts.map((d) => d.allStep!.step))].sort((x, y) => x - y).map(String);
-  const allRows = Object.values(lib.trees).filter((t) => allParts.some((d) => d.allStep!.treeId === t.id))
-    .map((t): [string, (c: string) => PerkDef[]] => [t.name, (c) => allParts.filter((d) => d.allStep!.treeId === t.id && String(d.allStep!.step) === c)]);
+  // every tree has a row, so a tree with no All-XX perk yet shows as an empty row; one that can never earn its All-XX says why
+  const neverWhy = (t: { rating?: string; skills: string[] }) => { const need = CONFIG.ALL_STEP_SKILLS[t.rating ?? 'normal'] ?? null;
+    return need === null ? ' · never (inferior tree)' : t.skills.length < need ? ` · never (${t.skills.length} of ${need} skills)` : ''; };
+  const allRows = Object.values(lib.trees)
+    .map((t): [string, (c: string) => PerkDef[]] => [t.name + neverWhy(t), (c) => allParts.filter((d) => d.allStep!.treeId === t.id && String(d.allStep!.step) === c)]);
   const classLevels = [...new Set(classes.flatMap((c) => Object.keys(c.levelPerks ?? {}).map(Number)))].sort((x, y) => x - y).map(String);
   // capstones (ClassDef.capstones) get their own column: picked at the level cap, each with its own access rule
   const classCols = [...classLevels.map((l) => `Level ${l}`), ...(classes.some((c) => c.capstone?.length || c.capstones?.length) ? ['Capstones'] : [])];

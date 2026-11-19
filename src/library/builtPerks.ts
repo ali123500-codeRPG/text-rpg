@@ -34,6 +34,7 @@ export const BUILT_PERKS = new Set<string>([
   PK.know_the_step, // T5f: src/views/index.ts knowsStep()
   PK.iron_knuckles, PK.bare_handed_guard, // T3d, T3d2: attack() in src/ruleset/index.ts; trueSkillTo
   PK.spotter, // T5b: src/ruleset/allSteps.ts shareSpotted()
+  PK.mind_over_body, // Resolve All-100: src/ruleset/body.ts totalHp(), src/ruleset/improve.ts markEndurance()
   PK.one_sense, // Perception All-150: src/perception/index.ts perceptionOf(), src/ruleset/gear.ts rollFnSkills()
   PK.steady_guard, PK.thick_hide, // T1e, T4e: attack() in src/ruleset/index.ts; trueSkillTo
   PK.night_eyes, // T5e: src/ruleset/gear.ts situational()

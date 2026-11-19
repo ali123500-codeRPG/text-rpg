@@ -27,12 +27,15 @@ export type FigPart = { label: string; adds?: number; times?: number };
 export function totalHp(state: GameState, actor: Actor, parts?: FigPart[]): number {
   const end = actor.core.skills[SK.endurance];
   const raw = end && !end.dormant && skillOpen(actor, SK.endurance) ? end.raw : 0;
+  const res = actor.core.skills[SK.resolve]; // Mind Over Body (Resolve's All-100 part): a share of Resolve adds like Endurance
+  const fromResolve = hasPerk(actor, PK.mind_over_body) && res && !res.dormant && skillOpen(actor, SK.resolve) ? res.raw * CONFIG.MIND_OVER_BODY_SHARE : 0;
   const pre = actor.core.prefix ? getLibrary().prefixes?.[actor.core.prefix] : undefined;
   const prefix = pre?.hpMult ?? 1; // NR37: Dire x1.5
   const body = actorBody(state, actor);
   parts?.push({ label: 'Base', adds: CONFIG.HP_BASE }, { label: `Endurance ${raw} × ${CONFIG.HP_PER_END}`, adds: CONFIG.HP_PER_END * raw },
+    ...(fromResolve ? [{ label: `Mind Over Body: Resolve ${res!.raw} × ${CONFIG.MIND_OVER_BODY_SHARE} × ${CONFIG.HP_PER_END}`, adds: CONFIG.HP_PER_END * fromResolve }] : []),
     ...(body.hpMultiplier !== 1 ? [{ label: `Body: ${body.name}`, times: body.hpMultiplier }] : []), ...(prefix !== 1 ? [{ label: pre?.name ?? 'Prefix', times: prefix }] : []));
-  return (CONFIG.HP_BASE + CONFIG.HP_PER_END * raw) * body.hpMultiplier * prefix;
+  return (CONFIG.HP_BASE + CONFIG.HP_PER_END * (raw + fromResolve)) * body.hpMultiplier * prefix;
 }
 
 export function healthLevel(actor: Actor): HealthLevel {
