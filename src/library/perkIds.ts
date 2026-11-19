@@ -52,6 +52,7 @@ export const PK = {
   sharp_answer: 'PK181', // Parry 40 (LG2)
   read_the_feint: 'PK182', // Insight 40 (LG20 a)
   quick_read: 'PK183', // Insight 60 (LG20 b, LG26 a)
+  covered_joints: 'PK184', // Medium Armor 40 (LG17 b, LG24)
 } as const;
 /** a perk ID: PK + a number */
 export type PerkId = `PK${number}`;

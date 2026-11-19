@@ -293,6 +293,14 @@ export function defenseOwnMods(state: GameState, D: Actor, type: DefenseKind, ra
   }
   return dm;
 }
+/** LG24 Covered Joints (Medium Armor 40): an attack at a part the owner's worn armor covers, any weight, takes COVERED_JOINTS;
+ * one not aimed takes it × the share of the owner's hit table its armor covers, so it holds on every attack whatever part is
+ * rolled after; aimed at a bare part, nothing */
+export function coveredJointsMod(state: GameState, D: Actor, aimed?: string): number {
+  if (!hasPerk(D, PK.covered_joints)) return 0;
+  if (aimed) return pieceOn(state, D, aimed) ? CONFIG.COVERED_JOINTS : 0;
+  return CONFIG.COVERED_JOINTS * hitTable(state, D).reduce((n, r) => n + (pieceOn(state, D, r.part) ? r.to - r.from + 1 : 0), 0) / 100;
+}
 /** the gap's own shifts, given the rolls' tier difference (defense − attack): a heavy weapon against Block or Parry (PA11;
  * All-50 Against the Grain takes it off the owner's parries), A22 Turn Aside (a heavy or crushing hit counts TURN_ASIDE_GAP better, never past 0), A20 Slip the Blow (a tied Dodge
  * grazes); neither asks what the owner wears */
@@ -396,6 +404,8 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const aimedPart = req.aimed && req.targetPart ? ct.parts.find((p) => p.id === req.targetPart) : undefined;
   if (aimedPart) am.push({ source: `aim: ${aimedPart.id}`, type: 'aim', value: CONFIG.AIM_PENALTY[aimedPart.size] * boostMult(A, skill, 'aimMult', kind) * (1 - achievementAimEase(A, aimedPart.size)) }); // 40/80/120 perk aimMult (none uses it today); TM26 by-size achievements
   am.push(...weaponHitMods(mode, name));
+  const joints = coveredJointsMod(state, D, aimedPart?.id);
+  if (joints) am.push({ source: perkName(PK.covered_joints), type: 'foe_perk', value: joints });
   if (ranged) {
     const far = rangeMod(dist / seenSizeFactor(state, A, D), mode.reach); // SZ13: a bigger target is as easy as a person nearer
     am.push(...rangeMods(far));

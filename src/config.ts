@@ -426,6 +426,7 @@ const DEFAULTS = {
   FEAR_BITES_MULT: 1.2, // LG12 Fear Bites Deeper (Intimidation 40): morale the owner makes others lose
   SHARP_ANSWER_MULT: 1.25, // LG2 Sharp Answer (Parry 40): damage of the owner's strike back after a parry, before armor
   DEEPER_SOAK_MULT: 1.5, // LG18 Deeper Soak (Heavy Armor 40): worn heavy armor's flat soak
+  COVERED_JOINTS: -10, // LG24 Covered Joints (Medium Armor 40): an attack at a part the owner's armor covers; unaimed, × the share of hits its armor covers
   DEEP_LUNGS_LINE: 1.5, // SS4 Deep Lungs: the owner's short line is this many times its size
   SLEEPLESS_NEED: 0.2, // SS5 Sleepless: sleepNeed multiplier (hours awake add debt this many times as fast)
   BOTTOMLESS_STRAIN: 0.5, // SS6 Bottomless: every strain cost the owner pays is × this

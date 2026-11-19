@@ -93,5 +93,6 @@ export const BUILT_PERKS = new Set<string>([
   PK.thick_of_it, // LG15: stealthDetect() in src/minds/state.ts
   PK.deeper_soak, // LG18: blowDamage() in src/ruleset/index.ts
   PK.read_the_feint, // LG20 a: warnedShift() in src/engine/ruses.ts
+  PK.covered_joints, // LG24: coveredJointsMod() in src/ruleset/index.ts attack()
   PK.sharp_answer, // LG2: attack() in src/ruleset/index.ts, on a strike back (context.strikeBack from parryStrike)
 ]);

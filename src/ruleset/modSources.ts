@@ -91,6 +91,8 @@ export const MOD_SOURCES: ModSource[] = [
   // foe_perk
   { type: 'foe_perk', roll: 'skill', source: perkName(PK.dodgy), at: 'src/ruleset/allSteps.ts', when: 'Attack rolls against a foe who has Dodgy.',
     value: sg(-W() * CONFIG.DODGY_SKILL), feeds: (lib) => perk(lib, PK.dodgy) },
+  { type: 'foe_perk', roll: 'skill', source: perkName(PK.covered_joints), at: 'src/ruleset/index.ts', when: 'Attack rolls against a foe who has Covered Joints: aimed at a part its worn armor covers, in full; not aimed, by the share of its hit chances that armor covers.',
+    value: sg(CONFIG.COVERED_JOINTS), feeds: (lib) => perk(lib, PK.covered_joints) },
   // gear
   { type: 'gear', roll: 'skill', source: 'Weapon class hit', at: 'src/ruleset/index.ts', when: 'Attack rolls: the class hit plus the mode\'s hitAdj, as one entry.',
     value: `${list(Object.fromEntries(Object.entries(CONFIG.WEAPON_CLASSES).map(([k, c]) => [k, c.hit])), false)} · unarmed ${sg(CONFIG.UNARMED_PROFILE.hit)}`,
