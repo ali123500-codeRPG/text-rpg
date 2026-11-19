@@ -19,3 +19,15 @@ jobs:
           SOAK_SEEDS: 25
           SOAK_TURNS: 200
           SOAK_FIRST_SEED: ${{ github.run_number }}000
+  # npm test shares one module load across files (vitest.shared.config.ts); this run gives every file its own, so a
+  # test that passes only on another file's leftovers fails here
+  isolated:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx vitest run

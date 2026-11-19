@@ -31,5 +31,7 @@ it('84 No numbers to the Narrator', () => {
   expect(text).not.toMatch(/\d/);
   for (const k of ['d100', 'margin', 'damage', 'multiplier', 'pool', 'hp', 'gap', 'tierIndex', 'modifiers']) expect(text).not.toContain(`"${k}"`);
   const all = JSON.stringify(v);
-  for (const n of ['87', '13.5', '4.25', '61', '1.75', '23', '44', '37']) expect(all).not.toContain(n);
+  // each value as a number of its own: digits inside an id (a wall "tavern.w61") are not that number
+  const asNumber = (n: string) => new RegExp(`(?<![\\w.])${n.replace('.', '\\.')}(?!\\w|\\.\\d)`);
+  for (const n of ['87', '13.5', '4.25', '61', '1.75', '23', '44', '37']) expect(all).not.toMatch(asNumber(n));
 });

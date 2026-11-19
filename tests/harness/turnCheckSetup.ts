@@ -1,6 +1,9 @@
 // TQ1: every test runs the turn checker strict (a broken world rule fails the test). KNOWN lists rules an open bug
 // breaks in named test files, so CI stays green until the fix lands; the fixing PR deletes its entries.
-import { expect } from 'vitest';
+import { afterAll, expect } from 'vitest';
+
+// files share one module load (vitest.shared.config.ts): a CONFIG value a test changed must not reach the next file
+afterAll(async () => (await import('../../src/config')).resetConfig());
 
 const KNOWN: { bug: string; rule: string; files: string[] }[] = [
   { bug: 'none', rule: '*', files: ['pipeline'] }, // a fake engine and fake views (vi.mock): no real world to check
