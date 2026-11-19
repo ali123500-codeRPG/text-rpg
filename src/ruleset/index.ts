@@ -318,9 +318,6 @@ export function restricted(state: GameState, D: Actor, type: DefenseKind, g: num
   const impact = actorBody(state, D).parts.find((p) => p.id === location)?.impact;
   return !!impact && ((rule === 'no_essential' && impact === 'essential') || (rule === 'non_essential_only' && impact !== 'non_essential'));
 }
-/** the damage step (Part 5 §6): a blow's health lost on `location` at this gap multiplier, through the perks on both sides,
- * worn and natural armor (D-368: the share first, then the flat soak) and Fighter's Frame. On the shield it is the raw
- * blow (its pool takes it in applyEffects). Dice and the combat level's equation both call it. */
 /** what worn and natural armor do to a blow on `at` (D-368: each takes its share first, then its flat soak, the worn piece
  * before the hide): the blow × share − soak gets through. The damage step and the combat level's equation both read it. */
 export function armorOn(state: GameState, D: Actor, at: string, pierce = 0): { share: number; soak: number } {
@@ -330,6 +327,9 @@ export function armorOn(state: GameState, D: Actor, at: string, pierce = 0): { s
   for (const a of [pieceOn(state, D, at)?.armor, nat]) if (a?.covers.includes(at)) { share *= a.multiplier; soak = soak * a.multiplier + Math.max(0, a.reduction - pierce); }
   return { share, soak };
 }
+/** the damage step (Part 5 §6): a blow's health lost on `location` at this gap multiplier, through the perks on both sides,
+ * worn and natural armor (D-368: the share first, then the flat soak) and Fighter's Frame. On the shield it is the raw
+ * blow (its pool takes it in applyEffects). Dice and the combat level's equation both call it. */
 export function blowDamage(state: GameState, A: Actor, D: Actor, mode: AttackMode, location: string, multiplier: number, openArm: string | null): { damage: number; generalShare: number } {
   const skill = modeSkill(mode), ranged = mode.tree === 'ranged';
   const kind: AttackKind = ranged ? 'ranged' : 'melee';
