@@ -1,5 +1,5 @@
 // 158 Gut Feeling (LI5b, LI6 b): at the start of each turn the owner rolls Insight against the stealth of each hidden
-// watcher (opposed or hostile to the owner, aware of it, in its zone or one sight link away, unseen by it). A win is a
+// watcher (opposed or hostile to the owner, aware of it, in a clear line of sight at any distance (RD3, BG-315), unseen by it). A win is a
 // hunch from the watcher's zone, never who: the owner turns suspicious of the watcher. Once per watcher a scenario.
 import { CONFIG } from '../../src/config';
 import { tick } from '../harness/time';
@@ -12,6 +12,9 @@ import { BUILT_PERKS } from '../../src/library/builtPerks';
 import { PK } from '../../src/library/perkIds';
 import type { Actor, GameState } from '../../src/types';
 import { play } from './w4-kit';
+import { drawTitles } from '../../src/plan/draw';
+import { planChanged } from '../../src/plan/stamp';
+import { WK } from '../../src/library/tableIds';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const npc = (s: GameState, id: string) => s.actors.find((a) => a.id === id)!;
@@ -43,6 +46,18 @@ describe('158 Gut Feeling', () => {
     expect(hiddenWatcher(v.s, v.s.player, v.g)).toBe(false); // the owner already sees them
     const w = setup('tav_cellar');
     expect(hiddenWatcher(w.s, w.s.player, w.g)).toBe(false); // out of sight
+  });
+
+  it('BG-315: sight is the line of sight: over a fence with no way through it counts, behind a wall it does not', () => {
+    const { s, g } = setup();
+    drawTitles(s, [0, 1].map((i) => ({ id: `y${i}`, placeId: 'street', name: `yard ${i}`, look: '', roof: false, light: 'bright',
+      rect: { x: 200 + 10 * i, y: 200, w: 10, d: 10 }, ...(i === 0 ? { walls: { e: WK.fence } } : {}), ways: [] })));
+    Object.assign(s.player, { zone: 'y0', pos: { x: 203, y: 200 } });
+    place(s, 'guard_1', 'y1'); g.pos = { x: 207, y: 200 }; g.posture = 'stealthy';
+    expect(hiddenWatcher(s, s.player, g)).toBe(true); // across the fence
+    s.walls.filter((x) => x.kind === WK.fence).forEach((x) => Object.assign(x, { kind: WK.wall, top: x.floor + 3 }));
+    planChanged();
+    expect(hiddenWatcher(s, s.player, g)).toBe(false); // the fence is now a wall
   });
 
   it('a win is a hunch, once per watcher a scenario; a loss rolls again HUNCH_EVERY_ROUNDS rounds later (AT74)', () => {

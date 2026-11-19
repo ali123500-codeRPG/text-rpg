@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-315
+
+**What was wrong:** Gut Feeling (the hunch that someone hidden is watching you) only counted a watcher when the titles between you were joined by ways you can see through. That is the old zone links' idea of sight. So someone watching you over a garden fence, or across open ground between two titles with no "way" drawn, never set it off, while a watcher behind a wall in a linked title could.
+
+**What was done:** A watcher now counts when the line from their eyes to you is clear, at any distance, whatever titles lie between: over a fence it is, through a wall it isn't.
+
+**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+
 ## BG-314
 
 **What was wrong:** A search only ever looked inside the title the searcher stood in. Someone hiding 1.6 m away, in plain line, but standing just over a title's edge (the next part of the same yard, say) could never be found. That was the zone-era rule "search your own area" (SE20): titles are only names on the floor plan now, so the rule cut a search off at an invisible line.

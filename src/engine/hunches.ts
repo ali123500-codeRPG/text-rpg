@@ -7,7 +7,8 @@ import type { Actor, ContestResult, GameState, Rng } from '../types';
 import { hasPerk, markUse, ruleset } from '../ruleset';
 import { PK } from '../library/perkIds';
 import { SK } from '../library/skillIds';
-import { allActors, atLeast, isActive, shortestPath, wary } from './relations';
+import { allActors, atLeast, isActive, wary } from './relations';
+import { sightDistM } from './position';
 import { beliefStatus } from '../perception';
 import { stealthSkill } from '../minds/state';
 import { contestFeat } from './feats';
@@ -21,8 +22,8 @@ export type Hunch = { owner: Actor; watcher: Actor; contest: ContestResult; felt
 export function hiddenWatcher(state: GameState, owner: Actor, w: Actor): boolean {
   if (w.id === owner.id || !isActive(w) || (!!w.bandId && w.bandId === owner.bandId) || !wary(state, w, owner)) return false;
   if (!atLeast(beliefStatus(state, w, owner), 'aware')) return false;
-  const path = shortestPath(state, w.zone, owner.zone, true);
-  return !!path && beliefStatus(state, owner, w) === 'unaware'; // RD3: any distance, as long as the watcher has sight of the owner
+  // RD3, BG-315 (BF101 a): any distance, as long as the line from the watcher's eyes to the owner is clear (over a fence too)
+  return sightDistM(state, w, owner) !== Infinity && beliefStatus(state, owner, w) === 'unaware';
 }
 
 /** the turn's Gut Feeling rolls, every owner against each hidden watcher that hasn't set it off this scenario */
