@@ -2,7 +2,8 @@
 // compact side sheet on the Play screen. Display only: every number comes from the ruleset or the saved actor.
 import type { Actor, GameState, HealthLevel, LogLine, PartState } from '../types';
 import { CONFIG } from '../config';
-import { actorBody, getLibrary, itemDef, raceSize } from '../library';
+import { actorBody, getLibrary, itemDef, perkName, raceSize } from '../library';
+import { PK } from '../library/perkIds';
 import { figureKey, figureUpright } from '../library/figureModels';
 import { BT, RC } from '../library/raceIds';
 import { figure3d } from './figure3d';
@@ -313,7 +314,7 @@ export function openSkillPop(p: Actor, id: string, opener?: HTMLElement | null):
     SKILL_SUB[id] && !f.gives.length ? h('p', { class: 'hs-note' }, cap(SKILL_SUB[id]) + '.') : null,
     h('div', { class: 'sk-list', 'aria-label': 'What adds to it' },
       line('Raw', whole(f.raw), 'sk-raw'), ...f.parts.map((x) => line(x.label, signed(x.adds))),
-      f.mult !== 1 ? line('Hollowed', `×${whole(f.mult)}`, 'sk-bad') : null,
+      f.mult !== 1 ? line(perkName(PK.hollowed), `×${whole(f.mult)}`, 'sk-bad') : null,
       line('True skill', whole(f.value), 'sk-sum')),
     f.rolls.length ? h('div', { class: 'sk-list' }, h('p', { class: 'hs-label' }, 'On its rolls'), ...f.rolls.map((x) => line(cap(x.source), signed(x.value), x.value < 0 ? 'sk-bad' : ''))) : null,
     f.gives.length ? h('p', {}, `Adds to ${f.gives.join(' and ')} rolls.`) : null,

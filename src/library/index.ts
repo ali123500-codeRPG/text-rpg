@@ -11,6 +11,8 @@ export function getLibrary(): Library {
 export function setLibrary(lib: Library): void {
   current = lib;
 }
+/** a perk's name from the library, so every label follows a rename (BG-319) */
+export const perkName = (id: string): string => current.perks[id]?.name ?? id;
 export function resetLibrary(): void {
   current = prototypeLibrary();
 }
