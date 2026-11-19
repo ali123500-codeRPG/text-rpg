@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** The Map and the minimap now draw every title where it lies on the floor plan, with its walls, doorways and furniture, and only where the fog says the character has seen. Each door sits at its own point on its wall, and each exit arrow leaves from its own doorway. A title seen none of has no name; a name sits in the biggest seen part of its title, and a place's outline goes round only the ground seen in it. The exit diagram, its toggle, the force layout, the compass guessing and the shared-edge doors are gone. The fog is now also marked when a plan is applied, so the map is not dark before the first turn. While checking the screenshots, exit notes and place titles were found measured at 11 px but drawn at 13 px (the 13 px text floor); they are now measured as drawn, so a note's words stay inside its outline.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #1096](https://github.com/ali123500-codeRPG/text-rpg/pull/1096)
 
 ## BG-316
 
