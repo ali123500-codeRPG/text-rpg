@@ -147,7 +147,7 @@ describe('achievement personality points (AP1-AP20)', () => {
   });
   it('a by-skill row adds its per-skill points only for the skill it was earned with (AP12)', () => {
     const base = personalityOf(npc(TP.guard));
-    const lie = personalityOf(earn(npc(TP.guard), { key: ACH.speech_10, of: SK.lying }));
+    const lie = personalityOf(earn(npc(TP.guard), { key: ACH.speech_10, of: SK.falsehood }));
     const talk = personalityOf(earn(npc(TP.guard), { key: ACH.speech_10, of: SK.persuasion }));
     const d = (p: typeof base, k: string) => (p.traits[k] ?? 0) - (base.traits[k] ?? 0);
     expect(d(lie, PA.sociability)).toBe(STEP);

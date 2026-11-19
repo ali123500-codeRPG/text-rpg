@@ -1,7 +1,7 @@
 // Talking someone out of a fight (TF1, TF4–TF17, speech with actions page round 3). In a fight, persuasion is an offer to
 // stop (TF13): one contest, the speaker's Persuasion against the listener's, with the listener's wound and fear penalties
 // on its answer as on every roll, so a hurt or frightened foe is easier to talk down: the health and morale bars are the
-// will to fight, with no new bar. A lie can be an offer too, Lying against Insight (TF17); threats stay as they are (they
+// will to fight, with no new bar. A lie can be an offer too, Falsehood against Insight (TF17); threats stay as they are (they
 // wear down morale). A bribe is a barter offer of named coin (Barter against Barter, a bigger offer helps), and the
 // stand-down only comes once the coin changes hands (TF10).
 // How it landed (TF15): convinced (a win by CONFIG.OFFER_WIN_TIERS, fewer once the listener is hurt or uneasy: TF14),

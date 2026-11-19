@@ -1,6 +1,6 @@
 // 366 Projected aura reach (Tactics tree TC37 a, TC38 b): a projected aura (Battle Cry; Rally later) reaches whoever
 // perceives it at any level, or anyone within PROJECTED_AURA_MULT × the owner's aura reach, heard or not. Offensive aura
-// was renamed projected aura (TC29). Lying is shown as Falsehood (TC27 a); FN11 is shown as Reaction (TC13 a).
+// was renamed projected aura (TC29). SK31 is shown as Falsehood (TC27 a; its code key is falsehood since BG-321); FN11 is shown as Reaction (TC13 a).
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { CONFIG } from '../../src/config';
@@ -28,9 +28,9 @@ describe('366 Projected aura reach and Tactics renames', () => {
     expect(r.effect).toContain(`${CONFIG.PROJECTED_AURA_MULT} × the aura reach`);
   });
 
-  it('shows Lying as Falsehood and FN11 as Reaction; ids unchanged', () => {
-    expect(SK.lying).toBeDefined();
-    expect(skillName(SK.lying)).toBe('Falsehood');
+  it('shows SK31 as Falsehood and FN11 as Reaction; ids unchanged', () => {
+    expect(SK.falsehood).toBeDefined();
+    expect(skillName(SK.falsehood)).toBe('Falsehood');
     expect(FUNCTION_NAMES[FN.initiative]).toBe('Reaction');
     expect(FN.initiative).toBe('FN11');
   });

@@ -32,7 +32,7 @@ describe('Actions tab', () => {
     expect(sizeUp.roll?.skills).toEqual([CONTEST.size_up.roll]);
     expect(sizeUp.against?.skills).toEqual([CONTEST.size_up.against]);
     const deceive = rows.find((r) => r.id === 'deceive')!;
-    expect(deceive.roll?.skills).toEqual([SK.lying]);
+    expect(deceive.roll?.skills).toEqual([SK.falsehood]);
     expect(deceive.against?.skills).toEqual([SK.insight]);
     expect(rows.find((r) => r.id === 'talk')!.roll).toBeNull(); // plain talk rolls nothing
   });

@@ -1491,7 +1491,7 @@ function doGeneric(ctx: Ctx, a: Actor, o: Order): void {
     ev.effects.push(...foundEffects(a, searchFor(state, a, ev, rng, { look: fn }))); // SE14: also a weak search
     ruleset.recordUse(a, r.skill, { actorId: a.id, skill: r.skill, target, passed: tierAtLeast(r.tier, 'success'), modifiers }, state);
   } else if (o.skill === SK.insight && o.type === 'observe' && person && person !== a) {
-    // BF97 a: sizing someone up is Insight against their Lying, never a roll against a grade; out of clear sight, nothing
+    // BF97 a: sizing someone up is Insight against their Guile (BG-320), never a roll against a grade; out of clear sight, nothing
     const r = sizeUp(state, a, person, rng);
     if (!r) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: person.id, reason: 'out_of_sight' }), o));
     ev.contest = r.contest;

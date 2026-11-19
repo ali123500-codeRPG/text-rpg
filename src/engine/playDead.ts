@@ -39,7 +39,7 @@ export const watchers = (state: GameState, a: Actor): Actor[] => allActors(state
  * must win outright to see through it, WARNED_SHIFT tiers better if it knows the trick (WN3, WN11). One that sees through
  * knows it from now on, and on its own look (`own`) may warn its allies (WN8). True: the foe is fooled */
 export function bodyLie(state: GameState, a: Actor, x: Actor, rng: Rng, t: Trick, own = true): boolean {
-  const c = toContest(ruleset.roll({ actorId: a.id, skill: CONTEST.play_dead.roll, modifiers: [], tierShifts: [], against: x.id, contest: true }, state, rng), answerRoll(state, x, answerSkill('deceive'), a.id, rng, warnedShift(x, a.id, t)));
+  const c = toContest(ruleset.roll({ actorId: a.id, skill: CONTEST.play_dead.roll, modifiers: [], tierShifts: [], against: x.id, contest: true }, state, rng), answerRoll(state, x, answerSkill('deceive'), a.id, rng, warnedShift(x, a.id, t), 'body'));
   markUse(state, a, c.a.skill, c);
   contestFeat(state, c);
   markUse(state, x, c.b.skill, c);

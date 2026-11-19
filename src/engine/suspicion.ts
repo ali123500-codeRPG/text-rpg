@@ -5,7 +5,7 @@
 // (StageInfo.forbidden, set by the Weaver); what it was told about lives in its memory for its agent to weigh. Cleared
 // (GD4 b) when the container is opened where the guard clearly sees inside: nothing it is after, the suspicion goes and the
 // step comes back; something it is after, caught, as caught Filching for the item (FL5); or when the suspect wins a
-// Persuasion or Lying contest against the guard. It lasts until cleared or the scenario ends (GD5 a), and anyone can be
+// Persuasion or Falsehood contest against the guard. It lasts until cleared or the scenario ends (GD5 a), and anyone can be
 // suspected, NPCs too (GD6 a).
 import type { Actor, ActorView, GameEvent, GameState, ItemInstance, Order } from '../types';
 import { CL } from '../library/classIds';
@@ -68,7 +68,7 @@ export function shownInside(state: GameState, box: ItemInstance, ev: GameEvent):
   }
 }
 
-/** GD4 b: `t` won a Persuasion or Lying contest against `guard`: a suspicion it held of them is dropped */
+/** GD4 b: `t` won a Persuasion or Falsehood contest against `guard`: a suspicion it held of them is dropped */
 export function talkedPast(state: GameState, guard: Actor | undefined, t: Actor): void {
   if (guard?.mind?.suspects?.[t.id]) clear(state, guard, t, 'talked');
 }

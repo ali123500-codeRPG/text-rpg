@@ -1,6 +1,7 @@
-// 150 Lying and Insight perks (LI1, LI2): Bluff (Lying 20), a free perk move once per foe per engagement: a Lying roll
-// against the foe's answer to a lie; unless the foe wins, it acts last next turn. Takes One to Know One (Lying 60): a lie
-// is answered with the better of Insight and Lying. Plain as Day (Insight 60): a lie seen through is called a lie.
+// 150 Falsehood and Insight perks (LI1, LI2): Bluff (Falsehood 20), a free perk move once per foe per engagement: a Falsehood roll
+// against the foe's answer to a lie; unless the foe wins, it acts last next turn. Takes One to Know One (Falsehood 60, GU2 b): a
+// lie in words is answered with the better of Insight and Falsehood, a lie told with the body with the better of Insight and
+// Guile, and the other skill of the pair augments the roll by CONFIG.TAKES_ONE_SHARE. Plain as Day (Insight 60): a lie seen through is called a lie.
 // Read Their Face (Insight 100): the stance toward the owner of anyone who spoke to the owner this scenario shows.
 import { tick } from '../harness/time';
 import { CONFIG } from '../../src/config';
@@ -13,6 +14,7 @@ import { SK } from '../../src/library/skillIds';
 import { perkMoveBlock, resolvePerkMove } from '../../src/engine/perkMoves';
 import { bluffed } from '../../src/engine/perkMarks';
 import { answerRoll, pressedWords, tellFor, PLAIN } from '../../src/engine/speech';
+import { augmentsOf, tierMult } from '../../src/ruleset/gear';
 import { buildPlayerView } from '../../src/views';
 import { deck } from '../../src/ui/deck';
 import type { Actor, GameEvent, GameState } from '../../src/types';
@@ -28,11 +30,11 @@ const foe = (s: GameState, id = 'patron_1') => {
   return f;
 };
 
-describe('150 Lying and Insight perks', () => {
-  it('are on the Lying and Insight ladders; Not Born Yesterday is banked', () => {
+describe('150 Falsehood and Insight perks', () => {
+  it('are on the Falsehood and Insight ladders; Not Born Yesterday is banked', () => {
     const perks = getLibrary().perks;
-    expect(perks[PK.bluff]?.ladder).toEqual({ skill: SK.lying, milestone: 20 });
-    expect(perks[PK.takes_one_to_know_one]?.ladder).toEqual({ skill: SK.lying, milestone: 60 });
+    expect(perks[PK.bluff]?.ladder).toEqual({ skill: SK.falsehood, milestone: 20 });
+    expect(perks[PK.takes_one_to_know_one]?.ladder).toEqual({ skill: SK.falsehood, milestone: 60 });
     expect(perks[PK.quick_read]?.ladder).toEqual({ skill: SK.insight, milestone: 60 }); // LG25 c: Plain as Day is everyone's rule
     expect(perks[PK.read_their_face]?.ladder).toEqual({ skill: SK.insight, milestone: 100 });
     for (const id of [PK.bluff, PK.takes_one_to_know_one, PK.quick_read, PK.read_their_face]) expect(BUILT_PERKS.has(id)).toBe(true);
@@ -58,10 +60,10 @@ describe('150 Lying and Insight perks', () => {
     const s = makeVillage();
     const wim = foe(s);
     give(s.player, PK.bluff);
-    skill(s.player, SK.lying, 40);
+    skill(s.player, SK.falsehood, 40);
     skill(wim, SK.insight, 20);
     const r = resolvePerkMove(s, s.player, PK.bluff, wim.id, forcedRng([95, 5]));
-    expect(r.result?.a.skill).toBe(SK.lying);
+    expect(r.result?.a.skill).toBe(SK.falsehood);
     expect(r.result?.b.skill).toBe(SK.insight);
     expect(r.effects[0].kind).toBe('bluff_believed');
     expect(bluffed(s, wim)).toBe(true);
@@ -87,15 +89,43 @@ describe('150 Lying and Insight perks', () => {
     expect(deck({ pv, s }).find((g) => g.group === 'perks')?.actions.some((a) => a.label === 'Bluff "Behind you!"' && a.steps[0]?.key === 'target')).toBe(true);
   });
 
-  it('Takes One to Know One answers a lie with the better of Insight and Lying', () => {
+  it('Takes One to Know One answers a lie with the better of Insight and Falsehood', () => {
     const s = makeVillage();
     const wim = npc(s, 'patron_1');
     skill(wim, SK.insight, 5);
-    skill(wim, SK.lying, 60);
-    expect(answerRoll(s, wim, SK.insight, 'player', forcedRng([50])).skill).not.toBe(SK.lying);
+    skill(wim, SK.falsehood, 60);
+    expect(answerRoll(s, wim, SK.insight, 'player', forcedRng([50])).skill).not.toBe(SK.falsehood);
     give(wim, PK.takes_one_to_know_one);
-    expect(answerRoll(s, wim, SK.insight, 'player', forcedRng([50])).skill).toBe(SK.lying);
-    expect(answerRoll(s, wim, SK.persuasion, 'player', forcedRng([50])).skill).not.toBe(SK.lying); // only lies
+    expect(answerRoll(s, wim, SK.insight, 'player', forcedRng([50])).skill).toBe(SK.falsehood);
+    expect(answerRoll(s, wim, SK.persuasion, 'player', forcedRng([50])).skill).not.toBe(SK.falsehood); // only lies
+  });
+
+  it('Takes One to Know One answers a lie told with the body with the better of Insight and Guile (GU2 b)', () => {
+    const s = makeVillage();
+    const wim = npc(s, 'patron_1');
+    skill(wim, SK.insight, 30);
+    skill(wim, SK.falsehood, 60);
+    skill(wim, SK.guile, 40);
+    give(wim, PK.takes_one_to_know_one);
+    expect(answerRoll(s, wim, SK.insight, 'player', forcedRng([50]), [], 'body').skill).toBe(SK.guile);
+    skill(wim, SK.guile, 0);
+    expect(answerRoll(s, wim, SK.insight, 'player', forcedRng([50]), [], 'body').skill).toBe(SK.insight); // Falsehood 60 is not the pair
+    expect(answerRoll(s, wim, SK.insight, 'player', forcedRng([50])).skill).toBe(SK.falsehood); // a lie in words: it is
+  });
+
+  it('the unpicked skill of the pair augments the picked one by TAKES_ONE_SHARE, only on that kind of answer', () => {
+    const s = makeVillage();
+    const wim = npc(s, 'patron_1');
+    skill(wim, SK.insight, 20);
+    skill(wim, SK.falsehood, 60);
+    skill(wim, SK.guile, 40);
+    give(wim, PK.takes_one_to_know_one);
+    const add = (to: string, when: 'answer_spoken_lie' | 'answer_body_lie') => augmentsOf(wim, to, undefined, [when]).reduce((n, a) => n + a.value, 0);
+    expect(add(SK.falsehood, 'answer_spoken_lie')).toBeCloseTo(20 * CONFIG.TAKES_ONE_SHARE * tierMult(SK.insight));
+    expect(add(SK.guile, 'answer_body_lie')).toBeCloseTo(20 * CONFIG.TAKES_ONE_SHARE * tierMult(SK.insight));
+    expect(add(SK.insight, 'answer_body_lie')).toBeCloseTo(40 * CONFIG.TAKES_ONE_SHARE * tierMult(SK.guile));
+    expect(add(SK.falsehood, 'answer_body_lie')).toBe(0);
+    expect(augmentsOf(wim, SK.falsehood).reduce((n, a) => n + a.value, 0)).toBe(0); // never on Falsehood's own rolls
   });
 
   it('LG25 c: a lie seen through is plainly a lie, for everyone (Plain as Day is no longer a perk)', () => {

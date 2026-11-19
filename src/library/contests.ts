@@ -4,8 +4,8 @@
 import { SK } from './skillIds';
 
 export const CONTEST = {
-  /** observe a person clearly seen: the looker's Insight against the face they keep (sizeUp, src/engine/speech.ts) */
-  size_up: { roll: SK.insight, against: SK.lying },
+  /** observe a person clearly seen: the looker's Insight against the face they keep, a lie told with the body (BG-320: Guile, not Falsehood; sizeUp, src/engine/speech.ts) */
+  size_up: { roll: SK.insight, against: SK.guile },
   /** Dirt in the Eyes: a throw of what is at hand against a dodge (src/engine/perkMoves.ts) */
   dirt_in_the_eyes: { roll: SK.unarmed_improvised, against: SK.dodge },
   /** Draw Them In: a false opening against each foe's read of it (doDrawThemIn, src/engine/resolve.ts) */
