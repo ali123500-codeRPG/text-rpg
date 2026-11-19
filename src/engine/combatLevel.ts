@@ -1,19 +1,23 @@
 // PLACEHOLDER: the combat rating's equation. An actor's combat level is the level of the standard soldier it fights evenly
 // (the reference fighter: MODEL_REF_SKILLS at the level, relics of MODEL_REF_KIT whose requirement is the level). A fight
-// is even when each side defeats the other in the same time, and a side's time is the health it must remove ÷ the health
-// its average blow removes a second. Around the standard soldier at COMBAT_PIVOT the average blow moves with five
-// numbers: the attack total and the defense total of the two rolls, the soak share (soak ÷ what a blow brings), the blow's
-// damage and the armor's share. Writing the even fight with those rates (measured between the soldiers COMBAT_SPAN levels
-// either side of the pivot) and solving it for the soldier's level gives the equation, with no fight staged:
+// is even when each side needs the same time to defeat the other:
 //
-//   base  = (bA × attack total + bD × defense total + c × soak share) ÷ K          (each total as the rolls add it up)
-//   level = base + ln(health ÷ its health × its seconds ÷ seconds × (damage ÷ its damage)^e × its share ÷ share × range)
-//                  ÷ (K + health a level ÷ its health)                              ("its": the standard soldier's at base)
+//   seconds to defeat = blows to defeat × seconds a blow
+//   blows to defeat   = the other's health × nerve ÷ the average blow        (a shield's pool first takes what it blocks)
+//   average blow      = Σ chance × max(0, ladder × damage × armor share − soak)   (over both rolls' tiers and the hit table)
 //
-// The standard soldier comes out at its own level at every level. Left out: reaction time, threats, wounds and morale
-// penalties on rolls, part damage, parry strike-backs, fatigue, the dodge and block ladders' own shapes past the shield,
-// a defender's gap-shift perks (Turn Aside, Slip the Blow), and situational modifiers (light, cover, numbers).
-import type { Actor, DefenseKind, GameState, ItemDef } from '../types';
+// The average is exact: every pair of tiers the two rolls can give, by its chance (ruleset/expect.ts tierOdds: every d100
+// face once, tiers with no end as in every balance model), on every body part by how often it is hit, through the
+// ruleset's own gap shifts, gap ladder and armor. No dice, no staged fight, no turns. The level is the soldier's level
+// where the two times are equal, found by halving between whole levels; between two whole levels the balance is read on
+// a straight line. Nothing is measured at one level and used at another, so the standard soldier comes out at its own
+// level at every level whatever the rules are, and the equation has no lever of its own.
+//
+// Left out (D-400, D-401): reaction time, threats, wounds and morale penalties on rolls, damage to single parts and the
+// limits on where a blow may land, parry strike-backs, fatigue, and situational modifiers (light, cover, numbers). A
+// missile is read against the standing defense as if it could stop it; the blows a longer reach lands while the soldier
+// closes count through `range`.
+import type { Actor, AttackMode, DefenseKind, GameState, ItemDef } from '../types';
 import { CONFIG } from '../config';
 import { HEALTH_LEVELS, TIERS, type HealthLevelKey } from '../scales';
 import { getLibrary, itemDef } from '../library';
@@ -23,11 +27,11 @@ import { RC, BT } from '../library/raceIds';
 import { SK, DEFENSE_SKILL } from '../library/skillIds';
 import { IF } from '../library/tableIds';
 import { PK } from '../library/perkIds';
-import { armorOn, blowDamage, defenseOwnMods, hostileCloseMods, ladder, modTotal, sumShifts, rollSetup, weaponHitMods } from '../ruleset';
+import { armorLayers, blowDamage, defenseOwnMods, gapShiftsOf, hostileCloseMods, ladder, sumShifts, rollSetup, throughArmor, weaponHitMods, type ArmorLayer } from '../ruleset';
 import { hitTable, totalHp } from '../ruleset/body';
 import { fearCost, healthFear, maxMorale, tierCostMult } from '../ruleset/morale';
 import { blockItem, defenseItem, modeSkill, usableDefense, usableModes } from '../ruleset/gear';
-import { hasPerk } from '../ruleset/perks';
+import { boostAdd, hasPerk } from '../ruleset/perks';
 import { chainRewards } from '../ruleset/achRewards';
 import { attackSecs, rollOdds, tierOdds } from '../ruleset/expect';
 import { moveSpeed } from './speed';
@@ -68,22 +72,6 @@ export function refFighter(state: GameState, L: number, id: string): { S: GameSt
   return { S, ref };
 }
 
-/** the chance of each tier level on a roll whose skill and modifiers add up to `total` (SKILL_WEIGHT × skill + modifiers),
- * by a roller with no perks of its own: every d100 face once, tiers with no end as in every balance model */
-const tierChances = (bare: Actor, total: number): [number, number][] =>
-  [...tierOdds({ actor: bare, eff: { skill: '', value: total / CONFIG.SKILL_WEIGHT }, modifiers: [], shifts: [], reach: { up: 0, down: 0 } })];
-/** the chance of each gap (defense tier − attack tier, moved by `shift`) between two roll totals; an attack under a Near
- * Miss never lands and is left out */
-function gapChances(bare: Actor, attack: number, defense: number, shift = 0): [number, number][] {
-  const out = new Map<number, number>(), nearMiss = TIERS.pos('near_miss'), def = tierChances(bare, defense);
-  for (const [la, pa] of tierChances(bare, attack)) if (la >= nearMiss) for (const [ld, pd] of def) out.set(ld - la + shift, (out.get(ld - la + shift) ?? 0) + pa * pd);
-  return [...out];
-}
-/** the average blow as a multiple of what it brings (damage × the armor's share): the gap ladder's multiplier less the
- * soak share, never under 0, over a contest's gaps */
-const through = (gaps: [number, number][], kind: DefenseKind, soakShare: number): number =>
-  gaps.reduce((n, [g, p]) => n + p * Math.max(0, ladder(kind, g) - soakShare), 0);
-
 /** the fears a falling health sets off for an actor, in order: the share of health lost where each level starts, the
  * fear's cost and whether a morale roll scales it */
 function healthFears(a: Actor): { from: number; cost: number; rolled: boolean }[] {
@@ -109,96 +97,128 @@ function nerve(odds: [number, number][], max: number, fears: { from: number; cos
   return share + holds;
 }
 
-/** one attack as the equation reads it: its roll total, its tier shifts, its damage at a multiplier of 1, its seconds and its reach */
-type Attack = { total: number; shifts: number; damage: number; secs: number; reach: number; heavy: boolean };
-/** a sheet as the equation reads it: its attacks, its defense roll, its armor over its hit table, its health and nerve,
- * and the shield it blocks with */
-type Sheet = { attacks: Attack[]; defense: number; defShifts: number; share: number; soak: number; health: number; nerve: number; pool: number; resolve: number; morale: number };
+/** one attack as the equation reads it: its mode, its roll's tier chances, its damage at a multiplier of 1 (the damage step
+ * on a shield: no armor), the soak it pierces, what it does to a shield's pool, its seconds and its reach */
+type Attack = { mode: AttackMode; odds: [number, number][]; damage: number; pierce: number; onPool: number; secs: number; reach: number; ranged: boolean };
+/** a defense as the equation reads it: its kind and its roll's tier chances */
+type Guard = { kind: DefenseKind; odds: [number, number][] };
+/** a sheet as the equation reads it: its attacks, its defense (and the one it falls back on once its shield is broken),
+ * its armor over its hit table, its health and nerve, its shield's pool and its run */
+type Sheet = {
+  actor: Actor; attacks: Attack[]; guard: Guard; after?: Guard;
+  parts: { w: number; layers: ArmorLayer[] }[]; rows: Map<number, { w: number; share: number; soak: number }[]>; hide: number; frame: number;
+  health: number; nerve: number; pool: number; run: number;
+};
 
 /** reads a fresh actor's sheet: every number is one the ruleset already works out (roll set-ups, the damage step, armor) */
 function readSheet(state: GameState, a: Actor): Sheet {
-  const total = (su: { eff: { value: number }; modifiers: { type: string; value: number }[] }) => CONFIG.SKILL_WEIGHT * su.eff.value + modTotal(su.modifiers);
   const attacks = usableModes(state, a).map((m): Attack => {
-    const { mode } = m, ranged = mode.tree === 'ranged';
+    const { mode } = m, ranged = mode.tree === 'ranged', skill = modeSkill(mode);
     // a ranged mode is read with its foe in reach (the hostile-close modifier): the equation's fight is the contact fight
-    const su = rollSetup({ actorId: a.id, skill: modeSkill(mode), modifiers: [...weaponHitMods(mode, mode.id), ...(ranged ? hostileCloseMods(a) : [])], tierShifts: [], itemId: m.itemId, rollKind: 'hit', contest: true, standInFns: mode.standInFns, blend: mode.blend, attackKind: ranged ? 'ranged' : 'melee' }, state, a);
-    // the raw blow: the damage step on a shield (no armor), whoever holds it
-    return { total: total(su), shifts: sumShifts(su.shifts), damage: blowDamage(state, a, a, mode, 'shield', 1, null).damage, secs: attackSecs(state, a, m), reach: mode.reach, heavy: !ranged && mode.class === 'heavy' };
+    const su = rollSetup({ actorId: a.id, skill, modifiers: [...weaponHitMods(mode, mode.id), ...(ranged ? hostileCloseMods(a) : [])], tierShifts: [], itemId: m.itemId, rollKind: 'hit', contest: true, standInFns: mode.standInFns, blend: mode.blend, attackKind: ranged ? 'ranged' : 'melee' }, state, a);
+    return {
+      mode, odds: [...tierOdds(su)], damage: blowDamage(state, a, a, mode, 'shield', 1, null, m.itemId).damage, pierce: boostAdd(a, skill, 'armorPierce', ranged ? 'ranged' : 'melee'),
+      onPool: mode.tree === 'melee' && mode.class === 'heavy' && hasPerk(a, PK.shield_breaker) ? CONFIG.SHIELD_BREAKER_MULT : 1,
+      secs: attackSecs(state, a, m), reach: mode.reach, ranged,
+    };
   });
-  const type = usableDefense(state, a, false), blocker = defenseItem(state, a, type);
-  const def = rollSetup({ actorId: a.id, skill: DEFENSE_SKILL[type], modifiers: defenseOwnMods(state, a, type, false), tierShifts: [], itemId: blocker?.id, rollKind: type, contest: true }, state, a);
-  // armor over the hit table: each part's share and soak by how often it is hit (All-50 Thick Hide and Fighter's Frame scale the blow)
-  const hide = hasPerk(a, PK.thick_hide) ? CONFIG.THICK_HIDE_MULT : 1, frame = hasPerk(a, PK.fighters_frame) ? CONFIG.FIGHTERS_FRAME_MULT : 1;
-  let share = 0, soak = 0;
-  for (const row of hitTable(state, a)) { const w = (row.to - row.from + 1) / 100, on = armorOn(state, a, row.part); share += w * on.share * hide * frame; soak += w * on.soak * frame; }
-  const shield = type === 'block' ? blockItem(state, a) : null;
-  const pool = shield ? itemDef(state, shield.itemId).shield!.pool / (hasPerk(a, PK.iron_rim) ? CONFIG.IRON_RIM_MULT : 1) : 0;
-  const res = rollSetup({ actorId: a.id, skill: SK.resolve, modifiers: [], tierShifts: [] }, state, a);
-  const morale = maxMorale(a);
-  return { attacks, defense: total(def), defShifts: sumShifts(def.shifts), share, soak, health: totalHp(state, a), nerve: nerve([...rollOdds({ actorId: a.id, skill: SK.resolve, modifiers: [], tierShifts: [] }, state, a)], morale, healthFears(a)), pool, resolve: total(res), morale };
-}
-
-/** the equation's rates, read once per library off the standard soldier and the tier and gap tables */
-export type Rates = {
-  attack: number; defense: number; soakShare: number; resolve: number; // the standard soldier's roll totals and soak share for each level
-  damage: number; secs: number; share: number; reach: number; run: number; // its blow, its armor's share, its reach and its run
-  health: (L: number) => number; healthStep: number; nerve: (L: number) => number;
-  gaps: [number, number][]; kind: DefenseKind; // the pivot contest's gaps and the ladder they are read on
-  bA: number; bD: number; c: number; e: number; K: number; // the average blow's rates of change (see the top of the file)
-  tierA: number; tierD: number; // what one tier of shift on an attack or a defense is worth in roll total
-  fightS: number; // how long the pivot's own fight lasts
-};
-let rates: { lib: unknown; r: Rates } | undefined;
-export function combatRates(state: GameState): Rates {
-  if (rates?.lib === getLibrary()) return rates.r;
-  const p = CONFIG.COMBAT_PIVOT, h = CONFIG.COMBAT_SPAN, kind = CONFIG.MODEL_REF_DEFENSE;
-  const at = (L: number) => { const { S, ref } = refFighter(state, L, '__ref'); return { S, ref, s: readSheet(S, ref) }; };
-  const P = at(p), Z = at(0), s = P.s, hit = s.attacks[0];
-  const attack = hit.total / p, defense = s.defense / p, soakShare = s.soak / (hit.damage * s.share) / p, resolve = s.resolve / p;
-  const avg = (dA: number, dD: number, dS: number, shift = 0) => through(gapChances(Z.ref, attack * (p + dA), defense * (p + dD), shift), kind, soakShare * (p + dS));
-  const rate = (hi: number, lo: number, span: number) => (Math.log(hi) - Math.log(lo)) / span;
-  const now = avg(0, 0, 0);
-  const bA = rate(avg(h, 0, 0), avg(-h, 0, 0), 2 * h * attack), bD = -rate(avg(0, h, 0), avg(0, -h, 0), 2 * h * defense), c = -rate(avg(0, 0, h), avg(0, 0, -h), 2 * h * soakShare);
-  const healthStep = (P.s.health - Z.s.health) / p, moraleStep = (P.s.morale - Z.s.morale) / p, fears = healthFears(Z.ref);
-  const r: Rates = {
-    attack, defense, soakShare, resolve, damage: hit.damage, secs: hit.secs, share: s.share, reach: hit.reach, run: moveSpeed(P.S, P.ref).run,
-    health: (L) => Z.s.health + healthStep * L, healthStep, nerve: (L) => nerve(tierChances(Z.ref, resolve * L), Z.s.morale + moraleStep * L, fears),
-    gaps: gapChances(Z.ref, attack * p, defense * p), kind, bA, bD, c, e: 1 + c * soakShare * p, K: bA * attack + bD * defense + c * soakShare,
-    tierA: rate(avg(0, 0, 0, -1), now, bA), tierD: rate(now, avg(0, 0, 0, 1), bD),
-    fightS: (P.s.health * hit.secs) / (hit.damage * s.share * now),
+  const guardOf = (d: Actor): Guard => {
+    const kind = usableDefense(state, d, false);
+    return { kind, odds: [...tierOdds(rollSetup({ actorId: d.id, skill: DEFENSE_SKILL[kind], modifiers: defenseOwnMods(state, d, kind, false), tierShifts: [], itemId: defenseItem(state, d, kind)?.id, rollKind: kind, contest: true }, state, d))] };
   };
-  rates = { lib: getLibrary(), r };
-  return r;
+  const guard = guardOf(a), shield = guard.kind === 'block' ? blockItem(state, a) : null;
+  const pool = shield ? itemDef(state, shield.itemId).shield!.pool / (hasPerk(a, PK.iron_rim) ? CONFIG.IRON_RIM_MULT : 1) : 0;
+  // once the pool is gone the shield blocks nothing: the defense the same actor falls back on
+  const after = shield ? guardOf({ ...a, core: { ...a.core, inventory: a.core.inventory.map((i) => (i.id === shield.id ? { ...i, pools: { ...i.pools, shield: 0 } } : i)) } }) : undefined;
+  return {
+    actor: a, attacks, guard, after,
+    parts: hitTable(state, a).map((row) => ({ w: (row.to - row.from + 1) / 100, layers: armorLayers(state, a, row.part) })), rows: new Map(),
+    hide: hasPerk(a, PK.thick_hide) ? CONFIG.THICK_HIDE_MULT : 1, frame: hasPerk(a, PK.fighters_frame) ? CONFIG.FIGHTERS_FRAME_MULT : 1,
+    health: totalHp(state, a), nerve: nerve([...rollOdds({ actorId: a.id, skill: SK.resolve, modifiers: [], tierShifts: [] }, state, a)], maxMorale(a), healthFears(a)),
+    pool, run: moveSpeed(state, a).run,
+  };
 }
 
-/** the health a shield's pool is worth: while it lasts it takes the blows a block stops (gap HIT_GAPS.shieldFrom and up),
- * and each pool point saves what those blows would have cost the body, at the pivot contest's gaps */
-function shieldWorth(k: Rates, s: Sheet, soakShare: number): number {
-  if (!s.pool) return 0;
-  const from = CONFIG.HIT_GAPS.shieldFrom, body = (kind: DefenseKind, g: number) => Math.max(0, ladder(kind, g) - soakShare);
-  const taken = k.gaps.reduce((n, [g, p]) => n + (g >= from ? p * ladder('block', g) : 0), 0);
-  const saved = k.gaps.reduce((n, [g, p]) => n + p * (body(k.kind, g) - (g >= from ? 0 : body('block', g))), 0);
-  return taken > 0 ? Math.max(0, (s.pool * s.share * saved) / taken) : 0;
+/** a sheet's armor over its hit table against a blow that pierces this much soak: each part's share and soak, by how often it is hit */
+function rowsOf(s: Sheet, pierce: number) {
+  let rows = s.rows.get(pierce);
+  if (!rows) s.rows.set(pierce, rows = s.parts.map((p) => ({ w: p.w, ...throughArmor(p.layers, pierce) })));
+  return rows;
 }
-
-/** the equation's parts for one sheet (see the top of the file): the best of its attacks */
-export function combatParts(state: GameState, a: Actor) {
-  const k = combatRates(state), s = readSheet(state, a);
-  const share = Math.max(s.share, 1e-9), soakShare = s.soak / (k.damage * share); // soak as a share of what the soldier's blow brings
-  const health = s.health * s.nerve + shieldWorth(k, s, soakShare);
-  const defense = s.defense + k.tierD * s.defShifts;
-  let best = { level: 0, base: 0, attackLevel: 0, defenseLevel: defense / k.defense, soakLevel: soakShare / k.soakShare, ratio: 0, perDoubling: 0, health, damage: 0, secs: 0, range: 1 };
-  for (const m of s.attacks) {
-    // a heavy blow is harder to parry or block (HEAVY_VS_BLOCK_GAP), a tier shift in its favor
-    const attack = m.total + k.tierA * (m.shifts - (m.heavy && k.kind !== 'dodge' ? CONFIG.HEAVY_VS_BLOCK_GAP : 0));
-    const base = Math.max(0, (k.bA * attack + k.bD * defense + k.c * soakShare) / k.K);
-    const range = 1 + Math.max(0, m.reach - k.reach) / (k.run * k.fightS); // the blows it lands while the soldier runs in
-    const ratio = (health / (k.health(base) * k.nerve(base))) * (k.secs / m.secs) * (m.damage / k.damage) ** k.e * (k.share / share) * range;
-    const per = 1 / (k.K + k.healthStep / k.health(base));
-    const level = ratio > 0 ? Math.max(0, base + per * Math.log(ratio)) : 0;
-    if (level > best.level || !best.secs) best = { ...best, level, base, attackLevel: attack / k.attack, ratio, perDoubling: per * Math.LN2, damage: m.damage, secs: m.secs, range };
+/** the chance of each gap (defense tier − attack tier, moved by the ruleset's own gap shifts) when this attack meets this
+ * guard; an attack under a Near Miss never lands and is left out */
+function gapChances(state: GameState, att: Attack, def: Sheet, guard: Guard): [number, number][] {
+  const out = new Map<number, number>(), nearMiss = TIERS.pos('near_miss');
+  for (const [la, pa] of att.odds) {
+    if (la < nearMiss) continue;
+    for (const [ld, pd] of guard.odds) {
+      const g = ld - la + sumShifts(gapShiftsOf(state, def.actor, att.mode, guard.kind, ld - la));
+      out.set(g, (out.get(g) ?? 0) + pa * pd);
+    }
   }
-  return best;
+  return [...out];
+}
+/** the health an attack's average blow removes, as the damage step works it out: over the gaps (those under `below` only)
+ * and the defender's hit table, ladder × damage, Thick Hide, the armor's share, less its soak, then Fighter's Frame */
+function averageBlow(att: Attack, def: Sheet, kind: DefenseKind, gaps: [number, number][], below = Infinity): number {
+  const one = (share: number, soak: number) => gaps.reduce((n, [g, p]) => n + (g < below ? p * Math.max(0, ladder(kind, g) * att.damage * def.hide * share - soak) : 0), 0);
+  return rowsOf(def, att.pierce).reduce((n, r) => n + r.w * one(r.share, r.soak), 0) * (att.ranged ? 1 : def.frame);
+}
+/** the blows this attack needs to defeat this sheet: its health × nerve ÷ the average blow. A blocker's shield first takes
+ * the blows it blocks (gap HIT_GAPS.shieldFrom and up) until its pool is gone; then it defends as it can without it. */
+function blowsToDefeat(state: GameState, att: Attack, def: Sheet): number {
+  const health = def.health * def.nerve, gaps = gapChances(state, att, def, def.guard);
+  if (!def.after || !(def.pool > 0)) return health / averageBlow(att, def, def.guard.kind, gaps);
+  const from = CONFIG.HIT_GAPS.shieldFrom;
+  const past = averageBlow(att, def, 'block', gaps, from); // what gets past the shield, a blow
+  const onPool = gaps.reduce((n, [g, p]) => n + (g >= from ? p * ladder('block', g) * att.damage * att.onPool : 0), 0); // what its pool takes, a blow
+  const lasts = onPool > 0 ? def.pool / onPool : Infinity; // the blows until it breaks
+  if (health <= past * lasts) return health / past;
+  return lasts + (health - past * lasts) / averageBlow(att, def, def.after.kind, gapChances(state, att, def, def.after));
+}
+
+let soldiers: { lib: unknown; at: Map<number, Sheet> } | undefined;
+/** the standard soldier's sheet at a whole level, read once per library */
+function soldier(state: GameState, n: number): Sheet {
+  if (soldiers?.lib !== getLibrary()) soldiers = { lib: getLibrary(), at: new Map() };
+  let s = soldiers.at.get(n);
+  if (!s) { const { S, ref } = refFighter(state, n, '__ref'); soldiers.at.set(n, s = readSheet(S, ref)); }
+  return s;
+}
+
+/** the two sides of the even fight against the standard soldier of a whole level: the seconds each needs to defeat the
+ * other with its best attack, and `lead` = ln(mine ÷ its): under 0 the actor is ahead, over 0 the soldier is */
+function fight(state: GameState, me: Sheet, n: number) {
+  const sol = soldier(state, n);
+  let its = Infinity, itsReach = sol.attacks[0]?.reach ?? 0;
+  for (const m of sol.attacks) { const t = blowsToDefeat(state, m, me) * m.secs; if (t < its) { its = t; itsReach = m.reach; } }
+  let mine = Infinity, attack: Attack | undefined = me.attacks[0], range = 1;
+  for (const m of me.attacks) {
+    const r = 1 + Math.max(0, m.reach - itsReach) / (sol.run * its); // the blows it lands while the soldier runs in
+    const t = (blowsToDefeat(state, m, sol) * m.secs) / r;
+    if (t < mine) { mine = t; attack = m; range = r; }
+  }
+  const lead = mine === Infinity ? (its === Infinity ? 0 : Infinity) : its === Infinity ? -Infinity : Math.log(mine / its);
+  return { mine, its, lead, attack, range };
+}
+
+/** the even fight of a fresh sheet against the standard soldier of one whole level (tests read it) */
+export const fightAt = (state: GameState, a: Actor, n: number) => fight(state, readSheet(state, a), n);
+
+/** the whole level the search stops at when nothing the soldier grows into can beat the sheet (the equation has no ceiling of its own) */
+const SEARCH_END = 2 ** 20;
+/** the equation's parts for one sheet (see the top of the file): the two whole soldier levels the even fight lies
+ * between, the level on the straight line between them, and the fight against the lower one */
+export function combatParts(state: GameState, a: Actor) {
+  const me = readSheet(state, a), seen = new Map<number, ReturnType<typeof fight>>();
+  const at = (n: number) => { let f = seen.get(n); if (!f) seen.set(n, f = fight(state, me, n)); return f; };
+  let lo = 0, hi = 64;
+  if (at(0).lead > 0) return { level: 0, below: 0, ...at(0) };
+  while (!(at(hi).lead > 0) && hi < SEARCH_END) { lo = hi; hi *= 2; }
+  while (hi - lo > 1) { const mid = (lo + hi) / 2; if (at(mid).lead > 0) hi = mid; else lo = mid; }
+  const l = at(lo).lead, h = at(hi).lead;
+  const part = h > 0 ? (Number.isFinite(l) ? (Number.isFinite(h) ? -l / (h - l) : 0) : Number.isFinite(h) ? 1 : 0.5) : 1;
+  return { level: lo + part, below: lo, ...at(lo) };
 }
 
 const cache = new Map<string, number>();
@@ -229,4 +249,4 @@ export function combatLevel(state: GameState, a0: Actor): number {
   return L;
 }
 /** forget every cached combat level (a model setting changed) */
-export const clearCombatLevels = (): void => { cache.clear(); rates = undefined; };
+export const clearCombatLevels = (): void => { cache.clear(); soldiers = undefined; };

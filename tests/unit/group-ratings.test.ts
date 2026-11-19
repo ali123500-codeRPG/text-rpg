@@ -2,9 +2,9 @@
 // skill rates itself, more skills add less, the standard soldier rates its own level, and non-combat shares face an equal foe.
 import { describe, expect, it } from 'vitest';
 import { makeVillage, createRng } from '../harness';
-import { ruleset } from '../../src/ruleset';
+import { hitTable, ladder } from '../../src/ruleset';
 import { compoundRating, groupRating, holdStrength, poolOf, ratingOf, strengthFor } from '../../src/ruleset/ratings';
-import { clearCombatLevels, combatLevel, combatParts, combatRates, refFighter } from '../../src/engine/combatLevel';
+import { clearCombatLevels, combatLevel, combatParts, fightAt, refFighter } from '../../src/engine/combatLevel';
 import { nonCombatGroups } from '../../src/engine/nonCombat';
 import { itemDef } from '../../src/library';
 import { requirement, shortBy } from '../../src/ruleset/requirements';
@@ -57,28 +57,43 @@ describe('combat level equation (placeholder)', () => {
     expect(mail.armor!.reduction).toBeCloseTo(armorStop(mail.armor!.weight, 30), 9);
     expect(shortBy(ref, mail)).toBe(0);
   });
-  it('its rates come from the tier table and the gap ladder at the pivot, worked by hand', () => {
+  it('the average blow is the exact sum over both rolls and the hit table, worked by hand', () => {
     const S = makeVillage({ seed: 1 });
-    const k = combatRates(S), gap = Object.fromEntries(k.gaps);
-    // the level-50 soldier: attack total 35 (skill 50 + kit 20, × 0.5), parry total 25. Attack tiers Near Miss 23 %, Success
-    // 25 %, Great Success 42 %, Critical Success 5 % (5 % miss); parry tiers 5, 8, 25, 25, 32, 5 %
-    expect([k.attack * 50, k.defense * 50]).toEqual([35, 25]);
-    expect(gap[0]).toBeCloseTo(0.23 * 0.25 + 0.25 * 0.25 + 0.42 * 0.32 + 0.05 * 0.05, 9);
-    expect(gap[2]).toBeCloseTo(0.23 * 0.32 + 0.25 * 0.05, 9);
-    expect(k.gaps.reduce((n, [, p]) => n + p, 0)).toBeCloseTo(0.95, 9);
-    // the weights of attack, defense and soak add up to 1, so the soldier comes out at its own level
-    expect((k.bA * k.attack + k.bD * k.defense + k.c * k.soakShare) / k.K).toBeCloseTo(1, 9);
-    for (const v of [k.bA, k.bD, k.c, k.tierA, k.tierD]) expect(v).toBeGreaterThan(0);
+    const base = Object.fromEntries(CONFIG.MODEL_REF_SKILLS.map((k) => [k, 50]));
+    const of = (id: string, kit: string[]) => { const a = sheet(S, id, base, kit); a.core.standingDefense = 'parry'; return a; };
+    const bare = of('bare', [IT.arming_sword]), mailed = of('mailed', CONFIG.MODEL_REF_KIT);
+    // the level-50 soldier's blow: attack total 35 (skill 50 + kit 20, × 0.5) on a parry total of 25. Attack tiers Near Miss
+    // 23 %, Success 25 %, Great Success 42 %, Critical Success 5 % (5 % never land); parry tiers 5, 8, 25, 25, 32, 5 %
+    const atk = [[2, 0.23], [3, 0.25], [4, 0.42], [5, 0.05]], par = [[0, 0.05], [1, 0.08], [2, 0.25], [3, 0.25], [4, 0.32], [5, 0.05]];
+    const sword = 25 * (1 + CONFIG.DAMAGE_NEED_RATE * 50); // a Fine sword: requirement 50
+    const blow = (share: number, soak: number) => atk.reduce((n, [la, pa]) => n + par.reduce((m, [ld, pd]) => m + pa * pd * Math.max(0, ladder('parry', ld - la) * sword * share - soak), 0), 0);
+    const mail = itemDef(S, IT.mail_hauberk).armor!;
+    const covered = hitTable(S, mailed).reduce((n, r) => n + (mail.covers.includes(r.part) ? (r.to - r.from + 1) / 100 : 0), 0);
+    const [open, shut] = [fightAt(S, bare, 50), fightAt(S, mailed, 50)];
+    // same health and nerve, so the seconds the soldier needs go as one over its average blow
+    expect(shut.its / open.its).toBeCloseTo(blow(1, 0) / (covered * blow(mail.multiplier, mail.reduction) + (1 - covered) * blow(1, 0)), 9);
+    // the mailed sheet is the level-50 soldier: both sides need the same time, at 4 s a blow
+    expect(shut.mine).toBeCloseTo(shut.its, 9);
+    expect(shut.lead).toBeCloseTo(0, 9);
+    expect(shut.attack!.secs).toBe(4);
   });
-  it('the standard soldier rates its own level at every level, with no ceiling', () => {
+  it('the standard soldier rates its own level at every level, with no ceiling and no lever', () => {
     const S = makeVillage({ seed: 1 });
     clearCombatLevels();
-    for (const L of [50, 75, 100, 150, 200, 400, 1000]) { const r = refFighter(S, L, 'r' + L); expect(combatLevel(r.S, r.ref)).toBeCloseTo(L, 6); }
+    for (const L of [0, 25, 50, 75, 100, 150, 200, 400, 1000]) { const r = refFighter(S, L, 'r' + L); expect(combatLevel(r.S, r.ref)).toBeCloseTo(L, 6); }
     const f = sheet(S, 'f', Object.fromEntries(CONFIG.MODEL_REF_SKILLS.map((k) => [k, 50])), CONFIG.MODEL_REF_KIT); // sword and mail ask for 50
     f.core.standingDefense = 'parry';
     expect(combatLevel(S, f)).toBeCloseTo(50, 6);
+    // between two whole levels: ahead of the lower soldier, behind the upper one
+    const g = sheet(S, 'g', { ...Object.fromEntries(CONFIG.MODEL_REF_SKILLS.map((k) => [k, 50])), [SK.melee_medium]: 60 }, CONFIG.MODEL_REF_KIT);
+    g.core.standingDefense = 'parry';
+    const p = combatParts(S, g);
+    expect(p.level).toBeGreaterThan(p.below);
+    expect(p.level).toBeLessThan(p.below + 1);
+    expect(fightAt(S, g, p.below).lead).toBeLessThanOrEqual(0);
+    expect(fightAt(S, g, p.below + 1).lead).toBeGreaterThan(0);
   });
-  it('every part of a sheet counts: skill, health, nerve, armor, a shield, a harder or faster blow', () => {
+  it('every part of a sheet counts: skill, health, nerve, armor, a shield, a weapon that asks for more', () => {
     const S = makeVillage({ seed: 1 });
     const base = Object.fromEntries(CONFIG.MODEL_REF_SKILLS.map((k) => [k, 50]));
     const at = (id: string, skills: Record<string, number>, kit: string[] = CONFIG.MODEL_REF_KIT, def: 'parry' | 'block' = 'parry') => { const a = sheet(S, id, skills, kit); a.core.standingDefense = def; return combatLevel(S, a); };
@@ -86,11 +101,21 @@ describe('combat level equation (placeholder)', () => {
     for (const k of [SK.melee_medium, SK.parry, SK.endurance]) expect(at('up' + k, { ...base, [k]: 80 })).toBeGreaterThan(std);
     expect(at('coward', { ...base, [SK.resolve]: 0 })).toBeLessThan(std);
     expect(at('bare', base, [IT.arming_sword])).toBeLessThan(std);
-    expect(at('plate', { ...base, [SK.heavy_armor]: 75 }, [IT.arming_sword, IT.plate_harness])).toBeGreaterThan(std * 1.5);
+    expect(at('plate', { ...base, [SK.heavy_armor]: 75 }, [IT.arming_sword, IT.plate_harness])).toBeGreaterThan(std + 20);
     expect(at('shield', { ...base, [SK.block]: 50 }, [...CONFIG.MODEL_REF_KIT, IT.round_shield], 'block')).toBeGreaterThan(std);
-    // a doubling of health is worth the same as a doubling of anything else in the ratio
-    const p = combatParts(S, sheet(S, 'parts', base, CONFIG.MODEL_REF_KIT));
-    expect(p.perDoubling).toBeCloseTo(Math.LN2 / (combatRates(S).K + 1 / 100), 6);
+    // the level-100 soldier's sword in the same hands: its damage grows with its requirement (and its kit bonus with it)
+    const { S: S2, ref } = refFighter(S, 100, 'relic');
+    const keen = sheet(S2, 'keen', { ...base, [SK.melee_medium]: 100 }, CONFIG.MODEL_REF_KIT);
+    keen.core.inventory = [...keen.core.inventory.filter((i) => !itemDef(S2, i.itemId).weapon), ...ref.core.inventory.filter((i) => itemDef(S2, i.itemId).weapon).map((i) => ({ ...i, id: 'keen_sword' }))];
+    const plain = sheet(S2, 'plain', { ...base, [SK.melee_medium]: 100 }, CONFIG.MODEL_REF_KIT);
+    for (const a of [keen, plain]) a.core.standingDefense = 'parry';
+    expect(combatLevel(S2, keen)).toBeGreaterThan(combatLevel(S2, plain));
+  });
+  it('a broken shield blocks nothing: a blocker is read with the defense it falls back on once the pool is gone', () => {
+    const S = makeVillage({ seed: 1 });
+    const base = { ...Object.fromEntries(CONFIG.MODEL_REF_SKILLS.map((k) => [k, 50])), [SK.block]: 50 };
+    const at = (id: string, parry: number) => { const a = sheet(S, id, { ...base, [SK.parry]: parry }, [...CONFIG.MODEL_REF_KIT, IT.round_shield]); a.core.standingDefense = 'block'; return combatLevel(S, a); };
+    expect(at('fallback80', 80)).toBeGreaterThan(at('fallback50', 50));
   });
 });
 
