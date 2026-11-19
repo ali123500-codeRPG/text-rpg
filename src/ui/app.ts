@@ -10,6 +10,7 @@ import { mapPage } from './map';
 import { closeFull, openFull } from './pop';
 import { bugsPage } from './bugs';
 import { gainsPage } from './gains';
+import { republishItem } from './republish';
 
 const ICON: Record<string, string> = {
   create: 'M4 20 15 9m2-5 3 3-4 4-3-3zM6 14l4 4',
@@ -60,6 +61,8 @@ export function mountApp(api: GameApi, root: HTMLElement = document.body) {
   rail.addEventListener('click', hideTip);
 
   const play = playScreen(api, (p) => go(p));
+  // RH19 c: Republish sits in the rail's foot once this view is known to reach the saved task
+  const republish = republishItem(() => { railKey = ''; drawRail(current()); });
   // the map is a big pop-up over the page, not a page of its own: the Map button on Play opens it
   // "Move to here" on the map types the order in Play's action box, ready to send
   const map = mapPage(api, (order) => { playDraft.text = order; closeFull(); go('play'); });
@@ -97,7 +100,8 @@ export function mountApp(api: GameApi, root: HTMLElement = document.body) {
     // before the gains pop-up or the level-up card shows it
     if (!api.busy()) railPoints = api.state()?.player.progression?.unspentPerkPoints ?? 0;
     if (!api.busy()) railReady = !!api.state()?.quests.some((q) => q.state === 'ready'); // C7
-    const key = [page, started, gmOn, railPoints, railReady].join('|');
+    const rp = republish.el();
+    const key = [page, started, gmOn, railPoints, railReady, rp?.dataset.tip ?? ''].join('|');
     if (key === railKey) return;
     railKey = key;
     // icons only: the name is kept for screen readers and shown in a tip on hover or focus
@@ -116,7 +120,8 @@ export function mountApp(api: GameApi, root: HTMLElement = document.body) {
       started ? '' : item('create', 'Create', true),
       ...PAGES.map(([id, label]) => item(id, label, started || id === 'fame' || id === 'bugs')),
       gmOn ? item('gm', 'GM', started) : '',
-      h('button', { class: 'foot', type: 'button', 'aria-pressed': String(gmOn), 'data-tip': gmOn ? 'GM on: turn the debug view off' : 'GM off: turn the debug view on',
+      rp ?? '',
+      h('button', { class: rp ? undefined : 'foot', type: 'button', 'aria-pressed': String(gmOn), 'data-tip': gmOn ? 'GM on: turn the debug view off' : 'GM off: turn the debug view on',
         onclick: () => { gmOn = !gmOn; writeGm(gmOn); if (!gmOn && current() === 'play' && location.hash === '#gm') go('play'); render(); } },
         icon('gm'), h('span', { class: 'rail-label' }, gmOn ? 'GM on' : 'GM off')),
     );

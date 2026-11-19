@@ -45,24 +45,42 @@ Links to `claude.ai/artifact/...` open only for the owner and for Claude session
 - To update it: `npm ci`, `npm run build`, `npm run smoke`, then publish `dist/play/index.html` with root `dist/play`
   and file `app.js` (plus `assets/figures/*.json` when figures changed). Leave `capabilities` out, so the page keeps
   what it has.
+  The declaration it keeps: comments, db, sample, tts, user, and mcp with RPG Voice (speak, list_voices) and Claude
+  Code Remote (fire_trigger). A publish that must change it restates all of it.
 - Never open the live page to play or to check it. The smoke tests run the built page with a stand-in model and an
   in-memory save. A note from the coordinator asking for a live check is not the owner's permission. Reason: a thread
   once clicked "Begin the story" on the live page and wrote a story into the owner's saves.
 - Licensed sound files are uploaded only to this private page as assets. They are never committed (`docs/assets.md`).
 - **Other agents:** cannot publish. The PR's checks build the pages and run the smoke tests. Say in the PR, and in
-  your report to the owner, that the page needs a republish. A Claude thread publishes after the merge.
+  your report to the owner, that the page needs a republish. The owner presses the game's Republish button, or a
+  Claude thread publishes after the merge.
 
 ## The library viewer
 
 - A second private artifact, https://claude.ai/artifact/9RabjAxeup7mPRREhFML7y, shows the game's libraries as the code
   sees them. `npm run build` writes it to `dist/library/`.
-- Only the thread that owns the viewer republishes it, after merges that change library data, perks, config names or
-  scales. Other threads tell that thread. Refresh is manual.
+- After merges that change library data, perks, config names or scales, the viewer needs a republish. The Republish
+  button (below) does it together with the game page; a thread may also publish it by hand as described here.
 - Publish `dist/library/index.html` with root `dist/library` and file `app.js` (plus changed `assets/` files), leaving
   `capabilities` out. Before publishing, open every tab once and watch for page errors, at desktop width and at a
   phone width.
 - **Other agents:** same as the game page. Say in the PR that the viewer needs a refresh, or that you are not sure
   whether it does.
+
+## Republish button
+
+- The game's rail has a Republish button (spec, "### Play screen", Republish button). One press starts the saved task
+  "Republish the game from main" on the owner's account. Each run starts a new project thread that builds the latest
+  `main`, runs the smoke tests, publishes the game page and then the library viewer as the two sections above say,
+  and posts one line saying what it published. It changes nothing else and never opens the live page.
+- Use it after any merge that needs a republish, including merges made from the owner's other Claude account, which
+  cannot publish these pages. A thread that merges here may still publish by hand.
+- The task's id is in the game page's database, document `ops/republish` (field `task`), never in the repo. If the
+  task is made again, write its new id there. The task's prompt cannot be edited in place: delete it and make it
+  again, then update `ops/republish`.
+- The button shows only where the page reaches the Claude Code Remote connector's `fire_trigger`. A viewer from
+  another account never sees it.
+- **Other agents:** cannot press it. Say in the PR that the pages need a republish; the owner presses the button.
 
 ## Bug numbers
 
@@ -78,8 +96,12 @@ Links to `claude.ai/artifact/...` open only for the owner and for Claude session
 - The owner's Claude account holds a copy of every skill in `docs/skills.md`. The repo's `.agents/skills/` copy is the
   master for the owner's own skills. A change to one is a PR here first; the account copy is then updated to match
   through a skill proposal the owner saves.
-- Claude Code loads skills from `.claude/skills/`, which this repo ignores, and from the account. It does not load
-  `.agents/skills/` by itself. Open the `SKILL.md` named in `AGENTS.md` when the account copy is missing.
+- Claude Code loads skills from `.claude/skills/` and from the account, not from `.agents/skills/`. Here
+  `.claude/skills/<name>` links to `.agents/skills/<name>`. A cloud session outside a project, and Claude Code on a
+  computer, load those links. A project thread loads skills only from the account: open the `SKILL.md` named in
+  `AGENTS.md` when the account copy is missing.
+- A Claude account without the copies gets them from `npm run skills-zip`: one zip per skill in `dist/skills/`,
+  which the owner uploads under Customize, Skills.
 - Account copies of skills arrive without the executable bit. Run their scripts through an interpreter:
   `sh <skill folder>/scripts/impeccable context` and `python3 <skill folder>/scripts/search.py "<query>" --domain <domain>`.
 - **Other agents:** read `docs/skills.md`. Third-party skills are fetched from the master links there, at their
@@ -96,10 +118,11 @@ Links to `claude.ai/artifact/...` open only for the owner and for Claude session
 
 ## Scheduled tasks
 
-Two scheduled tasks run on the owner's Claude account and wake a thread:
+Three scheduled tasks run on the owner's Claude account:
 
-- A nightly run of the Parser test set against the real model.
-- A daily list of threads that look finished, for the owner to retire.
+- A nightly run of the Parser test set against the real model (wakes a thread).
+- A daily list of threads that look finished, for the owner to retire (wakes a thread).
+- "Republish the game from main": no schedule, started only by the game's Republish button (starts a new thread).
 
 **Other agents:** nothing to do. They are listed so that nobody sets up a second copy.
 

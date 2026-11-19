@@ -35,4 +35,9 @@ the private game page.
 - **Recorded motion clips** made while checking animations.
 - **Stand-in data for the hub's regression checks** (`tools/questions-hub/README.md`).
 
+Two of these also have a copy that does not depend on that shared folder: the builders of the question pages and
+the study notes are in the owner's private companion repo, `text-rpg-private`, next to a set-up kit for a Claude
+account that is new to the project. Only agents the owner has given access can open it. It holds text only, and
+nothing in it overrides the rules here.
+
 If a task needs one of these and you cannot reach it, say so in the PR. Do not recreate it from memory.

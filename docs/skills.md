@@ -72,5 +72,12 @@ repo's raw files. If you cannot fetch one, say in your report that it was not us
 Read from each tool's documentation on 19/11/2026. Only the Claude row has been tested in this project.
 
 - Reads `.agents/skills/` in the repo: Codex, Cursor, Gemini CLI, GitHub Copilot. Untested here.
-- Claude Code reads `.claude/skills/` and the account's skills, not `.agents/skills/`. Tested: it opens a `SKILL.md`
-  from this list when the rules call for it.
+- Claude Code reads `.claude/skills/` and the account's skills, not `.agents/skills/`. In this repo
+  `.claude/skills/<name>` is a link to `.agents/skills/<name>`, so there is still one copy of each skill. Written
+  from Claude's documentation on 19/11/2026: a cloud session or Claude Code on a computer loads the links; a thread
+  inside a claude.ai project does not, and loads skills only from the account.
+- To give a Claude account its own copies, run `npm run skills-zip`. It writes one zip per skill to `dist/skills/`,
+  ready to upload under Customize, Skills. Third-party skills are uploaded from their masters above.
+- A new skill in `.agents/skills/` gets its link in `.claude/skills/` in the same PR
+  (`ln -s ../../.agents/skills/<name> .claude/skills/<name>`).
+- Tested: an agent opens a `SKILL.md` from this list when the rules call for it.
