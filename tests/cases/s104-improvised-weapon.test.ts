@@ -16,7 +16,7 @@ describe('104 Improvised weapon', () => {
     place(s, 'slime_1', 'field_mid');
     const intent: Intent = {
       move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null,
-      action: { type: 'attack', skill: SK.melee_medium, target: 'slime_1', targetPart: null, item: null, mode: null, approach: '', stance: 'normal',
+      action: { type: 'attack', skill: SK.melee_medium, target: 'slime_1', targetPart: null, item: null, mode: null, approach: '',
         improvised: { base: 'improvised_medium', name: 'a broken chair leg' } },
     };
     const events = resolveTurn(s, { intent, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(7));

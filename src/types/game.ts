@@ -20,7 +20,8 @@ export type LogLine = {
   check?: LineCheck; // the player's own roll this turn
   speech?: { speaker: string; volume: Volume; text: string }[]; // lines the character heard, word for word
   changes?: { kind: 'combat' | 'condition' | 'health'; text: string }[]; // what changed this turn
-  next?: string; // Q16: what the player put off this turn (the Parser's deferred), offered in the action box
+  next?: string; // Q16: what the player put off this turn (the Parser's deferred), offered in the action box once the queue stopped
+  queue?: string[]; // D-20 b: the rest of the player's order, in their words; Enter plays the first as the next turn while nothing new happens
   // taken from the turn's code log before it is cleared (the log only lives until the next turn starts)
   heals?: HealNote[]; // H11: the player's healing this turn
   unlocks?: { skill: string; milestone: number }[]; // V2a: milestones a skill crossed this turn

@@ -20,7 +20,7 @@ import { makeFurniture } from '../../src/engine/furniture';
 
 const intent = (move: Intent['move'], action: Partial<NonNullable<Intent['action']>> | null = null, spoken: Intent['spoken'] = null): Intent => ({
   move, gear: null, spoken, addressees: null, deferred: [], clarify: null,
-  action: action ? { type: 'sneak', skill: '', target: null, targetPart: null, item: null, mode: null, approach: '', stance: 'normal', ...action } : null,
+  action: action ? { type: 'sneak', skill: '', target: null, targetPart: null, item: null, mode: null, approach: '', ...action } : null,
 });
 const turn = (s: GameState, i: Intent) => { s.turn += 1; return resolveTurn(s, { intent: i, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(1)); };
 const status = (s: GameState, id: string) => s.actors.find((a) => a.id === id)!.mind!.knowledge.player?.status ?? 'unaware';

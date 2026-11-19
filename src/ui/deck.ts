@@ -43,7 +43,7 @@ export type DeckAction = {
   kind: DeckKind; group: DeckGroup; label: string; note?: string; hot?: true; limit?: DeckLimit; against?: true; free?: true; time?: string; // against: the character is pulled away from it; free: beside your action, not it; time: how long it takes, for its hover
   steps: Step[]; play(c: Choice): Order;
 };
-export type DeckCtx = { pv: PlayerView; s?: GameState; stance?: 'careful' | 'normal' | 'reckless'; aim?: boolean; broken?: boolean; cowering?: boolean; self?: Personality }; // cowering: BF79, below Broken
+export type DeckCtx = { pv: PlayerView; s?: GameState; aim?: boolean; broken?: boolean; cowering?: boolean; self?: Personality }; // cowering: BF79, below Broken
 
 /** every kind of action the deck can offer; the completeness test checks these cover every Parser action, gear op and
  * way op the game knows (DECK_LEFT_OUT says why the rest are not listed) */
@@ -86,8 +86,7 @@ export function apart(names: string[]): string[] {
  * added or taken away by them). Empty groups are left out. */
 export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: DeckAction[] }[] {
   const { pv, s, broken = false, cowering = false } = ctx;
-  const stance = ctx.stance ?? 'normal';
-  const act = (type: Act['type'], over: Partial<Act> = {}): Act => ({ type, skill: '', target: null, targetPart: null, item: null, mode: null, approach: '', stance, ...over });
+  const act = (type: Act['type'], over: Partial<Act> = {}): Act => ({ type, skill: '', target: null, targetPart: null, item: null, mode: null, approach: '', ...over });
   const order = (line: string, over: Partial<Intent>): Order => ({ line, intent: { ...structuredClone(BLANK), ...over } });
 
   // people the player perceives: names told apart, how far, how they look

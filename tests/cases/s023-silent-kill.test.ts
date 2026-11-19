@@ -21,7 +21,7 @@ it('23 Silent kill: nobody else perceives the attack; the next turn is Explore',
   });
   const intent: Intent = {
     move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null,
-    action: { type: 'attack', skill: SK.melee_medium, target: 'slime_1', targetPart: null, item: `player_${IT.arming_sword}_1`, mode: AM.cut, approach: 'a quick cut', stance: 'normal' },
+    action: { type: 'attack', skill: SK.melee_medium, target: 'slime_1', targetPart: null, item: `player_${IT.arming_sword}_1`, mode: AM.cut, approach: 'a quick cut' },
   };
   resolveTurn(s, { intent, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(s.rngState));
   expect(isActive(slime)).toBe(false);

@@ -70,7 +70,7 @@ describe('307 payoff perks', () => {
       const real = ruleset.roll;
       vi.spyOn(ruleset, 'roll').mockImplementation((req, st, rng) => { seen.push(req); return real(req, st, rng); });
       const intent: Intent = { move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null,
-        action: { type: 'attack', skill: SK.melee_medium, target: 'slime_1', targetPart: null, item: `player_${IT.arming_sword}_1`, mode: AM.cut, approach: 'a cut', stance: 'normal' } };
+        action: { type: 'attack', skill: SK.melee_medium, target: 'slime_1', targetPart: null, item: `player_${IT.arming_sword}_1`, mode: AM.cut, approach: 'a cut' } };
       resolveTurn(s, { intent, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(s.rngState));
       vi.restoreAllMocks();
       return seen.find((r) => r.rollKind === 'hit' && r.actorId === s.player.id)?.when;

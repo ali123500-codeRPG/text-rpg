@@ -35,7 +35,7 @@ describe('322 a scenario started in free roam is planned in the background', () 
     };
     game.adopt(state);
     const number = state.stage.scenarioNumber, first = state.turn;
-    claude.push('parser', intent({ action: { type: 'attack', skill: '', target: 'patron_1', targetPart: null, item: null, mode: null, approach: '', stance: 'normal' } }));
+    claude.push('parser', intent({ action: { type: 'attack', skill: '', target: 'patron_1', targetPart: null, item: null, mode: null, approach: '' } }));
     await game.submit('I punch the patron', { aimed: false });
     await game.settle();
     let s = game.state()!;

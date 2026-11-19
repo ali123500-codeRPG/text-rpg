@@ -20,7 +20,7 @@ describe('AD7 clicked actions skip the Parser', () => {
     g.claude.defaults.narrator = narrateAll();
     g.start();
     const t = g.game.state()!.turn;
-    const bad = intent({ action: { type: 'attack', skill: '', target: 'nobody_here', targetPart: null, item: null, mode: null, approach: '', stance: 'normal' } });
+    const bad = intent({ action: { type: 'attack', skill: '', target: 'nobody_here', targetPart: null, item: null, mode: null, approach: '' } });
     await g.game.act({ intent: bad, line: 'Attack' }, { aimed: false });
     await g.game.settle();
     expect(g.game.state()!.turn).toBe(t);

@@ -332,7 +332,7 @@ export type NarrationView = {
   cameAndWent?: string[]; // BF2e: who the player noticed coming and going over a long turn, one line each, in order
   style: { tone: string; length: string };
   time: TimeView;
-  approach?: string; stance?: string; // the player's flavor
+  approach?: string; // the player's flavor
   events: NarrationEvent[];
   player: { name: string; pronouns?: Pronouns; health: HealthLevel; morale: string; fatigue: string; mentallySteady?: true; parts: { id: string; state: PartState }[]; tended?: string; zone: string; stealthy?: true; gear?: string[]; title?: string; personality?: string; age?: string; yielded?: YieldView }; // personality: the player's sheet words, narration flavour only // ST3: moving or hiding unseen; gear: everything the character has
   surroundings: ZoneView[]; // own zone + sight links (frontiers by label)

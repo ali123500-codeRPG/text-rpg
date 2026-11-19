@@ -11,7 +11,7 @@ import { place } from '../harness';
 import { SK } from '../../src/library/skillIds';
 import type { GameState } from '../../src/types';
 
-const strike = (target: string) => intent({ action: { type: 'attack', skill: SK.melee_medium, target, targetPart: null, item: null, mode: null, approach: '', stance: 'normal' } });
+const strike = (target: string) => intent({ action: { type: 'attack', skill: SK.melee_medium, target, targetPart: null, item: null, mode: null, approach: '' } });
 
 /** the guard in the tavern, hostile and already trading blows with the player */
 const fight = () => {

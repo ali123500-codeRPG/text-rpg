@@ -162,7 +162,7 @@ import { groundIn } from '../../src/engine/ground';
 type IntentArg = Omit<Partial<Intent>, 'action'> & { action?: Partial<NonNullable<Intent['action']>> };
 const intent = ({ action, ...p }: IntentArg): Intent => ({
   move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null, ...p,
-  action: action ? { type: 'other', skill: '', target: null, targetPart: null, item: null, mode: null, approach: '', stance: 'normal', ...action } : null,
+  action: action ? { type: 'other', skill: '', target: null, targetPart: null, item: null, mode: null, approach: '', ...action } : null,
 });
 const input = (p: Partial<TurnInput> = {}): TurnInput => ({ intent: null, aimed: false, agentOutputs: [], spokespeople: [], ...p });
 const npcAction = (type: string, target: string | null = null) => ({ type, target, skill: null, targetPart: null, aimed: false, defense: null, item: null, mode: null, intent: '' }) as never;
