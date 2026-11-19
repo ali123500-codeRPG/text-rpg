@@ -93,6 +93,9 @@ const ROWS: Row[] = [
   { id: PK.deeper_soak, ref: 'LG18', skill: SK.heavy_armor, group: GR.defense, name: 'Deeper Soak', effect: 'defense',
     extra: { ownRule: 'DEEPER_SOAK_MULT', story: 'You know how to let plate take the blow: your heavy armor stops half again as much of every hit.',
       rule: `Worn heavy armor's flat soak (its reduction per hit) is ×${CONFIG.DEEPER_SOAK_MULT} on the owner (DEEPER_SOAK_MULT, placeholder); its multiplier is unchanged.` } },
+  { id: PK.covered_joints, ref: 'LG24', skill: SK.medium_armor, group: GR.defense, name: 'Covered Joints', effect: 'defense',
+    extra: { ownRule: 'COVERED_JOINTS', story: 'You wear your armor so the gaps are never where a blade looks for them: every blow at you has to find a way past it.',
+      rule: `An attack at a part the owner's worn armor covers (any weight) takes ${CONFIG.COVERED_JOINTS} on its roll (COVERED_JOINTS, placeholder). An attack that is not aimed takes ${CONFIG.COVERED_JOINTS} × the share of the owner's hit chances its armor covers; one aimed at a bare part takes nothing.` } },
   { id: PK.honest_face, ref: 'LG19', skill: SK.lying, group: GR.influence, name: 'Honest Face', effect: 'speech',
     extra: { story: `People believe a face like yours, whatever it says: +10 ${skillName(SK.persuasion)}.`, rule: `+10 true skill in ${skillName(SK.persuasion)}.`, trueSkillTo: { [SK.persuasion]: 10 } } },
   // CN8 (D-260): a payoff perk on Intimidation 120 (Battle Cry holds 140), with the 120 boosts like any other

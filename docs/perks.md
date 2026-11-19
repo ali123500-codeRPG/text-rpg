@@ -610,6 +610,15 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** +5 true skill in Heavy Armor. +1 true skill in every skill of group Defense. Worn heavy armor's flat soak (its reduction per hit) is ×1.5 on the owner (DEEPER_SOAK_MULT, placeholder); its multiplier is unchanged.
 - **Lasts:** Always.
 
+### Covered Joints (Medium Armor) · LG24
+
+*Story:* +5 Medium Armor, +1 Defense. You wear your armor so the gaps are never where a blade looks for them: every blow at you has to find a way past it.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in Medium Armor. +1 true skill in every skill of group Defense. An attack at a part the owner's worn armor covers (any weight) takes -10 on its roll (COVERED_JOINTS, placeholder). An attack that is not aimed takes -10 × the share of the owner's hit chances its armor covers; one aimed at a bare part takes nothing.
+- **Lasts:** Always.
+
 ### Honest Face (Falsehood) · LG19
 
 *Story:* +5 Falsehood, +1 Influence. People believe a face like yours, whatever it says: +10 Persuasion.

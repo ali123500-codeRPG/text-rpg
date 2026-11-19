@@ -11,7 +11,7 @@ import { BUILT_PERKS } from '../../src/library/builtPerks';
 import { PK } from '../../src/library/perkIds';
 import { SK } from '../../src/library/skillIds';
 import { IT } from '../../src/library/itemIds';
-import { awarenessMod, blowDamage } from '../../src/ruleset';
+import { awarenessMod, blowDamage, coveredJointsMod, hitTable } from '../../src/ruleset';
 import { resolveMode } from '../../src/ruleset/gear';
 import { PERK_MOVES } from '../../src/ruleset/perks';
 import { maxMorale, moraleLost } from '../../src/ruleset/morale';
@@ -42,7 +42,7 @@ describe('403 missing 20 and 40 perks', () => {
       [PK.guarded_answer, SK.riposte, 40], [PK.dancers_feet, SK.blade_dance, 40], [PK.deep_reserves, SK.resolve, 40],
       [PK.silver_tongue, SK.persuasion, 40], [PK.unseen_strike, SK.combat_stealth, 40], [PK.fear_bites_deeper, SK.intimidation, 40],
       [PK.shadow_work, SK.sneaking, 40], [PK.thick_of_it, SK.vanishing, 40], [PK.free_movement, SK.light_armor, 40],
-      [PK.deeper_soak, SK.heavy_armor, 40], [PK.honest_face, SK.lying, 40], [PK.sharp_answer, SK.parry, 40], [PK.read_the_feint, SK.insight, 40],
+      [PK.deeper_soak, SK.heavy_armor, 40], [PK.honest_face, SK.lying, 40], [PK.sharp_answer, SK.parry, 40], [PK.read_the_feint, SK.insight, 40], [PK.covered_joints, SK.medium_armor, 40],
     ] as const) {
       expect(perks[id]?.ladder, id).toEqual({ skill: sk, milestone: m });
       expect(BUILT_PERKS.has(id), id).toBe(true);
@@ -186,5 +186,25 @@ describe('403 missing 20 and 40 perks', () => {
     expect(tried()).toEqual([...clear].sort()); // everyone in clear sight, nobody else
     quickReads(s, createRng(2));
     expect(Object.values(p.engagement.uses ?? {}).every((n) => n === 1)).toBe(true); // once each a fight
+  });
+
+  it('LG24 Covered Joints (Medium Armor 40): an attack at a part any of the owner\'s armor covers takes COVERED_JOINTS; unaimed, by the share covered', () => {
+    const s = makeVillage(), p = s.player;
+    p.core.inventory = p.core.inventory.filter((i) => !getLibrary().items[i.itemId]?.armor);
+    p.core.inventory.push({ id: 'mail', itemId: IT.mail_hauberk });
+    equipArmor(s, p, 'mail'); // a coat: torso and arms, head bare
+    const covers = getLibrary().items[IT.mail_hauberk].armor!.covers;
+    expect(coveredJointsMod(s, p, covers[0])).toBe(0); // no perk, nothing
+    give(p, PK.covered_joints);
+    expect(coveredJointsMod(s, p, covers[0])).toBe(CONFIG.COVERED_JOINTS);
+    expect(coveredJointsMod(s, p, 'head')).toBe(0); // aimed at a bare part
+    const share = hitTable(s, p).reduce((n, r) => n + (covers.includes(r.part) ? r.to - r.from + 1 : 0), 0) / 100;
+    expect(share).toBeGreaterThan(0);
+    expect(share).toBeLessThan(1);
+    expect(coveredJointsMod(s, p)).toBeCloseTo(CONFIG.COVERED_JOINTS * share, 9); // unaimed: by the share its armor covers
+    p.core.inventory.push({ id: 'cap', itemId: IT.leather_cap });
+    equipArmor(s, p, 'cap'); // any weight counts: a light cap on the head
+    expect(coveredJointsMod(s, p, 'head')).toBe(CONFIG.COVERED_JOINTS);
+    expect(coveredJointsMod(s, p)).toBeLessThan(CONFIG.COVERED_JOINTS * share);
   });
 });
