@@ -32,11 +32,17 @@ numbers are never here: a file names the setting and where it lives.
   use, Starts.
 - [history-skill-trees.md](history-skill-trees.md): context. Functions and groups, tree access, Fortitude, the
   Tactics tree, Falsehood and Guile.
+- [history-xp-and-ratings.md](history-xp-and-ratings.md): context. XP sources, the XP curve, ratings and power,
+  group ratings, the combat XP equation, playthrough length.
+- [history-growth-and-skill-gain.md](history-growth-and-skill-gain.md): context. Skill marks, growth at
+  scenario end, values past 100, augment kinds, burden, flaws at creation.
+- [history-all-x-perks.md](history-all-x-perks.md): context. The All-X tree passives and their rounds.
 - [working-notes-code.md](working-notes-code.md): working note. Traps in the code that tests do not catch.
 - [working-notes-git.md](working-notes-git.md): working note. Branching, merges and pushes in this repo.
 - [working-notes-testing.md](working-notes-testing.md): working note. Checking behaviour, motion and playtests.
 
 The `history-` files are topic histories: which questions each design topic answered, what replaced what, and
-which PR built it. They move here from the Claude project's in-app memory slice by slice; three slices are
-in (world and places; senses, stealth and action time; perks, classes and skill trees). Until a topic's slice
-moves, the spec's "Deferred items" table and the merged PRs on GitHub are its record.
+which PR built it. They move here from the Claude project's in-app memory slice by slice; four slices are
+in (world and places; senses, stealth and action time; perks, classes and skill trees; XP, growth and
+ratings). Until a topic's slice moves, the spec's "Deferred items" table and the merged PRs on GitHub are its
+record.
