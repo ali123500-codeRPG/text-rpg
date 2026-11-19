@@ -14,6 +14,14 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #1089](https://github.com/ali123500-codeRPG/text-rpg/pull/1089)
 
+## BG-322
+
+**What was wrong:** On the Play deck's Defense row, the name and figure in each button (Dodge, Parry, Block) sat flush with the top edge instead of in the middle. The buttons are flex boxes lined up by text baseline, which pins the text to the top; the row's 30 px minimum height then left all the spare room below.
+
+**What was done:** The Defense buttons centre their text (align-items: center), the same space above and below.
+
+**Fixed by:** [PR #1086](https://github.com/ali123500-codeRPG/text-rpg/pull/1086)
+
 ## BG-318
 
 **What was wrong:** The Journal's Places section said "The Map page draws their zones", but the map stopped being a page when it became a pop-up from the Play header, so the note sent the player looking for something that doesn't exist.
@@ -30,14 +38,6 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #1085](https://github.com/ali123500-codeRPG/text-rpg/pull/1085)
 
-## BG-312
-
-**What was wrong:** Standing just inside the tavern, you couldn't make out the words of someone 0.7 m away just outside the front doorway unless you had Keen Ear. That doorway had no door in it, but when zones became titles it kept the old zone links' fixed "you can't see through this" flag. So sight and sound treated it as a door that was always shut (30 dB lost, no sight), while people walked through it freely and nobody could ever open it.
-
-**What was done:** Every doorway the game draws now holds a real wooden door, shut and unlocked, unless its way is marked doorless (an open doorway into a hall, or a curtain). The door opens and shuts with the open and shut actions, and sight and sound follow it: shut it muffles a voice and hides the far side, open it doesn't. An empty doorway is seen and heard through like a gap. The fixed flag is gone. Saves move to schema 11: a doorway that the old flag kept shut gets its door, so an existing world plays as before until someone opens one.
-
-**Fixed by:** [PR #1081](https://github.com/ali123500-codeRPG/text-rpg/pull/1081)
-
 ## BG-319
 
 **What was wrong:** In the Play deck, the action that takes an essence from someone Down was still called "Pull the Thread", the perk's name before it was renamed Extract Essence. The deck had the name typed in by hand, so the rename never reached it. Sixteen other places (mostly the perk names in roll breakdowns) were typed by hand the same way; one of them, Hunter's Mark, was spelled with a different apostrophe.
@@ -45,6 +45,14 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** Every place in the code that shows a perk's name now reads it from the perk's own library row, so renaming a perk changes it everywhere at once. A guard test fails if anyone types a perk's name into the code again.
 
 **Fixed by:** [PR #1082](https://github.com/ali123500-codeRPG/text-rpg/pull/1082)
+
+## BG-312
+
+**What was wrong:** Standing just inside the tavern, you couldn't make out the words of someone 0.7 m away just outside the front doorway unless you had Keen Ear. That doorway had no door in it, but when zones became titles it kept the old zone links' fixed "you can't see through this" flag. So sight and sound treated it as a door that was always shut (30 dB lost, no sight), while people walked through it freely and nobody could ever open it.
+
+**What was done:** Every doorway the game draws now holds a real wooden door, shut and unlocked, unless its way is marked doorless (an open doorway into a hall, or a curtain). The door opens and shuts with the open and shut actions, and sight and sound follow it: shut it muffles a voice and hides the far side, open it doesn't. An empty doorway is seen and heard through like a gap. The fixed flag is gone. Saves move to schema 11: a doorway that the old flag kept shut gets its door, so an existing world plays as before until someone opens one.
+
+**Fixed by:** [PR #1081](https://github.com/ali123500-codeRPG/text-rpg/pull/1081)
 
 ## BG-311
 
