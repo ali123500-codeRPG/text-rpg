@@ -133,7 +133,6 @@ export function createGame(deps: GameDeps): Game {
   let endingNow: ScenarioEndNote | null = null; // SD1: a turn that ended a scenario, while its next scenario's calls run
   let agentSaid: string[] = [], agentCmds: string[] = []; // the autopilot's recent commentary, shown back to it so it varies its words
   let stopped = false;
-  let reachedDay = 0; // HF22: the furthest day this game has written to the Universe calendar
   let rateLimited = false;
   let aimNext = false;
   let yieldNext = false; // MB40: /yield
@@ -508,8 +507,6 @@ export function createGame(deps: GameDeps): Game {
       // committed: the head was written and only cleanup or backups failed, so the turn is saved
       if (!err.committed) { committed = false; notice({ kind: 'save_failed', text: `The turn could not be saved (${err.message}); the last good save is kept.` }); }
     }
-    // HF22: the Universe date follows the furthest day any world has reached
-    if (committed && dayOf(now(s)) > reachedDay) { reachedDay = dayOf(now(s)); save.reachDay(store, reachedDay).catch(() => {}); }
     refreshBackups(s.storyId);
     reportFallbacks(s, turnLog);
     // every bug code logged this turn (an "other" quest goal, QT27, among them) is filed for the build threads
@@ -755,9 +752,8 @@ export function createGame(deps: GameDeps): Game {
     turnLog = [];
     busy = true;
     emit();
-    // HF22: a new world starts the day after the furthest day any world has reached; CW4 a: a world carried on keeps the
-    // minute it was left. The new character's birth day moves with the day they start on.
-    if (!world) state.clocks.startDay = (await save.universeDay(store).catch(() => 0)) + 1;
+    // a new world starts on day 1; CW4 a: a world carried on keeps the minute it was left. The new character's birth day
+    // moves with the day they start on, so their age is the one picked.
     if (state.player.core.bornDay !== undefined) state.player.core.bornDay += dayOf(gameNow(state)) - 1;
     // the build is kept until turn 0 is saved, so closing the game during the opening doesn't lose it (resume restarts it)
     await save.savePendingStart(store, { storyId, build, at: new Date(now).toISOString(), ...(owner === 'agent' ? { owner } : {}), ...(free ? { worldId: free.worldId } : {}) }).catch(() => {});

@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest';
 import { ScriptedClaude, furnish, lay, makeVillage } from '../harness';
 import { createGame, VirtualClock, type ScenarioDirector } from '../../src/agents';
-import { carryOn, loadStory, memoryStore, pastCharacterId, reachDay, readTurnRecord, saveTurn, storySaved } from '../../src/save';
+import { carryOn, loadStory, memoryStore, pastCharacterId, readTurnRecord, saveTurn, storySaved } from '../../src/save';
 import { createPlayer, recommendedBuild } from '../../src/library/spawn';
 import { CL } from '../../src/library/classIds';
 import { ST } from '../../src/library/startIds';
@@ -50,7 +50,6 @@ describe('272 carrying a world on', () => {
     expect(await g.worlds()).toEqual([]); // someone still lives there
     await g.resume();
     await g.reset();
-    await reachDay(store, 40); // other worlds went further
     const [w] = await g.worlds();
     expect(w).toMatchObject({ worldId: 'story_a', lastStoryId: 'story_a', day: 10, past: [{ name: old.player.names.current, fell: true }], threadbound: [], name: `${old.player.names.current}’s world` });
 
@@ -68,7 +67,7 @@ describe('272 carrying a world on', () => {
     const npc = s.actors.find((a) => a.mind?.knowledge[pastId])!;
     expect(npc.mind!.knowledge.player).toBeUndefined(); // the grudge stays with the one who fell
     expect(s.places.map((p) => p.id)).toEqual(old.places.map((p) => p.id));
-    expect(dayOf(now(s))).toBe(10); // CW4 a: the world keeps its date, however far other worlds went
+    expect(dayOf(now(s))).toBe(10); // CW4 a: the world keeps its date
     expect(Math.round(ageYears(s, s.player)!)).toBe(30);
     expect(await g.worlds()).toEqual([]); // one character lives in a world at a time
     expect((await loadStory(store, 'story_a', getLibrary())).state.player.names.current).toBe(old.player.names.current); // the old story is untouched
