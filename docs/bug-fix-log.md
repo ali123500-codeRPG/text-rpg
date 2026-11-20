@@ -9,6 +9,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the spec's bug log, docs/spec/bug-log.md, has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-330
+
+**What was wrong:** The browser smoke test "BF66: a landed blow shows the strike card…" failed now and then on `main` (twice on 20/11/2026): the Send click timed out, the button first "not stable", then "not visible". The test sets up a straw dummy to hit, made as a copy of the player with its weapon taken away. Standing, it still had the player's skills and fought back with its fists, and the test keeps attacking for up to eight turns until one blow lands. When the player's first blows missed, the dummy's took about 45% of the player's health a turn (measured: 0, 48 and 91% lost over three turns), and the player fell. The fall shakes the play screen (not stable) and then hides it behind "You fell" (not visible). The game was right; the test's dummy was not a straw dummy.
+
+**What was done:** The dummy starts down. It never acts, so it cannot strike back, and its defence fails outright, so the first blow nearly always lands. The test still checks the same things: the strike card shows as the turn lands, it is animated, and a click on the story keeps it. Measured locally before the fix: 1 failure in 6 runs, the same fall. After it: 13 of 13 runs passed, the player unhurt in every one, and the whole play smoke file passed.
+
+**Fixed by:** #1202
+
 ## BG-329
 
 **What was wrong:** A perk move's list of targets (which the action deck offers, and which an NPC's agent is shown) left out only those out of range. The engine refuses more than that: Bluff works only on a foe, so an ally in reach was offered and then refused as not a foe.
