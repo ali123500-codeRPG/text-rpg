@@ -95,8 +95,8 @@ export function listPage(api: GameApi, spec: Spec): { el: HTMLElement; update: (
 
 /** CP1: the Character page fits one screen: the hero card on the left, the skill trees on the right, and a strip of tiles
  * under them, one per big section, each opening it in a pop-up: Essences and Gear and Personality partial (they float and
- * the page stays usable), Perks full screen (its board needs the room; a perk's card opens on top of it, CP3) */
-/** `look`: YB5, the page as a fallen character's sheet in the Hall of fame: its heading and a way back */
+ * the page stays usable), Perks full screen (its board needs the room; a perk's card opens on top of it, CP3).
+ * `look`: YB5, the page as a fallen character's sheet in the Hall of fame: its heading and a way back */
 export function characterPage(api: GameApi, look?: { title: (Node | string)[]; close: HTMLElement }) {
   const el = h('main', { class: 'cs-page' });
   const perks = perksSection(api);

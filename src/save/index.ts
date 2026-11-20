@@ -203,8 +203,8 @@ export async function amendHead(store: Store, storyId: string, library: Library,
 }
 
 // ---------- load ----------
-/** Load: checksums, migrations, library reconcile, invariants, references; then build GameState. Throws LoadRefusedError. */
-/** `look`: YB5, read a story only to show it (a fallen character's sheet): it is brought up to date in memory, and
+/** Load: checksums, migrations, library reconcile, invariants, references; then build GameState. Throws LoadRefusedError.
+ * `look`: YB5, read a story only to show it (a fallen character's sheet): it is brought up to date in memory, and
  * nothing is written back, no backup, no migrated pages, no world-check log */
 export async function loadStory(store: Store, storyId: string, library: Library, look = false): Promise<{ state: GameState; report: string[] }> {
   return guard(async () => {
