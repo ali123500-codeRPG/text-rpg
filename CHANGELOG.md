@@ -3,6 +3,10 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bug-fix-log.md`.
 
+- 20/11/2026: `AGENTS.md` rule 9 is back as a narrower rule: keep secrets and the owner's personal details out of
+  the repo (the owner: "actually, add keeping secrets and personal details back to rule 9"). The parts on saves and
+  user data, licensed content and how files name the owner stay out. The "See rule 9" pointer and the line in
+  `docs/memory/process-decisions.md` return.
 - 20/11/2026: `AGENTS.md` rule 9 (keep the public repo clean) removed and left as a placeholder for a future rule;
   rules 10 to 12 keep their numbers (the owner: "I mean the keep the repo clean one. you can remove it, no need to
   renumber the rest just call it placeholder for future rules."). The "See rule 9" pointer and the rule 9 line in
