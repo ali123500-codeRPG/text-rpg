@@ -8,7 +8,7 @@
 import { areaOf, inOutline } from '../plan/geom';
 import { seenIn } from '../plan/fog';
 import type { GameApi, GameState } from '../types';
-import { h } from './kit';
+import { boxOf, h, tipOff, tipOn } from './kit';
 import { CONFIG } from '../config';
 import { knownMap, rootPlace, type KnownMap, type MapZone } from './mapData';
 import { NAME_PX, PX_PER_M, TEXT, checkReach, planScene, wrap, type Box, type Measure } from './mapPlan';
@@ -124,13 +124,37 @@ export function minimapPanel(api: GameApi, opts: {
   world.append(gFog, gZones, gNames, gRing, gMarks, gPath, gTokens);
   svg.append(s('title', {}, HINT), world);
   const floorEl = h('span', { class: 'mm-floor' });
-  const tool = (label: string, title: string, on: () => void) => h('button', { type: 'button', title, 'aria-label': title, onclick: on }, label);
+  const tool = (label: string, title: string, on: () => void) => h('button', { type: 'button', 'data-tip': title, 'aria-label': title, onclick: on }, label);
   const say = h('span', { class: 'mm-say' }), carried = h('span', { class: 'mm-carry' });
   const go = h('button', { type: 'button', class: 'mm-go', hidden: true, onclick: () => plan && !api.busy() && opts.onWalk(point(plan)) }, 'Just go');
   const el = h('section', { class: 'mm', 'aria-label': 'Minimap' },
     h('div', { class: 'mm-head' }, floorEl,
       h('span', { class: 'mm-tools' }, tool('+', 'Zoom in', () => zoom(-1)), tool('−', 'Zoom out', () => zoom(1)), tool('◎', 'Back to you', recentre), tool('⤢', 'Open the full map', () => opts.onOpenMap()))),
     svg, h('div', { class: 'mm-foot' }, say, go, carried));
+
+  // the minimap's hover text is the game's tip (A7): a browser title tip can't be timed, so each
+  // <title> becomes its parent's data-tip (and its name, if it has none)
+  const untitle = () => svg.querySelectorAll('title').forEach((t) => {
+    const p = t.parentElement!;
+    p.setAttribute('data-tip', t.textContent ?? '');
+    if (!p.hasAttribute('aria-label')) p.setAttribute('aria-label', t.textContent ?? '');
+    t.remove();
+  });
+  const tipEl = h('div', { class: 'rail-tip', role: 'tooltip', hidden: true });
+  el.append(tipEl);
+  let at = { x: 0, y: 0 };
+  const tipped = (e: Event) => { const t = (e.target as Element).closest?.('[data-tip]'); return t && el.contains(t) ? t : null; };
+  const showTip = (t: Element, x: number, y: number) => { tipEl.textContent = t.getAttribute('data-tip'); tipEl.style.left = `${x + 14}px`; tipEl.style.top = `${y}px`; tipEl.hidden = false; };
+  const hideTip = () => tipOff(() => { tipEl.hidden = true; });
+  el.addEventListener('pointermove', (e) => { at = { x: e.clientX, y: e.clientY }; });
+  el.addEventListener('pointerover', (e) => {
+    const t = tipped(e);
+    at = { x: e.clientX, y: e.clientY };
+    if (t) tipOn(() => showTip(t, at.x, at.y)); else hideTip();
+  });
+  el.addEventListener('focusin', (e) => { const t = tipped(e); if (t) tipOn(() => { const r = boxOf(t); showTip(t, r.right, r.top + r.height / 2); }, true); });
+  for (const ev of ['pointerleave', 'pointerdown', 'focusout', 'wheel']) el.addEventListener(ev, hideTip);
+  untitle();
 
   const point = (p: MinimapPoint): MinimapPoint => ({ zone: p.zone, x: p.x, y: p.y, metres: p.metres, seconds: p.seconds, turns: p.turns, label: p.label });
   const size = () => ({ w: svg.clientWidth || 420, h: svg.clientHeight || 360 });
@@ -224,6 +248,7 @@ export function minimapPanel(api: GameApi, opts: {
     }
     drawPath();
     foot();
+    untitle();
     scheduleCheck();
   }
 
