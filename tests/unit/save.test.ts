@@ -5,7 +5,7 @@ import { CONFIG, resetConfig } from '../../src/config';
 import { getLibrary } from '../../src/library';
 import {
   LoadRefusedError, MIGRATIONS, acquireTurnLock, archiveStory, artifactDbStore, listBackups, listStories, listWorlds, loadStory, memoryStore,
-  loadHistory, readTurnRecord, releaseTurnLock, restoreBackup, saveHistory, saveTurn, undoTurn, useBookmark, type DB,
+  loadHistory, readTurnRecord, releaseTurnLock, restoreBackup, saveHistory, saveTurn, undoTurn, goBackOneTurn, type DB,
 } from '../../src/save';
 import type { GameState, Head, LogLine, StoryFact, TurnRecord } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
@@ -91,11 +91,11 @@ describe('save and load', () => {
     const err = await loadStory(st, 'test', lib()).catch((e) => e);
     expect(err).toBeInstanceOf(LoadRefusedError);
     expect(err.report[0]).toMatch(/checksum: page actor.player/);
-    expect(err.options).toEqual(['reset']);
+    expect(err.canGoBack).toBe(false); // the first turn has no turn before it
     expect(st.docs).toEqual(before);
   });
 
-  it('refuses invariant failures; the designer can take the undo bookmark', async () => {
+  it('refuses invariant failures; going back one turn takes the undo bookmark', async () => {
     const s = makeVillage();
     const st = memoryStore();
     await saveTurn(st, s, rec(s, 0));
@@ -104,8 +104,8 @@ describe('save and load', () => {
     await saveTurn(st, s, rec(s, 1));
     const err = await loadStory(st, 'test', lib()).catch((e) => e);
     expect(err.report).toEqual(expect.arrayContaining([expect.stringMatching(/more than one current class/), expect.stringMatching(/qty < 1/)]));
-    expect(err.options).toContain('undo');
-    const back = await useBookmark(st, 'test', 'undo', lib());
+    expect(err.canGoBack).toBe(true);
+    const back = await goBackOneTurn(st, 'test', lib());
     expect(back.state.player.core.classes).toHaveLength(1);
     expect((await head(st)).turn).toBe(0);
   });
@@ -230,26 +230,26 @@ describe('cleanup, backups, restore', () => {
     expect(await stray()).toEqual([]);
   });
 
-  it('backs up every BACKUP_EVERY turns, keeps BACKUPS_KEPT, restores with a safety bookmark', async () => {
+  it('backs up every BACKUP_EVERY turns, keeps BACKUPS_KEPT, and backs up the save a restore replaces', async () => {
     const s = makeVillage();
     CONFIG.BACKUP_EVERY = 2;
     CONFIG.BACKUPS_KEPT = 2;
     const st = memoryStore();
-    await play(st, s, 1, 6);
+    await play(st, s, 1, 7);
     expect((await listBackups(st, 'test')).map((b) => b.turn)).toEqual([6, 4]);
     const { state } = await restoreBackup(st, 'test', 4, lib());
     expect(state.clocks.last).toBe(4);
-    const h = await head(st);
-    expect(h.safety!.turn).toBe(6);
-    expect(h.undo).toBeNull();
+    expect((await head(st))).toMatchObject({ turn: 4, undo: null });
+    // turn 7 is backed up first; turn 4 lives on as the head
+    expect((await listBackups(st, 'test')).map((b) => b.turn)).toEqual([7, 6]);
+    expect((await restoreBackup(st, 'test', 7, lib())).state.clocks.last).toBe(7);
     await play(st, state, 5, 5);
-    expect((await head(st)).safety).toBeUndefined(); // dropped after the next good turn
     expect((await loadStory(st, 'test', lib())).state.clocks.last).toBe(5);
   });
 });
 
 describe('migration and reconcile', () => {
-  it('runs numbered steps on load, backs up first and keeps a safety bookmark', async () => {
+  it('runs numbered steps on load and backs up first', async () => {
     const s = makeVillage();
     const st = memoryStore();
     await play(st, s, 1, 2);
@@ -260,10 +260,10 @@ describe('migration and reconcile', () => {
     expect(state.clocks.migrated).toBe(1);
     expect(report).toContain(`migrated v${V} -> v${V + 1}`);
     const h = await head(st);
-    expect(h).toMatchObject({ schemaVersion: V + 1, undo: null, safety: { turn: 2 } });
+    expect(h).toMatchObject({ schemaVersion: V + 1, undo: null });
     expect((await listBackups(st, 'test')).map((b) => b.turn)).toEqual([2]);
-    // the safety bookmark can be taken back (it migrates again)
-    expect((await useBookmark(st, 'test', 'safety', lib())).state.clocks.migrated).toBe(1);
+    // the backup taken before the migration can be restored (it migrates again)
+    expect((await restoreBackup(st, 'test', 2, lib())).state.clocks.migrated).toBe(1);
     delete MIGRATIONS[V];
   });
 

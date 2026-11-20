@@ -87,7 +87,6 @@ type Head = Bookmark & {    // writing this is the commit
   schemaVersion: number;
   libraryVersion: number;
   undo: Bookmark | null;    // one turn back
-  safety?: Bookmark;        // pre-migration, dropped after the next good turn
 };
 
 // ---------- pages ----------

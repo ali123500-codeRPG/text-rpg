@@ -797,13 +797,26 @@ export function createGame(deps: GameDeps): Game {
     if (!storyId) return false;
     abortBackground(); // switching stories (the autopilot's own save and back): the old story's background calls stop
     try {
-      const loaded = await save.loadStory(store, storyId, getLibrary());
-      state = loaded.state;
-      refreshCopies(state); // copies follow their template and the level lever
+      state = (await save.loadStory(store, storyId, getLibrary())).state;
     } catch (e) {
-      notice({ kind: 'load_refused', text: `The story could not be loaded: ${(e as Error).message}` });
+      await refusedLoad(storyId, e, 'The story could not be loaded');
       return false;
     }
+    await opened(storyId);
+    return true;
+  }
+
+  /** YS1 c: a load the checks refused offers its ways back: one turn back when the save has an undo bookmark, and its
+   * backups. Starting a new save is the creation screen the player is on. */
+  async function refusedLoad(storyId: string, e: unknown, what: string): Promise<void> {
+    const back = e instanceof save.LoadRefusedError && e.canGoBack;
+    const backups = (await save.listBackups(store, storyId).catch(() => [])).map((b) => b.turn);
+    notice({ kind: 'load_refused', text: `${what}: ${(e as Error).message}`, recovery: { storyId, back, backups } });
+  }
+
+  /** a story just loaded into `state`: its story text, backups and the next turn */
+  async function opened(storyId: string): Promise<void> {
+    refreshCopies(state!); // copies follow their template and the level lever
     lines = await save.loadHistory(store, storyId).catch(() => []);
     savedLines = lines.length;
     turnLog = [];
@@ -812,7 +825,6 @@ export function createGame(deps: GameDeps): Game {
     advance();
     lastDisplayAt = clock.now();
     emit();
-    return true;
   }
 
   const api: Game = {
@@ -928,8 +940,28 @@ export function createGame(deps: GameDeps): Game {
         : save.readTurnRecord(store, s.storyId, t).then((r) => r?.agentLog ?? [], () => []))));
       return logs.flatMap((l) => l.filter((x) => x.actorId === actorId).reverse()).slice(0, CONFIG.GM_AGENT_CALLS_SHOWN);
     },
-    /** BG-123: the GM view's Restore: the save checks the backup, writes a new head on it and keeps the current head as the
-     * safety bookmark; play goes on from the restored turn, as after /undo */
+    /** BG-123: the GM view's Restore: the save checks the backup, backs up the current save and writes a new head on the
+     * backup; play goes on from the restored turn, as after /undo */
+    async recoverLoad(choice) {
+      const n = notices.find((x) => x.kind === 'load_refused');
+      const r = n?.kind === 'load_refused' ? n.recovery : undefined;
+      if (!r || busy || state) return;
+      busy = true;
+      emit();
+      try {
+        state = (choice === 'back' ? await save.goBackOneTurn(store, r.storyId, getLibrary()) : await save.restoreBackup(store, r.storyId, choice, getLibrary())).state;
+        // BG-161: a restored backup's later turns never happened, so their story text goes
+        if (choice !== 'back') await save.cutHistory(store, r.storyId, choice).catch((e) => console.warn('story text not cut', e));
+        notices = notices.filter((x) => x !== n);
+        await opened(r.storyId);
+      } catch (e) {
+        state = null;
+        await refusedLoad(r.storyId, e, choice === 'back' ? 'Going back one turn did not work' : `The backup from turn ${choice} could not be restored`);
+      } finally {
+        busy = false;
+        emit();
+      }
+    },
     async restoreBackup(turn) {
       const s = state;
       if (!s || busy) return;
