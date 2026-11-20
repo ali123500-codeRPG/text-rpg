@@ -38,7 +38,10 @@ export const CASES: { line: string; bug?: string; check: Check }[] = [
   { line: 'I draw my sword and attack the patron.', check: act('attack', 'patron_1') },
   { line: 'Hit the barkeep with my shield.', check: act('attack', 'trader') },
   { line: 'Charge the patron and swing at his head.', check: (p) => need(i(p)?.action?.type === 'attack' && i(p)?.action?.target === 'patron_1' && !!i(p)?.action?.targetPart, 'an aimed attack at patron_1') },
-  { line: 'Attack the dragon.', check: clarifies },
+  { line: 'Attack the dragon.', bug: 'D-21', check: clarifies }, // a person not in view is asked about
+  { line: 'Attack the patrin.', bug: 'D-21', check: act('attack', 'patron_1') }, // a clear slip is the one in view
+  { line: 'Take the key from under the loose board.', bug: 'D-21', check: all(act('search'), noClarify, nothingDeferred) }, // a thing not in view is looked for
+  { line: 'Drink my healing potion.', bug: 'D-21', check: (p) => need(i(p)?.action?.type === 'use_item' && i(p)?.action?.item === null, 'use_item with no item (none carried)') },
   { line: 'Give the barkeep five coins.', check: (p) => need(i(p)?.action?.type === 'give' && i(p)?.action?.target === 'trader' && i(p)?.action?.item === 'player_coin' && i(p)?.action?.qty === 5, 'give 5 player_coin to trader') },
   { line: 'Threaten the patron: leave now or else.', check: act('intimidate', 'patron_1') },
   { line: 'Haggle with the barkeep over the price of a room.', check: act('barter', 'trader') },
