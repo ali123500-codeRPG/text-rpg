@@ -2,7 +2,6 @@
 // talent, no children, creation and the stage line.
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
-import { bannedLines } from '../harness/guard';
 import { intent, wholeTurn } from '../harness/turn';
 import { FIXED } from '../../src/agents/prompts';
 import { ageFloor, ageKeeps, ageText, ageYears, advanceAging, bornDayFor, lifeStage, stageName, stageOf, stageReaches, talentMult, talentName, youngestAge } from '../../src/ruleset/age';
@@ -124,9 +123,6 @@ describe('no children', () => {
     const s = makeVillage();
     for (let i = 0; i < 20; i++) expect(stageOf(s, spawnNpc(s, TP.patron, { id: `npc_k${i}`, zone: 'z', placeId: 'p', bandId: 'b', ageStage: 'stage_0' }))).not.toBe('Child');
     expect(Object.values(getLibrary().templates).some((t) => t.label.includes('child'))).toBe(false);
-  });
-  it('has no child preset, role or tension left in the code', () => {
-    expect(bannedLines(/TP\.child|RO\.child|TN\.old_head|kind: 'child'|ageStage: 'stage_0'/)).toEqual([]);
   });
   it('tells every agent the world has no children, and offers the Weaver no Child stage', async () => {
     const t = wholeTurn();

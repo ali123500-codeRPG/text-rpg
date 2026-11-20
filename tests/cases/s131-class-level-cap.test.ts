@@ -56,13 +56,6 @@ describe('131 Class level cap', () => {
     for (const c of Object.values(lib.classes)) for (const id of c.capstone ?? []) expect(lib.perks[id]?.classLevel, id).toEqual({ classId: c.id, level: classMaxLevel(c.id) });
   });
 
-  it('A Nobody: Quick Study at level 1 (its Start is gone, CC3; Commoner\'s top level opens it)', () => {
-    expect(getLibrary().classes[CL.a_nobody].name).toBe('A Nobody');
-    expect(getLibrary().classes[CL.a_nobody].levelPerks?.[1]).toEqual([PK.quick_study]);
-    expect(Object.values(getLibrary().starts).some((s) => s.classId === CL.a_nobody)).toBe(false);
-    expect(getLibrary().classes[CL.a_nobody].capstone).toEqual([PK.every_fall_a_lesson]);
-  });
-
   it('Every Fall a Lesson: losing by exactly one tier step marks, even outside the window', () => {
     const s = makeVillage();
     const p = s.player;

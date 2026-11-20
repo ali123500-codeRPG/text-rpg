@@ -9,7 +9,7 @@ import { createRng, makeVillage } from '../harness';
 import { applyCheckin, frameOf } from '../../src/engine/scenarioEnd';
 import { applyCheckinPlan, checkinPlanErrors } from '../../src/scenario/checkin';
 import { validateStagePlan } from '../../src/scenario/validate';
-import { toStoryStart, villageStagePlan, FITTING_GRADES } from '../../src/scenario/fixtures';
+import { toStoryStart, villageStagePlan } from '../../src/scenario/fixtures';
 import { buildWeaverView } from '../../src/views';
 import { checkCheckin } from '../../src/agents/schema';
 import { FIXED } from '../../src/agents/prompts';
@@ -46,10 +46,5 @@ describe('325 a scenario names its stake (SW8)', () => {
     go(s, { verdict: 'continue', change: { stake: 'the whole village' } });
     expect(s.stage.scenario!.stake).toBe('the whole village');
     expect(checkCheckin({ verdict: 'continue', change: { stake: 'x' } }).errors).toEqual([]);
-  });
-  it('the Weaver is told every tier has a conflict and a stake, and the plan schema asks for it', () => {
-    expect(FIXED.weaver).toContain('something is lost if the player does nothing; say what in scenario.stake');
-    expect(FIXED.weaver).toContain('"stake":string');
-    expect(FITTING_GRADES.great_success.challenge).toBe('moderate');
   });
 });

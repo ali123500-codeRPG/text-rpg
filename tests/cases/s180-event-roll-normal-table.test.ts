@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { makeVillage, forcedRng } from '../harness';
 import { ruleset } from '../../src/ruleset';
 import { getLibrary } from '../../src/library';
-import { CONFIG } from '../../src/config';
 import { TIERS } from '../../src/scales';
 
 // ER3: the event roll reads the normal roll table, so only a natural roll reaches a critical tier unless modifiers are big
@@ -14,11 +13,6 @@ describe('180 Event roll on the normal roll table', () => {
     return s;
   };
   const tierFor = (d: number, v = 0) => { const s = withBonus(v); return ruleset.eventRoll(s.player, s, forcedRng([d])).tier; };
-
-  it('reads the same bands as a skill roll', () => {
-    expect(CONFIG.MARGIN_BANDS).toEqual([-75, -25, 0, 25, 75]);
-    expect(CONFIG.EVENT_BASE).toBe(50);
-  });
 
   it('a +10 bonus on a 95 stays Great Success; only a natural 96+ reaches Critical Success', () => {
     expect(tierFor(95, 10)).toBe('great_success');

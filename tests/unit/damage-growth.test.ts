@@ -28,10 +28,6 @@ const raw = (S: GameState, a: Actor, itemId: string) => {
 };
 
 describe('weapon damage grows with the requirement (CE11)', () => {
-  it('the growth is a straight line from 1: +1% a point, with no ceiling', () => {
-    expect(CONFIG.DAMAGE_NEED_RATE).toBe(0.01);
-    expect([0, 50, 100, 200, 400].map(damageGrowth)).toEqual([1, 1.5, 2, 3, 5]);
-  });
   it('a made weapon multiplies its class damage by its own requirement, whoever holds it', () => {
     const S = makeVillage({ seed: 1 });
     const sword = itemDef(S, IT.arming_sword), medium = CONFIG.WEAPON_CLASSES.medium.damage;

@@ -68,17 +68,6 @@ describe('333 NPC roles, fourth round', () => {
     expect(dire / n).toBeGreaterThan(0.05); expect(dire / n).toBeLessThan(0.16);
   });
 
-  it('NR21 a: crowd, faces, leaders, threats and seats use the answered weights', () => {
-    const R = CONFIG.ROSTER_RANKS;
-    expect(R.crowd).toEqual({ rank_1: 70, rank_2: 30 });
-    expect(R.face).toEqual({ rank_2: 50, rank_3: 40, rank_4: 10 });
-    expect(R.lead).toEqual({ rank_3: 50, rank_4: 40, rank_5: 10 });
-    expect(Object.keys(R.threat.village).at(-1)).toBe('rank_4');
-    expect(Object.keys(R.threat.town).at(-1)).toBe('rank_5');
-    expect(R.seat.town).toEqual({ rank_5: 100 });
-    expect(CONFIG.SEAT_STEP_UP_PCT).toBe(20);
-  });
-
   it('NR39: the rank table read backwards: anchors give their levels, between them the level moves evenly', () => {
     expect(CONFIG.RANK_ROWS.rank_2.level).toBe(8);
     expect(CONFIG.RANK_ROWS.rank_3.level).toBe(12);

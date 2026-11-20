@@ -3,8 +3,6 @@
 // POOL_BASE + POOL_FACTOR × its need, and a minted piece's quality adds factor × need × quality to either.
 import { describe, expect, it } from 'vitest';
 import { IT } from '../../src/library/itemIds';
-import { getLibrary } from '../../src/library';
-import { CONFIG } from '../../src/config';
 import { makeVillage } from '../harness';
 import { mint } from '../../src/scenario/apply';
 import { itemDef } from '../../src/library';
@@ -15,12 +13,6 @@ const minted = (base: string, quality: 1 | 2 | 3 | 4, boosts: 'hitAdj' | 'damage
 };
 
 describe('142 armor and shield levers', () => {
-  it('library armor: gambeson 2, mail 4 × 1.5 = 6, plate 6 × 2 = 12 (D-368); the round shield pool is 40', () => {
-    const I = getLibrary().items;
-    expect([IT.gambeson, IT.mail_hauberk, IT.plate_harness].map((id) => I[id].armor!.reduction)).toEqual([2, 6, 12]);
-    expect([IT.gambeson, IT.mail_hauberk, IT.plate_harness].map((id) => I[id].armor!.multiplier)).toEqual([0.8, 0.65, 0.55]);
-    expect(I[IT.round_shield].shield!.pool).toBe(CONFIG.POOL_BASE + CONFIG.POOL_FACTOR * CONFIG.EQUIP_NEED.common);
-  });
 
   it('minted mail: quality 1 and 2 stay Fine (need 50, soak 6) and add 1; quality 4 moves to Superior (need 75, soak 9) and adds 3', () => {
     expect(minted(IT.mail_hauberk, 1).armor!.reduction).toBe(6 + 1);

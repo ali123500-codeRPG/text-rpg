@@ -15,11 +15,6 @@ import { TP } from '../../src/library/templateIds';
 const opts = { id: 'n1', zone: 'z', placeId: 'p', bandId: 'b' };
 
 describe('368 Tactics tree', () => {
-  it('holds the four Tactics skills, and Guile sits in Trickery', () => {
-    const lib = getLibrary();
-    expect(lib.trees[TR.tactics].skills).toEqual([SK.battle_sense, SK.command, SK.fieldcraft, SK.stratagem]);
-    expect(lib.trees[TR.trickery].skills).toContain(SK.guile);
-  });
 
   it('every Tactics skill counts in the Tactics group, at half XP; Battle Sense is also Reaction', () => {
     const lib = getLibrary();

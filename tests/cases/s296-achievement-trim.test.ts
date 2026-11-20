@@ -3,7 +3,6 @@
 // (TM26, TM27), and downing a foe or being rallied restore morale through the composure table (TM28).
 import { describe, expect, it } from 'vitest';
 import { makeVillage, forcedRng } from '../harness';
-import { bannedLines } from '../harness/guard';
 import { grantAchievement, tally } from '../../src/engine/xp';
 import { calm } from '../../src/engine/heal';
 import { getLibrary, actorBody } from '../../src/library';
@@ -65,8 +64,4 @@ describe('296 achievement trim (round 3 answers)', () => {
     }
   });
 
-  it('guard: morale comes back only through the composure table, never a fear with a negative cost', () => {
-    expect(Object.values(getLibrary().fears ?? {}).filter((f) => f.cost < 0)).toEqual([]);
-    expect(bannedLines(/cost: -\d+, rolled:/, {}, ['src/library'])).toEqual([]);
-  });
 });

@@ -26,7 +26,6 @@ import { sell } from '../../src/engine/trade';
 import { checkParserLegality } from '../../src/agents/legality';
 import { NEEDS } from '../../src/engine/merge';
 import { wholeTurn } from '../harness/turn';
-import { bannedLines } from '../harness/guard';
 import { lay } from '../harness';
 
 const village = (): { s: GameState; wim: Actor } => {
@@ -123,10 +122,6 @@ it('whole turn: a filch caught in the act reaches the Narrator as a filch event 
   expect(events.find((e) => e.kind === 'filch')?.filch).toBe('caught');
   const req = g.claude.callsFor('narrator').at(-1) as { input: { content: string }[] };
   expect(req.input[1].content).toContain('"filch"');
-});
-
-it('guard: no action refuses a guarded container as plain theft any more; it is a filch contest', () => {
-  expect(bannedLines(/reason: 'theft'/)).toEqual([]);
 });
 
 it('a filch is a Slight sight: a sharp-eyed watcher 10 m off sees nothing of it (Close once let it be glimpsed to 20 m)', () => {

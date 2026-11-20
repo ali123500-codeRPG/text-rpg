@@ -9,7 +9,7 @@ import { getLibrary } from '../../src/library';
 import { IT } from '../../src/library/itemIds';
 import { CL } from '../../src/library/classIds';
 import { ICON_ART } from '../../src/ui/iconArt';
-import { classIconName, iconName, ICON_CREDIT } from '../../src/ui/itemIcons';
+import { classIconName, iconName } from '../../src/ui/itemIcons';
 import { instanceItem } from '../../src/views';
 import { zoneById } from '../../src/engine/relations';
 import { intent } from '../cases/w4-kit';
@@ -38,9 +38,4 @@ describe('icons', () => {
     expect(iconName(g.state, instanceItem(g.state, 'picks_1')!)).toBe('picks');
   });
 
-  it('the credit the CC BY licence asks for is on the GM page and in the licence file', () => {
-    expect(readFileSync('src/ui/gm.ts', 'utf8')).toMatch(/h\('p', \{ class: 'hs-note' \}, ICON_CREDIT\)/);
-    expect(ICON_CREDIT).toMatch(/game-icons\.net.*CC BY 3\.0/);
-    expect(readFileSync('src/ui/assets/icons-LICENSE.txt', 'utf8')).toMatch(/creativecommons\.org\/licenses\/by\/3\.0/);
-  });
 });

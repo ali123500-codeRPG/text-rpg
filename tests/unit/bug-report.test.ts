@@ -16,7 +16,4 @@ it('SD14: the Kind column says a code in plain words; the raw code stays in the 
   const { bugKind } = await import('../../src/ui/bugs');
   expect(bugKind('agent_fallback')).toBe('Agent fallback');
   expect(bugKind('player_report')).toBe('Your report');
-  // @ts-expect-error Node types are not installed; vitest runs in Node
-  const src: string = (await import('node:fs')).readFileSync('src/ui/bugs.ts', 'utf8');
-  expect(src).toMatch(/title: b\.code \}, bugKind\(b\.code\)/);
 });

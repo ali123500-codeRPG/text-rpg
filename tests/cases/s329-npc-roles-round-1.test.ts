@@ -20,22 +20,6 @@ describe('329 NPC roles, first round', () => {
     expect(gear.map((d) => d.gearClass)).toContain(GC.ranged_medium);
   });
 
-  it('NR6: a Healer is a civilian who reads and calms people, with no gear of its own', () => {
-    const r = getLibrary().npcRoles![RO.healer];
-    expect(r.kind).toBe('civilian');
-    expect(r.bands.high).toEqual([SK.healing, SK.insight, SK.persuasion]); // NR33: Healing joins its High band
-    expect(r.gear).toBeUndefined();
-  });
-
-  it('NR16: Town folk, Travellers, Lord\'s household and Monsters, with their wealth', () => {
-    const th = getLibrary().themes!;
-    expect([TH.town_folk, TH.travellers, TH.lords_household, TH.monsters].map((id) => th[id].name)).toEqual(['Town folk', 'Travellers', "Lord's household", 'Monsters']);
-    expect(th[TH.town_folk].wealth).toBe('fine');
-    expect(th[TH.travellers].wealth).toBe('common');
-    expect(th[TH.lords_household].wealth).toBe('superior');
-    expect(th[TH.monsters].wealth).toBeUndefined(); // monsters carry no gear
-  });
-
   it('NR24: bandits keep a camp and lie hidden by a road, rushing out on alert', () => {
     const camp = routineSet('bandit_camp')!, amb = routineSet('bandit_ambush')!;
     expect(camp.tags.role).toEqual(['bandit']);

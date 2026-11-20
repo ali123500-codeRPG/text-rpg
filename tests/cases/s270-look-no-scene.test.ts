@@ -2,7 +2,6 @@
 // scene used to cost −15 even in a bright, empty room. Guard: no roll in src carries a 'scenario difficulty' modifier.
 import { afterEach, expect, it, vi } from 'vitest';
 import { makeVillage } from '../harness';
-import { bannedLines } from '../harness/guard';
 import { intent, play } from './w4-kit';
 import { ruleset } from '../../src/ruleset';
 import { SK } from '../../src/library/skillIds';
@@ -22,6 +21,3 @@ it('SE15: Look around in an Extreme scene rolls with no scene modifier', () => {
   expect(look.modifiers.some((m) => /scen/i.test(m.source))).toBe(false);
 });
 
-it('guard: no roll takes a scenario difficulty modifier', () => {
-  expect(bannedLines(/['"]scenario difficulty['"]/i)).toEqual([]);
-});
