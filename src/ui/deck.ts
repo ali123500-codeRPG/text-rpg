@@ -227,7 +227,7 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
       return [...(v.barred ? ['unbar'] : []), ...(!v.locked && !v.barred ? ['open', 'shut', 'bar'] : []), ...(v.key ? [v.locked ? 'unlock' : 'lock'] : [])] as WayOp[];
     };
     const doors = pv.zone.links.filter((l) => wayOps(l).length);
-    if (doors.length) add('way', g, 'Door, gate or bar', [{ key: 'target', title: 'Which way?', picks: () => doors.map((l) => ({ id: l.to, label: cap(l.label), note: wayNote(l) })) },
+    if (doors.length) add('way', g, WAY_LABEL, [{ key: 'target', title: 'Which way?', picks: () => doors.map((l) => ({ id: l.to, label: cap(l.label), note: wayNote(l) })) },
       { key: 'item', title: 'Do what?', picks: (c) => { const d = doors.find((l) => l.to === c.target); return d ? wayOps(d).map((op) => ({ id: op, label: cap(op) })) : []; } }],
       (c) => order(`${cap(c.item!)} ${doors.find((l) => l.to === c.target)?.label ?? 'the way'}`, { way: { toZone: c.target!, op: c.item as WayOp } }), { note: 'takes your move' });
   }
@@ -354,6 +354,27 @@ function timeTip(s: GameState, a: DeckAction): string {
 
 /** perk moves that read better as a deed than by the perk's name */
 const PERK_LABEL: Record<string, string> = { [PK.dirt_in_the_eyes]: 'Throw dirt in the eyes', [PK.bluff]: 'Bluff "Behind you!"', [PK.battle_cry]: 'Let out a battle cry', [PK.rally]: 'Rally your side', [PK.play_dead]: 'Play dead' };
+
+/** the deck's name for its door, gate or bar entry (a greyed copy of it names a door it can't work, MAP-85) */
+export const WAY_LABEL = 'Door, gate or bar';
+/** the deck kinds that work a door, gate or bar from this side: a door mark on the map lists these (MAP-85) */
+const DOOR_KINDS = new Set<DeckKind>(['way', 'pick', 'break']);
+/** MAP-85: a thing drawn on the map, by the deck target it stands for: a person (actor id), a wall (its id), a doorway
+ *  (the two titles it joins; from where you stand its target is the title on the far side, as the deck's ways are) */
+export type MapThing = { kind: 'person' | 'wall'; id: string } | { kind: 'door'; ends: string[] };
+/** one entry of a thing's list: a deck action with the thing already chosen, or one greyed with what it needs */
+export type ThingEntry = { label: string; a: DeckAction; c: Choice } | { label: string; needs: string };
+/** MAP-85: every deck action for a thing on the map, under the deck's own names. A door with a lock you hold no key to
+ *  gets the deck's door entry greyed (the engine's way op answers no_key); nothing else is greyed, since the deck lists
+ *  only what can be done from where you stand */
+export function thingActions(groups: ReturnType<typeof deck>, ctx: DeckCtx, t: MapThing): ThingEntry[] {
+  const id = t.kind === 'door' ? (t.ends.includes(ctx.pv.zone.id) ? t.ends.find((e) => e !== ctx.pv.zone.id) : undefined) : t.id;
+  if (!id) return [];
+  const out: ThingEntry[] = actionsOn(groups, id).filter((a) => t.kind !== 'door' || DOOR_KINDS.has(a.kind)).map((a) => ({ label: a.label, a, c: { target: id } }));
+  const w = t.kind === 'door' && !ctx.cowering ? ctx.pv.zone.links.find((l) => l.to === id)?.way : undefined;
+  if (w && 'locked' in w && w.locked && !w.key && !w.barred && !w.blocked && !out.some((e) => 'a' in e && e.a.kind === 'way')) out.push({ label: WAY_LABEL, needs: 'its key' });
+  return out;
+}
 
 /** the actions of one deck that can be done to or with this person (AD14: clicking someone), with the target already chosen */
 export function actionsOn(groups: ReturnType<typeof deck>, id: string): DeckAction[] {

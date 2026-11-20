@@ -11,7 +11,7 @@ import type { GameApi, GameState } from '../types';
 import { CONFIG } from '../config';
 import { knownMap, rootPlace, type KnownMap, type MapZone } from './mapData';
 import { wayWords } from './map';
-import { planView } from './planView';
+import { planView, type PlanOpts } from './planView';
 import { carriedS, moveSpeed, slotMetres, turnMetres } from '../engine/speed';
 import { M_EPS, spotPoint, walkRoute, type Pos } from '../engine/position';
 import { shortestPath } from '../engine/relations';
@@ -83,7 +83,7 @@ export function zoneAt(zones: MapZone[], q: Pos): MapZone | undefined {
 export function minimapPanel(api: GameApi, opts: {
   onPlan(p: MinimapPoint | null): void;
   onWalk(p: MinimapPoint): void;
-  onPerson(actorId: string, anchor: DOMRect): void;
+  onThing: PlanOpts['onThing'];
   onOpenMap(at?: MapPick): void;
 }): { el: HTMLElement; update(): void; clear(): void; planned(): MinimapPoint | null } {
   const v = planView(api, {
@@ -102,7 +102,7 @@ export function minimapPanel(api: GameApi, opts: {
       return { km, every, floor, height: here.height, places, you: { ...here.you }, ...(st.player.facing ? { facing: [...st.player.facing] as [number, number] } : {}),
         ring: ringMetres(st), dash: dashMetres(st), carried: carriedS(st, st.player, 'move'), awayName };
     },
-    onPlan: opts.onPlan, onWalk: opts.onWalk, onPerson: opts.onPerson,
+    onPlan: opts.onPlan, onWalk: opts.onWalk, onThing: opts.onThing,
     onCard: (zone) => opts.onOpenMap({ zone }),
     onExit: (zone, exit) => opts.onOpenMap({ zone, exit }),
     onGoto: (go) => opts.onOpenMap({ go }),

@@ -40,7 +40,7 @@ export type MapZone = {
   /** PZ1: the title's outline in metres (counter-clockwise), drawn as its floor */
   outline?: Pt[];
   /** PZ2: the stretches of its outline and what stands on each, as a map class (wall, low, window, open: WALL_CLASS) */
-  walls?: { a: Pt; b: Pt; cls: WallClass }[];
+  walls?: { a: Pt; b: Pt; cls: WallClass; /** the state wall standing there (none on an open stretch): MAP-85's wall target */ id?: string }[];
   light?: string; cover?: string; links: MapLink[]; people: MapPerson[]; items: string[];
   /** FR5: the furniture standing there, each at its point in the frame of rect; kind is a furniture kind id (FU), for its icon */
   furniture?: { id: string; name: string; kind: string; x: number; y: number }[];
@@ -83,12 +83,12 @@ export function wallsOn(s: GameState, z: import('../types').Zone): NonNullable<M
       const p = toSegment(w.a, a, b), q = toSegment(w.b, a, b);
       if (p.d > WALL_ON_M || q.d > WALL_ON_M) return [];
       const t0 = Math.max(0, Math.min(p.t, q.t)), t1 = Math.min(1, Math.max(p.t, q.t));
-      return t1 - t0 > NEAR_M / len ? [{ t0, t1, cls: WALL_CLASS[w.kind] ?? 'wall' }] : [];
+      return t1 - t0 > NEAR_M / len ? [{ t0, t1, cls: WALL_CLASS[w.kind] ?? 'wall', id: w.id }] : [];
     }).sort((x, y) => x.t0 - y.t0);
     let t = 0;
     for (const w of on) {
       if (w.t0 > t + NEAR_M / len) out.push({ a: lerp(a, b, t), b: lerp(a, b, w.t0), cls: 'open' });
-      if (w.t1 > t) out.push({ a: lerp(a, b, Math.max(t, w.t0)), b: lerp(a, b, w.t1), cls: w.cls });
+      if (w.t1 > t) out.push({ a: lerp(a, b, Math.max(t, w.t0)), b: lerp(a, b, w.t1), cls: w.cls, id: w.id });
       t = Math.max(t, w.t1);
     }
     if (t < 1 - NEAR_M / len) out.push({ a: lerp(a, b, t), b: { ...b }, cls: 'open' });

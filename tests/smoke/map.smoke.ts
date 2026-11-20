@@ -47,3 +47,22 @@ describe('map checker on the test stages (MAP-52)', () => {
     await page.close();
   });
 });
+
+describe('MAP-85: a click on a thing drawn opens the deck’s actions for it', () => {
+  it('a door mark on the minimap lists the deck’s door actions; picking one plays the turn', async () => {
+    const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } }), errors: string[] = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await page.goto(`${url}?fake=1&stage=bent-nail`); // you stand by the locked plank gate, with no key to it
+    await page.locator('.ess-pop .dpop-x').click();
+    await page.locator('.cs-side .mm-svg [data-thing="door"][data-of*="tavern.yard"]').click();
+    const menu = page.locator('.deck-pick');
+    await expect.poll(() => menu.locator('.dk-pick').allInnerTexts()).toEqual(['Pick a lock', 'Break through', 'Door, gate or bar']);
+    expect(await menu.locator('.dk-pick.dk-lim').getAttribute('title')).toBe('Needs its key');
+    const before = await page.locator('.ln-player').count();
+    await menu.getByRole('listitem').filter({ hasText: 'Pick a lock' }).click();
+    await expect.poll(() => page.locator('.ln-player').count()).toBe(before + 1);
+    expect(await page.locator('.ln-player').last().innerText()).toMatch(/^Pick the lock of the plank gate/);
+    expect(errors).toEqual([]);
+    await page.close();
+  });
+});

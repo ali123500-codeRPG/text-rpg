@@ -1068,6 +1068,7 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-edge.open { stroke-width: 1; stroke-dasharray: 1 5; opacity: .5; }
 .map-edge.low { stroke-width: 2; stroke-dasharray: 6 4; }
 .map-edge.window { stroke-width: 1; stroke-dasharray: 10 3 2 3; }
+.map-edge-hit { stroke: transparent; stroke-width: 10; pointer-events: stroke; }
 .map-scale line { stroke: var(--muted); stroke-width: 2; }
 .map-scale text { fill: var(--muted); font-size: 13px; }
 .k-edge { display: inline-block; width: 22px; height: 0; border-top: 3px solid var(--text); vertical-align: middle; }
@@ -1601,8 +1602,8 @@ button.eq-name:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .dk-act.hot .t::after { content: " •"; color: var(--warn); }
 /* A3: a move with a limit stays in its group, dimmed; its mark says why (the words are its tip): a ring filled by the share
    of the wait gone, or a hollow circle with a slash once used this fight. One pulse the turn it is ready again. */
-.dk-act.dk-lim { opacity: .55; cursor: default; }
-.dk-act.dk-lim:hover { background: none; }
+.dk-act.dk-lim, .dk-pick.dk-lim { opacity: .55; cursor: default; }
+.dk-act.dk-lim:hover, .dk-pick.dk-lim:hover { background: none; }
 .dk-mark { display: inline-block; width: 13px; height: 13px; margin-right: 6px; vertical-align: -1px; border-radius: 50%; position: relative; }
 .dk-mark.wait { background: conic-gradient(currentColor calc(var(--share, 0) * 1turn), color-mix(in srgb, currentColor 25%, transparent) 0);
   -webkit-mask: radial-gradient(circle, transparent 3.5px, currentColor 4px); mask: radial-gradient(circle, transparent 3.5px, currentColor 4px); }

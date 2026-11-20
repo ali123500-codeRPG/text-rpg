@@ -189,7 +189,11 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
 - **MAP-85** A click on any thing drawn on either map (a door, a stretch of wall, furniture, an item, a person) opens a
   small list beside it of every action the action deck has for that thing, under the deck's own names. One that cannot
   be done now is greyed, its reason on hover ("too far", "needs its key"). Picking one plays the turn, as the deck does
-  (MQ6 a; Ali, 20/11/2026, Questions hub page "Map and minimap: one map, doors").
+  (MQ6 a; Ali, 20/11/2026, Questions hub page "Map and minimap: one map, doors"). Each mark carries the deck target it
+  stands for: a doorway the title on its far side from where you stand, a stretch of wall the wall standing there, a
+  person their id (src/ui/planView.ts `data-thing`, src/ui/deck.ts `thingActions`). A thing the deck has nothing for
+  opens no list, and the click plans a walk as on bare ground. Over the Map the list opens on top, and an action picked
+  there plays from Play with the Map closed, as the Map's walk does (MAP-84).
 
 #### Checks and test stages
 
@@ -232,6 +236,10 @@ the point here. The revision of the map's rules (D-413, Questions hub page "Map 
 one-map answers (page "Map and minimap: one map, doors", MQ1 to MQ6) are in the rules above; until each is built (D-423)
 the code decides what the game does (`AGENTS.md`, Order of authority).
 
+- **MAP-85 in part (D-423):** only one greyed entry is built: the deck's door entry on a lock you hold no key to, "needs
+  its key" (the engine's way op answers no_key). A door or wall outside the title you stand in opens no list: the deck
+  lists only what can be done from there, and nothing in code yet says what "too far" is. Items are not drawn on either
+  map, and the deck has no action on furniture, so neither opens a list yet.
 - **MAP-44 and MAP-45:** someone heard going into a zone the character has never seen is last seen there (MAP-45), but
   the map shows only zones seen or stood in (MAP-44), so they are not drawn anywhere.
 - **MAP-33 until built (D-423):** the code still draws zone states (a hatch for seen, not been in; an outline where you

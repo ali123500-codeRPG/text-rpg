@@ -66,7 +66,8 @@ export function mountApp(api: GameApi, root: HTMLElement = document.body) {
   // the map is a big pop-up over the page, not a page of its own: the Map button on Play opens it
   // "Move to here" on the map types the order in Play's action box, ready to send
   // a walk planned on the Map is played at once from Play, the map closed (MAP-84: the same walk as the minimap's)
-  const map = mapPage(api, (order) => { playDraft.text = order; closeFull(); go('play'); }, (p) => { closeFull(); go('play'); play.walk(p); });
+  const map = mapPage(api, (order) => { playDraft.text = order; closeFull(); go('play'); }, (p) => { closeFull(); go('play'); play.walk(p); },
+    (t, r) => play.thing(t, r)); // MAP-85: the deck's list for a thing on the Map, over it
   let mapOpen = false;
   const openMap = (opener: HTMLElement | null) => {
     if (!api.state()) return;
