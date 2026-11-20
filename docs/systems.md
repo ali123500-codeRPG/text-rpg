@@ -11,8 +11,9 @@ How to use it for a task:
    `npm run spec -- BG-12` (also D-n, OQ-n, MAP-n); a question ID (`LS3`) lists every line in the spec and
    `docs/memory/` that cites it, ranges included.
 2. Read its history files only for why a rule is the way it is.
-3. While working, run its nearest tests: `npm run test:near` (the files you changed) or `npm run test:near -- <key>`.
-   It ends PASSED, FAILED or NOTHING TESTED (exit 3); nothing tested is not a pass. With `npm run typecheck`, that is
+3. While working, run its nearest tests: `npm run test:near` (the files you changed) or `npm run test:near -- <key>`;
+   add `--deep` for a refactor or a risky change. It ends PASSED, FAILED or NOTHING TESTED (exit 3); nothing tested is
+   not a pass. With `npm run typecheck`, that is
    the local check; the full suite and the browser tests run on GitHub on every PR (`docs/instructions.md` section 8).
 
 A new source file goes on a system's Code list in the same PR (`tests/unit/systems-map.test.ts` fails until it

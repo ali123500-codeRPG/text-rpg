@@ -5,7 +5,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 // @ts-expect-error Node types are not installed; vitest runs in Node
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { WHOLE_SUITE, changedWords, importGraph, near, nearPrefixes, ownExports, pick, selects, systemFiles, testFiles } from '../../scripts/test-near';
+import { WHOLE_SUITE, changedIds, changedWords, guards, importGraph, near, nearPrefixes, ownExports, pick, selects, settingKeys, systemFiles, testFiles } from '../../scripts/test-near';
 
 const map = readFileSync('docs/systems.md', 'utf8');
 const systems = systemFiles(map);
@@ -84,6 +84,36 @@ describe('test:near', () => {
     expect(pick(['src/config/fatigue.ts'], tests, read, [], graph)).toEqual(expect.arrayContaining(['tests/cases/s278-fatigue-stamina.test.ts', 'tests/cases/s291-stamina-perks.test.ts']));
     // tests/unit/imports-format.test.ts checks resolve.ts through scripts/imports.ts's ONE_PER_LINE
     expect(pick(['src/engine/resolve.ts'], tests, read, [], graph)).toContain('tests/unit/imports-format.test.ts');
+  });
+
+  it('quick follows only the file itself and its barrels; --deep also follows its folder', () => {
+    const read = (f: string) => readFileSync(f, 'utf8');
+    const graph = importGraph([...testFiles('src', '.ts'), ...testFiles('tests', '.ts')], read, existsSync);
+    const quick = pick(['src/engine/xp.ts'], testFiles(), read, [], graph, false);
+    const deep = pick(['src/engine/xp.ts'], testFiles(), read, [], graph, true);
+    expect(quick).toContain('tests/cases/s163-achievement-info.test.ts'); // imports src/engine/xp itself
+    expect(deep.length).toBeGreaterThan(quick.length * 2);
+    expect(deep).toEqual(expect.arrayContaining(quick));
+    // a library part reaches the library's tests through data.ts and src/library/index.ts with --deep
+    expect(pick(['src/library/items.ts'], testFiles(), read, [], graph, true).length).toBeGreaterThan(100);
+  });
+
+  it('quick picks the tests of a config part by setting name, and the tests of a library row by the IDs on changed lines', () => {
+    const read = (f: string) => readFileSync(f, 'utf8');
+    const graph = importGraph([...testFiles('src', '.ts'), ...testFiles('tests', '.ts')], read, existsSync);
+    expect(settingKeys('  STAMINA_BASE: 50,\n  /** x */\n  NOT_A_KEY\n  REST_S: 3, // y')).toEqual(['STAMINA_BASE', 'REST_S']);
+    expect(pick(['src/config/fatigue.ts'], testFiles(), read, [], graph, false)).toContain('tests/cases/s278-fatigue-stamina.test.ts');
+    expect(changedIds("+  { id: IT.dagger, skill: SK.parry, n: CONFIG.X },\n-  x.SK.no, ab.cd")).toEqual(['IT.dagger', 'SK.parry']);
+    const t = { 'a.test.ts': 'give(IT.dagger)', 'b.test.ts': 'give(IT.daggers)' };
+    expect(pick(['src/library/items.ts'], Object.keys(t), (f) => t[f as keyof typeof t], [], undefined, false, ['IT.dagger'])).toEqual(['a.test.ts']);
+  });
+
+  it('the structural guards run with every code change, so a test that checks files as text is never deferred (#1191)', () => {
+    const read = (f: string) => readFileSync(f, 'utf8');
+    const graph = importGraph([...testFiles('src', '.ts'), ...testFiles('tests', '.ts')], read, existsSync);
+    const g = guards(testFiles(), read, graph);
+    for (const f of ['imports-format', 'no-stamps', 'systems-map', 'leftover-scan-1', 'hp-writes', 'styles-tokens', 'mocked-files-isolated']) expect(g, f).toContain(`tests/unit/${f}.test.ts`);
+    expect(g.length).toBeLessThan(40); // a few seconds: the guards stay cheap
   });
 
   it('a change to how tests are built or run runs the whole suite', () => {

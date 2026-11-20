@@ -3,6 +3,9 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bug-fix-log.md`.
 
+- 20/11/2026: `docs/instructions.md` section 8 and `AGENTS.md` "Finding your way": `test:near` is quick by default (direct
+  tests plus structural guards, indirect ones left to GitHub and counted), `--deep` for refactors and risky changes;
+  push and open the draft PR at the first commit, then run local checks while GitHub runs its own.
 - 20/11/2026: `AGENTS.md` rule 7 and map, `docs/instructions.md` section 4 "Balancing levers" (SX7 b): CONFIG's defaults sit in
   parts under `src/config/`, one per system, gathered by `src/config.ts`, which stays the one entry and the one CONFIG.
 - 20/11/2026: `AGENTS.md` rule 2 (WF3 a): the cause and the fix are written once, in the bug's `docs/bug-fix-log.md`
