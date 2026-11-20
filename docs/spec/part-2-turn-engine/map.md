@@ -151,7 +151,10 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
 - **MAP-71** The World view draws each top-level place as the box around all its known zones, still joined by the roads
   you know. Place names sit on a fixed-size layer so they stay readable when a road's kilometres zoom the World far out:
   it zooms out as far as the whole World needs, with room kept for the names. A scale bar of 10 m, 100 m or 1 km is
-  drawn to suit (extentOf, src/ui/mapData.ts; Ali, 14/11/2026, CO9).
+  drawn to suit. A settlement shows the icon for its size beside its name (a house for a hamlet, a cluster of houses for
+  a village, a walled gate for a town), from the site it stands on, and the land's settlements seen but not yet a place
+  show the same icon; the size is in its tip and accessible name (extentOf, src/ui/mapData.ts; Ali, 14/11/2026, CO9;
+  Ali, 20/11/2026).
 - **MAP-72** A road that is a place of its own (kind road) has no map of its own. It is one dashed line in the World
   along its length, whatever the zoom, with its name and length centred above its middle, and the World card lists it
   once as that road between the places at its ends (RD1-RD3).

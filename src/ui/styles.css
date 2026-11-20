@@ -1046,13 +1046,19 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .land-bridge { fill: var(--land-road); r: max(30px, calc(var(--px, 8) * 2.5px)); }
 .land-ford { fill: none; stroke: var(--land-road); stroke-width: calc(var(--px, 8) * 1px); r: max(30px, calc(var(--px, 8) * 3px)); }
 /* the land's settlements and landmarks, on the name layer at a set size: under the places' names in weight and colour */
-.map-land-mark circle, .map-land-mark rect { fill: var(--bg); stroke: var(--c15); stroke-width: 1.5; }
+.map-land-mark rect { fill: var(--bg); stroke: var(--c15); stroke-width: 1.5; }
+/* MAP-71: a settlement's icon by its size, with a halo so it reads over the land */
+.map-site-icon { color: var(--c15); }
+.map-site-icon path { stroke: var(--bg); stroke-width: 40px; stroke-linejoin: round; paint-order: stroke; }
+.map-land-mark.town .map-site-icon, .map-world-name .map-site-icon { color: var(--text); }
+/* the names layer ignores the pointer; its icons take it, for their tips (and a place's, a click) */
+.map-world-names .map-site-icon { pointer-events: auto; }
+.map-world-name .map-site-icon { cursor: pointer; }
 .map-land-mark text { fill: var(--muted); font-size: 13px; font-weight: 700; paint-order: stroke; stroke: var(--bg); stroke-width: 3px; stroke-linejoin: round; }
 .map-land-mark.town text { fill: var(--text); font-size: 13px; }
 .map-land-mark.feature rect { stroke: var(--faint); }
 .map-land-mark.feature text { fill: var(--faint); font-weight: 600; }
 .map-land-mark.faint { opacity: .55; }
-.map-land-mark.faint circle { stroke-dasharray: 2 2; }
 .map-tile.plan.here .map-tile-box { stroke: var(--accent); stroke-width: 2; stroke-dasharray: none; }
 .map-tile.plan.heading .map-tile-box { stroke: var(--accent); stroke-width: 2; stroke-dasharray: 6 4; opacity: 1; }
 .map-tile.plan.selected .map-tile-box { stroke: var(--scenario-mark); stroke-width: 2; }
@@ -1161,8 +1167,9 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .k-land { width: 18px; height: 12px; border-radius: 3px; background: linear-gradient(90deg, var(--land-farmland) 50%, var(--land-woods) 50%); }
 .k-land-water { width: 20px; height: 0; border-top: 3px solid var(--land-water); }
 .k-land-road { width: 20px; height: 0; border-top: 2px solid var(--land-road); }
-.k-site { width: 9px; height: 9px; box-sizing: border-box; border-radius: 50%; background: var(--bg); border: 1.5px solid var(--c15); }
-.k-site.faint { opacity: .55; border-style: dashed; }
+.k-site { width: 16px; height: 16px; color: var(--c15); }
+.k-site svg { display: block; width: 100%; height: 100%; }
+.k-site.faint { opacity: .55; }
 .k-mark { width: 8px; height: 8px; box-sizing: border-box; margin: 0 1px; transform: rotate(45deg); background: var(--bg); border: 1.5px solid var(--faint); }
 /* The stage map to scale (rpg-map, mapPlan.ts): code places every mark in screen pixels at the zoom shown. Names sit
    inside their zone or outside on a plate with a leader; exit notes name where an arrow goes; doors sit on shared walls. */

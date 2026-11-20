@@ -22,6 +22,8 @@ const PICKS = {
   class_start: 'gi:sprout', class_next: 'gi:upgrade', class_any: 'gi:crossroad',
   // Play header toggles (SD7)
   agent: 'gi:robot-golem', rolls: 'gi:dice-twenty-faces-twenty', narration: 'gi:open-book', sound: 'gi:speaker', sound_off: 'gi:speaker-off',
+  // the map's settlements, one per site size (MAP-71)
+  hamlet: 'gi:house', village: 'gi:village', town: 'gi:medieval-gate',
 };
 
 const sets = {};
