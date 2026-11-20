@@ -3,7 +3,7 @@
 import { afterAll, expect } from 'vitest';
 
 // files share one module load (vitest.shared.config.ts): a CONFIG value a test changed must not reach the next file
-afterAll(async () => (await import('../../src/config')).resetConfig());
+afterAll(async () => { (await import('../../src/config')).resetConfig(); (await import('../../src/library')).resetLibrary(); });
 
 const KNOWN: { bug: string; rule: string; files: string[] }[] = [
   { bug: 'none', rule: '*', files: ['pipeline'] }, // a fake engine and fake views (vi.mock): no real world to check
