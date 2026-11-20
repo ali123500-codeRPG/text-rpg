@@ -3,6 +3,10 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bug-fix-log.md`.
 
+- 20/11/2026: `docs/instructions.md` section 8 (WF2 a): locally, typecheck plus `npm run test:near` and new tests;
+  the full suite and browser tests run on GitHub only, on every PR; open a draft PR early; a newer push cancels the
+  PR's older run (`ci.yml` concurrency, PR runs only). `docs/providers/claude.md`: the draft and ready-for-review
+  commands. `rpg-map` skill: the map smoke test runs locally only to debug a failure.
 - 20/11/2026: Pictures in questions. `docs/instructions.md` section 6: a picture goes beside the words when it shows
   the point faster. The Questions hub shows them (`tools/questions-hub/README.md` "Pictures": `fig()`, `image()`).
 - 20/11/2026: `docs/providers/claude.md` is split: an "Every thread" part (how the project runs, desk labels, how to
