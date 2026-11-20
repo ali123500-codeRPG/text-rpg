@@ -353,3 +353,4 @@ Closed rows of the "Bug log" (`bug-log.md`): fixed, won't fix or duplicate. A ro
 | BG-347 | Sleep on a far bed from the map slept where the first move ended, then walked to the bed | Thread | Fixed | #1397 |
 | BG-348 | A zone name showed on ground not seen: back yard on bent-nail, on the Map at 40 m and the minimap (MAP-16), fitted to the zone, not its seen part | Thread | Fixed | #1416 |
 | BG-349 | An exit's arrow ran past the map's edge while its note was in view (MAP-50, minimap 60 m on the default fake page, Map 60 m on long-names) | Thread | Fixed | #1420 |
+| BG-350 | A person at their own point in a small room was drawn outside it at every zoom (one-room with people; MAP-25, MAP-68), and could crowd out the door's exit | Thread | Fixed | #1425 |

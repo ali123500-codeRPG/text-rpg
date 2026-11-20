@@ -335,9 +335,10 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
     const zb = x.box, row = x.z.people.filter((p) => !p.at), at = x.z.people.filter((p) => p.at);
     for (const who of at) {
       const cap = capsule(who, k), [hx, hy] = cap ? half(hitCap(cap)) : [WHO_R, WHO_R], [dx, dy] = cap ? half(cap) : [WHO_R, WHO_R];
-      const p = keep(spotOf(`who:${who.id}`, zb, hx + 2), hx, zb, hy) ?? nearFree(who.at!.x * PX_PER_M * k, -who.at!.y * PX_PER_M * k, hx, zb, hx + 2, hy);
+      // MAP-25 (BG-350): placed at the first of PLACE_KS with room in their zone; only the zoom drawn steps them aside
+      const own = { x: who.at!.x * PX_PER_M * k, y: -who.at!.y * PX_PER_M * k };
+      const p = keep(spotOf(`who:${who.id}`, zb, hx + 2), hx, zb, hy) ?? nearFree(own.x, own.y, hx, zb, hx + 2, hy) ?? (final ? outsideNear(own.x, own.y, hx, hy) : null);
       if (p) { tokens.push({ id: `who:${who.id}`, zoneId: x.z.id, ...p, r: WHO_R, ...disc(p.cx, p.cy, dx, dy), who, title: who.name, ...(cap ? { cap } : {}) }); take(disc(p.cx, p.cy, hx, hy), 'token'); }
-      else row.push(who);
     }
     const band = row.filter((p) => !p.lastAt);
     row.forEach((who) => {
