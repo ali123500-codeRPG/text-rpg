@@ -219,9 +219,14 @@ The source of truth for every design decision.
   `npm run sync -- --check ORIG_HEAD` after any rebase done by hand.
 - After pushing, check the PR: `gh api repos/<owner>/<repo>/pulls/<n> --jq .mergeable_state`. `dirty` means a
   conflict, and a PR with a conflict gets no checks at all, so a silent PR is not a passing one.
-- Long runs (anything over about ten minutes, such as a long build or a large soak) go on GitHub: push the branch and
-  read its checks. The full test suite is not a long run (`npm test`, about two minutes) and may run locally.
-  Decided 19/11/2026; the first agent that needs a long run after 19/12/2026 asks the owner again.
+- Testing: on your own machine, run `npm run typecheck`, `npm run test:near` (the tests your change touches) and any
+  new test. NOTHING TESTED from `test:near` is not a pass. The full suite and the browser tests run on GitHub only,
+  on every PR, and they decide the merge. Open a draft PR early and keep working; do not sit waiting on checks. A
+  newer push cancels the PR's older run. Run the browser tests locally only to debug one that failed; text widths
+  count only from GitHub's run (BG-325). Reason: the full suite took 2 to 15 minutes locally and GitHub ran it again.
+- Long runs (anything over about ten minutes, such as a long build or a large soak) go on GitHub too: push the branch
+  and read its checks. Decided 19/11/2026; the first agent that needs a long run after 19/12/2026 asks the owner
+  again.
 - A balancing change can move the replay or soak results (`tests/replay`, `tests/soak`). The replay set runs in the
   PR's checks. Its recordings are remade only from playtests, so if one must be remade and you cannot run
   playtests, say so in the PR.

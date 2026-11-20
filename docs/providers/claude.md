@@ -55,7 +55,8 @@ Read this part before your first action.
 
 **GitHub from a Claude session**
 - GraphQL is blocked. Use the REST API through `gh api`:
-- Open a PR: `gh api repos/<o>/<r>/pulls -f title=… -f head=… -f base=main -F body=@file`.
+- Open a PR: `gh api repos/<o>/<r>/pulls -f title=… -f head=… -f base=main -F body=@file`; add `-F draft=true` for a
+  draft (section 8), and mark it ready before merging: `gh api -X POST repos/<o>/<r>/pulls/<n>/ccr/ready_for_review`.
 - Merge: `gh api -X PUT repos/<o>/<r>/pulls/<n>/merge -f merge_method=squash`.
 - Conflict check after pushing (`docs/instructions.md` section 8):
   `gh api repos/<o>/<r>/pulls/<n> --jq .mergeable_state`.

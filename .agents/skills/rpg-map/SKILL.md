@@ -27,8 +27,9 @@ rule wins for the map.
 
 1. Render each MAP-52 test stage in a dev view (`?fake=1&stage=bent-nail|one-room|long-names`, or `?mapcheck`). The
    checker runs after every render and logs every finding (MAP-51, MAP-55).
-2. Run `npm run smoke`: `tests/smoke/map.smoke.ts` asserts zero findings on the Map and the minimap for the three stages
-   (MAP-56). Reuse it; do not write your own Playwright script.
+2. `tests/smoke/map.smoke.ts` asserts zero findings on the Map and the minimap for the three stages, and the PR's run
+   on GitHub is the judge (MAP-56). Run it locally only to debug a failure (`npm run smoke -- tests/smoke/map.smoke.ts`);
+   do not write your own Playwright script.
 3. Run `tests/unit/map-plan.test.ts` for the layout's own checks (MAP-57).
 4. Take a screenshot of each stage and look at it before reporting (MAP-52).
 5. Report every finding verbatim (MAP-53). A map change ships only under MAP-04.
