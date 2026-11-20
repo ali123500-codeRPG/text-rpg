@@ -13,7 +13,7 @@ import { CONFIG } from '../config';
 import { knownMap, rootPlace, type KnownMap, type MapZone } from './mapData';
 import { NAME_PX, PX_PER_M, TEXT, checkReach, planScene, wrap, type Box, type Measure } from './mapPlan';
 import { checkMap } from './mapCheck';
-import { fogClip, floorMarks, doorGlyph, floorName, footprintMark, wayGlyph, wayWords, whoInitial } from './map';
+import { fogClip, floorMarks, doorGlyph, floorName, footprintMark, pin, wayGlyph, wayWords, whoInitial } from './map';
 import { furnIcon } from './furnitureIcons';
 import { moveSpeed, slotMetres } from '../engine/speed';
 import { M_EPS, spotPoint, walkRoute, type Pos } from '../engine/position';
@@ -210,13 +210,7 @@ export function minimapPanel(api: GameApi, opts: {
     for (const f of scene.furniture) if (within(f, inView)) { const g = furnIcon(f.kind, cap(f.name), f.cx, f.cy); g.setAttribute('data-role', 'icon'); g.setAttribute('data-id', f.id); gMarks.append(g); }
     for (const t of scene.tokens) {
       if (!within(t, inView)) continue;
-      if (t.you) {
-        // you, facing the way you last walked (BG-18)
-        const f = snap.facing, a = f ? Math.atan2(-f[1], f[0]) : null, tip = (d: number, r: number) => `${t.cx + Math.cos(a! + d) * r} ${t.cy + Math.sin(a! + d) * r}`;
-        gTokens.append(s('g', { class: 'mm-you' }, ...(a === null ? [] : [s('path', { d: `M${tip(0, t.r + 6)} L${tip(0.5, t.r)} L${tip(-0.5, t.r)}Z` })]),
-          s('g', { 'data-role': 'token', 'data-id': 'you' }, s('circle', { cx: t.cx, cy: t.cy, r: t.r })), s('text', { x: t.cx, y: t.cy + 3, 'text-anchor': 'middle' }, 'You'), s('title', {}, 'You are here')));
-        continue;
-      }
+      if (t.you) { const g = pin(t.cx, t.cy, 'You are here', snap.facing); g.setAttribute('data-role', 'token'); g.setAttribute('data-id', 'you'); gTokens.append(g); continue; } // the Map's own pin
       const who = t.who!, foot = footprintMark(t.cx, t.cy, t.r, who, PX_PER_M * k);
       // BG-324: the disc alone is the token the checker measures; the initial's text box is taller than the disc, its letter is not
       const g = s('g', { class: `map-who plan-who${who.now ? '' : ' last'}${who.at ? ' at' : ''}`, tabindex: 0, role: 'button', 'aria-label': `${t.title}: what to do` }, ...(foot ? [foot] : []),

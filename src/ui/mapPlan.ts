@@ -78,7 +78,9 @@ export type PlanInput = {
   awayName: (zoneId: string) => string | undefined;
 };
 
-const WAY_R = 8, STAIR_R = 10, FURN_R = 9, PIN_R = 9, WHO_R = 7;
+const WAY_R = 8, STAIR_R = 10, FURN_R = 9, WHO_R = 7;
+/** your pin's disc, and how far its facing point reaches from its centre: other marks keep clear of the point too */
+export const PIN_R = 9, PIN_TIP = 15;
 /** gap between a mark and anything near it, a label and its zone's walls (MAP-20) */
 const GAP = 2, PAD = 7; // PAD: 6 px (MAP-20) plus the hair the drawn zone sits inside its walls
 const ARROWS = [22, 40, 60, 84, 112, 144, 180];
@@ -219,7 +221,7 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean): Scene {
     const b = here.box, at = here.z.you ? { x: here.z.you.x * PX_PER_M * k, y: -here.z.you.y * PX_PER_M * k } : { x: b.x1 - PIN_R - 4, y: b.y0 + PIN_R + 4 };
     const p = keep(spotOf('you', b, PIN_R + 2), PIN_R, b) ?? nearFree(at.x, at.y, PIN_R, b) ?? { cx: Math.min(b.x1, Math.max(b.x0, at.x)), cy: Math.min(b.y1, Math.max(b.y0, at.y)) };
     tokens.push({ id: 'you', zoneId: here.z.id, ...p, r: PIN_R, ...disc(p.cx, p.cy, PIN_R), you: true, title: 'You are here' });
-    take(disc(p.cx, p.cy, PIN_R), 'token');
+    take(disc(p.cx, p.cy, PIN_TIP), 'token');
     used.add('you');
   }
 

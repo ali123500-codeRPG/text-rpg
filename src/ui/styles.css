@@ -1076,6 +1076,7 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-who.plan-who:hover .map-who-label { opacity: 1; }
 .map-pin circle { fill: var(--scenario-mark); stroke: var(--bg); stroke-width: 2.5; }
 .map-pin circle.core { fill: var(--bg); stroke: none; }
+.map-pin .face { fill: var(--scenario-mark); stroke: var(--bg); stroke-width: 1.5; stroke-linejoin: round; }
 .map-crumbs { position: absolute; left: 12px; top: 12px; right: 64px; display: flex; flex-wrap: nowrap; align-items: center; gap: 4px;
   white-space: nowrap; overflow-x: auto; scrollbar-width: none; pointer-events: none; }
 .map-crumbs .crumb, .map-crumbs .sep { flex: none; }
@@ -1645,8 +1646,8 @@ button.eq-name:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .short-wrap > .hs-btn-text { justify-self: start; }
 
 
-/* ---- the play screen's minimap (AD8–AD16, src/ui/minimap.ts), the mock-up's look; its doors, stairs, furniture and people
-   are the full Map's own marks. Only colour changes, on hover (M-70) */
+/* ---- the play screen's minimap (AD8–AD16, src/ui/minimap.ts), the mock-up's look; its doors, stairs, furniture, people
+   and your pin are the full Map's own marks. Only colour changes, on hover (M-70) */
 .mm { border: 1px solid var(--border); border-radius: var(--r-lg); background: color-mix(in srgb, var(--surface) 70%, transparent); overflow: hidden; }
 .mm-head { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); font-size: 13px; border-bottom: 1px solid var(--border); }
 .mm-floor { font-weight: 700; }
@@ -1687,10 +1688,7 @@ button.eq-name:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .mm-goal { fill: none; stroke: var(--accent); stroke-width: 2; pointer-events: none; }
 .mm-goal.far { stroke: var(--warn); }
 .mm-goal.set { fill: color-mix(in srgb, var(--accent) 35%, transparent); }
-.mm-you { pointer-events: none; }
-.mm-you circle, .mm-you path { fill: var(--scenario-mark); }
-.mm-you circle { stroke: var(--bg); stroke-width: 2; }
-.mm-you text { font: 800 13px var(--font-round); fill: var(--on-pill); }
+.mm-svg .map-pin { pointer-events: none; }
 .mm-svg .map-who { cursor: pointer; }
 .mm-svg .map-who circle { transition: stroke var(--m-feedback) var(--m-ease); }
 .mm-svg .map-who:hover circle, .mm-svg .map-who:focus-visible circle { stroke: var(--scenario-mark); }

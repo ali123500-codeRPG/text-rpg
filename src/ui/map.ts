@@ -12,7 +12,7 @@ import { landLayer, landLabels, type LandLabel } from './landSvg';
 import { lineLength } from '../land/generate';
 import { worldTiles, knownMap, pointAlong, rootPlace, type KnownMap, type MapLink, type MapPerson, type MapPlace, type MapWay, type MapZone } from './mapData';
 import { cap, theName } from '../words';
-import { MAX_K, PX_PER_M, TEXT, checkReach, checkStage, planScene, roughMeasure, type Measure, type Scene } from './mapPlan';
+import { MAX_K, PIN_R, PIN_TIP, PX_PER_M, TEXT, checkReach, checkStage, planScene, roughMeasure, type Measure, type Scene } from './mapPlan';
 import { checkMap } from './mapCheck';
 import { areaOf } from '../plan/geom';
 
@@ -52,6 +52,15 @@ export function footprintMark(cx: number, cy: number, r: number, who: MapPerson,
   if (!b || Math.max(b.lengthM, b.widthM) * pxPerM <= 2 * r) return null;
   const L = b.lengthM * pxPerM, W = b.widthM * pxPerM, deg = (Math.atan2(-b.facing[1], b.facing[0]) * 180) / Math.PI;
   return s('rect', { class: 'map-foot', x: cx - L / 2, y: cy - W / 2, width: L, height: W, rx: Math.min(L, W) / 2, transform: `rotate(${deg} ${cx} ${cy})`, 'aria-hidden': 'true' }) as SVGElement;
+}
+/** the "you are here" pin, on the Map and the minimap alike; its point shows the way you face (BG-18: left and right in
+ *  orders are taken from it), none before you have walked */
+export function pin(cx: number, cy: number, title?: string, facing?: [number, number]) {
+  const a = facing ? Math.atan2(-facing[1], facing[0]) : null, at = (d: number, r: number) => `${cx + Math.cos(a! + d) * r} ${cy + Math.sin(a! + d) * r}`;
+  const g = s('g', { class: 'map-pin' }, ...(a === null ? [] : [s('path', { class: 'face', d: `M${at(0, PIN_TIP)} L${at(0.5, PIN_R)} L${at(-0.5, PIN_R)}Z` })]),
+    s('circle', { cx, cy, r: PIN_R }), s('circle', { cx, cy, r: 3.5, class: 'core' }));
+  if (title) { g.setAttribute('role', 'img'); g.setAttribute('aria-label', title); g.append(s('title', {}, title)); } // a mark with no visible words
+  return g;
 }
 /** the letter a person's dot shows: the first letter of what you know them by, a name or a description ("a lean man" → L) */
 export const whoInitial = (name: string) => (name.replace(/^(a|an|the)\s+/i, '').trim()[0] ?? '?').toUpperCase();
@@ -118,6 +127,7 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
   const spots = new Map<string, Map<string, Pt>>(); // per world
   const views = new Map<string, { x: number; y: number; k: number }>(); // per world pan and zoom
   let cur: KnownMap | null = null, world = '';
+  let facing: [number, number] | undefined; // the pin's point (BG-18)
   let walk: WalkingView | undefined; // AT49: the zone the player's walk is still headed for
   const floors = new Map<string, number>(); // per world: the height shown
   // To scale (CO1, CO9, BG-313): each title, and in World each place, at its real position and size in metres
@@ -225,7 +235,7 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
         s('text', { x, y, class: 'map-tile-name', ...anchor }, n.name), s('text', { x, y: y + 16, class: 'map-tile-sub', ...anchor }, n.sub))];
     });
     nameLayer.replaceChildren(...names, ...landMarksAt(v, taken));
-    youLayer.replaceChildren(...(youAt && !planMap() ? [pin(v.x + youAt.x * v.k, v.y + youAt.y * v.k, youAt.title)] : []));
+    youLayer.replaceChildren(...(youAt && !planMap() ? [pin(v.x + youAt.x * v.k, v.y + youAt.y * v.k, youAt.title, facing)] : []));
     if (planMap()) {
       if (!scene || Math.abs(v.k - sceneK) > 1e-9) renderPlan(v.k);
       planLayer.setAttribute('transform', `translate(${v.x} ${v.y})`);
@@ -467,7 +477,7 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
       s('circle', { cx: st.cx, cy: st.cy, r: st.x1 - st.cx }), s('text', { x: st.cx, y: st.cy + 4, 'text-anchor': 'middle' }, st.up ? '▲' : '▼'), s('title', {}, st.title)));
     for (const f of sc.furniture) { const g = furnIcon(f.kind, cap(f.name), f.cx, f.cy); g.setAttribute('data-role', 'icon'); g.setAttribute('data-id', f.id); marks.append(g); }
     for (const t of sc.tokens) {
-      if (t.you) { const g = pin(t.cx, t.cy, youAt?.title ?? 'You are here'); g.setAttribute('data-role', 'token'); g.setAttribute('data-id', 'you'); marks.append(g); continue; }
+      if (t.you) { const g = pin(t.cx, t.cy, youAt?.title ?? 'You are here', facing); g.setAttribute('data-role', 'token'); g.setAttribute('data-id', 'you'); marks.append(g); continue; }
       const who = t.who!;
       const foot = footprintMark(t.cx, t.cy, t.r, who, PX_PER_M * k);
       // BG-324: the disc alone is the token the checker measures; the initial's text box is taller than the disc, its letter is not
@@ -585,12 +595,6 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
     }
     return s('g', { class: cls, 'data-zone': z.id, tabindex: 0, role: 'button', 'aria-label': `${z.name}, ${sub}, about ${distText(z.rect!.w)} by ${distText(z.rect!.d)}` },
       s('rect', { x, y, width: w, height: hh, class: 'map-tile-box', 'vector-effect': 'non-scaling-stroke' }), s('title', {}, `${z.name}: about ${distText(z.rect!.w)} × ${distText(z.rect!.d)}`));
-  }
-  /** the "you are here" pin */
-  function pin(cx: number, cy: number, title?: string) {
-    const g = s('g', { class: 'map-pin' }, s('circle', { cx, cy, r: 9 }), s('circle', { cx, cy, r: 3.5, class: 'core' }));
-    if (title) g.append(s('title', {}, title));
-    return g;
   }
 
 
@@ -769,6 +773,7 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
     const st = api.state();
     if (!st) { el.replaceChildren(h('h1', {}, 'Map'), h('p', { class: 'empty' }, 'No story yet. Create your character first.')); cur = null; return; }
     cur = knownMap(st);
+    facing = st.player.facing;
     try { walk = st.player.walking ? buildPlayerView(st).player.walking : undefined; } catch { walk = undefined; }
     if (!el.contains(stage)) el.replaceChildren(
       h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Map'))),
