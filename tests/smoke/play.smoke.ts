@@ -186,7 +186,8 @@ describe('play page smoke (TQ7)', () => {
   it('SD4–SD7: Play shows, it does not tell: icon switches, no state words beside the bars, no sub-lines or help lines', async () => {
     const tools = page.locator('.title-tools');
     for (const name of ['Watch an agent play', 'Show rolls', 'Narration: Normal', 'Sound']) expect(await tools.getByRole('button', { name, exact: true }).locator('svg').count()).toBe(1);
-    expect(await tools.innerText()).not.toMatch(/✓|Show rolls|Narration|Sound/); // only Map keeps its word
+    expect(await tools.innerText()).not.toMatch(/✓|Show rolls|Narration|Sound|Map/); // MAP-60: the minimap's expand opens the Map, not a header button
+    expect(await page.locator('.mm [data-open="map"]').count()).toBe(1);
     expect(await page.locator('.cs-strip').innerText()).not.toMatch(/Unhurt|Calm|Rested/);
     expect(await page.locator('.cs-strip [role="img"][aria-label^="Health: "]').count()).toBe(1);
     expect(await page.locator('.dk-act .n').count()).toBe(0);

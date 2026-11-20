@@ -111,9 +111,10 @@ describe('labels, doors and exits', () => {
     expect(two.join(' ')).toBe('the great entrance hall with its galleried stair');
     expect(wrap('unbreakablelongword', 'label', 40, 3, roughMeasure)).toBeNull();
   });
-  it('MAP-24: an exit to somewhere unknown is an arrow with "→ its name · state", and a locked one shows its lock on the wall', () => {
+  it('MAP-24: an exit to somewhere unknown is an arrow with its name only, its state in its tip, and a locked one shows its lock on the wall', () => {
     const { sc } = sceneOf(stageState('one-room'), 1.6);
-    expect(sc.exits.map((e) => e.note.full)).toEqual(['→ the door, south · unexplored, locked']);
+    expect(sc.exits.map((e) => e.note.full)).toEqual(['the door, south']);
+    expect(sc.exits[0].title).toBe('the door, south: unexplored, locked');
     const e = sc.exits[0], room = sc.zones[0].box;
     expect(e.y2).toBeGreaterThan(e.y1); // south: down the screen
     const lock = sc.doors.find((d) => d.way?.shut === 'locked')!;

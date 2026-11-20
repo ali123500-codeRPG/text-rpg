@@ -121,12 +121,12 @@ export function minimapPanel(api: GameApi, opts: {
   world.append(gFog, gZones, gNames, gRing, gMarks, gPath, gTokens);
   svg.append(s('title', {}, HINT), world);
   const floorEl = h('span', { class: 'mm-floor' });
-  const tool = (label: string, title: string, on: () => void) => h('button', { type: 'button', 'data-tip': title, 'aria-label': title, onclick: on }, label);
+  const tool = (label: string, title: string, on: () => void, open?: string) => h('button', { type: 'button', 'data-tip': title, 'aria-label': title, 'data-open': open, onclick: on }, label);
   const say = h('span', { class: 'mm-say' }), carried = h('span', { class: 'mm-carry' });
   const go = h('button', { type: 'button', class: 'mm-go', hidden: true, onclick: () => plan && !api.busy() && opts.onWalk(point(plan)) }, 'Just go');
   const el = h('section', { class: 'mm', 'aria-label': 'Minimap' },
     h('div', { class: 'mm-head' }, floorEl,
-      h('span', { class: 'mm-tools' }, tool('+', 'Zoom in', () => zoom(-1)), tool('−', 'Zoom out', () => zoom(1)), tool('◎', 'Back to you', recentre), tool('⤢', 'Open the full map', () => opts.onOpenMap()))),
+      h('span', { class: 'mm-tools' }, tool('+', 'Zoom in', () => zoom(-1)), tool('−', 'Zoom out', () => zoom(1)), tool('◎', 'Back to you', recentre), tool('⤢', 'Open the full map', () => opts.onOpenMap(), 'map'))),
     svg, h('div', { class: 'mm-foot' }, say, go, carried));
 
   // the minimap's hover text is the game's tip (A7): a browser title tip can't be timed, so each
