@@ -16,7 +16,9 @@ const PICKS = {
   picks: 'gi:lockpicks', potion: 'gi:standing-potion', bandage: 'gi:bandage-roll', pouch: 'gi:pouch-with-beads',
   coin: 'gi:two-coins', key: 'gi:key', pack: 'gi:knapsack', sack: 'gi:swap-bag', chest: 'gi:locked-chest', crate: 'gi:wooden-crate',
   // classes (and the Starts that begin in them)
-  swordsman: 'gi:swordman', late_bloomer: 'gi:sprout', sword_dancer: 'gi:sword-spin', commoner: 'gi:farmer', a_nobody: 'gi:hood', a_somebody: 'gi:shouting',
+  // placeholders, so every class has an icon of its own: Unwritten Legend, Knight Trainee, Knight
+  cl_unwritten_legend: 'gi:quill-ink', cl_knight_trainee: 'gi:visored-helm', cl_knight: 'gi:mounted-knight',
+  swordsman: 'gi:swordman', sword_dancer: 'gi:sword-spin', commoner: 'gi:farmer', a_nobody: 'gi:hood', a_somebody: 'gi:shouting',
   trader: 'gi:trade', merchant: 'gi:shop', guard: 'fe:guard', threadbounded: 'gi:sewing-string', blessed: 'gi:holy-symbol',
   // marks
   against_nature: 'gi:cracked-mask', free_action: 'fe:high-voltage',

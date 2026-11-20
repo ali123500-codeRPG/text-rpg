@@ -451,10 +451,11 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
   ratingIcons; icons in scripts/icons.mjs).
 - **PS-277** Every skill row starts with the skill's icon in place of its name, tinted its tree's colour (SKILL\_ICON in
   src/ui/itemIcons.ts; a skill shares an item or class icon where one fits). Each band is laid out like Bannerlord's
-  attribute groups: no heading row, the tree's colour down its left side, and an emblem column beside its skills with
+  attribute groups and is only as tall as its skills: the bands flow down columns (CSS columns), so a short tree packs
+  under another instead of taking a row as tall as its tallest; no heading row, the tree's colour down its left side, and an emblem column beside its skills with
   the tree's icon, drawn large, in place of its name, which is the icon's tip and accessible name (TREE\_ICON in
-  src/ui/itemIcons.ts), any TA10 padlock, and the total. Bands are at least 255 px wide (three in a row at 1366 and 1600 px, four at
-  1920 px). The total is a
+  src/ui/itemIcons.ts), any TA10 padlock, and the total. Columns are at least 255 px wide (three at 1366 and 1600 px, four at 1920
+  px). The total is a
   bare number, with "points in this tree" as its tip.
 - **PS-278** Each section tile under the Character page (Essences, Perks, Gear, Personality) shows its icon in place of its
   label, which is the icon's tip and accessible name (the tile_ picks in scripts/icons.mjs).
@@ -504,8 +505,10 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
   network calls, no base64.
 - **PS-303** Every library item, container and loot thing has an icon (items sharing a type share one), tinted by item
   kind; the loot pop-up shows each thing's icon.
-- **PS-304** Each class has one, shown on the class tree, the Character page's Class line and the creation screen's
-  Starts (a Start shows its class's; The Blessed shows a holy symbol).
+- **PS-304** Each class has one of its own (Unwritten Legend, Knight Trainee and Knight have placeholders), shown on
+  the class tree, the Character page's Class line and the creation screen's Starts (a Start shows its class's; The
+  Blessed shows a holy symbol). On the Class line the icon stands in place of the class's name, which is its tip and
+  accessible name; the tier stays in words, and a next-level class shows as its icon too.
 - **PS-305** The map keeps its own glyphs (silhouettes blur at 12 px).
 - **PS-306** The credit line sits at the foot of the GM page and the licences in `src/ui/assets/icons-LICENSE.txt`.
 - **PS-307** Scales past 100: game-icons.net has supernatural subjects (rune blades, auras, creatures) for gear and

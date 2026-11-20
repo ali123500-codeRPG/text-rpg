@@ -230,12 +230,14 @@ function xpTrack(s: GameState, p: Actor, openClasses?: (opener: HTMLElement) => 
   const cur = p.core.classes.find((c) => c.state === 'current');
   const target = levelTarget(p);
   const name = (id: string) => lib.classes[id]?.name ?? id;
-  const line = [cur ? `${name(cur.classId)} · ${CLASS_TIERS.name(lib.classes[cur.classId]?.tier ?? 'tier_0')}` : 'No class',
-    target && target.classId !== cur?.classId ? `next level to ${name(target.classId)}` : ''].filter(Boolean).join(' · ');
+  // each class shows as its icon in place of its name (the name is the icon's tip); the tier stays in words
+  const next = target && target.classId !== cur?.classId ? target.classId : null;
+  const line: (Node | string)[] = cur ? [classIcon(cur.classId, name(cur.classId)), ` ${CLASS_TIERS.name(lib.classes[cur.classId]?.tier ?? 'tier_0')}`] : ['No class'];
+  if (next) line.push(' · next level to ', classIcon(next, name(next)));
   const cls: HTMLElement = openClasses
     ? h('button', { type: 'button', class: 'cs-class', 'aria-haspopup': 'dialog', title: 'Open the class tree: how classes link, and where your next level goes',
-      onclick: () => openClasses(cls) }, cur ? classIcon(cur.classId) : '', h('b', {}, line), h('span', { class: 'cs-class-go', 'aria-hidden': 'true' }, '›'))
-    : h('div', { class: 'cs-row' }, h('span', {}, 'Class'), h('b', {}, cur ? classIcon(cur.classId) : '', line));
+      onclick: () => openClasses(cls) }, h('b', {}, ...line), h('span', { class: 'cs-class-go', 'aria-hidden': 'true' }, '›'))
+    : h('div', { class: 'cs-row' }, h('span', {}, 'Class'), h('b', {}, ...line));
   return h('div', { class: 'cs-track' },
     h('div', { class: 'cs-row' }, h('span', {}, `Level ${charLevel(p)}`), h('b', {}, `${+pr.xp.toFixed(6)} / ${need} XP`)),
     h('div', { class: 'cs-bar' }, h('b', { style: `width:${xpFill(p).pct}%` })),

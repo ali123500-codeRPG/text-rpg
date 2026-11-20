@@ -34,9 +34,9 @@ const ICON_OF: Record<string, IconName> = {
   [IT.pack]: 'pack', [IT.sack]: 'sack', [IT.chest]: 'chest', [IT.crate]: 'crate',
 };
 const CLASS_ICON: Record<string, IconName> = {
-  [CL.swordsman]: 'swordsman', [CL.late_bloomer]: 'late_bloomer', [CL.sword_dancer]: 'sword_dancer', [CL.commoner]: 'commoner',
+  [CL.swordsman]: 'swordsman', [CL.late_bloomer]: 'cl_unwritten_legend', [CL.sword_dancer]: 'sword_dancer', [CL.commoner]: 'commoner',
   [CL.a_nobody]: 'a_nobody', [CL.a_somebody]: 'a_somebody', [CL.trader]: 'trader', [CL.merchant]: 'merchant', [CL.guard]: 'guard',
-  [CL.threadbounded]: 'threadbounded', [CL.blessed_by_imbra]: 'blessed', [CL.knight]: 'plate', [CL.knight_trainee]: 'plate', // NR13: plate until it has art of its own
+  [CL.threadbounded]: 'threadbounded', [CL.blessed_by_imbra]: 'blessed', [CL.knight]: 'cl_knight', [CL.knight_trainee]: 'cl_knight_trainee', // the cl_ picks are placeholders
 };
 /** MAP-69: what someone is, by race, when nothing they hold or wear stands out; a race not listed falls back on its body */
 const RACE_ICON: Record<string, IconName> = {
@@ -106,7 +106,12 @@ export function instanceIcon(s: GameState, instanceId: string, cls?: string): HT
   return itemIcon(iconName(s, itemId), kind, cls);
 }
 
-/** a class's icon, small, beside its name (class tree, Character page, the Starts on the creation screen) */
-export const classIcon = (classId: string): HTMLElement => itemIcon(classIconName(classId), undefined, 'cico');
+/** a class's icon, small: beside its name (class tree, the Starts on the creation screen), or in place of it (Character page) */
+export const classIcon = (classId: string, label?: string): HTMLElement => {
+  const el = itemIcon(classIconName(classId), undefined, 'cico');
+  // with a label the icon stands in place of the class's name, which is its tip and accessible name
+  if (label) { el.setAttribute('role', 'img'); el.title = label; el.setAttribute('aria-label', label); }
+  return el;
+};
 /** a Start's icon: its class's; a Start whose class comes from a god's blessing (The Blessed) shows the blessing */
 export const startIcon = (start: { classId?: string }): HTMLElement => (start.classId ? classIcon(start.classId) : itemIcon('blessed', undefined, 'cico'));
