@@ -4,8 +4,9 @@
 //   gear, senses    every code file docs/systems.md lists under that system
 //   src/x.ts        that file
 // A test is near a changed file when it imports it, or imports a file that reaches it: a file in the same folder that
-// imports it (src/save/index.ts for src/save/checks.ts), or a barrel (index.ts) that re-exports one of its names, which
-// counts only when the test imports such a name. It is also near when it names the path (a doc a test reads) or, for
+// imports it (src/save/index.ts for src/save/checks.ts), the folder's entry beside it (src/config.ts for src/config/*),
+// or a barrel (index.ts) that re-exports one of its names, which counts only when the test imports such a name. It is
+// also near when it, or a script it imports, names the path (a doc a test reads, a file list in scripts/), or, for
 // changed src lines, selects an element by a quoted word on them (`[data-kind="search"]`). The whole import graph is not
 // followed: nearly every test reaches every file through tests/harness and the engine, so it would pick the whole suite.
 // Conservative fallback: a change to the build or test set-up (package.json, tsconfig, vitest configs, the setup file),
@@ -97,11 +98,13 @@ export function ownExports(text: string): string[] {
 }
 
 /** The files that carry a change to `target` to a test, each with the names that do (null: all of them): the target;
- *  the files in its folder that import it (their own code may call it); and barrels (index.ts) that re-export a name
- *  of one of those, through any chain of barrels. */
+ *  the files in its folder that import it (their own code may call it) and the folder's entry file beside it; and barrels
+ *  (index.ts) that re-export a name of one of those, through any chain of barrels. */
 export function reach(target: string, graph: Map<string, Edge[]>, read: (f: string) => string): Map<string, Set<string> | null> {
   const R = new Map<string, Set<string> | null>([[target, null]]);
-  for (const [f, es] of graph) if (f !== target && dirname(f) === dirname(target) && es.some((e) => e.file === target && !e.reexport)) R.set(f, null);
+  // its folder's files, and the folder's entry beside it (src/config.ts gathers src/config/*.ts)
+  const home = (f: string) => dirname(f) === dirname(target) || f === `${dirname(target)}.ts`;
+  for (const [f, es] of graph) if (f !== target && home(f) && es.some((e) => e.file === target && !e.reexport)) R.set(f, null);
   for (let grew = true; grew; ) {
     grew = false;
     for (const [f, es] of graph) {
@@ -146,8 +149,10 @@ export function testFiles(dir = 'tests', end = '.test.ts'): string[] {
 /** the tests near the changed or named paths. `graph` (file → its edges) adds the tests an import chain reaches. */
 export function pick(paths: string[], tests: string[], read: (f: string) => string, words: string[] = [], graph?: Map<string, Edge[]>): string[] {
   const reachOf = graph ? paths.filter((p) => graph.has(p)).map((p) => reach(p, graph, read)) : [];
-  return tests.filter((t) => paths.includes(t) || paths.some((p) => near(read(t), p)) || selects(read(t), words)
-    || (graph ? reachOf.some((R) => reaches(graph.get(t) ?? [], R)) : false));
+  // a script a test imports may name the files it checks (scripts/imports.ts lists resolve.ts and data.ts)
+  const scriptsOf = (t: string) => (graph?.get(t) ?? []).filter((e) => e.file?.startsWith('scripts/')).map((e) => e.file!);
+  return tests.filter((t) => paths.includes(t) || paths.some((p) => near(read(t), p) || scriptsOf(t).some((x) => read(x).includes(`'${p}'`)))
+    || selects(read(t), words) || (graph ? reachOf.some((R) => reaches(graph.get(t) ?? [], R)) : false));
 }
 
 /** every .ts file under src and tests, with its edges */
