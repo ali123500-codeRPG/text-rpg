@@ -3,6 +3,9 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bug-fix-log.md`.
 
+- 20/11/2026: `docs/instructions.md` section 2 (WF3 a): a Bug log row is ID, one line on what was wrong (at most 160
+  characters), status and claim issue (`#n`); the story is written once, in `docs/bug-fix-log.md`, which the PR links;
+  no second commit to write a PR number in. Rows up to BG-326 keep their form.
 - 20/11/2026: `docs/instructions.md` section 8: catch up with `main` by `npm run sync` (rebase, then a check that
   every line the branch added is still there); in a conflict keep both sides' edits and never take one side of a
   whole file; check a PR's `mergeable_state` after pushing, since a PR with a conflict gets no checks. `AGENTS.md`

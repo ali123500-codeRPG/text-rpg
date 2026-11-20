@@ -7,8 +7,8 @@ with where its full meaning lives. A term's rules are never defined here.
 
 - **D-n**: a parked ("deferred") item. One row each in the "Deferred items" table (`docs/spec/deferred-items.md`),
   with its options and a status. The table doubles as the decision log.
-- **BG-n**: a bug. One row each in the spec's "Bug log" (`docs/spec/bug-log.md`). The fix is described in
-  `docs/bug-fix-log.md`.
+- **BG-n**: a bug. One row each in the spec's "Bug log" (`docs/spec/bug-log.md`): ID, one line, status, claim issue.
+  Its story (what was wrong, what was done) is only in `docs/bug-fix-log.md`.
 - **OQ-n**: an open question from the original build. In the spec's "Open questions".
 - **Question IDs** (RH3, TL8, BF45): two letters and a number. The letters name one questionnaire the owner answered;
   "TL8 a" means option a of question TL8. They appear in the spec as the source of a decision. Some share their
