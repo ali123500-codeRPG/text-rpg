@@ -160,7 +160,7 @@ function charTiles(s: GameState, open: { essences: (b: HTMLElement) => void; per
   const pe = personalityOf(p);
   const tile = (key: string, label: string, value: Node | string, sub: Node | string, onclick: (b: HTMLElement) => void, full = false, lit = false) => {
     const b: HTMLElement = h('button', { type: 'button', class: 'cs-tile' + (lit ? ' lit' : ''), 'data-tile': key, 'aria-haspopup': 'dialog', title: full ? `Open ${label} full screen` : `Open ${label}`, onclick: () => onclick(b) },
-      h('span', { class: 'hs-label' }, label), h('b', {}, value), h('span', { class: 'cs-tile-sub' }, sub));
+      h('span', { class: 'hs-label' }, itemIcon(`tile_${key}` as IconName, undefined, 'mk-i'), label), h('b', {}, value), h('span', { class: 'cs-tile-sub' }, sub));
     return b;
   };
   return h('nav', { class: 'cs-tiles', 'aria-label': 'Character sections' },

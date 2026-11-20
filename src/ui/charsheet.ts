@@ -17,6 +17,7 @@ import { treeBlock } from '../ruleset/access';
 import { augmentWindow, burdenOf, burdenParts, groupRollBonus, learningWindow } from '../ruleset/improve';
 import { ended, h, safe } from './kit';
 import { classIcon, skillIcon } from './itemIcons';
+import { figIcon } from './power';
 import { openPop } from './pop';
 import { powerFigure, ratingIcons } from './power';
 import { ageText } from '../ruleset/age';
@@ -173,9 +174,9 @@ export function charCard(s: GameState, p: Actor, openClasses?: (opener: HTMLElem
     h('div', { class: 'cs-bodyrow' }, bodyButton(s, p),
       h('div', { class: 'cs-figs' },
         powerFigure(s, p),
-        atk ? figBtn('cs-fig', 'What makes up your standing attack', (el) => openAttackPop(s, p, el), h('b', {}, whole(atk.value)), h('span', {}, `Standing attack · ${atk.name}`))
-          : h('div', {}, h('b', {}, '—'), h('span', {}, 'Standing attack · no weapon')),
-        figBtn('cs-fig', 'What makes up your standing defense', (el) => openDefensePop(s, p, el), h('b', {}, whole(def.value)), h('span', {}, `Standing defense · ${def.kind}`)))),
+        atk ? figBtn('cs-fig', `Standing attack · ${atk.name}`, (el) => openAttackPop(s, p, el), figIcon('fig_attack', `Standing attack · ${atk.name}`), h('b', {}, whole(atk.value)))
+          : h('div', { class: 'cs-fig', title: 'Standing attack · no weapon' }, figIcon('fig_attack', 'Standing attack · no weapon'), h('b', {}, '—')),
+        figBtn('cs-fig', `Standing defense · ${def.kind}`, (el) => openDefensePop(s, p, el), figIcon('fig_defense', `Standing defense · ${def.kind}`), h('b', {}, whole(def.value))))),
     ratingIcons(s, p));
 }
 

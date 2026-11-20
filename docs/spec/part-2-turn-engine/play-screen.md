@@ -449,6 +449,11 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 - **PS-277** Every skill row starts with the skill's icon, tinted its tree's colour (SKILL\_ICON in
   src/ui/itemIcons.ts; a skill shares an item or class icon where one fits). The tree bands are at least 220 px wide,
   so more trees sit in one row.
+- **PS-278** Each section tile under the Character page (Essences, Perks, Gear, Personality) shows its icon before its
+  label (the tile_ picks in scripts/icons.mjs).
+- **PS-279** The card's Power, Standing attack and Standing defense figures show an icon in place of their words; the
+  words (with the weapon or the defense kind) are the tip and accessible name, and the number keeps the dotted underline
+  that says it opens.
 
 #### Inventory equipment
 

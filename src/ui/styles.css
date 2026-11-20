@@ -341,6 +341,7 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .cs-tile { display: grid; gap: 2px; justify-items: start; min-width: 0; text-align: left; padding: var(--space-3) var(--space-4); border: 0; border-radius: var(--r-lg);
   background: none; color: var(--text); font: inherit; cursor: pointer; transition: background-color var(--m-feedback) var(--m-ease); }
 .cs-tile:hover, .cs-tile:focus-visible { background: var(--accent-soft); }
+.cs-tile .hs-label .mk-i { margin-right: 6px; color: var(--muted); }
 .cs-tile b { font-size: 20px; font-weight: 800; line-height: 1.2; }
 .cs-tile-sub { max-width: 100%; color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cs-tile.lit[data-tile="perks"] b { color: var(--perk-20); }
@@ -453,8 +454,10 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .cs-figs span { font-size: 13px; color: var(--muted); }
 /* D-273: the power rating, a button across both columns; its pop-up lists each part */
 .cs-figs .cs-power { grid-column: 1 / -1; }
-.cs-figs :is(.cs-power, .cs-fig) { display: grid; justify-items: start; text-align: left; background: none; border: 0; padding: 0; color: inherit; font: inherit; cursor: pointer; }
-.cs-figs :is(.cs-power, .cs-fig) span { text-decoration: underline dotted; text-underline-offset: 3px; }
+.cs-figs :is(.cs-power, .cs-fig) { display: flex; align-items: center; gap: var(--space-2); text-align: left; background: none; border: 0; padding: 0; color: inherit; font: inherit; cursor: pointer; }
+.cs-figs div.cs-fig { cursor: default; }
+.cs-figs :is(.cs-power, .cs-fig) .mk-i { width: 22px; height: 22px; color: var(--muted); }
+.cs-figs :is(.cs-power, button.cs-fig) b { text-decoration: underline dotted var(--faint); text-underline-offset: 5px; text-decoration-thickness: 1px; }
 .cs-figs :is(.cs-power, .cs-fig):is(:hover, :focus-visible) b { color: var(--accent); }
 /* the six compound ratings: icon and number in one row; the name is the tip */
 .cs-ratings { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--space-2, 8px); border-top: 1px solid var(--border); padding-top: 12px; }
