@@ -319,7 +319,7 @@ Positions in real metres, floor plans and their drawing, walls, doors and barrie
 furniture, ground items; the Map and minimap screens (see the `rpg-map` skill).
 
 - Spec: [reach-range-cover-and-light.md](spec/part-3-health/reach-range-cover-and-light.md),
-  [game-state-model.md](spec/part-2-turn-engine/game-state-model.md)
+  [game-state-model.md](spec/part-2-turn-engine/game-state-model.md), [map.md](spec/part-2-turn-engine/map.md)
 - History: [history-positions-land-titles.md](memory/history-positions-land-titles.md),
   [history-doors-cover-walls-map.md](memory/history-doors-cover-walls-map.md)
 - Code:

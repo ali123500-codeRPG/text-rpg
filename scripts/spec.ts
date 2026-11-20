@@ -37,7 +37,14 @@ export function sections(lines: string[]): Section[] {
 export function idRows(lines: string[], id: string): string[] {
   const row = new RegExp(`^(\\| ${id} \\||(- )?\\**${id}\\b(?!-))`);
   const own = sections(lines).filter((s) => new RegExp(`^${id}\\b`).test(s.title));
-  return [...lines.filter((l) => row.test(l)), ...own.map((s) => lines.slice(s.start, s.end).join('\n'))];
+  // a wrapped rule goes on in lines indented under it, up to the next item or a blank line
+  const rule = (i: number) => {
+    let end = i + 1;
+    while (end < lines.length && /^\s+\S/.test(lines[end]) && !/^\s*[-*] /.test(lines[end])) end++;
+    return lines.slice(i, end).join('\n');
+  };
+  const rows = lines.flatMap((l, i) => (row.test(l) ? [rule(i)] : []));
+  return [...rows, ...own.map((s) => lines.slice(s.start, s.end).join('\n'))];
 }
 
 /** the innermost section holding each line that mentions the text, with how many lines do */

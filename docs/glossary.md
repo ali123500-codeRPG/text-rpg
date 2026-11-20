@@ -15,7 +15,7 @@ with where its full meaning lives. A term's rules are never defined here.
   letters with a library prefix (ST, SK, IT): the context tells which is meant. Pick new letters that are free of
   both.
 - **M-nn**: a play screen motion rule. Spec, "### Play screen motion".
-- **MAP-nn**: a map rule. `.agents/skills/rpg-map/SKILL.md`.
+- **MAP-nn**: a map rule. `docs/spec/part-2-turn-engine/map.md`.
 - **GF-nn**: a game-feel rule. `.agents/skills/game-feel/SKILL.md`.
 - **Numbers are never reused.** An answered question or a retired item keeps its ID.
 

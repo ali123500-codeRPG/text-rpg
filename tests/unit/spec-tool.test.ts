@@ -24,6 +24,7 @@ describe('spec tool', () => {
     expect(idRows(doc, 'OQ-9')).toEqual(['- OQ-9: the ninth']);
     expect(idRows(doc, 'BG-7')).toEqual(['## BG-7\n**What was wrong:** x']);
     expect(idRows(doc, 'D-3')).toEqual([]);
+    expect(idRows(['- **MAP-4** One rule', '  wrapped on.', '- **MAP-5** next'], 'MAP-4')).toEqual(['- **MAP-4** One rule\n  wrapped on.']);
   });
 
   it('a mention is counted in the innermost section that holds it', () => {
