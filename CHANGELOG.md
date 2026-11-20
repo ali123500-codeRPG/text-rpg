@@ -3,16 +3,18 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bug-fix-log.md`.
 
+- 20/11/2026: `docs/instructions.md` section 8: catch up with `main` by `npm run sync` (rebase, then a check that
+  every line the branch added is still there); in a conflict keep both sides' edits and never take one side of a
+  whole file; check a PR's `mergeable_state` after pushing, since a PR with a conflict gets no checks. `AGENTS.md`
+  names `npm run sync`.
 - 20/11/2026: The map's rules (MAP-nn) have one home, `docs/spec/part-2-turn-engine/map.md`, which also takes in the
   Map and minimap text from the Play screen topic. The `rpg-map` skill keeps only the working method (MAP-01 and
   check, then look) and points to `src/ui/mapCheck.ts` instead of carrying a copy of the checker; its design skills
   are now those `docs/instructions.md` section 7 requires. Section 7's last bullet names the rules' home.
-
 - 20/11/2026: The spec is split into one file per topic under `docs/spec/`; `docs/build-spec.md` is its index.
   `AGENTS.md` and `docs/instructions.md` section 1 point to it, `AGENTS.md` names `docs/systems.md` as where a task
   starts and lists the finding-your-way commands (`npm run spec`, `npm run test:near`, the dev views, the Map's
   smoke test).
-
 - 20/11/2026: One Questions hub for both Claude accounts. New questionnaires go to a shared Supabase table, and each
   account's hub page shows it beside its own older questionnaires (`tools/questions-hub/README.md`, "Where the data
   lives"). `docs/providers/claude.md` "Questions" and "Claude on another account" say where to write and read.

@@ -5,7 +5,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 // @ts-expect-error Node types are not installed; vitest runs in Node
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { near, pick, systemFiles } from '../../scripts/test-near';
+import { changedWords, near, pick, selects, systemFiles } from '../../scripts/test-near';
 
 const map = readFileSync('docs/systems.md', 'utf8');
 const systems = systemFiles(map);
@@ -39,5 +39,13 @@ describe('test:near', () => {
   it('picks changed tests and the tests near changed files', () => {
     const text: Record<string, string> = { 'a.test.ts': "from '../src/x'", 'b.test.ts': "from '../src/y'", 'c.test.ts': '' };
     expect(pick(['src/x.ts', 'c.test.ts'], Object.keys(text), (f) => text[f])).toEqual(['a.test.ts', 'c.test.ts']);
+  });
+
+  it('a key renamed on a changed src line reaches the tests that select by it, in either quote style', () => {
+    const words = changedWords("-  add('look', 'use', 'Look around', []);\n+  add('search', 'use', 'Search', []);\n   add('skip', 'use');");
+    expect(words).toEqual(['look', 'use', 'search', 'Search']);
+    expect(selects('page.locator(\'[data-kind="search"]\')', words)).toBe(true);
+    expect(selects("el.querySelector(\"[data-kind='look']\")", words)).toBe(true);
+    expect(selects('const look = 1;', words)).toBe(false);
   });
 });

@@ -8,7 +8,8 @@ How to use it for a task:
 
 1. Find the system below; `npm run spec -- --file docs/systems.md gear` prints just one. Open its spec topic files
    (the Spec line), or find where a term or file is ruled with `npm run spec -- --grep <text>`. Look up an ID with
-   `npm run spec -- BG-12` (also D-n, OQ-n, MAP-n).
+   `npm run spec -- BG-12` (also D-n, OQ-n, MAP-n); a question ID (`LS3`) lists every line in the spec and
+   `docs/memory/` that cites it, ranges included.
 2. Read its history files only for why a rule is the way it is.
 3. While working, run its nearest tests: `npm run test:near` (the files you changed) or `npm run test:near -- <key>`.
    Then run the full checks before pushing: `npm run typecheck`, `npm test`, `npm run build`.
