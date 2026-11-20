@@ -232,12 +232,11 @@ export function giveItem(state: GameState, actor: Actor, instId: string | null |
   return { id: moved.id, qty: n };
 }
 
-/** the armor gear op (free) and an NPC's equip action: put an armor piece on, or take it off when worn. Several pieces can be worn when no body part is
+/** the armor gear op (free): put an armor piece on, or take it off when worn. Several pieces can be worn when no body part is
  * covered twice (IR19): putting one on takes off the worn pieces that cover any of its parts. */
-export function equipArmor(state: GameState, actor: Actor, instId: string | null | undefined, dry = false): boolean {
+export function equipArmor(state: GameState, actor: Actor, instId: string | null | undefined): boolean {
   const inst = actor.core.inventory.find((x) => x.id === instId);
   if (!inst || itemDef(state, inst.itemId).slot !== 'armor') return false;
-  if (dry) return inArmorSlot(inst) || !inst.equippedIn?.length; // AT45: would it go through
   if (inArmorSlot(inst)) {
     delete inst.equippedIn;
     return true;
