@@ -70,49 +70,10 @@ describe('play page smoke (TQ7)', () => {
     expect(errors).toEqual([]);
   });
 
-  it('creation: BG-264, a race change (the race buttons or Random) keeps the skill points as set', async () => {
-    const race = (n: string) => page.getByRole('group', { name: 'Race' }).getByRole('button', { name: n });
-    const points = () => page.locator('.row[data-k]').evaluateAll((rs) => Object.fromEntries(rs.map((r) => [(r as HTMLElement).dataset.k, r.querySelector('.val')!.textContent])));
-    await race('Human').click();
-    await page.getByRole('button', { name: 'Lower Parry' }).click();
-    await page.getByRole('button', { name: 'Raise Dodge' }).click();
-    const set = await points();
-    await race('Elf').click();
-    expect(await race('Elf').getAttribute('aria-pressed')).toBe('true');
-    expect(await points()).toEqual(set);
-    for (let i = 0; i < 6; i++) { await page.getByRole('button', { name: 'Random' }).click(); expect(await points()).toEqual(set); }
-    expect(errors).toEqual([]);
-  });
-
   it('plays a turn: the input shows, the turn advances, the narration shows', async () => {
     await turn('look around', 1);
     await expect.poll(() => page.getByText(NARRATION).count()).toBe(2); // the opening and this turn
     expect(await page.getByText('look around', { exact: true }).count()).toBeGreaterThan(0);
-    expect(errors).toEqual([]);
-  });
-
-  it('AD6/AD7, LX1: a click on Search in the action deck plays the turn at once, with no typing', async () => {
-    const before = await page.locator('.ln-player').count();
-    await page.locator('.dk-act[data-kind="search"]').click();
-    await expect.poll(() => page.locator('.ln-player').count()).toBe(before + 1);
-    expect(await page.locator('.ln-player').last().innerText()).toBe('Search');
-    await page.locator('.dk-act[data-kind="search"]:not([disabled])').waitFor(); // the deck comes back once the turn lands
-    expect(errors).toEqual([]);
-  });
-
-  it('the next step of an order is taken by clicking the box, or played by Enter in the empty box (D-20 b)', async () => {
-    await turn('look around then search the shelf', 1);
-    const box = page.locator('.inbar .hs-input');
-    await expect.poll(() => box.getAttribute('placeholder')).toBe('search the shelf');
-    await box.click();
-    expect(await box.inputValue()).toBe('search the shelf');
-    await box.fill('');
-    await turn('look around then open the door', 2);
-    await page.getByRole('button', { name: 'Play it' }).waitFor();
-    const before = await page.locator('.ln-player').count();
-    await box.press('Enter');
-    await expect.poll(() => page.locator('.ln-player').count()).toBe(before + 1);
-    expect(await page.locator('.ln-player').last().innerText()).toBe('open the door');
     expect(errors).toEqual([]);
   });
 

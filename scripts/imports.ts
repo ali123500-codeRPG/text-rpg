@@ -2,7 +2,7 @@
 // add different names to the same import then touch different lines, so they merge. Statement order is kept as written,
 // because it is the order modules first run in; imports placed lower in a file move up to join the header, which keeps
 // that order (imports run before the file's own code wherever they stand). Run `node scripts/imports.ts` to rewrite the
-// files; tests/unit/imports-format.test.ts fails while one is out of form. Plain-syntax TypeScript so Node 22 runs it.
+// files. Plain-syntax TypeScript so Node 22 runs it.
 // @ts-expect-error Node types are not installed; Node runs this file
 import { readFileSync, writeFileSync } from 'node:fs';
 // @ts-expect-error Node types are not installed; Node runs this file

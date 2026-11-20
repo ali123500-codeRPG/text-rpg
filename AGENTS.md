@@ -53,7 +53,7 @@ project: "the owner" below is its designer and its only player.
     recommendation, through the channel your provider file names. Never bury a question in a progress message, and
     never act on an answer the owner did not give.
 11. **No decision stamps in code.** No names of who ruled and no dates in `src`, `tests` or `scripts`, nor in game
-    text. Why a rule changed belongs in the PR and the spec (`tests/unit/no-stamps.test.ts` enforces this). A
+    text. Why a rule changed belongs in the PR and the spec. A
     question ID or a D-n in a comment is fine.
 12. **A parked item gets its ID the same turn.** Anything the owner parks gets a D-n row in the spec's "Deferred items"
     table, with its options written out.

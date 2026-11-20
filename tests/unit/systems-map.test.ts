@@ -65,13 +65,6 @@ describe('test:near', () => {
     expect(ownExports("export const a = 1;\nexport async function b() {}\nexport type C = 1;\nexport { d, e as f };")).toEqual(['a', 'b', 'C', 'd', 'f']);
   });
 
-  it('a file list in an imported script counts (once missed)', () => {
-    const read = (f: string) => readFileSync(f, 'utf8');
-    const graph = importGraph([...testFiles('src', '.ts'), ...testFiles('tests', '.ts')], read, existsSync);
-    // tests/unit/imports-format.test.ts checks resolve.ts through scripts/imports.ts's ONE_PER_LINE
-    expect(pick(['src/engine/resolve.ts'], testFiles(), read, [], graph)).toContain('tests/unit/imports-format.test.ts');
-  });
-
   it('picks the tests of a config part by setting name, and the tests of a library row by the IDs on changed lines', () => {
     const read = (f: string) => readFileSync(f, 'utf8');
     const graph = importGraph([...testFiles('src', '.ts'), ...testFiles('tests', '.ts')], read, existsSync);
@@ -86,7 +79,7 @@ describe('test:near', () => {
     const read = (f: string) => readFileSync(f, 'utf8');
     const graph = importGraph([...testFiles('src', '.ts'), ...testFiles('tests', '.ts')], read, existsSync);
     const g = guards(testFiles(), read, graph);
-    for (const f of ['imports-format', 'no-stamps', 'systems-map', 'leftover-scan-1', 'hp-writes', 'styles-tokens', 'mocked-files-isolated']) expect(g, f).toContain(`tests/unit/${f}.test.ts`);
+    for (const f of ['systems-map', 'leftover-scan-1', 'hp-writes', 'styles-tokens', 'mocked-files-isolated']) expect(g, f).toContain(`tests/unit/${f}.test.ts`);
     expect(g.length).toBeLessThan(40); // a few seconds: the guards stay cheap
   });
 

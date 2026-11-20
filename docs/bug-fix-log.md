@@ -6,8 +6,8 @@ This is the one home of each bug's story: the Bug log row is one line and the PR
 claim issue (`#n`). Entries up to BG-326, which name the PR, are in `docs/bug-fix-log-archive.md`. Where an older Bug log row held more than its entry (a question
 ID, a PR, a code name), the entry ends with that row as filed, kept when the rows were cut to one line (#1160).
 
-Every thread that fixes a bug adds its entry here in the fixing PR, newest at the top (tests/unit/bug-fix-log.test.ts checks that every
-fixed row in the spec's bug log, docs/spec/bug-log.md, has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
+Every thread that fixes a bug adds its entry here in the fixing PR, newest at the top: every
+fixed row in the spec's bug log, docs/spec/bug-log.md, has one. Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
 ## BG-343
