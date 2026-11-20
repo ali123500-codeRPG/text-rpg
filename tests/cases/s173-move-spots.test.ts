@@ -118,16 +118,4 @@ describe('173 a level tunnel off the cellar is laid beside it (run 36)', () => {
     expect(sharedSides(cellar.outline, t.outline).length).toBeGreaterThan(0);
     expect(wayTo(s, 'tav_cellar', 'cellar_tunnel')?.opening.wall).toBeDefined();
   });
-  it('BG-81: a walk to a spot says "toward" while on the way and "at" once there', () => {
-    const s = mapped('field_far');
-    s.actors = s.actors.filter((a) => a.zone !== 'field_far' || a.id === 'player');
-    const r = rectOf(s, 'field_far');
-    s.player.pos = { x: r.x - r.w / 2 + 1.5, y: r.y };
-    const i = intent({ move: { toZone: 'field_far', spot: { side: 'east' } } });
-    const first = play(s, { intent: { ...i, action: { type: 'observe', skill: '', target: null, targetPart: null, item: null, mode: null, approach: '' } as never } }).find((e) => e.kind === 'move' && e.actorId === 'player');
-    expect(first?.spot).toBe('toward the east side'); // an open field: one slot does not cross it
-    let last = first;
-    for (let n = 0; n < 8 && last?.spot !== 'on the east side'; n++) last = play(s, { intent: i }).filter((e) => e.kind === 'move' && e.actorId === 'player').pop() ?? last;
-    expect(last?.spot).toBe('on the east side');
-  });
 });

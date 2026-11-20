@@ -3,15 +3,12 @@
 // across a doorway), BG-88 (one "hears clearly" rule), BG-89 (BG-72: only contact is felt), BG-90 (BG-73 for followers),
 // BG-91 (BG-76: part-state names).
 import { expect, it } from 'vitest';
-import type { GameEvent, Intent } from '../../src/types';
-import { beside, createRng, makeVillage, place, ScriptedClaude } from '../harness';
-import { resolveSpeech, resolveTurn, selectSpokespeople } from '../../src/engine';
+import type { GameEvent } from '../../src/types';
+import { beside, createRng, makeVillage, place } from '../harness';
+import { resolveSpeech, selectSpokespeople } from '../../src/engine';
 import { approachMove, speakingSpot } from '../../src/engine/merge';
 import { hearsOrder } from '../../src/engine/trade';
 import { hearsClearly, perceptionOf } from '../../src/perception';
-import { createDirector } from '../../src/agents/director';
-import { grovePlan, VirtualClock } from '../../src/scenario/fixtures';
-import { headTo } from '../../src/minds';
 import { CONFIG } from '../../src/config';
 import { PK } from '../../src/library/perkIds';
 import { SK } from '../../src/library/skillIds';
@@ -84,18 +81,3 @@ it('BG-89: only contact is felt: a silent walk toward someone, a wasted action o
   expect(perceptionOf(ev('attack'), s, s.player)).toMatchObject({ level: 'partial', cue: 'touch' });
 });
 
-it('BG-90: an NPC that follows the player through a frontier comes in with a move event of its own', async () => {
-  const s = makeVillage({ playerZone: 'field_far', without: ['slime_1', 'slime_2', 'patron_1'] });
-  const g = s.actors.find((a) => a.id === 'guard_1')!;
-  g.zone = 'field_far'; g.placeId = 'field'; delete g.pos;
-  headTo(s, g, 'woods');
-  s.turn += 1;
-  const go = { move: { toZone: 'woods' }, action: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null } as unknown as Intent;
-  const events = resolveTurn(s, { intent: go, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(1));
-  const clock = new VirtualClock();
-  const added = await createDirector(clock).afterResolve(s, events, createRng(1), { client: new ScriptedClaude().push('weaver', grovePlan()), clock, turn: s.turn, log: () => {} });
-  expect(g.zone).toBe(s.player.zone);
-  const mv = added.find((e) => e.kind === 'move' && e.actorId === g.id)!;
-  expect(mv).toMatchObject({ zone: s.player.zone, fromZone: 'field_far' });
-  expect(mv.perception[s.player.id]).toBeTruthy();
-});

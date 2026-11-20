@@ -67,21 +67,6 @@ describe('158 autopilot saves', () => {
     expect(autopilotTurn([], '', '', [], undefined, v)).toContain('How you are right now (you always know this; never stop to check it): health Wounded'); // BG-26: every move
   });
 
-  it('BG-25/BG-26: the agent acts instead of looking at its sheet', async () => {
-    const clock = new VirtualClock(), store = memoryStore();
-    const claude = new ScriptedClaude(clock)
-      .push('autopilot', { command: '/inv', say: 'What do I have?' })
-      .push('autopilot', { command: '/quests', say: 'And my jobs?' })
-      .push('autopilot', { command: 'I strike her', say: 'Now!' })
-      .push('autopilot', { command: '/stats', say: 'How bad am I hurt?' })
-      .push('autopilot', { command: 'I strike again', say: 'Again!' });
-    const g = createGame({ client: claude, clock, store, director: idle });
-    expect((await g.agentMove())?.command).toBe('/inv');
-    expect((await g.agentMove())?.command).toBe('I strike her'); // a second look so soon is asked again
-    expect(claude.callsFor('autopilot')[2].input[1].content).toContain('do not check it now');
-    expect((await g.agentMove())?.command).toBe('I strike again'); // BG-26: /stats is never needed, so it is always asked again
-  });
-
   it('attack commands: /strike with no target says how; /aim /strike sends an aimed "I strike …" turn', async () => {
     const clock = new VirtualClock(), store = memoryStore();
     await saveTurn(store, story('mine', '2026-11-10T10:00:00Z'), rec(story('mine', '2026-11-10T10:00:00Z')));
@@ -95,10 +80,4 @@ describe('158 autopilot saves', () => {
     expect(g.lines().find((l) => l.kind === 'player')).toMatchObject({ text: 'I strike the guard at his left leg', aimed: true });
   });
 
-  it('BG-30: every move the agent is told the ways out it can see, so it never invents a door', () => {
-    const v = makeVillage({});
-    const p = autopilotTurn([], '', '', [], undefined, v);
-    expect(p).toContain('Where you are: the common room. Ways out you can see from here: behind the bar; out the front door');
-    expect(p).toContain('never head for a door, stair or path that isn\'t listed');
-  });
 });

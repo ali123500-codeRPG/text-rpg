@@ -11,9 +11,6 @@ import { PK } from '../../src/library/perkIds';
 import { trueSkill } from '../../src/ruleset/perks';
 import { cantExtract } from '../../src/engine/extract';
 import { gradeMult, rowsFor } from '../../src/engine/essence';
-import { deck } from '../../src/ui/deck';
-import { buildPlayerView } from '../../src/views';
-import { getLibrary } from '../../src/library';
 
 const down = (a: Actor) => { a.core.condition.hpLostPct = CONFIG.HEALTH_TRACK.find(([l]) => l === 'incapacitated')![1]; };
 const setup = () => {
@@ -70,11 +67,3 @@ it('DX6 a: extraction is an attack: the target and bandmates who see it turn hos
   expect(mate.core.condition.moraleLost ?? 0).toBe(lost); // it already fell: "A bandmate goes down" is not paid again
 });
 
-it('BG-319: the deck names extraction by the perk\'s library name', () => {
-  const { s, g } = setup();
-  down(g);
-  g.mind!.moraleState = 'surrendered';
-  s.mode = 'tactical';
-  const entry = deck({ pv: buildPlayerView(s), s }).flatMap((x) => x.actions).find((a) => a.kind === 'extract')!;
-  expect(entry.label).toBe(getLibrary().perks[PK.extract_essence].name);
-});

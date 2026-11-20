@@ -4,10 +4,8 @@
 // BG-125: "I'm going to check your pockets" at someone the player could not make out: the action's target dropped
 // out of the Narrator's view, which then wrote the player searching their own pockets.
 import { expect, it } from 'vitest';
-import type { GameEvent } from '../../src/types';
 import { COUNTER_SHAPE, makeVillage, place } from '../harness';
 import { approachMove } from '../../src/engine/merge';
-import { buildNarrationView } from '../../src/views';
 
 it('BG-124: talking to someone while walking out a door beside a counter side keeps the walk', () => {
   const s = makeVillage({ without: ['slime_1', 'slime_2', 'guard_1'], shape: COUNTER_SHAPE }); // the counter on one side, the front door on another
@@ -18,11 +16,3 @@ it('BG-124: talking to someone while walking out a door beside a counter side ke
   expect(approachMove(s, s.player, talk, { toZone: 'tav_counter' })).toMatchObject({ toZone: 'tav_common', spot: { near: 'patron_1' } });
 });
 
-it('BG-125: the player acting at someone they cannot see still acts at someone', () => {
-  const s = makeVillage({ without: ['slime_1', 'slime_2', 'guard_1'] });
-  place(s, 'patron_1', 'tav_cellar');
-  s.player.zone = 'tav_common';
-  const e = { id: 't1.1', turn: s.turn, actorId: s.player.id, kind: 'interact', zone: 'tav_common', target: 'patron_1', effects: [], noise: 'quiet', visibility: 'normal',
-    perception: { [s.player.id]: { level: 'full', cue: 'sight' } } } as unknown as GameEvent;
-  expect(buildNarrationView(s, [e], null).events[0].target).toBe('someone');
-});

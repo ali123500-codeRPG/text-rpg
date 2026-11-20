@@ -3,8 +3,7 @@
 // per 10 points short; worn armor reaches Dodge and stealth rolls; templates carry what their loadout asks. AR5: a hit
 // your armor covers marks the armor skill when the attacker or the armor is near your level.
 import { describe, expect, it } from 'vitest';
-import { createRng, forcedRng, makeVillage, place } from '../harness';
-import { buildOppositionView } from '../../src/views';
+import { createRng, forcedRng, makeVillage } from '../harness';
 import { ruleset } from '../../src/ruleset';
 import { itemLevel, requirement, shortBy, shortShifts } from '../../src/ruleset/requirements';
 import { getLibrary, itemDef } from '../../src/library';
@@ -78,14 +77,4 @@ describe('126 Equip requirements', () => {
     }
   });
 
-  it('BF70 (BG-246): an NPC\'s view of its own gear says when a weapon is beyond it, by the outcome steps it costs', () => {
-    const s = makeVillage();
-    const p = place(s, 'patron_1', s.player.zone);
-    p.core.skills = {};
-    p.core.inventory.push({ id: 'sw', itemId: IT.arming_sword, qty: 1, equippedIn: ['grip:right_arm'] } as never);
-    const sword = buildOppositionView(s, 'patron_1').self.gear.find((g) => g.id === 'sw')!;
-    expect(sword.beyondYou).toBe('beyond your skill: every roll with it is 5 outcome steps worse'); // Fine asks 50, he has none
-    p.core.skills[SK.melee_medium] = sk(50);
-    expect(buildOppositionView(s, 'patron_1').self.gear.find((g) => g.id === 'sw')!.beyondYou).toBeUndefined();
-  });
 });

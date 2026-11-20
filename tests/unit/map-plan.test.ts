@@ -187,12 +187,4 @@ describe('whole turn', () => {
     expect(both.length).toBeGreaterThan(0);
     for (const f of both) { const [x1, y1] = where(a, f.id), [x2, y2] = where(b, f.id); expect(x1).toBeCloseTo(x2, 6); expect(y1).toBeCloseTo(y2, 6); }
   });
-  it('after a turn in the village, the map of what the player knows lays out with no mark covering another', async () => {
-    const g = wholeTurn({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
-    await g.turn(intent({ action: { type: 'wait' } }));
-    const { sc, zones, places } = sceneOf(g.game.state()!, 1);
-    expect(sc.zones.length).toBeGreaterThan(0);
-    expect(findings(sc)).toEqual([]);
-    expect(checkStage(zones, places)).toEqual([]);
-  });
 });

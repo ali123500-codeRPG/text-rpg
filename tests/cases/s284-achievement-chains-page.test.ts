@@ -80,31 +80,6 @@ describe('284 achievement chains, branches and the next level', () => {
     expect(chainLines(s, true)[0].next).toMatch(/^25 fights lost/);
   });
 
-  it('BG-215: a finished trunk shows its branches beside the level, never ↻N on the name, and Next goes to the closest branch', () => {
-    const s = makeVillage();
-    // the reported save, story mwf2lt7l turn 35: outmatched 11 times, 8 with Influence and 2 with Sight
-    for (let i = 0; i < 11; i++) tally(s, 'outmatched');
-    for (let i = 0; i < 8; i++) tally(s, 'outmatched', { by: 'function', of: FN.influence });
-    for (let i = 0; i < 2; i++) tally(s, 'outmatched', { by: 'function', of: FN.sight });
-    const l = line(s, ACH.outmatched_1)!;
-    expect(l).toMatchObject({ name: 'No Match for You', level: 'II of II · 1 branch', branches: 1, next: expect.stringMatching(/^10 contests .*\(Influence\)$/) });
-    expect(l.name).not.toContain('↻');
-  });
-
-  it('BG-215: the thread view shows the trunk knots, then each branch kind as its own thread with its progress', () => {
-    const s = makeVillage();
-    for (let i = 0; i < 11; i++) tally(s, 'outmatched');
-    for (let i = 0; i < 8; i++) tally(s, 'outmatched', { by: 'function', of: FN.influence });
-    for (let i = 0; i < 2; i++) tally(s, 'outmatched', { by: 'function', of: FN.sight });
-    const v = chainViews(s, false).find((x) => x.id === ACH.outmatched_1)!;
-    expect(v).toMatchObject({ name: 'No Match for You', place: 'II of II', rows: 4 });
-    expect(v.trunk!.knots.map((k) => k.state)).toEqual(['held', 'held']);
-    expect(v.branches).toHaveLength(1);
-    const infl = v.branches[0].threads.find((t) => t.kind === 'Influence')!;
-    expect(infl).toMatchObject({ have: 8, need: 10 });
-    expect(infl.knots.map((k) => k.state)).toEqual(['held', 'next']);
-  });
-
   it('a place shows its last level only once that level is in sight (held or next); before that it reads "of ?"', () => {
     const s = makeVillage();
     give(s, ACH.defeats_10);

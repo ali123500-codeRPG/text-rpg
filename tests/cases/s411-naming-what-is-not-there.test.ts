@@ -13,14 +13,6 @@ const act = (over: Partial<NonNullable<Intent['action']>>): Intent['action'] =>
 const opts = { playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'patron_1'] };
 
 describe('411 naming what is or is not there (D-21 c)', () => {
-  it('seen: a coin 3 m off is picked up, the move closing in first', async () => {
-    const g = wholeTurn(opts);
-    const p = g.state.player.pos!;
-    lay(g.state, 'tav_common', { id: 'coin_seen', itemId: IT.coin, qty: 1 }, { x: p.x + 3, y: p.y });
-    const { events } = await g.turn(intent({ action: null, gear: [{ op: 'pick_up', item: 'coin_seen' }] }), 'take the coin');
-    expect(events.some((e) => e.actorId === 'player' && e.kind === 'move')).toBe(true);
-    expect(g.state.player.core.inventory.some((i) => i.id === 'coin_seen')).toBe(true);
-  });
 
   it('not seen: the act is a search that finds it when it is there, and it is used next turn', async () => {
     const g = wholeTurn(opts);

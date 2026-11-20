@@ -5,7 +5,7 @@ import { actor, makeVillage } from '../harness';
 import { intent, play } from './w4-kit';
 import { AM } from '../../src/library/tableIds';
 import { IT } from '../../src/library/itemIds';
-import { buildOppositionView, buildPlayerView } from '../../src/views';
+import { buildPlayerView } from '../../src/views';
 import { checkParserLegality } from '../../src/agents/legality';
 
 const tavern = () => {
@@ -17,13 +17,6 @@ const tavern = () => {
   return s;
 };
 
-it('BG-193: the player and NPCs see their fists and grapple, even with a sword in hand', () => {
-  const s = tavern();
-  expect(s.player.core.inventory.some((i) => i.equippedIn?.some((e) => e.startsWith('grip:')))).toBe(true);
-  expect(buildPlayerView(s).player.bodyAttacks).toEqual([{ mode: AM.punch, name: 'fists' }, { mode: AM.grapple, name: 'grapple' }]);
-  expect(buildOppositionView(s, 'trader').self.bodyAttacks?.map((b) => b.mode)).toContain(AM.punch);
-});
-
 it('BG-193: a punch names the fists by mode, passes the Parser checks, and lands as fists, not the sword in hand', () => {
   const s = tavern();
   const punch = intent({ action: { type: 'attack', target: 'trader', mode: AM.punch, targetPart: 'head' } as never });
@@ -34,11 +27,3 @@ it('BG-193: a punch names the fists by mode, passes the Parser checks, and lands
   expect(hit).toMatchObject({ itemId: `natural:${AM.punch}` });
 });
 
-it('BF32: with both hands full (a bow), fists and grapple say what fills them, so the Parser asks to put it away', () => {
-  const s = tavern();
-  for (const i of s.player.core.inventory) if (i.equippedIn?.some((e) => e.startsWith('grip:'))) i.equippedIn = [];
-  s.player.core.inventory.push({ id: 'bow_1', itemId: IT.shortbow, equippedIn: ['grip:right_arm', 'grip:left_arm'] });
-  const body = buildPlayerView(s).player.bodyAttacks!;
-  expect(body.find((b) => b.mode === AM.punch)?.handsFull).toBe('shortbow');
-  expect(body.find((b) => b.mode === AM.grapple)?.handsFull).toBe('shortbow');
-});

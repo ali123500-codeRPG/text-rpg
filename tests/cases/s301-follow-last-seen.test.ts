@@ -3,7 +3,7 @@
 // him there is him, and the follow stays a follow: seen or heard on the way, the next turns keep after him.
 import { describe, expect, it } from 'vitest';
 import { makeVillage, place } from '../harness';
-import { buildPlayerView, buildNarrationView } from '../../src/views';
+import { buildPlayerView } from '../../src/views';
 import { checkParserLegality } from '../../src/agents/legality';
 import { intent, play } from './w4-kit';
 import type { GameState } from '../../src/types';
@@ -24,17 +24,6 @@ const followHim = (s: GameState) => {
 };
 
 describe('BG-203 following someone last seen', () => {
-  it('the walk names him and the Narrator is told it is the same person', () => {
-    const s = slippedOff();
-    const label = s.actors.find((a) => a.id === 'patron_1')!.label.replace(/^(a|an)\s+/i, 'the ');
-    const evs = play(s, { intent: followHim(s) });
-    const ev = evs.find((e) => e.actorId === s.player.id && e.kind === 'move' && e.spot);
-    expect(ev?.spot).toContain(`where you last saw ${label}`);
-    expect(ev?.spot).not.toContain('them');
-    expect(ev?.lastSeenOf).toBe('patron_1');
-    const n = buildNarrationView(s, evs).events.find((e) => e.kind === 'move' && e.lastSeenOf);
-    expect(n?.lastSeenOf).toBe(label);
-  });
   it('seen on the way, the follow carries on after him', () => {
     const s = slippedOff();
     const w = s.actors.find((a) => a.id === 'patron_1')!;

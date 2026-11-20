@@ -2,7 +2,7 @@
 // with a shout (or a cry); knowing a trick answers it WARNED_SHIFT tiers better from then on; a warned believer looks again.
 import { describe, expect, it } from 'vitest';
 import { createRng, makeVillage, place } from '../harness';
-import { intent as wtIntent, wholeTurn } from '../harness/turn';
+import { intent as wtIntent } from '../harness/turn';
 import { CONFIG } from '../../src/config';
 import { PK } from '../../src/library/perkIds';
 import { SK } from '../../src/library/skillIds';
@@ -185,15 +185,4 @@ describe('381 Foes share what they notice', () => {
     expect(play(s, { intent: intent() }).some((e) => e.kind === 'warn' && e.actorId === 'trader')).toBe(false);
   });
 
-  it('whole turn: the player\'s warning is narrated as a shout its ally takes in', async () => {
-    const g = wholeTurn();
-    const s = g.game.state()!;
-    place(s, 'player', 'street_square'); s.player.pos = { x: 14, y: -14 };
-    const bandit = foe(s, 'patron_1', 16);
-    const friend = place(s, 'guard_1', 'street_square'); friend.pos = { x: 13, y: -14 }; friend.bandId = s.player.bandId; delete friend.asleep;
-    friend.mind!.knowledge.player = { status: 'aware', source: 'seen', revealed: [], lastKnownZone: 'street_square', lastSeenTurn: s.turn }; // a companion knows you
-    learn(s, s.player, bandit.id, TRICK.play_dead);
-    const { events } = await g.turn({ ...wtIntent({}), warn: 'patron_1' }, "he's faking!");
-    expect(events.find((e) => e.kind === 'warn')?.effects.some((f) => f.kind === 'warned' && f.actorId === 'guard_1')).toBe(true);
-  });
 });

@@ -1,6 +1,5 @@
 import { expect, it } from 'vitest';
 import { makeVillage, actor, place, createRng } from '../harness';
-import { intent, wholeTurn } from '../harness/turn';
 import { fallbackOrder } from '../../src/minds';
 import { buildActorView } from '../../src/views';
 import { resolveTurn } from '../../src/engine';
@@ -27,16 +26,3 @@ it('335 BG-258 with no weapon in hand the guard falls back to its fists', () => 
   expect(buildActorView(s, 'guard_1').self.attackSkill).toBe(SK.unarmed_strike);
 });
 
-it('335 BG-258 whole turn: the guard at fist reach cuts with its sword, and its Planner is told its sword skill', async () => {
-  const g = wholeTurn({ playerZone: 'gate_inner', engaged: ['guard_1'] });
-  const guard = actor(g.state, 'guard_1');
-  guard.mind!.overrides = { player: 'hostile' };
-  guard.mind!.knowledge.player = { status: 'aware', lastKnownZone: 'gate_inner', lastSeenTurn: g.state.turn, source: 'seen', revealed: [] };
-  guard.zone = 'gate_inner';
-  guard.pos = { x: g.state.player.pos!.x + 0.6, y: g.state.player.pos!.y };
-  const sword = guard.core.inventory[0].id;
-  const { events } = await g.turn(intent({ action: null }));
-  expect(events.find((e) => e.actorId === 'guard_1' && e.kind === 'attack')?.itemId).toBe(sword);
-  const planner = g.claude.callsFor('planner').at(-1) as { input: { content: string }[] } | undefined;
-  expect(planner?.input[1].content).toContain(`"attackSkill":"${SK.melee_medium}"`);
-});

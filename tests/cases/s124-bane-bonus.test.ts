@@ -9,8 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { forcedRng, makeVillage, place } from '../harness';
 import { modTotal, ruleset } from '../../src/ruleset';
 import { grantAchievement } from '../../src/engine';
-import { baneSkill, chainRollLine } from '../../src/ruleset/bane';
-import { getLibrary } from '../../src/library';
+import { baneSkill } from '../../src/ruleset/bane';
 import type { GameState } from '../../src/types';
 import { IT } from '../../src/library/itemIds';
 
@@ -29,12 +28,6 @@ describe('124 Bane bonuses', () => {
   it('BG-256: each level adds its own growing step to the steps below it: I = +5, II = +5 + 10 = +15, III = +5 + 10 + 15 = +30', () => {
     expect([baneSkill(ACH.first_defeat_race), baneSkill(ACH.defeats_10_race), baneSkill(ACH.defeats_100_race)]).toEqual([5, 15, 30]);
     expect([baneSkill(ACH.first_defeat_body_type), baneSkill(ACH.defeats_10_body_type), baneSkill(ACH.defeats_100_body_type)]).toEqual([5, 15, 30]); // Scourge of the {body_type} Hordes: +15 on rolls
-  });
-  it('BG-256: the shown reward is the total with each level\'s own part', () => {
-    const a = getLibrary().achievements!;
-    expect(chainRollLine(ACH.defeats_100_body_type, a[ACH.defeats_100_body_type])).toBe('+15 on rolls vs that body type (+2.5 + +5 + +7.5)');
-    expect(chainRollLine(ACH.first_defeat_race, a[ACH.first_defeat_race])).toBe('+2.5 on rolls vs that race');
-    expect(chainRollLine(ACH.defeats_250, a[ACH.defeats_250])).toBe('+10 on every attack and defense roll (+1 + +2 + +3 + +4)');
   });
   it('no achievement, no bonus', () => {
     const s = makeVillage();

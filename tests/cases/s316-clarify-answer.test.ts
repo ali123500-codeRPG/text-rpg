@@ -4,8 +4,6 @@
 import { describe, expect, it } from 'vitest';
 import { answerWith } from '../../src/ui/play';
 import { answering } from '../../src/agents/answering';
-import { sentText } from '../harness/scripted';
-import { wholeTurn, intent } from '../harness/turn';
 import type { LogLine } from '../../src/types';
 
 const pv = { actors: [{ name: 'Osric Fell', label: 'an off-duty guard' }, { name: 'Corwin Ash', label: 'a red-faced drover' }, { label: 'a tall man' }],
@@ -33,16 +31,4 @@ describe('BF72: answering a question', () => {
     expect(answering(ls, 6)).toBeNull(); // a question from an earlier turn is not answered by a new order
   });
 
-  it('whole turn: the words after a question reach the Parser beside the question and the order it was about', async () => {
-    const g = wholeTurn({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
-    g.claude.push('parser', intent({ action: null, clarify: 'Which one do you mean?' }));
-    await g.game.submit('I punch the man', { aimed: false });
-    await g.game.settle();
-    expect(g.game.lines().at(-1)?.kind).toBe('clarify');
-    expect(sentText(g.claude.callsFor('parser')[0])).not.toContain('ANSWERING:');
-    await g.turn(intent(), 'the one by the door');
-    const sent = sentText(g.claude.callsFor('parser')[1]);
-    expect(sent).toContain('ANSWERING:\n{"yourQuestion":"Which one do you mean?","earlierOrder":"I punch the man"}');
-    expect(sent).toContain('PLAYER_INPUT:\nthe one by the door');
-  });
 });

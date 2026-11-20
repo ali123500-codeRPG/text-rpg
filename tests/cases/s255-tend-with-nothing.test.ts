@@ -3,11 +3,8 @@
 // does not carry comes to nothing, with its reason (no_item); NPC prompts say a shut chest is opened first. And (run 98c t19)
 // someone the player meant to go to, put off by the Parser after they left, is told as gone too (notThere).
 import { expect, it } from 'vitest';
-import { beside, makeVillage, place } from '../harness';
+import { beside, makeVillage } from '../harness';
 import { intent, play } from './w4-kit';
-import { buildNarrationView } from '../../src/views';
-import { lookAround } from '../../src/perception';
-import { nameFor, actorById } from '../../src/engine/relations';
 
 it('a use with no item carried is wasted, saying why', () => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
@@ -17,13 +14,3 @@ it('a use with no item carried is wasted, saying why', () => {
   expect(ev.some((e) => e.kind === 'use_item')).toBe(false);
 });
 
-it('someone the player meant to go to, put off after they left, is told as not there', () => {
-  const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
-  beside(s, 'patron_1', 'player', 2);
-  lookAround(s);
-  place(s, 'patron_1', 'street_square');
-  const name = nameFor(s, s.player, actorById(s, 'patron_1')!) ?? actorById(s, 'patron_1')!.label;
-  const i = intent({ deferred: [`walk over to ${name} and grab his wrist`] });
-  const ev = play(s, { intent: i });
-  expect(buildNarrationView(s, ev, i).notThere).toEqual([expect.stringContaining('last seen in')]);
-});

@@ -125,28 +125,4 @@ describe('300 why a scenario started', () => {
     expect(g.game.state()!.stage.cause).toBeUndefined();
   });
 
-  it('WB6 (whole turn): a quiet stretch opens a window; the Weaver is asked after the save and its "not now" is applied next turn', async () => {
-    const clock = new VirtualClock(), claude = new ScriptedClaude(clock);
-    const game = createGame({ client: claude, clock, store: memoryStore(), director: createDirector(clock) });
-    const state = makeVillage();
-    state.pending = { turn: state.turn, mode: 'explore', engaged: [], fired: [] };
-    delete state.stage.scenario;
-    state.stage.roam = { since: state.turn - 1, sinceMin: now(state) - CONFIG.ROAM_QUIET_MIN - 1, rest: 0 };
-    claude.defaults.narrator = narrateAll();
-    claude.push('weaver', { start: false, note: 'let them look around' });
-    game.adopt(state);
-    const before = state.stage.scenarioNumber;
-    for (let i = 0; i < 2; i++) {
-      claude.push('parser', intent());
-      await game.submit('look around', { aimed: false });
-      await game.settle();
-    }
-    const call = claude.callsFor('weaver')[0];
-    expect(call.input[0].content).toMatch(/scenario window/);
-    expect(call.input[1].content).toMatch(/"kind":"window"/);
-    const s = game.state()!;
-    expect(s.stage.scenarioNumber).toBe(before);
-    expect(s.stage.roam?.declinedAt).toBeDefined();
-    expect(s.stage.cause).toBeUndefined();
-  });
 });

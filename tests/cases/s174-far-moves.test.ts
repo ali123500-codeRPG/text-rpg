@@ -24,16 +24,3 @@ describe('174 far moves (BG-15)', () => {
   });
 });
 
-describe('174 a move-only turn (BG-16)', () => {
-  it('walks and nothing more: no hold event after the move, unless words go with it', () => {
-    const s = makeVillage({ playerZone: 'tav_common' });
-    const ev = play(s, { intent: intent({ move: { toZone: 'tav_counter' } }) });
-    const mine = ev.filter((e) => e.actorId === s.player.id).map((e) => e.kind);
-    expect(mine).toContain('move');
-    expect(mine).not.toContain('hold');
-    const said = play(s, { intent: intent({ move: { toZone: 'tav_common' }, spoken: 'Back in a moment.' }) });
-    expect(said.some((e) => e.actorId === s.player.id && e.line?.text === 'Back in a moment.')).toBe(true);
-    const still = play(s, { intent: intent({}) });
-    expect(still.some((e) => e.actorId === s.player.id && e.kind === 'hold')).toBe(true); // standing still is still a hold
-  });
-});

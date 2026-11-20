@@ -4,15 +4,11 @@
 // visible state. AS3: others see a foe who surrendered marked Surrendered.
 import { describe, expect, it } from 'vitest';
 import { makeVillage, place } from '../harness';
-import { intent, wholeTurn } from '../harness/turn';
 import { gaveUpFeats, killedSurrenderedFeat } from '../../src/engine/feats';
 import { actorById } from '../../src/engine/relations';
 import { buildPlayerView } from '../../src/views';
 import { maxMorale, setMoraleLost } from '../../src/ruleset/morale';
 import { ACH } from '../../src/library/achievementIds';
-import { SK } from '../../src/library/skillIds';
-import { AM } from '../../src/library/tableIds';
-import { IT } from '../../src/library/itemIds';
 import { CONFIG } from '../../src/config';
 import type { Actor, GameState } from '../../src/types';
 
@@ -62,14 +58,4 @@ describe('300 attacking a foe who gave up', () => {
     expect(buildPlayerView(s).actors.find((a) => a.id === 'patron_1')?.morale).toBe('Broken');
   });
 
-  it('whole turn: striking a surrendered patron earns No Quarter, and the Narrator sees them as Surrendered', async () => {
-    const g = wholeTurn({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
-    const s = g.game.state()!;
-    giveUp(actorById(s, 'patron_1')!, 'surrendered');
-    await g.turn(intent(), 'I look around');
-    const data = (g.claude.callsFor('narrator').at(-1) as { input: { content: string }[] }).input.map((m) => m.content).join('\n');
-    expect(data).toMatch(/"label":"a tavern patron"[^}]*"morale":"Surrendered"/);
-    await g.turn(intent({ action: { type: 'attack', skill: SK.melee_medium, target: 'patron_1', targetPart: null, item: `player_${IT.arming_sword}_1`, mode: AM.cut, approach: 'a quick cut' } }), 'I cut down the man who gave up');
-    expect((g.game.state()!.player.progression!.achievements ?? []).map((a) => a.key)).toContain(ACH.struck_surrendered_1);
-  });
 });

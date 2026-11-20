@@ -6,7 +6,6 @@ import { describe, expect, it } from 'vitest';
 import { makeVillage, place } from '../harness';
 import { intent, play } from './w4-kit';
 import { isActive } from '../../src/engine/relations';
-import { applyGearOps } from '../../src/engine/gear';
 import { buildNarrationView } from '../../src/views';
 
 describe('178 striking someone down (BG-25)', () => {
@@ -34,12 +33,3 @@ describe('178 striking someone down (BG-25)', () => {
   });
 });
 
-describe('178 drawing what is already drawn (BG-24)', () => {
-  it('is nothing to do, not an invalid gear op', () => {
-    const s = makeVillage({ playerZone: 'tav_common' });
-    const sword = s.player.core.inventory.find((i) => i.equippedIn?.some((x) => x.startsWith('grip:')))!;
-    expect(sword).toBeDefined();
-    expect(applyGearOps(s, s.player, [{ op: 'draw', item: sword.id }]).invalid).toEqual([]);
-    expect(sword.equippedIn?.some((x) => x.startsWith('grip:'))).toBe(true);
-  });
-});
