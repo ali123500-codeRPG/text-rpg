@@ -1,4 +1,4 @@
-// 406 BG-335: a turn whose head write failed is not in the save, so its story text is not saved either. Play goes on from
+// 406 BG-337: a turn whose head write failed is not in the save, so its story text is not saved either. Play goes on from
 // memory and the next good turn saves both; a reload instead finds the story column and the save on the same turn.
 import { describe, expect, it } from 'vitest';
 import { intent, wholeTurn } from '../harness/turn';

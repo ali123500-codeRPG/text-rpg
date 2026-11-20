@@ -27,11 +27,13 @@ roadmap, is linked from #1218.
 **Checked behaviour:**
 
 - Meta and story text are not part of the commit. Meta holds settings, which undo and restore do not rewind either, so
-  a meta that moved ahead mid-story is harmless. Two cases were bugs: BG-334 (a first save with no head) and BG-335
+  a meta that moved ahead mid-story is harmless. Two cases were bugs: BG-336 (a first save with no head) and BG-337
   (story text after a failed head write). Both fixed.
-- BG-336 (open, #1225): after `/undo`'s head write, a failed delete is reported as "nothing to undo".
+- BG-338 (open, #1225): after `/undo`'s head write, a failed delete is reported as "nothing to undo".
 - `useBookmark` (the undo or safety choice after a refused load, spec sections 8 and 10) has no caller outside tests.
-  A refused load only shows a notice. The safety bookmark is therefore never usable from the game.
+  A refused load only shows a notice, and a backup can't be restored either: backups are listed, and restored, only
+  once a story has loaded. So a refused load has no way back in the game but a new character, and the safety
+  bookmark is never usable.
 - `MIGRATIONS` holds one step (v10 → v11, BG-312), although `docs/instructions.md` section 4 says to write no
   migrations. The spec line saying it was empty is corrected.
 - Archived stories keep every page, turn record and backup (D-73), and they count toward the 25,000-document cap.

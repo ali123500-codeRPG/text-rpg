@@ -304,7 +304,7 @@ export const acquireTurnLock = (store: Store, storyId: string, owner: string) =>
 export const releaseTurnLock = (store: Store, storyId: string, owner: string) => store.releaseLease(lockPath(storyId), owner);
 
 // ---------- stories ----------
-/** BG-334: the meta is written with the pages, before the head, so a story whose first head write failed has a meta and no
+/** BG-336: the meta is written with the pages, before the head, so a story whose first head write failed has a meta and no
  * save: it does not exist yet (a save counts once the head is written). Only unarchived stories need the look. */
 const allMetas = async (store: Store) => (await Promise.all((await store.list('stories')).map(async (p) => {
   const m = await store.get<StoryMeta>(p);

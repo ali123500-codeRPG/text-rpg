@@ -9,7 +9,7 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the spec's bug log, docs/spec/bug-log.md, has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
-## BG-335
+## BG-337
 
 **What was wrong:** A save counts once its head is written (save flow, step 5), but `finishTurn` (`src/agents/game.ts`) did two things after a failed head write as if the turn had been saved. It saved the turn's story text, and it raised the Universe day. Play goes on from memory after a failed save, so nothing showed until a reload: the save was a turn back while the story column still held the turn that was never saved. Replaying it then put two different narrations of the same turn in the column, with no "Undone" fold between them. The Universe day could also move past every saved world. Reproduced with the whole-turn harness: with the head write failing on turn 3, the head stayed on turn 2 and the saved story text held turns 1 to 3.
 
@@ -17,13 +17,29 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** #1218
 
-## BG-334
+## BG-336
 
 **What was wrong:** `saveTurn` writes the story meta (`stories/<id>`) together with the pages, before the head. It has to, because a load needs both. But the story lists (`listStories`, the free-world list and the Hall of fame, all through `allMetas` in `src/save/index.ts`) took any meta as a story. So when the first head write of a new story failed, a story with no save existed. In a carried-on world that meant someone still lived there: on every reopen the kept build tried to start the opening again and was refused with "that world is no longer free". The world could never be carried on again. Reproduced through `createGame` with the opening's head write failing.
 
 **What was done:** `allMetas` skips an unarchived meta whose story has no head, because a story exists once its head is written. Only unarchived stories need the extra read: one or two per list in play. A reopen now starts the interrupted opening again in the same world. The unit test fails the first head write of a story carrying a world on and checks that the story is not listed and the world is still free. Siblings checked: `storySaved` already reads the head; the Hall of fame lists only archived stories.
 
 **Fixed by:** #1218
+
+## BG-335
+
+**What was wrong:** When a turn landed, the story jumped to the very bottom of the new turn, past its prose to the last results row (the wound card, coin, skills), so the narration was already off the top of the pane while it was still revealing sentence by sentence. The cause was the play screen's stick-to-the-foot scroll (`src/ui/play.ts`, `update`): while a turn runs it keeps the waiting line in view, and the same line ran again when the turn landed, setting the scroll to the whole story's height. The turn is drawn in its final state at once (M-74), results included, so "the foot" was the end of the results. The story pane is short beside the action deck, so most combat turns are taller than it.
+
+**What was done:** A turn that lands now opens at its start: the order the player gave, then the prose (PS-214); the story keeps to its foot only while a turn runs, and later redraws leave the scroll where the player put it. The browser smoke test plays a turn into a short story pane and checks that the order line is in view; it fails with the old scroll.
+
+**Fixed by:** #1209
+
+## BG-334
+
+**What was wrong:** Body parts reached the player as ids: "Your right_leg is Damaged" in the turn's changes, "crushing hit, right_leg" on the roll line and the strike card, and the same in the line the Narrator is given for each blow, which it can repeat in the prose. Two places in the views (`src/views/index.ts`) wrote the part's id into text: the combat packet's location and the "is Damaged" condition change. Every other place already used the part's name (`partName`). A scan of the text of every code-built story line over all scenario and soak tests found no other id.
+
+**What was done:** Both places now give the part as words through `partName` ("right leg"), so the roll line, the changes row, the hit cards, the "You fell" screen and the Narrator's packet all read words. The play screen's result rule for a blow is now one function for the player's roll line, the rolls against the player and the hit cards. A whole-turn test aims a blow at a leg and checks that no id reaches the line's text; it fails without the fix.
+
+**Fixed by:** #1209
 
 ## BG-333
 

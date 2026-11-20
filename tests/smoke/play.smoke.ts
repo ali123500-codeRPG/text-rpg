@@ -293,10 +293,11 @@ describe('play page smoke (TQ7)', () => {
     expect(errors).toEqual([]);
   });
 
-  // BF66: the strike card shows as the turn lands and lives its full time: a click on the story doesn't take it away.
-  // BF64: no "draws to a close" line ever shows while a turn runs. M-72: motion always plays: there is no Motion switch, and
-  // an old stored switch or the system's reduced-motion setting changes nothing.
-  it('BF66: a landed blow shows the strike card at once, animated even with reduced motion set, and a click on the story keeps it', async () => {
+  // PS-200–PS-204: a landed blow shows its hit card as the turn lands; a click on the story while it moves only skips (M-12)
+  // and keeps it, and once nothing moves a click puts it away. BG-335: the turn opens at its start, the order you gave, not
+  // at the end of its results. BF64: no "draws to a close" line ever shows while a turn runs. M-72: motion always plays:
+  // there is no Motion switch, and an old stored switch or the system's reduced-motion setting changes nothing.
+  it('PS-200: a landed blow shows its hit card at once, animated even with reduced motion set; a skip keeps it, a later click puts it away', async () => {
     expect(await page.getByRole('button', { name: /Motion/ }).count()).toBe(0);
     await page.evaluate(() => localStorage.setItem('motion', 'off')); // what the old switch stored
     await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -311,6 +312,7 @@ describe('play page smoke (TQ7)', () => {
       s.actors.push(d);
       return d.id;
     });
+    await page.addStyleTag({ content: '.story { max-height: 110px; }' }); // BG-335: a turn taller than the story pane, as in play
     await page.evaluate(() => { (window as unknown as { endWait: number }).endWait = 0; new MutationObserver(() => { if (document.querySelector('.end-wait')) (window as unknown as { endWait: number }).endWait++; }).observe(document.body, { childList: true, subtree: true }); });
     let seen = false;
     type Api = { __GAME_API__: { state(): { turn: number }; busy(): boolean } };
@@ -324,9 +326,15 @@ describe('play page smoke (TQ7)', () => {
     }
     expect(seen).toBe(true);
     expect(await page.evaluate(() => document.querySelector('.strike')!.getAnimations().length)).toBeGreaterThan(0);
+    // BG-335: the order that played this turn is in view, not scrolled past
+    expect(await page.evaluate(() => { const st = document.querySelector('.story')!.getBoundingClientRect(), me = Array.from(document.querySelectorAll('.ln-player')).at(-1)!.getBoundingClientRect(); return me.top >= st.top - 1 && me.bottom <= st.bottom + 1; })).toBe(true);
     await page.locator('.story').click({ position: { x: 20, y: 20 } }); // a skip (M-12)
     await page.waitForTimeout(200);
     expect(await page.locator('.strike').count()).toBe(1);
+    await page.waitForTimeout(4000); // everything has landed: the card stays until a click
+    expect(await page.locator('.strike').count()).toBe(1);
+    await page.locator('.story').click({ position: { x: 20, y: 20 } });
+    await page.waitForFunction(() => !document.querySelector('.strike'));
     expect(await page.evaluate(() => (window as unknown as { endWait: number }).endWait)).toBe(0);
     expect(errors).toEqual([]);
   }, 60_000);

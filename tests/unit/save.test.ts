@@ -66,7 +66,7 @@ describe('save and load', () => {
     expect((await loadStory(st, 'test', lib())).state.clocks.x).toBeUndefined();
   });
 
-  it('BG-334: a story whose first head write failed is no story yet, so the world it was carrying on stays free', async () => {
+  it('BG-336: a story whose first head write failed is no story yet, so the world it was carrying on stays free', async () => {
     const st = memoryStore();
     const old = makeVillage();
     await saveTurn(st, old, rec(old, 0));

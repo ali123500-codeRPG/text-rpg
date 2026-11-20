@@ -80,8 +80,10 @@ function fightTurn(st: GameState, out = 'heavy hit'): Partial<LogLine> {
   if (shield) shield.pools = { ...shield.pools, shield: Math.min(40, (shield.pools?.shield ?? 100) - 60) };
   return {
     text: 'The slime rears and lashes down. You get the shield up late; the blow tears past it and something in your right arm gives with a wet crack. You answer anyway, a heavy cut that opens its side. It sags, steaming, and coins spill from its gut into the grass.',
-    check: { kind: 'attack', skill: SK.melee_medium, tier: 'great_success', against: { what: 'slime’s dodge', tier: 'failure' }, result: `${out}, body`,
-      strike: { target: 'a slime', weapon: 'arming sword', changes: ['the slime is Wounded'] } }, // the strike card on Play
+    check: { kind: 'attack', skill: SK.melee_medium, tier: 'great_success', against: { what: 'slime’s dodge', tier: 'failure' }, result: `${out}, body` },
+    // the hit cards on Play, in the order the blows fell: the slime's on you, then yours
+    hits: [{ mine: false, by: 'the slime', target: 'you', weapon: 'slam', result: 'crushing hit, right arm', changes: ['Your right arm is Crippled'] },
+      { mine: true, by: 'you', target: 'a slime', weapon: 'arming sword', result: `${out}, body`, changes: ['The slime is Wounded'] }],
     incomingChecks: [{ kind: 'attack', skill: SK.melee_light, tier: 'critical_success', against: { what: 'your block', tier: 'near_miss' }, result: 'crushing hit, right arm', by: 'the slime' }],
     changes: [{ kind: 'combat', text: 'Slime → you · crushing hit, right arm' }, { kind: 'combat', text: 'You → slime · heavy hit, body' }, { kind: 'condition', text: 'Your right arm is crippled' }],
     wounds: [{ id: 'right_arm', from: 'healthy', to: 'crippled' }], gains: { [SK.block]: 2 }, coin: 15,
@@ -430,7 +432,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       const drop = /^charge\b/i.test(text); // "charge" drops the player, to show the fall on the fake page
       if (drop) fell = true;
       // "attack" trades blows, to show the play screen's motion: health and a crippled arm lost, a skill, XP and coin gained
-      // "attack" lands a heavy hit; "attack hard" a crushing one and "attack light" a full one, to show the strike card's tiers
+      // "attack" lands a heavy hit; "attack hard" a crushing one and "attack light" a full one, to show the hit cards' tiers
       const hurt = /^attack\b/i.test(text) ? fightTurn(state, /hard/i.test(text) ? 'crushing hit' : /light/i.test(text) ? 'full hit' : 'heavy hit') : null;
       // "travel" sets you partway along the west road, to show your point on the road on the Map (TV7); "travel mill" on the
       // mill road, a road bound to the land (WZ1)
