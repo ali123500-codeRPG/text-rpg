@@ -158,9 +158,11 @@ function charTiles(s: GameState, open: { essences: (b: HTMLElement) => void; per
   const owned = heldPerks(p).length;
   const gear = p.core.inventory.filter((i) => i.equippedIn?.length);
   const pe = personalityOf(p);
+  // the section's icon in place of its name, which is the icon's tip and accessible name
+  const tileIcon = (key: string, label: string) => { const el = itemIcon(`tile_${key}` as IconName, undefined, 'mk-i'); el.setAttribute('role', 'img'); el.title = label; el.setAttribute('aria-label', label); return el; };
   const tile = (key: string, label: string, value: Node | string, sub: Node | string, onclick: (b: HTMLElement) => void, full = false, lit = false) => {
     const b: HTMLElement = h('button', { type: 'button', class: 'cs-tile' + (lit ? ' lit' : ''), 'data-tile': key, 'aria-haspopup': 'dialog', title: full ? `Open ${label} full screen` : `Open ${label}`, onclick: () => onclick(b) },
-      h('span', { class: 'hs-label' }, itemIcon(`tile_${key}` as IconName, undefined, 'mk-i'), label), h('b', {}, value), h('span', { class: 'cs-tile-sub' }, sub));
+      h('span', { class: 'hs-label' }, tileIcon(key, label)), h('b', {}, value), h('span', { class: 'cs-tile-sub' }, sub));
     return b;
   };
   return h('nav', { class: 'cs-tiles', 'aria-label': 'Character sections' },
