@@ -201,13 +201,17 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   differs, the Map adding the crumbs, key, places list and cards. On both the pin's point shows the way you face, from
   which left and right are taken (BG-18; Ali, 20/11/2026; MQ2 a, MQ4 a; Ali, 20/11/2026, Questions hub page "Map and minimap: one map, doors").
 - **MAP-85** A click on any thing drawn on either map (a door, a stretch of wall, furniture, an item, a person) opens a
-  small list beside it of every action the action deck has for that thing, under the deck's own names. One that cannot
-  be done now is greyed, its reason on hover ("too far", "needs its key"). Picking one plays the turn, as the deck does
-  (MQ6 a; Ali, 20/11/2026, Questions hub page "Map and minimap: one map, doors"). Each mark carries the deck target it
-  stands for: a doorway the title on its far side from where you stand, a stretch of wall the wall standing there, a
-  person their id (src/ui/planView.ts `data-thing`, src/ui/deck.ts `thingActions`). A thing the deck has nothing for
-  opens no list, and the click plans a walk as on bare ground. Over the Map the list opens on top, and an action picked
-  there plays from Play with the Map closed, as the Map's walk does (MAP-84).
+  small list beside it of every action the action deck has for that thing, under the deck's own names (MQ6 a). A thing
+  the character can reach on foot lists its actions wherever it is on the map: there is no "too far", and no limit to
+  the title you stand in. Picking one walks there and does it: the walk to the thing's spot rides along with the action,
+  as a move planned on the minimap does (MAP-82). An entry is greyed only for a reason the engine gives, its reason on
+  hover ("needs its key") (MQ6 a, MQ8; Ali, 20/11/2026, Questions hub page "Map and minimap: one map, doors"). Each mark
+  carries the deck target it stands for: a doorway the title on its far side from where you stand, a stretch of wall the
+  wall standing there, a person their id, a piece of furniture its id and kind (src/ui/planView.ts `data-thing`,
+  src/ui/deck.ts `thingActions`). Furniture lists the deck's actions on its kind: a bed offers Sleep, which walks to the
+  bed and sleeps there (MQ10 a; Ali, 20/11/2026, Questions hub page "Map and minimap: one map, doors"). A thing the deck
+  has nothing for opens no list, and the click plans a walk as on bare ground. Over the Map the list opens on top, and an
+  action picked there plays from Play with the Map closed, as the Map's walk does (MAP-84).
 - **MAP-86** The things on the ground the character sees now, containers too, are drawn on both maps at their own spot
   (MAP-40: PlayerView only), each its item's icon (src/ui/itemIcons.ts) on a disc in its kind's tint. They are placed
   after the furniture and as furniture is (MAP-25): one spot at every zoom, left off where there is no free spot and
@@ -226,7 +230,7 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   browser lays out the text. Run `checkReach` on the stage data. Any finding fails the change (checkMap,
   src/ui/mapCheck.ts; checkReach, src/ui/mapPlan.ts).
 - **MAP-52** Test stages: (a) the Bent Nail (kitchen, common room, behind the counter) beside the high lane with the
-  midden yard and its locked plank gate, and a cart horse in the lane, drawn as its capsule (GSM-193), and a locked chest and a rusty knife on the ground of the midden yard (MAP-86); (b) a single room; (c) a 12-zone stage with long zone names. Render each, take
+  midden yard and its locked plank gate, and a cart horse in the lane, drawn as its capsule (GSM-193), and a locked chest and a rusty knife on the ground of the midden yard (MAP-86); (b) a single room with a straw cot (MAP-85); (c) a 12-zone stage with long zone names. Render each, take
   a screenshot, and look at it before reporting (bent-nail, one-room, long-names in src/ui/fakeStages.ts).
 - **MAP-53** Report every finding verbatim. Never say all checks passed if any check reported something.
 - **MAP-54** `bent-nail-saved` is not a MAP-52 stage. It is a negative fixture holding the live save's stored layout,
@@ -256,9 +260,15 @@ the point here. The revision of the map's rules (D-413, Questions hub page "Map 
 one-map answers (page "Map and minimap: one map, doors", MQ1 to MQ6) are in the rules above; until each is built (D-423)
 the code decides what the game does (`AGENTS.md`, Order of authority).
 
-- **MAP-85 in part (D-423):** only one greyed entry is built: the deck's door entry on a lock you hold no key to, "needs
-  its key" (the engine's way op answers no_key). A door or wall outside the title you stand in opens no list: the deck
-  lists only what can be done from there, and nothing in code yet says what "too far" is. The same holds for a thing on
-  the ground (MAP-86) outside the title you stand in. The deck has no action on furniture, so it opens no list yet.
+- **MAP-85 in part (D-423):** the lists hold what the deck lists today: the doors, walls, things on the ground and beds
+  of the title you stand in, so one outside it opens no list. The engine walks to a thing and works it in one order only
+  within one move slot's walk (the close-in, FR4, BG-86: about 6 m in a fight, 8 m out of one); farther, the action comes
+  to nothing and the walk goes on, and a door or wall is found only from the title the actor stands in at that moment.
+  Walking to anything on the map and then acting (MQ8) waits on an engine rule, asked of the owner. Only one greyed
+  entry is built: the deck's door entry on a lock you hold no key to, "needs its key" (the engine's way op answers no_key).
+- **FT8 and MQ10 a:** sleeping "in a bed" (SLEEP_SPOT_MULT) is read as asleep in a title with a bed in it, wherever in
+  it you lie, which `AGENTS.md` rule 8 rules out (nearness is never "same zone"). Sleeping on the bed (MAP-85) and on the
+  floor beside it are the same today; NPCs sleep wherever they stand in their bed slot's title, and nothing holds a bed
+  for one sleeper. The revision of how NPCs sleep on beds is asked of the owner.
 - **MAP-44 and MAP-45:** someone heard going into a zone the character has never seen is last seen there (MAP-45), but
   the map shows only zones seen or stood in (MAP-44), so they are not drawn anywhere.

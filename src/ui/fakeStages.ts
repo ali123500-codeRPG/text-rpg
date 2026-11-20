@@ -79,7 +79,7 @@ function bentNail(saved = false): FakeStage {
 /** (b) a single room with one way out */
 function oneRoom(): FakeStage {
   const { places, plan } = placed([P('cell', 'building', null, 'the old watch-house')], [
-    Z('cell.store', 'cell', 'storeroom', ZK.room, 20, [['cell.hall', 'the door, south', false, 'frontier']], { aspect: 1.25, furniture: [{ kind: FU.shelves, name: 'empty shelves', at: 'n' }, { kind: FU.crates, name: 'broken crates', at: 'se' }] }),
+    Z('cell.store', 'cell', 'storeroom', ZK.room, 20, [['cell.hall', 'the door, south', false, 'frontier']], { aspect: 1.25, furniture: [{ kind: FU.shelves, name: 'empty shelves', at: 'n' }, { kind: FU.crates, name: 'broken crates', at: 'se' }, { kind: FU.bed, name: 'straw cot', at: 'w' }] }),
   ]);
   return { places, plan, zone: 'cell.store', placeId: 'cell', seen: ['cell.store'], trail: [], you: [0, 0], people: [],
     barriers: [{ id: 'fb_cell', a: 'cell.store', b: 'cell.hall', rec: { kind: BK.door, grade: 'moderate', lock: { locked: true }, tried: ['player'] } }] };

@@ -23,6 +23,7 @@ import { lootSources } from './loot';
 import { pullOf, type IdeaGroup, type IdeaKind } from './ideaLeans';
 import { healItems, partName } from './healing';
 import { cap, r1, theItem } from '../words';
+import { FU } from '../library/tableIds';
 import { durationText, secondsSince } from '../time';
 import { orderCost } from '../engine/resolve';
 import { ridesBeside } from '../engine/beside';
@@ -359,10 +360,13 @@ const PERK_LABEL: Record<string, string> = { [PK.dirt_in_the_eyes]: 'Throw dirt 
 export const WAY_LABEL = 'Door, gate or bar';
 /** the deck kinds that work a door, gate or bar from this side: a door mark on the map lists these (MAP-85) */
 const DOOR_KINDS = new Set<DeckKind>(['way', 'pick', 'break']);
+/** MQ10 a: the deck's actions on a piece of furniture, by its kind (FU): a bed is slept on */
+const FURNITURE_ACTS: Partial<Record<string, DeckKind[]>> = { [FU.bed]: ['sleep'] };
 /** MAP-85: a thing drawn on the map, by the deck target it stands for: a person (actor id), a wall (its id), a thing on the
- *  ground (MAP-86: its instance id, whom or what an action picks first: Pick up's item, Open's target), a doorway
+ *  ground (MAP-86: its instance id, whom or what an action picks first: Pick up's item, Open's target), a piece of furniture
+ *  (its id and kind: MQ10 a), a doorway
  *  (the two titles it joins; from where you stand its target is the title on the far side, as the deck's ways are) */
-export type MapThing = { kind: 'person' | 'wall' | 'item'; id: string } | { kind: 'door'; ends: string[] };
+export type MapThing = { kind: 'person' | 'wall' | 'item'; id: string } | { kind: 'door'; ends: string[] } | { kind: 'furniture'; id: string; is: string };
 /** one entry of a thing's list: a deck action with the thing already chosen, or one greyed with what it needs */
 export type ThingEntry = { label: string; a: DeckAction; c: Choice } | { label: string; needs: string };
 /** MAP-85: every deck action for a thing on the map, under the deck's own names. A door with a lock you hold no key to
@@ -371,6 +375,12 @@ export type ThingEntry = { label: string; a: DeckAction; c: Choice } | { label: 
 export function thingActions(groups: ReturnType<typeof deck>, ctx: DeckCtx, t: MapThing): ThingEntry[] {
   const id = t.kind === 'door' ? (t.ends.includes(ctx.pv.zone.id) ? t.ends.find((e) => e !== ctx.pv.zone.id) : undefined) : t.id;
   if (!id) return [];
+  // MQ10 a: a piece of furniture in the title you stand in: the deck's action for its kind, played with a walk to it
+  if (t.kind === 'furniture') {
+    const f = ctx.pv.zone.furniture?.find((x) => x.id === id);
+    return f ? groups.flatMap((g) => g.actions).filter((a) => !a.limit && FURNITURE_ACTS[t.is]?.includes(a.kind)).map((a) => ({ label: a.label, c: {},
+      a: { ...a, play: (c: Choice) => { const o = a.play(c); return { line: `${o.line} on ${theItem(f.name)}`, intent: { ...o.intent, move: { toZone: ctx.pv.zone.id, spot: { near: f.id } } } }; } } })) : [];
+  }
   if (t.kind === 'item') return groups.flatMap((g) => g.actions).flatMap((a) => {
     const st = a.steps[0];
     return !a.limit && st && st.key !== 'words' && st.picks({}).some((p) => p.id === id) ? [{ label: a.label, a, c: { [st.key]: id } }] : [];
