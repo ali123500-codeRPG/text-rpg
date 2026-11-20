@@ -65,6 +65,10 @@ function main(args: string[]): number {
   }
   git('fetch', '-q', 'origin', 'main');
   const oldHead = git('rev-parse', 'HEAD').trim();
+  // clones here often track only main, so a bare --force-with-lease has no ref to compare: name the remote tip
+  const branch = git('rev-parse', '--abbrev-ref', 'HEAD').trim();
+  const remote = git('ls-remote', 'origin', `refs/heads/${branch}`).split('\t')[0].trim();
+  const push = remote ? `git push --force-with-lease=${branch}:${remote} origin HEAD:${branch}` : `git push -u origin HEAD:${branch}`;
   const r = spawnSync('git', ['rebase', 'origin/main'], { stdio: 'inherit' });
   if (r.status !== 0) {
     console.error([
@@ -79,7 +83,7 @@ function main(args: string[]): number {
     return 1;
   }
   const code = check(oldHead);
-  if (code === 0) console.log('Push with `git push --force-with-lease`, then check the PR is mergeable and its checks started.');
+  if (code === 0) console.log(`Push with \`${push}\`, then check the PR is mergeable and its checks started.`);
   return code;
 }
 
