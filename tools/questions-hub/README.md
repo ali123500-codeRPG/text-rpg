@@ -129,7 +129,8 @@ print_writes(new_page('page-name', header['title'], header, [('r1', 'Round 1', '
 A hub belongs to one Claude account. A session on another account cannot save to it or reach its database, so
 that account publishes its own hub, as a new private page. Never pass an existing hub's link when you do.
 
-- Page: `tools/questions-hub/hub.html`.
+- Page: `tools/questions-hub/hub.html`. The publish refuses a page that does not begin with `<!DOCTYPE html>`, so
+  keep that first line.
 - Files beside it, under `kit/`: `HISABRound-Regular.woff2`, `HISABRound-Bold.woff2`, `HISABRound-ExtraBold.woff2`,
   `Literata-Regular.woff2` and `night-sky.webp`, all from `src/ui/assets/`.
 - Database rules, declared at the first publish: `pages`, `rounds` and `qs` are read at `view` and written at

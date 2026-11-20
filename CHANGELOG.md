@@ -3,6 +3,14 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, `docs/build-spec.md` and `docs/bug-fix-log.md`.
 
+- 20/11/2026: Merging no longer waits for the owner. `AGENTS.md` rules 2 and 6 and `docs/instructions.md` sections 2
+  and 8: a bug fix and a rule-file change merge like any other PR, when every check is green. A bug fix still gets
+  its BG-n, root cause and log entries; a rule-file PR quotes the owner's words it acts on.
+- 20/11/2026: `docs/providers/claude.md`: new section "Where the game page and the library viewer live". Both pages
+  move to the Claude project on another account (`desk:rpg-game`), which alone publishes them once it records the
+  new links; the old pages are frozen, saves cross by Export and Import buttons, and in-game bug reports are
+  triaged there and become GitHub issues. The bug number counter is retired: every agent numbers from the Bug log
+  (`docs/instructions.md` section 2, spec "Bug log").
 - 19/11/2026: `docs/providers/claude.md`: new section "Claude on another account", with the second account's own
   Questions hub link and its desk label, `desk:rpg-game`.
 - 19/11/2026: Added Codex provider notes covering the private questionnaire, verified setup and Claude handoffs.
