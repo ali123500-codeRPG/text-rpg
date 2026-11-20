@@ -224,6 +224,7 @@ import {
   noteSightings,
   noticeCue,
   perceptionOf,
+  soundOf,
   stealthEnd,
   stealthStart,
   updateBeliefs,
@@ -1967,9 +1968,9 @@ function doHeal(ctx: Ctx, a: Actor, o: Order): void {
 export { gradeMod };
 
 /** Q17/SE15: the player's look is a sight (or hearing) roll with light only, no scene number; Success or better shows
- * everyone in sight clearly. SE14: it is also a weak search out to the look's range (`outside`: only beyond the looker's
- * search area, which the Search it is part of already covered, LX2). */
-function look(ctx: Ctx, a: Actor, skill: string, ev: GameEvent, outside = false): void {
+ * everyone in sight clearly. SE14: Look at and Listen are also a weak search out to the look's range (`search`); a
+ * Search makes its own per-sense tests (D-411), so its look only shows who is in sight. */
+function look(ctx: Ctx, a: Actor, skill: string, ev: GameEvent, search = true): void {
   const { state, rng } = ctx;
   const target = CONFIG.DIFFICULTY.moderate; // it learns like a solo roll at Moderate
   const fn = noticeCue(skill) === 'sound' ? FN.hearing : FN.sight;
@@ -1978,7 +1979,7 @@ function look(ctx: Ctx, a: Actor, skill: string, ev: GameEvent, outside = false)
   ev.roll = r;
   ev.tier = r.tier;
   if (tierAtLeast(r.tier, 'success')) lookAround(state);
-  ev.effects.push(...foundEffects(a, searchFor(state, a, ev, rng, { look: fn, outside })));
+  if (search) ev.effects.push(...foundEffects(a, searchFor(state, a, ev, rng, { look: fn })));
   ruleset.recordUse(a, r.skill, { actorId: a.id, skill: r.skill, target, passed: tierAtLeast(r.tier, 'success'), modifiers }, state);
 }
 
@@ -2069,7 +2070,7 @@ function doSearch(ctx: Ctx, a: Actor, o: Order): void {
   const ev = bark(withActivity(ctx, a, mk(ctx, a, 'search', { target: o.target ?? undefined }), o.activity), o);
   const t = o.target ? actorById(state, o.target) : undefined;
   const logAt = state.log.length;
-  const won = searchFor(state, a, ev, rng, t ? { only: t.id } : {});
+  const won = searchFor(state, a, ev, rng, { noiseOf: (h) => soundOf(state, h, ctx.events), ...(t ? { only: t.id } : {}) }); // LS2 a
   const tied = state.log.slice(logAt).some((l) => l.code === 'search_contest' && l.detail?.gap === 0); // a 'someone' half found
   if (won.length) ev.contest = won[0].r;
   ev.effects.push(...foundEffects(a, won));
@@ -2081,9 +2082,8 @@ function doSearch(ctx: Ctx, a: Actor, o: Order): void {
     ev.effects.push({ kind: 'found_items', actorId: t?.id ?? a.id, data: { by: a.id, items: items.found.map((i) => i.id), ...(t ? { on: true } : {}) } });
   }
   if (items.hint) ev.effects.push({ kind: 'disturbed', actorId: a.id, data: {} });
-  // LX1/LX2: the player's Search around them is also the look around, the weak search beyond the search area included
-  if (!t && a.id === state.player.id && a.core.skills[SK.eyesight] !== undefined) { const r = ev.roll; look(ctx, a, SK.eyesight, ev, true); if (r) { ev.roll = r; ev.tier = r.tier; } else ev.glance = true; }
-  else if (!t) ev.effects.push(...foundEffects(a, searchFor(state, a, ev, rng, { look: FN.sight, outside: true }))); // LX7 a: an NPC's search has the rings too
+  // LX1: the player's Search around them is also the look around (who is in sight); its tests are the search's (D-411)
+  if (!t && a.id === state.player.id && a.core.skills[SK.eyesight] !== undefined) { const r = ev.roll; look(ctx, a, SK.eyesight, ev, false); if (r) { ev.roll = r; ev.tier = r.tier; } else ev.glance = true; }
   // SE17: a person searched may give up a secret a sight or hearing roll can reveal
   const secrets = t && atLeast(beliefStatus(state, a, t), 'aware') ? searchSecrets(state, a, t, rng) : { found: [] };
   if (secrets.found.length) {

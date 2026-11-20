@@ -2,20 +2,21 @@
 import { groundZoneOf } from '../engine/ground';
 import { FN } from '../library/functionIds';
 import type { Actor, ActorView, ContestResult, Cue, GameEvent, GameState, ItemInstance, Order, Rng, RollResult, Tier, TierRoll, Zone } from '../types';
+import type { NoiseKey } from '../scales';
 import { TIERS } from '../scales';
 import { getLibrary, itemDef, perkName } from '../library';
 import { hiddenFrom } from '../engine/gear';
 import { CONFIG } from '../config';
-import { now, secondsSince, timeOfDay, zoneLight } from '../time';
+import { now, pitchBlack, secondsSince, timeOfDay, zoneLight } from '../time';
 import { routine as getRoutine, routineSet } from '../library';
 import { actorById, allActors, atLeast, isActive, isAsleep, isEngaged, sparring, wary, zoneById } from '../engine/relations';
-import { beliefStatus, computePerception, hearsClearly, inLookReach, perceptionOf, updateBeliefs } from '../perception';
-import { VOLUME_NOISE } from '../perception/noise';
+import { beliefStatus, computePerception, hearsClearly, inLookReach, perceptionOf, smells, updateBeliefs } from '../perception';
+import { soundDb, VOLUME_NOISE } from '../perception/noise';
 import { markUse, ruleset, situational, fnRoller, tierLevel, toContest, usableModes, fallbackAttackSkill, modeSkill, effectiveSkill } from '../ruleset';
 import { coverShown, rollFnSkills } from '../ruleset/gear';
 import { rewardSources } from '../ruleset/achRewards';
 import { distM, seeingM, sightDistM, withinGrip, withinM, type Located } from '../engine/position';
-import { hasPerk, meltAwayHere } from '../ruleset/perks';
+import { hasPerk, meltAwayHere, perkSum } from '../ruleset/perks';
 import { blindSpotNow } from '../engine/perkMarks';
 import { fightingWith } from '../engine/engagement';
 import { bindTemplate, expandSteps, HEAD_TO, offeredRoutines, slotsRead } from './routines';
@@ -330,12 +331,9 @@ function searchAreaParts(a: Actor, skill: number) {
   const sum = (xs: { value: number }[]) => xs.reduce((n, x) => n + x.value, 0);
   return { baseM2, areaPct, reachM, areaM2: Math.max(0, baseM2 * (1 + sum(areaPct) / 100) + sum(reachM) * CONFIG.SEARCH_M2_PER_REACH_M) };
 }
-/** AB18 a, SE21/SE24, LX2/LX5: what a search by `a` covers from where it stands: the sense it rolls (the better after
- * light; smell only when it beats both), that sense's effective skill, the area with its terms, its radius and ring one's */
-export function searchReach(state: GameState, a: Actor) {
-  const here = zoneById(state, a.zone);
-  const after = (sense: Sense) => CONFIG.SKILL_WEIGHT * senseSkill(state, a, sense) + watcherRoll(state, a, sense, here).modifiers.reduce((n, m) => n + m.value, 0);
-  const sense: Sense = ([FN.sight, FN.hearing, FN.smell] as Sense[]).reduce((b, f) => (after(f) > after(b) ? f : b));
+/** SE21/SE24, LX2/LX5, D-411: what one sense of a search by `a` covers (each sense has its own, LS1 a): that sense's
+ * effective skill, the area with its terms, its radius and ring one's */
+export function searchReach(state: GameState, a: Actor, sense: Sense = FN.sight) {
   const skill = senseSkill(state, a, sense), parts = searchAreaParts(a, skill), radiusM = searchRadiusM(parts.areaM2);
   return { sense, skill, ...parts, radiusM, ring1M: CONFIG.SEARCH_RING1_RADII * radiusM };
 }
@@ -346,40 +344,62 @@ function inSearch(state: GameState, a: Actor, h: Located, area: number): boolean
   return searchSees(state, a, h, searchRadiusM(area));
 }
 const searchRadiusM = (area: number): number => Math.max(CONFIG.SEARCH_MIN_RADIUS_M, Math.sqrt(area / Math.PI));
-/** LX5 b: the tiers a Search's look takes on `h` beyond the search area: SEARCH_RING_SHIFTS[0] out to SEARCH_RING1_RADII
- * search radii, [1] past that (a plain look, Look at or Listen, keeps LOOK_SEARCH_SHIFT over its whole reach) */
-const ringShift = (state: GameState, a: Actor, h: Located, area: number): number =>
-  searchSees(state, a, h, CONFIG.SEARCH_RING1_RADII * searchRadiusM(area)) ? CONFIG.SEARCH_RING_SHIFTS[0] : CONFIG.SEARCH_RING_SHIFTS[1];
 /** BG-314: the sight part of a search's reach: a clear line from `a` to `h`, within `r` metres */
 export const searchSees = (state: GameState, a: Actor, h: Located, r: number): boolean => withinM(sightDistM(state, a, h), r);
 
-/** SE2 b, SE3, SE5, SE14, SE16: a search, by anyone, is a contest of the searcher's better sense after light against the
- * stealth (hide tag included) of everyone stealthy in reach whom it doesn't already see: a win makes it aware, a tie
- * suspicious, a loss changes nothing. Nobody hidden in reach: nothing is rolled (SE6). It always rolls, even after a
- * passive contest this turn, and counts as that pair's contest (SE5). `look`: the player's look with that sense, a search
- * out to the look's range, LOOK_SEARCH_SHIFT tiers down (SE14); with `outside`, only beyond the searcher's own search
- * area (the Search it is part of covered that, LX2), in two rings (ringShift, LX5). `only`: a search aimed at one person. Returns the contests the
+/** D-411 (LS1–LS3, LS7, LS8): what one sense of a Search reaches of `h`, as the tiers that sense's test takes, or null.
+ * Each sense has its own search area (its own skill, SE21) and its own reach: sight a clear line out to the look's 25 m,
+ * never in pitch black; hearing `h`'s own sound (its step, else HIDE_STILL_NOISE) carried to `a` above the hearing floor,
+ * with Keen Ear and 10·log10(area ÷ SEARCH_AREA_M2) dB; smell its usual reach (AB18). The same metres for every sense
+ * (LS7 a): inside the sense's search radius SEARCH_AREA_SHIFT, out to SEARCH_RING1_RADII radii ring one, past it ring
+ * two (LX5 b, LX8 a). A Pat down (`only`) takes none. */
+function senseReach(state: GameState, a: Actor, h: Actor, sense: Sense, noise: NoiseKey, only: boolean): number | null {
+  const { areaM2: area, radiusM: r, ring1M } = searchReach(state, a, sense);
+  if (area <= 0) return null;
+  let d: number;
+  if (sense === FN.sight) {
+    if (pitchBlack(zoneLight(state, zoneById(state, h.zone), h.pos))) return null; // LT1: nothing is seen in pitch black
+    d = sightDistM(state, a, h);
+    if (!inLookReach(d)) return null;
+  } else {
+    const heard = sense === FN.hearing && (soundDb(state, noise, h, a, perkSum(a, 'hearingDb') + 10 * Math.log10(area / CONFIG.SEARCH_AREA_M2)) ?? -Infinity) >= CONFIG.HEARING_FLOOR_DB;
+    if (sense === FN.hearing ? !heard : !smells(state, a, h)) return null;
+    d = distM(state, a, h);
+  }
+  if (only) return 0;
+  return withinM(d, r) ? CONFIG.SEARCH_AREA_SHIFT : withinM(d, ring1M) ? CONFIG.SEARCH_RING_SHIFTS[0] : CONFIG.SEARCH_RING_SHIFTS[1];
+}
+
+/** SE2 b, SE3, SE5, SE16, D-411: a search, by anyone, tests each sense that reaches a hider on its own (LS6): a contest of
+ * that sense against the stealth (hide tag included) of everyone stealthy whom it doesn't already see. The best of them
+ * counts: a win makes it aware (a find by sound too, LS4), a tie suspicious, a loss changes nothing. Nobody hidden in
+ * reach: nothing is rolled (SE6). It always rolls, even after a passive contest this turn, and counts as that pair's
+ * contest (SE5). `noiseOf`: the sound each hider makes this turn (LS2). `only`: a Pat down, aimed at one person. `look`:
+ * Look at or Listen, one sense out to the look's range, LOOK_SEARCH_SHIFT tiers down (SE14). Returns the contests the
  * searcher won, with who it found. */
-export function searchFor(state: GameState, a: Actor, event: GameEvent, rng: Rng, opts: { look?: Sense; only?: string; outside?: boolean } = {}): { found: Actor; r: ContestResult }[] {
-  const { sense: best, areaM2: area } = searchReach(state, a);
-  const sense: Sense = opts.look ?? best;
-  const reaches = (h: Actor) => opts.look ? inLookReach(seeingM(state, a, h)) && !(opts.outside && inSearch(state, a, h, area)) : inSearch(state, a, h, area);
+export function searchFor(state: GameState, a: Actor, event: GameEvent, rng: Rng, opts: { look?: Sense; only?: string; noiseOf?: (h: Actor) => NoiseKey } = {}): { found: Actor; r: ContestResult }[] {
   const done = contestedThisTurn(state);
   const won: { found: Actor; r: ContestResult }[] = [];
   for (const h of allActors(state)) {
     if (h.id === a.id || h.posture !== 'stealthy' || h.bandId === a.bandId || !isActive(h) || (opts.only && h.id !== opts.only)) continue;
-    if (atLeast(beliefStatus(state, a, h), 'aware') || !reaches(h)) continue;
-    const w = watcherRoll(state, a, sense, zoneById(state, h.zone), h);
-    // LX8 a: a Search around you beats waiting: SEARCH_AREA_SHIFT inside its area, the rings past it (a Pat down: none)
-    const shift = opts.look ? { source: 'look around', value: opts.outside ? ringShift(state, a, h, area) : CONFIG.LOOK_SEARCH_SHIFT }
-      : opts.only ? undefined : { source: 'searching', value: CONFIG.SEARCH_AREA_SHIFT };
-    const r = ruleset.contested(hiderRoll(state, h, stealthSkill(h), sense, true, a), shift?.value ? { ...w, tierShifts: [...w.tierShifts, shift] } : w, state, rng);
+    if (atLeast(beliefStatus(state, a, h), 'aware')) continue;
+    const noise = opts.noiseOf?.(h) ?? CONFIG.HIDE_STILL_NOISE;
+    const tests: [Sense, number][] = opts.look ? (inLookReach(seeingM(state, a, h)) ? [[opts.look, CONFIG.LOOK_SEARCH_SHIFT]] : [])
+      : ([FN.sight, FN.hearing, FN.smell] as Sense[]).flatMap((f) => { const t = senseReach(state, a, h, f, noise, !!opts.only); return t === null ? [] : [[f, t] as [Sense, number]]; });
+    let best: { r: ContestResult; sense: Sense } | undefined;
+    for (const [sense, shift] of tests) {
+      const w = watcherRoll(state, a, sense, zoneById(state, h.zone), h);
+      const r = ruleset.contested(hiderRoll(state, h, stealthSkill(h), sense, true, a), shift ? { ...w, tierShifts: [...w.tierShifts, { source: opts.look ? 'look around' : 'searching', value: shift }] } : w, state, rng);
+      contestFeat(state, r, a.kind === 'player' ? [sense] : undefined); // N4c
+      markUse(state, h, r.a.skill, r);
+      markUse(state, a, r.b.skill, r);
+      log(state, 'search_contest', { actorId: a.id, hiderId: h.id, gap: r.gap, sense, ...(opts.look ? { look: true } : {}) });
+      if (!best || r.gap > best.r.gap) best = { r, sense };
+    }
+    if (!best) continue;
     if (!done.ids.includes(pairKey(h, a))) done.ids.push(pairKey(h, a));
-    contestFeat(state, r, a.kind === 'player' ? [sense] : undefined); // N4c
-    if (a.kind === 'player' && r.gap > 0) { tally(state, 'spotted'); tally(state, 'spotted', { by: 'function', of: sense }); } // N3
-    markUse(state, h, r.a.skill, r);
-    markUse(state, a, r.b.skill, r);
-    log(state, 'search_contest', { actorId: a.id, hiderId: h.id, gap: r.gap, ...(opts.look ? { look: true } : {}) });
+    const r = best.r;
+    if (a.kind === 'player' && r.gap > 0) { tally(state, 'spotted'); tally(state, 'spotted', { by: 'function', of: best.sense }); } // N3
     const at = { ...event, zone: h.zone, ...(h.pos ? { pos: { ...h.pos } } : {}) };
     if (r.gap > 0) { updateBeliefs(state, { kind: 'detection', observerId: a.id, aboutId: h.id, status: 'aware', event: at }); spotted(a, h); won.push({ found: h, r }); } // WN8
     else if (r.gap === 0) updateBeliefs(state, { kind: 'detection', observerId: a.id, aboutId: h.id, status: 'suspicious', event: at });

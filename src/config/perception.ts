@@ -26,6 +26,8 @@ export const PERCEPTION = {
   /** LX5 b: a Search's checks beyond its search area: the first ring reaches this many times the search radius, the second
    * from there out to the look's reach (clear sight, 25 m) */
   SEARCH_RING1_RADII: 2,
+  /** LS2 a: the sound someone hiding still makes (breathing, cloth): the noise table's faint, 20 dB at 1 m */
+  HIDE_STILL_NOISE: 'faint' as import('../scales').NoiseKey,
   /** LX8 a: tiers on a Search's roll against a hider inside its search area, so searching beats waiting (placeholder) */
   SEARCH_AREA_SHIFT: 1,
   /** LX5/LX8 a: tiers on the searcher's roll in the first and second ring beyond the search area (placeholders) */

@@ -25,7 +25,7 @@ import { isDark, timeView, zoneLight, clockSet, now, timeOfDay, durationText, sp
 import { charLevel, power, wornTitle } from '../engine/xp';
 import { presetAgeFloor, presetTalent, rankName, rankRow, spawnNpc } from '../library/spawn';
 import { uniqueInWorld } from '../library/echo';
-import { distOrNull, seeingM, sideFrom, sightDistM, spotPoint } from '../engine/position';
+import { distM, distOrNull, seeingM, sideFrom, sightDistM, spotPoint } from '../engine/position';
 import { moveSpeed, turnMetres } from '../engine/speed';
 import { hiddenFrom } from '../engine/gear';
 import { revealedTo } from '../minds/state';
@@ -51,7 +51,9 @@ import { tacticsWord } from './tactics';
 import { fallBackOwner } from '../engine/nerve';
 import { PERK_MOVES, fallbackAttackSkill, hasPerk, healthLevel, isDownLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
 import { itemHolders, summonableThreadboundItems } from '../ruleset/threadboundItems';
-import { beliefStatus, hearsWords, isComm, spotInSight } from '../perception';
+import { beliefStatus, hearsWords, isComm, soundOf, spotInSight } from '../perception';
+import { hearingOf } from '../perception/noise';
+import { perkSum } from '../ruleset/perks';
 import { skillName } from '../library/skillNames';
 import { offeredRoutines } from '../minds/routines';
 import { coinWords, countWords, isSeller, offerList, wareList } from '../engine/trade';
@@ -303,9 +305,14 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
     if (a.id === viewer.id || !zones.includes(a.zone)) continue;
     if (a.id === state.player.id && !atLeast(viewer.mind?.knowledge[a.id]?.status, 'aware')) continue;
     const sight = sightLevel(personVisibility(a, events), seeingM(state, viewer, a));
-    if (!sight) continue;
     // NS2/NS4: a stealthy NPC outside the viewer's band shows only to those who see it; a suspicious viewer half sees someone
     const hidden = a.id !== state.player.id && a.posture === 'stealthy' && a.bandId !== viewer.bandId ? beliefStatus(state, viewer, a) : 'aware';
+    if (!sight) {
+      // LS4 a: a hider found by sound and still heard shows where they are, as someone (named only if heard clearly)
+      const heard = a.posture === 'stealthy' && hidden !== 'unaware' ? hearingOf(state, soundOf(state, a, events), a, viewer, perkSum(viewer, 'hearingDb')) : null;
+      if (heard) out.push({ id: a.id, label: 'someone', ...(heard === 'full' && hidden === 'aware' && nameFor(state, viewer, a) ? { name: nameFor(state, viewer, a)! } : {}), zone: a.zone, level: 'partial', gear: [], ...(a.pos && viewer.pos ? { distanceM: r1(distM(state, viewer, a)) } : {}), ...(sideFrom(viewer, a.pos) ? { side: sideFrom(viewer, a.pos)! } : {}) });
+      continue;
+    }
     if (hidden === 'unaware') continue;
     // BG-92: where someone is, even half seen, so nobody mistakes them for another person elsewhere
     const place = {

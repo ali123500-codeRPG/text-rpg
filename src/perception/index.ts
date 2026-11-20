@@ -74,6 +74,11 @@ export function carryingNoise(state: GameState, from: Located, listener: Actor):
   return VOLUME_NOISE.normal;
 }
 
+/** LS2 a: the sound `h` makes now: its latest step this turn or last (`events` are this turn's), else the faint sound of
+ * keeping still (HIDE_STILL_NOISE). One rule for a search's hearing and for a hider found by sound. */
+export function soundOf(state: GameState, h: Actor, events: GameEvent[] = state.events): NoiseKey {
+  return [...(state.recentEvents ?? []), ...events].reverse().find((e) => e.actorId === h.id && e.kind === 'move' && e.turn >= state.turn - 1)?.noise ?? CONFIG.HIDE_STILL_NOISE;
+}
 /** C1 Never Surprised: the owner can hear a sound of this noise made there (a person or a point), stealth aside */
 export function hears(state: GameState, observer: Actor, at: Located, noise: GameEvent['noise']): boolean {
   return !isAsleep(observer) && soundCarries(state, observer, at, noise);
