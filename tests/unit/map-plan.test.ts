@@ -67,6 +67,22 @@ describe('MAP-52 test stages', () => {
     expect(out).toContain('MAP-12 zone high_lane runs through the building tavern');
     expect(out.some((f) => f.startsWith('MAP-10 zone tavern.common'))).toBe(true);
   });
+  it('MAP-13: a place\'s outline hugs its own ground: the Bent Nail\'s never runs over the high lane, its title above its top-left corner', () => {
+    for (const k of [0.6, 1, 1.6]) {
+      const { sc } = sceneOf(stageState('bent-nail'), k), lane = sc.zones.find((x) => x.z.id === 'high_lane')!.box, tavern = sc.places.find((p) => p.id === 'tavern')!;
+      // the outline's rings, each a list of corners
+      const rings = tavern.outline.split('M').filter(Boolean).map((r) => r.replace('Z', '').split('L').map((q) => q.trim().split(' ').map(Number)));
+      const inner = { x0: lane.x0 + 0.5, y0: lane.y0 + 0.5, x1: lane.x1 - 0.5, y1: lane.y1 - 0.5 };
+      for (const ring of rings) ring.forEach(([ax, ay], n) => {
+        const [bx, by] = ring[(n + 1) % ring.length];
+        expect(hit({ x0: Math.min(ax, bx), y0: Math.min(ay, by), x1: Math.max(ax, bx) + 0.01, y1: Math.max(ay, by) + 0.01 }, inner), `side ${n} at zoom ${k}`).toBe(false);
+      });
+      const pts = rings.flat(), top = Math.min(...pts.map((q) => q[1])), corner = Math.min(...pts.filter((q) => q[1] === top).map((q) => q[0]));
+      expect(tavern.title.y1).toBeLessThanOrEqual(top);
+      expect(tavern.title.x0).toBeLessThanOrEqual(corner);
+      expect(tavern.title.x1).toBeGreaterThan(corner);
+    }
+  });
   it('the stages exist as the fake preview names them', () => expect(Object.keys(FAKE_STAGES)).toEqual(['bent-nail', 'bent-nail-saved', 'one-room', 'long-names']));
 });
 

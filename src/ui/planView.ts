@@ -190,7 +190,7 @@ export function planView(api: GameApi, opts: PlanOpts) {
       if (!c) continue;
       const cut = !same(c, p.box), r = (q: Box, extra = {}) => s('rect', { x: q.x0, y: q.y0, width: q.x1 - q.x0, height: q.y1 - q.y0, ...extra });
       gAreas.append(s('g', { class: `map-area real${p.id === d.focus ? ' on' : ''}`, 'data-area': p.id, 'aria-label': `${p.name}: a place on this map` },
-        r(p.box, cut ? {} : { 'data-role': 'place', 'data-id': p.id }), ...(cut ? [r(c, { class: 'mm-tag', 'data-role': 'place', 'data-id': p.id })] : [])));
+        s('path', { d: p.outline, ...(cut ? {} : { 'data-role': 'place', 'data-id': p.id }) }), ...(cut ? [r(c, { class: 'mm-tag', 'data-role': 'place', 'data-id': p.id })] : [])));
     }
     const labels = new Map(sc.labels.map((l) => [l.zoneId, l]));
     for (const x of sc.zones) {

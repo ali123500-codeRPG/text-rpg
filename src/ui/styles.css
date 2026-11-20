@@ -989,10 +989,10 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-pill text { fill: var(--text); font-size: 13px; font-weight: 700; }
 .map-pill.unknown text { fill: var(--muted); font-weight: 600; }
 .map-area { cursor: pointer; outline: none; }
-.map-area rect { fill: color-mix(in srgb, var(--c15) 6%, transparent); stroke: color-mix(in srgb, var(--c15) 40%, transparent); stroke-width: 1.5; stroke-dasharray: 10 6; }
-.map-area.mine rect { fill: color-mix(in srgb, var(--scenario-mark) 6%, transparent); }
-.map-area.on rect, .map-area:hover rect, .map-area:focus-visible rect { stroke: var(--scenario-mark); stroke-dasharray: none; }
-.map-area.real rect { fill: none; stroke-dasharray: none; stroke-width: 2; }
+.map-area path { fill: color-mix(in srgb, var(--c15) 6%, transparent); stroke: color-mix(in srgb, var(--c15) 40%, transparent); stroke-width: 1.5; stroke-dasharray: 10 6; }
+.map-area.mine path { fill: color-mix(in srgb, var(--scenario-mark) 6%, transparent); }
+.map-area.on path, .map-area:hover path, .map-area:focus-visible path { stroke: var(--scenario-mark); stroke-dasharray: none; }
+.map-area.real path { fill: none; stroke-dasharray: none; stroke-width: 2; }
 .map-world-names { pointer-events: none; }
 .map-world-name .map-tile-name { font-size: 14px; }
 .map-world-name.here .map-tile-sub { fill: var(--scenario-mark); }
