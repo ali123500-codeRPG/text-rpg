@@ -4,7 +4,9 @@ Kind: decision. How changes land and where work runs. The rules that follow from
 `docs/instructions.md`; this file keeps the dates and reasons.
 
 - **The agent merges its own PR once checks are green** (07/11/2026). Before that the owner merged every PR. Bug
-  fixes and rule files still wait for the owner's OK.
+  fixes and rule files waited for the owner's OK until 20/11/2026, when the owner said: "merge without asking me
+  and have that stated in the shared documents". Since then every PR merges when green; a rule-file PR quotes the
+  owner's words it acts on.
 - **The spec is never frozen** (07/11/2026). An edit to it is a normal change, made in the PR that changes the rule.
 - **Open items live in the repo** (07/11/2026). The spec's "Deferred items" table is the decision log (D-n), with
   "Open questions" (OQ-n) and the "Bug log" (BG-n) beside it. There is no separate decision-log file.
@@ -16,6 +18,8 @@ Kind: decision. How changes land and where work runs. The rules that follow from
   started far behind.
 - **Long runs go on GitHub, from a pushed branch** (19/11/2026). Reason: the checks already run the full suite on
   every push, and results stay with the branch. To be asked again after 19/12/2026.
+- **The full test suite may run locally** (19/11/2026). Reason: since #1115 `npm test` takes about two minutes, so
+  it is no longer a long run. Rule 5 stays as it was: the slowness came from how the tests loaded, not from the rule.
 - **Optimise the game for quality and speed, not for model cost** (14/11/2026). Reason: the owner kept a costlier
   set of in-game agent calls because lower cost was the only case for trimming them.
 - **Playtests continue one world** (17/11/2026). New runs carry on an existing world, never a fresh one.

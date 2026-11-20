@@ -41,6 +41,28 @@ Links to `claude.ai/artifact/...` open only for the owner and for Claude session
 - **Other agents:** cannot write to the hub. Follow `docs/instructions.md` section 5: show the owner the hub's
   description in `tools/questions-hub/README.md` and agree with them how you will ask.
 
+## Where the game page and the library viewer live
+
+The owner decided that both pages move to the Claude project on another account, whose desk label is
+`desk:rpg-game` ("the page desk" below). A page cannot change owner, so the page desk publishes its own copy of each
+and records the new links in this file. Until those links are here, the two sections below describe the live pages
+and nothing changes. From the PR that records them:
+
+- **Only the page desk publishes** the game page and the library viewer. Every other desk and agent says in its PR
+  that the pages need a republish, and the owner presses the Republish button on the new game page.
+- **The pages on this account are frozen.** Nobody publishes to them again, and nobody deletes them unless the owner
+  asks. The old game page still holds the owner's saves: it stays off-limits under `AGENTS.md` rule 1.
+- **Saves cross by the owner's hand.** The page desk builds Export saves and Import saves buttons in the game's
+  settings. No session reads a save to move it.
+- **The Republish button and its saved task** are set up again by the page desk, on its account. The task on this
+  account is deleted once the new button has worked.
+- **In-game bug reports** land in the new game page's database, which only the page desk can read. The page desk
+  triages them. Each real bug gets its BG-n and a GitHub issue with no desk label, so any desk can claim the fix.
+- **Licensed sound files** reach the page desk as one zip that the owner carries across. They stay out of both
+  repos.
+- The owner shares the new pages with this account, so the owner can open them from either. A Claude session
+  cannot read or publish a page that another account holds, shared or not.
+
 ## The game page
 
 - The game is published as a private artifact, https://claude.ai/artifact/76Ld3Tbj37mCi621t62oFQ. Its database holds
@@ -87,12 +109,11 @@ Links to `claude.ai/artifact/...` open only for the owner and for Claude session
 
 ## Bug numbers
 
-- Claude threads take the next BG number from a counter in the game page's database (`bugs_meta/counter`), with a
-  version check so two threads cannot take the same one, then add the row to the spec's Bug log.
-- Before taking a number, compare the counter with the highest number in the Bug log on the latest `main`. If the log
-  is ahead, move the counter past it first. Reason: other agents number from the log.
-- Bug reports the game files itself land in the `bugs` collection unnumbered. A triage thread numbers the real ones.
-- **Other agents:** take the next free number in the Bug log (`docs/instructions.md` section 2).
+- Every agent, Claude threads included, takes the next free number in the Bug log on the latest `main`
+  (`docs/instructions.md` section 2), in the PR that adds the row.
+- The counter in the old game page's database (`bugs_meta/counter`) is retired. Do not read it or move it.
+- Bug reports the game files itself land in the `bugs` collection of the game page, unnumbered. The desk that holds
+  the game page triages them and numbers the real ones (see "Where the game page and the library viewer live").
 
 ## Skills
 

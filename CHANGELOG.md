@@ -3,6 +3,17 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, `docs/build-spec.md` and `docs/bug-fix-log.md`.
 
+- 20/11/2026: Merging no longer waits for the owner. `AGENTS.md` rules 2 and 6 and `docs/instructions.md` sections 2
+  and 8: a bug fix and a rule-file change merge like any other PR, when every check is green. A bug fix still gets
+  its BG-n, root cause and log entries; a rule-file PR quotes the owner's words it acts on.
+- 20/11/2026: `docs/providers/claude.md`: new section "Where the game page and the library viewer live". Both pages
+  move to the Claude project on another account (`desk:rpg-game`), which alone publishes them once it records the
+  new links; the old pages are frozen, saves cross by Export and Import buttons, and in-game bug reports are
+  triaged there and become GitHub issues. The bug number counter is retired: every agent numbers from the Bug log
+  (`docs/instructions.md` section 2, spec "Bug log").
+- 19/11/2026: `docs/instructions.md` section 8: the full test suite is no longer a long run (about two minutes since
+  #1115) and may run locally; GitHub stays for runs over about ten minutes. `AGENTS.md`'s map notes the nightly
+  isolated run. Rule 5 is unchanged.
 - 19/11/2026: New rule "Claim the work first" (`docs/instructions.md` section 4): one GitHub issue per piece of
   work, labelled with the desk that took it, so agents on different accounts and providers do not do the same work
   twice. `docs/providers/claude.md` names the desk labels.

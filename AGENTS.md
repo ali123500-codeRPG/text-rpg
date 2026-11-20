@@ -19,9 +19,10 @@ project: "the owner" below is its designer and its only player.
 
 1. **The owner's game and saves are off-limits.** Never play the published game, and never read, write or delete the
    owner's saves or stories, without the owner's OK. Publishing the game means build, test and publish only.
-2. **A bug fix needs the owner's OK before it is pushed.** Every bug gets a BG-n and a row in the spec's Bug log. Find
-   the root cause with the `root-cause-first` skill. Show the owner the cause and the planned fix, and push nothing
-   until they agree. Every bug-fix PR adds an entry to `docs/bug-fix-log.md`.
+2. **Every bug gets a number and its root cause.** Every bug gets a BG-n and a row in the spec's Bug log. Find the
+   root cause with the `root-cause-first` skill, and say the cause and the fix in the PR. A bug fix does not wait
+   for the owner: it merges like any other PR (rule 5). A fix that needs a design choice is still a question to the
+   owner first (rule 3). Every bug-fix PR adds an entry to `docs/bug-fix-log.md`.
 3. **Do not invent mechanics or guess a rule.** A gap, or a request that can be read more than one way, is a question
    to the owner with a recommendation. Build only the clear parts. When the shape of a curve, formula or table is
    open, or a request gives a direction for a number but no amount, show options before building.
@@ -31,8 +32,9 @@ project: "the owner" below is its designer and its only player.
    checked" and "Tests" filled in (the `pr-rule` check fails without them). Merge only when every check is green.
    Never skip, disable or weaken a test to get there. Correcting a test that asserts the wrong thing is allowed:
    say in the PR what it now checks and why.
-6. **Rule files change only with the owner's OK.** A PR that touches `AGENTS.md`, `docs/instructions.md`,
-   `docs/providers/` or any skill in `.agents/skills/` merges only after the owner agrees.
+6. **Rule files change only on the owner's word.** A PR that touches `AGENTS.md`, `docs/instructions.md`,
+   `docs/providers/` or any skill in `.agents/skills/` quotes what the owner said or answered that it acts on. It
+   then merges like any other PR (rule 5), without a second OK. An agent never changes a rule on its own idea.
 7. **Balancing numbers live in one place.** Every tunable number (odds, damage, ranges, timers, thresholds, XP, costs)
    sits in `src/config.ts` or a library table under a clear name, with placeholders marked. Never hard-code one in
    logic, and never copy one into `docs/memory/`: name the setting and where it lives.
@@ -85,7 +87,7 @@ is fixed in your PR and named there; if you cannot tell which side is right, it 
   scenario-end growth, kept as history; what was built is in the spec.
 - `docs/workstreams.md`: rules from the first build, kept as history.
 - `.github/workflows/`: `ci.yml` (every PR), `pr-rule.yml` (the PR body), `nightly.yml` (a nightly soak run of
-  `tests/soak`).
+  `tests/soak`, and every test file run isolated).
 - `CHANGELOG.md`: dated changes to rules and skills only.
 - `src/config.ts`: every balancing setting. `src/library/`: game data. `tests/harness/`: test helpers.
 - `tests/`: `unit` and `cases` (scenario tests), `smoke` (browser), `replay` (recorded playtest answers played
