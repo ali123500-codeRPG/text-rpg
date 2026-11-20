@@ -11,11 +11,11 @@ import { setTitleLight } from '../../src/plan/draw';
 import type { Light } from '../../src/types';
 
 describe('381 light levels (LT1-LT3)', () => {
-  it('each level reads its lux: 0 down to a lit room, then −5 a tenfold drop; pitch black reads the floor', () => {
+  it('each level reads its lux: 0 down to a lit room, then −7% a tenfold drop; pitch black reads the floor', () => {
     expect(LIGHT.keys).toEqual(['bright', 'lamplit', 'dim', 'moonlit', 'dark', 'black']);
-    expect(LIGHT.keys.map((k) => lightMod(k))).toEqual([0, 0, -6, -12, -22, -28]);
-    expect(lightMod('dark', 1)).toBe(-17); // Night Eyes: ten times brighter
-    expect(lightMod('lamplit', -1)).toBe(-5); // Child of Night: ten times darker
+    expect(LIGHT.keys.map((k) => lightMod(k))).toEqual([0, 0, -9, -17, -31, -40]);
+    expect(lightMod('dark', 1)).toBe(-24); // Night Eyes: ten times brighter
+    expect(lightMod('lamplit', -1)).toBe(-7); // Child of Night: ten times darker
     expect(LIGHT.keys.filter(isDark)).toEqual(['moonlit', 'dark', 'black']);
   });
 

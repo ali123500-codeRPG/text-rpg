@@ -39,10 +39,10 @@ describe('170 real distances', () => {
   it('range penalty: by the distance as a share of the reach, so a longbow is barely stretched where a shortbow is at its limit', () => {
     expect(rangeMod(0, 50)).toBe(0);
     expect(rangeMod(8, 50)).toBe(0);
-    expect(rangeMod(24, 50)).toBe(-5);
-    expect(rangeMod(48, 50)).toBe(-15);
-    expect(rangeMod(48, 90)).toBe(-10); // a longbow at the same 48 m
-    expect(rangeMod(17.5, 17.5)).toBe(-15); // a spear thrown at its full range
+    expect(rangeMod(24, 50)).toBe(-7);
+    expect(rangeMod(48, 50)).toBe(-20);
+    expect(rangeMod(48, 90)).toBe(-13); // a longbow at the same 48 m
+    expect(rangeMod(17.5, 17.5)).toBe(-20); // a spear thrown at its full range
   });
 
   it('words carry only by sound: a talker made out 20 m off is seen, but a normal voice is clear only to about 18 m', () => {

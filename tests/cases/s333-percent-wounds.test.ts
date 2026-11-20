@@ -1,8 +1,9 @@
 // PW1 b, PW3 a, PW4 a, PW5 a (Wound and morale penalties as %): every wounds-type penalty is a % of the average
-// roll (50.5 + SKILL_WEIGHT × effective skill), sized so skill 50 plays as the old flat numbers did, still one wounds pile
+// roll (50.5 + SKILL_WEIGHT × effective skill), sized so skill 50 plays as the old flat numbers did, still one wounds pile;
+// D-76: flat situational modifiers take the same form
 import { describe, expect, it } from 'vitest';
 import { CONFIG } from '../../src/config';
-import { averageRoll, woundsOnRoll } from '../../src/ruleset/body';
+import { averageRoll, pctMod, woundsOnRoll } from '../../src/ruleset/body';
 import { effectiveSkill, ruleset } from '../../src/ruleset';
 import { SK } from '../../src/library/skillIds';
 import { makeVillage } from '../harness/village';
@@ -27,5 +28,13 @@ describe('333 wound penalties as % of the average roll', () => {
     const m = r.modifiers.find((x) => x.source === 'health: Wounded')!;
     expect(m.pct).toBe(-20);
     expect(m.value).toBeCloseTo(-0.2 * averageRoll(effectiveSkill(s, s.player, SK.dodge).value));
+  });
+  it('D-76: a situational modifier given as a % comes to that % of the roller\'s average roll, like a wound', () => {
+    const s = makeVillage();
+    s.player.core.skills[SK.dodge] = { raw: 150, state: 'normal' };
+    const r = ruleset.roll({ actorId: s.player.id, skill: SK.dodge, modifiers: [pctMod('outnumbered', CONFIG.OUTNUMBERED_MOD)], tierShifts: [] }, s, forcedRng([50]));
+    const m = r.modifiers.find((x) => x.source === 'outnumbered')!;
+    expect(m).toMatchObject({ type: 'situational', pct: CONFIG.OUTNUMBERED_MOD });
+    expect(m.value).toBeCloseTo((CONFIG.OUTNUMBERED_MOD / 100) * averageRoll(effectiveSkill(s, s.player, SK.dodge).value));
   });
 });

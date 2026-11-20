@@ -28,11 +28,11 @@ function house(open = true, kind: string = BK.window): GameState {
 }
 
 describe('384 windows (PC3)', () => {
-  it('through the open window a person 2 m inside shows about 55% (head and chest): −9, the hub example', () => {
+  it('through the open window a person 2 m inside shows about 55% (head and chest): −11%, the hub example', () => {
     const s = house();
     const g = s.actors.find((a) => a.id === 'guard_1')!, z = zoneById(s, 'tav_common')!;
     expect(openingShown(s, g, z, s.player)).toBeCloseTo(0.55, 2);
-    expect(coverMod(coverShown(s, g, z, s.player))).toBe(9);
+    expect(coverMod(coverShown(s, g, z, s.player))).toBe(11);
     expect(openingShown(s, g, z, g)).toBe(1); // seen from inside the same room: no frame
   });
 
@@ -79,10 +79,10 @@ describe('384 window kinds (PC4)', () => {
       const g = s.actors.find((a) => a.id === 'guard_1')!, z = zoneById(s, 'tav_common')!;
       return coverMod(coverShown(s, g, z, s.player));
     };
-    expect(at(BK.window, true)).toBe(9);
-    expect(at(BK.arrow_slit, false)).toBe(32);
-    expect(at(BK.barred_window, false)).toBe(9);
-    expect(at(BK.large_window, true)).toBe(4);
+    expect(at(BK.window, true)).toBe(11);
+    expect(at(BK.arrow_slit, false)).toBe(41);
+    expect(at(BK.barred_window, false)).toBe(11);
+    expect(at(BK.large_window, true)).toBe(5);
   });
 
   it('nobody jumps through bars or a slit; a large window open is jumped through', () => {

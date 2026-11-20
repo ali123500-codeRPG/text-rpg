@@ -143,10 +143,10 @@ describe('125 All-50 parts', () => {
       landUnder(s, zoneById(s, 'field_mid')!.outline, LC.woods);
       arm(s, 'player', IT.shortbow);
       if (perk) give(s.player, PK.past_the_cover);
-      return ruleset.attack({ attackerId: 'player', targetId: 'slime_1', weaponId: 'w_player', targetPart: null, aimed: false }, s, forcedRng([100, 50, 50])).attack.modifiers.find((m) => m.source === 'cover')?.value;
+      return ruleset.attack({ attackerId: 'player', targetId: 'slime_1', weaponId: 'w_player', targetPart: null, aimed: false }, s, forcedRng([100, 50, 50])).attack.modifiers.find((m) => m.source === 'cover')?.pct;
     };
-    expect(gap(false)).toBe(-45);
-    expect(gap(true)).toBe(-25); // two halvings back
+    expect(gap(false)).toBe(-59);
+    expect(gap(true)).toBe(-33); // two halvings back
   });
   it('Child of Night: light counts ten times darker for the owner\'s stealth rolls only', () => {
     const s = makeVillage();
@@ -156,8 +156,8 @@ describe('125 All-50 parts', () => {
     const mod = (skill: string) => situational(s, skill, { light: zone, actor: s.player }).modifiers[0]?.value ?? 0;
     const before = [mod(SK.sneaking), mod(SK.eyesight)];
     give(s.player, PK.child_of_night);
-    expect(before).toEqual([6, -6]); // LT2: dim, 3 lux
-    expect([mod(SK.sneaking), mod(SK.eyesight)]).toEqual([11, -6]); // dim read ten times darker for sneaking; sight unchanged
+    expect(before).toEqual([9, -9]); // LT2: dim, 3 lux
+    expect([mod(SK.sneaking), mod(SK.eyesight)]).toEqual([16, -9]); // dim read ten times darker for sneaking; sight unchanged
   });
   it('Curiouser and Curiouser: a sight or hearing roll at Success or better counts one tier higher', () => {
     const s = makeVillage();
@@ -266,7 +266,7 @@ describe('125 All-50 parts', () => {
     const mod = (skill: string) => situational(s, skill, { light: zone, actor: s.player }).modifiers[0]?.value ?? 0;
     const before = [mod(SK.eyesight), mod(SK.sneaking)];
     give(s.player, PK.night_eyes);
-    expect([mod(SK.eyesight), mod(SK.sneaking)]).toEqual([-17, before[1]]); // LT2: dark (0.002 lux) read as 0.02 lux: −17, not −22
+    expect([mod(SK.eyesight), mod(SK.sneaking)]).toEqual([-24, before[1]]); // LT2: dark (0.002 lux) read as 0.02 lux: −24%, not −31%
     expect(mod(SK.eyesight)).toBeGreaterThan(before[0]);
   });
   it('Dodgy: attack rolls against the owner get −10 effective skill', () => {

@@ -161,17 +161,17 @@ describe('117 stealth', () => {
     s.player.pos = { x: c.x, y: c.y + 0.7 }; t.pos = { x: c.x, y: c.y - 3 };
     s.player.core.condition.parts.left_leg = -30;
     const cover = coverMod(coverShown(s, s.player, z, t));
-    expect(cover).toBe(11); // the line over 1 m barrels from the trader's eye hides 53% of the player
+    expect(cover).toBe(14); // the line over 1 m barrels from the trader's eye hides 53% of the player
     const calls = rig();
     turn(s, intent(null, { type: 'sneak' }));
     const [a, o] = calls.find(([, b]) => b.actorId === 'trader')!;
     expect(a.skill).toBe(SK.sneaking);
     // P14: darkness gives no help against a listener
-    expect(a.modifiers).toEqual([...(o.skill === SK.eyesight ? [{ source: 'light', type: 'situational', value: 22 }] : []), { source: 'cover', type: 'situational', value: cover }]);
+    expect(a.modifiers).toEqual([...(o.skill === SK.eyesight ? [{ source: 'light', type: 'situational', value: 31, pct: 31 }] : []), { source: 'cover', type: 'situational', value: cover, pct: cover }]);
     expect(a.tierShifts).toEqual([]);
     expect(a.roles).toBeUndefined();
     const [, b] = calls.find(([, o]) => o.actorId === 'trader')!;
-    expect(b.modifiers).toEqual(b.skill === SK.eyesight ? [{ source: 'light', type: 'situational', value: -22 }] : []); // ST21: sight is hurt
+    expect(b.modifiers).toEqual(b.skill === SK.eyesight ? [{ source: 'light', type: 'situational', value: -31, pct: -31 }] : []); // ST21: sight is hurt
   });
   it('tags decide the tables (ST21, HA1): a sneak rolls Sneaking or Vanishing by what the watcher knows', () => {
     const s = makeVillage();

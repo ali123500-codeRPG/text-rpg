@@ -9,9 +9,9 @@ import { coverMod } from '../../src/ruleset/gear';
 import { MOD_SOURCES } from '../../src/ruleset/modSources';
 
 describe('382 cover levels (CV1-CV8)', () => {
-  it('five levels, each hiding more of a person; a person reads 0, 4, 10, 20, 30', () => {
+  it('five levels, each hiding more of a person; a person reads 0, 5, 13, 26, 39', () => {
     const hidden = COVER.keys.map((k) => CONFIG.COVER_HIDDEN[k]);
-    expect(hidden.map((h) => coverMod(1 - h))).toEqual([0, 4, 10, 20, 30]);
+    expect(hidden.map((h) => coverMod(1 - h))).toEqual([0, 5, 13, 26, 39]);
     expect(coverMod(1)).toBe(0);
   });
 
@@ -24,7 +24,7 @@ describe('382 cover levels (CV1-CV8)', () => {
   it('the roll modifiers list shows the cover row for a person', () => {
     const row = MOD_SOURCES.find((r) => r.source === 'Cover')!;
     expect(row.type).toBe('situational');
-    expect(row.value).toBe('none 0 · light +4 · some +10 · heavy +20 · dense +30');
-    expect(MOD_SOURCES.find((r) => r.source === 'Cover (shot)')!.value).toBe('none 0 · light −4 · some −10 · heavy −20 · dense −30');
+    expect(row.value).toMatch(/^none 0% · light \+5% · some \+13% · heavy \+26% · dense \+39% of the average roll/);
+    expect(MOD_SOURCES.find((r) => r.source === 'Cover (shot)')!.value).toMatch(/^none 0% · light −5% · some −13% · heavy −26% · dense −39% of the average roll/);
   });
 });
