@@ -42,7 +42,7 @@ function exitShare(a: Pos, b: Pos, box: Box): number | undefined {
 }
 
 /** the gap between a point and a box on the floor, in metres */
-const boxGap = (p: Pos, box: Box): number => Math.hypot(Math.max(box.lo.x - p.x, 0, p.x - box.hi.x), Math.max(box.lo.y - p.y, 0, p.y - box.hi.y));
+export const boxGap = (p: Pos, box: Box): number => Math.hypot(Math.max(box.lo.x - p.x, 0, p.x - box.hi.x), Math.max(box.lo.y - p.y, 0, p.y - box.hi.y));
 
 /** PC2: the share of `body` (0 to 1) hidden behind the pieces of furniture in its zone, seen from `from` */
 export function objectHidden(state: GameState, body: Actor, zone: Zone, from?: Actor): number {
