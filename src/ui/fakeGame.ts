@@ -348,6 +348,8 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       player.journal!.clearSight = { ...player.journal!.clearSight, mate_1: 'tav_common', mate_2: 'tav_yard' };
       player.journal!.namesKnown = [...(player.journal!.namesKnown ?? []), 'mate_1', 'mate_2'];
     }
+    // KT18: an unknown ?stage= name fails loudly, so the Map's browser check never passes on the default page
+    if (opts.stage && !FAKE_STAGES[opts.stage]) throw new Error(`unknown test stage: ${opts.stage}`);
     const stage = opts.stage ? FAKE_STAGES[opts.stage] : undefined;
     if (stage) useStage(state, stage());
     else fakeLand(state);

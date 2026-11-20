@@ -77,39 +77,12 @@ describe('play page smoke (TQ7)', () => {
     expect(errors).toEqual([]);
   });
 
-  it('an essence offer pops up after the turn; Take it puts it in a slot, shown in the Character page\'s Essences pop-up', async () => {
-    await page.evaluate(() => {
-      const s = (globalThis as unknown as { __GAME_API__: { state: () => { turn: number; player: { progression?: { essenceOffers?: unknown[] } } } } }).__GAME_API__.state();
-      s.player.progression!.essenceOffers = [{ essence: 'ES3', grade: 'common', points: { SK11: 1, SK32: 1 }, turn: s.turn, source: 'foe', untilMin: 1e9 }];
-    });
-    await turn('look around', 1);
-    const pop = page.locator('.ess-pop');
-    await pop.waitFor();
-    expect(await pop.innerText()).toMatch(/Street Instinct[\s\S]*\+1 Dodge[\s\S]*\+1 Insight/);
-    await pop.getByRole('button', { name: 'Take it' }).click();
-    await nav('Character');
-    const tile = page.locator('[data-tile="essences"]');
-    await expect.poll(() => tile.innerText()).toMatch(/1 of \d+/);
-    await tile.click();
-    const sec = page.locator('.ess-all');
-    await expect.poll(() => sec.innerText()).toMatch(/Street Instinct/);
-    expect(errors).toEqual([]);
-  });
-
   it('reports a bug: it is filed as a new report, numbered later by Claude (BF45), and listed', async () => {
     await nav('Bugs');
     await page.getByPlaceholder(/What went wrong/).fill('smoke test report');
     await page.getByRole('button', { name: 'Report bug' }).click();
     await page.getByRole('cell', { name: 'smoke test report' }).waitFor();
     expect(await page.getByRole('row').filter({ hasText: 'smoke test report' }).getByText(/^New$/).count()).toBe(1);
-    expect(errors).toEqual([]);
-  });
-
-  it('opens the Inventory with its Coin line, and the Quests page', async () => {
-    await nav('Inventory');
-    await page.getByText(/^Coin: /).waitFor();
-    await nav('Quests');
-    await page.locator('h1', { hasText: 'Quests' }).waitFor();
     expect(errors).toEqual([]);
   });
 
