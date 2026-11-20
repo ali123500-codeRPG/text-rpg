@@ -19,6 +19,7 @@ with where its full meaning lives. A term's rules are never defined here.
 - **PS-nn**: a play screen rule. `docs/spec/part-2-turn-engine/play-screen.md`.
 - **SHEET-nn**: an actor sheet rule. `docs/spec/part-4-save/actor-sheet.md`.
 - **GSM-nn**: a game state model rule. `docs/spec/part-2-turn-engine/game-state-model.md`.
+- **ACT-nn**: an action time rule. `docs/spec/part-2-turn-engine/action-time.md`.
 - **GF-nn**: a game-feel rule. `.agents/skills/game-feel/SKILL.md`.
 - **Numbers are never reused.** An answered question or a retired item keeps its ID.
 
