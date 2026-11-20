@@ -15,6 +15,7 @@
 //     once per foe and trick a fight, when an ally that hears it doesn't know yet. Agent-run NPCs share by their lines
 //     (any line copies revealed facts, perception updateBeliefs).
 //   WN9 a: the player warns its allies the same way (the deck's Warn act sets Order.warn).
+//   D-51 b: outside a fight, a code-run companion following the player gives the same warning, once per foe and trick.
 import type { Actor, Effect, GameEvent, GameState, Order, RollResult, Rng, TierShift } from '../types';
 import { CONFIG } from '../config';
 import { INTELLIGENCE, type IntelligenceKey } from '../scales';
@@ -62,6 +63,8 @@ const warnedThisFight = (a: Actor, key: string): boolean => {
   const at = a.mind?.warned?.[key];
   return at !== undefined && !!a.engagement && at >= a.engagement.start;
 };
+/** WN8 a: once per foe and trick a fight; D-51 b: outside a fight (a companion's warning), once per foe and trick */
+const warnedBefore = (a: Actor, key: string): boolean => (a.engagement ? warnedThisFight(a, key) : a.mind?.warned?.[key] !== undefined);
 
 /** WN8 a, row W1: a code-run NPC adds a warning to the order its fight list gave, when it has news an ally in earshot lacks.
  * Not while it lies still (a shout would get it up); a cry carries no trick (WN5 a). */
@@ -72,7 +75,7 @@ export function codeWarn(state: GameState, a: Actor, o: Order): Order {
   if (!voice) return o;
   for (const w of q) {
     const about = actorById(state, w.about);
-    if (!about || !isActive(about) || warnedThisFight(a, warnKey(w.about, w.trick)) || (voice === 'cry' && w.trick !== HIDDEN)) continue;
+    if (!about || !isActive(about) || warnedBefore(a, warnKey(w.about, w.trick)) || (voice === 'cry' && w.trick !== HIDDEN)) continue;
     if (allActors(state).some((x) => allyOf(state, x, a) && reaches(state, a, x, voice) && news(state, x, about, w.trick))) return { ...o, warn: w.about };
   }
   return o;

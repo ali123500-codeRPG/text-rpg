@@ -12,6 +12,7 @@ import { drawnTo, spendDrawn } from './perkMarks';
 import { fooledBy } from './playDead';
 import { codePerkMove } from './npcPerkMoves';
 import { codeWarn } from './warnings';
+import { companions } from './travel';
 import type { AcceptedAgentOutput, TurnInput } from './types';
 import { turnMetres } from './speed';
 import { M_EPS, distM, gateAhead, seeingM, spotPoint, walkLeg, withinM, type Located } from './position';
@@ -195,6 +196,7 @@ export function mergeOrders(state: GameState, input: TurnInput, views: Map<strin
   }
   const pendingViews = ids.filter((id) => !out.has(id)).map((id) => views.get(id)!);
   for (const o of alertOrders(state, pendingViews)) if (!out.has(o.actorId) && views.has(o.actorId)) out.set(o.actorId, o);
+  const followers = companions(state, state.player);
   for (const id of ids) {
     if (out.has(id)) continue;
     const v = views.get(id)!;
@@ -202,7 +204,9 @@ export function mergeOrders(state: GameState, input: TurnInput, views: Map<strin
     // BF11: one staying where its own agent took it holds there instead of walking its routine
     const watch = isEngaged(state, a) ? undefined : suspicionOrder(state, a, v); // GD3: a code-run guard keeps close to someone it suspects
     // TC53-TC59 a: the perk moves it owns are weighed on the order its fight list gave; WN8 a row W1: then a warning beside it
-    out.set(id, isEngaged(state, a) ? codeWarn(state, a, codePerkMove(state, a, v, fallbackOrder(withTactics(state, a, v), rng))) : watch ?? (staying(state, a) ? { actorId: id, type: 'hold', target: null, skill: null, intent: 'stays put', source: 'routine' } : routineOrder(v)));
+    if (isEngaged(state, a)) { out.set(id, codeWarn(state, a, codePerkMove(state, a, v, fallbackOrder(withTactics(state, a, v), rng)))); continue; }
+    const calm: Order = watch ?? (staying(state, a) ? { actorId: id, type: 'hold', target: null, skill: null, intent: 'stays put', source: 'routine' } : routineOrder(v));
+    out.set(id, followers.includes(a) ? codeWarn(state, a, calm) : calm); // D-51 b: a companion warns outside a fight too
   }
   // TC31 a Draw Them In: a drawn foe spends this turn coming at the one who drew it, whatever it chose (its words stay)
   for (const id of ids) {
