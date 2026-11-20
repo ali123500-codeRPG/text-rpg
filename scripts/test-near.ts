@@ -3,9 +3,10 @@
 //   (nothing)       the files changed since the branch left origin/main, committed or not
 //   gear, senses    every code file docs/systems.md lists under that system
 //   src/x.ts        that file
-// A test is near a file when it imports it directly or names its path (a doc a test reads). Nearly every test reaches
-// every file through tests/harness, so a whole import-graph pick (vitest related) selects the whole suite.
-// Plain-syntax TypeScript so Node 22 runs it as is; tests/unit/test-near.test.ts checks the pick.
+// A test is near a file when it imports it directly or names its path (a doc a test reads), or, for changed src lines,
+// when it selects an element by a quoted word on them (`[data-kind="search"]`). Nearly every test reaches every file
+// through tests/harness, so a whole import-graph pick (vitest related) selects the whole suite. Browser tests that
+// are near are listed, not run. Plain-syntax TypeScript so Node 22 runs it; tests/unit/systems-map.test.ts checks it.
 // @ts-expect-error Node types are not installed; Node runs this file
 import { execFileSync, spawnSync } from 'node:child_process';
 // @ts-expect-error Node types are not installed; Node runs this file
@@ -41,20 +42,32 @@ export function near(testText: string, path: string): boolean {
   return new RegExp(`(^|[/'"\`])(${forms})['"\`]`, 'm').test(testText);
 }
 
-export function testFiles(dir = 'tests'): string[] {
+/** the quoted words on changed lines: a key renamed in src ('look' to 'search') changes what a test's selector finds */
+export function changedWords(diff: string): string[] {
+  const lines = diff.split('\n').filter((l) => /^[+-](?![+-])/.test(l));
+  return [...new Set(lines.flatMap((l) => [...l.matchAll(/['"`]([a-z][\w-]{2,})['"`]/gi)].map((m) => m[1])))];
+}
+
+/** does the test select an element by one of these words, as an attribute value in either quote style? */
+export function selects(testText: string, words: string[]): boolean {
+  return words.some((w) => testText.includes(`="${w}"`) || testText.includes(`='${w}'`));
+}
+
+export function testFiles(dir = 'tests', end = '.test.ts'): string[] {
   return readdirSync(dir, { recursive: true, encoding: 'utf8' })
-    .filter((f: string) => f.endsWith('.test.ts'))
+    .filter((f: string) => f.endsWith(end))
     .map((f: string) => join(dir, f).split('\\').join('/'));
 }
 
-export function pick(paths: string[], tests: string[], read: (f: string) => string): string[] {
-  return tests.filter((t) => paths.includes(t) || paths.some((p) => near(read(t), p)));
+export function pick(paths: string[], tests: string[], read: (f: string) => string, words: string[] = []): string[] {
+  return tests.filter((t) => paths.includes(t) || paths.some((p) => near(read(t), p)) || selects(read(t), words));
 }
 
+const git = (...a: string[]) => execFileSync('git', a, { encoding: 'utf8', maxBuffer: 1 << 28 }) as string;
+const base = () => git('merge-base', 'HEAD', 'origin/main').trim();
+
 function changed(): string[] {
-  const git = (...a: string[]) => execFileSync('git', a, { encoding: 'utf8' }).split('\n').filter(Boolean);
-  const base = git('merge-base', 'HEAD', 'origin/main')[0];
-  return [...git('diff', '--name-only', base), ...git('ls-files', '--others', '--exclude-standard')];
+  return (git('diff', '--name-only', base()) + git('ls-files', '--others', '--exclude-standard')).split('\n').filter(Boolean);
 }
 
 function main(args: string[]): number {
@@ -71,8 +84,12 @@ function main(args: string[]): number {
   const named = asked.length ? asked.flatMap((a) => ofSystem(a) ?? [a]) : changed();
   // the spec is read through one harness file, so a spec change is near every test that imports it
   const paths = named.some((p) => p === 'docs/build-spec.md' || p.startsWith('docs/spec/')) ? [...named, 'tests/harness/specDocs.ts'] : named;
-  const tests = pick(paths, testFiles(), (f) => readFileSync(f, 'utf8'));
+  const words = asked.length ? [] : changedWords(git('diff', '--no-color', base(), '--', 'src'));
+  const read = (f: string) => readFileSync(f, 'utf8');
+  const tests = pick(paths, testFiles(), read, words);
+  const smoke = pick(paths, testFiles('tests/smoke', '.smoke.ts'), read, words);
   console.log(`${tests.length} test files near ${paths.length} changed or named files.`);
+  if (smoke.length) console.log(`Browser tests that reach what you changed: npm run smoke -- ${smoke.join(' ')} (or leave them to the PR's checks).`);
   if (list || !tests.length) {
     if (list) console.log(tests.join('\n'));
     return 0;

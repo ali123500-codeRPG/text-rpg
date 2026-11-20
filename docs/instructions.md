@@ -202,8 +202,13 @@ The source of truth for every design decision.
 - The agent that opened a PR reviews it and squash-merges it once every check is green, without asking the
   owner. That includes bug fixes and rule-file changes; a rule-file PR quotes the owner's words it acts on
   (`AGENTS.md` rule 6). The owner does not merge PRs. The same rule holds for agents of every provider.
-- After resolving a merge conflict, search the repo for conflict markers before committing, and stage only the files
-  you resolved.
+- Catch up with `main` by `npm run sync` before you push: it fetches, rebases, and checks that every line your branch
+  added is still there. In a conflict, keep both sides' edits by hand; never take one side of a whole file
+  (`git checkout --ours` or `--theirs`), which drops every edit of the other side. Regenerate a generated file
+  instead of merging it. Then search for conflict markers, stage only the files you resolved, and run
+  `npm run sync -- --check ORIG_HEAD` after any rebase done by hand.
+- After pushing, check the PR: `gh api repos/<owner>/<repo>/pulls/<n> --jq .mergeable_state`. `dirty` means a
+  conflict, and a PR with a conflict gets no checks at all, so a silent PR is not a passing one.
 - Long runs (anything over about ten minutes, such as a long build or a large soak) go on GitHub: push the branch and
   read its checks. The full test suite is not a long run (`npm test`, about two minutes) and may run locally.
   Decided 19/11/2026; the first agent that needs a long run after 19/12/2026 asks the owner again.

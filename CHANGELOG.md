@@ -3,6 +3,11 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bug-fix-log.md`.
 
+- 20/11/2026: `docs/instructions.md` section 8: catch up with `main` by `npm run sync` (rebase, then a check that
+  every line the branch added is still there); in a conflict keep both sides' edits and never take one side of a
+  whole file; check a PR's `mergeable_state` after pushing, since a PR with a conflict gets no checks. `AGENTS.md`
+  names `npm run sync`.
+
 - 20/11/2026: The map's rules (MAP-nn) have one home, `docs/spec/part-2-turn-engine/map.md`, which also takes in the
   Map and minimap text from the Play screen topic. The `rpg-map` skill keeps only the working method (MAP-01 and
   check, then look) and points to `src/ui/mapCheck.ts` instead of carrying a copy of the checker; its design skills
