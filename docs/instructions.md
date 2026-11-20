@@ -46,7 +46,8 @@ edge cases. Where a section repeats a rule from `AGENTS.md`, it is there to add 
     PR links that entry instead of repeating it, says `Closes #n`, and merges when every check is green.
   - The claim issue exists before the first commit, so one commit carries the row, the entry and the fix: never a
     second commit to write a PR number in. A test fails on "this PR", on a fixed row without a number, and on a new
-    row longer than one line (`tests/unit/bug-log.test.ts`). Rows up to BG-326 keep the form of their day.
+    row longer than one line (`tests/unit/bug-log.test.ts`). Every row has this form; rows up to BG-326 name the PR,
+    and where one held more than its fix log entry, the entry ends with that row as filed.
   - When a fix needs a design choice, still call it a bug: file the BG-n and ask the fix question with a
     recommendation. Never describe a broken game state as a pending design question.
   - Every bug-fix PR adds an entry to `docs/bug-fix-log.md`, newest at the top: a `## BG-n` heading, then

@@ -3,7 +3,8 @@
 Every fixed bug (BG-n): what was wrong, and what was done to fix it. Newest first.
 
 This is the one home of each bug's story: the Bug log row is one line and the PR links here. **Fixed by** names the
-claim issue (`#n`); entries up to BG-326 name the PR.
+claim issue (`#n`); entries up to BG-326 name the PR. Where an older Bug log row held more than its entry (a question
+ID, a PR, a code name), the entry ends with that row as filed, kept when the rows were cut to one line (#1160).
 
 Every thread that fixes a bug adds its entry here in the fixing PR, newest at the top (tests/unit/bug-fix-log.test.ts checks that every
 fixed row in the spec's bug log, docs/spec/bug-log.md, has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
@@ -121,6 +122,8 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #1143](https://github.com/ali123500-codeRPG/text-rpg/pull/1143)
 
+**Bug log row (as filed):** The game's own hover tips (A7: item cards, Loot, the rail) showed at once in the published game instead of after --m-tip-delay (150 ms). The build minifies the CSS and writes 150ms as .15s; kit.ts read the token with parseFloat, which takes .15s as 0.15, so the tip waited 0.15 ms. Found while moving the minimap's hover text to the game's tip | 20/11/2026 | fixed | tipOn reads the token with motion.ts's ms(), the one duration reader, which reads the unit. A browser smoke test checks that the minimap's tip waits on the minified page (PR #1143)
+
 ## BG-325
 
 **What was wrong:** Zone names on the Map and the minimap were measured once at 12 px and the width scaled up or down to the size each name is drawn at. Where the system rounds glyph widths (font hinting), text does not widen evenly with size, so a big name came out wider than measured and ran into its zone's padding or past its walls. It showed in the new map smoke test on GitHub's machines: "the long gravel carriage drive" was predicted 326 px wide at 22.5 px and drawn 339 px.
@@ -128,6 +131,8 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** Both maps now measure each name at the size it will be drawn, which matches the drawn width exactly. Names on a machine that hints its fonts now fit their zones as they do elsewhere.
 
 **Fixed by:** [PR #1132](https://github.com/ali123500-codeRPG/text-rpg/pull/1132)
+
+**Bug log row (as filed):** The map smoke test's long-names stage failed on GitHub but not locally: two zone names ran into their zone's 6 px padding on the Map (`MAP-20 label label:g.drive does not fit zone g.drive`). Both maps measured a name at 12 px and scaled the width to the size drawn (4 to 32 px), but where the system hints glyph widths, text does not widen evenly with size: on GitHub "the long gravel carriage drive" was predicted 326.25 px at 22.5 px and drawn 339 px. The owner's PC may hint the same way | 20/11/2026 | fixed | The Map and the minimap measure each name at the size it will be drawn (Measure takes the size; mapPlan and the minimap's nameIn pass it), which matches the drawn width exactly. PR #1132
 
 ## BG-324
 
@@ -137,6 +142,8 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #1132](https://github.com/ali123500-codeRPG/text-rpg/pull/1132)
 
+**Bug log row (as filed):** The Map's checker (rpg-map MAP-51) found a person over an icon on the bent-nail test stage (`MAP-22/31 token who:f_wren overlaps icon door:tavern.o_7`), holding back every map change under MAP-04. A person's tagged token was the group of its disc and its initial's text; the layout reserves the 7 px disc, but a 13 px text box is about 18 px tall, so the measured box ran about 2 px past the disc and overlapped the padlock by 1 px, though the letter is drawn inside the disc | 20/11/2026 | fixed | On the Map and the minimap the disc alone is the tagged token, the mark the layout reserves; nothing moves. A smoke test now requires no checker findings on the bent-nail, one-room and long-names stages (MAP-04, MAP-52). PR #1132
+
 ## BG-323
 
 **What was wrong:** Since the test files began to share one module load per worker, the suite failed or passed depending on file order. One test file empties the library's perk table for its own stand-in perks and never restores it. The shared setup put CONFIG back after each file but not the library, so the next file in the same worker could read an empty perk table.
@@ -144,6 +151,8 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** The shared setup now resets the library after every test file, beside the CONFIG reset. Every file starts from the built library, whatever the file before it did. No game code changed.
 
 **Fixed by:** [PR #1121](https://github.com/ali123500-codeRPG/text-rpg/pull/1121)
+
+**Bug log row (as filed):** The shared test run (`npm test` part 1, one module load per worker since PR #1115) failed or passed by file order: tests/cases/s266-dreaded-on-sight.test.ts found no Dreaded on Sight perk in the library. tests/unit/perks.test.ts empties the library's perk table for its stand-in perks and never puts it back, and the shared setup reset CONFIG after each file but not the library, so the next file in the same worker read the emptied table | 20/11/2026 | fixed | The shared setup (tests/harness/turnCheckSetup.ts) now also resets the library after every file, so no file inherits another's library. Siblings: tests/cases/s272-echo-uniques.test.ts also leaves a changed library behind and is covered by the same reset; the isolated nightly run was never affected. (PR #1121)
 
 ## BG-313
 
@@ -153,6 +162,8 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #1096](https://github.com/ali123500-codeRPG/text-rpg/pull/1096)
 
+**Bug log row (as filed):** The Map's two views disagreed (Mossbeck back yard): the Map was never moved to the floor plan (PZ12 a), and still draws zone tiles joined by links, an exit diagram by force layout, doors at shared box edges and exits by compass words, never reading the fog | 19/11/2026 | fixed (Ali OK'd the fix, BF99 a) | The Map and the minimap draw every title where it lies on the floor plan, walls, doorways and furniture only where the fog says you have seen; each door at its own point and each exit arrow out of its own doorway; the exit diagram, its toggle, the force layout, the compass guessing and the shared-edge doors are gone; the fog is marked when a plan is applied, so the first turn's map is not dark. PR #1096
+
 ## BG-316
 
 **What was wrong:** When people walk about on their own between turns, a walker whose way is shut by a door opens it as a quiet background step only if the player can't see that door; a door in view stops them, so the opening happens as a move you can see. "Can't see it" was judged the zone way: the player standing in neither title beside the door. So someone could unlock and open a door in plain view across the street as a background step, with nothing shown.
@@ -160,6 +171,8 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** A door now counts as seen when the player has a clear line to it within a walking person's glimpse range, whatever title the player stands in. Only a door the player truly can't see is opened in the background.
 
 **Fixed by:** [PR #1095](https://github.com/ali123500-codeRPG/text-rpg/pull/1095)
+
+**Bug log row (as filed):** Off-screen walkers opened doors "unseen" whenever the player stood in neither title beside the door, even watching it from across the street (CS11's zone-era wording) | 19/11/2026 | fixed (Ali OK'd the fix, BF102 a) | A door counts as seen when the player has a clear line to it within a walking person's glimpse range (SIGHT_M normal), whatever title the player stands in; only an unseen door is opened in the background, one in view stops the walker. PR #1095
 
 ## BG-315
 
@@ -169,6 +182,8 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #1092](https://github.com/ali123500-codeRPG/text-rpg/pull/1092)
 
+**Bug log row (as filed):** Gut Feeling judged a watcher's sight by titles joined by see-through ways, not by a line of sight: a watcher over a fence never set it off | 19/11/2026 | fixed (Ali OK'd the fix, BF101 a) | A watcher counts when the line from their eyes to the owner is clear, at any distance (RD3), whatever titles lie between; a wall still hides them. PR #1092
+
 ## BG-314
 
 **What was wrong:** A search only ever looked inside the title the searcher stood in. Someone hiding 1.6 m away, in plain line, but standing just over a title's edge (the next part of the same yard, say) could never be found. That was the zone-era rule "search your own area" (SE20): titles are only names on the floor plan now, so the rule cut a search off at an invisible line.
@@ -176,6 +191,8 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** A search now covers its circle around the searcher in a clear line, whatever title anyone stands in: a wall stops it, a title's edge doesn't. Items on the ground are found the same way. SE20's "own area" rule is dropped. (Finding people by sound is being worked out separately.)
 
 **Fixed by:** [PR #1089](https://github.com/ali123500-codeRPG/text-rpg/pull/1089)
+
+**Bug log row (as filed):** A search never reached past the searcher's own title, even someone 1.6 m away in a clear line (SE20's zone-era "own area") | 19/11/2026 | fixed (Ali OK'd the fix, BF100 b) | A search covers its circle in a clear line from the searcher, whatever title anyone stands in; a wall stops it, a title's edge doesn't; items on the ground likewise; SE20's own-area rule dropped. PR #1089
 
 ## BG-322
 
@@ -193,6 +210,8 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #1088](https://github.com/ali123500-codeRPG/text-rpg/pull/1088)
 
+**Bug log row (as filed):** Ali, 19/11/2026: the old skill name Lying survived its on-screen rename to Falsehood (TC27, PR #1015) wherever it was typed by hand: the Library's Equations page said Misdirection adds Lying to Vanishing (it adds Guile since PR #1070) and called the lie roll Lying; the spec's rules, code comments and test names said Lying. The code key stayed SK.lying, so every author kept reading and writing the old name (the skill-name twin of BG-319) | 19/11/2026 | fixed (Ali OK'd the fix, BF104 a) | Code key SK.falsehood (id SK31 unchanged), names read from the library, guard test bans the old name. PR #1088
+
 ## BG-320
 
 **What was wrong:** Sizing someone up rolled the looker's Insight against the other's Falsehood, the skill for spoken lies. The face someone keeps is a lie told with the body, which is Guile. Size-up was built the day before Guile existed, and nobody went back to sort the old rolls into spoken and body lies.
@@ -200,6 +219,8 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** Sizing someone up now rolls Insight against Guile, like Play Dead and feigned flight. Falsehood plays no part in it.
 
 **Fixed by:** [PR #1088](https://github.com/ali123500-codeRPG/text-rpg/pull/1088)
+
+**Bug log row (as filed):** Ali, 19/11/2026: sizing someone up rolled the looker's Insight against the other's Lying (Falsehood, the skill for spoken lies), though the face they keep is a lie told with the body, which is Guile. Sizing up was built (PR #972) the day before Guile joined Trickery (PR #1021), and no one re-sorted the contests that rolled Lying into spoken lies and body lies; Misdirection had the same gap (fixed in PR #1070) | 19/11/2026 | fixed (Ali OK'd the fix, BF103 a) | Sizing up rolls Insight against Guile (CONTEST.size_up) PR #1088
 
 ## BG-318
 
@@ -225,6 +246,8 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #1082](https://github.com/ali123500-codeRPG/text-rpg/pull/1082)
 
+**Bug log row (as filed):** Memory review: the Play deck still called the essence action "Pull the Thread", the perk's name before PR #781 renamed it Extract Essence. The deck typed the name by hand (src/ui/deck.ts), as did 16 other labels and roll-breakdown sources (Hunter's Mark there with a curly apostrophe) | 19/11/2026 | fixed (Ali OK'd the fix) | Every perk name in code is read from the library with perkName; a guard test bans typed ones. PR #1082
+
 ## BG-312
 
 **What was wrong:** Standing just inside the tavern, you couldn't make out the words of someone 0.7 m away just outside the front doorway unless you had Keen Ear. That doorway had no door in it, but when zones became titles it kept the old zone links' fixed "you can't see through this" flag. So sight and sound treated it as a door that was always shut (30 dB lost, no sight), while people walked through it freely and nobody could ever open it.
@@ -233,6 +256,8 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #1081](https://github.com/ali123500-codeRPG/text-rpg/pull/1081)
 
+**Bug log row (as filed):** A normal voice 0.7 m away across the tavern's front doorway was not heard clearly without Keen Ear: a doorway with no door kept the zone links' fixed "can't see through" flag, so it was a door always shut for sight and sound that nobody could open | 18/11/2026 | fixed (Ali OK'd the fix, BF98 a) | Every drawn doorway holds a plain door (shut, unlocked) unless its way is doorless (an open hall, a curtain); the flag and the ways' sight word are gone; saves move to schema 11, giving a doorway its old flag kept shut its door. PR #1081
+
 ## BG-311
 
 **What was wrong:** A new story on a brand-new world opened on the plain fallback stage instead of the Weaver's planned opening. The story start first asks the World builder to draw the region, then asks the Weaver for the opening plan, and both shared one 2-minute limit, so a slow region call left the Weaver too little time.
@@ -240,6 +265,8 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** The region call now has its own wait (REGION_TIMEOUT_MS, 120 s, placeholder), and the Weaver's 2 minutes start only once the land is drawn.
 
 **Fixed by:** [PR #1064](https://github.com/ali123500-codeRPG/text-rpg/pull/1064)
+
+**Bug log row (as filed):** In-game report (18/11/2026, turn 0): a new story on a new world opened on the fallback stage (weaver\_timeout). The first region call and the Weaver's opening plan shared one WEAVER\_TIMEOUT, so a slow region call (55 s in the stray story's copy) left the Weaver too little time | 18/11/2026 | fixed (Ali OK'd the fix) | The region call gets its own wait (REGION\_TIMEOUT\_MS), and the Weaver's wait starts once the land is drawn. PR #1064
 
 ## BG-310
 
@@ -257,6 +284,8 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #1054](https://github.com/ali123500-codeRPG/text-rpg/pull/1054)
 
+**Bug log row (as filed):** Zone review (PZ15): stepping up to be heard (approachMove) only happened when the listener was in the same zone or one sight link away, so someone two open ways off and out of earshot was never walked toward. Same zone used as near | 18/11/2026 | fixed (Ali OK'd the fix, PZ15 a) | Anyone with a sight line to the speaker (seeingM) is stepped toward when out of earshot. PR #1054
+
 ## BG-308
 
 **What was wrong:** An NPC leading someone (BF4) waited at the end until they stood in its zone, so one in the doorway beside it still kept it waiting.
@@ -264,6 +293,8 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** It waits until the one it leads hears its normal voice clearly (hearsClearly), in any zone.
 
 **Fixed by:** [PR #1054](https://github.com/ali123500-codeRPG/text-rpg/pull/1054)
+
+**Bug log row (as filed):** Zone review (PZ15): an NPC leading someone (BF4) waited at the end until they stood in its zone, so one in the doorway beside it still kept it waiting. Same zone used as near | 18/11/2026 | fixed (Ali OK'd the fix, PZ15 a) | It waits until the one it leads hears its normal voice clearly (hearsClearly), in any zone. PR #1054
 
 ## BG-307
 
@@ -273,6 +304,8 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #1054](https://github.com/ali123500-codeRPG/text-rpg/pull/1054)
 
+**Bug log row (as filed):** Zone review (PZ15): a goal step "wait until X arrives" ended only when X stood in the same zone, so X talking from across the counter had not arrived and X 60 m off in the same square had. Same zone used as near | 18/11/2026 | fixed (Ali OK'd the fix, PZ15 a) | Arrived = X is near enough to talk: the waiter hears X's normal voice clearly (hearsClearly). PR #1054
+
 ## BG-306
 
 **What was wrong:** The code-run fight list attacked only foes it believed in its own zone, so a foe a step away across a field's edge or a doorway was walked toward (one zone) instead of struck.
@@ -280,6 +313,8 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** It attacks the foes it knows of that one move and its melee reach would reach this turn (ActorView self.withinStrike, metres), else the foes it sees (an attack closes in and runs on, BG-255).
 
 **Fixed by:** [PR #1054](https://github.com/ali123500-codeRPG/text-rpg/pull/1054)
+
+**Bug log row (as filed):** Zone review (PZ15): the code-run fight list attacked only foes it believed in its own zone, so a foe a step away across a field's edge or a doorway was walked toward (one zone) instead of struck. Same zone used as near | 18/11/2026 | fixed (Ali OK'd the fix, PZ15 a) | It attacks the foes it knows of that one move and its melee reach would reach this turn (ActorView self.withinStrike, metres), else the foes it sees (an attack closes in and runs on, BG-255). PR #1054
 
 ## BG-305
 
@@ -289,6 +324,8 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #1054](https://github.com/ali123500-codeRPG/text-rpg/pull/1054)
 
+**Bug log row (as filed):** Zone review (PZ15): a planner's or NPC agent's view held the zones within 2 ways of where it looks (PLAN_VIEW_WAYS), so a 3 km road counted as near and three small rooms did not. Zone links used as distance | 18/11/2026 | fixed (Ali OK'd the fix, PZ15 a) | PLAN_VIEW_M (200 m, placeholder) by the walking path. PR #1054
+
 ## BG-304
 
 **What was wrong:** Fieldcraft rows (Out of sight, Into cover, Into the dark) looked for zones only up to 3 ways off (FIELD_WAYS_OUT), so a zone four small rooms off that one move reaches was never offered.
@@ -296,6 +333,8 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** Every zone one move reaches by the walk (slotMetres), however many ways off; FIELD_WAYS_OUT removed.
 
 **Fixed by:** [PR #1054](https://github.com/ali123500-codeRPG/text-rpg/pull/1054)
+
+**Bug log row (as filed):** Zone review (PZ15): Fieldcraft rows (Out of sight, Into cover, Into the dark) looked for zones only up to 3 ways off (FIELD_WAYS_OUT), so a zone four small rooms off that one move reaches was never offered. Zone links used as distance | 18/11/2026 | fixed (Ali OK'd the fix, PZ15 a) | Every zone one move reaches by the walk (slotMetres), however many ways off; FIELD_WAYS_OUT removed. PR #1054
 
 ## BG-303
 
@@ -305,6 +344,8 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #1054](https://github.com/ali123500-codeRPG/text-rpg/pull/1054)
 
+**Bug log row (as filed):** Zone review (PZ15): a bed a code-run NPC gets when its plan gave none was any bed within 2 zone links of its own spots (BED_NEAR_HOPS), so a bed 70 m off across two fields counted and one up a corridor of three small rooms did not. Zone links used as distance | 18/11/2026 | fixed (Ali OK'd the fix, PZ15 a) | BED_NEAR_M (30 m, placeholder) by the walking path, nearest first. PR #1054
+
 ## BG-297
 
 **What was wrong:** The turn check flagged a hold only when holder and held were in different zones, so a grip across a doorway was flagged and one from 30 m in the same zone was not.
@@ -312,6 +353,8 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** The check now flags a hold whose holder is out of grip reach (withinGrip).
 
 **Fixed by:** [PR #1043](https://github.com/ali123500-codeRPG/text-rpg/pull/1043)
+
+**Bug log row (as filed):** Zone review: the turn check flags a hold only when holder and held are in different zones (save/turnCheck.ts), so a grip held across a doorway is flagged and one held from 30 m in the same zone is not. Zone used as distance | 17/11/2026 | fixed (Ali OK'd the fix, ZO2 a) | The turn check flags a hold whose holder is out of grip reach (withinGrip). PR #1043
 
 ## BG-296
 
@@ -321,6 +364,8 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #1043](https://github.com/ali123500-codeRPG/text-rpg/pull/1043)
 
+**Bug log row (as filed):** Zone review: the loot list only offers downed bodies in the player's zone (ui/loot.ts lootSources), so a body just through a doorway is missing and one across a 100 m square is listed. Zone used as distance | 17/11/2026 | fixed (Ali OK'd the fix, ZO2 a) | The loot list offers every downed body seen clearly; taking from one out of reach walks there (FR2). PR #1043
+
 ## BG-295
 
 **What was wrong:** Sleeping companions shared watches only in the sleeper's zone: one 3 m away in the next room kept no watch, one 90 m across a field did.
@@ -328,6 +373,8 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** Band companions who would hear the sleeper shout (WAKE_NOISE) share the watches, wherever they stand.
 
 **Fixed by:** [PR #1043](https://github.com/ali123500-codeRPG/text-rpg/pull/1043)
+
+**Bug log row (as filed):** Zone review: sleeping companions share watches only when in the same zone as the sleeper (planNight), so one 3 m away in the next room keeps no watch and one 90 m across a field does. Zone used as distance | 17/11/2026 | fixed (Ali OK'd the fix, ZO2 a) | Watches are shared by band companions who would hear the sleeper shout (hears, WAKE_NOISE). PR #1043
 
 ## BG-294
 
@@ -337,6 +384,8 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #1043](https://github.com/ali123500-codeRPG/text-rpg/pull/1043)
 
+**Bug log row (as filed):** Zone review: a broken actor's walk only weighs foes in its own zone or the zone it walks to (fearedFoes), so it may walk next to a foe in a third zone or ignore one a step away through a doorway. Zone used as distance | 17/11/2026 | fixed (Ali OK'd the fix, ZO2 a) | A broken actor's walk weighs every foe it perceives now (fearedFoes), whatever its zone. PR #1043
+
 ## BG-293
 
 **What was wrong:** Essence removal and swaps needed no hostile in the zone, so one 100 m across a square blocked them and one a step away through a doorway did not.
@@ -344,6 +393,8 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** At rest is now out of any fight only, as rests have needed since BG-107; threatHere is gone.
 
 **Fixed by:** [PR #1043](https://github.com/ali123500-codeRPG/text-rpg/pull/1043)
+
+**Bug log row (as filed):** Zone review (cover and light thread): essence removal and swaps need the player "at rest", which counts any hostile in the zone (playerAtRest, threatHere): one 100 m across a square blocks it, one a step away through a doorway does not. Zone used as distance | 17/11/2026 | fixed (Ali OK'd the fix, ZO2 a) | At rest is now out of any fight only (playerAtRest); threatHere removed. PR #1043
 
 ## BG-302
 
@@ -353,6 +404,8 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #1016](https://github.com/ali123500-codeRPG/text-rpg/pull/1016)
 
+**Bug log row (as filed):** Play screen: a few button texts show in Arial instead of the game font: the hint under each action-deck entry ("hold them back unhurt", 18 on the deck), the quick-use healing slot's count and the pin button on the map card. Browsers do not pass the page font down to buttons, and these three set no font of their own. Found in the "Choose the game's own look" study (font scan of every rail page in the fake game) | 17/11/2026 | fixed (Ali OK'd the fix, LK3) | One rule in styles.css: buttons and form fields take the page font (font-family: inherit); styles test keeps it. PR #1016
+
 ## BG-301
 
 **What was wrong:** Battle Cry's rally passed over any ally who had already broken, although no decision ever said a broken ally can't be helped (the skip came in with PR #740). Once an NPC broke, it stayed broken, fleeing or yielding to those it fought, until the scenario ended, even if its morale came back.
@@ -360,6 +413,9 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** A rally now reaches broken allies too. When a broken ally's morale lost falls back under 100 % of its max, the break ends: it stops yielding to the foes it was fighting and fights on. A spoken surrender stays. Every rally is now one roll by the one rallied, its morale check plus half of the rallier's skill, giving 10 morale per tier above Near Miss, so steadier allies gain more (TC43). Any gain also gives Rallied, +5 on every roll until the fight ends (no stacking), as Ali chose on the Tactics page (TC41, TC42).
 
 **Fixed by:** [PR #1015](https://github.com/ali123500-codeRPG/text-rpg/pull/1015)
+
+**Bug log row (as filed):** Tactics skill tree (TC39): Battle Cry's rally skips anyone already broken (added in PR #740; no decision asked for it), and once broken an NPC stays broken (fleeing or yielded) until the scenario ends even if its morale comes back. Ali: "I never said a broken ally can't be helped." Fix plan on the Tactics page as TC42 | 17/11/2026 | fixed (Ali OK'd TC42 a) | PR #1015
+
 ## BG-300
 
 **What was wrong:** On a phone (390 px wide), six tabs of the library viewer scrolled sideways: Body types (by 22 px), Skills, Stand-ins, Equations, Quests and Nerve (by up to 409 px). Their small tables kept every column, and a card's body sized its column to fit the widest table, so cards and the page grew wider than the screen.
@@ -367,6 +423,8 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** At 760 px and below, every small table in a view (such as a body type's parts, a skill group's skills or an equation's table) now shows one small card per row, with each value labelled by its column. The main table view and the perk ladder grid keep their own phone layout. A card's body can no longer grow wider than its card. All 58 tabs were checked at 390, 600 and 760 px: none scrolls sideways.
 
 **Fixed by:** [PR #1011](https://github.com/ali123500-codeRPG/text-rpg/pull/1011)
+
+**Bug log row (as filed):** Library viewer on a phone (390 px): six tabs scrolled sideways, Body types (22 px), Skills, Stand-ins, Equations, Quests and Nerve (up to 409 px). Their small tables kept every column, and a card's body (.lv-cbody) sized its single column to the widest table, so cards and the page grew wider than the screen. Found while checking the 3D figures; it was there before them | 17/11/2026 | fixed (Ali OK'd the fix) | Every small table of a view (labelCells marks it lv-ctbl and names each cell by its column, data-k) shows at 760 px and below as one small card per row of labelled values; the table view and the perk ladder grid keep their own phone layout. .lv-cbody's column is minmax(0, 1fr), so a card body can't grow past its card. All 58 tabs checked at 390, 600 and 760 px. PR #1011
 
 ## BG-299
 
@@ -400,6 +458,8 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #988](https://github.com/ali123500-codeRPG/text-rpg/pull/988)
 
+**Bug log row (as filed):** Found in run 17's save (deep dive "Stop existing worlds rebuilding places"): the road nwroad still has an unbuilt frontier "back up the road north-west, toward the crossroads", but that crossroads (crossways, at the land's junction rg\_0\_0\_n16) was already built from the other side. Walking it can build a second crossroads: a junction records no zone, and nothing ties the frontier to the land | 17/11/2026 | fixed (Ali WI7 a) | WI2 a (PR #982) stops new copies; WI7 a mends this world once at load (mendLandWays): crossways becomes junction rg\_0\_0\_n16's zone and nwroad's frontier toward it a plain way to it. PR #988
+
 ## BG-291
 
 **What was wrong:** A road trip rolls for an encounter after each hour of walking, but the hour that arrives never rolled. So any road shorter than an hour's walk (4.5 km by day, 3 km in the dark) could never meet anything, and in run 18's world 18 of 19 roads are that short. Road encounters were close to switched off.
@@ -407,6 +467,8 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** Ali's RE1 answer: minutes walked on roads now count up across trips. Every full hour of them, whichever trips it took, rolls once by the danger of the road you are on at that moment, and the count starts again. The trip stops right there if something meets you.
 
 **Fixed by:** [PR #978](https://github.com/ali123500-codeRPG/text-rpg/pull/978)
+
+**Bug log row (as filed):** Found in the road encounters review: a trip's last leg never rolls for an encounter (travel() skips the roll on the leg that arrives), so a road shorter than one leg (about 4.5 km by day, 3 km in the dark) never meets anything. Probe at 100% per hour: 1, 3 and 4.4 km roads 0 of 20 trips; 5 and 9 km 20 of 20. In run 18's world 18 of 19 land roads are under 4.5 km | 17/11/2026 | fixed (Ali RE1) | Road minutes carry over between trips; every full TRAVEL\_LEG\_MIN of them rolls once by the road the player is on then, and the count starts again (Actor.roadMin). PR #978
 
 ## BG-290
 
@@ -416,6 +478,8 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #972](https://github.com/ali123500-codeRPG/text-rpg/pull/972)
 
+**Bug log row (as filed):** Run 18, turn 27: a Weaver check-in beat had the weir-house man size up the hero (observe with Insight) with no difficulty, so it rolled at Moderate and flagged grade\_gap. Beats had no grade field, the Planner and Responder were told to grade only use\_item and other, and sizing up a person was rolled against a grade instead of the person | 17/11/2026 | fixed (Ali OK'd the fix, BF96 and BF97 a) | Sizing someone up is Insight against their Lying (sizeUp), reading mood, feelings and hiding on a win, never graded or flagged; beats carry grade and fall; one difficulty sentence from GRADED\_ACTS for every agent (PR #972)
+
 ## BG-288
 
 **What was wrong:** The hero took the unexplored road north-west from the causeway, and the game built a second copy of the road the previous hero had arrived on. The World builder knew the road was built and tried to join its crossways to it, but plans could only join ground on the stage, so that was refused, and the repair declared the road again under a new name.
@@ -423,6 +487,8 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** New ground may now join ground that is already built but off the stage, and that ground comes back onto the stage. A plan may never add a second zone for a road that already has one; it is told to join it instead. When a newcomer's village goes on the stage, its ways to built ground elsewhere become ways back into that ground, so walking one loads it. This world keeps its two copies.
 
 **Fixed by:** [PR #968](https://github.com/ali123500-codeRPG/text-rpg/pull/968)
+
+**Bug log row (as filed):** Crossing the causeway's unbuilt north-west road built that road a second time (nwroad\_2): the World builder linked to the built road, off the stage, the link was refused, and the repair declared the road again | 17/11/2026 | fixed (Ali OK'd the fix, BF95 a) | A plan may link to built ground off the stage (validator builtOff), which applyStagePlan loads back on the stage first (loadSavedZone); a zone on a region road that already has its zone is refused (road\_built); a newcomer's staged settlement marks its ways to built ground off the stage as re-entry frontiers. This world keeps its two copies. PR #968
 
 ## BG-287
 
@@ -432,6 +498,8 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #967](https://github.com/ali123500-codeRPG/text-rpg/pull/967)
 
+**Bug log row (as filed):** The opening's ending "the common room is cleared" had to be judged: band\_out checks one band and the slimes there came from several | 17/11/2026 | fixed (Ali OK'd the fix, BF94 a) | New ending kind clear {place}: no foe still standing there (foesIn), met after one has stood there this scenario (hadFoes); validated and offered to the Weaver. PR #967
+
 ## BG-286
 
 **What was wrong:** The causeway offered two roads north-west: the first story's unexplored road, and a road the fifth hero's opening built beside it to arrive on. The Weaver could not say it was building the road already promised.
@@ -439,6 +507,8 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** A new area the Weaver names after an unexplored way builds that way, as when the player walks through it, so the way is built once. The opening Weaver is told to do this when the newcomer arrives along such a way. This world keeps its two roads, since code cannot tell they are the same.
 
 **Fixed by:** [PR #967](https://github.com/ali123500-codeRPG/text-rpg/pull/967)
+
+**Bug log row (as filed):** Two roads north-west from the causeway: a newcomer's arrival road was built beside the unbuilt frontier for the same way | 17/11/2026 | fixed (Ali OK'd the fix, BF93 a) | A plan zone keyed as a stage frontier builds that frontier (keeps its id, joinFrontier); the validator counts it as touching the zones leading in; the Weaver prompt says so. This world keeps both roads. PR #967
 
 ## BG-285
 
@@ -448,6 +518,8 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #967](https://github.com/ali123500-codeRPG/text-rpg/pull/967)
 
+**Bug log row (as filed):** The causeway listed the cottage row twice: building a frontier added the new zone's way back before the frontier was joined, a second way to the same zone | 17/11/2026 | fixed (Ali OK'd the fix, BF92 a) | applyStagePlan joins the frontier before adding ways back; on load a second way to the same zone named after it (one code added) is dropped. PR #967
+
 ## BG-284
 
 **What was wrong:** Taking the pack off a body 19 m along the causeway took three turns. The walk over used only the move time (about 8 m a turn), not the rest of the turn, and each short turn filed a bug report.
@@ -455,6 +527,8 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** A take with nothing else to do walks over the same way a dash does, so a body across the area is usually reached in one turn. One still too far says how far short you are, and you take it next turn, with no bug filed. The minimap now shows two circles in a fight: how far you walk and how far you dash this turn.
 
 **Fixed by:** [PR #967](https://github.com/ali123500-codeRPG/text-rpg/pull/967)
+
+**Bug log row (as filed):** In the action-deck playtest taking a pack off a body 19 m away took three turns: the take's walk over used only the move time, and each short turn filed a bug (invalid\_gear) | 17/11/2026 | fixed (Ali OK'd the fix, BF91 a) | A take with nothing else to do walks over as a dash does (closeInOn paid as move(true): the move time, then the main time), within the zone only; still short, it says how far (wasted, metres) and logs pick\_up\_short, not a bug. The minimap shows a dash ring beside the walk ring. PR #967
 
 ## BG-283
 
@@ -464,6 +538,8 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #966](https://github.com/ali123500-codeRPG/text-rpg/pull/966)
 
+**Bug log row (as filed):** In the action-deck playtest the deck offered to attack with an axe held in a crippled hand; the order was wasted (not in hand) | 17/11/2026 | fixed (Ali OK'd the fix, BF90 a) | Own gear in the view marks cantSwing (held, but no usableModes entry); the deck leaves it out of With what?. PR #966
+
 ## BG-282
 
 **What was wrong:** In the action-deck playtest the hero tried to Restrain a slime and slipped, but no roll line showed: the grab's contest was never put on its event. A held person's try to break free had the same gap.
@@ -471,6 +547,8 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** The grab and the try to break free carry their contest on their event, so their rolls show like any other contest.
 
 **Fixed by:** [PR #966](https://github.com/ali123500-codeRPG/text-rpg/pull/966)
+
+**Bug log row (as filed):** In the action-deck playtest a Restrain (and a try to break free) showed no roll: the contest was never put on its event | 17/11/2026 | fixed (Ali OK'd the fix, BF89 a) | restrain() and breakFree() return their contest; the restrain and break_free events carry it. PR #966
 
 ## BG-281
 
@@ -480,6 +558,8 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #964](https://github.com/ali123500-codeRPG/text-rpg/pull/964)
 
+**Bug log row (as filed):** In the action-deck playtest a walk up to someone read Keep walking to the zone the player already stood in | 17/11/2026 | fixed (Ali OK'd the fix, BF87 a) | A walk with spot near someone is named by them as seen (walkingOf). PR #964
+
 ## BG-280
 
 **What was wrong:** In the action-deck playtest the deck offered Talk to, Persuade, Lie to, Threaten, Haggle, Give and Let them search you against slimes in sight, and Talk to slimes last seen far away. Slimes and beasts can't be talked to, so these did nothing.
@@ -487,6 +567,8 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** Anyone seen clearly who cannot talk (by race) is marked so, and the deck leaves them out of every talk, trade, gift and search choice, including those last seen elsewhere. Threaten (a threat needs no words), Attack, Restrain and Look at stay; a shape not made out still gets every choice.
 
 **Fixed by:** [PR #964](https://github.com/ali123500-codeRPG/text-rpg/pull/964)
+
+**Bug log row (as filed):** In the action-deck playtest the deck offered talk, haggling, gifts and searches to slimes in sight and to slimes last seen far away | 17/11/2026 | fixed (Ali OK'd the fix, BF86 a) | Views mark one who cannot talk (mute, by race, full sight and lastSeen); the deck leaves them out of talk, trade, give and let-search; Threaten stays (BF86: a threat can be non-verbal). PR #964
 
 ## BG-279
 
@@ -496,6 +578,8 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #964](https://github.com/ali123500-codeRPG/text-rpg/pull/964)
 
+**Bug log row (as filed):** In the action-deck playtest a Success on a look at a slime 23 m off in the dark was undone the same turn: its later step rolled a fresh make-out and failed | 17/11/2026 | fixed (Ali OK'd the fix, BF85 a) | A good look records that turn's make-out for everyone it shows (lookAround). PR #964
+
 ## BG-278
 
 **What was wrong:** In the action-deck playtest a dead hero's body lay 1.4 m from the new hero on a dark causeway and showed as a plain "Someone". The deck offered Attack, Talk to, Persuade, Lie to, Threaten and Haggle against it, the player talked to it twice and got silence, and the narrator made the shape stand and move. Someone only half seen carried no health or posture at all, so it slipped past every deck filter that leaves out the down and the dead.
@@ -503,6 +587,16 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** A half-seen person who lies still (down, dead or asleep) is marked lying still, without saying which. The deck shows "lying still" and offers no talk against it (Attack and Look at stay), and the narrator is told it lies still and never stands, moves or answers.
 
 **Fixed by:** [PR #963](https://github.com/ali123500-codeRPG/text-rpg/pull/963)
+
+**Bug log row (as filed):** In the action-deck playtest a dead hero's body half seen in the dark showed as a plain Someone: the deck offered attack and talk against it and the narrator made it stand. A half-seen actor carried no health or posture, so it passed every deck filter for the down and dead | 17/11/2026 | fixed (Ali OK'd the fix, BF84 a, with attacking allowed) | A half-seen actor who is down, dead or asleep is marked lying (views); the deck offers no talk against it (Attack and Look at stay); narrator rule: it lies still and never stands, moves or answers. PR #963
+
+## BG-277
+
+**What was wrong:** The action deck's "in reach" label, the attack hint and the person card compared distance with a plain <=, without withinM's 0.1 m margin. Found by the code consistency check, slice 8.
+
+**What was done:** Won't fix as filed: working as intended (Ali, IC12 a): the margin only soaks up a step's rounding when a blow lands; the screen and every decision use the exact reach. The engine's decisions (resolve.ts inReach: close in first, and rangedHere) were moved to the exact reach too (position.ts reachesM), and closing in aims CONFIG.REACH_MARGIN_M inside the reach (closeInM) so a fighter always stops within it.
+
+**Fixed by:** [PR #974](https://github.com/ali123500-codeRPG/text-rpg/pull/974)
 
 ## BG-276
 
@@ -512,6 +606,8 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #969](https://github.com/ali123500-codeRPG/text-rpg/pull/969)
 
+**Bug log row (as filed):** The Parser's answer shape listed the way ops lock, unlock, bar and unbar, but not open and shut, which its instructions, the schema and the engine use (BG-70): the ops were typed out three times | 17/11/2026 | fixed (Ali OK'd the fix, IC10 a) | One WAY_OPS list in engine/barriers.ts feeds WayOp, the schema and the shape. Found by the code consistency check, slice 5; PR #969
+
 ## BG-275
 
 **What was wrong:** In the action-deck playtest a 4th character in story 2's world stopped after its first turn: the game's own rule check said 17 fights in the inn (the barkeep, Hobb and the carter against the slimes) had gone on long past their end, though they were still fresh. The check measures a fight from the end of the turn before, which here was the story's opening, and an opening turn never recorded when it ended, so the game read it as ending at the current moment. In real play this would file a false bug report.
@@ -519,6 +615,8 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** The opening turn now records its end time like every other turn, for every new story and every new character in an old world.
 
 **Fixed by:** [PR #962](https://github.com/ali123500-codeRPG/text-rpg/pull/962)
+
+**Bug log row (as filed):** In the action-deck playtest, a 4th character in story 2's world stopped after one turn: the turn check flagged 17 fights in the inn as stale (fight\_ends), though they were 6 to 15 s old when the turn began. The check judges a fight by the end of the turn before, which was the story's opening, and an opening never recorded its end (turnEnds), so it read as ending now | 17/11/2026 | fixed (Ali OK'd the fix, BF83 a) | The opening turn records its end, like every resolved turn. PR #962
 
 ## BG-274
 
@@ -528,6 +626,8 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #969](https://github.com/ali123500-codeRPG/text-rpg/pull/969)
 
+**Bug log row (as filed):** A Look around showed people in plain sight out to a plain 25 m (perception lookReach, <=) but searched for hidden people out to 25.1 m (minds searchFor, withinM): the look range was written twice | 17/11/2026 | fixed (Ali OK'd the fix, IC8 a) | One check, inLookReach (perception), reads the Normal sight metres and compares with withinM; the show and the search both use it. Found by the code consistency check, slice 4; PR #969
+
 ## BG-273
 
 **What was wrong:** In the action-deck playtest a new character started in story 2's world, as asked, but the game built a second copy of the village around them: two Eel and Oars, two Wicklow Reaches, a second Marda Tull and the slimes twice over, while the old fight went on unseen in the first inn. A newcomer's stage starts empty, so the scenario planner (the Weaver) saw no places at all and rebuilt the village from its notes, and the game gave the copies new ids. It was also never told a newcomer was arriving.
@@ -536,6 +636,8 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #953](https://github.com/ali123500-codeRPG/text-rpg/pull/953)
 
+**Bug log row (as filed):** In the action-deck playtest a new character in story 2's world got a copy of the village: two Eel and Oars, two Wicklow Reaches (tavern\_2, causeway\_2), a second Marda Tull and the slimes twice over, while the old fight went on unseen in the first inn. The newcomer's stage starts empty, so the Weaver saw no places, and the arrive flag never reached its view | 17/11/2026 | fixed (Ali OK'd the fix, BF82 a, no mandatory new area) | The settlement around the start place goes on the stage with its people before the Weaver plans; its view says a newcomer arrives; arriveAt names where (an existing area or a new zone); a plan declaring a place or area already there is refused. PR #953
+
 ## BG-272
 
 **What was wrong:** In the action-deck playtest the story's opening event roll was a Critical Success, and its achievement (Fate Meant It as a Curse) landed at once, before the story had even started, instead of at the end of the scenario like every other gain. The game flagged it itself (achievement_outside_end). The roll is made just before the opening scenario begins, when nothing yet holds growth back; the same could happen at a scenario start right after a story beat ended the last one.
@@ -543,6 +645,8 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** Every event roll opens a scenario, so whatever it earns now waits for the end of the scenario it opens, at the opening and after a story beat too, and arrives in that ending's gains moment.
 
 **Fixed by:** [PR #951](https://github.com/ali123500-codeRPG/text-rpg/pull/951)
+
+**Bug log row (as filed):** In the action-deck playtest the story's opening event roll was a Critical Success and its achievement (Fate Meant It as a Curse) was granted at once, outside any scenario's end, and the game filed it as achievement_outside_end. The roll is made before the opening scenario begins, when no scenario or free roam holds growth back | 17/11/2026 | fixed (Ali OK'd the fix, BF81 a) | Every event roll opens a scenario, so what it earns waits for that scenario's end, at the opening and after a story beat too. PR #951
 
 ## BG-267
 
@@ -568,6 +672,8 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #947](https://github.com/ali123500-codeRPG/text-rpg/pull/947)
 
+**Bug log row (as filed):** In the action-deck playtest, three slimes in reach were listed as "A slime", "The other slime" and "The other slime": two different slimes under one name, so "Attack the other slime" could mean either. The deck turned every repeat of a name into "the other ..." | 17/11/2026 | fixed (Ali OK'd the fix, BF80 a, numbered) | Two of a name still read "a slime" and "the other slime"; three or more are all numbered: "the 1st slime", "the 2nd slime", "the 3rd slime". PR #947
+
 ## BG-268
 
 **What was wrong:** In the action-deck playtest a slime "surrendered" (the XP line read "A slime defeated (surrendered)"). When a creature's nerve breaks on a morale roll of Critical Failure or worse, or under an Overwhelm, the game made it give itself up, whatever its mind, so mindless slimes could surrender.
@@ -575,6 +681,8 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** Only Intelligent and Semi-intelligent races (people, wolves) can surrender now. An Unintelligent race, such as a slime, whose break would have been a surrender just breaks: it cowers and still counts as beaten.
 
 **Fixed by:** [PR #944](https://github.com/ali123500-codeRPG/text-rpg/pull/944)
+
+**Bug log row (as filed):** In the action-deck playtest a slime "surrendered" (XP line "A slime defeated (surrendered)"): a break on a Critical Failure morale roll, or an Overwhelm, made any creature give itself up, whatever its mind | 16/11/2026 | fixed (Ali OK'd the fix, BF78 b) | Only Intelligent and Semi-intelligent races (people, wolves) can surrender; an Unintelligent race (a slime) whose break would be a surrender just breaks. PR #944
 
 ## BG-266
 
@@ -584,6 +692,8 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #942](https://github.com/ali123500-codeRPG/text-rpg/pull/942)
 
+**Bug log row (as filed):** One slime of a group of three was listed as "Slimes in the cellar": the Weaver labelled the group entry for the whole group, and code makes that entry the group's leader | 16/11/2026 | fixed (Ali OK'd the fix, BF77 a) | The Weaver and World builder rules say a group entry is its leader: its label, name and appearance describe that one (a slime, the bandit chief), never the group. PR #942
+
 ## BG-265
 
 **What was wrong:** In the action-deck playtest three slimes in arm's reach were mauling the old reed-cutter, and the Suggested button still said "Look around: Nothing presses". The suggestion (and the red foe marker in Who's here) only counted people you could talk down or demand surrender from. A slime can't be talked to, so it never counted, even when fighting you, and nobody attacking someone else counted at all.
@@ -591,6 +701,8 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** The screen now marks as a foe anyone fighting you (beasts too) and anyone you saw strike first at someone who isn't fighting you. Someone only hitting back at whoever struck first is not marked. The suggestion and Who's here use that mark, so that turn suggests "Attack a slime: a slime is attacking an old reed-cutter and within your hand axe's reach". In a fight with no foe, Look no longer says "Nothing presses".
 
 **Fixed by:** [PR #942](https://github.com/ali123500-codeRPG/text-rpg/pull/942)
+
+**Bug log row (as filed):** In the action-deck playtest, three slimes in arm's reach were mauling the old reed-cutter and the Suggested button read "Look around: Nothing presses"; the slimes never got the foe marker in Who's here either. Foes were only people the player could talk down or demand surrender from, which a mute beast never is, and nobody attacking someone else | 16/11/2026 | fixed (Ali OK'd the fix, BF76 a) | The player view marks foe on anyone fighting the player (beasts too) and on anyone the player saw strike first at someone not fighting the player; a blow struck back makes no foe. The suggestion and Who's here read it; a fight with no foe no longer says "Nothing presses". PR #942
 
 ## BG-264
 
@@ -607,6 +719,8 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** Ali OK'd the fix on the decision card. A shot (any attack made while hidden) now always gets its own Combat Stealth check against each watcher who hasn't spotted you yet, even after a step earlier in the turn, as the spec already said (ST7, D-40). Watchers who spotted you on the step don't roll again. The shot's check still counts for the rest of the turn, so Strike and Fade's vanish right after a shot adds no second roll (PT9). A new test in tests/cases/s117-stealth.test.ts walks into range and shoots, and expects a Sneaking roll for the step and a Combat Stealth roll for the shot.
 
 **Fixed by:** [PR #927](https://github.com/ali123500-codeRPG/text-rpg/pull/927)
+
+**Bug log row (as filed):** A shot from stealth that first steps into range in the same turn was never tested with Combat Stealth: the step's Sneaking contest used each watcher's one contest of the turn (ST4), so the shot itself got none (against ST7 and D-40: a shot gets its own notice contest) | 16/11/2026 | fixed (Ali OK'd the fix on the decision card) | A shot (any attack while stealthy) keeps its own contest per watcher in the turn's contest list (src/minds/state.ts stealthDetect), so a step or a search earlier in the turn never stands in for it. Found by the stealth attacker simulation; PR #927
 
 ## BG-262
 
@@ -632,6 +746,8 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #904](https://github.com/ali123500-codeRPG/text-rpg/pull/904)
 
+**Bug log row (as filed):** On the Questions hub, a question written in the colour-block layout (`body`) showed only its recommendation, never its option list: IR13 and IR18 to IR22 on "Game items deep dive" hid options b and c. The hub drew the options only for plain questions | 16/11/2026 | fixed (Ali OK'd the fix, HL3) | The hub draws the options under the recommendation for every question, `body` or not (unless the page already lists them), and carries the block-layout colours itself. Checked on all 46 pages: 413 questions with options, each shows them exactly once. Hub v16 (questions/hub/hub.html), logged in PR #904
+
 ## BG-259
 
 **What was wrong:** On every page of the Questions hub, a new question showed up above all the older answered ones, although the threads added it at the end of the page's list. The hub itself split each page into "Waiting for you" first and "Answered" below, and a new question is always still waiting, so it was lifted to the top.
@@ -655,6 +771,8 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** Ali approved the plan (OD15 a). Look around keeps its words; a pick names what happened at the lock ("the lock opens", "still at it", "not yet", "beyond you for now", "the pick snaps"); a break says "it breaks open" or "it holds"; a graded act says done, not yet or not done; any other roll shows its skill and tier with no words, and the story tells what it meant.
 
 **Fixed by:** [PR #893](https://github.com/ali123500-codeRPG/text-rpg/pull/893)
+
+**Bug log row (as filed):** The roll line under the story ends "you make out who is there" (Success or better) or "nothing clearer" for every plain roll the player makes, not only Look around: picking a lock, breaking a box open, healing, stashing, filching, steadying, showing pockets (agents/game.ts lineExtras) | 15/11/2026 | fixed (Ali OK'd the fix, OD15 a) | Each roll line names what that roll did: Look around who it made out, a pick what happened at the lock, a break whether it gave way, a graded act done / not yet / not done; any other roll shows its skill and tier with no words (PR #893)
 
 ## BG-256
 
@@ -687,6 +805,8 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #860](https://github.com/ali123500-codeRPG/text-rpg/pull/860)
 
+**Bug log row (as filed):** An NPC's words beside its action were picked at the start of the turn but said at its place in the turn order, after earlier blows had changed things: the gate guard said "That one's near done, finish it" after the player had already killed that slime (NV7) | 14/11/2026 | fixed (Ali OK'd the fix, BF74 a) | An NPC's words beside its deed are said as its turn starts, before anyone's step; the deed keeps its initiative. PR #860
+
 ## BG-254
 
 **What was wrong:** The playtest script (scripts/playtest.ts) still began every run as the Swordsman class (CL1). Starter classes became Starts, so CL1 is no longer one and every run crashed on its first turn with "CL1 is not a Start".
@@ -694,6 +814,8 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** With no --class given, the script picks a random Start from the library and prints which one (Ali's NV8 b); --class ST… still picks one.
 
 **Fixed by:** [PR #859](https://github.com/ali123500-codeRPG/text-rpg/pull/859)
+
+**Bug log row (as filed):** The playtest script started every run as the Swordsman class (CL1), which is no longer a Start, so every run crashed at once ("CL1 is not a Start") | 14/11/2026 | fixed (Ali OK'd the fix, NV8 b) | With no --class given, the script picks a random Start from the library's starts and says which. PR #859. Number clash (found 19/11/2026): the play page's bug db also gave BG-254 to a different bug, perks sealed by missing 20 and 40 rungs (see D-397).
 
 ## BG-252
 
@@ -927,6 +1049,8 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #806](https://github.com/ali123500-codeRPG/text-rpg/pull/806)
 
+**Bug log row (as filed):** Game report (checkin_failed), turn 43: a check-in pointing the ending at Corwin's made sword was refused as item unknown | 14/11/2026 | fixed (Ali OK'd the fix, BF50) | Hold/deliver endings checked with itemDef, which knows items made in play. PR #806
+
 ## BG-221
 
 **What was wrong:** The tinker woman hailed the player with no words ("the words slide past you unheard"): her Weaver beat fired in the middle of the turn, the moment she saw him, but a beat's words are written only for beats due at the start of a turn.
@@ -982,6 +1106,8 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** Nothing new was needed; Ali OK'd closing it (BF42). PR #698 (putting things into containers) had already taught the check that what is in your own sack is yours to name, give or take out. It merged about half an hour after the last of these turns. BF34 (PR #764) made a give from a sack actually hand it over. A test replays Wren's turn 23 answer and expects nothing dropped (tests/cases/s280-put-into-containers.test.ts).
 
 **Fixed by:** [PR #698](https://github.com/ali123500-codeRPG/text-rpg/pull/698), [PR #764](https://github.com/ali123500-codeRPG/text-rpg/pull/764)
+
+**Bug log row (as filed):** Story mwf2lt7l t22 (invalid_gear): Wren tried to give Happi the lucky charm from his own sack; the check on what an NPC may name knew only what hung on him, not what was inside his sack, so the charm was dropped from his give | 13/11/2026 | fixed (Ali OK'd closing it, BF42) | Already fixed: PR #698 (PI1: what is in one's own sack can be named, given and taken out); BF34, PR #764, made the give work. One bug with BG-196, BG-198 and BG-205
 
 ## BG-196
 
@@ -1173,6 +1299,14 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** Coming back to Play now always opens the story at the latest lines. A browser test plays a few turns in a short window, goes to Bugs and back, and checks the story is at the bottom.
 
 **Fixed by:** [PR #689](https://github.com/ali123500-codeRPG/text-rpg/pull/689)
+
+## BG-190
+
+**What was wrong:** After "I sneak while following the lean man" the player had to say it again every turn, "continue" got "Continue with what?", and nothing said whether they still had him or how they lost him. A move near someone ended once there, a sneak with no move ended any walk, and the Parser was not told that "continue" carries a walk on (Ali's report).
+
+**What was done:** Engine: a follow (a move spot near someone with follow, set by the Parser) carries on by itself while the player can see or hear them, a sneak sneaks along a walk, and PlayerView.player.following says whom they follow or, once, why they lost them (down, slipped away, out of sight); the Parser reads "continue" as carrying on (resolve.ts keepFollowing, carryOnWalk; views followingOf). Screen: a "Same again" chip, and the following line with Keep following and Stop chips (ACT-83 to ACT-88).
+
+**Fixed by:** [PR #687](https://github.com/ali123500-codeRPG/text-rpg/pull/687) (engine); [PR #683](https://github.com/ali123500-codeRPG/text-rpg/pull/683) (Same again) and [PR #692](https://github.com/ali123500-codeRPG/text-rpg/pull/692) (the following line)
 
 ## BG-189
 
@@ -1734,6 +1868,8 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #585](https://github.com/ali123500-codeRPG/text-rpg/pull/585)
 
+**Bug log row (as filed, part 2):** Run 81: Maud whispered three answers from behind her counter to the player about 5 m back; a whisper carries about 1 m, so none was heard. | BF3 a (Ali): a whisper that does not reach its listener after the step-up is said low enough to hear; c: agents are told how far a whisper carries, and whisper_raised logs each time code had to raise one. | Fixed in PR #602
+
 ## BG-119
 
 **What was wrong:** In run 79 three NPCs changed zones between turns with no move event, so the player watched them vanish and could not name them.
@@ -1773,6 +1909,8 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** a race tagged 'speaks' with a speech part not Destroyed). trade.ts `orderReaches`: a speaker calls the order (hearsOrder, as before); someone who cannot speak points and pays in person, within both grip reaches (else out_of_reach). merge.ts `needOf`: their buy or sell needs grip, so they close in on the move slot first. Test: tests/cases/s214-grip-reach.test.ts. (PR #583
 
 **Fixed by:** [PR #583](https://github.com/ali123500-codeRPG/text-rpg/pull/583)
+
+**Bug log row (as filed):** Buying and selling is always a spoken order, even for someone who cannot speak; a mute character calls out orders it has no voice for (Ali's question, bug-fix review thread) | 13/11/2026 | fixed | Ali picked "point and hand over coin". ruleset/body.ts `canSpeak` (a race tagged 'speaks' with a speech part not Destroyed). trade.ts `orderReaches`: a speaker calls the order (hearsOrder, as before); someone who cannot speak points and pays in person, within both grip reaches (else out_of_reach). merge.ts `needOf`: their buy or sell needs grip, so they close in on the move slot first. Test: tests/cases/s214-grip-reach.test.ts. (PR #583)
 
 ## BG-115
 
@@ -1838,6 +1976,14 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #581](https://github.com/ali123500-codeRPG/text-rpg/pull/581)
 
+## BG-107
+
+**What was wrong:** In a fight, resting, waiting and using a healing item were blocked by any hostile in the same zone, even one 100 m across a square, and never by one a step away through a doorway: the zone stood in for distance (zone review).
+
+**What was done:** Ali (ZR11): no distance rule; these actions take time and are broken off by attacks, as an active choice that leaves you open. Moved to the action-economy rework, where Action time stage 3b removed the gates (AT8): rest, wait, sleep and healing items can always be started, the healing rows' inFight flag is gone, and in a fight a wait or a sleep does nothing because the clock is already paused (ACT-170 to ACT-172).
+
+**Fixed by:** [PR #665](https://github.com/ali123500-codeRPG/text-rpg/pull/665)
+
 ## BG-106
 
 **What was wrong:** Zone review: Cover Ally can step in front of an arrow for an ally anywhere in the zone. Fixed (ZR2): only within the coverer's grip reach of the ally
@@ -1861,6 +2007,8 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** withinGrip). Test: tests/cases/s214-grip-reach.test.ts. (PR #579
 
 **Fixed by:** [PR #579](https://github.com/ali123500-codeRPG/text-rpg/pull/579)
+
+**Bug log row (as filed):** Zone review: a hold (A8) lasts while holder and held share a zone, at any distance in it | 12/11/2026 | fixed | relations.ts heldBy: the hold stands while the held one is within the holder's grip reach (withinGrip). Test: tests/cases/s214-grip-reach.test.ts. (PR #579)
 
 ## BG-103
 
