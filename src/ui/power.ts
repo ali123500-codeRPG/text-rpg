@@ -11,7 +11,7 @@ import { r1 } from '../words';
 import { h } from './kit';
 import { gmView, skillName } from './creation';
 import { openPop } from './pop';
-import { ICONS } from './itemIcons';
+import { ICONS, type IconName } from './itemIcons';
 
 /** one line of the breakdown: what it is, how it is worked out, what it adds (or, for a rating, its value), and the lines under it */
 export type PowerLine = { label: string; how: string; adds?: number; value?: string; sub?: PowerLine[] };
@@ -43,6 +43,13 @@ export function ratingLines(s: GameState, p: Actor): PowerLine[] {
   return [...rows, ...groups].filter(([, r]) => r.rating > 0).map(([label, r]) => row(label, r));
 }
 
+/** a card figure's icon in place of its words, which are its accessible name */
+export function figIcon(name: IconName, label: string): HTMLElement {
+  const el = h('span', { class: 'mk-i', role: 'img', 'aria-label': label });
+  el.innerHTML = ICONS[name];
+  return el;
+}
+
 /** the six compound ratings on the character card: an icon and the number; the name and gear portion are its tip */
 export function ratingIcons(s: GameState, p: Actor): HTMLElement {
   return h('div', { class: 'cs-ratings' }, (Object.entries(RT) as [keyof typeof RT, string][]).map(([key, id]) => {
@@ -64,8 +71,8 @@ function line(l: PowerLine, depth: number): HTMLElement {
 /** the Power figure on the character card; a click opens the parts */
 export function powerFigure(s: GameState, p: Actor): HTMLElement {
   const { total } = powerLines(s, p);
-  const btn: HTMLElement = h('button', { type: 'button', class: 'cs-power', 'aria-haspopup': 'dialog', title: 'What your power is made of',
-    onclick: () => openPowerPop(s, p, btn) }, h('b', {}, String(r1(total))), h('span', {}, 'Power'));
+  const btn: HTMLElement = h('button', { type: 'button', class: 'cs-power', 'aria-haspopup': 'dialog', title: 'Power',
+    onclick: () => openPowerPop(s, p, btn) }, figIcon('fig_power', 'Power'), h('b', {}, String(r1(total))));
   return btn;
 }
 

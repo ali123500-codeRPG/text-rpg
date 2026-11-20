@@ -25,6 +25,10 @@ const PICKS = {
   // the Character page's ratings, keyed as RT (src/library/functionIds.ts)
   melee_strength: 'gi:biceps', ranged_strength: 'gi:high-shot', toughness: 'gi:heart-armor', agility: 'gi:acrobatic',
   presence: 'gi:crown', senses: 'gi:eye-target',
+  // the character card's figures (their words are the tip)
+  fig_power: 'gi:power-lightning', fig_attack: 'gi:sword-brandish', fig_defense: 'gi:checked-shield',
+  // the Character page's section tiles
+  tile_essences: 'gi:floating-crystal', tile_perks: 'gi:star-formation', tile_gear: 'gi:battle-gear', tile_personality: 'gi:drama-masks',
   // skills that have no item or class icon to share (SKILL_ICON in src/ui/itemIcons.ts)
   sk_ranged_light: 'gi:pocket-bow', sk_strike: 'gi:punch', sk_grapple: 'gi:grab', sk_improvised: 'gi:broken-bottle', sk_slam: 'gi:fist',
   sk_dodge: 'gi:dodging', sk_endurance: 'gi:heart-plus', sk_eyesight: 'gi:eyeball', sk_earshot: 'gi:sound-waves',
