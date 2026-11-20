@@ -18,6 +18,7 @@ import { areaOf } from '../plan/geom';
 import { distText } from '../views';
 import { cap, r1 } from '../words';
 import type { Pos } from '../engine/position';
+import type { MapThing } from './deck';
 
 export type PlanSize = 'mini' | 'full';
 type Places = Parameters<typeof planScene>[0]['places'];
@@ -37,7 +38,9 @@ export type PlanOpts = {
   data(): PlanData | null;
   onPlan(p: MinimapPoint | null): void;
   onWalk(p: MinimapPoint): void;
-  onPerson(actorId: string, anchor: DOMRect): void;
+  /** MAP-85: a click on a person, door or wall: the deck's list for it beside the thing (its box in page pixels); false
+   *  when the deck has nothing for it, and the click plans a walk as on bare ground */
+  onThing(t: MapThing, anchor: ReturnType<typeof boxOf>): boolean;
   /** right-click or long press on a zone (MAP-64) */
   onCard(zoneId: string): void;
   /** an unexplored exit or stair picked (MAP-62) */
@@ -217,7 +220,7 @@ export function planView(api: GameApi, opts: PlanOpts) {
     // marks, each only when it is whole in view (MAP-50: nothing tagged past the edge)
     for (const dd of sc.doors) {
       if (!within(dd, inView)) continue;
-      const r = dd.x1 - dd.cx, tag = { 'data-role': 'icon', 'data-id': dd.id, role: 'img', 'aria-label': dd.title };
+      const r = dd.x1 - dd.cx, tag = { 'data-role': 'icon', 'data-id': dd.id, role: 'img', 'aria-label': dd.title, 'data-thing': 'door', 'data-of': dd.zones.join('|') };
       gMarks.append(dd.way?.shut ? s('g', { class: `map-way ${dd.way.shut}${dd.way.key ? ' key' : ''}`, ...tag }, s('circle', { cx: dd.cx, cy: dd.cy, r }), ...wayGlyph(dd.cx, dd.cy, dd.way.shut), s('title', {}, dd.title))
         : s('g', { class: `map-door ${dd.kind}`, ...tag }, ...doorGlyph(dd.cx, dd.cy, dd.kind, dd.dir), s('title', {}, dd.title)));
     }
@@ -240,7 +243,7 @@ export function planView(api: GameApi, opts: PlanOpts) {
       // BG-324: the disc (GSM-193: or the body's capsule) alone is the token the checker measures; the initial's text box is taller than it, its letter is not
       const shape = c ? s('rect', { x: t.cx - c.len / 2, y: t.cy - c.wide / 2, width: c.len, height: c.wide, rx: Math.min(c.len, c.wide) / 2, transform: `rotate(${c.deg} ${t.cx} ${t.cy})`, ...tok })
         : s('circle', { cx: t.cx, cy: t.cy, r: t.r, ...tok });
-      const g = s('g', { class: `map-who plan-who${who.now ? '' : ' last'}${who.at ? ' at' : ''}`, 'data-zone': t.zoneId, 'data-who': who.id, tabindex: 0, role: 'button', 'aria-label': `${t.title}: what to do` },
+      const g = s('g', { class: `map-who plan-who${who.now ? '' : ' last'}${who.at ? ' at' : ''}`, 'data-zone': t.zoneId, 'data-thing': 'person', 'data-of': who.id, tabindex: 0, role: 'button', 'aria-label': `${t.title}: what to do` },
         s('g', {}, shape, s('text', { x: t.cx, y: t.cy + 3, 'text-anchor': 'middle' }, whoInitial(who.name))),
         s('text', { x: t.x1 + 4, y: t.cy + 4, class: 'map-who-label' }, who.name), s('title', {}, t.title));
       gTokens.append(g);
@@ -341,17 +344,22 @@ export function planView(api: GameApi, opts: PlanOpts) {
     const q = metresAt(e), z = zoneAt(d.floor, q);
     return z ? planTo(st, d.km, z.id, q) : { why: 'You don’t know what is there.' };
   }
-  /** a mark that answers a click itself (MAP-62, MAP-63, a person), before the ground under it plans a walk */
+  /** MAP-85: the thing a mark stands for, as the deck targets it */
+  const thingOf = (m: Element): MapThing => {
+    const of = m.getAttribute('data-of')!, kind = m.getAttribute('data-thing');
+    return kind === 'door' ? { kind, ends: of.split('|') } : { kind: kind === 'wall' ? 'wall' : 'person', id: of };
+  };
+  /** a mark that answers a click itself (MAP-62, MAP-63, MAP-85), before the ground under it plans a walk */
   function markAt(e: Event): boolean {
-    const t = e.target as Element, x = t.closest?.('[data-exit]'), g = t.closest?.('[data-goto]'), a = t.closest?.('[data-area]'), who = t.closest?.('.map-who');
-    if (who) { if (!api.busy()) opts.onPerson(who.getAttribute('data-who')!, (who as Element).getBoundingClientRect()); return true; }
+    const t = e.target as Element, x = t.closest?.('[data-exit]'), g = t.closest?.('[data-goto]'), a = t.closest?.('[data-area]'), th = t.closest?.('[data-thing]');
+    if (th && !api.busy() && opts.onThing(thingOf(th), boxOf(th))) { thingOpen = true; return true; }
     if (x) { opts.onExit(x.getAttribute('data-exit-from')!, x.getAttribute('data-exit')!); return true; }
     if (g) { opts.onGoto(g.getAttribute('data-goto')!); return true; }
     if (a && opts.onArea && a.closest('.map-place-title')) { opts.onArea(a.getAttribute('data-area')!); return true; }
     return false;
   }
   const cardAt = (e: MouseEvent) => { if (!d) return; const z = zoneAt(d.floor, metresAt(e)); if (z) opts.onCard(z.id); };
-  let drag: { x: number; y: number; off: Pos; moved: boolean } | null = null, press = 0, pressed = false;
+  let drag: { x: number; y: number; off: Pos; moved: boolean } | null = null, press = 0, pressed = false, thingOpen = false;
   svg.addEventListener('pointerdown', (e) => {
     if (e.button !== 0 || api.busy()) return;
     drag = { x: e.clientX, y: e.clientY, off: { ...off }, moved: false };
@@ -380,12 +388,13 @@ export function planView(api: GameApi, opts: PlanOpts) {
   svg.addEventListener('click', (e) => {
     const dragged = drag?.moved; drag = null;
     if (dragged || pressed) return;
+    thingOpen = false;
     if (markAt(e)) { e.stopPropagation(); return; }
     const p = pointAt(e);
     if (p && 'pts' in p) setPlan(p);
   });
   svg.addEventListener('contextmenu', (e) => { e.preventDefault(); if (!api.busy()) cardAt(e); });
-  svg.addEventListener('dblclick', (e) => { if ((e.target as Element).closest?.('[data-exit],[data-goto],.map-who')) return; const p = pointAt(e); if (p && 'pts' in p) { setPlan(p); opts.onWalk(point(p)); } });
+  svg.addEventListener('dblclick', (e) => { if ((e.target as Element).closest?.('[data-exit],[data-goto]') || thingOpen) return; const p = pointAt(e); if (p && 'pts' in p) { setPlan(p); opts.onWalk(point(p)); } });
   svg.addEventListener('wheel', (e) => { e.preventDefault(); zoom(Math.sign(e.deltaY)); }, { passive: false });
   svg.addEventListener('keydown', (e) => {
     const t = e.target as Element;

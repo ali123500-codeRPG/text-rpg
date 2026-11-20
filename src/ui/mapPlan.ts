@@ -45,6 +45,7 @@ export type SPlace = { id: string; name: string; box: Box; outline: string; titl
 export type SText = Box & { text: string; full: string; cut: boolean; lines: string[] };
 /** a zone's name, drawn behind every mark inside its zone at `size` px (MZ2) */
 export type SLabel = SText & { zoneId: string; placement: 'inside'; size: number; line: number };
+/** zones: the two titles the doorway joins, the far one too when it is not on this map (MAP-85: its deck target) */
 export type SDoor = Box & { id: string; cx: number; cy: number; dir: 'h' | 'v'; kind: 'door' | 'opening'; way?: MapWay; title: string; zones: string[] };
 export type SExit = { id: string; zoneId: string; target: string; state: string; x1: number; y1: number; x2: number; y2: number; note: SText; goto?: string; way?: MapWay; title: string };
 export type SStair = Box & { id: string; zoneId: string; cx: number; cy: number; up: boolean; goto?: string; title: string; label: string };
@@ -224,7 +225,7 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean): Scene {
     const c = px(l.at), dir: 'h' | 'v' = Math.abs(l.out[1]) >= Math.abs(l.out[0]) ? 'h' : 'v';
     const kind = way ? 'door' as const : 'opening' as const;
     const title = `${l.label}: ${x.z.name} ↔ ${other?.z.name ?? l.label}${way ? ` · ${shutWord(way) || way.kind}` : ''}`;
-    const d: SDoor = { id: `door:${key}`, cx: c.x, cy: c.y, ...doorBox(c.x, c.y, dir, way), dir, kind, ...(way ? { way } : {}), title, zones: [x.z.id, ...(other ? [other.z.id] : [])] };
+    const d: SDoor = { id: `door:${key}`, cx: c.x, cy: c.y, ...doorBox(c.x, c.y, dir, way), dir, kind, ...(way ? { way } : {}), title, zones: [x.z.id, l.to] };
     drawnDoor.set(key, d); doors.push(d); take(d, 'icon');
     used.add(way?.shut ? 'door' : kind);
     if (way?.shut) used.add(wayKey(way));

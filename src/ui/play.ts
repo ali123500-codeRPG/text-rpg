@@ -34,7 +34,7 @@ import { answering } from '../agents/answering';
 import { arrive, bar as barMove, count, cue, delta, finishAll, flare, impact, moving, ms, play, pulse, sentences, shake, slam, stamp, timeline } from './motion';
 import { coinWords } from '../engine/trade';
 import { actionsRow, doingChip, doingNow, followingNow, walkingNow } from './doing';
-import { closePop, openPop } from './pop';
+import { closeFull, closePop, openPop } from './pop';
 import { deckView, walkOrder, type SayMode } from './deckView';
 import { minimapPanel, type MinimapPoint } from './minimap';
 import { mapPick } from './map';
@@ -213,7 +213,7 @@ function questLine(s: GameState, open: (id: string) => void): HTMLElement | null
     ...bits.filter((b): b is HTMLElement => !!b).flatMap((b) => [sep(), b]));
 }
 
-export type PlayUi = { el: HTMLElement; update: () => void; focus: () => void; walk: (p: MinimapPoint) => void };
+export type PlayUi = { el: HTMLElement; update: () => void; focus: () => void; walk: (p: MinimapPoint) => void; thing: ReturnType<typeof deckView>['thingMenu'] };
 
 /** /stats, /inv, /quests and /achievements open their rail page; everything else goes to the game. */
 export const NAV_COMMANDS: Record<string, string> = { '/stats': 'stats', '/inv': 'inv', '/quests': 'quests', '/achievements': 'achievements' };
@@ -248,15 +248,16 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const sayChip = h('button', { type: 'button', class: 'say-for', hidden: true, title: 'Stop and type freely again', onclick: () => dk.cancelSay() });
   const dk = deckView(api, {
     planned: () => mm.planned(), clearPlan: () => mm.clear(),
-    before: () => { closeGains(true); finishAll(); open = null; input.value = ''; suggestion = ''; },
-    sayMode: (m) => { sayFor = m; update(); if (m) input.focus(); },
+    // MAP-85: an action picked on the Map plays from Play, the Map closed (as its walk does, MAP-84)
+    before: () => { closeFull(); closeGains(true); finishAll(); open = null; input.value = ''; suggestion = ''; },
+    sayMode: (m) => { sayFor = m; if (m) closeFull(); update(); if (m) input.focus(); },
   });
   dk.mods.append(h('span', { class: 'dk-links' }, againBtn, cmdBtn));
   // AD12/AD15: the minimap; a click plans a move that the next action takes along, Enter, Just go or a double-click walks there
   const mm = minimapPanel(api, {
     onPlan: () => update(),
     onWalk: (p) => walkTo(p),
-    onPerson: (id, r) => dk.personMenu(id, r),
+    onThing: (t, r) => dk.thingMenu(t, r),
     onOpenMap: (at) => { mapPick(at); nav('map'); },
   });
   const inputOff = () => input.disabled;
@@ -288,9 +289,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       update();
       return;
     }
-    dk.personMenu(row.dataset.id!, row);
+    dk.thingMenu({ kind: 'person', id: row.dataset.id! }, row);
   });
-  for (const list of [who, band]) list.addEventListener('keydown', (e) => { const row = (e.target as Element).closest<HTMLElement>('.pp[data-id]'); if (row && (e.key === 'Enter' || e.key === ' ') && e.target === row) { e.preventDefault(); dk.personMenu(row.dataset.id!, row); } });
+  for (const list of [who, band]) list.addEventListener('keydown', (e) => { const row = (e.target as Element).closest<HTMLElement>('.pp[data-id]'); if (row && (e.key === 'Enter' || e.key === ' ') && e.target === row) { e.preventDefault(); dk.thingMenu({ kind: 'person', id: row.dataset.id! }, row); } });
   let dealsOpen = false;
   document.addEventListener('click', () => { if (dealsOpen && el.isConnected) { dealsOpen = false; update(); } });
   // AD2: the health strip, folded; a click opens the whole condition (bars, body figure) in a pop-up
@@ -1149,5 +1150,5 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     if (slow) slow.hidden = n < SLOW_AFTER_S;
   }, 1000);
   // BG-191: coming back to Play (the page was off the screen, so the story lost its place) opens at the latest lines
-  return { el, update, walk: walkTo, focus: () => { story.scrollTop = story.scrollHeight; input.focus(); } };
+  return { el, update, walk: walkTo, thing: dk.thingMenu, focus: () => { story.scrollTop = story.scrollHeight; input.focus(); } };
 }

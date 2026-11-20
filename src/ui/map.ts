@@ -13,7 +13,7 @@ import { ICON_ART } from './iconArt';
 import { worldTiles, knownMap, pointAlong, rootPlace, type KnownMap, type MapLink, type MapPlace, type MapWay, type MapZone } from './mapData';
 import { cap, theName } from '../words';
 import { MAX_K, PIN_R, PIN_TIP, PX_PER_M } from './mapPlan';
-import { planView, type PlanData } from './planView';
+import { planView, type PlanData, type PlanOpts } from './planView';
 import { carriedS } from '../engine/speed';
 import { dashMetres, ringMetres, type MapPick, type MinimapPoint } from './minimap';
 
@@ -23,7 +23,9 @@ export function floorMarks(z: MapZone, sc: number, dx: number, dy: number): { fl
   const at = (q: { x: number; y: number }) => [dx + q.x * sc, dy - q.y * sc];
   const o = z.outline ?? [], r = z.rect;
   const boxy = !r || o.length === 4 && o.every((q) => (Math.abs(q.x - (r.x - r.w / 2)) < 0.01 || Math.abs(q.x - (r.x + r.w / 2)) < 0.01) && (Math.abs(q.y - (r.y - r.d / 2)) < 0.01 || Math.abs(q.y - (r.y + r.d / 2)) < 0.01));
-  const walls = (z.walls ?? []).map((w) => { const [x1, y1] = at(w.a), [x2, y2] = at(w.b); return s('line', { x1, y1, x2, y2, class: `map-edge ${w.cls}` }) as SVGElement; });
+  // MAP-85: a stretch with a wall standing on it carries that wall, on a wider line that takes the click
+  const walls = (z.walls ?? []).flatMap((w) => { const [x1, y1] = at(w.a), [x2, y2] = at(w.b); return [s('line', { x1, y1, x2, y2, class: `map-edge ${w.cls}` }) as SVGElement,
+    ...(w.id ? [s('line', { x1, y1, x2, y2, class: 'map-edge-hit', 'data-thing': 'wall', 'data-of': w.id }) as SVGElement] : [])]; });
   return { floor: boxy ? null : o.map((q) => at(q).join(',')).join(' '), walls };
 }
 
@@ -145,7 +147,7 @@ let pick0: MapPick | null = null;
 export const mapPick = (at?: MapPick) => { pick0 = at ?? null; };
 
 /** onMove: "Move to here" on a zone's or an unexplored exit's card hands its order to Play's action box (typed, not sent) */
-export function mapPage(api: GameApi, onMove?: (order: string) => void, onWalk?: (p: MinimapPoint) => void) {
+export function mapPage(api: GameApi, onMove?: (order: string) => void, onWalk?: (p: MinimapPoint) => void, onThing?: PlanOpts['onThing']) {
   const el = h('main', { class: 'map-page' });
   // one map per top-level place (a "world"): the village, the tavern in it and the field beside it share one layout,
   // each inner place drawn as an outlined area. `focus` is the place picked in the list or the crumbs.
@@ -200,7 +202,7 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void, onWalk?:
   // MAP-84 (MQ2 a): a place's map is the shared map view at its full size, the minimap's own component
   const pv = planView(api, {
     size: 'full', data: planData,
-    onPlan: () => {}, onWalk: (p) => onWalk?.(p), onPerson: () => {},
+    onPlan: () => {}, onWalk: (p) => onWalk?.(p), onThing: (t, r) => onThing?.(t, r) ?? false,
     onCard: (zone) => { exitSel = null; selected = zone; focus = worldZones().find((x) => x.id === zone)?.placeId ?? focus; draw(); },
     onExit: (zone, label) => { selected = zone; exitSel = { zoneId: zone, label }; draw(); },
     onGoto: (target) => goTo(target), onArea: (id) => { focus = id; draw(); }, onExpand: () => fit(world),

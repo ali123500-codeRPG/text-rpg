@@ -9,13 +9,16 @@ import { isBrokenLevel, isCoweringLevel, moraleLevel } from '../ruleset/morale';
 import { buildPlayerView, findInstance } from '../views';
 import { cap } from '../words';
 import { hideTip, showTip } from './pages';
-import { h, safe } from './kit';
+import { h, safe, viewSize, type boxOf } from './kit';
 import { closePop, openPop } from './pop';
-import { deck, actionsOn, type Choice, type DeckAction, type DeckCtx, type Order, type Pick } from './deck';
+import { deck, thingActions, type Choice, type DeckAction, type DeckCtx, type MapThing, type Order, type Pick } from './deck';
 import { openLoot } from './loot';
 import { ICONS, instanceIcon } from './itemIcons';
 import { AGAINST_NATURE } from './ideaLeans';
 import type { MinimapPoint } from './minimap';
+
+/** a thing's box on screen, in page pixels (kit boxOf) */
+type Box = ReturnType<typeof boxOf>;
 
 export type SayMode = { action: DeckAction; choice: Choice; to: string };
 
@@ -81,15 +84,24 @@ export function deckView(api: GameApi, o: {
         h('b', {}, p.label), p.note ? h('small', {}, p.note) : null)))] });
   }
 
-  /** AD14: clicking someone on the minimap or in Who's here: what you can do to or with them */
-  function personMenu(id: string, anchor: HTMLElement | DOMRect) {
-    if (disabled) return;
-    const acts = actionsOn(groups, id);
-    if (!acts.length) return;
-    const opener = anchor instanceof HTMLElement ? anchor : null;
-    const pop = openPop({ title: pickLabel(acts[0], { target: id }) ?? 'Them', opener, cls: 'deck-pick', body: [h('div', { class: 'dk-picks', role: 'list' }, acts.map((a) =>
-      h('button', { type: 'button', class: 'dk-pick' + (a.hot ? ' hot' : ''), role: 'listitem', title: actTip(a), onclick: () => run(a, { target: id }, opener) }, h('b', {}, a.label))))] });
-    if (!(anchor instanceof HTMLElement)) { pop.style.left = `${Math.max(16, anchor.left - pop.offsetWidth - 8)}px`; pop.style.top = `${Math.max(16, anchor.top)}px`; }
+  /** AD14, MAP-85: a click on someone in Who's here, or on a thing on either map: every deck action for it, the thing
+   *  already chosen; one that can't be done now greyed, what it needs on hover. False when the deck has none for it */
+  function thingMenu(t: MapThing, anchor: HTMLElement | Box): boolean {
+    if (disabled || !ctx) return false;
+    const list = thingActions(groups, ctx, t);
+    if (!list.length) return false;
+    const opener = anchor instanceof HTMLElement ? anchor : null, first = list.find((e) => 'a' in e);
+    const title = (first && 'a' in first ? pickLabel(first.a, first.c) : undefined) ?? (t.kind === 'person' ? 'Them' : 'There');
+    const pop = openPop({ title, opener, cls: 'deck-pick', body: [h('div', { class: 'dk-picks', role: 'list' }, list.map((e) => 'a' in e
+      ? h('button', { type: 'button', class: 'dk-pick' + (e.a.hot ? ' hot' : ''), role: 'listitem', title: actTip(e.a), onclick: () => run(e.a, e.c, opener) }, h('b', {}, e.label))
+      : h('button', { type: 'button', class: 'dk-pick dk-lim', role: 'listitem', 'aria-disabled': 'true', title: `Needs ${e.needs}`, 'aria-label': `${e.label}, needs ${e.needs}` }, h('b', {}, e.label, lockMark(e.needs)))))] });
+    // beside the thing: to its left, or to its right where the left has no room
+    if (!(anchor instanceof HTMLElement)) {
+      const w = pop.offsetWidth, v = viewSize();
+      pop.style.left = `${anchor.left - w - 8 >= 16 ? anchor.left - w - 8 : Math.min(anchor.right + 8, v.w - w - 16)}px`;
+      pop.style.top = `${Math.max(16, Math.min(anchor.top, v.h - pop.offsetHeight - 16))}px`;
+    }
+    return true;
   }
 
   // ---- the parts on screen ----
@@ -157,7 +169,7 @@ export function deckView(api: GameApi, o: {
   function lock() { el.querySelectorAll<HTMLButtonElement>("button").forEach((b) => { b.disabled = disabled; }); }
 
   return {
-    el, mods, update, personMenu,
+    el, mods, update, thingMenu,
     aimOn: () => aim,
     toggleAim() { aim = !aim; repaint(); },
     /** the first action of this kind, with what is already chosen (the heal slot uses it) */
