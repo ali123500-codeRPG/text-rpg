@@ -73,9 +73,10 @@ start; the owner decides with you.
 - `hub.html`: the page. The published copy also carries fonts and a background image under `kit/`: the same files
   as `src/ui/assets/` (`docs/assets.md`). Opened locally without them, the page falls back to system fonts.
 - `blocks.py`: helpers that build a question's body, plus `lint()`, which refuses a wall of text.
-- `hubdb.py`: builds the small database writes for a new questionnaire, a new round, or marking questions done.
-- `checks/stores.mjs`: checks that the page shows both stores, writes each questionnaire to its own, and copies older
-  questionnaires whole (run with Node).
+- `hubdb.py`: builds the small database writes for a new questionnaire, a new round, or marking questions done, and
+  `outbox()` turns them into a file the hub page runs.
+- `checks/stores.mjs`: checks that the page shows both stores, writes each questionnaire to its own, copies older
+  questionnaires whole, and runs each `outbox()` file once (run with Node and Python).
 - `checks/render.cjs`: draws one questionnaire with the local `hub.html` and saves a picture (needs Playwright).
 - `checks/livecheck.cjs`, `checks/test.cjs`, `checks/mkseeds.py`: regression checks from the move to small documents.
   They compare against an older copy of the page and saved real questionnaires, which are kept only in the Claude
@@ -114,8 +115,8 @@ options side by side, a layout or a flow.
   `blk('today', 'Today', p('...'), fig('wf8-outline', 'The outline clears the rooms on three sides', 'Zoom 2'))`.
 - **Size.** At most 400 KB per file (`hubdb.IMG_MAX`); WebP or JPEG for screenshots, PNG only for small flat images.
   `image()` refuses a bigger file.
-- **Writing it.** `image(name, key, file, OUT)` gives the write for `imgs/<name>/items/<key>`; run `sql()` of it on its
-  own, before or with the round that shows it. Keys are short and stable (`wf8-outline`), and unique within the
+- **Writing it.** `image(name, key, file, OUT)` gives the write for `imgs/<name>/items/<key>`; send it through `outbox()` on
+  its own, before or with the round that shows it. Keys are short and stable (`wf8-outline`), and unique within the
   questionnaire. `lint()` refuses a picture with no alt text, or one loaded from the web.
 - The owner clicks a picture to see it at full size, so a wide crop is fine.
 
@@ -126,10 +127,24 @@ scratch folder outside the repo) and returns the list for one database batch cal
 splits longer lists). "ArtifactData" in the helpers' comments is the Claude tool that reads and writes an
 artifact's database; the batch call is made with it.
 
-For a questionnaire in Supabase (every new one), print `sql(w)` instead of `print_writes(w)` and run the result with the
-Supabase connector's `execute_sql` on the project named `questions-hub`. Supabase keeps no versions: give `mark()` any
-number (e.g. `1`) as each question's version, so the change is merged into the question. With `None`, `sql()` refuses,
-because it would replace the whole question.
+For a questionnaire in Supabase (every new one), send the writes through your hub page's outbox, so the SQL (3 to 6 KB)
+never passes through the conversation. The Supabase connector's `execute_sql` takes SQL only as text in the call, and
+`publish_files` is the one tool that sends a file by its path.
+
+1. `oid, files = outbox(w, OUT, listed)`: `listed` is the paths `list_files` gives for your hub page. It writes
+   `outbox/<oid>.sql` (`sql(w)` plus a once-only marker) and `outbox/index.json`.
+2. Publish `files` to your hub page with `publish_files`, mode patch, `base_version` from `list_files`. A conflict
+   means another thread published: list again and rerun step 1.
+3. Give the owner the hub link. When the page opens, it runs each new outbox file once through the viewer's Supabase
+   connector, in one transaction, and records the result.
+4. Check it: `select data from hub_docs where path = 'outbox/<oid>'`. `{at}` means written; `{at, error}` means
+   rolled back, with Postgres's message. A failed file is never run again: fix the cause and send a new one. No row
+   means the page has not been opened since.
+
+Each account publishes only to its own hub page (`docs/providers/claude.md`), whose `hub.html` must include
+`runOutbox`. Pasting `sql(w)` into `execute_sql` on the project `questions-hub` still works and does the same.
+Supabase keeps no versions: give `mark()` any number (e.g. `1`) as each question's version, so the change is merged
+into the question. With `None`, `sql()` refuses, because it would replace the whole question.
 Current documents: `select path, data from hub_docs where starts_with(path, 'qs/<name>/items/')`.
 
 ```python
@@ -151,7 +166,9 @@ q1 = q('XY1', 'ask', 'Question', 'Short title', [
 header = dict(title='Page title', intro=['Plain text paragraph.'],
               K={'ask': {'name': 'Question', 'meaning': 'needs an answer', 'k': 'var(--accent)'}},
               rules={'title': 'Answers, ready to paste', 'intro': '', 'lead': ''})
-print(sql(new_page('page-name', header['title'], header, [('r1', 'Round 1', 'what it asks', [q1])], OUT, desk='main')))
+listed = ['kit/night-sky.webp', 'outbox/20261120T080319109323Z-3d3982.sql']   # from list_files on your hub page
+oid, files = outbox(new_page('page-name', header['title'], header, [('r1', 'Round 1', 'what it asks', [q1])], OUT, desk='main'), OUT, listed)
+print(oid, json.dumps(files))   # publish_files(slug=<your hub>, base_version=..., mode='patch', files=files)
 ```
 
 - **New questionnaire:** `new_page(name, title, header, [(g, title, sub, [questions])], OUT, desk=...)`. `desk` is the
