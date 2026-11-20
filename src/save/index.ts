@@ -139,7 +139,7 @@ export async function saveTurn(store: Store, state: GameState, record: TurnRecor
   const id = state.storyId;
   if (record.storyId !== id) throw new SaveError('wrong_story', `record is for ${record.storyId}, state is ${id}`);
   const pages = toPages(state);
-  const head = await guard(async () => {
+  const { head, prev } = await guard(async () => {
     const [prev, stored] = await Promise.all([store.get<Head>(headPath(id)), store.get(story(id))]);
     const live = liveOf(prev);
     const meta: StoryMeta = { ...state.meta, settings: state.settings };
@@ -154,11 +154,12 @@ export async function saveTurn(store: Store, state: GameState, record: TurnRecor
       stableStringify(stored) !== stableStringify(meta) ? store.set(story(id), meta) : undefined,
     ]);
     await store.set(headPath(id), head);
-    return head;
+    return { head, prev };
   });
   await guard(async () => {
-    await cleanup(store, id, head);
-    if (record.turn > 0 && record.turn % CONFIG.BACKUP_EVERY === 0) await writeBackup(store, id, head, pages);
+    const backupTurn = record.turn % CONFIG.BACKUP_EVERY === 0;
+    await cleanup(store, id, head, backupTurn ? undefined : prev);
+    if (record.turn > 0 && backupTurn) await writeBackup(store, id, head, pages);
   }, true);
   return head;
 }
@@ -172,11 +173,18 @@ function checkHeadSize(state: GameState, head: Head, prev: Head | null): void {
   if (bytes >= warn && (!prev || byteLength(prev) < warn)) state.log.push({ turn: head.turn, code: 'head_large', detail: { bytes, pages: Object.keys(head.pages).length } });
 }
 
-/** Save step 6: drop page versions no bookmark points to, and turn records older than the last N. */
-async function cleanup(store: Store, id: string, head: Head): Promise<void> {
-  const keep = new Set([head, head.undo, head.safety].filter((b): b is Bookmark => !!b).flatMap((b) => Object.entries(b.pages).map(([k, r]) => pagePath(id, k, r.version))));
-  const [pages, turns] = await Promise.all([store.list(`${story(id)}/pages`), store.list(`${story(id)}/turns`)]);
-  await Promise.all([...pages.filter((p) => !keep.has(p)), ...turns.filter((p) => +tail(p) <= head.turn - CONFIG.TURN_RECORDS_KEPT)].map((p) => store.delete(p)));
+/** Save step 6: drop page versions no bookmark points to, and turn records older than the last N. An ordinary turn
+ * works them out from `prev`, the head it replaced: the versions only its bookmarks held, and the one record that just
+ * fell out of the last N. With no `prev` it lists both collections and sweeps them, which also takes what a failed
+ * write left behind (BACKUP_EVERY turns, undo, restore). */
+async function cleanup(store: Store, id: string, head: Head, prev?: Head | null): Promise<void> {
+  const paths = (h: Head | null) => liveOf(h).flatMap((b) => Object.entries(b.pages).map(([k, r]) => pagePath(id, k, r.version)));
+  const keep = new Set(paths(head));
+  const old = head.turn - CONFIG.TURN_RECORDS_KEPT;
+  const [pages, turns] = prev === undefined
+    ? await Promise.all([store.list(`${story(id)}/pages`), store.list(`${story(id)}/turns`)])
+    : [[...new Set(paths(prev))], old >= 0 ? [turnPath(id, old)] : []];
+  await Promise.all([...pages.filter((p) => !keep.has(p)), ...turns.filter((p) => +tail(p) <= old)].map((p) => store.delete(p)));
 }
 
 /** CS12: a change made between turns (a perk taken or undone, a quest abandoned or pinned) saved at once. The saved head's
