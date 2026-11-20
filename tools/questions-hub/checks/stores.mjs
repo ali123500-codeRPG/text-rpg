@@ -48,12 +48,12 @@ import { execFileSync } from 'child_process';
 const runOutbox = new Function(cut('async function runOutbox(') + '; return runOutbox;')();
 const made = JSON.parse(execFileSync('python3', ['-I', '-c', `
 import sys, json, tempfile; sys.path.insert(0, 'tools/questions-hub'); from hubdb import *
-out = tempfile.mkdtemp(); old = ['outbox/20200101T000000Z-aaaaaa.sql', 'outbox/20200102T000000Z-bbbbbb.sql', 'kit/x.woff2']
+out = tempfile.mkdtemp(); old = ['outbox/20200101T000000Z-aaaaaa.json', 'outbox/20200102T000000Z-bbbbbb.json', 'outbox.json', 'kit/x.woff2']
 a = outbox(mark('pg', 1, {'Q1': (1, {'done': "a. it's done", 'reask': None})}, out), out, old)
 b = outbox(mark('pg', 1, {'Q2': (1, {'done': 'boom'})}, out), out, old + [a[1][0]['as']])
 print(json.dumps([a, b]))`]).toString());
 const [[idA, filesA], [idB, filesB]] = made, served = Object.fromEntries([...filesA, ...filesB].map((f) => [f.as, fs.readFileSync(f.path, 'utf8')]));
-served['outbox/20200102T000000Z-bbbbbb.sql'] = 'begin;\ndrop table hub_docs;\ncommit;';
+served['outbox/20200102T000000Z-bbbbbb.json'] = JSON.stringify('begin;\ndrop table hub_docs;\ncommit;');
 const get = async (f) => (f in served ? { ok: true, status: 200, json: async () => JSON.parse(served[f]), text: async () => served[f] } : { ok: false, status: 404 });
 const T = {}, sent = [];
 const sdb = { has: async (p) => p in T, insertNew: async (rows) => { for (const [p, v] of rows) if (!(p in T)) T[p] = v; },
@@ -64,10 +64,10 @@ const sdb = { has: async (p) => p in T, insertNew: async (rows) => { for (const 
       next[p] = l; }
     Object.assign(T, next); return '[]'; } };
 globalThis.document = { createElement: () => ({}), body: { append() {} } };
-assert.deepStrictEqual(JSON.parse(served['outbox/index.json']), ['20200101T000000Z-aaaaaa', '20200102T000000Z-bbbbbb', idA, idB]); // in time order
+assert.deepStrictEqual(JSON.parse(served['outbox.json']), ['20200101T000000Z-aaaaaa', '20200102T000000Z-bbbbbb', idA, idB]); // in time order
 assert.strictEqual(await runOutbox(sdb, get), 1);
 assert.ok(T['outbox/' + idA] && /'qs\/pg\/items\/Q1'.*it''s done.*- array\['reask'\]/.test(T['qs/pg/items/Q1']) && T['pages/pg']); // A written, marker included
-assert.match(T['outbox/20200101T000000Z-aaaaaa'].error, /no file outbox\/20200101T000000Z-aaaaaa\.sql \(404\)/);
+assert.match(T['outbox/20200101T000000Z-aaaaaa'].error, /no file outbox\/20200101T000000Z-aaaaaa\.json \(404\)/);
 assert.strictEqual(T['outbox/20200102T000000Z-bbbbbb'].error, 'not a file from hubdb.outbox()');           // never sent
 assert.strictEqual(T['outbox/' + idB].error, 'ERROR: 22P02: boom'); assert.ok(!('qs/pg/items/Q2' in T));  // rolled back, reason kept
 assert.strictEqual(sent.length, 2);

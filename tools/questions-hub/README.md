@@ -122,8 +122,9 @@ options side by side, a layout or a flow.
 
 ## Writing to the hub (Claude threads)
 
-Run from the repo root. Each function writes its documents as files under the folder you give it (`OUT` below: any
-scratch folder outside the repo) and returns the list for one database batch call (at most 50 writes; `chunks()`
+Run from the repo root. Each function writes its documents as files under the folder you give it (`OUT` below: a
+scratch folder outside the repo but inside your working folder, such as `/home/claude/hubout`: `publish_files`
+attaches nothing from `/tmp`) and returns the list for one database batch call (at most 50 writes; `chunks()`
 splits longer lists). "ArtifactData" in the helpers' comments is the Claude tool that reads and writes an
 artifact's database; the batch call is made with it.
 
@@ -132,7 +133,8 @@ never passes through the conversation. The Supabase connector's `execute_sql` ta
 `publish_files` is the one tool that sends a file by its path.
 
 1. `oid, files = outbox(w, OUT, listed)`: `listed` is the paths `list_files` gives for your hub page. It writes
-   `outbox/<oid>.sql` (`sql(w)` plus a once-only marker) and `outbox/index.json`.
+   `outbox/<oid>.json` (`sql(w)` plus a once-only marker, as one JSON string: an artifact does not serve `.sql`) and
+   the index `outbox.json`.
 2. Publish `files` to your hub page with `publish_files`, mode patch, `base_version` from `list_files`. A conflict
    means another thread published: list again and rerun step 1.
 3. Give the owner the hub link. When the page opens, it runs each new outbox file once through the viewer's Supabase
@@ -166,7 +168,7 @@ q1 = q('XY1', 'ask', 'Question', 'Short title', [
 header = dict(title='Page title', intro=['Plain text paragraph.'],
               K={'ask': {'name': 'Question', 'meaning': 'needs an answer', 'k': 'var(--accent)'}},
               rules={'title': 'Answers, ready to paste', 'intro': '', 'lead': ''})
-listed = ['kit/night-sky.webp', 'outbox/20261120T080319109323Z-3d3982.sql']   # from list_files on your hub page
+listed = ['kit/night-sky.webp', 'outbox.json', 'outbox/20261120T080742743464Z-bd2066.json']   # from list_files on your hub page
 oid, files = outbox(new_page('page-name', header['title'], header, [('r1', 'Round 1', 'what it asks', [q1])], OUT, desk='main'), OUT, listed)
 print(oid, json.dumps(files))   # publish_files(slug=<your hub>, base_version=..., mode='patch', files=files)
 ```
