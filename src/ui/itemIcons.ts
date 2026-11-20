@@ -13,7 +13,7 @@ import { instanceItem } from '../views';
 
 export const ICONS = ICON_ART;
 /** IC5: the credit the icons' licence asks for, shown on the GM page */
-export const ICON_CREDIT = 'Icon credits: game-icons.net by Lorc, Delapouite and contributors (CC BY 3.0); Fluent Emoji High Contrast by Microsoft (MIT).';
+export const ICON_CREDIT = 'Icon credits: game-icons.net by Lorc, Delapouite and contributors (CC BY 3.0); Fluent Emoji High Contrast by Microsoft (MIT); Material Symbols by Google (Apache-2.0).';
 export type { IconName };
 
 /** a library item's own drawing; items not listed fall back on their kind (BY_KIND) */
