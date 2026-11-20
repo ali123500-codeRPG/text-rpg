@@ -48,8 +48,7 @@ project: "the owner" below is its designer and its only player.
    or other user data; facts about the owner (name, email, quotes, devices); or anything whose licence forbids
    redistribution, such as licensed sounds and text copied from novels or wikis. New files say "the owner". Older
    files that already name the owner are left as they are, and new lines in the spec (`docs/spec/`) and
-   `docs/bug-fix-log.md` keep the form those files use (first name, date, question ID). Test fixtures made by the
-   repo's own scripts (`tests/replay/runs`, `tests/soak/worlds`) are not user data.
+   `docs/bug-fix-log.md` keep the form those files use (first name, date, question ID).
 10. **Questions go where the owner answers them.** One question at a time or a numbered list, each with options and a
     recommendation, through the channel your provider file names. Never bury a question in a progress message, and
     never act on an answer the owner did not give.
@@ -97,8 +96,7 @@ is fixed in your PR and named there; if you cannot tell which side is right, it 
   `tests/soak`, and every test file run isolated).
 - `CHANGELOG.md`: dated changes to rules and skills only.
 - `src/config.ts`: every balancing setting, gathered from its parts in `src/config/`, one per system. `src/library/`: game data. `tests/harness/`: test helpers.
-- `tests/`: `unit` and `cases` (scenario tests), `smoke` (browser), `replay` (recorded playtest answers played
-  through today's code), `soak` (long world runs: small in every check run, large nightly), `parser-eval` (needs a
+- `tests/`: `unit` and `cases` (scenario tests), `smoke` (browser), `soak` (long world runs: small in every check run, large nightly), `parser-eval` (needs a
   real model).
 
 Links to `claude.ai/artifact/...` in these files open only for the owner.

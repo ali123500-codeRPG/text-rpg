@@ -16,8 +16,6 @@ redistribution is ever committed to this public repo.
   owner before reusing it anywhere else.
 - **Background image**, `src/ui/assets/night-sky.webp`. No licence note is recorded for it either.
 - **Licences of adapted skills**, beside each skill in `.agents/skills/`.
-- **Test recordings**, `tests/replay/runs/*.json.gz` and `tests/soak/worlds/*.json`. Made by the repo's own scripts
-  from playtests of test characters; they hold no save of the owner's.
 
 The Questions hub page uses the same font and image files, published with the page under `kit/`.
 

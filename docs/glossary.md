@@ -96,8 +96,7 @@ Which model each uses is in `CONFIG.AGENT_MODELS`. None of them decides a number
   or the checks fail. **Guard test**: a test that bans an old pattern after a change of meaning. **Whole-turn
   test**: one full turn through the game with stand-in agents, for a change to a view, an agent call or narration.
   All three are asked for by the PR template; spec, "TQ5".
-- **Replay set**: recorded agent answers from playtests, played again through today's code (`tests/replay`).
-  **Soak**: long runs on saved test worlds (`tests/soak`). **Parser test set**: real-model checks of the Parser
+- **Soak**: long random runs on the test village (`tests/soak`). **Parser test set**: real-model checks of the Parser
   (`tests/parser-eval`).
 - **The hub**: the owner's Questions hub. `tools/questions-hub/README.md`.
 - **Decision card**: a one-question prompt with options, in the Claude app.
