@@ -1,20 +1,17 @@
 // Run the tests nearest a change, before the full `npm test` that every PR's checks still run. Run with
-// `npm run test:near -- [system key | path ...] [--deep] [--list] [--smoke]`:
+// `npm run test:near -- [system key | path ...] [--list] [--smoke]`:
 //   (nothing)       the files changed since the branch left origin/main, committed or not
 //   gear, senses    every code file docs/systems.md lists under that system
 //   src/x.ts        that file
-// Quick (the default) runs the tests that import the changed file itself, or import one of its names through a barrel
+// It runs the tests that import the changed file itself, or import one of its names through a barrel
 // (index.ts); for a config part (src/config/x.ts), the tests that name one of its settings; and every test that names
 // the path (a doc a test reads, or a file list in a script it imports, as scripts/imports.ts lists resolve.ts) or, for
 // changed src lines, selects an element by a quoted word on them (`[data-kind="search"]`). It always adds the
 // structural guards, the tests that check code as text (one import per line, no stamps, every file placed …), which a
-// change can break without being imported by them. The tests that reach the change only indirectly are counted and
-// left to the PR's checks.
-// --deep (for refactors and risky changes) also follows a file in the same folder that imports it (src/save/index.ts
-// for src/save/checks.ts) and the folder's entry beside it (src/config.ts for src/config/*), and runs the whole suite
-// for a change to the build or test set-up (package.json, tsconfig, vitest configs, the setup file) or to a src file
-// nothing imports and no browser test names; quick warns about those instead. The whole import graph is never
-// followed: nearly every test reaches every file through tests/harness and the engine.
+// change can break without being imported by them. Tests that reach the change only indirectly (through another file
+// that imports it) are left to the PR's checks, which run the whole suite. A change to the build or test set-up
+// (package.json, tsconfig, vitest configs, the setup file), or to a src file nothing imports and no browser test names,
+// gets a warning to run `npm test`.
 // A changed file no test reaches is named in a warning. Browser tests that reach the change are listed, and run with
 // --smoke. It ends PASSED, FAILED, NOTHING TESTED (exit 3) or could not pick tests (exit 2). Plain-syntax TypeScript so
 // Node 22 runs it; tests/unit/systems-map.test.ts checks it.
@@ -107,24 +104,11 @@ export function ownExports(text: string): string[] {
   return [...new Set([...decl, ...listed.filter(Boolean)])];
 }
 
-/** The files that carry a change to `target` to a test, each with the names that do (null: all of them): the target;
- *  the files in its folder that import it (their own code may call it) and the folder's entry file beside it; and barrels
- *  (index.ts, or any file that re-exports, as data.ts re-exports ITEMS) that re-export a name of one of those, through
+/** The files that carry a change to `target` to a test, each with the names that do (null: all of them): the target,
+ *  and barrels (index.ts, or any file that re-exports, as data.ts re-exports ITEMS) that re-export a name of it, through
  *  any chain of them. */
-/** how many files deep --deep follows importers within the changed file's folder: two, so a library part reaches its
- *  tests through data.ts and then src/library/index.ts, as a change to data.ts itself did before the split */
-const HOPS = 2;
-
-export function reach(target: string, graph: Map<string, Edge[]>, read: (f: string) => string, deep = true): Map<string, Set<string> | null> {
+export function reach(target: string, graph: Map<string, Edge[]>, read: (f: string) => string): Map<string, Set<string> | null> {
   const R = new Map<string, Set<string> | null>([[target, null]]);
-  // deep only: its folder's files, and the folder's entry beside it (src/config.ts gathers src/config/*.ts)
-  const home = (f: string) => dirname(f) === dirname(target) || f === `${dirname(target)}.ts`;
-  // a file that imports it, then a file that imports that one … within the folder, HOPS deep
-  let edge = [target];
-  for (let hop = 0; deep && hop < HOPS && edge.length; hop++) {
-    edge = [...graph].filter(([f, es]) => !R.has(f) && home(f) && es.some((e) => e.file && edge.includes(e.file) && !e.reexport)).map(([f]) => f);
-    for (const f of edge) R.set(f, null);
-  }
   for (let grew = true; grew; ) {
     grew = false;
     for (const [f, es] of graph) {
@@ -165,16 +149,15 @@ export function testFiles(dir = 'tests', end = '.test.ts'): string[] {
     .map((f: string) => join(dir, f).split('\\').join('/'));
 }
 
-/** the tests near the changed or named paths. `graph` (file → its edges) adds the tests an import chain reaches. */
 /** the setting names a config part defines (`  STAMINA_BASE: 50,`), so a test that names one is near the part */
 export function settingKeys(text: string): string[] {
   return [...text.matchAll(/^ {2}([A-Z][A-Z0-9_]+):/gm)].map((m) => m[1]);
 }
 
-/** the tests near the changed or named paths. `graph` (file → its edges) adds the tests an import chain reaches; quick
- *  (deep false) follows only imports of the file itself and barrels that re-export its names. */
-export function pick(paths: string[], tests: string[], read: (f: string) => string, words: string[] = [], graph?: Map<string, Edge[]>, deep = true, ids: string[] = []): string[] {
-  const reachOf = graph ? paths.filter((p) => graph.has(p)).map((p) => reach(p, graph, read, deep)) : [];
+/** the tests near the changed or named paths. `graph` (file → its edges) adds the tests that import the file itself or
+ *  a barrel that re-exports its names. */
+export function pick(paths: string[], tests: string[], read: (f: string) => string, words: string[] = [], graph?: Map<string, Edge[]>, ids: string[] = []): string[] {
+  const reachOf = graph ? paths.filter((p) => graph.has(p)).map((p) => reach(p, graph, read)) : [];
   // a script a test imports may name the files it checks (scripts/imports.ts lists resolve.ts and data.ts)
   const scriptsOf = (t: string) => (graph?.get(t) ?? []).filter((e) => e.file?.startsWith('scripts/')).map((e) => e.file!);
   // a config part is read as CONFIG.KEY, so a test that names one of its settings is near it
@@ -231,7 +214,6 @@ function main(args: string[]): number {
   const smokeFiles = testFiles('tests/smoke', '.smoke.ts');
   const coveredBySmoke = (p: string) => smokeFiles.filter((t) => nearPrefixes(read(t)).some((pre) => p.startsWith(pre)));
   const smoke = smokeFiles.filter((t) => pick(paths, [t], read, words, graph).length || paths.some((p) => coveredBySmoke(p).includes(t)));
-  const deep = args.includes('--deep');
   const all = testFiles();
   const code = paths.some((p) => /^(src|tests|scripts)\//.test(p));
   const guard = code ? guards(all, read, graph) : [];
@@ -240,36 +222,26 @@ function main(args: string[]): number {
   const unseen = paths.filter((p) => p.startsWith('src/') && p.endsWith('.ts') && !p.endsWith('.d.ts') && existsSync(p) && !imported.has(p) && !coveredBySmoke(p).length);
   if (whole.length || unseen.length) {
     const why = whole.length ? `${whole.join(', ')} change${whole.length > 1 ? '' : 's'} how every test runs` : `nothing imports ${unseen.join(', ')}, so its tests cannot be traced`;
-    if (deep) {
-      console.log(`test:near: running the whole suite: ${why}.`);
-      if (list) return 0;
-      return run([['vitest.shared.config.ts', []], ['vitest.mocked.config.ts', []]], 'the whole suite', smoke, args.includes('--smoke'));
-    }
-    console.warn(`test:near: WARNING: ${why}. The whole suite is left to the PR's checks; run it here with --deep or \`npm test\`.`);
+    console.warn(`test:near: WARNING: ${why}. The whole suite is left to the PR's checks; run it here with \`npm test\`.`);
   }
-  const deepTests = pick(paths, all, read, words, graph, true, ids);
-  const near = deep ? deepTests : pick(paths, all, read, words, graph, false, ids);
+  const near = pick(paths, all, read, words, graph, ids);
   const tests = [...new Set([...near, ...guard])].sort();
-  const deferred = deepTests.filter((t) => !tests.includes(t));
-  console.log(`${tests.length} test files for ${paths.length} changed or named files (${deep ? 'deep' : 'quick'}: ${near.length} near, ${tests.length - near.length} more structural guards).`);
-  if (deferred.length) console.log(`Deferred to the PR's checks: ${deferred.length} test files that reach the change only indirectly. Run them here with --deep.`);
+  console.log(`${tests.length} test files for ${paths.length} changed or named files (${near.length} near, ${tests.length - near.length} more structural guards).`);
   // a changed code file that no test reaches is named, even when other files of the change are tested
   for (const p of paths.filter((x) => /^src\/.*\.(ts|css)$/.test(x) && !x.endsWith('.d.ts'))) {
-    if (pick([p], near, read, words, graph, deep, ids).length) continue;
-    const later = pick([p], deferred, read, words, graph, true).length;
+    if (pick([p], near, read, words, graph, ids).length) continue;
     const browser = smoke.filter((t) => pick([p], [t], read, words, graph).length || coveredBySmoke(p).includes(t));
-    console.warn(`test:near: WARNING: no ${deep ? '' : 'direct '}unit or scenario test reaches ${p}${later ? `; ${later} indirect ones are deferred (--deep)` : ''}${browser.length ? `; browser tests: ${browser.join(' ')}` : later ? '' : '; add one, or run `npm test`'}.`);
+    console.warn(`test:near: WARNING: no unit or scenario test imports ${p}${browser.length ? `; browser tests: ${browser.join(' ')}` : '; run `npm test`, or add one'}.`);
   }
   if (!near.length && !list) {
     // a run that tested nothing near the change must not read as a pass: exit 3, so `npm run test:near && git push` stops
-    console.error(`test:near: NOTHING TESTED near the change. No test ${deep ? 'reaches' : 'imports or names'} what you changed${deferred.length ? ' (try --deep)' : ''}. Run the tests you expect by path, or \`npm test\`.`);
+    console.error('test:near: NOTHING TESTED near the change. No test imports or names what you changed. Run the tests you expect by path, or `npm test`.');
     if (smoke.length) console.error(`Only browser tests reach it: npm run test:near -- --smoke, or npm run smoke -- ${smoke.join(' ')}`);
     return 3;
   }
   if (smoke.length && !args.includes('--smoke')) console.log(`Browser tests that reach what you changed: ${smoke.join(' ')}. Run them with --smoke, or leave them to the PR's checks.`);
   if (list) {
     console.log(tests.join('\n'));
-    if (deferred.length) console.log(`deferred:\n${deferred.join('\n')}`);
     return 0;
   }
   // the vi.mock files need their own fresh module load, as in npm test
@@ -277,13 +249,12 @@ function main(args: string[]): number {
   return run([
     ['vitest.shared.config.ts', tests.filter((t) => !mocked.includes(t))],
     ['vitest.mocked.config.ts', tests.filter((t) => mocked.includes(t))],
-  ], `${tests.length} test files (${deep ? 'deep' : 'quick'})${deferred.length ? `; ${deferred.length} deferred to the PR's checks` : ''}`, smoke, args.includes('--smoke'));
+  ], `${tests.length} test files`, smoke, args.includes('--smoke'));
 }
 
-/** vitest per config ([] = every file it includes), then the browser tests when asked */
+/** vitest per config, for the files picked, then the browser tests when asked */
 function run(runs: [string, string[]][], what: string, smoke: string[], withSmoke: boolean): number {
-  const all = runs.every(([, files]) => !files.length);
-  const steps: [string, string[]][] = [...runs.filter(([, files]) => all || files.length), ...(withSmoke && smoke.length ? [['vitest.smoke.config.ts', smoke] as [string, string[]]] : [])];
+  const steps: [string, string[]][] = [...runs.filter(([, files]) => files.length), ...(withSmoke && smoke.length ? [['vitest.smoke.config.ts', smoke] as [string, string[]]] : [])];
   for (const [config, files] of steps) {
     const r = spawnSync('npx', ['vitest', 'run', '--config', config, ...files], { stdio: 'inherit' });
     if (r.status !== 0) {
