@@ -25,7 +25,8 @@ model while it runs, and for that it is published as a private page from the own
 
 - [AGENTS.md](AGENTS.md): the entry point for agents. The rules that must never be broken, and a map of the repo.
 - [docs/instructions.md](docs/instructions.md): the full working rules.
-- [docs/build-spec.md](docs/build-spec.md): the design record. Large; read it by section.
+- [docs/build-spec.md](docs/build-spec.md): the design record, an index of one file per topic in `docs/spec/`.
+- [docs/systems.md](docs/systems.md): each game system's spec topics, history, code and tests.
 - [docs/glossary.md](docs/glossary.md): IDs, names and abbreviations.
 - [docs/memory/README.md](docs/memory/README.md): the owner's decisions and agents' checked notes, by topic.
 - [docs/skills.md](docs/skills.md): the skills agents use here.

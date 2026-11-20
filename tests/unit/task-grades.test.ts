@@ -5,6 +5,7 @@ import { CONFIG } from '../../src/config';
 import { GRADES } from '../../src/types';
 import { GRADE_LEVELS, WEAVER_GRADE_TOP } from '../../src/scales';
 import { gradeMod } from '../../src/engine/resolve';
+import { readSpec } from '../harness/specDocs';
 
 describe('task grades (CR4, CR12)', () => {
   it('DIFFICULTY climbs past extreme to the supernatural rows, in order', () => {
@@ -14,7 +15,7 @@ describe('task grades (CR4, CR12)', () => {
     expect(GRADE_LEVELS.keys.slice(GRADES.length)).toEqual(['mortal_limit', 'beyond', 'mythic', 'transcendent', 'divine']);
   });
   it('every build-spec line that lists the grades past extreme gives the numbers in DIFFICULTY (Divine 300 was left in Layer 2 after PR #792)', () => {
-    const spec = readFileSync('docs/build-spec.md', 'utf8') as string;
+    const spec = readSpec();
     const lines = spec.split('\n').filter((l) => /mortal limit \d+/i.test(l));
     expect(lines.length).toBeGreaterThan(0);
     for (const k of GRADE_LEVELS.keys.slice(GRADES.length)) {

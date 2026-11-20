@@ -6,23 +6,26 @@ others, so a system cuts across folders: this map is how to find it.
 
 How to use it for a task:
 
-1. Find the system below; `npm run spec -- --file docs/systems.md gear` prints just one. Read its spec sections with
-   `npm run spec -- "<heading>"`, or find where a term or file is ruled with `npm run spec -- --grep <text>`. Look up
-   an ID with `npm run spec -- BG-12` (also D-n, OQ-n).
+1. Find the system below; `npm run spec -- --file docs/systems.md gear` prints just one. Open its spec topic files
+   (the Spec line), or find where a term or file is ruled with `npm run spec -- --grep <text>`. Look up an ID with
+   `npm run spec -- BG-12` (also D-n, OQ-n, MAP-n).
 2. Read its history files only for why a rule is the way it is.
 3. While working, run its nearest tests: `npm run test:near` (the files you changed) or `npm run test:near -- <key>`.
    Then run the full checks before pushing: `npm run typecheck`, `npm test`, `npm run build`.
 
 A new source file goes on a system's Code list in the same PR (`tests/unit/systems-map.test.ts` fails until it
-does). A file that serves two systems is listed under both. The Spec line names headings as `npm run spec` matches
-them; the test checks each one still exists.
+does). A file that serves two systems is listed under both. The test also checks that every Spec and History link
+still resolves.
 
 ## foundations: shared ground every system uses
 
 Config (every balancing number), ordered scales, typed IDs, the random roller, shared types, the library loader and its
 one big data file, word helpers.
 
-- Spec: "1. How to read this spec", "2. Core principle", "Game state model", "9. Types", "Appendix: library rows"
+- Spec: [how-to-read-this-spec.md](spec/part-1-rules/how-to-read-this-spec.md),
+  [core-principle.md](spec/part-1-rules/core-principle.md),
+  [game-state-model.md](spec/part-2-turn-engine/game-state-model.md), [types.md](spec/part-4-save/types.md),
+  [library-rows.md](spec/library-rows.md)
 - History: [process-decisions.md](memory/process-decisions.md), [working-notes-code.md](memory/working-notes-code.md)
 - Code:
   - `src/config.ts`
@@ -47,8 +50,14 @@ one big data file, word helpers.
 One turn from submitted intent to resolved events: the action dispatcher, effects, encounter modes, the order queue, the
 turn checker, and what happened in a scenario.
 
-- Spec: "Role, goal and hard rules", "Architecture: one turn", "Action economy", "Resolution engine", "Encounter modes",
-  "Turn checker", "Engine details (CS5, CS7)", "Case tests"
+- Spec: [role-goal-and-hard-rules.md](spec/part-2-turn-engine/role-goal-and-hard-rules.md),
+  [architecture-one-turn.md](spec/part-2-turn-engine/architecture-one-turn.md),
+  [action-economy.md](spec/part-2-turn-engine/action-economy.md),
+  [resolution-engine.md](spec/part-2-turn-engine/resolution-engine.md),
+  [encounter-modes.md](spec/part-2-turn-engine/encounter-modes.md),
+  [turn-checker.md](spec/part-2-turn-engine/turn-checker.md),
+  [engine-details-cs5-cs7.md](spec/part-2-turn-engine/engine-details-cs5-cs7.md),
+  [case-tests.md](spec/part-2-turn-engine/case-tests.md)
 - History: [history-code-checks-and-testing.md](memory/history-code-checks-and-testing.md),
   [working-notes-testing.md](memory/working-notes-testing.md)
 - Code:
@@ -68,7 +77,7 @@ turn checker, and what happened in a scenario.
 
 The game clock, how long each action takes, waiting and busy actors, sleep timing.
 
-- Spec: "Action time", "Game clock"
+- Spec: [action-time.md](spec/part-2-turn-engine/action-time.md), [game-clock.md](spec/part-2-turn-engine/game-clock.md)
 - History: [history-clock-and-action-time.md](memory/history-clock-and-action-time.md)
 - Code:
   - `src/engine/busy.ts`
@@ -83,7 +92,10 @@ The game clock, how long each action takes, waiting and busy actors, sleep timin
 
 Attacks and defences, the hit table, engagement, stance, feints, initiative, sparring, chases, combat rating.
 
-- Spec: "4. Resolution", "Building the hit table", "Defense", "Damage flow and the roll packet"
+- Spec: [resolution.md](spec/part-1-rules/resolution.md),
+  [building-the-hit-table.md](spec/part-3-health/building-the-hit-table.md),
+  [defense.md](spec/part-3-health/defense.md),
+  [damage-flow-and-the-roll-packet.md](spec/part-3-health/damage-flow-and-the-roll-packet.md)
 - History: [history-stance-and-fights.md](memory/history-stance-and-fights.md),
   [history-defense-and-gear.md](memory/history-defense-and-gear.md)
 - Code:
@@ -105,7 +117,7 @@ Attacks and defences, the hit table, engagement, stance, feints, initiative, spa
 
 HP, the health track, body parts and wounds, healing, body types, races, size and age, the 3D figure.
 
-- Spec: "Part 3 — HP system", "Body type database"
+- Spec: [part-3-health/](spec/part-3-health/), [body-type-database.md](spec/part-3-health/body-type-database.md)
 - History: [history-bodies-size-and-age.md](memory/history-bodies-size-and-age.md)
 - Code:
   - `src/engine/heal.ts`
@@ -123,7 +135,8 @@ HP, the health track, body parts and wounds, healing, body types, races, size an
 Items and their data, inventory, slots and grips, weapons, armor and shields, containers, loot, value and quality,
 breaking things, Threadbound items.
 
-- Spec: "Part 5 — Gear", "Weapons, armor and shields"
+- Spec: [part-5-gear/](spec/part-5-gear/),
+  [weapons-armor-and-shields.md](spec/part-3-health/weapons-armor-and-shields.md)
 - History: [history-defense-and-gear.md](memory/history-defense-and-gear.md),
   [history-items-and-loot.md](memory/history-items-and-loot.md)
 - Code:
@@ -152,7 +165,8 @@ breaking things, Threadbound items.
 Skills and trees, access, functions, marks and skill gain, growth, XP and levels, ratings and power, classes and Starts,
 character creation rules.
 
-- Spec: "3. Character model", "5. Progression", "6. Skill improvement algorithm"
+- Spec: [character-model.md](spec/part-1-rules/character-model.md), [progression.md](spec/part-1-rules/progression.md),
+  [skill-improvement-algorithm.md](spec/part-1-rules/skill-improvement-algorithm.md)
 - History: [history-xp-and-ratings.md](memory/history-xp-and-ratings.md),
   [history-growth-and-skill-gain.md](memory/history-growth-and-skill-gain.md),
   [history-skill-trees.md](memory/history-skill-trees.md),
@@ -184,7 +198,7 @@ character creation rules.
 Perk rows and ladders, perk moves, links, stacking, boost perks, the generated perks doc (docs/perks.md: edit its
 source, then `npm run perks-doc`).
 
-- Spec: "5. Progression"
+- Spec: [progression.md](spec/part-1-rules/progression.md)
 - History: [history-perk-system.md](memory/history-perk-system.md),
   [history-perk-rounds.md](memory/history-perk-rounds.md), [history-all-x-perks.md](memory/history-all-x-perks.md),
   [perk-design.md](memory/perk-design.md)
@@ -211,7 +225,7 @@ source, then `npm run perks-doc`).
 Essence rows, template lists, the appearance and quality rolls, slots, offers and removal. The rules are the
 **Essences** item under "6. Skill improvement algorithm".
 
-- Spec: "6. Skill improvement algorithm"
+- Spec: [skill-improvement-algorithm.md](spec/part-1-rules/skill-improvement-algorithm.md)
 - History: [history-essences.md](memory/history-essences.md)
 - Code:
   - `src/engine/essence.ts`
@@ -223,7 +237,7 @@ Essence rows, template lists, the appearance and quality rolls, slots, offers an
 
 Achievement chains, the grant check, rewards, scars, the report card, banes.
 
-- Spec: "5. Progression"
+- Spec: [progression.md](spec/part-1-rules/progression.md)
 - History: [history-achievements.md](memory/history-achievements.md),
   [history-achievement-rounds.md](memory/history-achievement-rounds.md),
   [achievement-design.md](memory/achievement-design.md)
@@ -240,7 +254,7 @@ Achievement chains, the grant check, rewards, scars, the report card, banes.
 
 The morale bar, nerve, fear and yielding, auras and Battle Cry, steadying, fatigue, stamina and sleep debt.
 
-- Spec: "Health track"
+- Spec: [chosen-design-health-track-body-parts.md](spec/part-3-health/chosen-design-health-track-body-parts.md)
 - History: [history-morale-and-yield.md](memory/history-morale-and-yield.md),
   [history-fatigue-and-stamina.md](memory/history-fatigue-and-stamina.md)
 - Code:
@@ -259,7 +273,8 @@ The morale bar, nerve, fear and yielding, auras and Battle Cry, steadying, fatig
 Sight and hearing in metres, noise, making out, stealth, searching, alarms, suspicion, secrets, hunches, trails,
 filching.
 
-- Spec: "Explore mode", "Information model"
+- Spec: [explore-mode.md](spec/part-2-turn-engine/explore-mode.md),
+  [information-model.md](spec/part-2-turn-engine/information-model.md)
 - History: [history-senses-and-search.md](memory/history-senses-and-search.md),
   [history-stealth-and-theft.md](memory/history-stealth-and-theft.md)
 - Code:
@@ -282,7 +297,7 @@ filching.
 
 Speech rolls, offers and standing down, trade and paying, relations, personality, gods, blessings.
 
-- Spec: "Dialogue turn", "Dialogue input"
+- Spec: [architecture-one-turn.md](spec/part-2-turn-engine/architecture-one-turn.md)
 - History: [history-speech-and-trade.md](memory/history-speech-and-trade.md),
   [history-personality-and-uniques.md](memory/history-personality-and-uniques.md)
 - Code:
@@ -303,7 +318,8 @@ Speech rolls, offers and standing down, trade and paying, relations, personality
 Positions in real metres, floor plans and their drawing, walls, doors and barriers, cover, light, paths, heights,
 furniture, ground items; the Map and minimap screens (see the `rpg-map` skill).
 
-- Spec: "Reach, range, cover and light", "Game state model"
+- Spec: [reach-range-cover-and-light.md](spec/part-3-health/reach-range-cover-and-light.md),
+  [game-state-model.md](spec/part-2-turn-engine/game-state-model.md)
 - History: [history-positions-land-titles.md](memory/history-positions-land-titles.md),
   [history-doors-cover-walls-map.md](memory/history-doors-cover-walls-map.md)
 - Code:
@@ -339,7 +355,10 @@ furniture, ground items; the Map and minimap screens (see the `rpg-map` skill).
 
 Land generation, regions and ways, roads and travel, the people of the world, world lore.
 
-- Spec: "Land and regions", "Travel", "World, tone and the power ladder", "Agent World builder"
+- Spec: [land-and-regions.md](spec/part-2-turn-engine/land-and-regions.md),
+  [travel.md](spec/part-2-turn-engine/travel.md),
+  [world-tone-and-the-power-ladder.md](spec/part-2-turn-engine/world-tone-and-the-power-ladder.md),
+  [agent-world-builder.md](spec/part-2-turn-engine/agent-world-builder.md)
 - History: [history-roads-travel-worlds.md](memory/history-roads-travel-worlds.md),
   [lore-canon.md](memory/lore-canon.md)
 - Code:
@@ -357,7 +376,11 @@ Land generation, regions and ways, roads and travel, the people of the world, wo
 
 The scenario director, stages and triggers, quests, scenario setup and validation, the scenario end and its gains.
 
-- Spec: "Scenarios", "Scenario setup", "Stage extension", "Agent Weaver", "Opening narration"
+- Spec: [scenarios.md](spec/part-2-turn-engine/scenarios.md),
+  [scenario-setup.md](spec/part-2-turn-engine/scenario-setup.md),
+  [stage-extension.md](spec/part-2-turn-engine/stage-extension.md),
+  [agent-weaver.md](spec/part-2-turn-engine/agent-weaver.md),
+  [opening-narration.md](spec/part-2-turn-engine/opening-narration.md)
 - History: [history-scenarios-and-quests.md](memory/history-scenarios-and-quests.md)
 - Code:
   - `src/engine/quests.ts`
@@ -377,7 +400,9 @@ The scenario director, stages and triggers, quests, scenario setup and validatio
 
 NPC minds, routines and goals, memory, templates and spawning, uniques and echoes, NPC perk moves, fight rules.
 
-- Spec: "Who thinks for each actor", "Goal-driven uniques", "Routines"
+- Spec: [who-thinks-for-each-actor.md](spec/part-2-turn-engine/who-thinks-for-each-actor.md),
+  [goal-driven-uniques.md](spec/part-2-turn-engine/goal-driven-uniques.md),
+  [explore-mode.md](spec/part-2-turn-engine/explore-mode.md)
 - History: [history-npc-generation-and-roles.md](memory/history-npc-generation-and-roles.md),
   [history-personality-and-uniques.md](memory/history-personality-and-uniques.md)
 - Code:
@@ -401,8 +426,14 @@ NPC minds, routines and goals, memory, templates and spawning, uniques and echoe
 Prompts, schemas and calls for the Parser, Planner, Responder, Voice, Narrator, Weaver and director; the views each
 agent is given; leak prevention; autopilot.
 
-- Spec: "Agent Parser", "Agent Planner", "Agent Responder", "Agent Voice", "Agent Narrator", "Hidden state persistence",
-  "Latency and cost", "Leak prevention, validation and failure handling"
+- Spec: [agent-parser.md](spec/part-2-turn-engine/agent-parser.md),
+  [agent-planner.md](spec/part-2-turn-engine/agent-planner.md),
+  [agent-responder.md](spec/part-2-turn-engine/agent-responder.md),
+  [agent-voice.md](spec/part-2-turn-engine/agent-voice.md),
+  [agent-narrator.md](spec/part-2-turn-engine/agent-narrator.md),
+  [hidden-state-persistence.md](spec/part-2-turn-engine/hidden-state-persistence.md),
+  [latency-and-cost.md](spec/part-2-turn-engine/latency-and-cost.md),
+  [leak-prevention-validation-and-failure-handling.md](spec/part-2-turn-engine/leak-prevention-validation-and-failure-handling.md)
 - History: [history-agent-play-and-tone.md](memory/history-agent-play-and-tone.md),
   [history-reviews-and-models.md](memory/history-reviews-and-models.md)
 - Code:
@@ -430,7 +461,7 @@ agent is given; leak prevention; autopilot.
 Save and load, the store, world and universe saves, replay, bug reports the game files, the hall of fame. The owner's
 saves are off-limits (AGENTS.md rule 1).
 
-- Spec: "Part 4 — Save data model"
+- Spec: [part-4-save/](spec/part-4-save/)
 - History: [process-decisions.md](memory/process-decisions.md)
 - Code:
   - `src/agents/fame.ts`
@@ -450,7 +481,9 @@ saves are off-limits (AGENTS.md rule 1).
 Every page of the game page: layout, the sheet and Character page, the action deck, pop-ups, motion, sound, creation,
 styles, the fake game the smoke tests drive. Any UI change uses the five design skills (docs/instructions.md section 7).
 
-- Spec: "Play screen", "Play screen motion", "Game sound"
+- Spec: [play-screen.md](spec/part-2-turn-engine/play-screen.md),
+  [play-screen-motion.md](spec/part-2-turn-engine/play-screen-motion.md),
+  [game-sound.md](spec/part-2-turn-engine/game-sound.md)
 - History: [history-play-screen-and-motion.md](memory/history-play-screen-and-motion.md),
   [ui-decisions.md](memory/ui-decisions.md),
   [history-look-viewer-sound-and-lore.md](memory/history-look-viewer-sound-and-lore.md)
@@ -514,7 +547,7 @@ styles, the fake game the smoke tests drive. Any UI change uses the five design 
 The second page: the game's libraries as the code sees them, the equations prose, the Actions and Stacking tabs. Must
 also work on phones.
 
-- Spec: "Appendix: library rows"
+- Spec: [library-rows.md](spec/library-rows.md)
 - History: [history-look-viewer-sound-and-lore.md](memory/history-look-viewer-sound-and-lore.md),
   [ui-decisions.md](memory/ui-decisions.md)
 - Code:

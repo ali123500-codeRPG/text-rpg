@@ -2,7 +2,7 @@
 
 One line per topic file. Each file holds one topic, stays under 4 KB, and says what kind it is: **context** (how
 things stand), **decision** (what the owner decided, with date and reason) or **working note** (something an agent
-found and checked, with how it was checked). Game rules are not here: they are in `docs/build-spec.md`. Balancing
+found and checked, with how it was checked). Game rules are not here: they are in the spec (`docs/build-spec.md` and `docs/spec/`). Balancing
 numbers are never here: a file names the setting and where it lives.
 
 - [achievement-design.md](achievement-design.md): decision. Fewer, more distinct achievements; the first time counts.

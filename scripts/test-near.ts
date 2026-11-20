@@ -36,7 +36,8 @@ export function systemFiles(map: string): Map<string, string[]> {
 export function near(testText: string, path: string): boolean {
   const bare = path.replace(/\.ts$/, '').replace(/\/index$/, '');
   const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const forms = [...new Set([path, path.replace(/\.ts$/, ''), bare])].map(esc).join('|');
+  // a test imports a harness file as '../harness/x', without the tests/ folder
+  const forms = [...new Set([path, path.replace(/\.ts$/, ''), bare, bare.replace(/^tests\//, '')])].map(esc).join('|');
   return new RegExp(`(^|[/'"\`])(${forms})['"\`]`, 'm').test(testText);
 }
 
@@ -67,7 +68,9 @@ function main(args: string[]): number {
   }
   // a system's ID tables (src/library/*Ids.ts) are keys most tests import as fixtures; they count only when changed
   const ofSystem = (a: string) => systems.get(a)?.filter((p) => !/Ids\.ts$/.test(p));
-  const paths = asked.length ? asked.flatMap((a) => ofSystem(a) ?? [a]) : changed();
+  const named = asked.length ? asked.flatMap((a) => ofSystem(a) ?? [a]) : changed();
+  // the spec is read through one harness file, so a spec change is near every test that imports it
+  const paths = named.some((p) => p === 'docs/build-spec.md' || p.startsWith('docs/spec/')) ? [...named, 'tests/harness/specDocs.ts'] : named;
   const tests = pick(paths, testFiles(), (f) => readFileSync(f, 'utf8'));
   console.log(`${tests.length} test files near ${paths.length} changed or named files.`);
   if (list || !tests.length) {
