@@ -278,8 +278,8 @@ question IDs, BG/D numbers) sits in one trailing parenthesis.
 
 #### Class tree
 
-- **PROG-190** The Class line on the character card (the class, its tier and where the next level goes) opens a
-  full-screen pop-up that is also the only place to pick where the next level goes (CT1–CT4, src/ui/classTree.ts).
+- **PROG-190** The class circle by the name on the character card (its tip: the class, its tier, its class level and
+  where the next level goes) opens a full-screen pop-up that is also the only place to pick where the next level goes (CT1–CT4, src/ui/classTree.ts).
 - **PROG-191** It shows the classes the character has plus the next step from each: a class one of them opens at a class
   level (unlockClass or orUnlocks), and Commoner once the character has any class.
 - **PROG-192** Each tier is a band of its own, side by side, Common on the left and Legendary on the right (CT2 b), and
