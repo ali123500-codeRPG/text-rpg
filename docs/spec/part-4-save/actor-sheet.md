@@ -13,7 +13,7 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
 | Module | Who has it | Holds |
 | --- | --- | --- |
 | Core | Every actor | Race, body type, skills and states, classes, stored perks, condition, inventory, standing defense, public label |
-| Progression | Player; NPCs only if NPCs improve (deferred) | StartingTotal, Potential, XP, unspent perk points, marks |
+| Progression | Player; a rolled NPC, to keep its level's perk points left over (NG11). NPCs don't improve yet (D-25) | StartingTotal, Potential, XP, unspent perk points, marks |
 | Mind | NPCs | Control, morale, beliefs, overrides, knows facts, current routine and its anchor, routines list, slot bindings, alarm state. The agenda flag is derived, not stored; the band moved to the Actor |
 | Journal | Player | Secrets learned, facts witnessed, last-seen state slots, names known |
 
@@ -27,7 +27,8 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
   attacks and fallback attack skill on top of the shape's, and innate perks and quirks (body type: BR5; HP multiplier:
   BR2; natural armor: BR6; attacks: BR3).
 - **SHEET-22** An NPC template and the player's build name a race, and the body type comes from it.
-- **SHEET-23** Races today: Human and Elf (humanoid, ×1), Slime (amorphous, ×0.6), Dragon (winged quadruped, ×3).
+- **SHEET-23** Races today (src/library/raceIds.ts): Human and Elf (humanoid, ×1), Slime (amorphous, ×0.6), Dragon (winged
+  quadruped, ×5.9; AB6 a, AB17), and the animal races (NR14 a, AB14 a; body-type-database.md).
 - **SHEET-24** Defeat achievements count both the body type and the race (BR8).
 - **SHEET-25** Tree access rules may name either. A tree the shape already blocks is not blocked again on the race
   (BR9).
@@ -52,7 +53,7 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
   (TA9).
 - **SHEET-38** Trees a character can't use are hidden on the creation screen and the character sheet unless the
   character has points in them; those show "Blocked by: …" or "Needs: …" (TA10).
-- **SHEET-39** Today's rules: Swordsman must have class Swordsman.
+- **SHEET-39** Today's rules: the Swordsman tree opens through the Blade Against Blade perk, Swordsman's level 1 perk.
 - **SHEET-40** Tremor senses needs race Python or Giant spider (AB11, AB19).
 - **SHEET-41** Perception is open to everyone, but its skills carry their own rules: the skill Scent needs an animal
   race or Slime, and Eyesight, Earshot and Insight are blocked by body type amorphous (Scent: AB18; Eyesight, Earshot
@@ -75,7 +76,7 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
 | State | Meaning |
 | --- | --- |
 | Unlocked | Offered at level-up. Same as not having it: tree unusable, class level 0 |
-| Current | Exactly one. Receives every new level for persistent characters |
+| Current | At most one: an actor with no class has none (an NPC template without one; a Start with no class, SHEET-95). Receives every new level for persistent characters |
 | Previous | A former current class. Keeps its levels; its skills stay usable |
 
 - **SHEET-51** Putting a level into an unlocked class makes it current, and the old current class becomes previous.
@@ -84,16 +85,16 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
 
 #### First-build classes
 
-- **SHEET-60** Swordsman, the player's class: its tree holds only riposte, which augments Parry (Ali, 10/11/2026;
+- **SHEET-60** Swordsman, a class unlocked in play (SHEET-98, SHEET-116): its tree holds only riposte, which augments Parry (Ali, 10/11/2026;
   D-170).
 - **SHEET-61** Feint and disarm are removed for now and parked as skill ideas for future classes; ids SK22 and SK24 are
   retired (D-157).
 - **SHEET-62** **Sword-dancer tree**: mirrors the Swordsman with one skill, Blade Dance (formerly Slip Counter),
   Riposte's twin for dodging instead of parrying, which augments Dodge (Ali, 10/11/2026; D-170).
 - **SHEET-63** The Sword-dancer tree's 60 perk Step and Cut mirrors Answer the Blow (strike back at once off a clean
-  dodge with a light or medium weapon), and it sets class floors of melee\_medium 25 and block 15.
-- **SHEET-64** Slime, every slime's class: its tree, Slime senses, holds tremor (tier 0); every slime has 50 (Ali
-  08/11/2026).
+  dodge with a light or medium weapon).
+- **SHEET-64** \[Retired\] The Slime class is gone (BR7, Ali 08/11/2026); being a slime is the race (SHEET-520). Tremor
+  is in Tremor senses (SHEET-40).
 - **SHEET-65** Taste was removed for now; the other skills are open (Ali, 08/11/2026).
 
 #### Player creation
@@ -131,7 +132,8 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
 - **SHEET-91** A start names its class, or takes it from what it gives (the blessed start: its god's class)
   (StartDef.classId).
 - **SHEET-92** A start names its creation points and level (the level is the class's), the age picker's default and its
-  story line (StartDef.points and level, defaults CREATION\_POINTS and START\_LEVEL; StartDef.age).
+  story line (StartDef.points and level, defaults CREATION\_POINTS and START\_LEVEL; StartDef.age, the age a build without
+  one gets; no Start sets one today).
 - **SHEET-93** The screen lists the starts in table order, each with its class tier, points and level.
 - **SHEET-94** A blessing's tier never shows on the creation screen: the blessed start reads "a random god's blessing"
   and its Blessed class's tier, Seasoned.
@@ -202,7 +204,7 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
 - **SHEET-128** **Sword-dancer**: a class that unlocks at Dodge 80 and Light or Medium Weapons 60; its level 1 perk
   First Steps of the Dance (PK156) opens the Sword-dancer tree (Blade Dance) (Ali, 09/11/2026; tier 2 from 16/11/2026).
 - **SHEET-129** The Sword-dancer mirrors the Swordsman: its skills and perks are meant to be the Swordsman's, so the two
-  are designed together. It has no tree, floors or Start yet.
+  are designed together. It has no floors of its own (its unlock acts as floors, SHEET-118) and no Start yet.
 
 #### Skills augmenting skills
 
@@ -257,9 +259,9 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
   requirement the build meets (`starterKit`).
 - **SHEET-164** The weapon whose required skill is highest is held (then the higher level), a met shield goes in the
   other hand unless the weapon takes two hands, the highest-level armor met is worn, and the rest is carried.
-- **SHEET-165** The recommended swordsman gets the arming sword, round shield and gambeson, and carries the spear.
-- **SHEET-166** Crude rough clothes (need 0, stop nothing, no Dodge cost) are in the starter kit too, so the late
-  bloomer starts in them with no weapon (Ali, 09/11/2026).
+- **SHEET-165** \[Retired with the Swordsman start (SHEET-98)\]; the recommended build's kit is SHEET-176.
+- **SHEET-166** Crude rough clothes (need 0, stop nothing, no Dodge cost) are in the starter kit too, so a build that
+  meets no weapon (none of its weapon skills at 25) starts in them with no weapon (Ali, 09/11/2026).
 - **SHEET-167** Crude weapons (cudgel, rusty knife) are library items outside the starter kit.
 - **SHEET-168** **Equipment balance lever**: a standard-kit piece's bonus is EQUIP\_FACTOR × its need (EQUIP\_FACTOR 0.4
   for now; it replaces the flat KIT\_BONUS 25), so all equipment is rebalanced with one number: Crude 0, Common +10,
@@ -581,7 +583,7 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
 - **SHEET-374** A copy's milestone perks are re-picked on load from its rebuilt skills; a rolled NPC's points left over
   stay unspent.
 - **SHEET-375** Milestones read true skill, so a tagged 125 reaches 131 with its 40 perk and stops short of a 140 perk.
-- **SHEET-376** **Rank traits**: a rank draws RANK\_TRAITS (0, 0, 0, 1, 1, 2, 2, 3, 3 from Untrained; +
+- **SHEET-376** **Rank traits**: a rank draws RANK\_TRAITS (0, 0, 0, 1, 1, 2, 2, 3, 3, 3 from Untrained; +
   RANK\_TRAITS\_BEYOND per step past the last row) from its theme's and role's trait pools, perks and quirks alike,
   seeded by the actor's ID, as 'template' perks (ThemeDef.traits, NpcRoleDef.traits; NG12).
 - **SHEET-377** The pools are thin placeholders until the perk thread adds rows; no preset below Veteran draws any
@@ -731,8 +733,8 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
 - **SHEET-479** A stage that isn't a life stage, or one for an ageless race, is bad\_age.
 - **SHEET-480** Every spawn path sets the birth day: nothing fills one in on load (MG4).
 - **SHEET-481** **Player**: the creation screen's Age field, whole years from the race's youngest age (Youth start; no
-  children) to its Venerable start (13 to 80 for a human), default CREATION\_AGE\_DEFAULT (20) or the Start's
-  StartDef.age (AG15; no children: D-316).
+  children) to its Venerable start (13 to 80 for a human); it opens on the random identity's age (SHEET-183); a build
+  with no age gets CREATION\_AGE\_DEFAULT (20) or the Start's StartDef.age (AG15; no children: D-316).
 - **SHEET-482** **Who sees what**: your Character card reads "Age 20 · Adult" (AG16).
 - **SHEET-483** Others see only the stage they look, never the number: the who's-here row, which leaves out Adult as the
   normal case, the Narrator's actors and an NPC's view of who it sees (leaving out Adult: SD3).
@@ -784,14 +786,15 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
 #### Templates
 
 - **SHEET-520** **Slime template** (first build): a copy of race Slime (body type amorphous) with no class, role beast,
-  theme wild beasts, rank\_0 (level 1), Resolve 50 and no personality points (Steady; slimes are no longer fearless)
-  (BR7: the Slime class is gone; the Slime senses tree needs race Slime).
-- **SHEET-521** Slime skills: unarmed\_natural 30 (minimum), dodge about 9 (beast Low band), tremor 50, everything
+  theme wild beasts, rank\_0 (level from its skills, SHEET-253), Resolve 50 and no personality points (Steady; slimes are no longer fearless)
+  (BR7: the Slime class is gone; AB19 a: slimes smell, not feel).
+- **SHEET-521** Slime skills: slam 30 and scent 50 (minimums; AB16, AB19 a), dodge about 9 (beast Low band), everything
   else 0.
 - **SHEET-522** Slime HP multiplier 0.6 (30 HP).
 - **SHEET-523** The slime's slam uses the slam class: damage 20, hit +10, reach 0.
 - **SHEET-524** **Village templates** (first build; every number a placeholder). All three are copies of race Human
-  (body type humanoid) with no class.
+  (body type humanoid); the guard carries the Guard class (SHEET-121), the trader the Trader class (PY2), and the
+  patron none.
 - **SHEET-525** **Template rules**: anyone with fighting experience (guard, thief) is at least level 4, and a villager
   at least level 2 (Ali, 08/11/2026).
 - **SHEET-526** A template can list perks (`perks`) that every NPC made from it has.
@@ -800,15 +803,15 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
 - **SHEET-528** Copies follow their template live: on load, each copy's skills are rebuilt from the layers above, and
   missing template perks are added (`refreshCopies`).
 - **SHEET-529** Rolled NPCs keep what they rolled.
-- **SHEET-530** A guard (soldier, town watch, Trained) has about melee\_medium 50, block 50, medium\_armor 40, endurance
-  40, sight 40.
+- **SHEET-530** A guard (soldier, town watch, Trained) has about melee\_medium 50, block 50, medium\_armor 50, endurance
+  40, eyesight 40.
 - **SHEET-531** Every template carries the skill its loadout asks for, and a test checks it (AR9; EQ5).
-- **SHEET-532** **guard:** soldier, town watch, rank\_2 (level 4), Keen Ear (it patrols); minimums melee\_medium 50,
-  medium\_armor 50, block 30, dodge 20, sight 30, hearing 30, intimidation 30, persuasion 20; Resolve 50, Discipline 40
+- **SHEET-532** **guard:** soldier, town watch, rank\_2 (level from its skills, SHEET-253), Keen Ear (it patrols); minimums
+  melee\_medium 50, medium\_armor 50, block 30, dodge 20, eyesight 40 (BF17 b), earshot 30, intimidation 30, persuasion 20; Resolve 50, Discipline 40
   (soldier), value duty (town watch) \[Proposed\]; control agent.
 - **SHEET-533** The guard's loadout is arming\_sword, mail\_hauberk, round\_shield: the guard blocks with a shield
   again, not Parry (Ali, 13/11/2026).
-- **SHEET-534** **trader** (the barkeep): talker, village folk, rank\_1 (level 2); minimums sight 25, hearing 25, barter
+- **SHEET-534** **trader** (the barkeep): talker, village folk, rank\_1 (level from its skills, SHEET-253); minimums eyesight 25, earshot 25, barter
   40, persuasion 30; Resolve 30, Nerve −40 (village folk), Sociability 20 (talker), values wealth, family \[Proposed\];
   no loadout; control code.
 - **SHEET-535** **patron:** worker, village folk, rank\_1 (level 2); minimums unarmed\_strike 20, sight 20, persuasion
@@ -817,36 +820,10 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
 
 #### Open discrepancies
 
-The old text of this topic says each of these both ways. This file keeps both and does not settle them; until the owner
-rules, the code decides what the game does (`AGENTS.md`, Order of authority).
+The points the split listed were settled on 20/11/2026 where a later recorded decision and the code agreed (PR "Spec:
+settle actor-sheet discrepancies"). What is left is for the owner; until the owner rules, the code decides what the game
+does (`AGENTS.md`, Order of authority).
 
-- **Swordsman as the player's class:** "Swordsman, the player's class" (SHEET-60), but "The Swordsman start (ST1) was
-  removed … the Swordsman class stays and unlocks in play" (SHEET-98).
-- **Slime class:** "Slime, every slime's class: its tree, Slime senses, holds tremor" (SHEET-64), but the Slime template
-  has "no class (BR7: the Slime class is gone; the Slime senses tree needs race Slime)" (SHEET-520).
-- **Which tree holds tremor:** "Tremor senses needs race Python or Giant spider" (SHEET-40), but the Slime senses tree
-  "holds tremor" (SHEET-64) and "needs race Slime" (SHEET-520). Python and Giant spider are not among "Races today:
-  Human and Elf …, Slime …, Dragon" (SHEET-23).
-- **Sword-dancer tree and floors:** the Sword-dancer tree "sets class floors of melee\_medium 25 and block 15"
-  (SHEET-63), but the Sword-dancer "has no tree, floors or Start yet" (SHEET-129).
-- **Village guard's class:** "the village guard template carries the Guard class" (SHEET-121), but the village templates
-  "All three are copies of race Human (body type humanoid) with no class" (SHEET-524).
-- **Guard level:** guard is "rank\_2 (level 4)" (SHEET-532), but RANK\_ROWS gives rank\_2 Trained "50/L8" (SHEET-251,
-  SHEET-253).
-- **Guard skills:** "A guard … has about melee\_medium 50, block 50, medium\_armor 40, endurance 40, sight 40"
-  (SHEET-530), but the guard's "minimums melee\_medium 50, medium\_armor 50, block 30, dodge 20, sight 30" (SHEET-532).
-- **Recommended build's weapon:** "The recommended swordsman gets the arming sword, round shield and gambeson, and
-  carries the spear" (SHEET-165), but the recommended build "holds the Common hand axe and wears crude clothes; no Fine
-  (50) starter piece can be met at creation now" (SHEET-176).
-- **Late bloomer's weapon:** "the late bloomer starts in them with no weapon" (SHEET-166), but the recommended build,
-  "for every Start", "holds the Common hand axe" (SHEET-175, SHEET-176), and the screen opens on it (SHEET-81).
-- **Player's age range and default:** the random identity rolls ages "to just before its Old start (13 to 59 for a
-  human)" and "A Start's own age default (StartDef.age) is no longer the opening value" (SHEET-183, SHEET-184), but the
-  Age field runs "to its Venerable start (13 to 80 for a human), default CREATION\_AGE\_DEFAULT (20) or the Start's
-  StartDef.age" (SHEET-481); a start also names "the age picker's default" (SHEET-92).
-- **Exactly one current class:** "Current | Exactly one" (SHEET-50), but "A Start with no class … begins with no class"
-  (SHEET-95).
-- **NPC perk points:** the Progression module, which holds "unspent perk points", is "Player; NPCs only if NPCs improve
-  (deferred)" (SHEET-12), but "a rolled NPC's points left over stay unspent" (SHEET-374).
-- **Rank traits count:** RANKS has ten rows (SHEET-251), but RANK\_TRAITS lists nine values "(0, 0, 0, 1, 1, 2, 2, 3, 3
-  from Untrained" (SHEET-376).
+- **SHEET-166 and the Unwritten Legend story line:** the late bloomer's recommended build meets the hand axe
+  (SHEET-176), so it opens armed, while its class story says it starts "in rough clothes with empty hands"
+  (src/library/data.ts, CL.late_bloomer).
