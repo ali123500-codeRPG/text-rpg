@@ -3,6 +3,9 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, `docs/build-spec.md` and `docs/bug-fix-log.md`.
 
+- 20/11/2026: `docs/providers/claude.md`: the move of the game page and the library viewer is stopped. Both stay on
+  the account that published them and are shared with the other account for playing; only threads of this project
+  publish them and triage in-game bug reports. Numbering bugs from the Bug log stays.
 - 20/11/2026: Merging no longer waits for the owner. `AGENTS.md` rules 2 and 6 and `docs/instructions.md` sections 2
   and 8: a bug fix and a rule-file change merge like any other PR, when every check is green. A bug fix still gets
   its BG-n, root cause and log entries; a rule-file PR quotes the owner's words it acts on.
