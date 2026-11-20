@@ -1051,6 +1051,9 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-site-icon { color: var(--c15); }
 .map-site-icon path { stroke: var(--bg); stroke-width: 40px; stroke-linejoin: round; paint-order: stroke; }
 .map-land-mark.town .map-site-icon, .map-world-name .map-site-icon { color: var(--text); }
+/* the names layer ignores the pointer; its icons take it, for their tips (and a place's, a click) */
+.map-world-names .map-site-icon { pointer-events: auto; }
+.map-world-name .map-site-icon { cursor: pointer; }
 .map-land-mark text { fill: var(--muted); font-size: 13px; font-weight: 700; paint-order: stroke; stroke: var(--bg); stroke-width: 3px; stroke-linejoin: round; }
 .map-land-mark.town text { fill: var(--text); font-size: 13px; }
 .map-land-mark.feature rect { stroke: var(--faint); }
