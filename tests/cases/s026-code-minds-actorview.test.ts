@@ -1,10 +1,11 @@
 import { expect, expectTypeOf, it } from 'vitest';
-import type { ActorView, GameState, Order, Rng } from '../../src/types';
+import type { ActorView, GameState, Order, Rng, RoutineInput } from '../../src/types';
 import { desiredState, routineOrder, fallbackOrder, brokenOrder } from '../../src/minds';
 import { makeVillage, createRng } from '../harness';
 
 it('26 Code minds read ActorView only (type-level)', () => {
-  expectTypeOf(desiredState).parameters.toEqualTypeOf<[ActorView]>();
+  expectTypeOf(desiredState).parameters.toEqualTypeOf<[RoutineInput]>(); // the part of the ActorView it reads
+  expectTypeOf<ActorView>().toMatchTypeOf<RoutineInput>();
   expectTypeOf(routineOrder).parameters.toEqualTypeOf<[ActorView]>();
   expectTypeOf(brokenOrder).parameters.toEqualTypeOf<[ActorView]>();
   expectTypeOf(fallbackOrder).parameters.toEqualTypeOf<[ActorView, Rng]>();

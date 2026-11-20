@@ -1,5 +1,5 @@
 // Code minds: routines (desired state) and the fallback combat list. They read only ActorView, never GameState.
-import type { ActorView, MapZone, Order, OrderTemplate, Routine, Rng } from '../types';
+import type { ActorView, MapZone, Order, OrderTemplate, Routine, RoutineInput, Rng } from '../types';
 import { GRADES } from '../types';
 import { CONFIG } from '../config';
 import { PK } from '../library/perkIds';
@@ -17,7 +17,7 @@ export const HEAD_TO = 'head_to';
 
 /** NW2: where a head_to walk goes: the destination zone, or for a frontier the nearest zone with a way into it (it
  * steps through from there); null when the destination is not on its map */
-function headGoal(view: ActorView, dest: string): { zone: string; frontier?: string } | null {
+function headGoal(view: RoutineInput, dest: string): { zone: string; frontier?: string } | null {
   if (view.map.some((z) => z.id === dest)) return { zone: dest };
   const edges = view.map.filter((z) => z.links.some((l) => l.frontier && l.to === dest)).map((z) => z.id);
   if (!edges.length) return null;
@@ -54,7 +54,7 @@ export function slotsRead(r: Routine): string[] {
   return [...s];
 }
 
-export function desiredState(view: ActorView): { zone: string; activity: string; unbound?: true } | null {
+export function desiredState(view: RoutineInput): { zone: string; activity: string; unbound?: true } | null {
   const cur = view.self.routine;
   if (!cur) return null;
   const r = getRoutine(cur.id);

@@ -15,7 +15,7 @@ import { hasPerk } from '../ruleset/perks';
 import { fnRoller, gradeMod, markUse, ruleset, situational, tierAtLeast } from '../ruleset';
 import { VOLUME_NOISE } from '../perception/noise';
 import { beliefStatus, soundCarries, updateBeliefs } from '../perception';
-import { buildActorView } from '../views';
+import { routineView } from '../views';
 import { desiredState } from '../minds';
 import { stealthSkill } from '../minds/state';
 import { actorById, allActors, atLeast, hostile, isActive, isAsleep, isEngaged, zoneById } from './relations';
@@ -129,7 +129,7 @@ export function settleSleepers(state: GameState): void {
     }
     const m = a.mind;
     if (!m?.routine || !isActive(a)) continue;
-    const d = desiredState(buildActorView(state, a.id));
+    const d = desiredState(routineView(state, a));
     const sleepy = d?.activity === 'sleep' && d.zone === a.zone;
     // BF68: a sleep step with nowhere given runs where it stands; the gap is filed once as a bug
     if (sleepy && d.unbound && !state.log.some((l) => l.code === 'bed_missing' && l.detail?.actorId === a.id)) logCode(state, 'bed_missing', { actorId: a.id, routineId: m.routine.id });

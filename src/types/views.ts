@@ -249,6 +249,12 @@ export type ActorView = {
   tacticsWord: Tactics; // TC4 a: how it reads a fight, from its own Battle Sense (CONFIG.TACTICS_FROM); the Planner's CHARACTER.tactics, never the Voice's
   tactics?: TacticsView; // D-17: set only for the code-run fight list (views/tactics.ts withTactics), never for an agent
 };
+/** what desiredState reads (views routineView builds only this; an ActorView is one too) */
+export type RoutineInput = {
+  self: Pick<ActorView['self'], 'zone' | 'routine' | 'slots'>;
+  beliefs: Pick<BeliefView, 'about' | 'lastKnownZone'>[];
+  map: MapZone[];
+};
 
 // ---------- OppositionView: Agent Planner and Responder ----------
 /** AE8: an owned perk move (perkMove.perk is the id); does: what it looks like; action: it is the turn's main action;

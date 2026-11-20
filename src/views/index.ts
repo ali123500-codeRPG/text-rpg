@@ -16,7 +16,7 @@ import { ageText, lifeStage, stageName, stageOf } from '../ruleset/age';
 import type { AttackOutcome, ScenarioFrame, Tier,
   Actor, ActorView, AttackMode, Drive, BeliefView, CombatPacket, DialogueInput, DialogueView, Effect, EventView, GameEvent, GameState, ItemDef,
   AgreementView, BodyAttackView, ContainerView, ItemInstance, HealthLevel, PartState, YieldView, Intent, JobView, Quest, NarrationEvent, NarrationView, OppositionView, OwnGearView, PerkMoveView, PlayerView, RollResult, SeenActor, SeenGearView,
-  NpcTemplate, SparView, StaminaView, WalkingView, FollowingView, WayDid, WeaverView, WorldView, Zone, ZoneView,
+  MapZone, NpcTemplate, RoutineInput, SparView, StaminaView, WalkingView, FollowingView, WayDid, WeaverView, WorldView, Zone, ZoneView,
 } from '../types';
 import { GRADES } from '../types';
 import { CONFIG } from '../config';
@@ -654,6 +654,25 @@ function fallBackView(state: GameState, a: Actor): { fallBackTo?: { id: string; 
   return o ? { fallBackTo: { id: o.id, zone: o.zone } } : {};
 }
 
+/** NW10: the routine it runs and how far in, as every view of it shows it */
+const routineOf = (state: GameState, a: Actor): { routine?: ActorView['self']['routine'] } => {
+  const r = a.mind?.routine;
+  return r ? { routine: { id: r.id, anchorTurn: r.anchorTurn, elapsed: Math.max(0, now(state) - (r.at ?? now(state))), dayPart: timeOfDay(now(state)) } } : {};
+};
+/** BA7: the zones near it and their ways, for code paths; a way shut to this actor (no key, the far side of the bar, rubble) is no way */
+const mapOf = (state: GameState, a: Actor): MapZone[] => nearbyZones(state, [a.zone], [a.placeId]).map((z) => ({ id: z.id, links: waysOut(state, z.id).map((l) => ({ to: l.to, sight: seesAcross(state, l), ...(l.frontier ? { frontier: true } : {}), ...(l.drop ? { drop: true } : {}), ...(linkPassage(state, l, a, z.id) === 'shut' ? { shut: true } : {}) })) }));
+/** what desiredState reads, without the rest of the view (perception, gear, events): the world clock and sleep ask it for
+ * every NPC on every step. The map is built only for a head_to walk, the one routine that reads it. */
+export function routineView(state: GameState, a: Actor): RoutineInput {
+  const m = a.mind!;
+  const b = m.knowledge.player;
+  return {
+    self: { zone: a.zone, slots: m.slots ?? {}, ...routineOf(state, a) },
+    beliefs: b && actorById(state, 'player') ? [{ about: 'player', ...(b.lastKnownZone !== undefined ? { lastKnownZone: b.lastKnownZone } : {}) }] : [],
+    map: m.routine && routine(m.routine.id).kind === 'head' ? mapOf(state, a) : [],
+  };
+}
+
 /** everything an NPC view holds that is not in state.hidden */
 function baseView(state: GameState, actorId: string): BaseView {
   const a = need(state, actorId);
@@ -701,7 +720,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       ...(m.lastWasted ? { lastWasted: { ...m.lastWasted } } : {}), ...missingOf(state, a), ...(m.meanwhile && m.meanwhile.turn >= state.turn - 1 ? { meanwhile: { minutes: Math.round(m.meanwhile.seconds / 60) } } : {}), active: isActive(a), broken: m.moraleState === 'broken', ...(m.moraleState === 'broken' && isCoweringLevel(moraleLevel(a)) ? { cowering: true as const } : {}), surrendered: m.moraleState === 'surrendered', ...fallBackView(state, a),
       control: m.control, standingDefense: a.core.standingDefense, ...(heldBy(state, a) ? { heldBy: heldBy(state, a)!.id } : {}),
       gear: ownGear(state, a), attackSkill, ...bodyAttacks(state, a), ...perkMovesOf(state, a, seenActors(state, a)), ...(a.playingDead ? { playingDead: true as const } : {}),
-      ...(m.routine ? { routine: { id: m.routine.id, anchorTurn: m.routine.anchorTurn, elapsed: Math.max(0, now(state) - (m.routine.at ?? now(state))), dayPart: timeOfDay(now(state)) } } : {}),
+      ...routineOf(state, a),
       routines: offeredRoutines(m.routines).map((id) => ({ id, brief: routine(id).brief })),
       ...(m.routineSetId ? { routineSetId: m.routineSetId } : {}),
       slots: Object.fromEntries(Object.entries(m.slots ?? {}).map(([k, v]) => [k, Array.isArray(v) ? [...v] : v])),
@@ -725,8 +744,7 @@ function baseView(state: GameState, actorId: string): BaseView {
     band: band
       ? { id: band.id, name: band.name, goals: band.goals, temperament: band.temperament, relations: { ...band.relations } }
       : { id: a.bandId, name: '', goals: '', temperament: '', relations: {} },
-    // BA7: code paths treat a way shut to this actor (no key, the far side of the bar, rubble) as no way
-    map: nearbyZones(state, [a.zone], [a.placeId]).map((z) => ({ id: z.id, links: waysOut(state, z.id).map((l) => ({ to: l.to, sight: seesAcross(state, l), ...(l.frontier ? { frontier: true } : {}), ...(l.drop ? { drop: true } : {}), ...(linkPassage(state, l, a, z.id) === 'shut' ? { shut: true } : {}) })) })),
+    map: mapOf(state, a),
     zones: perceivedZones(state, a.zone, a),
     seen: seenActors(state, a),
     ...(jobs.length ? { jobs } : {}),
