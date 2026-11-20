@@ -107,8 +107,10 @@ splits longer lists). "ArtifactData" in the helpers' comments is the Claude tool
 artifact's database; the batch call is made with it.
 
 For a questionnaire in Supabase (every new one), print `sql(w)` instead of `print_writes(w)` and run the result with the
-Supabase connector's `execute_sql` on the project named `questions-hub`. Pass `None` for every version: Supabase keeps
-none. Current documents: `select path, data from hub_docs where starts_with(path, 'qs/<name>/items/')`.
+Supabase connector's `execute_sql` on the project named `questions-hub`. Supabase keeps no versions: give `mark()` any
+number (e.g. `1`) as each question's version, so the change is merged into the question. With `None`, `sql()` refuses,
+because it would replace the whole question.
+Current documents: `select path, data from hub_docs where starts_with(path, 'qs/<name>/items/')`.
 
 ```python
 import sys; sys.path.insert(0, 'tools/questions-hub')
