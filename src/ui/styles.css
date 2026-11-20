@@ -26,7 +26,7 @@
   --btn-fill: var(--accent);
   --grad-deco: var(--accent);
   --tg-k: 36%; --veil0: 62%; --veil1: 90%;
-  --scenario: url(./assets/night-sky.webp);
+  --scenario: url(./assets/abbey-oakwood.webp);
   --vh: 100vh;
   /* motion (Motion Rules Review M-50): every duration and easing on the play screen comes from these */
   --m-feedback: 120ms; --m-state: 200ms; --m-beat: 220ms; --m-sentence: 180ms; --m-reveal-cap: 1500ms; --m-stagger: 350ms;
