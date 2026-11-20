@@ -118,9 +118,13 @@ describe('278 fatigue and stamina', () => {
     s.player.core.condition.fatigue!.debt = barMax(s.player);
     expect(sleepMinutes(s, s.player)).toBeLessThanOrEqual(CONFIG.SLEEP_MAX_HOURS * 60);
     const bed = quiet();
-    furnish(bed, bed.player.zone, [{ kind: FU.bed, name: 'bed' }]);
+    const [b] = furnish(bed, bed.player.zone, [{ kind: FU.bed, name: 'bed' }]);
     bed.player.core.condition.fatigue = { debt: 10, line: 30 };
-    bed.player.asleep = { since: now(bed) };
+    bed.player.asleep = { since: now(bed) }; // MQ13 a (BG-345): asleep in the room with a bed, but not on it
+    pass(bed, 60);
+    expect(fatigueOf(bed.player).debt).toBeCloseTo(10 - 0.04 * 0.75 * barMax(bed.player));
+    bed.player.core.condition.fatigue = { debt: 10, line: 30 };
+    bed.player.asleep = { since: now(bed), bed: b.id }; // lying on the bed it holds
     pass(bed, 60);
     expect(fatigueOf(bed.player).debt).toBeCloseTo(10 - 0.04 * barMax(bed.player));
     expect(lineUsed(bed.player)).toBe(0);

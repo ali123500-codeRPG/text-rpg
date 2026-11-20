@@ -565,6 +565,7 @@ import {
   hostilesNear,
   nextChange,
   planNight,
+  sleeperOn,
   settleSleepers,
   wake,
   wakeByEvent,
@@ -1625,6 +1626,12 @@ function doWait(ctx: Ctx, a: Actor, o: Order): void {
       return emit(ctx, ev);
     }
     const until = named ?? nextTimeOfDay(timeOfDay(t));
+    // MQ13 a: a bed someone else lies asleep on is theirs; the sleep comes to nothing
+    const held = o.type === 'sleep' && o.moveSpot?.near ? sleeperOn(state, o.moveSpot.near) : undefined;
+    if (held && held !== a) {
+      logCode(state, 'wait_blocked', { actorId: a.id, reason: 'bed_taken' });
+      return emit(ctx, ev);
+    }
     if (o.type === 'sleep') {
       // NW12/NW15: the night: alone, until rested (FT9) or the time named; with companions, one watch each (BG-295: those who
       // would hear the sleeper shout, WAKE_NOISE, wherever they stand). "Sleep" again

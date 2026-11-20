@@ -8,6 +8,7 @@
 import { CONFIG } from '../config';
 import { compassOf } from '../scenario/geometry';
 import { furnitureById, furniturePos } from './furniture';
+import { FU } from '../library/tableIds';
 import { actorById, allActors, nameFor, zoneById } from './relations';
 import { theName, theOf } from '../words';
 import { barrierOn, gripPasses, passage, type Passage } from './barriers';
@@ -534,7 +535,7 @@ export function spotPoint(state: GameState, zoneId: string, spot: MoveSpot, from
     return len > EPS ? keepInside({ x: p.x + (dx / len) * m, y: p.y + (dy / len) * m }, z.outline, 0) : p;
   };
   /** a person in the title, or a way out of it: where it is and what the story calls it */
-  const point = (ref: string): { at: Pos; actor?: string; label?: string; here?: boolean } | null => {
+  const point = (ref: string): { at: Pos; actor?: string; label?: string; here?: boolean; onto?: true } | null => {
     const who = actorById(state, ref);
     if (who && spot.lastSeen) { // BG-125: where the player last perceived them, never where they are now
       const j = state.player.journal, at = j?.lastSpot?.[who.id];
@@ -543,7 +544,7 @@ export function spotPoint(state: GameState, zoneId: string, spot: MoveSpot, from
     }
     if (who) { const s = spotOf(state, who); return s.pos ? { at: s.pos, actor: who.id, label: who.label, here: s.zone === z.id } : null; }
     const f = furnitureById(state, z.id, ref); // FR1: a piece of furniture here
-    if (f) { const at = furniturePos(state, z.id, f); return at ? { at, label: `the ${f.name}` } : null; }
+    if (f) { const at = furniturePos(state, z.id, f); return at ? { at, label: `the ${f.name}`, ...(f.kind === FU.bed ? { onto: true as const } : {}) } : null; } // MQ13 a: a bed is walked onto
     const w = wayTo(state, z.id, ref);
     const at = wayPoint(state, z.id, ref, from);
     return at && w ? { at, label: w.label } : null;
@@ -554,7 +555,7 @@ export function spotPoint(state: GameState, zoneId: string, spot: MoveSpot, from
     if (!p || (p.actor && !p.here)) return null; // someone elsewhere is a move to their title, not a spot in this one
     // BF35: a follow keeps its distance (followGap); a walk up to someone stops a step short of them
     const short = spot.follow && walker ? followGap(state, walker, spot.keep) : CONFIG.PLACE_SPACING_M;
-    return p.actor ? { pos: p.at, stopShort: short, toward: p.actor } : { pos: inset(p.at), stopShort: 0, words: `at ${p.label}` };
+    return p.actor ? { pos: p.at, stopShort: short, toward: p.actor } : { pos: p.onto ? p.at : inset(p.at), stopShort: 0, words: `${p.onto ? 'onto' : 'at'} ${p.label}` };
   }
   if (spot.awayFrom) {
     const p = point(spot.awayFrom);

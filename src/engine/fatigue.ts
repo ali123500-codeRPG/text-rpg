@@ -3,11 +3,10 @@
 // too (SR4), and travel pays by the hour straight into it (SR5). Hours awake add sleep debt; only sleep
 // clears the long term. All stamina recovery goes through recoverLine and recoverDebt, one per layer, from the library
 // recovery table (RV), as healing and composure go through applyHealing and calm.
-import { furnitureIn } from './furniture';
 import type { Actor, DurationDef, GameState } from '../types';
 import { CONFIG } from '../config';
 import { actorBody, getLibrary } from '../library';
-import { FU, RV } from '../library/tableIds';
+import { RV } from '../library/tableIds';
 import { EFFORT, type EffortKey } from '../scales';
 import { now } from '../time';
 import { barMax, fatigueOf, isSpent, lineMax, lineUsed, perkSleepMult, sleepArmorMult, staminaSkill } from '../ruleset/fatigue';
@@ -17,7 +16,7 @@ import { usableThisEngagement, useThisEngagement } from './engagement';
 import { markStamina } from '../ruleset';
 import { allActors, isActive, isAsleep, zoneById } from './relations';
 import { logCode } from './effects';
-import { fallAsleep, mayDropOff, planNight } from './sleep';
+import { bedToLieOn, fallAsleep, mayDropOff, planNight } from './sleep';
 
 const fat = (a: Actor) => (a.core.condition.fatigue ??= { debt: 0, line: 0 });
 const row = (id: string) => getLibrary().recovery?.[id];
@@ -99,9 +98,10 @@ export function recoverDebt(a: Actor, sourceId: string, pct: number): number {
   if (w.awake) w.awake = Math.max(0, w.awake - got);
   return got;
 }
-/** FT8: sleep's speed here: in a bed or elsewhere, × the worn armour's weight, × the owner's sleepClear perks (SS14) */
+/** FT8: sleep's speed here: on a bed or elsewhere (MQ13 a: asleep, on the bed it holds; awake, on the free bed it would lie
+ * down on, bedToLieOn), × the worn armour's weight, × the owner's sleepClear perks (SS14) */
 export const sleepMult = (state: GameState, a: Actor): number =>
-  CONFIG.SLEEP_SPOT_MULT[furnitureIn(state, a.zone).some((f) => f.kind === FU.bed) ? 'bed' : 'elsewhere'] * sleepArmorMult(state, a) * perkSleepMult(a, 'sleepClear');
+  CONFIG.SLEEP_SPOT_MULT[(a.asleep ? a.asleep.bed : bedToLieOn(state, a)) ? 'bed' : 'elsewhere'] * sleepArmorMult(state, a) * perkSleepMult(a, 'sleepClear');
 
 /** FT7: a rest that ran `share` of its hour refills the line; with Catnap (SS1) it also clears the sleep debt CATNAP_SLEEP_HOURS
  * of sleep would here. Both rest paths call this */
@@ -154,5 +154,5 @@ function collapse(state: GameState, a: Actor): void {
   logCode(state, 'collapsed', { actorId: a.id });
   const until = now(state) + sleepMinutes(state, a);
   if (a === state.player && !state.night) state.night = planNight(state, until - now(state), []);
-  fallAsleep(state, a, a === state.player && state.night ? state.night.end : until);
+  fallAsleep(state, a, a === state.player && state.night ? state.night.end : until, false);
 }

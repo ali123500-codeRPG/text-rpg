@@ -217,7 +217,8 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   carries the deck target it stands for: a doorway the title on its far side from where you stand, a stretch of wall the
   wall standing there, a person their id, a piece of furniture its id and kind (src/ui/planView.ts `data-thing`,
   src/ui/deck.ts `thingActions`). Furniture lists the deck's actions on its kind: a bed offers Sleep, which walks to the
-  bed and sleeps there (MQ10 a; Ali, 20/11/2026, Questions hub page "Map and minimap: one map, doors"). A thing the deck
+  bed and sleeps there (MQ10 a; Ali, 20/11/2026, Questions hub page "Map and minimap: one map, doors"), on it and holding it, or
+  comes to nothing when someone else lies asleep on it (MQ13 a; Sleeping on a bed, in the Game clock topic). A thing the deck
   has nothing for opens no list, and the click plans a walk as on bare ground. Over the Map the list opens on top, and an
   action picked there plays from Play with the Map closed, as the Map's walk does (MAP-84).
 - **MAP-86** The things on the ground the character sees now, containers too, are drawn on both maps at their own spot
@@ -274,9 +275,5 @@ the code decides what the game does (`AGENTS.md`, Order of authority).
   to nothing and the walk goes on, and a door or wall is found only from the title the actor stands in at that moment.
   Walking to anything on the map and then acting (MQ8) waits on an engine rule, asked of the owner. Only one greyed
   entry is built: the deck's door entry on a lock you hold no key to, "needs its key" (the engine's way op answers no_key).
-- **FT8 and MQ10 a:** sleeping "in a bed" (SLEEP_SPOT_MULT) is read as asleep in a title with a bed in it, wherever in
-  it you lie, which `AGENTS.md` rule 8 rules out (nearness is never "same zone"). Sleeping on the bed (MAP-85) and on the
-  floor beside it are the same today; NPCs sleep wherever they stand in their bed slot's title, and nothing holds a bed
-  for one sleeper. The revision of how NPCs sleep on beds is asked of the owner.
 - **MAP-44 and MAP-45:** someone heard going into a zone the character has never seen is last seen there (MAP-45), but
   the map shows only zones seen or stood in (MAP-44), so they are not drawn anywhere.

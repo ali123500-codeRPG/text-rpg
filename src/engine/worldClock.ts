@@ -10,6 +10,7 @@ import { openWay } from './barriers';
 import { logCode } from './effects';
 import { passiveFatigue } from './fatigue';
 import { passiveHealing } from './heal';
+import { bedGap, freeBeds } from './sleep';
 import { gateAhead, M_EPS, seeingM, walkLeg, withinM } from './position';
 import type { Located } from './position';
 import { isActive, isAsleep, isEngaged } from './relations';
@@ -44,17 +45,22 @@ export function catchUp(state: GameState, minutes: number, deductWalked = true, 
     // an NPC whose agent chose its move this turn keeps it: the catch-up is for routine time
     if (!m?.routine || agentRun.has(a.id) || !isActive(a) || isAsleep(a) || isEngaged(state, a) || a.heldBy || m.moraleState || staying(state, a)) continue;
     const d = desiredState(routineView(state, a));
-    if (!d || d.zone === a.zone) continue;
+    if (!d) continue;
+    // MQ13 a: going to sleep, it walks on to a free bed of its sleep title, its middle, until beside it
+    const bed = d.activity === 'sleep' ? freeBeds(state, a, d.zone)[0] : undefined;
+    const away = () => a.zone !== d.zone || (!!bed && bedGap(state, a, bed) > CONFIG.BED_REACH_M);
+    if (!away()) continue;
+    const goal: Located = bed ? { zone: d.zone, pos: bed.pos } : { zone: d.zone };
     let left = travelSpeed(state, a) * minutes * 60 - (walked[a.id] ?? 0);
     const start = a.zone;
-    for (let i = 0; i < 100 && left > M_EPS && a.zone !== d.zone; i++) {
+    for (let i = 0; i < 100 && left > M_EPS && away(); i++) {
       const gate = gateAhead(state, a, d.zone);
       const unseen = !!gate && !doorSeen(state, gate.opening, a.zone); // BG-316 (BF102 a): by the player's line of sight, not titles
       if (gate && (gate.pass !== 'opens' || !unseen)) break; // a way that is not simply open, or opened in view
       const was = gate && { locked: !!gate.b.lock?.locked, drawn: !!gate.b.bar?.drawn };
       if (gate) openWay(gate.b, a, a.zone);
       const from = a.zone, at: Located = { zone: a.zone, ...(a.pos ? { pos: { ...a.pos } } : {}) };
-      const r = walkLeg(state, a, { zone: d.zone }, left, 0, a);
+      const r = walkLeg(state, a, goal, left, 0, a);
       const crossed = r !== null && (r > 0 || a.zone !== from); // BG-151: a doorway underfoot is crossed in 0 m
       if (crossed && onLeg) onLeg(a, at, r, d.zone); // BF2: a leg anyone could see or hear is a walk like any other
       if (gate && was) {

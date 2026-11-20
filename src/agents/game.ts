@@ -1506,8 +1506,8 @@ export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: Tu
     if (l.turn !== turn || (l.code !== 'rest_blocked' && l.code !== 'wait_blocked')) continue;
     const d = l.detail as { actorId: string; reason: string; timeOfDay?: string };
     if (d.actorId !== s.player.id) continue;
-    const what = l.code === 'rest_blocked' ? 'Rest' : 'Wait';
-    const why = d.reason === 'cooldown' ? 'too soon after your last rest'
+    const what = l.code === 'rest_blocked' ? 'Rest' : d.reason === 'bed_taken' ? 'Sleep' : 'Wait';
+    const why = d.reason === 'cooldown' ? 'too soon after your last rest' : d.reason === 'bed_taken' ? 'someone is asleep on that bed'
       : d.reason === 'already' ? `it's already ${TIME_OF_DAY.name(d.timeOfDay as TimeOfDay).toLowerCase()}` : 'not while a fight is going on around you';
     out.push(`${what}: ${why}`);
   }

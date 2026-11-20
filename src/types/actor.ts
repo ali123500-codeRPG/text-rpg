@@ -42,7 +42,7 @@ export type Actor = {
   feint?: { at: number; believers: string[] };
   /** NW12/NW20: asleep since this game minute; `until` ends a planned sleep (the player's, a night watch); none: a
    * routine's sleep, which ends with its time. Asleep, an actor perceives nothing and is an unaware target. */
-  asleep?: { since: number; until?: number };
+  asleep?: { since: number; until?: number; bed?: string }; // bed (MQ13 a): the bed it lies on and holds, one sleeper each
   wokeAt?: number; // NW20: the game minute it last woke; it falls asleep again only FALL_ASLEEP_MIN after
   /** AT20: main and move seconds left after its last finished action, carried into the next turn only (`turn` they came from) */
   carry?: { main: number; move: number; turn: number }[]; // AT20/TP4: carried time, one entry per turn it was left over in

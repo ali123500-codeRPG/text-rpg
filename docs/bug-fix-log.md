@@ -10,6 +10,16 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the spec's bug log, docs/spec/bug-log.md, has one. Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-345
+
+**What was wrong:** The sleep bonus (FT8, SLEEP_SPOT_MULT: bed 1, elsewhere 0.75) went to anyone asleep in a title with any bed in it, wherever in it they lay, so sleeping on the floor beside a bed and on the bed were the same: nearness by room, which `AGENTS.md` rule 8 rules out. Nothing held a bed, so two sleepers could share one, NPCs slept wherever they stood in their bed slot's title, and the player's Sleep on a bed (MAP-85) stopped short of the bed.
+
+**Root cause:** `sleepMult` in `src/engine/fatigue.ts` asked `furnitureIn(state, a.zone).some((f) => f.kind === FU.bed)`: the room, not the sleeper's point. FT8 (13/11/2026) was ruled as "in a zone with a bed", from when a bed was the title in an NPC's bed slot; beds now stand at a point with a footprint (FR1, PC1 `pieceBox`), but the bonus and NPC sleep (`settleSleepers`: asleep "where it stands" in the title) were never moved onto them, and nothing recorded who lay on a bed. The player's walk to a bed used the generic furniture spot, `inset` a body's width toward the room's middle, so it ended about 0.8 m off the bed.
+
+**What was done:** The owner's MQ13 a (Ali, 20/11/2026, Questions hub page "Map and minimap: one map, doors"): "a, if I find an NPC sleeping, I expect them to be physically located at the bed." A bed holds one sleeper. Someone falling asleep within BED_REACH_M (1 m, placeholder) of a free bed's footprint lies down on it (`fallAsleep`: the point moves to the bed's middle) and holds it while asleep (`Actor.asleep.bed`); waking frees it. `sleepMult` gives the bed's speed only to one holding a bed (awake, to one beside a free bed, for the sleep length and Catnap). An NPC going to sleep is walked by the clock (`catchUp`) to a free bed of its sleep title, and falls asleep once beside it (`settleSleepers`); with none free it sleeps where it stands there, without the bonus. A walk to a bed (`spotPoint`) ends on it. The player's Sleep on a bed someone else lies asleep on comes to nothing (`wait_blocked`, `bed_taken`); in a shared night the player lies down first. A collapse (FT10) still drops where it stands. Old saves: a sleeper saved before this holds no bed and sleeps at the elsewhere speed until it wakes; no migration. Spec: Game clock (Sleeping on a bed, Sleeping NPCs), FT8 in the Health track, MAP-85's open discrepancy removed, GSM-242.
+
+**Fixed by:** #1377
+
 ## BG-343
 
 **What was wrong:** An ambush (an attack on someone unaware of the attacker, OQ-4) rolled the attacker's weapon skill (`ambushSkill` in `src/minds/state.ts`: the weapon's mode skill, else the body's fallback attack skill) against one perception roll per watcher, by the event's single best cue. ST2 (08/11/2026) says Combat Stealth is the skill for an attack, and the stealth contests per sense (D-40) never reached the ambush. So a fighter with no stealth ambushed as well as a trained sneak, a sneak with a weak weapon ambushed badly, and a shot from hiding rolled twice: the ambush, then its own Combat Stealth notice contests (BG-263).

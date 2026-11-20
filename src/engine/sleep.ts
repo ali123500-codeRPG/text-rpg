@@ -4,7 +4,7 @@
 // activity of `sleep` where their routine puts them) and follow the same rules. A band member who is awake and notices
 // someone hostile shouts to wake its sleeping bandmates (code, no Claude call). The player's sleep and night watch are
 // run in src/engine/resolve.ts (runNight), which steps the clock and stops it when someone hostile comes near.
-import type { Actor, GameEvent, GameState, Night, Order, Rng } from '../types';
+import type { Actor, Furniture, GameEvent, GameState, Night, Order, Rng } from '../types';
 import { CONFIG } from '../config';
 import { NOISE, type NoiseKey } from '../scales';
 import { now } from '../time';
@@ -20,16 +20,35 @@ import { desiredState } from '../minds';
 import { stealthSkill } from '../minds/state';
 import { actorById, allActors, atLeast, hostile, isActive, isAsleep, isEngaged, zoneById } from './relations';
 import { logCode } from './effects';
+import { furnitureIn } from './furniture';
+import { boxGap, pieceBox } from '../ruleset/objectCover';
+import { FU } from '../library/tableIds';
 import { matchedCritFeat, outmatchedOnce, type ActContest } from './feats';
 
 /** NW18: what wakes a sleeper. blow: struck; noise: a loud noise heard; heard: its hearing check passed (every sleeper sleeps light, NW14);
  * rested: its sleep ran out; watch: its turn on watch */
 export type WakeWhy = 'blow' | 'noise' | 'heard' | 'rested' | 'watch';
 
-export function fallAsleep(state: GameState, a: Actor, until?: number): void {
+/** FT8, MQ13 a: metres from `a`'s point to a bed's footprint (its kind's size, PC1) */
+export function bedGap(state: GameState, a: Actor, f: Furniture): number {
+  const z = zoneById(state, f.zone), box = z && pieceBox(state, z, f);
+  return box && a.pos ? boxGap(a.pos, box) : Infinity;
+}
+/** MQ13 a: who lies asleep on bed `id` (a bed holds one sleeper) */
+export const sleeperOn = (state: GameState, id: string): Actor | undefined => allActors(state).find((x) => x.asleep?.bed === id);
+/** MQ13 a: the beds in title `zone` nobody lies asleep on, nearest to `a` first */
+export const freeBeds = (state: GameState, a: Actor, zone: string): Furniture[] =>
+  furnitureIn(state, zone).filter((f) => f.kind === FU.bed && !sleeperOn(state, f.id)).sort((x, y) => bedGap(state, a, x) - bedGap(state, a, y));
+/** FT8, MQ13 a: the free bed `a` would lie down on going to sleep where it stands: one within BED_REACH_M */
+export const bedToLieOn = (state: GameState, a: Actor): Furniture | undefined => freeBeds(state, a, a.zone).find((f) => bedGap(state, a, f) <= CONFIG.BED_REACH_M);
+
+/** falls asleep; `lie` (not a collapse, FT10): beside a free bed it lies down on it and holds it while asleep (MQ13 a) */
+export function fallAsleep(state: GameState, a: Actor, until?: number, lie = true): void {
   if (a.asleep || !isActive(a)) return;
-  a.asleep = { since: now(state), ...(until !== undefined ? { until } : {}) };
-  logCode(state, 'fell_asleep', { actorId: a.id, ...(until !== undefined ? { until } : {}) });
+  const bed = lie ? bedToLieOn(state, a) : undefined;
+  if (bed) a.pos = { ...bed.pos };
+  a.asleep = { since: now(state), ...(until !== undefined ? { until } : {}), ...(bed ? { bed: bed.id } : {}) };
+  logCode(state, 'fell_asleep', { actorId: a.id, ...(until !== undefined ? { until } : {}), ...(bed ? { bed: bed.id } : {}) });
 }
 
 /** wakes `a`. Woken out of a planned night (a blow, a noise, a hearing check), its night is over (NW18) */
@@ -118,7 +137,8 @@ export function wakeCalls(state: GameState): Order[] {
 }
 
 /** NW20: NPCs sleep by their routines. One whose routine has it asleep where it stands falls asleep (no sooner than
- * FALL_ASLEEP_MIN after it last woke); one whose routine no longer has it asleep wakes. A planned sleep (`until`) ends
+ * FALL_ASLEEP_MIN after it last woke), on a free bed of that title once it is beside one (MQ13 a: the clock walks it
+ * there, catchUp), anywhere in it when none is free; one whose routine no longer has it asleep wakes. A planned sleep (`until`) ends
  * when its time comes. Not while it is engaged, alarmed, broken or held. */
 export function settleSleepers(state: GameState): void {
   const t = now(state);
@@ -130,7 +150,7 @@ export function settleSleepers(state: GameState): void {
     const m = a.mind;
     if (!m?.routine || !isActive(a)) continue;
     const d = desiredState(routineView(state, a));
-    const sleepy = d?.activity === 'sleep' && d.zone === a.zone;
+    const sleepy = d?.activity === 'sleep' && d.zone === a.zone && (!!a.asleep || !!bedToLieOn(state, a) || !freeBeds(state, a, a.zone).length);
     // BF68: a sleep step with nowhere given runs where it stands; the gap is filed once as a bug
     if (sleepy && d.unbound && !state.log.some((l) => l.code === 'bed_missing' && l.detail?.actorId === a.id)) logCode(state, 'bed_missing', { actorId: a.id, routineId: m.routine.id });
     if (a.asleep && !sleepy) wake(state, a, 'rested');
@@ -170,7 +190,8 @@ export function applyNightPhase(state: GameState): void {
   const n = state.night;
   if (!n) return;
   const t = now(state);
-  for (const id of n.members) {
+  // MQ13 a: the player lies down first, so the bed they walked to is theirs
+  for (const id of [...n.members].sort((x, y) => Number(y === state.player.id) - Number(x === state.player.id))) {
     const a = actorById(state, id);
     if (!a || !isActive(a) || n.woke.includes(id)) continue;
     if (onWatch(n, id, t)) wake(state, a, 'watch');
