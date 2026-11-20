@@ -27,7 +27,7 @@ async function play(st: ReturnType<typeof memoryStore>, s: GameState, from: numb
 
 afterEach(() => {
   resetConfig();
-  delete MIGRATIONS[10];
+  delete MIGRATIONS[CONFIG.SCHEMA_VERSION]; // the stand-in step a test adds; real steps are keyed below the version
 });
 
 describe('save and load', () => {

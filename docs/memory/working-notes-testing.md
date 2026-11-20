@@ -15,6 +15,20 @@ measurement after building the village, or the change is silently undone. Checke
 For a before-and-after comparison across a fix, run the same throwaway test in a git worktree of the commit before
 the fix. When counting "who acted first", check that the actor acted at all.
 
+## How `npm test` runs
+
+Two runs. Most files share one module load per worker (`vitest.shared.config.ts`, no per-file isolation); the files
+that use `vi.mock` run isolated afterwards (`vitest.mocked.config.ts`), and `tests/unit/mocked-files-isolated.test.ts`
+fails when a new one is missing from that list. Loading the game for each of about 640 files was most of the suite's
+time. `npx vitest run <file>` still runs a file isolated (`vitest.config.ts`), and the nightly workflow runs every file
+that way, so a test that passes only on another file's leftovers fails there.
+
+In a shared load, module state carries from file to file: undo every change a test makes to a module's own state (a
+table, a counter), not only `CONFIG`, which the setup file resets after each file. Checked 19/11/2026 on a 2-core
+session: the full suite went from about 9 minutes to about 2 minutes 15 seconds, the same tests passing in file order
+and shuffled; the two leftovers it found were a save-test cleanup that deleted the real v10 migration and an id that
+matched a number check.
+
 ## Watching motion
 
 1. `npm run build`.
