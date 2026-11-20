@@ -75,7 +75,7 @@ describe('finishing a fight far below the player', () => {
 
   it('IQ4 a: it hands the turn back when the player is hurt, a foe leaves the fight standing, or the fight stops qualifying', () => {
     const stops = new Set<string>();
-    for (let seed = 1; seed <= 40; seed++) { // fights are short: the guard wounds the player first in about one seed in forty
+    for (let seed = 1; seed <= 40 && stops.size < 3; seed++) { // stops once all three ways back have been seen
       const s = fight();
       stronger(s, 10);
       const guard = s.actors.find((a) => a.id === 'guard_1')!, lost = s.player.core.condition.hpLostPct;

@@ -217,12 +217,13 @@ The source of truth for every design decision.
   check, unit and scenario tests, build, browser smoke, and the PR rule. The template's terms (completeness rows,
   whole-turn test) are in `docs/glossary.md`.
 - Tests manage risk; they are not a deliverable. Before adding one, search `tests/` for a test or smoke flow that
-  already covers the behaviour; if one does, extend it or name it. A temporary test may check a task; delete it and
-  its fixtures before the PR merges. A new permanent test case, in a new file or an existing one, needs the owner's OK,
-  quoted in the PR: ask only when a break would go unnoticed (numbers, saves, RNG, ordering, a sibling path) and
-  nothing covers it, and write it in the cheapest form that catches it: a pure function gets a unit test, a whole turn
-  only when the turn itself is the risk. Changing an existing test's assertions or adding a completeness row needs no
-  OK. Never match source text.
+  already covers the behaviour; if one does, extend it or name it. Add a permanent test only for a credible
+  regression nothing else would catch (numbers, saves, RNG, ordering, a sibling path), never just because a bug was
+  fixed, logic was added or a PR was opened, and say in the PR why existing coverage falls short. Use the cheapest
+  form that catches it: a pure function gets a unit test, a whole turn only when the turn itself is the risk, and a
+  loop over seeds stops once it has seen what it asserts. A temporary test may check a task; delete it and its
+  fixtures before the PR merges. Ask the owner only about a test that would be costly to keep or run, or that changes
+  how the suite is built. Never match source text.
   Docs, spec, rule, config and tooling changes, and wiring a smoke flow already covers, get none. A test that
   duplicates another, guards nothing or matches source text may be deleted in a PR that touches it, naming what
   covers it. A change of meaning gets a search of the whole repo for the old pattern, not a guard test (spec, TQ5).
