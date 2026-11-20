@@ -573,10 +573,12 @@ function bodyAttacks(state: GameState, a: Actor): { bodyAttacks?: BodyAttackView
   return l.length ? { bodyAttacks: l } : {};
 }
 
+/** BG-329: refusals that rule out one target (out of range, or not a foe for a bluff); a spent move keeps its targets */
+const NOT_A_TARGET = ['no_target', 'not_a_foe'];
 /** AE8: one owned perk move as the view shows it; used (A3): spent for this engagement (an aimed one: on everyone in range) */
 function perkMoveOf(state: GameState, p: Actor, id: string, actors: { id: string }[]): PerkMoveView {
   const def = PERK_MOVES[id];
-  const inRange = def.untargeted ? undefined : actors.filter((x) => perkMoveBlock(state, p, id, x.id) !== 'no_target').map((x) => x.id);
+  const inRange = def.untargeted ? undefined : actors.filter((x) => !NOT_A_TARGET.includes(perkMoveBlock(state, p, id, x.id) ?? '')).map((x) => x.id);
   const used = inRange ? inRange.length > 0 && inRange.every((x) => perkMoveBlock(state, p, id, x) === 'used_this_engagement') : perkMoveBlock(state, p, id, null) === 'used_this_engagement';
   return { id, name: getLibrary().perks[id]?.name ?? id, does: def.does, ...(def.free ? {} : { action: true as const }), ...(inRange ? { inRange } : {}), ...(used ? { used: true as const } : {}) };
 }

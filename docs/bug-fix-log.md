@@ -9,6 +9,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the spec's bug log, docs/spec/bug-log.md, has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-329
+
+**What was wrong:** A perk move's list of targets (which the action deck offers, and which an NPC's agent is shown) left out only those out of range. The engine refuses more than that: Bluff works only on a foe, so an ally in reach was offered and then refused as not a foe.
+
+**What was done:** The list now also leaves out anyone the engine would refuse as not a foe, using the engine's own check; a move already spent this fight still lists its targets. A scenario test puts a foe and an ally in reach and checks that only the foe is offered for a bluff.
+
+**Fixed by:** #1193
+
 ## BG-328
 
 **What was wrong:** The save check required exactly one current class whenever an actor knew any class. That rule dates from the first prototype, before classless starts (CC6 b): a Start with no class begins with Commoner open but no current class (SHEET-50, SHEET-95), so its save would have been reported broken. No Start is classless today (SHEET-97), so no player met it; it was found while settling the actor-sheet discrepancies.
