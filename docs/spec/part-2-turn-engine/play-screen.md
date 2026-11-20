@@ -359,8 +359,10 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 #### Character page as one screen
 
 - **PS-220** The Character page fits the window with no page scroll (Ali, 14/11/2026, CP1–CP5).
-- **PS-221** The character card is on the left (who, health, level and XP, capstone choice, then the body figure beside
-  power, standing attack and defense), the skill trees on the right.
+- **PS-221** The character card is on the left (who, health, level and XP, capstone choice, then the body figure across the
+  card's width over a row of power, standing attack and defense and a row of the ratings), the skill trees on the right.
+  The figure fills the space left on the card and shrinks with the window (its canvas scales; a click reads its on-screen
+  box), so the card never scrolls.
 - **PS-222** A strip of four tiles runs along the bottom, Essences, Perks, Gear and Personality, each with a one-line
   summary, each opening its section in a pop-up.
 - **PS-223** There are two kinds of pop-up. Partial ones float, drag by their head and leave the page usable (Essences,
@@ -439,16 +441,18 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
   with its rating and its share in words, then the total. The lines always add up to the number.
 - **PS-273** Below the total a closed Ratings list shows every compound row and skill group with anything in it, in
   skill points, with its gear portion (GR7).
-- **PS-274** Skill rows: each skill takes two lines so the bar always spans its tree's width: the name with its true
-  value at the right, then the bar with its learning window.
+- **PS-274** Skill rows: each skill is one line: its icon (and any tag, flaw, used or marked sign), its true value, the
+  bar, then its learning window. The skill's name, with its SKILL\_SUB note ("sets HP"), is the row's tip and accessible
+  name, never a line of its own.
 - **PS-275** When the true value differs from raw, the value gets a dotted underline and the raw value shows in a small
   card beside it only on hover or keyboard focus.
-- **PS-276** Under the card's figures, the six compound ratings (CONFIG.RATINGS, PS-273) sit in one row, each an icon
+- **PS-276** Under the card's power, attack and defense row, the six compound ratings (CONFIG.RATINGS, PS-273) sit in one row, each an icon
   and its whole number; the name, exact value and gear portion are the tip and accessible name (src/ui/power.ts
   ratingIcons; icons in scripts/icons.mjs).
-- **PS-277** Every skill row starts with the skill's icon, tinted its tree's colour (SKILL\_ICON in
-  src/ui/itemIcons.ts; a skill shares an item or class icon where one fits). The tree bands are at least 220 px wide,
-  so more trees sit in one row.
+- **PS-277** Every skill row starts with the skill's icon in place of its name, tinted its tree's colour (SKILL\_ICON in
+  src/ui/itemIcons.ts; a skill shares an item or class icon where one fits). The tree bands are at least 160 px wide,
+  so more trees sit in one row (six at 1600 px), and a band's heading shows its tree total as a bare number, with
+  "points in this tree" as its tip, so it stays on one line.
 - **PS-278** Each section tile under the Character page (Essences, Perks, Gear, Personality) shows its icon before its
   label (the tile_ picks in scripts/icons.mjs).
 - **PS-279** The card's Power, Standing attack and Standing defense figures show an icon in place of their words; the
