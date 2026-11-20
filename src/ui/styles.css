@@ -1080,6 +1080,8 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-who.last :is(circle, rect) { fill: var(--bg); stroke: var(--c4); stroke-dasharray: 3 2; }
 .map-who.last text { fill: var(--c4); }
 .map-who.plan-who :is(circle, rect) { stroke-width: 1.5; }
+/* MAP-68: the faint "somewhere here" circle round someone out of full sight */
+.map-who.plan-who .map-who-ring { fill: none; stroke: color-mix(in srgb, var(--c4) 45%, transparent); stroke-width: 1; stroke-dasharray: 4 4; }
 .map-who.plan-who text { font-size: 13px; pointer-events: none; }
 .map-who.plan-who .map-who-label { fill: var(--text); font-size: 13px; font-weight: 700; paint-order: stroke; stroke: var(--bg); stroke-width: 3px; opacity: 0; pointer-events: none; }
 .map-who.plan-who:hover .map-who-label { opacity: 1; }

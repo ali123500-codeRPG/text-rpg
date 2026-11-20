@@ -284,6 +284,9 @@ function useStage(st: GameState, stage: FakeStage): void {
     if (pos) a.pos = pos;
     if (x.race) { a.core.raceId = x.race; a.core.bodyTypeId = getLibrary().races![x.race].bodyTypeId; }
     if (x.facing) a.facing = x.facing;
+    const last = x.last === 'zone' ? undefined : x.last && at(x.zone, x.last);
+    if (x.last) (p.journal!.lastKnown ??= {})[x.id] = x.zone;
+    if (last) (p.journal!.lastSpot ??= {})[x.id] = { ...last, floor: zone.floor };
     return a;
   });
   st.hidden.plans = {}; st.hidden.agreements = []; st.quests = [];
