@@ -220,7 +220,8 @@ export function planView(api: GameApi, opts: PlanOpts) {
     }
     for (const p of sc.places) if (within(p.title, inView)) gMarks.append(textMark(p.title, `map-place-title${p.id === d.focus ? ' on' : ''}`, { 'data-role': 'label', 'data-id': `place:${p.id}`, 'data-for': p.id, 'data-placement': 'outside', 'data-area': p.id }, 'title'));
     for (const e of sc.exits) {
-      if (!within(e.note, inView)) continue;
+      // BG-349: the arrow is part of the mark, so it too must be whole in view (its shaft's box, as the layout takes it)
+      if (!within(e.note, inView) || !within({ x0: Math.min(e.x1, e.x2) - 3, y0: Math.min(e.y1, e.y2) - 3, x1: Math.max(e.x1, e.x2) + 3, y1: Math.max(e.y1, e.y2) + 3 }, inView)) continue;
       const open = e.goto ? {} : exitAttrs(e.zoneId, e.target);
       const on = d.exitSel?.zoneId === e.zoneId && d.exitSel.label === e.target ? ' picked' : '';
       gMarks.append(s('g', { class: `map-exit${e.goto ? ' away' : ' open'}${e.zoneId === d.selected ? ' hot' : ''}${on}`, 'data-role': 'exit', 'data-id': e.id, 'data-target': e.target, ...(e.goto ? { 'data-goto': e.goto } : open) },
