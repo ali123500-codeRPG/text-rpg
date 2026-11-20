@@ -10,6 +10,16 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the spec's bug log, docs/spec/bug-log.md, has one. Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-350
+
+**What was wrong:** On `?fake=1&stage=one-room` with a person standing at their point in the 20 m² storeroom (5 × 4 m), the person was drawn outside the room at every zoom, even at the closest, where the room is 150 × 120 px. With two people there the minimap also logged "MAP-32 exit exit:cell.store:cell.hall found no room for its arrow and note" at 25 m and 40 m, and on the Map at 100 m. MAP-25 places each mark inside a zone at the widest of the set zooms (PLACE_KS) that has room for it; MAP-68 puts everyone in full sight at their own point.
+
+**Root cause:** In `planScene` (`src/ui/mapPlan.ts`) every mark inside a zone is placed once at each of PLACE_KS in turn (1, 1.6, 2.5) and keeps the first spot it gets (BG-216). Furniture with no free spot at a set zoom waits for the next one, but a person did not: at k = 1 the storeroom is 60 × 48 px and your pin's box (its facing point, 30 × 30 px) covers its whole height, so `nearFree` found no spot and the person fell into the row of people with no known point, whose last resort, `outsideNear`, put them below the south wall. That spot was then carried to every closer zoom as a share of the zone, so they stayed outside even where the room had space, and below the south wall they took the room the locked door's exit arrow and note needed.
+
+**What was done:** A person at their own point with no free spot at a set zoom now waits for the next, as furniture does, so they are placed at the first of PLACE_KS with room in their zone and stand at their own point at every zoom from there in. Only the zoom drawn may step them aside (`outsideNear` from their own point), never into the row, so they keep their own name rather than "somewhere in here". Checked by zooming every step in and out on bent-nail, one-room and long-names, and one-room with one and with two people, on the minimap and the Map, in 1600 px and 1100 px windows: the people stand inside the storeroom on the Map's first view and the minimap's first view, and the MAP-32 finding is gone. Zoomed out to where your pin's box fills the room's height (the Map's widest steps, the minimap from 40 m), they still step aside across the wall; how they should show there is a question for the owner.
+
+**Fixed by:** #1425
+
 ## BG-349
 
 **What was wrong:** Zooming every step in and out logged "MAP-50 exit exit:v_square:m_road extends past the map edge" on the default fake page's minimap at 60 m (1600 px window), and "MAP-50 exit exit:m.servery:m.kitchens extends past the map edge" on long-names' Map at 60 m (1100 px window): the note "the mill road" showed while its arrow ran off the bottom edge. The smoke test checks only the first views, so it passed.
