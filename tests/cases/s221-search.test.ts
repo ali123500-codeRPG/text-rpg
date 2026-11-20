@@ -203,4 +203,28 @@ describe('221 search', () => {
     expect(searches(s).length).toBe(1);
     expect(g.mind!.knowledge.player?.status).toBe('aware');
   }));
+
+  it('WC1/WC2, LX8 a: inside its area a Search uses up waiting\'s contest; in either ring that contest still runs, and the better counts', () => {
+    for (const [m, keeps] of [[1.5, false], [3, true], [9, true]] as const) { // in the 2 m area, ring one (to 4 m), ring two
+      vi.restoreAllMocks();
+      const s = makeVillage({ playerZone: 'street_square' });
+      (CONFIG as { SEARCH_RADIUS_AT_0_M: number }).SEARCH_RADIUS_AT_0_M = 0.001; // after makeVillage, which resets CONFIG: every radius at the 2 m floor
+      const g = spawnNpc(null, TP.guard, { id: 'guard_x', zone: 'street_square', placeId: 'street', bandId: 'village_watch', name: 'Bors', storyId: 'test' });
+      s.actors.push(g);
+      beside(s, 'guard_x', 'player', m);
+      s.player.posture = 'stealthy';
+      let passive = 0;
+      const real = ruleset.contested;
+      vi.spyOn(ruleset, 'contested').mockImplementation((a, b, st, rng) => {
+        if (a.rollKind !== 'stealth') return real(a, b, st, rng);
+        if (!a.roles && b.actorId === 'guard_x') passive++;
+        const gap = a.roles ? -1 : 1; // the search loses, the passive contest wins
+        return { ...real(a, b, st, rng), gap, winner: gap < 0 ? 'a' : 'b' } as ContestResult;
+      });
+      play(s, { agentOutputs: [plannerOut('guard_x', act('search'))] }, 1); // seed 1: the guard's search goes before the hider's turn
+      expect(searches(s).length, `${m} m`).toBeGreaterThan(0);
+      expect(passive > 0, `${m} m`).toBe(keeps);
+      expect(g.mind!.knowledge.player?.status === 'aware', `${m} m`).toBe(keeps);
+    }
+  });
 });
