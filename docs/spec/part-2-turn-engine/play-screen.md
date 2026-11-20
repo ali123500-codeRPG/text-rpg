@@ -45,8 +45,7 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 - **PS-31** Small capital labels keep their capitals with .06em letter spacing (LK6 a).
 - **PS-32** A perk name beside the ladder wraps to a second line rather than being cut short (LK6 a).
 - **PS-33** Tokens: every colour, radius, space and duration comes from a named token in `:root`. New tokens are fine
-  when they are named for the game (like --perk-20, --essence); a rule never uses a raw hex (HS10;
-  tests/unit/styles-tokens.test.ts).
+  when they are named for the game (like --perk-20, --essence); a rule never uses a raw hex (HS10).
 - **PS-34** Words: plain words, one name per thing, no internal ids. Colour always comes with a word.
 - **PS-35** Real-world dates are DD/MM/YYYY; in-world time reads "Day 2 · Morning".
 - **PS-36** Buttons start with a verb and say what happens (Equip, Take, Move to here); no button names a key (A8).
@@ -105,9 +104,8 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 - **PS-71** An estimate is editable only when the player sets the input behind it (the creation screen's practice
   swings) (HS6).
 - **PS-72** Depth: no glows and no shadows except the toast shadow (also the motion rules).
-- **PS-73** Hover and focus never change size or position: only colour, opacity, background or an outline.
-  tests/unit/styles-tokens.test.ts fails on a :hover or :focus rule that sets width, height, margin, padding, border
-  width, font size, font weight or letter spacing (P6).
+- **PS-73** Hover and focus never change size or position: only colour, opacity, background or an outline: no
+  :hover or :focus rule sets width, height, margin, padding, border width, font size, font weight or letter spacing (P6).
 
 #### Tips, choice states and risky choices
 
@@ -533,7 +531,7 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 - **PS-323** A "Held / worn" line names the gear in use.
 - **PS-324** Colours and depth: every colour comes from a named token in `:root` (health levels run ok → warn → danger →
   grey; time of day uses c4, scenario-mark, c7 and accent; perk gold is --perk-20, which takes scenario-mark's colour, PS-460).
-- **PS-325** No glows and no drop shadows except the toast shadow; tests/unit/styles-tokens.test.ts enforces both.
+- **PS-325** No glows and no drop shadows except the toast shadow.
 
 #### Place and scenario breaks, scenario ending moment
 

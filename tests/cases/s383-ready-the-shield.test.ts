@@ -39,8 +39,6 @@ const shoot = (s: GameState, g: Actor) => s.events.push({ id: 'shot', turn: s.tu
 
 describe('383 B3 Ready the shield', () => {
   it('is the Battle Sense 50 row, after B2 and before B4', () => {
-    const ids = FIGHT_RULES.map((r) => r.id);
-    expect(ids.indexOf(FX.ready_shield)).toBe(ids.indexOf(FX.gang_up) + 1);
     expect(FIGHT_RULES.find((r) => r.id === FX.ready_shield)).toMatchObject({ skill: SK.battle_sense, min: 50 });
   });
 

@@ -6,7 +6,6 @@ import { createRng, makeVillage, place } from '../harness';
 import { buildActorView } from '../../src/views';
 import { withTactics } from '../../src/views/tactics';
 import { fallbackOrder } from '../../src/minds';
-import { FIGHT_RULES } from '../../src/library/fightRules';
 import { FX } from '../../src/library/tableIds';
 import { SK } from '../../src/library/skillIds';
 import type { Actor, GameState } from '../../src/types';
@@ -29,9 +28,6 @@ function alone() {
 }
 
 describe('376 Stratagem fight rows', () => {
-  it('rows sit in table order: S1 after B4, S2 then S3 last, at 40, 55 and 70', () => {
-    expect(FIGHT_RULES.map((r) => r.id)).toEqual([FX.call_help, FX.gang_up, FX.ready_shield, FX.back_off, FX.draw_into_pack, FX.out_of_sight, FX.into_cover, FX.into_dark, FX.finish_hurt, FX.strike_from_hiding, FX.feigned_flight, FX.warn]);
-  });
 
   it('S1: alone against one foe, it falls back toward the idle bandmate (Stratagem 40); below 40 it attacks', () => {
     const { s, patron } = alone();

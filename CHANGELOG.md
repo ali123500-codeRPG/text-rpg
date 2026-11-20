@@ -11,6 +11,10 @@ Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instr
   rules 10 to 12 keep their numbers (the owner: "I mean the keep the repo clean one. you can remove it, no need to
   renumber the rest just call it placeholder for future rules."). The "See rule 9" pointer and the rule 9 line in
   `docs/memory/process-decisions.md` go with it.
+- 20/11/2026: style and format guards retired (the owner, KT6 b on "Tests I was unsure about but kept": "Keep the four
+  that keep the repo working, plus the contrast check; remove the style and format rules"). `AGENTS.md` rule 11 and
+  `docs/instructions.md` (bug log rows, bug-fix log entries) keep their rules but no longer name a test that enforces
+  them; the imports-format, no-stamps, bug-log, bug-fix-log and prompt-sections tests are gone.
 - 20/11/2026: keeping a test takes the same rule as adding one (the owner: "A permanent test must continue to earn its
   place in the suite. Existing tests should not receive automatic protection merely because they were added in the
   past"; RM23: "looks like temporary tests, we can't have everything run every test."). `docs/instructions.md`

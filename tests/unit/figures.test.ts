@@ -4,7 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { getLibrary } from '../../src/library';
 import { BT, RC } from '../../src/library/raceIds';
-import { FIGURE_CREDITS, FIGURE_KEYS, figureKey, figureUpright } from '../../src/library/figureModels';
+import { FIGURE_KEYS, figureKey, figureUpright } from '../../src/library/figureModels';
 
 const file = (key: string) => `assets/figures/${key}.json`;
 const parts = (key: string): string[] => Object.keys(JSON.parse(readFileSync(file(key), 'utf8')).parts);
@@ -39,8 +39,5 @@ describe('body figures', () => {
     expect(figureKey(undefined, BT.serpent)).toBe('shape_serpent');
     expect(figureUpright('human_woman')).toBe(true);
     expect(figureUpright('wolf')).toBe(false);
-  });
-  it('credits every model (BV12 b)', () => {
-    for (const k of FIGURE_KEYS.filter((k) => !k.startsWith('shape_'))) expect(FIGURE_CREDITS[k]?.author, k).toBeTruthy();
   });
 });

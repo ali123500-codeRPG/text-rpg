@@ -49,14 +49,14 @@ edge cases. Where a section repeats a rule from `AGENTS.md`, it is there to add 
   - A bug fix needs no OK from the owner. Write the cause and the fix once, in its `docs/bug-fix-log.md` entry; the
     PR links that entry instead of repeating it, says `Closes #n`, and merges when every check is green.
   - The claim issue exists before the first commit, so one commit carries the row, the entry and the fix: never a
-    second commit to write a PR number in. A test fails on "this PR", on a fixed row without a number, and on a new
-    row longer than one line (`tests/unit/bug-log.test.ts`). Every row has this form; rows up to BG-326 name the PR,
+    second commit to write a PR number in. A row never says "this PR", a fixed row names its number, and a new row
+    is one line. Every row has this form; rows up to BG-326 name the PR,
     and where one held more than its fix log entry, the entry ends with that row as filed.
   - When a fix needs a design choice, still call it a bug: file the BG-n and ask the fix question with a
     recommendation. Never describe a broken game state as a pending design question.
   - Every bug-fix PR adds an entry to `docs/bug-fix-log.md`, newest at the top: a `## BG-n` heading, then
     `**What was wrong:**`, `**What was done:**` and `**Fixed by:**` with the claim issue (older entries name the PR)
-    (`tests/unit/bug-fix-log.test.ts` checks the form). Copy the shape of the entry above yours.
+    Copy the shape of the entry above yours.
 - When a function behaves differently for the player than for NPCs, check all its callers and report them. The
   player holds no stances or beliefs, so a one-direction check can silently skip the player.
 
