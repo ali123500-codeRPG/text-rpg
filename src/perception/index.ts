@@ -4,7 +4,7 @@ import { SPEECH_ACTIONS } from '../types';
 import { CONFIG } from '../config';
 import { AWARENESS, GRADE_LEVELS, HIT_OUTCOMES, NOISE, type GradeLevel, type NoiseKey } from '../scales';
 import { hearingOf, soundDb, VOLUME_NOISE } from './noise';
-import { M_EPS, distOrNull, seeingM, withinM, type Located } from '../engine/position';
+import { M_EPS, distOrNull, leastGapM, seeingM, withinM, type Located } from '../engine/position';
 import { sightLevel, stillGlimpsed } from './sight';
 export { hearingOf, openAirReachM, soundDb } from './noise';
 import { isDark, now, pitchBlack, turnTime, zoneLight } from '../time';
@@ -100,7 +100,7 @@ export function sightAt(state: GameState, observer: Actor, at: Located, visibili
  * where they see each other, else the path through the doorways: walls stop a smell, light never does) */
 export function smells(state: GameState, observer: Actor, at: Located): boolean {
   const reach = effectiveSkill(state, observer, SK.scent).value;
-  if (reach <= 0) return false;
+  if (reach <= 0 || leastGapM(state, observer, at) > reach) return false; // farther than its reach by any way: no path search
   const d = distOrNull(state, observer, at);
   return d !== null && d <= reach;
 }

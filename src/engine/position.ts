@@ -74,6 +74,16 @@ function segSeg([a0, a1]: [Pos, Pos], [b0, b1]: [Pos, Pos]): number {
 export const shapeGap = (a: Shape, b: Shape): number => Math.max(0, segSeg(ends(a), ends(b)) - a.r - b.r);
 /** SZ5: metres from a point to a shape's edge */
 const pointGap = (p: Pos, s: Shape): number => Math.max(0, toSeg(p, ...ends(s)) - s.r);
+/** the fewest metres a and b can be apart by any measure here (floorGap, the sight line, a walking path; all body edge to
+ * body edge): the flat line between their points, less each body's farthest reach from its point (half its longer side),
+ * and less M_EPS for rounding. A walk is never shorter than that line, since every leg of it is at least as long as its
+ * own straight line. 0 where a title has no footprint, so a check using it falls through to the full measure. */
+export function leastGapM(state: GameState, a: Located, b: Located): number {
+  const pa = spotOf(state, a).pos, pb = spotOf(state, b).pos;
+  if (!pa || !pb) return 0;
+  const reach = (x: Located) => (isActor(x) ? Math.max(actorBody(state, x).size.lengthM, actorBody(state, x).size.widthM) / 2 : 0);
+  return Math.max(0, flat(pa, pb) - reach(a) - reach(b) - M_EPS);
+}
 /** SZ5: the gap on the floor between what stands at a and b, wherever they are (spots, people) */
 export function floorGap(state: GameState, a: Located, b: Located): number {
   const pa = pointOf(state, a), pb = pointOf(state, b);

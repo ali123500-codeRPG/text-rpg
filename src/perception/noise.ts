@@ -5,7 +5,7 @@
 import { CONFIG } from '../config';
 import type { NoiseKey } from '../scales';
 import type { Actor, GameState, Perception } from '../types';
-import { floorGap, pointAt, walkThrough, withinM, type Located } from '../engine/position';
+import { floorGap, leastGapM, pointAt, walkThrough, withinM, type Located } from '../engine/position';
 import { actorBody } from '../library';
 import { lineLoss, openingLoss } from '../plan/line';
 
@@ -38,6 +38,11 @@ export function soundDb(state: GameState, noise: NoiseKey | undefined, from: Loc
 /** HB1: how well the listener hears it: 'full' (who and what) from CLEAR_ABOVE_FLOOR_DB over HEARING_FLOOR_DB, 'partial'
  * (a sound, not who) at the floor, else null */
 export function hearingOf(state: GameState, noise: NoiseKey | undefined, from: Located, listener: Located, keenDb = 0, leanIn = false): Perception | null {
+  // too far to reach the floor even with nothing in the way, at the nearest the two can be: not heard, without tracing
+  // walls or a path (a whisper leant into an ear is louder than its distance says, so it is always traced)
+  const base = CONFIG.NOISE_DB[noise ?? 'normal'];
+  if (base === null || base === undefined) return null;
+  if (!leanIn && base + keenDb - 20 * Math.log10(Math.max(leastGapM(state, from, listener), CONFIG.NEAREST_M)) < CONFIG.HEARING_FLOOR_DB) return null;
   const db = soundDb(state, noise, from, listener, keenDb, leanIn);
   if (db === null) return null;
   const floor = CONFIG.HEARING_FLOOR_DB;
