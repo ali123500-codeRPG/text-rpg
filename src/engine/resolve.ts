@@ -323,7 +323,9 @@ import {
   perkMoveBlock,
   resolvePerkMove,
 } from './perkMoves';
-import { ridesBeside } from './beside';
+import {
+  ridesBeside,
+} from './beside';
 import {
   sawThrough,
   TRICK,
