@@ -1,17 +1,38 @@
 // Bring a branch up to date with origin/main without losing its own edits. Run with `npm run sync`:
 //   (nothing)            fetch origin/main, rebase onto it, then check every line this branch added is still there
 //   --check <old head>   only the check, after a rebase or merge done by hand (`npm run sync -- --check ORIG_HEAD`)
-// A conflict stops the rebase with what to do. Taking one side of a whole file (`git checkout --ours/--theirs`) drops
+// A conflict stops the rebase with what to do, except one kind: both sides only added new entries at the same spot of
+// a newest-first log (LOGS below). Those are kept both, this branch's first, with no other change (autoResolve). Taking one side of a whole file (`git checkout --ours/--theirs`) drops
 // every edit of the other side in that file, which is how edits went missing before; the check catches that.
 // Plain-syntax TypeScript so Node 22 runs it as is; tests/unit/sync-check.test.ts checks the comparison.
 // @ts-expect-error Node types are not installed; Node runs this file
 import { execFileSync, spawnSync } from 'node:child_process';
+// @ts-expect-error Node types are not installed; Node runs this file
+import { readFileSync, writeFileSync } from 'node:fs';
 // @ts-expect-error Node types are not installed; Node runs this file
 import { pathToFileURL } from 'node:url';
 
 declare const process: { argv: string[]; exitCode?: number };
 
 const git = (...a: string[]): string => execFileSync('git', a, { encoding: 'utf8', maxBuffer: 1 << 28 });
+
+/** newest-first logs where two PRs adding an entry at the top always meet; only pure additions there are resolved */
+export const LOGS = ['CHANGELOG.md', 'docs/bug-fix-log.md'];
+
+/** a conflicted file (diff3 marks) with both sides keeping, or null when any conflict is more than two insertions at one
+ *  spot: the base between them must be empty. In a rebase "ours" is main and "theirs" is this branch's newer entry, so
+ *  the branch's entry goes first; an entry both sides added word for word is kept once. */
+export function autoResolve(text: string, blankBetween = false): string | null {
+  const mark = /^<<<<<<< [^\n]*\n([\s\S]*?)^\|\|\|\|\|\|\| [^\n]*\n([\s\S]*?)^=======\n([\s\S]*?)^>>>>>>> [^\n]*\n/m;
+  let out = text;
+  for (let m = mark.exec(out); m; m = mark.exec(out)) {
+    const [whole, ours, base, theirs] = m;
+    if (base.trim()) return null;
+    const sep = blankBetween && !theirs.endsWith('\n\n') ? '\n' : '';
+    out = out.slice(0, m.index) + (ours === theirs ? ours : theirs + sep + ours) + out.slice(m.index + whole.length);
+  }
+  return /^(<<<<<<<|=======|>>>>>>>)( |$)/m.test(out) ? null : out;
+}
 
 /** file → the non-blank lines a diff adds to it */
 export function addedLines(diff: string): Map<string, string[]> {
@@ -69,7 +90,17 @@ function main(args: string[]): number {
   const branch = git('rev-parse', '--abbrev-ref', 'HEAD').trim();
   const remote = git('ls-remote', 'origin', `refs/heads/${branch}`).split('\t')[0].trim();
   const push = remote ? `git push --force-with-lease=${branch}:${remote} origin HEAD:${branch}` : `git push -u origin HEAD:${branch}`;
-  const r = spawnSync('git', ['rebase', 'origin/main'], { stdio: 'inherit' });
+  let r = spawnSync('git', ['-c', 'merge.conflictStyle=diff3', 'rebase', 'origin/main'], { stdio: 'inherit' });
+  const merged = new Set<string>();
+  while (r.status !== 0) {
+    const stuck = git('diff', '--name-only', '--diff-filter=U').split('\n').filter(Boolean);
+    const fixed = stuck.length && stuck.every((f) => LOGS.includes(f))
+      ? stuck.map((f) => [f, autoResolve(readFileSync(f, 'utf8'), f !== 'CHANGELOG.md')] as const) : [];
+    if (!fixed.length || fixed.some(([, text]) => text === null)) break;
+    for (const [f, text] of fixed) { writeFileSync(f, text!); git('add', f); merged.add(f); }
+    r = spawnSync('git', ['-c', 'core.editor=true', '-c', 'merge.conflictStyle=diff3', 'rebase', '--continue'], { stdio: 'inherit' });
+  }
+  if (merged.size) console.log(`Kept both sides' new entries in ${[...merged].join(', ')} (this branch's first).`);
   if (r.status !== 0) {
     console.error([
       '',
