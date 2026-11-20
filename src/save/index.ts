@@ -251,9 +251,11 @@ export async function undoTurn(store: Store, storyId: string): Promise<void> {
     const refs = await commitPages(store, storyId, { engine }, head.undo.turn, live);
     const next: Head = { ...head, turn: head.undo.turn, pages: { ...head.undo.pages, ...refs }, undo: null };
     await store.set(headPath(storyId), next);
-    await store.delete(turnPath(storyId, head.turn));
+    return { next, undone: head.turn };
+  }).then(({ next, undone }) => guard(async () => { // BG-338: the head is written, so the undo is done whatever fails now
+    await store.delete(turnPath(storyId, undone));
     await cleanup(store, storyId, next);
-  });
+  }, true));
 }
 
 export async function readTurnRecord(store: Store, storyId: string, turn: number): Promise<TurnRecord | null> {

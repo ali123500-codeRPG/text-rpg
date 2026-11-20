@@ -29,7 +29,7 @@ roadmap, is linked from #1218.
 - Meta and story text are not part of the commit. Meta holds settings, which undo and restore do not rewind either, so
   a meta that moved ahead mid-story is harmless. Two cases were bugs: BG-336 (a first save with no head) and BG-337
   (story text after a failed head write). Both fixed.
-- BG-338 (open, #1225): after `/undo`'s head write, a failed delete is reported as "nothing to undo".
+- BG-338 (fixed, #1225): after `/undo`'s head write, a failed delete was reported as "nothing to undo".
 - `useBookmark` (the undo or safety choice after a refused load, spec sections 8 and 10) has no caller outside tests.
   A refused load only shows a notice, and a backup can't be restored either: backups are listed, and restored, only
   once a story has loaded. So a refused load has no way back in the game but a new character, and the safety

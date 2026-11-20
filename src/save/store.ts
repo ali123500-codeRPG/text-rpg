@@ -9,7 +9,7 @@ function docPath(path: string): void {
 export type MemoryStore = Store & {
   /** raw JSON per path, for tests that tamper with a page */
   docs: Map<string, string>;
-  /** next write to a path matching this fails once with the given code */
+  /** next write or delete of a path matching this fails once with the given code */
   failNext?: { match: RegExp; code: string };
 };
 
@@ -17,6 +17,12 @@ export type MemoryStore = Store & {
 export function memoryStore(now: () => number = () => 0): MemoryStore {
   const docs = new Map<string, string>();
   const leases = new Map<string, { owner: string; until: number }>();
+  const failIfNext = (path: string) => {
+    if (!s.failNext?.match.test(path)) return;
+    const code = s.failNext.code;
+    s.failNext = undefined;
+    throw { code, message: `injected ${code}` };
+  };
   const s: MemoryStore = {
     docs,
     async get<T>(path: string) {
@@ -26,15 +32,12 @@ export function memoryStore(now: () => number = () => 0): MemoryStore {
     },
     async set(path, value) {
       docPath(path);
-      if (s.failNext && s.failNext.match.test(path)) {
-        const code = s.failNext.code;
-        s.failNext = undefined;
-        throw { code, message: `injected ${code}` };
-      }
+      failIfNext(path);
       docs.set(path, JSON.stringify(value));
     },
     async delete(path) {
       docPath(path);
+      failIfNext(path);
       docs.delete(path);
     },
     async list(prefix) {
