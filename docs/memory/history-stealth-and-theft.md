@@ -26,3 +26,6 @@ IDs name the owner's answers.
 - **Each sense contests on its own (20/11/2026; D-40, decision card Q1-Q3).** Every detection sense that reaches a
   watcher makes its own stealth contest, once per turn; slipping away must beat every sense; smell always rolls; Every
   Sense One makes sight and hearing one contest. One shared list of detection senses for stealth and searches.
+- **The ambush is a Combat Stealth roll (20/11/2026; BG-343, decision card AQ1-AQ4).** An ambush rolls nothing of its
+  own: the attack's own Combat Stealth contests, per sense and once per turn, decide who notices and the surprise (every
+  sense of the target must lose), for any attacker, Stealthy or not.

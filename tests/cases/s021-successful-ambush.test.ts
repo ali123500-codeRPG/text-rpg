@@ -21,7 +21,9 @@ it('21 Successful ambush: the target keeps its routine order; next turn only eng
     effects: [], noise: 'normal', visibility: 'normal', perception: { guard_1: { level: 'full', cue: 'sight' } },
   };
   expect(resolveAmbush(s, 'player', 'guard_1', attack, createRng(1)).surprised).toBe(true);
-  expect(actor(s, 'guard_1').mind!.knowledge.player?.status ?? 'unaware').toBe('unaware');
+  // the ambush is the attack's own Combat Stealth contests (BG-343): a target that loses them all is caught off guard and,
+  // as any attack's target that loses (ST19), only suspects where the blow came from
+  expect(actor(s, 'guard_1').mind!.knowledge.player?.status).toBe('suspicious');
   const view = buildActorView(s, 'guard_1');
   expect(alertOrders(s, [view])).toEqual([]);
   expect(routineOrder(view).source).toBe('routine');
