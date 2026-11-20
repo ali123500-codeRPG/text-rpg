@@ -67,15 +67,17 @@ def mark(name, page_version, changes, out, at=None):
         else: w.append(_w('set', f'qs/{name}/items', qid, fields, out))  # over a question still inside the page spec
     return w + [bump(name, page_version, out, at)]
 
-def new_page(name, title, header, rounds, out, at=None):
-    """A whole new questionnaire. header = spec without GROUPS/QS. rounds = [(g, title, sub, [questions])]."""
+def new_page(name, title, header, rounds, out, at=None, desk=None):
+    """A whole new questionnaire. header = spec without GROUPS/QS. rounds = [(g, title, sub, [questions])].
+    desk = the desk that asks (its `desk:` label without the prefix, e.g. 'main'); the hub shows it on the card."""
+    if not desk: raise ValueError("new_page needs desk=: your desk's name, as in its desk: label (docs/providers/claude.md)")
     at = at or now(); base = ms(at); w = []
     for r, (g, rt, rs, qs) in enumerate(rounds):
         lint({'QS': qs})
         w.append(_w('set', f'rounds/{name}/items', g, {'title': rt, 'sub': rs, 'n': base + r}, out))
         w += [_w('set', f'qs/{name}/items', q['id'], _q(q, g, j), out) for j, q in enumerate(qs)]
     # spec stays JSON text: the db does not keep an object's key order, and K's order is the legend's order
-    return w + [_w('set', 'pages', name, {'title': title, 'updated': at, 'spec': json.dumps({**header, 'title': header.get('title', title)}, ensure_ascii=False)}, out)]
+    return w + [_w('set', 'pages', name, {'title': title, 'desk': desk, 'updated': at, 'spec': json.dumps({**header, 'title': header.get('title', title)}, ensure_ascii=False)}, out)]
 
 def migrate(name, page_doc, page_version, out, at=None):
     """Move an older page's GROUPS and QS into docs, keeping their order; the page keeps only its header."""
@@ -86,7 +88,8 @@ def migrate(name, page_doc, page_version, out, at=None):
     w += [_w('set', f'qs/{name}/items', q['id'], _q(q, q.get('g'), i), out) for i, q in enumerate(qs)]
     if any(q.get('g') not in known for q in qs): print('note: some questions have no round; they show last, as before')
     # keep `updated` as it was: moving changes nothing the owner can see, so it must not mark answers read
-    return w + [_w('set', 'pages', name, {'title': page_doc.get('title', sp.get('title')), 'updated': page_doc['updated'], 'spec': json.dumps(sp, ensure_ascii=False)}, out, page_version)]
+    keep = {'desk': page_doc['desk']} if page_doc.get('desk') else {}
+    return w + [_w('set', 'pages', name, {'title': page_doc.get('title', sp.get('title')), **keep, 'updated': page_doc['updated'], 'spec': json.dumps(sp, ensure_ascii=False)}, out, page_version)]
 
 IMG_MAX = 400_000  # bytes of one picture file: it travels inside one SQL query (about 2 MB at most) and loads with its page
 IMG_TYPES = {'.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.svg': 'image/svg+xml'}

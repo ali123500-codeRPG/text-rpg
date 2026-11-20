@@ -162,6 +162,8 @@ section { margin-top: 30px; }
 .pages a:hover { background: color-mix(in srgb, var(--k) 20%, var(--surface)); }
 .pages a b { color: var(--text); font-size: 15px; font-weight: 800; }
 .pages a i { font-style: normal; color: var(--k); font-weight: 700; }
+/* which Claude account (desk) wrote a questionnaire */
+.desk { display: inline-block; margin-left: 8px; padding: 0 6px; border: 1px solid var(--line); border-radius: 4px; color: var(--muted); font-size: 11px; font-weight: 700; vertical-align: middle; }
 .empty { color: var(--muted); padding: 16px 0; }
 [hidden] { display: none !important; }
 /* home tabs: Open (waiting for you or for Claude) and Completed; Completed is built only when its tab is opened */
@@ -295,7 +297,7 @@ const reaskAt = (q, updated) => { const r = Date.parse(q.reask), u = updated ? D
   return isNaN(r) ? (isNaN(u) ? 0 : u) : (!isNaN(u) && r > u ? u : r); };
 const answeredBy = (q, a, updated) => !!a && (!q.reask || Date.parse(a.at || 0) > reaskAt(q, updated));
 
-let db = null, PAGE = null, S = null, pageAt = '', unsubPage = null, unsubAns = null, unsubParts = [];
+let db = null, PAGE = null, S = null, pageAt = '', pageDesk = '', unsubPage = null, unsubAns = null, unsubParts = [];
 const saved = {}, savedAt = {}, prevTxt = {}, timers = {}, chain = {}, fresh = new Set();
 // answers typed on this visit are new answers, whatever the device clock says, so they never become the "earlier answer"
 const mine = new Set();
@@ -318,7 +320,7 @@ const statusOf = (r, a) => { let waiting = 0, unread = 0;
     if (!d && !ok) waiting++; if (ok && !readBy(q, a[id], r.updated)) unread++; }
   return { waiting, unread }; };
 const answersOf = async (id) => { const a = {}; (await db.collection(`answers/${id}/items`).get()).docs.forEach((r) => { a[r.id] = r.data(); }); return a; };
-const rowFrom = (id, x, sp, a) => { const r = { id, title: x.title || sp?.title || id, updated: x.updated || '', qs: qsOf(sp) }; r.total = r.qs.length;
+const rowFrom = (id, x, sp, a) => { const r = { id, title: x.title || sp?.title || id, desk: x.desk || '', updated: x.updated || '', qs: qsOf(sp) }; r.total = r.qs.length;
   if (a) Object.assign(r, statusOf(r, a)); else { r.waiting = r.qs.filter((q) => !q[1]).length; r.unread = 0; } return r; };
 const qsDocs = async (id) => { try { return docsOf(await db.collection(`qs/${id}/items`).get()); } catch (e) { return []; } };
 const rowOf = async (id, x) => { let a = null; const qs = qsDocs(id); try { a = await answersOf(id); } catch (e) {} return rowFrom(id, x, assemble(parse(x), [], await qs), a); };
@@ -365,7 +367,7 @@ async function checkDone() {
   apply(rowsById, ids, await Promise.all(ids.map(reread)));
   $('pageList').removeAttribute('aria-busy'); saveIndex(); if (!PAGE) renderHome();
 }
-const card = (r) => `<a href="#${esc(r.id)}" data-page="${esc(r.id)}" style="--k:${r.waiting ? 'var(--warn)' : r.unread ? 'var(--accent)' : 'var(--ok)'}"><b>${esc(r.title)}</b><i>${[r.waiting ? `${r.waiting} waiting for you` : '', r.unread ? `${r.unread} not read by Claude yet` : ''].filter(Boolean).join(' · ') || 'All answered and read'}</i><span>${r.total} question${r.total === 1 ? "" : "s"} · updated ${ddmmyyyy(r.updated)}</span></a>`;
+const card = (r) => `<a href="#${esc(r.id)}" data-page="${esc(r.id)}" style="--k:${r.waiting ? 'var(--warn)' : r.unread ? 'var(--accent)' : 'var(--ok)'}"><b>${esc(r.title)}${r.desk ? `<span class="desk">${esc(r.desk)}</span>` : ''}</b><i>${[r.waiting ? `${r.waiting} waiting for you` : '', r.unread ? `${r.unread} not read by Claude yet` : ''].filter(Boolean).join(' · ') || 'All answered and read'}</i><span>${r.total} question${r.total === 1 ? "" : "s"} · updated ${ddmmyyyy(r.updated)}</span></a>`;
 function renderHome() {
   const all = Object.values(rowsById).sort((a, b) => (b.updated > a.updated ? 1 : -1)), open = all.filter((r) => !isDone(r)), done = all.filter(isDone);
   $('nOpen').textContent = open.length; $('nDone').textContent = done.length;
@@ -378,11 +380,13 @@ function setTab(t, focus) { homeTab = t; if (focus) $(t === 'done' ? 'tabDone' :
 $('tabOpen').addEventListener('click', () => setTab('open'));
 $('tabDone').addEventListener('click', () => setTab('done'));
 document.querySelector('.tabs').addEventListener('keydown', (e) => { if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) { e.preventDefault(); setTab(homeTab === 'open' ? 'done' : 'open', true); } });
+let offerOnHome = null;
 function showHome() {
+  if (offerOnHome) { const f = offerOnHome; offerOnHome = null; f(); }
   Object.keys(timers).forEach(store); // save typing still waiting before leaving
   if (PAGE && S) { // the questionnaire just left, counted from what this visit saw (answers typed now count as new)
     const a = {}; for (const id in saved) if (saved[id]) a[id] = { text: saved[id], at: mine.has(id) ? new Date().toISOString() : savedAt[id] };
-    const r = rowFrom(PAGE, { title: S.title, updated: pageAt }, S, a); left.set(PAGE, r); if (rowsById) rowsById[PAGE] = r; }
+    const r = rowFrom(PAGE, { title: S.title, desk: pageDesk, updated: pageAt }, S, a); left.set(PAGE, r); if (rowsById) rowsById[PAGE] = r; }
   PAGE = null; S = null; unsubPage?.(); unsubAns?.(); unsubParts.forEach((u) => u?.()); unsubPage = unsubAns = null; unsubParts = [];
   $('home').hidden = false; $('page').hidden = true; $('backBtn').hidden = true; $('nextBtn').hidden = true; $('saveBtn').hidden = true; $('wake').hidden = true;
   $('title').textContent = 'Questions'; $('intro').textContent = ''; $('prog').textContent = ''; document.title = 'Questions';
@@ -434,7 +438,7 @@ function openPage(id, noPush) {
   // the header, the rounds and the questions arrive apart: draw once all three are in, then again on every change
   const got = { page: undefined, rounds: undefined, qs: undefined }, draw = () => { if (PAGE !== id || Object.values(got).includes(undefined) || !got.page) return;
     const sp = assemble(got.page, got.rounds, got.qs); if (sp) render(sp); };
-  unsubPage = db.doc('pages/' + id).onSnapshot((d) => { const sp = parse(d.data()); if (!sp) return; pageAt = d.data()?.updated || ''; got.page = sp; draw(); }, () => {});
+  unsubPage = db.doc('pages/' + id).onSnapshot((d) => { const sp = parse(d.data()); if (!sp) return; pageAt = d.data()?.updated || ''; pageDesk = d.data()?.desk || ''; got.page = sp; draw(); }, () => {});
   unsubParts = ['rounds', 'qs'].map((c) => db.collection(`${c}/${id}/items`).onSnapshot((snap) => { got[c] = docsOf(snap); draw(); }, () => { got[c] = got[c] || []; draw(); }));
   unsubAns = db.collection(`answers/${id}/items`).onSnapshot((snap) => {
     snap.docs.forEach((d) => { const x = d.data(); if (!x) return; saved[d.id] = x.text; savedAt[d.id] = x.at || ''; prevTxt[d.id] = x.prev || ''; if (x.auto) fresh.add(d.id);
@@ -468,7 +472,7 @@ function render(sp) {
   const keep = {}; document.querySelectorAll('textarea[data-id]').forEach((t) => { keep[t.dataset.id] = t.value; });
   S = { K: {}, NOTE: {}, GROUPS: [], QS: [], sections: [], ...sp };
   const { K, NOTE, GROUPS, QS } = S, fmt = esc;
-  document.title = S.title; $('title').textContent = S.title; $('pageCss').textContent = S.css || '';
+  document.title = S.title; $('title').innerHTML = esc(S.title) + (pageDesk ? `<span class="desk">${esc(pageDesk)}</span>` : ''); $('pageCss').textContent = S.css || '';
   $('intro').innerHTML = [].concat(S.intro || []).map((p) => `<p class="sub">${esc(p)}</p>`).join('');
   $('legend').innerHTML = Object.values(K).map((x) => `<span style="--k:${x.k}"><i></i><b>${esc(x.name)}</b> ${esc(x.meaning)}</span>`).join('');
   const n = (k) => QS.filter((q) => q.k === k && !q.withdrawn).length, wd = QS.filter((q) => q.withdrawn).length;
@@ -613,8 +617,13 @@ function supaDb(mcp) {
   const recent = new Map(); // a doc read in the last 3 s is reused: the startup check reads hub/index, and so does the home list
   const getDoc = (p) => { const r = recent.get(p); if (r && Date.now() - r.at < 3000) return r.p;
     const pr = read('doc', p).then((row) => snapDoc(p, row)); recent.set(p, { at: Date.now(), p: pr }); pr.catch(() => recent.delete(p)); return pr; };
-  const getColl = async (c, and = '') => ({ docs: (and ? await run(`select path, data from hub_docs where starts_with(path, ${q(c + '/')})
-    and strpos(substr(path, ${c.length + 2}), '/') = 0${and} order by path`) : await read('coll', c)).map((r) => snapDoc(r.path, r)) });
+  const getColl = (c, and = '') => {
+    if (and) return run(`select path, data from hub_docs where starts_with(path, ${q(c + '/')})
+      and strpos(substr(path, ${c.length + 2}), '/') = 0${and} order by path`).then((rows) => ({ docs: rows.map((r) => snapDoc(r.path, r)) }));
+    const r = recent.get('/' + c); if (r && Date.now() - r.at < 3000) return r.p;
+    const pr = read('coll', c).then((rows) => ({ docs: rows.map((x) => snapDoc(x.path, x)) }));
+    recent.set('/' + c, { at: Date.now(), p: pr }); pr.catch(() => recent.delete('/' + c)); return pr;
+  };
   const subs = new Set();
   const watch = (key, read, cb, err) => {
     const s = { key, last: null, tick: () => read().then((snap) => {
@@ -627,9 +636,9 @@ function supaDb(mcp) {
   const poke = (p) => subs.forEach((s) => { if (s.key === p || s.key === p.slice(0, p.lastIndexOf('/'))) s.tick(); });
   const doc = (p) => ({
     get: () => getDoc(p),
-    set: async (v) => { recent.delete(p); await run(`insert into hub_docs (path, data) values (${q(p)}, ${q(JSON.stringify(v))}::jsonb)
+    set: async (v) => { recent.delete(p); recent.delete('/' + parent(p)); await run(`insert into hub_docs (path, data) values (${q(p)}, ${q(JSON.stringify(v))}::jsonb)
       on conflict (path) do update set data = excluded.data, updated_at = now()`); poke(p); },
-    delete: async () => { recent.delete(p); await run(`delete from hub_docs where path = ${q(p)}`); poke(p); },
+    delete: async () => { recent.delete(p); recent.delete('/' + parent(p)); await run(`delete from hub_docs where path = ${q(p)}`); poke(p); },
     onSnapshot: (cb, err) => watch(p, () => getDoc(p), cb, err),
   });
   // many rows in one transaction, and never over a row that is already there
@@ -640,7 +649,10 @@ function supaDb(mcp) {
     where: (f, op, v) => { if (op !== '>') throw new Error('only > is supported'); return { get: () => getColl(c, ` and data->>${q(f)} > ${q(v)}`) }; },
     onSnapshot: (cb, err) => watch(c, () => getColl(c), cb, err),
   });
-  return { doc, collection, insertNew, has: async (p) => !!(await read('has', p)),
+  // a questionnaire's page, rounds, questions and answers in one query, kept 3 s for the reads that follow
+  const prefetch = (id) => { getDoc('pages/' + id).catch(() => {}); for (const c of ['rounds', 'qs', 'answers']) getColl(`${c}/${id}/items`).catch(() => {}); };
+  const has = (p) => { const r = recent.get(p); return r && Date.now() - r.at < 3000 ? r.p.then((d) => d.exists) : read('has', p).then((x) => !!x); };
+  return { doc, collection, insertNew, prefetch, has,
     ids: async (c) => (await read('ids', c)).map((r) => r.path.slice(c.length + 1)) };
 }
 
@@ -706,9 +718,13 @@ function bothDb(a, b) {
     // the built-in db stays the fallback: a viewer without the Supabase connector still sees this page's own data
     const why = (e) => { const n = document.createElement('p'); n.className = 'supa-off'; n.textContent = `Supabase unavailable (${e?.code || e?.message || e}): showing this page's own data only.`; document.body.append(n); return null; };
     const own = window.claude?.use ? await window.claude.use('db') : null;
-    const shared = sdb ? await sdb.doc('hub/index').get().then(() => sdb, why) : mcp ? null : why('connectors not offered here');
+    // reopening a questionnaire: the startup check is that questionnaire's own read (page, rounds, questions and answers
+    // in one query, reused by the page that opens); otherwise it is the home list's index
+    let last = null; try { last = JSON.parse(localStorage.getItem('qhub:last')); } catch (e) {}
+    if (sdb && last) sdb.prefetch(last);
+    const shared = sdb ? await sdb.doc(last ? 'pages/' + last : 'hub/index').get().then(() => sdb, why) : mcp ? null : why('connectors not offered here');
     db = shared ? bothDb(shared, own) : own;
-    if (shared && own) offerCopy(own, shared).catch(() => {});
+    if (shared && own) offerOnHome = () => offerCopy(own, shared).catch(() => {}); // a home-list button: checked when the list shows
   } catch (e) { db = null; }
   const last = db ? await recall('qhub:last') : null;
   if (db && last) openPage(last); else showHome();
