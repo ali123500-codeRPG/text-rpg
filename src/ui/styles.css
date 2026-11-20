@@ -490,13 +490,15 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .cs-gear { border-top: 1px solid var(--border); padding-top: 14px; display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
 .cs-gear .cs-item { color: var(--text); font-weight: 600; text-decoration: underline; text-decoration-color: var(--border); text-underline-offset: 3px; }
 .cs-gear .cs-item:hover { color: var(--accent); }
-.cs-trees { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: var(--space-4) var(--space-4); }
-.cs-tree { display: grid; gap: 10px; padding-top: var(--space-3); border-top: 2px solid var(--t); align-content: start; }
-.cs-tree-h { display: flex; align-items: center; gap: var(--space-2); }
+/* a band: the tree's emblem (icon, padlock, total) in a column beside its skills, its colour down the side; no heading row */
+.cs-trees { display: grid; grid-template-columns: repeat(auto-fit, minmax(255px, 1fr)); gap: var(--space-6) var(--space-6); align-items: start; }
+.cs-tree { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: var(--space-3); padding-left: var(--space-2); border-left: 3px solid var(--t); }
+.cs-tree-rows { display: grid; gap: 10px; align-content: start; }
+.cs-tree-h { display: flex; flex-direction: column; align-items: center; gap: var(--space-1); }
 .cs-tree-h .trico { flex: none; width: 32px; height: 32px; color: var(--t); cursor: default; }
 .cs-tree-h .trico svg { width: 100%; height: 100%; display: block; }
-.cs-tree-h b { min-width: 0; font-size: 15px; }
-.cs-tree-h .trsum { margin-left: auto; }
+.cs-tree-h b { min-width: 0; font-size: 13px; text-align: center; overflow-wrap: anywhere; }
+.cs-tree-h .trsum { font-size: 15px; font-weight: 700; color: var(--text); }
 .cs-tree-h span { color: var(--muted); font-size: 13px; white-space: nowrap; cursor: help; }
 .cs-tree-h .lock { cursor: help; }
 /* two lines per skill so the bar always gets the tree's full width: name and value, then the bar and its learning window */

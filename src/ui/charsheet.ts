@@ -275,14 +275,14 @@ function capstoneChoice(s: GameState, p: Actor): HTMLElement | null {
 export function treeBars(p: Actor): HTMLElement {
   return h('div', { class: 'cs-trees' }, trees(p, true).map((t) =>
     h('div', { class: 'cs-tree', style: `--t:var(--${t.c})` },
-      // TA10: a tree the character can't use yet keeps its points; a padlock by its name says why in its tip
+      // the tree's emblem beside its skills: its icon, a padlock where TA10 applies (why, in its tip), and its total
       h('div', { class: 'cs-tree-h' }, treeIcon(t.id, t.name) ?? h('b', {}, t.name), t.block ? markIcon('locked', t.block, 'mk-i lock') : null, h('span', { class: 'trsum', title: `${t.sum} points in this tree` }, String(t.sum))),
       // the icon stands for the name, which (with its SKILL_SUB note) is the row's tip and accessible name
-      t.rows.map((r) => { const tip = skillName(r.id) + (SKILL_SUB[r.id] ? ` · ${SKILL_SUB[r.id]}` : ''); return h('div', { class: 'cs-sk' + (r.raw ? '' : ' zero'), role: 'button', tabindex: '0', 'aria-haspopup': 'dialog', 'data-skill': r.id,
+      h('div', { class: 'cs-tree-rows' }, t.rows.map((r) => { const tip = skillName(r.id) + (SKILL_SUB[r.id] ? ` · ${SKILL_SUB[r.id]}` : ''); return h('div', { class: 'cs-sk' + (r.raw ? '' : ' zero'), role: 'button', tabindex: '0', 'aria-haspopup': 'dialog', 'data-skill': r.id,
         title: tip, 'aria-label': `${tip}: ${trueSkill(p, r.id)}`, onclick: (e: Event) => openSkillPop(p, r.id, e.currentTarget as HTMLElement),
         onkeydown: (e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openSkillPop(p, r.id, e.currentTarget as HTMLElement); } } },
         h('div', { class: 'n' }, skillIcon(r.id) ?? skillName(r.id), r.tagged ? tagIcon() : null, r.flawed ? flaw() : null, r.off ? offNote() : null, marked(p, r.id) ? markDot() : null),
-        bar(r.raw, windowOf(p, r.id), BAR_TIP), ((w) => h('div', { class: 'lwn', title: winTitle(w) }, `${w.lo}–${w.hi}`))(windowOf(p, r.id)), skillNum(trueSkill(p, r.id), r.raw)); }))));
+        bar(r.raw, windowOf(p, r.id), BAR_TIP), ((w) => h('div', { class: 'lwn', title: winTitle(w) }, `${w.lo}–${w.hi}`))(windowOf(p, r.id)), skillNum(trueSkill(p, r.id), r.raw)); })))));
 }
 
 const signed = (n: number) => `${n < 0 ? '−' : '+'}${whole(Math.abs(n))}`;
