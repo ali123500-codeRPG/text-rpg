@@ -7,9 +7,7 @@ import { newReport, repairReferences } from './checks';
 import { CONFIG } from '../config';
 import { itemHolders } from '../ruleset/threadboundItems';
 import { isActive, stance } from '../engine/relations';
-import { itemValue } from '../engine/trade';
-import { itemDef } from '../library';
-import { IT } from '../library/itemIds';
+import { stripBody } from '../engine/loot';
 import type { Actor } from '../types';
 
 /** every exact `from` string becomes `to`: in values, in arrays and as record keys. A `kind` is never an id. */
@@ -88,30 +86,11 @@ export function carryOn(world: GameState, fresh: GameState, fell = true): GameSt
 
 /**
  * WP6 a: the foes who downed `past` loot the body: everyone standing, hostile to them and in the same place, those in the
- * same zone first. The first takes all the coin; then each in turn takes the most valuable thing left, until each has
- * LOOT_TAKE_MAX or nothing of value is left. Worn containers and soulbound gear stay. A Threadbound item keeps its dead
- * owner's bond, which no longer holds (WP2), so whoever later takes it from the looter can wear it. No foe: all stays.
+ * same zone first, by stripBody's rule. A Threadbound item keeps its dead owner's bond, which no longer holds (WP2), so
+ * whoever later takes it from the looter can wear it. No foe: all stays.
  */
 export function lootTheFallen(state: GameState, past: Actor): void {
   const foes = state.actors.filter((a) => a !== past && a.mind && isActive(a) && a.placeId === past.placeId && stance(state, a, past) === 'hostile')
     .sort((a, b) => Number(b.zone === past.zone) - Number(a.zone === past.zone));
-  if (!foes.length) return;
-  const take = (a: Actor, i: (typeof past.core.inventory)[number]) => {
-    past.core.inventory = past.core.inventory.filter((x) => x !== i);
-    delete i.equippedIn;
-    const purse = i.itemId === IT.coin ? a.core.inventory.find((x) => x.itemId === IT.coin) : undefined;
-    if (purse) purse.qty = (purse.qty ?? 1) + (i.qty ?? 1);
-    else a.core.inventory.push(i);
-  };
-  for (const i of past.core.inventory.filter((x) => x.itemId === IT.coin)) take(foes[0], i);
-  const worth = (i: (typeof past.core.inventory)[number]) => itemValue(state, i.itemId) * (i.qty ?? 1);
-  const left = past.core.inventory.filter((i) => !i.soulbound && !itemDef(state, i.itemId).container && worth(i) > 0).sort((a, b) => worth(b) - worth(a));
-  const count = new Map<Actor, number>();
-  for (let k = 0; left.length; k++) {
-    const open = foes.filter((f) => (count.get(f) ?? 0) < CONFIG.LOOT_TAKE_MAX);
-    if (!open.length) break;
-    const f = open[k % open.length];
-    take(f, left.shift()!);
-    count.set(f, (count.get(f) ?? 0) + 1);
-  }
+  stripBody(state, past, foes);
 }
