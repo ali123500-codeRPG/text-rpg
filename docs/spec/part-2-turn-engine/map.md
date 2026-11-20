@@ -215,9 +215,15 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   the character can reach on foot lists its actions wherever it is on the map: there is no "too far", and no limit to
   the title you stand in. Picking one walks there and does it: the walk to the thing's spot rides along with the action,
   as a move planned on the minimap does (MAP-82). An entry is greyed only for a reason the engine gives, its reason on
-  hover ("needs its key") (MQ6 a, MQ8; Ali, 20/11/2026, Questions hub page "Map and minimap: one map, doors"). Each mark
-  carries the deck target it stands for: a doorway the title on its far side from where you stand, a stretch of wall the
-  wall standing there, a person their id, a piece of furniture its id and kind (src/ui/planView.ts `data-thing`,
+  hover ("needs its key") (MQ6 a, MQ8; Ali, 20/11/2026, Questions hub page "Map and minimap: one map, doors"). The list
+  for a thing away from your title is the deck's list as it reads standing in the thing's title (that title as the
+  character sees it now or remembers it: things on its ground only while in sight); a door is worked from the side whose
+  doorway is nearer on foot, a wall from the side clicked, and the picked action plays with the walk there, which the
+  engine carries to the thing and finishes there (ACT-334) (MQ15 a / MQ16 a; Ali, 20/11/2026, Questions hub page "Map and minimap: one map, doors"). A thing with no way to it on foot lists nothing. The
+  greyed entries are the engine's own refusals: a lock you hold no key to (no_key, "Needs its key", with a padlock) and a
+  bed full of sleepers you can see (bed_taken, "That bed is full"). Each mark
+  carries the deck target it stands for: a doorway the two titles it joins, a stretch of wall the wall standing there,
+  the title of that side and the stretch's middle, a person their id, a piece of furniture its id and kind (src/ui/planView.ts `data-thing`,
   src/ui/deck.ts `thingActions`). Furniture lists the deck's actions on its kind: a bed offers Sleep, which walks to the
   bed and sleeps there (MQ10 a; Ali, 20/11/2026, Questions hub page "Map and minimap: one map, doors"), on it and holding a place, or
   comes to nothing when it is full (MQ13 a, MQ18; Sleeping on a bed, in the Game clock topic). A thing the deck
@@ -271,10 +277,5 @@ the point here. The revision of the map's rules (D-413, Questions hub page "Map 
 one-map answers (page "Map and minimap: one map, doors", MQ1 to MQ6) are in the rules above; until each is built (D-423)
 the code decides what the game does (`AGENTS.md`, Order of authority).
 
-- **MAP-85 in part (D-423):** the lists hold what the deck lists today: the doors, walls, things on the ground and beds
-  of the title you stand in, so one outside it opens no list. The engine side is built: an action picked on a thing out
-  of reach walks there and is done on arrival (ACT-334; MQ15 a / MQ16 a; Ali, 20/11/2026, Questions hub page "Map and
-  minimap: one map, doors"). Only one greyed entry is built: the deck's door entry on a lock you hold no key to, "needs
-  its key" (the engine's way op answers no_key).
 - **MAP-44 and MAP-45:** someone heard going into a zone the character has never seen is last seen there (MAP-45), but
   the map shows only zones seen or stood in (MAP-44), so they are not drawn anywhere.

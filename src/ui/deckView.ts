@@ -96,11 +96,11 @@ export function deckView(api: GameApi, o: {
     const list = thingActions(groups, ctx, t);
     if (!list.length) return false;
     const opener = anchor instanceof HTMLElement ? anchor : null, first = list.find((e) => 'a' in e);
-    const piece = t.kind === 'furniture' ? ctx.pv.zone.furniture?.find((f) => f.id === t.id)?.name : undefined;
+    const s = api.state(), piece = t.kind === 'furniture' ? s?.furniture.find((f) => f.id === t.id)?.name : undefined;
     const title = (first && 'a' in first ? chosenLabel(first.a, first.c) : undefined) ?? (piece ? cap(piece) : t.kind === 'person' ? 'Them' : 'There');
     const pop = openPop({ title, opener, cls: 'deck-pick', body: [h('div', { class: 'dk-picks', role: 'list' }, list.map((e) => 'a' in e
       ? h('button', { type: 'button', class: 'dk-pick' + (e.a.hot ? ' hot' : ''), role: 'listitem', title: actTip(e.a), onclick: () => run(e.a, e.c, opener) }, h('b', {}, e.label))
-      : h('button', { type: 'button', class: 'dk-pick dk-lim', role: 'listitem', 'aria-disabled': 'true', title: `Needs ${e.needs}`, 'aria-label': `${e.label}, needs ${e.needs}` }, h('b', {}, e.label, lockMark(e.needs)))))] });
+      : h('button', { type: 'button', class: 'dk-pick dk-lim', role: 'listitem', 'aria-disabled': 'true', title: e.why, 'aria-label': `${e.label}: ${e.why}` }, h('b', {}, e.label, e.needs ? lockMark(e.needs) : null))))] });
     // beside the thing: to its left, or to its right where the left has no room
     if (!(anchor instanceof HTMLElement)) {
       const w = pop.offsetWidth, v = viewSize();

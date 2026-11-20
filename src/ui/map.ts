@@ -25,7 +25,7 @@ export function floorMarks(z: MapZone, sc: number, dx: number, dy: number): { fl
   const boxy = !r || o.length === 4 && o.every((q) => (Math.abs(q.x - (r.x - r.w / 2)) < 0.01 || Math.abs(q.x - (r.x + r.w / 2)) < 0.01) && (Math.abs(q.y - (r.y - r.d / 2)) < 0.01 || Math.abs(q.y - (r.y + r.d / 2)) < 0.01));
   // MAP-85: a stretch with a wall standing on it carries that wall, on a wider line that takes the click
   const walls = (z.walls ?? []).flatMap((w) => { const [x1, y1] = at(w.a), [x2, y2] = at(w.b); return [s('line', { x1, y1, x2, y2, class: `map-edge ${w.cls}` }) as SVGElement,
-    ...(w.id ? [s('line', { x1, y1, x2, y2, class: 'map-edge-hit', 'data-thing': 'wall', 'data-of': w.id }) as SVGElement] : [])]; });
+    ...(w.id ? [s('line', { x1, y1, x2, y2, class: 'map-edge-hit', 'data-thing': 'wall', 'data-of': w.id, 'data-zone': z.id, 'data-at': `${(w.a.x + w.b.x) / 2},${(w.a.y + w.b.y) / 2}` }) as SVGElement] : [])]; });
   return { floor: boxy ? null : o.map((q) => at(q).join(',')).join(' '), walls };
 }
 

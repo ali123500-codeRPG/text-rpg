@@ -359,7 +359,8 @@ export function planView(api: GameApi, opts: PlanOpts) {
   /** MAP-85: the thing a mark stands for, as the deck targets it */
   const thingOf = (m: Element): MapThing => {
     const of = m.getAttribute('data-of')!, kind = m.getAttribute('data-thing');
-    return kind === 'door' ? { kind, ends: of.split('|') } : kind === 'furniture' ? { kind, id: of, is: m.getAttribute('data-is')! } : { kind: kind === 'wall' || kind === 'item' ? kind : 'person', id: of };
+    if (kind === 'wall') { const [x, y] = (m.getAttribute('data-at') ?? '').split(',').map(Number); return { kind, id: of, zone: m.getAttribute('data-zone')!, at: { x: x!, y: y! } }; }
+    return kind === 'door' ? { kind, ends: of.split('|') } : kind === 'furniture' ? { kind, id: of, is: m.getAttribute('data-is')! } : { kind: kind === 'item' ? kind : 'person', id: of };
   };
   /** a mark that answers a click itself (MAP-62, MAP-63, MAP-85), before the ground under it plans a walk */
   function markAt(e: Event): boolean {

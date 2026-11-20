@@ -134,7 +134,7 @@ function breakThroughView(state: GameState, b: NonNullable<GameEvent['breakThrou
 /** BW12 a: the walls round the viewer's own title that can be broken: by id, what they are made of, the title behind when
  * a way from here leads there too (to, its name in behind; else unknown: nothing is given away), and the share broken at
  * their deepest dent */
-function wallsView(state: GameState, z: Zone): { walls?: ZoneView['walls'] } {
+export function wallsView(state: GameState, z: Zone): { walls?: ZoneView['walls'] } {
   const ways = new Set(waysOut(state, z.id).map((l) => l.to));
   const ws = wallsAround(state, z).flatMap(({ wall, behind: b }) => {
     const behind = b && ways.has(b.id) ? b : undefined;
