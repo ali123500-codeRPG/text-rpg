@@ -24,3 +24,18 @@ const fresh = bothDb(mem(A), mem(B)); let got; fresh.collection('qs/old/items').
 await new Promise((r) => setTimeout(r, 10)); assert.deepStrictEqual(got.docs.map((d) => d.id), ['O1']); // no listing first
 assert.strictEqual((await db.collection('pages').where('updated', '>', '1').get()).docs.map((d) => d.id).join(), 'new');
 console.log('bothDb: all checks pass');
+
+// copyOlder: whole questionnaires, in batches under the size cap, never over a row that is already in Supabase
+const cut = (name) => h.slice(h.indexOf(name), h.indexOf('\n}\n', h.indexOf(name)) + 2);
+const copyOlder = new Function(cut('const COPY_MAX') .replace(/^const COPY_MAX = \d+;.*$/m, 'const COPY_MAX = 60;') + '; return copyOlder;')();
+const S = { 'pages/kept': { from: 'S' } }, calls = [];
+const O = { 'pages/p1': { title: 'one', spec: "it's" }, 'rounds/p1/items/r1': { n: 0 }, 'qs/p1/items/Q1': { i: 0 }, 'answers/p1/items/Q1': { text: 'a.' },
+  'pages/p2': { title: 'two' }, 'answers/p2/items/Z1': { text: 'b.' }, 'pages/kept': { from: 'O' }, 'answers/kept/items/K1': { text: 'old' }, 'hub/index': { x: 1 } };
+const shared = { ...mem(S), insertNew: async (rows) => { calls.push(rows.map((r) => r[0])); for (const [p, v] of rows) if (!(p in S)) S[p] = v; } };
+const todo = (await mem(O).collection('pages').get()).docs.filter((d) => !(('pages/' + d.id) in S)), seen = [];
+assert.strictEqual(await copyOlder(mem(O), shared, todo, (d) => seen.push(d)), 2);
+assert.deepStrictEqual(calls, [['pages/p1', 'rounds/p1/items/r1', 'qs/p1/items/Q1', 'answers/p1/items/Q1'], ['pages/p2', 'answers/p2/items/Z1']]); // a questionnaire is never split
+assert.deepStrictEqual(seen, [1, 2]);
+assert.strictEqual(S['pages/kept'].from, 'S'); assert.ok(!('answers/kept/items/K1' in S) && !('hub/index' in S)); // already there: untouched; caches: not copied
+assert.strictEqual(S['pages/p1'].spec, "it's"); assert.strictEqual(Object.keys(O).length, 9);    // the own copies stay
+console.log('copyOlder: all checks pass');
