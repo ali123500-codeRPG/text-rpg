@@ -2,6 +2,7 @@
 // action deck at its foot (the Say box, Aim and Stance, every action the code allows); a right column
 // with the health strip (a click opens the full condition), the minimap, Who's here and the short sheet. Everything reads only PlayerView, the player's own sheet and the LogLines, and
 // nothing changes with the encounter mode, which agents run or how many Claude calls a turn makes (hidden information).
+import { showBackdrop } from './backdrop';
 import { PK } from '../library/perkIds';
 import { outcomeText, struck } from '../ruleset/hits';
 import type { AchievementNote, Actor, GameApi, GameState, HitNote, LogLine, Notice, Personality, PlayerView, ScenarioEndNote } from '../types';
@@ -599,6 +600,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     // M-06: while a turn runs, the header, Who's here and the sheet keep showing what they showed before it
     const frozen = api.busy() && title.childElementCount > 0;
     const pv = s ? safe(() => buildPlayerView(s)) : null;
+    if (!api.busy()) showBackdrop(pv?.zone.backdrop); // PS-488, M-06: the picture changes when a turn shows, never while one runs
     const stealthy = s?.player.posture === 'stealthy';
     bar.classList.toggle('stealthy', stealthy);
     const lines = api.lines();

@@ -4,6 +4,7 @@
 // app.js puts the CSS in a <style> itself: older artifact runtimes (the play page's contract) don't apply a linked
 // stylesheet file, but do apply inline styles.
 // dist/play is the game; dist/library is the library viewer (src/ui/libraryViewer.ts).
+// dist/play also carries assets/backdrops/: one picture per row of src/library/backdrops.ts, fetched only when shown.
 // Both also carry assets/figures/: one small 3D figure file per race or built shape (BV15 a), fetched only when shown.
 import { build } from 'esbuild';
 import { execSync } from 'node:child_process';
@@ -34,6 +35,14 @@ async function page(entry, title, dir) {
   for (const f of (await readdir('assets/figures')).filter((f) => f.endsWith('.json'))) {
     await copyFile(`assets/figures/${f}`, `${outdir}/assets/figures/${f}`);
     files.push(`assets/figures/${f}`);
+  }
+  // PS-486: the play screen's backdrops, fetched one at a time only when shown (src/ui/backdrop.ts)
+  if (dir === 'play') {
+    await mkdir(`${outdir}/assets/backdrops`, { recursive: true });
+    for (const f of (await readdir('src/ui/assets/backdrops')).filter((f) => f.endsWith('.webp'))) {
+      await copyFile(`src/ui/assets/backdrops/${f}`, `${outdir}/assets/backdrops/${f}`);
+      files.push(`assets/backdrops/${f}`);
+    }
   }
   const pick = (ext) => out.outputFiles.filter((f) => f.path.endsWith(ext)).map((f) => f.text).join('\n');
   const css = pick('.css'), js = pick('.js');

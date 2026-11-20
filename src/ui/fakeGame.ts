@@ -29,7 +29,7 @@ import { buildPlayerView } from '../views';
 import { passEssence, takeEssence } from '../engine/essence';
 import { ES } from '../library/essenceIds';
 import { now } from '../time';
-import { DU, FU } from '../library/tableIds';
+import { DU, FU, ZK } from '../library/tableIds';
 import { FAKE_STAGES, type FakeStage } from './fakeStages';
 import { drawRegion } from '../land/generate';
 import { cellsInSight } from '../land/sight';
@@ -186,19 +186,19 @@ const FAKE_PLACES = (): GameState['places'] => [FP('village', 'village', null, '
   FP('tavern', 'tavern', 'village', 'the Crooked Kettle'), FP('field', 'field', 'village', 'the slime field')];
 const FAKE_TITLES = (): TitleSpec[] => [
   FZ('v_square', 'village', 'village square', 'A muddy square around a well, with the tavern sign creaking over it.', [['tav_common', 'the Kettle’s front door', 'door'], ['field_edge', 'the east lane'], ['w_road', 'the west road']], { ...OUT, area: 1600 }),
-  FZ('ash_gate', 'ashford', 'Ashford gate', 'A timber gate in a low wall, a day’s walk west of Millbrook.', [['w_road', 'the east road'], ['f_ash', 'the market, north', 'open', true]], { ...OUT, area: 25, aspect: 2 }),
+  FZ('ash_gate', 'ashford', 'Ashford gate', 'A timber gate in a low wall, a day’s walk west of Millbrook.', [['w_road', 'the east road'], ['f_ash', 'the market, north', 'open', true]], { kind: ZK.gate,  ...OUT, area: 25, aspect: 2 }),
   // the west road, a day's walk (30 km) of real road from Millbrook's square to Ashford's gate, so the World shows the two
   // villages that far apart (CO9); "travel" sets you partway along it
   FZ('w_road', 'west_road', 'the west road', 'A rutted cart road between hedges.', [['v_square', 'Millbrook, east'], ['ash_gate', 'Ashford, west']], { ...OUT, ...roadShape('day', 'quiet') }),
   FZ('tav_common', 'tavern', 'common room', 'A low room with a hearth, benches and a scarred counter.', [['tav_kitchen', 'the kitchen door, west', 'door'], ['v_square', 'out the front door, south', 'door'], ['tav_yard', 'the back door, east', 'door'], ['tav_upstairs', 'the stairs up', 'up']],
-    { area: 64, furniture: [{ kind: FU.counter, name: 'scarred counter', at: 'n' }, { kind: FU.hearth, name: 'hearth', at: 'w' }, { kind: FU.table, name: 'long table' }, { kind: FU.bench, name: 'bench', at: 'se' }, { kind: FU.barrels, name: 'ale barrels', at: 'ne' }] }),
+    { kind: ZK.room, area: 64, furniture: [{ kind: FU.counter, name: 'scarred counter', at: 'n' }, { kind: FU.hearth, name: 'hearth', at: 'w' }, { kind: FU.table, name: 'long table' }, { kind: FU.bench, name: 'bench', at: 'se' }, { kind: FU.barrels, name: 'ale barrels', at: 'ne' }] }),
   FZ('tav_kitchen', 'tavern', 'kitchen', 'Copper pots, a long table and the smell of onions.', [['tav_common', 'the common room, east', 'door'], ['tav_cellar', 'the cellar hatch, down', 'down']], { area: 25 }),
   FZ('tav_yard', 'tavern', 'back yard', 'A walled yard of firewood and a rain barrel.', [['tav_common', 'the back door, west', 'door'], ['f_lane', 'the gate to the lane', 'open', true]],
-    { roof: false, light: 'dim', area: 150, walls: { n: WK.low, e: WK.low, s: WK.low, w: WK.wall }, furniture: [{ kind: FU.woodpile, name: 'woodpile', at: 'nw' }, { kind: FU.water_barrel, name: 'rain barrel', at: 'sw' }, { kind: FU.cart, name: 'hand cart', at: 'e' }] }),
-  FZ('tav_upstairs', 'tavern', 'upstairs landing', 'A narrow landing with three doors.', [['tav_common', 'the stairs down', 'down']], { light: 'dark', area: 9, aspect: 2 }),
+    { kind: ZK.yard, roof: false, light: 'dim', area: 150, walls: { n: WK.low, e: WK.low, s: WK.low, w: WK.wall }, furniture: [{ kind: FU.woodpile, name: 'woodpile', at: 'nw' }, { kind: FU.water_barrel, name: 'rain barrel', at: 'sw' }, { kind: FU.cart, name: 'hand cart', at: 'e' }] }),
+  FZ('tav_upstairs', 'tavern', 'upstairs landing', 'A narrow landing with three doors.', [['tav_common', 'the stairs down', 'down']], { kind: ZK.corridor,  light: 'dark', area: 9, aspect: 2 }),
   FZ('tav_cellar', 'tavern', 'cellar', 'A damp cellar of barrels.', [['tav_kitchen', 'the hatch, up', 'up']], { light: 'dark', area: 60 }),
-  FZ('field_edge', 'field', 'field edge', 'Long grass streaked with silver trails.', [['v_square', 'the lane back west'], ['field_mid', 'into the field, north']], { ...OUT, area: 1600 }),
-  FZ('field_mid', 'field', 'middle of the field', 'Trampled grass around a shallow pond.', [['field_edge', 'the field edge, south'], ['f_trees', 'the trees, east', 'open', true]], { ...OUT, area: 1600 }),
+  FZ('field_edge', 'field', 'field edge', 'Long grass streaked with silver trails.', [['v_square', 'the lane back west'], ['field_mid', 'into the field, north']], { kind: ZK.field,  ...OUT, area: 1600 }),
+  FZ('field_mid', 'field', 'middle of the field', 'Trampled grass around a shallow pond.', [['field_edge', 'the field edge, south'], ['f_trees', 'the trees, east', 'open', true]], { kind: ZK.field,  ...OUT, area: 1600 }),
 ];
 /** code draws every fake title on the plan, as applyStagePlan does for real ones */
 function drawFake(st: GameState): void { st.places = FAKE_PLACES(); drawTitles(st, FAKE_TITLES()); }

@@ -104,8 +104,9 @@ Read when: publishing the game page, or a change touches what it declares or upl
 
 - The page, its database and why it is never opened live: "Every thread".
 - To update it: `npm ci`, `npm run build`, `npm run smoke`, then publish `dist/play/index.html` with root `dist/play`
-  and file `app.js` (plus `assets/figures/*.json` when figures changed). Leave `capabilities` out, so the page keeps
-  what it has.
+  and file `app.js` (plus `assets/figures/*.json` when figures changed, and `assets/backdrops/*.webp` when
+  backdrops changed: a picture left out of a publish shows the plain colour with no error, PS-489). Leave
+  `capabilities` out, so the page keeps what it has.
   The declaration it keeps: comments, db, sample, tts, user, and mcp with RPG Voice (speak, list_voices) and Claude
   Code Remote (fire_trigger). A publish that must change it restates all of it.
 - Licensed sound files are uploaded only to this private page as assets. They are never committed (`docs/assets.md`).

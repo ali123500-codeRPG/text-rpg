@@ -13,7 +13,7 @@ import { createServer, type Server } from 'node:http';
 import { tmpdir } from 'node:os';
 
 const NARRATION = 'Smoke narration: the world goes on around you.';
-let browser: Browser, page: Page, url: string, errors: string[], server: Server;
+let browser: Browser, page: Page, url: string, errors: string[], server: Server, backdrops: string[];
 
 beforeAll(async () => {
   const dir = mkdtempSync(`${tmpdir()}/smoke-`);
@@ -25,6 +25,7 @@ beforeAll(async () => {
   writeFileSync(`${dir}/index.html`, '<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="entry.css"></head><body><script src="entry.js"></script></body></html>');
   // served over http, as the published page is: the body figures (assets/figures, BV15) load by fetch, which file:// refuses
   cpSync('assets/figures', `${dir}/assets/figures`, { recursive: true, filter: (f: string) => !f.includes('/models') });
+  cpSync('src/ui/assets/backdrops', `${dir}/assets/backdrops`, { recursive: true }); // PS-486, as scripts/build.mjs ships them
   const TYPES: Record<string, string> = { html: 'text/html', js: 'text/javascript', css: 'text/css', json: 'application/json', woff2: 'font/woff2', webp: 'image/webp' };
   server = createServer((req: { url: string }, res: { writeHead: (n: number, h?: object) => void; end: (b?: unknown) => void }) => {
     const path = decodeURIComponent(req.url.split('?')[0]).replace(/^\/+/, '') || 'index.html';
@@ -40,7 +41,8 @@ afterAll(async () => { await browser?.close(); server?.close(); });
 
 beforeEach(async ({ task }) => {
   page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
-  errors = [];
+  errors = []; backdrops = [];
+  page.on('request', (r) => { if (r.url().includes('/backdrops/')) backdrops.push(r.url()); }); // PS-489
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => { if (m.type() === 'error' || (m.type() === 'warning' && /not saved|unhandled/i.test(m.text()))) errors.push(`console: ${m.text()}`); });
   // a scenario that ends with gains shows the gains panel over the page; Continue closes it whenever it is in the way
@@ -67,7 +69,13 @@ const nav = (name: string) => page.locator('nav').getByText(name, { exact: true 
 describe('play page smoke (TQ7)', () => {
   it('loads, creates a character and shows the opening', async () => {
     await page.getByText(NARRATION).first().waitFor(); // the opening, narrated
+    expect(backdrops.length).toBeLessThanOrEqual(1); // PS-489: only the opening zone's picture, if it has one
     expect(errors).toEqual([]);
+  });
+
+  it('creation: the creation screen downloads no backdrop (PS-489)', async () => {
+    await page.getByRole('button', { name: 'Begin the story' }).waitFor();
+    expect(backdrops).toEqual([]);
   });
 
   it('plays a turn: the input shows, the turn advances, the narration shows', async () => {

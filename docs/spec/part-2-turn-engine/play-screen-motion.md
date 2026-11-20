@@ -55,8 +55,9 @@ Decided by Ali, 10/11/2026 (Motion Rules Review, answers Q1–Q4; it replaces th
 **Scenarios**
 
 - **M-40** A scenario break (story start or a scenario's end) is the one transition between scenarios, within --m-scenario: the quiet rule draws across (with the place name if the place changed), then the opening narration appears as normal (M-10). Earlier lines stay as they are. The only other authored moments are the fall (the player is incapacitated), the level-up (M-38) and an achievement (M-38a).
-- **M-41** Moving between zones, crossing a frontier or reaching a new place in the same scenario gets no transition: the header's place line changes quietly, and a new place gets its named rule in the story, drawn with no motion of its own.
+- **M-41** Moving between zones, crossing a frontier or reaching a new place in the same scenario gets no transition: the header's place line changes quietly, and a new place gets its named rule in the story, drawn with no motion of its own. The backdrop is the one exception: a new picture fades in (M-75).
 - **M-42** The opening narration at story start uses the scenario-break transition once.
+- **M-75** A new backdrop (PS-486) fades in over the one before it within --m-backdrop (placeholder), once it has loaded; the one before stays under it until it is covered, so the plain colour never shows between two pictures. Only its start waits for the download; its length is the token's (M-03). It is the only motion a zone change gets (M-41), approved with the report "Per-place backgrounds: scaling and lazy loading" (option 2 b).
 
 **Motion tokens**
 

@@ -538,12 +538,14 @@ styles, the fake game the smoke tests drive. A UI change uses the design skills 
   [ui-decisions.md](memory/ui-decisions.md),
   [history-look-viewer-sound-and-lore.md](memory/history-look-viewer-sound-and-lore.md)
 - Code:
+  - `src/library/backdrops.ts`
   - `src/library/names.ts`
   - `src/types/game.ts`
   - `src/ui/achievementThreads.ts`
   - `src/ui/app.ts`
   - `src/ui/audio.d.ts`
   - `src/ui/autopilot.ts`
+  - `src/ui/backdrop.ts`
   - `src/ui/bugs.ts`
   - `src/ui/charsheet.ts`
   - `src/ui/classTree.ts`
@@ -592,6 +594,7 @@ styles, the fake game the smoke tests drive. A UI change uses the design skills 
   - `src/ui/suggest.ts`
   - `src/ui/timeOfDay.ts`
   - `src/ui/voiceSamples.ts`
+  - `src/views/backdrop.ts`
 
 ## library-viewer: the library viewer
 

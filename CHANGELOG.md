@@ -3,6 +3,9 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bug-fix-log.md`.
 
+- 20/11/2026: `docs/providers/claude.md`, "The game page": a publish also sends `assets/backdrops/*.webp` when
+  the backdrops changed (PS-486). The owner approved the report whose build plan named this step: "all is good, you
+  can proceed with this approach".
 - 20/11/2026: `AGENTS.md` rule 9 is back as a narrower rule: keep secrets and the owner's personal details out of
   the repo (the owner: "actually, add keeping secrets and personal details back to rule 9"). The parts on saves and
   user data, licensed content and how files name the owner stay out. The "See rule 9" pointer and the line in
