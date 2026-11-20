@@ -96,7 +96,7 @@ IMG_TYPES = {'.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '
 
 def image(name, key, path, out):
     """One picture for questionnaire `name`, shown by blocks.fig(key, alt) (README "Pictures"). Returns a one-item writes
-    list; write it on its own (sql() for Supabase) when the picture is large."""
+    list; send it through outbox(), never sql(): pasted SQL would carry the whole picture through the conversation."""
     import base64
     ext = os.path.splitext(path)[1].lower()
     if ext not in IMG_TYPES: raise ValueError(f'{path}: use one of {", ".join(IMG_TYPES)}')
@@ -108,13 +108,16 @@ def image(name, key, path, out):
 def _lit(x):
     return "'" + x.replace("'", "''") + "'"
 
-def sql(w):
+def sql(w, *, from_outbox=False):
     """The writes as one SQL transaction for the Supabase table hub_docs (README "Writing to the hub"): run it with the
     Supabase connector's execute_sql on the project named questions-hub. `set` replaces a doc; `update` merges its fields
     (creating the doc when there is none), and a field written as {'__delete__': True} is removed. Doc versions
-    (if_version) are not checked there, so give mark() any number as each question's version."""
+    (if_version) are not checked there, so give mark() any number as each question's version. Pictures are refused here
+    and go through outbox(): pasted into execute_sql, every base64 character passes through the conversation."""
     out = ['begin;']
     for x in w:
+        if x['collection'].startswith('imgs/') and not from_outbox:
+            raise ValueError(f"{x['doc_id']}: a picture goes through outbox() and publish_files, not pasted SQL (README \"Pictures\")")
         path, data = _lit(x['collection'] + '/' + x['doc_id']), json.load(open(x['file_path']))
         if x['op'] == 'set':
             # mark() with version None writes only the changed fields: as a whole doc that would wipe the question
@@ -138,7 +141,7 @@ def outbox(w, out, listed=()):
     `files` to the hub page with publish_files (mode patch). The page runs each outbox file once, through the viewer's
     Supabase connector, and records the result in hub_docs at outbox/<id>: {at} when written, {at, error} when not."""
     oid = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S%fZ') + '-' + os.urandom(3).hex()  # microseconds: two files of one second keep their order
-    body = sql(w).split('\n')
+    body = sql(w, from_outbox=True).split('\n')
     # the marker is a plain insert: a second run of the same file fails on it and rolls the whole file back
     body.insert(1, f"insert into hub_docs (path, data) values ('outbox/{oid}', jsonb_build_object('at', now()));")
     d = os.path.join(os.path.abspath(out), 'outbox'); os.makedirs(d, exist_ok=True)

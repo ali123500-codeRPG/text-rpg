@@ -145,7 +145,9 @@ never passes through the conversation. The Supabase connector's `execute_sql` ta
    means the page has not been opened since.
 
 Each account publishes only to its own hub page (`docs/providers/claude.md`), whose `hub.html` must include
-`runOutbox`. Pasting `sql(w)` into `execute_sql` on the project `questions-hub` still works and does the same.
+`runOutbox`. Pasting `sql(w)` into `execute_sql` on the project `questions-hub` writes the same rows, but every
+character of it passes through the conversation: use it only for a few KB of text, never for pictures (`sql()` refuses
+them), and never split a payload into chunks to fit.
 Supabase keeps no versions: give `mark()` any number (e.g. `1`) as each question's version, so the change is merged
 into the question. With `None`, `sql()` refuses, because it would replace the whole question.
 Current documents: `select path, data from hub_docs where starts_with(path, 'qs/<name>/items/')`.

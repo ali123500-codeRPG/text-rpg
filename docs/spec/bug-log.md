@@ -355,3 +355,4 @@ The game files a report at `bugs/new-<time>` (status new) for every bug code it 
 | BG-341 | Test fixtures ran at another distance than asked: `beside()` fell back silently, and `tinyArea()` was undone by `makeVillage()` | Thread | Fixed | #1275 |
 | BG-342 | The World view showed land the player never saw while they stayed inside a room (cause needs the save; desk:main) | Owner | Open | #1305 |
 | BG-343 | The ambush rolled the attacker's weapon skill against one sense, not Combat Stealth (against ST2); now the attack's own stealth contests | Thread | Fixed | #1304 |
+| BG-344 | An essence offer pop-up opens over the minimap's top corner and hides the Map button there (MAP-60) until it is closed | Thread | Open | #1311 |
