@@ -23,7 +23,8 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 - **PS-20** Platform: one self-contained page for PC only (no phone rules). It makes no network calls except the game's
   own Claude and database capabilities and the owner's connectors it names (RPG Voice; Claude Code Remote for the
   Republish button).
-- **PS-21** One dark theme, no theme switcher, no picture credit (personal use).
+- **PS-21** One dark theme, no theme switcher. Play screens carry no picture credit (personal use); the icon sets' licence
+  credit sits on the GM page (PS-306).
 - **PS-22** No max width, 32px gutters, 1.3× zoom at 2400px and wider.
 - **PS-23** Text size: the browser's zoom is the text-size setting. Every page still works at 125% zoom on a 1920×1080
   screen, with nothing clipped or overlapping (B4; checked 18/11/2026 on creation and every rail page; the personality
@@ -53,7 +54,7 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
   plain meaning, from one table in src/words.ts, the same on every page, marked by a dotted underline (G3; GAME_TERMS,
   termAttrs).
 - **PS-38** Built on the check line's tier chips, the skill pop-up's Burden line, the gains panel's Thread heading, and
-  the perk board's series key and All steps. A new term goes in the table and gets termAttrs where it shows (G3).
+  the perk board's All steps (the series key is gone, PS-461). A new term goes in the table and gets termAttrs where it shows (G3).
 
 #### Navigation, tiles and three depths
 
@@ -192,16 +193,14 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 
 #### Layout A, Who's here and narration log
 
-- **PS-130** Layout A, "Book with a status strip": fixed rows (header, who's here when it drops below the header, story,
-  input) so nothing jumps (play screen review UI8).
-- **PS-131** One reading column of about 70 characters a line (Literata, sized by the fit-the-screen rule, line height
-  1.6) on the left, on the same see-through sky as the rest of the page; the free space goes to the right margin (UI8;
+- **PS-130** Layout A, "Book with a status strip": fixed rows (header, story, input) so nothing jumps (play screen review
+  UI8; Who's here moved to the right column, PS-133).
+- **PS-131** One reading column (Literata, sized by the fit-the-screen rule, line height 1.6) on the left, filling the
+  space beside the right column with no width cap (PS-454), on the same see-through sky as the rest of the page (UI8;
   HS7: no extra veil behind it).
-- **PS-132** The side sheet is a narrow status strip by default (health level and bar, damaged-part chips, what is held,
-  Stealthy). A click opens the full sheet as the 420px side panel, which pushes the story narrower. Open or closed is
-  remembered per PC (UI8).
-- **PS-133** Who's here sits in the header line, between "Turn N · place" and the switches, while everyone fits. When
-  too many people are around or the screen is narrow, it drops to its own fixed-height row under the header.
+- **PS-132** The right column (PS-410) shows at every width. Its health strip stays folded (health level and bar,
+  damaged-part chips, Stealthy); a click opens the full condition in a pop-up (UI8; AD1–AD16).
+- **PS-133** Who's here sits in the right column as rows, under the minimap (PS-410; AD1–AD16).
 - **PS-134** It lists the actors the character fully perceives (PlayerView), by label until the name is known; "Nobody
   in view" when empty (Voyage C2, U6, U7).
 - **PS-135** Others' health shows only from Wounded down (Part 3), never as a bar (Voyage C2, U6, U7).
@@ -241,11 +240,11 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 
 #### Commands and Ideas
 
-- **PS-160** Two buttons in the tool row under the input, Commands and Ideas, open a panel above it, at most 40% of the
+- **PS-160** Commands, in the action deck's top row beside Same again, opens a panel above the input, at most 40% of the
   story's height. Escape, a pick or a send closes it.
 - **PS-161** Commands lists the / commands (D-100).
-- **PS-162** Ideas lists everyone in view for Fight and Talk and up to three actions each for Move, Stealth and Use,
-  built by code from PlayerView (D-107). The same name twice reads "the other …".
+- **PS-162** Ideas listed everyone in view for Fight and Talk and up to three actions each for Move, Stealth and Use,
+  built by code from PlayerView (D-107); the action deck replaced it (PS-370; AD1–AD16).
 - **PS-163** Picking one fills the box; nothing is sent until Send (the panel doesn't say so: SD4).
 - **PS-164** The character's personality orders what is shown: each group and idea has pulls from Nerve, the personality
   axes and held values (a value pulls IDEA\_VALUE\_PULL, *placeholder* 50, points) (src/ui/ideaLeans.ts IDEA_PULLS).
@@ -262,9 +261,10 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 
 #### Input
 
-- **PS-170** Input: one free-text box across the reading column with Send beside it; a line starting with / is a command
-  (Part 1 §7).
-- **PS-171** The tools (Commands, Ideas, Same again, Aim, Sneak, the quick-heal slot) sit in one row under it.
+- **PS-170** Input: the Say box, one free-text box across the reading column with Send beside it, above the action deck
+  (PS-370); a line starting with / is a command (Part 1 §7).
+- **PS-171** Aim, Same again and Commands sit in the action deck's top row; Sneak is a deck action; the quick-heal slot
+  sits on the health strip (AD5).
 - **PS-172** Pointing at (or tabbing to) someone on Who's here shows a tip with how far they are, their zone when it
   isn't yours, and whether your longest weapon in hand reaches them: "34 m away · in the yard · in reach of your
   shortbow (50 m)" or "beyond your arming sword's 1.1 m" (src/ui/play.ts whoDistance; PlayerView.player.reaches, each
@@ -387,7 +387,7 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 - **PS-250** Every skill tree shows at once, each in its own compact box (the boxes side by side, wrapping into rows; a
   box as wide as its skills need), with no tabs and no By effect view (Ali, page comment, 14/11/2026).
 - **PS-251** In a box each skill is a ladder of its seven milestones on a gold line showing true skill, the rail at the
-  left of its column with the perk names beside it (cut short with the full name on hover in a narrow box).
+  left of its column with the perk names beside it (a long name wraps to a second line, PS-32).
 - **PS-252** The All-50/100/150 steps are dotted lines across the box. On narrow screens the ladders become horizontal
   tracks.
 - **PS-253** The Story / Effect toggle for the perk write-ups sits where they are written: in the perk card's head and
@@ -434,7 +434,7 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
   under it (nested ones too). Clicking a tile opens its side panel.
 - **PS-282** A tile carries a mark only for the exception: damaged (a pool below 100) and locked (short of the
   requirement), each with its words in the tip (SD11).
-- **PS-283** Each item has a line icon drawn for its kind of thing, tinted by item kind.
+- **PS-283** Each item has a filled-silhouette icon for its kind of thing (PS-300), tinted by item kind.
 - **PS-284** Hovering an item, or focusing it from the keyboard, shows a card with its exact stats (the same rows as the
   side panel).
 - **PS-285** Equipped items offer Unequip; weapons, shields, armor and accessories in the pack offer Equip.
@@ -494,7 +494,7 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
   the body figure opens by itself on a turn that changes a part.
 - **PS-323** A "Held / worn" line names the gear in use.
 - **PS-324** Colours and depth: every colour comes from a named token in `:root` (health levels run ok → warn → danger →
-  grey; time of day uses c4, scenario-mark, c7 and accent; perk gold is scenario-mark).
+  grey; time of day uses c4, scenario-mark, c7 and accent; perk gold is --perk-20, which takes scenario-mark's colour, PS-460).
 - **PS-325** No glows and no drop shadows except the toast shadow; tests/unit/styles-tokens.test.ts enforces both.
 
 #### Place and scenario breaks, scenario ending moment
@@ -551,11 +551,11 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 - **PS-364** While Broken, the action deck's Fight and Move groups give way to "Your nerve is broken": Yield, Sneak, and
   Go to (only the ways that lead away from your foes), Back away from, Jump down (away) and a door within reach. At
   Cowering only Yield and Sneak (BF79).
-- **PS-365** The suggestion is Yield (BF37; M-13).
+- **PS-365** The deck playtest's code scorer picks Yield first while Broken (BF37); nothing is suggested on Play (PS-390).
 
 #### The action deck and minimap
 
-- **PS-370** The input is a list of every action the code allows right now, in groups (Fight, Talk, Move, Stealth, Use,
+- **PS-370** Under the Say box, the action deck lists every action the code allows right now, in groups (Fight, Talk, Move, Stealth, Use,
   Perks), always open, one entry per action (AD1–AD16; src/ui/deck.ts, built from PlayerView only).
 - **PS-371** Housekeeping on your own gear (Put away, Armor on or off, Set down) always comes last in its group,
   whatever the character leans to (Ali, 20/11/2026; deck.ts LAST).
@@ -642,7 +642,7 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 #### Fit the screen and divider lines
 
 - **PS-450** The Play screen always fills the window, with no empty spaces (Ali).
-- **PS-451** The full sheet is open by default at every width (wide and narrow screens each remember a fold).
+- **PS-451** The right column is shown at every width; nothing in it folds away (AD1–AD16).
 - **PS-452** The open sheet is a fixed 300 px (--sheet-w), as narrow as its skill rows, and every block on it is kept
   that compact: a small body figure with its key beside it, labels that don't wrap.
 - **PS-453** The sheet shows no scrollbar: the mouse wheel scrolls it, and so does dragging it with the mouse (a drag
@@ -662,7 +662,7 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 - **PS-462** Sealed milestones stay neutral so nothing hints at what comes next (K4).
 - **PS-463** A perk granted by a perk link (PERK_LINKS, OwnedPerk source 'link') shows in a Linked block under the Perks
   heading, beside Innate: its name, a Linked tag, the perks it came from with each one's skill and milestone ("From
-  Dread Presence (Intimidation 100) + Overwhelm (Resolve 100)"), and its Story or Rules text.
+  Dread Presence (Intimidation 100) + Overwhelm (Resolve 100)"), and its Story or Effect text (PS-253).
 - **PS-464** A merge (for later) shows the tag Merged and its set struck through as asleep while the merge holds (LR5).
 - **PS-465** The card of an owned perk that is part of a link says so ("Linked with Overwhelm: together they grant
   Crushing Presence.").
@@ -696,30 +696,13 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 
 #### Open discrepancies
 
-Where passages of the old single-paragraph rules disagreed, both are kept as written above and the point is marked here.
-None is settled yet; until the owner rules, the code decides what the game does (`AGENTS.md`, Order of authority).
+Where passages of the old single-paragraph rules disagree, both are kept as written above and the point is marked here.
+Until the owner rules, the code decides what the game does (`AGENTS.md`, Order of authority). The other points from the
+split were settled on 20/11/2026 where a later recorded decision and the code agreed (PR "Spec: settle play-screen
+discrepancies").
 
-- **PS-131 and PS-454, reading width:** "One reading column of about 70 characters a line" (PS-131) against "The story
-  column fills all the space beside it, with no reading-width cap" (PS-454).
-- **PS-132, PS-451 and PS-452, the side sheet:** "a narrow status strip by default … the full sheet as the 420px side
-  panel … Open or closed is remembered per PC" (PS-132) against "The full sheet is open by default at every width (wide
-  and narrow screens each remember a fold)" (PS-451) and "a fixed 300 px (--sheet-w)" (PS-452).
-- **PS-133 and PS-410, Who's here:** "sits in the header line … drops to its own fixed-height row under the header"
-  (PS-133) against "The right column holds … Who's here as rows" (PS-410).
-- **PS-160, PS-170 and PS-370, the input:** "one free-text box across the reading column with Send beside it" (PS-170),
-  with Commands and Ideas in the tool row under it (PS-160), against "The input is a list of every action the code
-  allows right now … always open", with free text in the Say box (PS-370).
-- **PS-390 and PS-365, suggestions:** "No suggested action shows on Play (HS7)" (PS-390) against "The suggestion is
-  Yield (BF37; M-13)" (PS-365).
-- **PS-32 and PS-251, perk names by the ladder:** "wraps to a second line rather than being cut short" (PS-32) against
-  "cut short with the full name on hover in a narrow box" (PS-251).
-- **PS-21 and PS-306, picture credit:** "no picture credit (personal use)" (PS-21) against "The credit line sits at the
-  foot of the GM page" (PS-306).
-- **PS-38 and PS-461, the perk series key:** game-term tips are "Built on … the perk board's series key" (PS-38) against
-  "There is no key (SD4)" (PS-461).
-- **PS-324 and PS-460, perk gold:** "perk gold is scenario-mark" (PS-324) against "tokens --perk-20 and --perk-40"
-  (PS-460).
-- **PS-283 and PS-300, item icons:** "Each item has a line icon drawn for its kind of thing" (PS-283) against "Things in
-  the world are filled silhouettes; screen controls stay line drawings" (PS-300).
-- **PS-253 and PS-463, perk write-ups:** "The Story / Effect toggle" (PS-253) against "its Story or Rules text"
-  (PS-463).
+- **PS-452 and the code, right column width:** "a fixed 300 px (--sheet-w), as narrow as its skill rows" (PS-452)
+  against the code's 420px `--panel-w` (styles.css), set when the column took the minimap and Who's here (AD1–AD16).
+- **PS-160, the Commands panel height:** "at most 40% of the story's height" (PS-160); the code sets no such cap.
+- **PS-453, dragging the sheet:** "so does dragging it with the mouse" (PS-453); since the right column took the
+  minimap (AD1–AD16) nothing wires the drag, and a drag on the minimap pans it.
