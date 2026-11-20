@@ -5,7 +5,6 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 // @ts-expect-error Node types are not installed; vitest runs in Node
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { sections } from '../../scripts/spec';
 import { near, pick, systemFiles } from '../../scripts/test-near';
 
 const map = readFileSync('docs/systems.md', 'utf8');
@@ -22,12 +21,9 @@ describe('systems map', () => {
     expect(systems.size).toBe((map.match(/^## [a-z-]+:/gm) ?? []).length);
   });
 
-  it('names only spec headings and history files that exist', () => {
-    const titles = sections(readFileSync('docs/build-spec.md', 'utf8').split('\n')).map((s) => s.title.toLowerCase());
-    const spec = [...map.matchAll(/^- Spec: ((?:.*\n {2}(?!- ).*)*.*)$/gm)].flatMap((m) => [...m[1].matchAll(/"([^"]+)"/g)].map((q) => q[1]));
-    expect(spec.length).toBeGreaterThan(systems.size);
-    expect(spec.filter((h) => !titles.some((t) => t.includes(h.toLowerCase())))).toEqual([]);
-    const links = [...map.matchAll(/\]\((memory\/[^)]+)\)/g)].map((m) => `docs/${m[1]}`);
+  it('links only spec topics and history files that exist', () => {
+    const links = [...map.matchAll(/\]\(((?:spec|memory)\/[^)]*)\)/g)].map((m) => `docs/${m[1]}`);
+    expect(links.filter((l) => l.startsWith('docs/spec/')).length).toBeGreaterThan(systems.size);
     expect(links.filter((f) => !existsSync(f))).toEqual([]);
   });
 });

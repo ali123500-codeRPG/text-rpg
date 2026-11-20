@@ -5,6 +5,7 @@
 import { describe, expect, it } from 'vitest';
 // @ts-expect-error Node types are not installed; vitest runs in Node
 import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { readSpec } from '../harness/specDocs';
 
 /** retired skill name -> the name it is shown as now; add a row whenever a skill is renamed */
 const RETIRED: Record<string, string> = { Lying: 'Falsehood' };
@@ -24,7 +25,7 @@ describe('retired skill names (BG-321)', () => {
       expect(hits).toEqual([]);
     });
     it(`the spec's rules never name ${old}; it is ${now}`, () => {
-      const spec = readFileSync('docs/build-spec.md', 'utf8') as string;
+      const spec = readSpec();
       const rules = spec.slice(0, spec.indexOf('\n## Deferred items'));
       expect(rules.split('\n').map((l, i) => [l, i] as const).filter(([l]) => word.test(l)).map(([, i]) => i + 1)).toEqual([]);
     });

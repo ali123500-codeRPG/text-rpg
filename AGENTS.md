@@ -13,6 +13,10 @@ project: "the owner" below is its designer and its only player.
 - Stack: TypeScript, vitest, esbuild. Node 22.
 - Set-up and checks: `npm ci`, `npm run typecheck`, `npm test`, `npm run build`, `npm run smoke` (needs Playwright's
   Chromium). `.github/workflows/ci.yml` is the reference.
+- Finding your way: `npm run spec -- "<heading>"` prints one spec topic, `-- <ID>` one row or rule, `-- --grep <text>`
+  where a term or file is ruled. `npm run test:near` runs the tests nearest your change (`-- <system>` for one
+  system). The page in dev views: `?fake=1&stage=<stage>` and `?mapcheck`; `tests/smoke/map.smoke.ts` is the Map's
+  automated check.
 - This repo is public. See rule 9.
 
 ## Rules that must never be broken
@@ -43,7 +47,7 @@ project: "the owner" below is its designer and its only player.
 9. **Keep the public repo clean.** Never commit secrets, tokens, passwords, account or ID numbers; the owner's saves
    or other user data; facts about the owner (name, email, quotes, devices); or anything whose licence forbids
    redistribution, such as licensed sounds and text copied from novels or wikis. New files say "the owner". Older
-   files that already name the owner are left as they are, and new lines in `docs/build-spec.md` and
+   files that already name the owner are left as they are, and new lines in the spec (`docs/spec/`) and
    `docs/bug-fix-log.md` keep the form those files use (first name, date, question ID). Test fixtures made by the
    repo's own scripts (`tests/replay/runs`, `tests/soak/worlds`) are not user data.
 10. **Questions go where the owner answers them.** One question at a time or a numbered list, each with options and a
@@ -57,7 +61,7 @@ project: "the owner" below is its designer and its only player.
 
 ## Order of authority
 
-- **What the game does:** code and tests first, then `docs/build-spec.md`.
+- **What the game does:** code and tests first, then the spec (`docs/build-spec.md` and its topic files).
 - **How to work:** `AGENTS.md` and `docs/instructions.md` first, then `docs/memory/`, then any provider's in-app
   memory or instructions.
 
@@ -71,9 +75,12 @@ is fixed in your PR and named there; if you cannot tell which side is right, it 
 - `docs/providers/claude.md`: what only Claude can do here (decision cards, the Questions hub, publishing the game),
   and what other agents do instead. One file per provider. The same folder keeps a dated record of Claude's old
   in-app instructions; it is history, not rules.
-- `docs/build-spec.md`: the living design record. It holds the rules, the "Deferred items" table (D-n), the "Bug log"
-  (BG-n) and "Open questions" (OQ-n). Play screen rules are in "### Play screen" and "### Play screen motion". It is
-  large: read by section.
+- `docs/build-spec.md`: the index of the spec, the living design record. Each topic is its own file in `docs/spec/`,
+  so read only the ones a task needs. The "Deferred items" table (D-n), the "Bug log" (BG-n) and "Open questions"
+  (OQ-n) are `docs/spec/deferred-items.md`, `bug-log.md` and `open-questions.md`. Play screen rules are
+  `docs/spec/part-2-turn-engine/play-screen.md` and `play-screen-motion.md`.
+- `docs/systems.md`: start a task here. Each game system's spec topics, decision history, source files and nearest
+  tests.
 - `docs/bug-fix-log.md`: what each fixed bug was and what was done. Newest first.
 - `docs/memory/README.md`: index of topic files with the owner's decisions and agents' checked working notes.
 - `docs/glossary.md`: IDs, names and abbreviations.

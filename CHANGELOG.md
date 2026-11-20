@@ -1,7 +1,12 @@
 # Changelog
 
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
-`.agents/skills/`. Newest first. Game changes are in the merged PRs, `docs/build-spec.md` and `docs/bug-fix-log.md`.
+`.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bug-fix-log.md`.
+
+- 20/11/2026: The spec is split into one file per topic under `docs/spec/`; `docs/build-spec.md` is its index.
+  `AGENTS.md` and `docs/instructions.md` section 1 point to it, `AGENTS.md` names `docs/systems.md` as where a task
+  starts and lists the finding-your-way commands (`npm run spec`, `npm run test:near`, the dev views, the Map's
+  smoke test).
 
 - 20/11/2026: One Questions hub for both Claude accounts. New questionnaires go to a shared Supabase table, and each
   account's hub page shows it beside its own older questionnaires (`tools/questions-hub/README.md`, "Where the data

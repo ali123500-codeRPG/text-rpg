@@ -9,8 +9,9 @@ edge cases. Where a section repeats a rule from `AGENTS.md`, it is there to add 
 
 ## 1. Source of truth
 
-- The game's code and its tests decide how the game works. `docs/build-spec.md` is the living design record: every PR
-  that changes a rule updates the spec in the same PR. It is never frozen.
+- The game's code and its tests decide how the game works. The spec (`docs/build-spec.md`, an index of one file per
+  topic in `docs/spec/`) is the living design record: every PR that changes a rule updates the spec in the same PR. It
+  is never frozen.
 - Values marked "placeholder" are config. Items marked [Proposed] are built as written and kept easy to change.
 - Where code and spec disagree, report it (a BG-n if the code is wrong, otherwise a question). Never pick one silently.
 - A decision is recorded in the spec where its rule lives, with the question ID and date it came from, and in the

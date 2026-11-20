@@ -1,8 +1,8 @@
 // npm run spec (scripts/spec.ts): agents read one part of the build spec instead of the whole file.
 // @ts-expect-error Node types are not installed; vitest runs in Node
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { idRows, mentions, run, sections } from '../../scripts/spec';
+import { idRows, mentions, run, sections, specFiles } from '../../scripts/spec';
 
 const doc = [
   '# Top', 'intro', '## Part A', '### One', 'one text cites src/engine/gear.ts', '#### Deep', 'deep text', '### Two',
@@ -30,12 +30,17 @@ describe('spec tool', () => {
     expect(mentions(doc, 'SRC/engine/gear.ts').map((m) => [m.section.title, m.count])).toEqual([['One', 1]]);
   });
 
-  it('on the real spec: every heading is found and a section stops at the next one of its level', () => {
-    const lines = readFileSync('docs/build-spec.md', 'utf8').split('\n');
-    const all = sections(lines);
-    expect(all.length).toBe(lines.filter((l: string) => /^#{1,6} /.test(l)).length);
+  it('on the real spec: every topic file the index links exists and starts with its heading, and a section stops at the next one', () => {
+    const files = specFiles();
+    expect(files.length).toBeGreaterThan(50);
+    for (const f of files.slice(1)) expect(readFileSync(f, 'utf8'), f).toMatch(/^#{2,3} /);
     const motion = run(['Play screen motion']).split('\n');
-    expect(motion[0]).toBe('### Play screen motion');
-    expect(motion.slice(1).some((l) => /^#{1,3} /.test(l))).toBe(false);
+    expect(motion[1]).toBe('### Play screen motion');
+    expect(motion.slice(2).some((l) => /^#{1,3} /.test(l))).toBe(false);
+  });
+
+  it('every file under docs/spec is linked from the index', () => {
+    const all = readdirSync('docs/spec', { recursive: true, encoding: 'utf8' }).filter((f: string) => f.endsWith('.md')).map((f: string) => `docs/spec/${f.split('\\').join('/')}`);
+    expect(all.filter((f: string) => !specFiles().includes(f))).toEqual([]);
   });
 });

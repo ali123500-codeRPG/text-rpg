@@ -43,6 +43,7 @@ import { minuteOfDay, DAY_MINUTES } from '../../src/time';
 import { actionSeconds } from '../../src/ruleset/actionTime';
 import { CROSSROADS } from '../../src/agents/crossroads';
 import { roman } from '../../src/scales';
+import { readSpec } from '../harness/specDocs';
 
 // files the leftover scan has covered (add each round's files)
 const ROUND_1 = ['src/ui/play.ts', 'src/ruleset/index.ts', 'src/scenario/apply.ts', 'src/minds/state.ts', 'src/engine/heal.ts'];
@@ -192,7 +193,7 @@ describe('leftover scan round 1', () => {
   it('every code name the spec prose gives (UPPER_SNAKE) exists in the code (src, tests, scripts)', () => {
     const src = [...files('src'), ...files('tests'), ...files('scripts')].filter((f) => !f.endsWith('leftover-scan-1.test.ts')).map((f) => readFileSync(f, 'utf8') as string).join('\n');
     // tables of record (bug log, decisions, answers) keep the names of their day
-    const prose = (readFileSync('docs/build-spec.md', 'utf8') as string).split('\n').filter((l) => !/^\| [A-Z]+[-0-9]/.test(l)).join('\n');
+    const prose = readSpec().split('\n').filter((l) => !/^\| [A-Z]+[-0-9]/.test(l)).join('\n');
     const names = [...new Set(prose.match(/\b[A-Z][A-Z0-9]+(?:_[A-Z0-9]+)+\b/g) ?? [])];
     const missing = names.filter((n) => !new RegExp(`\\b${n}\\b`).test(src) && !GONE_ON_PURPOSE.includes(n));
     expect(missing).toEqual([]);
@@ -201,7 +202,7 @@ describe('leftover scan round 1', () => {
 
 describe('leftover scan answers (CS6, CS8, CS11)', () => {
   it('CS6: the agents\' fixed instructions have one copy, in prompts.ts; the spec names each and copies none', () => {
-    const spec = readFileSync('docs/build-spec.md', 'utf8') as string;
+    const spec = readSpec();
     const texts = Object.entries(prompts).filter(([k, v]) => k.endsWith('_INSTRUCTIONS') && typeof v === 'string') as [string, string][];
     expect(texts.length).toBeGreaterThanOrEqual(6);
     for (const [k, v] of texts) {
@@ -289,7 +290,7 @@ describe('leftover scan round 6', () => {
 
 describe('answers CS18 and CS19', () => {
   it('CS18: secret slips are settled as built; the spec says the contest must be won', () => {
-    const spec = readFileSync('docs/build-spec.md', 'utf8') as string;
+    const spec = readSpec();
     expect(spec).not.toMatch(/SLIPS[^\n]*\\\[Proposed\\\]/);
     expect(spec).not.toMatch(/Secret slips \\\[Proposed\\\]/);
     expect(spec).toMatch(/wins a speech contest against a spokesperson/);
@@ -360,7 +361,7 @@ describe('answers CS20 to CS22', () => {
   });
   it('CS21: D-3 is settled; effective skill has no hard cap step', () => {
     expect(readFileSync('src/ruleset/gear.ts', 'utf8') as string).not.toMatch(/GAP: hard cap/);
-    const spec = readFileSync('docs/build-spec.md', 'utf8') as string;
+    const spec = readSpec();
     expect(spec).not.toMatch(/apply hard cap/);
     expect(spec).toMatch(/\| D-3 \| Soft cap and hard cap \| 1 \| Built \|/);
   });
@@ -442,7 +443,7 @@ describe('answers CS23 to CS25', () => {
     const b = read('src/ruleset/body.ts');
     expect(b.match(/CONFIG\.DESTROYED_PART_WEIGHT/g)?.length).toBe(2);
     expect(b).not.toMatch(/'destroyed'\) \? 2 :/);
-    expect(read('docs/build-spec.md')).not.toMatch(/Destroyed part counting twice/);
+    expect(readSpec()).not.toMatch(/Destroyed part counting twice/);
   });
   it('CS25: filch, ambush and sneaking past sleepers count Against the Odds once per act', () => {
     for (const f of ['src/engine/filch.ts', 'src/minds/state.ts', 'src/engine/sleep.ts', 'src/engine/resolve.ts']) expect(read(f)).toMatch(/outmatchedOnce\(state, /);
@@ -495,7 +496,7 @@ describe('leftover scan round 11', () => {
     expect(read('src/library/classIds.ts')).not.toMatch(/blessed_essences/);
     expect(read('src/ui/classTree.ts')).not.toMatch(/A Nobody/);
     expect(read('src/ui/loot.ts')).not.toMatch(/pocket/);
-    expect(read('docs/build-spec.md')).not.toMatch(/agents that return JSON call sample\.json/);
+    expect(readSpec()).not.toMatch(/agents that return JSON call sample\.json/);
   });
 });
 
