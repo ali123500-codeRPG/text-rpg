@@ -1,5 +1,6 @@
 // BG-317: the library viewer, built as in production, keeps every word whole: no table cell breaks a word that fits
 // a wider column, and no rail item is wider than the rail. Run: npm run smoke.
+// near: src/ui/libraryViewer src/ui/libraryTones.ts src/library/ src/ruleset/equations.ts
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { build } from 'esbuild';
 import { chromium, type Browser } from 'playwright';

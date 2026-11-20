@@ -5,7 +5,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 // @ts-expect-error Node types are not installed; vitest runs in Node
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { changedWords, near, pick, selects, systemFiles } from '../../scripts/test-near';
+import { changedWords, near, nearPrefixes, pick, selects, systemFiles, testFiles } from '../../scripts/test-near';
 
 const map = readFileSync('docs/systems.md', 'utf8');
 const systems = systemFiles(map);
@@ -47,5 +47,16 @@ describe('test:near', () => {
     expect(selects('page.locator(\'[data-kind="search"]\')', words)).toBe(true);
     expect(selects("el.querySelector(\"[data-kind='look']\")", words)).toBe(true);
     expect(selects('const look = 1;', words)).toBe(false);
+  });
+
+  it('every browser test names what it reaches, and each prefix matches a real file', () => {
+    const smoke = testFiles('tests/smoke', '.smoke.ts');
+    expect(smoke.length).toBeGreaterThan(0);
+    const all = [...readdirSync('src', { recursive: true, encoding: 'utf8' }).map((f: string) => `src/${f.split('\\').join('/')}`), ...testFiles('tests', '.ts')];
+    for (const f of smoke) {
+      const pre = nearPrefixes(readFileSync(f, 'utf8'));
+      expect(pre.length, `${f} needs a // near: line`).toBeGreaterThan(0);
+      expect(pre.filter((p) => !all.some((x) => x.startsWith(p))), f).toEqual([]);
+    }
   });
 });

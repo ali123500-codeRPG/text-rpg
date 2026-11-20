@@ -53,6 +53,11 @@ export function selects(testText: string, words: string[]): boolean {
   return words.some((w) => testText.includes(`="${w}"`) || testText.includes(`='${w}'`));
 }
 
+/** a browser test builds the whole page, so it names what it reaches on a `// near:` line of path prefixes */
+export function nearPrefixes(testText: string): string[] {
+  return /^\/\/ near: (.+)$/m.exec(testText)?.[1].split(/\s+/).filter(Boolean) ?? [];
+}
+
 export function testFiles(dir = 'tests', end = '.test.ts'): string[] {
   return readdirSync(dir, { recursive: true, encoding: 'utf8' })
     .filter((f: string) => f.endsWith(end))
@@ -87,7 +92,8 @@ function main(args: string[]): number {
   const words = asked.length ? [] : changedWords(git('diff', '--no-color', base(), '--', 'src'));
   const read = (f: string) => readFileSync(f, 'utf8');
   const tests = pick(paths, testFiles(), read, words);
-  const smoke = pick(paths, testFiles('tests/smoke', '.smoke.ts'), read, words);
+  const smoke = testFiles('tests/smoke', '.smoke.ts')
+    .filter((t) => pick(paths, [t], read, words).length || nearPrefixes(read(t)).some((pre) => paths.some((p) => p.startsWith(pre))));
   console.log(`${tests.length} test files near ${paths.length} changed or named files.`);
   if (!tests.length && !list) {
     // a run that tested nothing must not read as a pass: exit 3, so `npm run test:near && git push` stops
