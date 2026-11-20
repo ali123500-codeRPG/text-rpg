@@ -45,8 +45,13 @@ one big data file, word helpers.
   - `src/config/rules.ts`
   - `src/config/world.ts`
   - `src/ids.ts`
+  - `src/library/bodyTypes.ts`
+  - `src/library/classPerks.ts`
   - `src/library/data.ts`
   - `src/library/index.ts`
+  - `src/library/items.ts`
+  - `src/library/npcs.ts`
+  - `src/library/routineBank.ts`
   - `src/library/tableIds.ts`
   - `src/rng.ts`
   - `src/ruleset/index.ts`
@@ -140,6 +145,7 @@ HP, the health track, body parts and wounds, healing, body types, races, size an
   - `src/config/body.ts`
   - `src/engine/heal.ts`
   - `src/library/bodySize.ts`
+  - `src/library/bodyTypes.ts`
   - `src/library/figureModels.ts`
   - `src/library/raceIds.ts`
   - `src/ruleset/age.ts`
@@ -166,6 +172,7 @@ breaking things, Threadbound items.
   - `src/engine/handover.ts`
   - `src/library/gearScale.ts`
   - `src/library/itemIds.ts`
+  - `src/library/items.ts`
   - `src/ruleset/breaking.ts`
   - `src/ruleset/gear.ts`
   - `src/ruleset/quality.ts`
@@ -199,6 +206,7 @@ character creation rules.
   - `src/engine/tacticsMarks.ts`
   - `src/engine/xp.ts`
   - `src/library/classIds.ts`
+  - `src/library/classPerks.ts`
   - `src/library/functionIds.ts`
   - `src/library/functionNames.ts`
   - `src/library/skillIds.ts`
@@ -231,6 +239,7 @@ source, then `npm run perks-doc`).
   - `src/library/allPerks.ts`
   - `src/library/boostPerks.ts`
   - `src/library/builtPerks.ts`
+  - `src/library/classPerks.ts`
   - `src/library/perkIds.ts`
   - `src/library/perkLinks.ts`
   - `src/library/perkThemes.ts`
@@ -441,6 +450,8 @@ NPC minds, routines and goals, memory, templates and spawning, uniques and echoe
   - `src/library/echo.ts`
   - `src/library/fightRules.ts`
   - `src/library/npcLayerIds.ts`
+  - `src/library/npcs.ts`
+  - `src/library/routineBank.ts`
   - `src/library/spawn.ts`
   - `src/library/templateIds.ts`
   - `src/library/uniques.ts`
