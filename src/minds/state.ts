@@ -328,8 +328,13 @@ export const searchAreaM2 = (a: Actor, skill: number): number =>
  * searcher, the same in a fight and out of one, never under SEARCH_MIN_RADIUS_M, in a clear line, whatever title either
  * stands in */
 function inSearch(state: GameState, a: Actor, h: Located, area: number): boolean {
-  return searchSees(state, a, h, Math.max(CONFIG.SEARCH_MIN_RADIUS_M, Math.sqrt(area / Math.PI)));
+  return searchSees(state, a, h, searchRadiusM(area));
 }
+const searchRadiusM = (area: number): number => Math.max(CONFIG.SEARCH_MIN_RADIUS_M, Math.sqrt(area / Math.PI));
+/** LX5 b: the tiers a Search's look takes on `h` beyond the search area: SEARCH_RING_SHIFTS[0] out to SEARCH_RING1_RADII
+ * search radii, [1] past that (a plain look, Look at or Listen, keeps LOOK_SEARCH_SHIFT over its whole reach) */
+const ringShift = (state: GameState, a: Actor, h: Located, area: number): number =>
+  searchSees(state, a, h, CONFIG.SEARCH_RING1_RADII * searchRadiusM(area)) ? CONFIG.SEARCH_RING_SHIFTS[0] : CONFIG.SEARCH_RING_SHIFTS[1];
 /** BG-314: the sight part of a search's reach: a clear line from `a` to `h`, within `r` metres */
 export const searchSees = (state: GameState, a: Actor, h: Located, r: number): boolean => withinM(sightDistM(state, a, h), r);
 
@@ -338,7 +343,7 @@ export const searchSees = (state: GameState, a: Actor, h: Located, r: number): b
  * suspicious, a loss changes nothing. Nobody hidden in reach: nothing is rolled (SE6). It always rolls, even after a
  * passive contest this turn, and counts as that pair's contest (SE5). `look`: the player's look with that sense, a search
  * out to the look's range, LOOK_SEARCH_SHIFT tiers down (SE14); with `outside`, only beyond the searcher's own search
- * area (the Search it is part of covered that, LX2). `only`: a search aimed at one person. Returns the contests the
+ * area (the Search it is part of covered that, LX2), in two rings (ringShift, LX5). `only`: a search aimed at one person. Returns the contests the
  * searcher won, with who it found. */
 export function searchFor(state: GameState, a: Actor, event: GameEvent, rng: Rng, opts: { look?: Sense; only?: string; outside?: boolean } = {}): { found: Actor; r: ContestResult }[] {
   const here = zoneById(state, a.zone);
@@ -354,7 +359,8 @@ export function searchFor(state: GameState, a: Actor, event: GameEvent, rng: Rng
     if (h.id === a.id || h.posture !== 'stealthy' || h.bandId === a.bandId || !isActive(h) || (opts.only && h.id !== opts.only)) continue;
     if (atLeast(beliefStatus(state, a, h), 'aware') || !reaches(h)) continue;
     const w = watcherRoll(state, a, sense, zoneById(state, h.zone), h);
-    const r = ruleset.contested(hiderRoll(state, h, stealthSkill(h), sense, true, a), opts.look ? { ...w, tierShifts: [...w.tierShifts, { source: 'look around', value: CONFIG.LOOK_SEARCH_SHIFT }] } : w, state, rng);
+    const shift = opts.outside ? ringShift(state, a, h, area) : CONFIG.LOOK_SEARCH_SHIFT;
+    const r = ruleset.contested(hiderRoll(state, h, stealthSkill(h), sense, true, a), opts.look ? { ...w, tierShifts: [...w.tierShifts, { source: 'look around', value: shift }] } : w, state, rng);
     if (!done.ids.includes(pairKey(h, a))) done.ids.push(pairKey(h, a));
     contestFeat(state, r, a.kind === 'player' ? [sense] : undefined); // N4c
     if (a.kind === 'player' && r.gap > 0) { tally(state, 'spotted'); tally(state, 'spotted', { by: 'function', of: sense }); } // N3

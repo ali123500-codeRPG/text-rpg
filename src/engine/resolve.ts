@@ -2081,6 +2081,7 @@ function doSearch(ctx: Ctx, a: Actor, o: Order): void {
   if (items.hint) ev.effects.push({ kind: 'disturbed', actorId: a.id, data: {} });
   // LX1/LX2: the player's Search around them is also the look around, the weak search beyond the search area included
   if (!t && a.id === state.player.id && a.core.skills[SK.eyesight] !== undefined) { const r = ev.roll; look(ctx, a, SK.eyesight, ev, true); if (r) { ev.roll = r; ev.tier = r.tier; } else ev.glance = true; }
+  else if (!t) ev.effects.push(...foundEffects(a, searchFor(state, a, ev, rng, { look: FN.sight, outside: true }))); // LX7 a: an NPC's search has the rings too
   // SE17: a person searched may give up a secret a sight or hearing roll can reveal
   const secrets = t && atLeast(beliefStatus(state, a, t), 'aware') ? searchSecrets(state, a, t, rng) : { found: [] };
   if (secrets.found.length) {
