@@ -23,8 +23,8 @@ roadmap, is linked from #1218.
   versions: they stay forever (no loss, only growth toward the 25,000-document cap). Since #1252 only the sweep (backup
   turns, undo, restore) lists; ordinary turns never do.
 - Backups write the whole state every BACKUP_EVERY turns, the largest write cost when amortised.
-- Saved playtest worlds (`tests/soak/worlds`) had 9 to 16 pages by turn 49; all are schema 9, below
-  OLDEST_SAVE_SCHEMA, so none load today.
+- Saved playtest worlds (`tests/soak/worlds`) had 9 to 16 pages by turn 49; all were schema 9, below
+  OLDEST_SAVE_SCHEMA. #1229 retired them (YS4 a was already done), so no real long world is measured.
 
 **Checked behaviour:**
 
@@ -36,6 +36,6 @@ roadmap, is linked from #1218.
   A refused load only shows a notice, and a backup can't be restored either: backups are listed, and restored, only
   once a story has loaded. So a refused load has no way back in the game but a new character, and the safety
   bookmark is never usable.
-- `MIGRATIONS` holds one step (v10 → v11, BG-312), although `docs/instructions.md` section 4 says to write no
-  migrations. The spec line saying it was empty is corrected.
+- `MIGRATIONS` holds one step (v10 → v11, BG-312). The rule said to write no migrations; since YS3 b it allows small
+  steps (a default or a renamed field), and BG-312's step is one.
 - Archived stories keep every page, turn record and backup (D-73), and they count toward the 25,000-document cap.
