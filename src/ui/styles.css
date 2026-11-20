@@ -495,7 +495,7 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .cs-tree-h { display: flex; justify-content: space-between; align-items: baseline; }
 .cs-tree-h b { font-size: 15px; }
 .cs-tree-h span { color: var(--muted); font-size: 13px; white-space: nowrap; cursor: help; }
-.cs-tree-block { display: block; color: var(--muted); font-size: 13px; }
+.cs-tree-h .lock { margin-left: 6px; cursor: help; }
 /* two lines per skill so the bar always gets the tree's full width: name and value, then the bar and its learning window */
 .cs-sk { display: grid; grid-template-columns: auto 2.5ch minmax(0, 1fr) auto; grid-template-areas: "n num bar lwn"; gap: var(--space-2); align-items: center; }
 .cs-sk .n { grid-area: n; display: flex; align-items: center; gap: 2px; } .cs-sk .num { grid-area: num; } .cs-sk .cs-bar { grid-area: bar; } .cs-sk .lwn { grid-area: lwn; }
