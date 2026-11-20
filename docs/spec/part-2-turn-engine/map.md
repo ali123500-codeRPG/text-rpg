@@ -204,14 +204,19 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
 
 #### Open discrepancies
 
-Where the old copies of these rules disagreed, this file keeps the spec's wording and marks the point here. The owner
-moved these four to a revision of the map's rules, recorded as D-413 (questionnaire "Workflow proposals", WF9, WF11,
-WF13, WF14). Until then, the code decides what the game does (`AGENTS.md`, Order of authority).
+Where the old copies of these rules disagreed, or a rule and the code do, this file keeps the spec's wording and marks
+the point here. The owner moved these to a revision of the map's rules, recorded as D-413 (questionnaire "Workflow
+proposals", WF9, WF11, WF13, WF14), now asked on the Questions hub page "Map rules revision" (RM1 to RM10). Until then,
+the code decides what the game does (`AGENTS.md`, Order of authority).
 
 - **MAP-27 and MAP-68:** people out of full sight sit "in the bottom band" (MAP-27) or "in a row under the zone's name"
-  (MAP-68).
+  (MAP-68). The code draws the bottom band, just above the zone's south wall (RM4).
+- **MAP-44 and MAP-45:** someone heard going into a zone the character has never seen is last seen there (MAP-45), but
+  the map shows only zones seen or stood in (MAP-44), so they are not drawn anywhere.
 - **Footprint:** "one connected footprint" (MAP-12), "the bounding box of the seen ground … plus padding" (MAP-13),
-  "the box around a place's indoor zones" (MAP-18, which `checkStage` uses).
+  "the box around a place's indoor zones" (MAP-18, which `checkStage` uses). On the Bent Nail the drawn outline runs
+  over the high lane; the checker's box does not (RM5).
 - **MAP-24:** one format `→ target · state`, but a locked exit's note reads ", locked".
 - **MAP-33 and MAP-84 on the minimap:** a zone seen but never entered is hatched on the Map (MAP-33), but has a dashed
-  edge on the minimap (src/ui/styles.css), whose marks are meant to be the Map's own (MAP-84).
+  edge on the minimap (src/ui/styles.css), whose marks are meant to be the Map's own (MAP-84). Its walls then look like
+  the key's "Open side", against MAP-30 (one look, one meaning) (RM3).
