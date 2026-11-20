@@ -1,7 +1,7 @@
 // State-side minds work: routine install and switch, the alarm machine, Explore detection and ambush.
 import { groundZoneOf } from '../engine/ground';
 import { FN } from '../library/functionIds';
-import type { Actor, ActorView, ContestResult, Cue, GameEvent, GameState, ItemInstance, Order, Rng, RollResult, Tier, TierRoll, Zone } from '../types';
+import type { Actor, ActorView, ContestResult, Cue, GameEvent, GameState, ItemInstance, Order, Rng, RollResult, SkillFunction, Tier, TierRoll, Zone } from '../types';
 import type { NoiseKey } from '../scales';
 import { TIERS } from '../scales';
 import { getLibrary, itemDef, perkName } from '../library';
@@ -10,9 +10,9 @@ import { CONFIG } from '../config';
 import { now, pitchBlack, secondsSince, timeOfDay, zoneLight } from '../time';
 import { routine as getRoutine, routineSet } from '../library';
 import { actorById, allActors, atLeast, isActive, isAsleep, isEngaged, sparring, wary, zoneById } from '../engine/relations';
-import { beliefStatus, computePerception, hearsClearly, inLookReach, perceptionOf, sensesReaching, smells, updateBeliefs } from '../perception';
+import { beliefStatus, hearsClearly, inLookReach, perceptionOf, sensesReaching, smells, updateBeliefs } from '../perception';
 import { soundDb, VOLUME_NOISE } from '../perception/noise';
-import { markUse, ruleset, situational, fnRoller, tierLevel, toContest, usableModes, fallbackAttackSkill, modeSkill, effectiveSkill } from '../ruleset';
+import { markUse, ruleset, situational, fnRoller, tierLevel, effectiveSkill } from '../ruleset';
 import { coverShown, rollFnSkills } from '../ruleset/gear';
 import { rewardSources } from '../ruleset/achRewards';
 import { distM, seeingM, sightDistM, withinGrip, withinM, type Located } from '../engine/position';
@@ -265,9 +265,10 @@ const pairKey = (s: Actor, a: Actor) => (s.kind === 'player' ? a.id : `${s.id}>$
  * - Strike and Fade (VS3): right after an attack from hiding, each observer the attack made aware (`event.spotted`) rolls
  *   against Vanishing at once, in place with no cover needed: the one second roll a watcher makes in a turn.
  * Light and cover reach the rolls by situation tag (CONFIG.SITUATION_TAGS, ST21); staying put ignores leg wounds (ST10). */
-export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): void {
+export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): string[] {
+  const madeAware: string[] = [];
   const s = actorById(state, event.actorId);
-  if (!s) return;
+  if (!s) return madeAware;
   const zone = zoneById(state, s.zone);
   const fade = event.kind === 'vanish'; // Strike and Fade
   const moved = event.kind === 'move';
@@ -285,6 +286,9 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): voi
   const done = contestedThisTurn(state);
   const own = event.kind === 'attack' ? ':shot' : fade ? ':fade' : '';
   let saw = 0, lost = 0; // a player's Vanishing rolls: those who saw them, and those it lost (N2)
+  // CS25: an attack (an ambush) is one stealth act: Against the Odds counts once, for the strongest watcher beaten
+  const act: ActContest[] | undefined = event.kind === 'attack' ? [] : undefined;
+  const feat = (r: ContestResult, fns?: SkillFunction[]) => { if (act) { matchedCritFeat(state, r); act.push({ c: r, fns }); } else contestFeat(state, r, fns); }; // N4c
   for (const a of allActors(state)) {
     const pair = pairKey(s, a) + own;
     if (a.id === s.id || a.bandId === s.bandId || (!a.mind && a.kind !== 'player') || !isActive(a)) continue;
@@ -310,7 +314,7 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): voi
         done.ids.push(`${pair}:${f}`);
         if (own === ':shot') done.ids.push(`${pairKey(s, a)}:${f}`);
       }
-      contestFeat(state, r, a.kind === 'player' ? [sense] : undefined); // N4c
+      feat(r, a.kind === 'player' ? [sense] : undefined);
       markUse(state, s, skill, r); // ST8
       markUse(state, a, r.b.skill, r); // the watcher's sense learns too (only the player keeps marks)
       log(state, 'stealth_contest', { ...(s.kind === 'player' ? {} : { actorId: s.id }), observerId: a.id, skill, sense, kind: event.kind, gap: r.gap });
@@ -320,7 +324,7 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): voi
         // ST23: an observer with Unblinking whose sense loses the Vanishing roll still needs beating with Sneaking or Combat Stealth
         const second = stealthSkill(s);
         const r2 = ruleset.contested(mine(second, sense, a), theirs(a, sense), state, rng);
-        contestFeat(state, r2, a.kind === 'player' ? [sense] : undefined);
+        feat(r2, a.kind === 'player' ? [sense] : undefined);
         markUse(state, s, second, r2);
         markUse(state, a, r2.b.skill, r2);
         log(state, 'stealth_contest', { ...(s.kind === 'player' ? {} : { actorId: s.id }), observerId: a.id, skill: second, sense, kind: event.kind, gap: r2.gap, perk: PK.unblinking });
@@ -328,9 +332,11 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): voi
       }
     }
     if (sees) saw++;
+    else if (won || held) done.ids.push(`${pair}:held`); // an ambush's target that noticed anything is not caught off guard (resolveAmbush)
     if (won) {
       if (a.kind === 'player' && !sees) { tally(state, 'spotted'); tally(state, 'spotted', { by: 'function', of: won }); } // N3
       updateBeliefs(state, { kind: 'detection', observerId: a.id, aboutId: s.id, status: 'aware', event }); spotted(a, s); // WN8
+      madeAware.push(a.id);
     } else if (sees) {
       if (held) continue; // VS1, D-40: any sense still holding on keeps them
       updateBeliefs(state, { kind: 'lost', observerId: a.id, aboutId: s.id, zone: from.zone });
@@ -338,6 +344,8 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): voi
     } else if (held || (event.kind === 'attack' && event.target === a.id)) updateBeliefs(state, { kind: 'detection', observerId: a.id, aboutId: s.id, status: 'suspicious', event });
   }
   if (s.kind === 'player' && saw && lost === saw) tally(state, 'vanished'); // N2: everyone who saw you lost you
+  if (act) outmatchedOnce(state, act);
+  return madeAware;
 }
 
 /** SE21/SE24: the actor's effective skill with one sense (a function roll's best skill) */
@@ -527,7 +535,7 @@ export function searchSecrets(state: GameState, a: Actor, t: Actor, rng: Rng): {
 }
 
 export function detectPlayer(state: GameState, event: GameEvent, rng: Rng): void {
-  if (state.player.posture === 'stealthy') return stealthDetect(state, event, rng);
+  if (state.player.posture === 'stealthy') { stealthDetect(state, event, rng); return; }
   for (const a of state.actors) {
     if (!a.mind || !isActive(a)) continue;
     const cur = a.mind.knowledge.player?.status ?? 'unaware';
@@ -542,48 +550,16 @@ export function detectPlayer(state: GameState, event: GameEvent, rng: Rng): void
   }
 }
 
-/** the attack skill for the weapon used (ambush skill; OQ-4 settled: every attack on an unaware actor rolls). */
-function ambushSkill(state: GameState, attacker: Actor, itemId: string | undefined): string {
-  const used = itemId ? usableModes(state, attacker).find((m) => m.itemId === itemId) : undefined;
-  return used ? modeSkill(used.mode) : fallbackAttackSkill(state, attacker);
-}
-
+/** OQ-4, BG-342: an attack on someone unaware of the attacker is an ambush. It rolls nothing of its own: the attack's own
+ * Combat Stealth contests (stealthDetect, from hiding or not: one per sense that reaches each watcher, once per turn)
+ * decide who notices, before the blow. The target is surprised when it rolled and every sense lost: a win or a tie on any
+ * sense keeps it from being caught off guard, and a later blow in the same turn keeps that result. A watcher who wins
+ * against an attacker not hidden (a melee blow shows it) is alarmed at once; a sparring blow alarms no one (SP11). */
 export function resolveAmbush(state: GameState, attackerId: string, targetId: string, attackEvent: GameEvent, rng: Rng): { surprised: boolean } {
-  const attacker = actorById(state, attackerId);
-  if (!attacker) return { surprised: false };
-  // perception before the blow: the event's own if already worked out, else worked out now (CS2)
-  // Every active NPC that could perceive the attack, including those unaware of the attacker (left out of computePerception).
-  const perception: GameEvent['perception'] = Object.keys(attackEvent.perception).length ? { ...attackEvent.perception } : { ...computePerception(attackEvent, state, rng) };
-  for (const o of state.actors) {
-    if (perception[o.id] || o.id === attackerId) continue;
-    const seen = perceptionOf(attackEvent, state, o);
-    if (seen) perception[o.id] = seen;
-  }
-  const ids = [targetId, ...Object.keys(perception).filter((id) => id !== targetId && id !== attackerId).sort()];
-  const observers = ids
-    .map((id) => actorById(state, id))
-    .filter((o): o is Actor => !!o && isActive(o) && !atLeast(beliefStatus(state, o, attacker), 'aware')); // NS6: the player too
-  if (!observers.length) return { surprised: false };
-  const ambush: RollResult = ruleset.roll({ actorId: attackerId, skill: ambushSkill(state, attacker, attackEvent.itemId), modifiers: [], tierShifts: [], itemId: attackEvent.itemId, contest: true }, state, rng);
-  let surprised = false;
-  const target = actorById(state, targetId);
-  const spar = !!target && sparring(state, attacker, target); // SP11: a sparring blow from hiding raises no alarm
-  const act: ActContest[] = [];
-  for (const o of observers) {
-    const skill = cueSense(perception[o.id]?.cue);
-    const p = ruleset.roll({ actorId: o.id, skill: SENSE_SKILL[skill], modifiers: [], tierShifts: [], rollKind: 'perception', fn: skill, contest: true }, state, rng); // function roll
-    const contest = toContest(ambush, p), gap = contest.gap;
-    matchedCritFeat(state, contest); // D-292
-    act.push({ c: contest, fns: o.kind === 'player' ? [skill] : undefined }); // CS25
-    // the watcher's sense learns from the ambush contest (only the player keeps marks)
-    markUse(state, o, p.skill, contest);
-    if (o.id === targetId && gap < 0) surprised = true;
-    // ST7: a shot from stealth leaves noticing to the stealth contest (stealthDetect); a melee blow has already revealed
-    if (gap > 0 && attacker.posture !== 'stealthy') {
-      updateBeliefs(state, { kind: 'detection', observerId: o.id, aboutId: attackerId, status: 'aware', event: attackEvent });
-      if (o.kind !== 'player' && !spar) raiseAlarm(state, o);
-    }
-  }
-  outmatchedOnce(state, act); // CS25: once per ambush, for the strongest watcher beaten
-  return { surprised };
+  const attacker = actorById(state, attackerId), target = actorById(state, targetId);
+  if (!attacker || !target) return { surprised: false };
+  const noticed = stealthDetect(state, attackEvent, rng);
+  if (attacker.posture !== 'stealthy' && !sparring(state, attacker, target)) for (const id of noticed) { const o = actorById(state, id); if (o && o.kind !== 'player') raiseAlarm(state, o); }
+  const pair = `${pairKey(attacker, target)}:shot`, done = contestedThisTurn(state);
+  return { surprised: DETECTION_SENSES.some((f) => done.ids.includes(`${pair}:${f}`)) && !done.ids.includes(`${pair}:held`) };
 }

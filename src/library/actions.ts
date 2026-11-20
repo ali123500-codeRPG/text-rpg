@@ -7,7 +7,7 @@ import { PUSH_TYPES, answerSkill, speechSkill } from '../engine/speech';
 import { CONTEST } from './contests';
 import { FN } from './functionIds';
 import { PK } from './perkIds';
-import { SK } from './skillIds';
+import { DETECTION_SENSES, SK } from './skillIds';
 
 /** one side of a roll: named skills (one of them, by the rule's choice), skill functions (the best skill of each), the
  * weapon in hand's skill, or `text` for a side that is not a skill (a grade, a quality roll) */
@@ -17,7 +17,7 @@ export type ActionGroup = { key: 'actions' | 'moves' | 'passive'; rows: ActionRo
 
 const sk = (...skills: string[]): ActSide => ({ skills });
 const fn = (...fns: string[]): ActSide => ({ fns });
-const SENSES = fn(FN.sight, FN.hearing);
+const SENSES = fn(...DETECTION_SENSES);
 const DEFENSE = sk(SK.dodge, SK.parry, SK.block);
 const speech = (t: string): Pick<ActionRow, 'roll' | 'against'> => ({ roll: sk(speechSkill(t)), against: sk(answerSkill(t)) });
 
@@ -64,7 +64,7 @@ const MOVES: Record<string, Omit<ActionRow, 'id'>> = {
 /** contests nobody chooses: they roll when something else happens */
 const PASSIVE: ActionRow[] = [
   { id: 'size_up', who: 'both', roll: sk(CONTEST.size_up.roll), against: sk(CONTEST.size_up.against), at: 'sizeUp, src/engine/speech.ts' },
-  { id: 'ambush', who: 'both', roll: { weapon: true }, against: SENSES, at: 'resolveAmbush, src/minds/state.ts' },
+  { id: 'ambush', who: 'both', roll: sk(SK.combat_stealth), against: SENSES, at: 'resolveAmbush and stealthDetect, src/minds/state.ts' },
   { id: 'break_free', who: 'both', roll: sk(CONTEST.restrain.roll), against: sk(CONTEST.restrain.roll), at: 'breakFree, src/engine/held.ts' },
   { id: 'wake', who: 'both', roll: fn(FN.stealth), against: sk(SK.earshot), at: 'wakeCheck, src/engine/sleep.ts' },
   { id: 'aura', who: 'both', roll: { text: 'Aura skill' }, against: sk(SK.resolve), at: 'auraContest, src/engine/auras.ts' },

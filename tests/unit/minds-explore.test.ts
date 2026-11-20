@@ -1,4 +1,5 @@
-// detectPlayer and resolveAmbush with local fakes for W3's updateBeliefs and W2's roll.
+// detectPlayer with local fakes for W3's updateBeliefs and W2's roll. The ambush is the attack's own stealth contests
+// (BG-342): tests/cases/s412-ambush-combat-stealth.test.ts.
 import { AM } from '../../src/library/tableIds';
 import { IT } from '../../src/library/itemIds';
 import type { Tier } from '../../src/types';
@@ -28,10 +29,9 @@ vi.mock('../../src/ruleset', async (orig) => {
 });
 
 import { makeVillage, actor, createRng } from '../harness';
-import { detectPlayer, resolveAmbush, alertOrders } from '../../src/minds';
+import { detectPlayer } from '../../src/minds';
 import { ruleset } from '../../src/ruleset';
 import { updateBeliefs } from '../../src/perception';
-import { fakeView } from './minds-view';
 
 const ev = (perception: GameEvent['perception'], target?: string): GameEvent => ({
   id: 'e1', turn: 1, actorId: 'player', kind: target ? 'attack' : 'move', zone: 'gate_inner', target, effects: [], noise: 'normal', visibility: 'normal', perception,
@@ -60,31 +60,5 @@ describe('detectPlayer', () => {
     actor(s, 'guard_1').mind!.knowledge.player = { status: 'aware', source: 'seen', revealed: [] };
     detectPlayer(s, ev({ guard_1: { level: 'partial', cue: 'sight' } }), createRng(1));
     expect(updateBeliefs).not.toHaveBeenCalled();
-  });
-});
-
-describe('resolveAmbush', () => {
-  it('player beats the target: surprise, nothing changes', () => {
-    const s = makeVillage();
-    tiers.player = 'great_success'; tiers.guard_1 = 'near_miss';
-    expect(resolveAmbush(s, 'player', 'guard_1', ev({ guard_1: { level: 'full', cue: 'sight' } }, 'guard_1'), createRng(1))).toEqual({ surprised: true });
-    expect(vi.mocked(ruleset.roll).mock.calls.map((c) => c[0].skill)).toEqual([SK.melee_medium, SK.eyesight]);
-    expect(actor(s, 'guard_1').mind!.knowledge.player).toBeUndefined();
-  });
-  it('target wins: aware and onAlert due; a witness wins too', () => {
-    const s = makeVillage();
-    tiers.player = 'near_miss'; tiers.guard_1 = 'success'; tiers.trader = 'great_success';
-    const r = resolveAmbush(s, 'player', 'guard_1', ev({ guard_1: { level: 'full', cue: 'sight' }, trader: { level: 'partial', cue: 'sound' } }, 'guard_1'), createRng(1));
-    expect(r.surprised).toBe(false);
-    expect(vi.mocked(ruleset.roll).mock.calls.map((c) => c[0].skill)).toEqual([SK.melee_medium, SK.eyesight, SK.earshot]);
-    expect(actor(s, 'guard_1').mind!.knowledge.player.status).toBe('aware');
-    expect(actor(s, 'trader').mind!.knowledge.player.status).toBe('aware');
-    expect(alertOrders(s, [fakeView(s, 'guard_1')])).toEqual([expect.objectContaining({ type: 'call_help', source: 'onAlert' })]);
-  });
-  it('tie: not surprised, stays unaware', () => {
-    const s = makeVillage();
-    tiers.player = 'near_miss'; tiers.guard_1 = 'near_miss';
-    expect(resolveAmbush(s, 'player', 'guard_1', ev({}, 'guard_1'), createRng(1)).surprised).toBe(false);
-    expect(actor(s, 'guard_1').mind!.knowledge.player).toBeUndefined();
   });
 });
