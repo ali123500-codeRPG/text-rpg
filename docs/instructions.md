@@ -189,8 +189,8 @@ The source of truth for every design decision.
   blocking dialog. Check with the owner before replacing a play screen's existing side panel with one.
 - Judge motion by watching it: record a video of the built page and read frame strips. Screenshots at fixed moments
   miss timing bugs. How: `docs/memory/working-notes-testing.md`.
-- The `rpg-map` rules exist to keep the map readable. When the owner asks for something that clashes with one, build
-  what they asked, name the clash once, and update the rule.
+- The map's rules (MAP-nn, `docs/spec/part-2-turn-engine/map.md`) exist to keep the map readable. When the owner asks
+  for something that clashes with one, build what they asked, name the clash once, and update the rule.
 
 ## 8. Building and landing changes
 

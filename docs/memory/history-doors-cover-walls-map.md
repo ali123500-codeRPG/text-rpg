@@ -24,5 +24,5 @@ Question IDs name the owner's answers on the Questions hub.
 - **The Map (10-19/11/2026).** A Map (first a tab, now a pop-up) drawn from what the character knows (#357, #360,
   #362); drawn to scale (#728); the stage map rework MR1-MR3 as BG-214 (#755); marks keep their spot at every
   zoom, with big names behind them, MZ1-MZ4 as BG-216 (#770); redrawn from the floor plan under the fog as
-  BG-313 (#1096). The map rules are the skill in `.agents/skills/rpg-map`; `ui-decisions.md` says how firmly
-  they bind.
+  BG-313 (#1096). The map rules are `docs/spec/part-2-turn-engine/map.md` (the `rpg-map` skill holds the working
+  method); `ui-decisions.md` says how firmly they bind.

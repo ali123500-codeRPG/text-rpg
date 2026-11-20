@@ -16,8 +16,9 @@ Each is in `.agents/skills/<name>/SKILL.md`, in full. Change one only through a 
 - **show-dont-tell-ui**: for any UI change. Mark only the exception with an icon, put words in tooltips and
   aria-labels, and cut hints the styling already gives. Based on `minimal-ui-design` from castle-x/skills-x (MIT);
   its licence is kept beside it as `LICENSE-source.txt`.
-- **rpg-map**: rules for the game's map (layout, labels, tokens, door symbols, fog of what the player knows) and a
-  required render-and-check pass. The rules serve the map: see `docs/memory/ui-decisions.md`.
+- **rpg-map**: the working method for the game's map, with its required render-and-check pass. The map's rules
+  (layout, labels, tokens, door symbols, fog of what the player knows) are `docs/spec/part-2-turn-engine/map.md`. The
+  rules serve the map: see `docs/memory/ui-decisions.md`.
 - **game-feel**: screen shake, hit-stop, squash, bar drains and feedback sized by how rare an event is, for web UIs
   without an animation library. Adapted from gamedev-skills/awesome-gamedev-agent-skills (Apache-2.0); its licence
   and notice are kept beside it.

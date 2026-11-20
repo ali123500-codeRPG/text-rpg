@@ -54,6 +54,7 @@ game system to its topics, code and tests. A new topic is a new file here plus i
 - [Leak prevention, validation and failure handling](spec/part-2-turn-engine/leak-prevention-validation-and-failure-handling.md)
 - [Play screen](spec/part-2-turn-engine/play-screen.md)
 - [Play screen motion](spec/part-2-turn-engine/play-screen-motion.md)
+- [Map](spec/part-2-turn-engine/map.md)
 - [Game sound](spec/part-2-turn-engine/game-sound.md)
 - [Turn checker](spec/part-2-turn-engine/turn-checker.md)
 - [Case tests](spec/part-2-turn-engine/case-tests.md)

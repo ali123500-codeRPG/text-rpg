@@ -32,7 +32,7 @@ Success: a build reads and compares at a glance, every figure is trustworthy and
 - Runs as one self-contained page in a Claude artifact, PC only (no phone layout), using only the game's own Claude and database capabilities; no other network calls.
 - The story lives in the artifact's database, so any PC on the same account continues it; browser storage holds only per-PC conveniences such as panel layout.
 - The play screen design rules live in docs/build-spec.md, section "### Play screen", with motion in "### Play screen motion". The approved creation screen layout is linked from that section.
-- Look changes are shown to Ali as 2 to 4 named options drawn over the real page, one recommended, and he picks one. Questions for Ali go on the project's Questions hub, never in chat.
+- Look changes are shown to Ali as 2 to 4 named options drawn over the real page, one recommended, and he picks one. Questions for Ali go through the channel AGENTS.md rule 10 and the provider file name (for Claude: one question on a decision card, two or more on the Questions hub), never loose in a chat message.
 
 ## Capabilities and Constraints
 
