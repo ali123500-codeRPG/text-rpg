@@ -5,7 +5,7 @@ import type { Actor, AttackMode, GameState, HealthLevel, Mod, PartState, RoleId 
 import { CONFIG } from '../config';
 import { armReachM } from '../library/bodySize';
 import { actorBody, getLibrary, itemDef } from '../library';
-import { hasPerk, reservesMult } from './perks';
+import { hasPerk, reservesMult, trueSkill } from './perks';
 import { skillOpen } from './access';
 import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
@@ -220,3 +220,5 @@ export const healShare = (level: number): number => {
   if (level > top) return Math.min(1, CONFIG.HEAL_TIER_SHARE.critical_success + (level - top) * CONFIG.HEAL_PAST_STEP);
   return CONFIG.HEAL_TIER_SHARE[TIERS.at(level)] ?? 0;
 };
+/** NR34: Heal opens at true Healing CONFIG.HEAL_UNLOCK */
+export const canHeal = (a: Actor): boolean => trueSkill(a, SK.healing) >= CONFIG.HEAL_UNLOCK;

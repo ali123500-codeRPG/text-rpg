@@ -42,6 +42,8 @@ export function shortBy(actor: Actor, def: ItemDef): number {
   return r ? Math.max(0, r.need - achievementReqLower(actor, r.skill) - skillToward(actor, r.skill)) : 0; // reqLower: only the check, never the item's numbers
 }
 
+/** EQ12 c: outcome steps worse for falling `short` points below a requirement */
+export const shortSteps = (short: number): number => Math.ceil(short / CONFIG.EQUIP_SHORT_STEP);
 /** EQ12 c: the tier shifts one roll takes for gear the roller falls short on */
 export function shortShifts(state: GameState, actor: Actor, kind: RollKind | undefined, itemId: string | undefined): TierShift[] {
   const items: ItemInstance[] = actor.core.inventory.filter((i) =>
@@ -49,7 +51,7 @@ export function shortShifts(state: GameState, actor: Actor, kind: RollKind | und
   const out: TierShift[] = [];
   for (const inst of items) {
     const def = itemDef(state, inst.itemId), short = shortBy(actor, def);
-    if (short > 0) out.push({ source: `Short of ${def.name}'s requirement`, value: -Math.ceil(short / CONFIG.EQUIP_SHORT_STEP) });
+    if (short > 0) out.push({ source: `Short of ${def.name}'s requirement`, value: -shortSteps(short) });
   }
   return out;
 }

@@ -7,7 +7,7 @@ import { landTarget } from '../scenario/ways';
 import { landView } from '../land/brief';
 import { encounterPeople, withRosters } from '../land/roster';
 import { actionRow } from '../ruleset/actionTime';
-import { doingOf } from '../engine/busy';
+import { busyWords, doingOf } from '../engine/busy';
 import { budgetUsed, lastScenarios } from '../engine/scenarioEnd';
 import { nearbyZones } from '../scenario/stage';
 import { SCENARIO_ENDING_NAMES } from '../types';
@@ -907,7 +907,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ...(full && e.kind === 'move' ? (e.fromZone ? { from: zoneById(state, e.fromZone)?.name ?? e.fromZone } : { within: true as const }) : {}),
       ...(full && e.heading ? { heading: zoneById(state, e.heading)?.name ?? e.heading } : {}),
       ...(full && e.toGo ? { toGo: e.toGo } : {}),
-      ...(full && e.busy && e.kind === 'busy' ? { busy: { doing: actionRow(e.busy.row)?.name ?? e.busy.row, done: Math.round(e.busy.done), left: Math.round(e.busy.need - e.busy.done) } } : {}),
+      ...(full && e.busy && e.kind === 'busy' ? { busy: (({ what, ...n }) => ({ doing: what, ...n }))(busyWords(e.busy)) } : {}),
       ...(full && e.round ? { round: `${e.round.way}: ${e.round.shut}` } : {}),
       ...(forWhom ? { for: forWhom } : {}),
       ...(full && e.reason ? { reason: e.reason.replace(/_/g, ' ') } : {}),

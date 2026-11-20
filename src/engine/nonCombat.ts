@@ -7,12 +7,11 @@ import type { Actor, GameState } from '../types';
 import { CONFIG } from '../config';
 import { GR } from '../library/functionIds';
 import { SK } from '../library/skillIds';
-import { trueSkill } from '../ruleset/perks';
 import { gradeMod } from '../ruleset';
 import { expectOver, tierOdds } from '../ruleset/expect';
 import { ratingOfGroups, ratingOf } from '../ruleset/ratings';
 import { refFighter } from './combatLevel';
-import { healShare } from '../ruleset/body';
+import { canHeal, healShare } from '../ruleset/body';
 
 /** how each non-combat group's share is worked out (CONFIG.NONCOMBAT_SHARES):
  * slip: its roll beats an equal watcher's outright (sneaking past, filching unseen: a tie only makes them suspicious);
@@ -37,7 +36,7 @@ function pBeats(x: Map<number, number>, y: Map<number, number>, by: number): num
 export function shareAt(state: GameState, a: Actor, group: string, rule: ShareRule, s: number): number {
   const foe = refFighter(state, 0, '__equal').ref; // a bare foe: no perks of its own
   const skill = { [GR.stealth]: SK.sneaking, [GR.notice]: SK.eyesight, [GR.sleight]: SK.filching, [GR.influence]: SK.persuasion, [GR.medicine]: SK.healing }[group] ?? SK.sneaking;
-  if (rule === 'heal') return trueSkill(a, SK.healing) < CONFIG.HEAL_UNLOCK ? 0 : expectOver(plainOdds(a, skill, s + gradeMod(s) / CONFIG.SKILL_WEIGHT), healShare) // SE23: a task graded at its own level;
+  if (rule === 'heal') return !canHeal(a) ? 0 : expectOver(plainOdds(a, skill, s + gradeMod(s) / CONFIG.SKILL_WEIGHT), healShare) // SE23: a task graded at its own level;
   const mine = plainOdds(a, skill, s), theirs = plainOdds(foe, skill, s);
   if (rule === 'slip') return pBeats(mine, theirs, 1);
   if (rule === 'catch') return 1 - pBeats(theirs, mine, 1);
