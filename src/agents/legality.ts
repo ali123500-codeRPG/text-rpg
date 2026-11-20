@@ -107,6 +107,7 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
     // P2: code picks a speech action's skill from its type (SPEECH_SKILL), so the Parser's skill there is dropped
     // sneak: code picks the stealth skill (ST2, VS1), so the Parser's skill there is dropped
     if (a.type === 'sneak' || a.type === 'search' || a.type === 'stash') a.skill = ''; // SE2/SE9: code picks the roll
+    if (a.type === 'search') a.item = null; // D-21: a search looks for everything in reach; the thing it was for is never asked about
     else if ((SPEECH_ACTIONS as readonly string[]).includes(a.type)) a.skill = '';
     else if (a.skill && !view.player.skills.some((x) => x.id === a.skill)) illegal.push(`action.skill ${a.skill}`);
     // a buy, or haggling over one, names a ware of the seller it targets (goods:… / service:…), not an item the player can reach
