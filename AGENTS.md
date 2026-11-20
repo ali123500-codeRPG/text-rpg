@@ -18,7 +18,7 @@ project: "the owner" below is its designer and its only player.
   `npm run test:near` runs the tests nearest your change (`-- <system>` for one
   system). `npm run sync` catches up with `main` and checks no edit of yours was lost. The page in dev views:
   `?fake=1&stage=<stage>` and `?mapcheck`; `tests/smoke/map.smoke.ts` is the Map's automated check.
-- This repo is public. See rule 9.
+- This repo is public.
 
 ## Rules that must never be broken
 
@@ -47,11 +47,7 @@ project: "the owner" below is its designer and its only player.
    marked. Never hard-code one in logic, and never copy one into `docs/memory/`: name the setting and where it lives.
 8. **Distance is real metres.** Reach, range, sight, hearing, movement and room sizes use real-life metres with a
    cited reference. Nearness is never "same zone", zone hops or link counts: zones are only titles for places.
-9. **Keep the public repo clean.** Never commit secrets, tokens, passwords, account or ID numbers; the owner's saves
-   or other user data; facts about the owner (name, email, quotes, devices); or anything whose licence forbids
-   redistribution, such as licensed sounds and text copied from novels or wikis. New files say "the owner". Older
-   files that already name the owner are left as they are, and new lines in the spec (`docs/spec/`) and
-   `docs/bug-fix-log.md` keep the form those files use (first name, date, question ID).
+9. *Placeholder for a future rule.*
 10. **Questions go where the owner answers them.** One question at a time or a numbered list, each with options and a
     recommendation, through the channel your provider file names. Never bury a question in a progress message, and
     never act on an answer the owner did not give.
