@@ -152,4 +152,40 @@ describe('221 search', () => {
     expect(searches(s)).toContainEqual({ actorId: 'guard_x', hiderId: 'player', gap: 1 });
     expect(g.mind!.knowledge.player?.status).toBe('aware');
   });
+
+  /** LX5 b: with a 2 m search radius (the floor), ring one reaches SEARCH_RING1_RADII × 2 m, ring two the look's 25 m */
+  function tinyArea<T>(f: () => T): T {
+    const area = CONFIG.SEARCH_AREA_M2;
+    (CONFIG as { SEARCH_AREA_M2: number }).SEARCH_AREA_M2 = 0.01;
+    try { return f(); } finally { (CONFIG as { SEARCH_AREA_M2: number }).SEARCH_AREA_M2 = area; }
+  }
+  const lookShift = (calls: RollRequest[]) => calls.flatMap((b) => b.tierShifts).find((x) => x.source === 'look around')?.value;
+
+  it('LX5 b: past the search area a Search takes ring one\'s shift, past SEARCH_RING1_RADII radii ring two\'s', () => tinyArea(() => {
+    const s = makeVillage({ playerZone: 'street_square' });
+    const t = thief(s, 'street_square');
+    beside(s, 'thief_1', 'player', 3.2); // past 2 m, inside 4 m
+    let calls = rig(-1);
+    play(s, search());
+    expect(lookShift(calls)).toBe(CONFIG.SEARCH_RING_SHIFTS[0]);
+    const r = boxOf(s.zones.find((z) => z.id === 'street_square')!.outline);
+    s.player.pos = { x: r.x - r.w / 2 + 0.5, y: r.y };
+    t.pos = { x: r.x + r.w / 2 - 0.5, y: r.y }; // across the square, well past 4 m
+    vi.restoreAllMocks();
+    calls = rig(-1);
+    play(s, search());
+    expect(lookShift(calls)).toBe(CONFIG.SEARCH_RING_SHIFTS[1]);
+  }));
+
+  it('LX7 a: an NPC\'s search has the rings too, so a guard finds the hiding player past its search area', () => tinyArea(() => {
+    const s = makeVillage({ playerZone: 'street_square' });
+    const g = spawnNpc(null, TP.guard, { id: 'guard_x', zone: 'street_square', placeId: 'street', bandId: 'village_watch', name: 'Bors', storyId: 'test' });
+    s.actors.push(g);
+    beside(s, 'guard_x', 'player', 9); // its perks' searchReach (120 m²) give it a radius of 6.2 m
+    s.player.posture = 'stealthy';
+    rig(1);
+    play(s, { agentOutputs: [plannerOut('guard_x', act('search'))] });
+    expect(searches(s)).toContainEqual({ actorId: 'guard_x', hiderId: 'player', gap: 1, look: true });
+    expect(g.mind!.knowledge.player?.status).toBe('aware');
+  }));
 });

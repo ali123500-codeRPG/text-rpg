@@ -21,8 +21,13 @@ export const PERCEPTION = {
   SEARCH_M2_PER_REACH_M: 120,
   /** LX2: a search's circle never has a smaller radius than this (in a fight or out of one, LX3) */
   SEARCH_MIN_RADIUS_M: 2,
-  /** SE14 b, LX2: a look (the Search around you beyond its search area, Look at, Listen) is also a search against anyone hiding in its range, this many tiers down */
+  /** SE14 b: Look at and Listen are also a search against anyone hiding in their range, this many tiers down (a Search uses SEARCH_RING_SHIFTS) */
   LOOK_SEARCH_SHIFT: -1,
+  /** LX5 b: a Search's checks beyond its search area: the first ring reaches this many times the search radius, the second
+   * from there out to the look's reach (clear sight, 25 m) */
+  SEARCH_RING1_RADII: 2,
+  /** LX2/LX5: tiers on the searcher's roll in the first and second ring beyond the search area (placeholders) */
+  SEARCH_RING_SHIFTS: [-1, -2] as [number, number],
   WARNED_SHIFT: 2, // WN3: tiers on an answer to a lie (Insight) by one that knows the trick (saw through it, or was warned)
   POINTED_SHIFT: 1, // WN4 b (placeholder): tiers on the next notice or search roll at a hidden foe an ally pointed out
   POINTED_TURNS: 6, // WN4 b (placeholder, = DECAY_TURNS): how long a pointed-out spot stays fresh
