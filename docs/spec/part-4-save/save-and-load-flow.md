@@ -8,7 +8,7 @@ A save counts only once the head is written, so a crash at any earlier step leav
 2. Resolve the turn in memory (Part 2), including scenario setup or stage extension when the turn starts a scenario or crosses a frontier. A turn stopped by a clarify question saves nothing.
 3. For each page whose content changed: serialize it, check it is under 256 KiB (split facts pages if not), hash it, write pages/\<key>@\<turn>.
 4. Write turns/\<turn>, and the story meta (stories/\<storyId>) when it changed. They go out together with step 3. A load needs the meta whenever a head exists, so it can't wait for the commit. A story counts as existing only once its head is written: a meta with no head (a first save whose head write failed) is not listed and does not keep a world taken (BG-336).
-5. Write control/head: the new turn, the full page map, undo = the previous head's bookmark. This is the commit.
+5. Write control/head: the new turn, the full page map, undo = the previous head's bookmark. This is the commit. Its size is checked before step 3 writes anything (size budgets, section 8).
 6. Clean up: delete page versions that no bookmark (head, undo, safety) points to, and turn records older than the last N.
 7. After the narration is shown, and only if step 5 committed, write the story text: every history/\<n> document the turn's new lines fall in, rewritten whole. It is not part of the commit, so a failure costs only text. Loading a story reads every history document, so a reload shows the whole story column (Q18). A turn whose head write failed keeps its text in memory, and the next good turn writes it, so the saved text never runs ahead of the head (BG-337).
 

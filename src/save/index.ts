@@ -74,21 +74,25 @@ function pickVersion(key: string, base: number, hash: string, live: Bookmark[]):
   }
 }
 
-/** Save step 3: write every page whose content changed; unchanged pages keep their old ref. The writes go out
- * together (each page is its own document; nothing points at them until the head is written). */
-async function commitPages(store: Store, id: string, pages: Pages, base: number, live: Bookmark[], prev?: Record<string, PageRef>): Promise<Record<string, PageRef>> {
+/** Save step 3: every page whose content changed gets a new ref and is written; unchanged pages keep their old ref.
+ * `write` sends the writes together (each page is its own document; nothing points at them until the head is written). */
+function planPages(store: Store, id: string, pages: Pages, base: number, live: Bookmark[], prev?: Record<string, PageRef>) {
   const refs: Record<string, PageRef> = {};
-  const writes: Promise<void>[] = [];
+  const writes: [string, unknown][] = [];
   for (const [key, page] of Object.entries(pages)) {
     const bytes = byteLength(page);
     if (bytes > PAGE_LIMIT) throw new SaveError('page_too_large', `page ${key} is ${bytes} bytes, over ${LIMIT_TEXT}`);
     const hash = hashPage(page);
     if (prev?.[key]?.hash === hash) { refs[key] = prev[key]; continue; }
     const { v, reuse } = pickVersion(key, base, hash, live);
-    if (!reuse) writes.push(store.set(pagePath(id, key, v), page));
+    if (!reuse) writes.push([pagePath(id, key, v), page]);
     refs[key] = { version: v, hash, bytes };
   }
-  await Promise.all(writes);
+  return { refs, write: () => Promise.all(writes.map(([path, page]) => store.set(path, page))) };
+}
+async function commitPages(...args: Parameters<typeof planPages>): Promise<Record<string, PageRef>> {
+  const { refs, write } = planPages(...args);
+  await write();
   return refs;
 }
 
@@ -139,14 +143,16 @@ export async function saveTurn(store: Store, state: GameState, record: TurnRecor
     const [prev, stored] = await Promise.all([store.get<Head>(headPath(id)), store.get(story(id))]);
     const live = liveOf(prev);
     const meta: StoryMeta = { ...state.meta, settings: state.settings };
+    const { refs, write } = planPages(store, id, pages, record.turn, live, prev?.pages);
+    // safety (pre-migration or pre-restore) is dropped after this good turn
+    const head: Head = { storyId: id, turn: record.turn, pages: refs, schemaVersion: CONFIG.SCHEMA_VERSION, libraryVersion: state.libraryVersion, undo: prev ? bookmarkOf(prev) : null };
+    checkHeadSize(state, head, prev);
     // pages, the turn record and the story meta are written together; the head (the commit) goes last
-    const [refs] = await Promise.all([
-      commitPages(store, id, pages, record.turn, live, prev?.pages),
+    await Promise.all([
+      write(),
       store.set(turnPath(id, record.turn), fitRecord(record)),
       stableStringify(stored) !== stableStringify(meta) ? store.set(story(id), meta) : undefined,
     ]);
-    // safety (pre-migration or pre-restore) is dropped after this good turn
-    const head: Head = { storyId: id, turn: record.turn, pages: refs, schemaVersion: CONFIG.SCHEMA_VERSION, libraryVersion: state.libraryVersion, undo: prev ? bookmarkOf(prev) : null };
     await store.set(headPath(id), head);
     return head;
   });
@@ -155,6 +161,15 @@ export async function saveTurn(store: Store, state: GameState, record: TurnRecor
     if (record.turn > 0 && record.turn % CONFIG.BACKUP_EVERY === 0) await writeBackup(store, id, head, pages);
   }, true);
   return head;
+}
+
+/** The head lists every page twice (its own map and the undo bookmark), so it is the one document that grows with the
+ * world. Past the document limit the save is refused before anything is written; past HEAD_WARN_SHARE of it the turn
+ * logs head_large once, as the head crosses that line, so a build thread hears of it long before saves stop. */
+function checkHeadSize(state: GameState, head: Head, prev: Head | null): void {
+  const bytes = byteLength(head), warn = CONFIG.HEAD_WARN_SHARE * PAGE_LIMIT;
+  if (bytes > PAGE_LIMIT) throw new SaveError('page_too_large', `the save's head lists ${Object.keys(head.pages).length} pages and is ${bytes} bytes, over ${LIMIT_TEXT}`);
+  if (bytes >= warn && (!prev || byteLength(prev) < warn)) state.log.push({ turn: head.turn, code: 'head_large', detail: { bytes, pages: Object.keys(head.pages).length } });
 }
 
 /** Save step 6: drop page versions no bookmark points to, and turn records older than the last N. */
