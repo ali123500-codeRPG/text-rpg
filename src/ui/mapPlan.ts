@@ -151,8 +151,44 @@ export function planScene(inp: PlanInput): Scene {
   // BG-216: the marks inside zones are placed once, each at the widest of PLACE_KS with room for it, and every zoom reuses
   // those spots; zoomed out past where a mark was placed, it shows only where it covers nothing
   let ref: Scene | undefined;
-  for (const k of PLACE_KS) ref = layout({ ...inp, k }, ref, false);
-  return layout(inp, ref, true);
+  // MAP-25: the zone names at each of those zooms, so furniture is placed clear of them there and at every closer one
+  const names = PLACE_KS.map((k) => zoneNames(inp.zones.filter((z) => z.rect).map((z) => ({ z, box: zoneBox(z, k) })), k, inp.measure));
+  for (const k of PLACE_KS) ref = layout({ ...inp, k }, ref, false, names);
+  return layout(inp, ref, true, names);
+}
+
+/** zone names (MZ2, MZ3, MAP-20): bold letters inside the zone, centred and as large as fit its box with 6 px to spare,
+ *  over up to three lines; a background layer the marks may sit on, so a name takes no room and pushes no mark (BG-216).
+ *  A zone too small even for the smallest letters shows its name in its tooltip only. */
+function zoneNames(zones: Pick<SZone, 'z' | 'box'>[], k: number, measure: Measure): SLabel[] {
+  const labels: SLabel[] = [];
+  /** BG-313: the biggest seen rectangle of a title (its seen rows of one width stacked), on screen: its name sits there */
+  const seenBox = (runs: SeenRun[]): Box | undefined => {
+    const rects: SeenRun[] = [];
+    for (const r of [...runs].sort((a, b) => a.x0 - b.x0 || a.x1 - b.x1 || a.y0 - b.y0)) {
+      const last = rects.at(-1);
+      if (last && last.x0 === r.x0 && last.x1 === r.x1 && Math.abs(last.y1 - r.y0) < 1e-9) last.y1 = r.y1;
+      else rects.push({ ...r });
+    }
+    const best = rects.sort((a, b) => (b.x1 - b.x0) * (b.y1 - b.y0) - (a.x1 - a.x0) * (a.y1 - a.y0))[0];
+    return best && { x0: r2(best.x0 * PX_PER_M * k), x1: r2(best.x1 * PX_PER_M * k), y0: r2(-best.y1 * PX_PER_M * k), y1: r2(-best.y0 * PX_PER_M * k) };
+  };
+  for (const x of zones) {
+    if (x.z.seen && !x.z.seen.length) continue; // BG-313: a title the character has seen none of shows no name
+    const zb = x.z.seen ? seenBox(x.z.seen) ?? x.box : x.box, full = x.z.name, room = { w: zb.x1 - zb.x0 - 2 * PAD, h: zb.y1 - zb.y0 - 2 * PAD };
+    for (let px = NAME_PX.max; px >= NAME_PX.min; px -= 0.5) {
+      const m: Measure = (t, kd) => measure(t, kd, px), line = Math.round(px * 1.2 * 100) / 100;
+      // no plate round a name, so none of the plate's padding; the letters' dark edge instead
+      const lines = room.w > NAME_EDGE ? wrap(full, 'label', room.w - NAME_EDGE + 2 * TEXT.label.pad, 3, m) : null;
+      // the letters' full height (ascenders to descenders) is about 1.3 times their size
+      const h = (lines?.length ?? 1) * line - line + px * 1.3 + NAME_EDGE;
+      if (!lines || h > room.h) continue;
+      const w = Math.ceil(Math.max(...lines.map((l) => m(l, 'label')))) + NAME_EDGE, cx = (zb.x0 + zb.x1) / 2, cy = (zb.y0 + zb.y1) / 2;
+      labels.push({ x0: cx - w / 2, y0: cy - h / 2, x1: cx + w / 2, y1: cy + h / 2, text: lines.join(' '), lines, full, cut: false, zoneId: x.z.id, placement: 'inside', size: px, line });
+      break;
+    }
+  }
+  return labels;
 }
 
 /** a mark's spot as a share of the room it may move in (its zone less the mark's inset), and back */
@@ -160,8 +196,8 @@ const shareOf = (v: number, a: number, b: number, inset: number) => (b - a - 2 *
 const fromShare = (f: number, a: number, b: number, inset: number) => (b - a - 2 * inset > 0 ? a + inset + f * (b - a - 2 * inset) : (a + b) / 2);
 
 /** `ref`: the spots marks already have; `final`: this zoom is drawn, so a mark with no spot yet, or whose spot is covered
- *  here, is hidden (listed in `dropped`) rather than placed anew */
-function layout(inp: PlanInput, ref: Scene | undefined, final: boolean): Scene {
+ *  here, is hidden (listed in `dropped`) rather than placed anew; `names`: the zone names at each of PLACE_KS */
+function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: Box[][]): Scene {
   const { k, measure } = inp;
   const zones: SZone[] = inp.zones.filter((z) => z.rect).map((z) => ({ z, box: zoneBox(z, k), state: z.here ? 'current' : !inp.visits || inp.visits.has(z.id) ? 'explored' : 'seen' }));
   const byId = new Map(zones.map((x) => [x.z.id, x]));
@@ -251,36 +287,7 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean): Scene {
     const away = l.known && !other ? inp.awayName(l.to) : undefined;
     stubs.push({ x, l, ...(l.opening && drawnDoor.has(l.opening) ? { door: drawnDoor.get(l.opening) } : {}), ...(away ? { away } : {}), ...(other ? { other } : {}) });
   }
-  // ---- zone names (MZ2, MZ3, MAP-20): bold letters inside the zone, centred and as large as fit its box with 6 px to spare,
-  // over up to three lines; a background layer the marks may sit on, so a name takes no room and pushes no mark (BG-216).
-  // A zone too small even for the smallest letters shows its name in its tooltip only.
-  const labels: SLabel[] = [];
-  /** BG-313: the biggest seen rectangle of a title (its seen rows of one width stacked), on screen: its name sits there */
-  const seenBox = (runs: SeenRun[]): Box | undefined => {
-    const rects: SeenRun[] = [];
-    for (const r of [...runs].sort((a, b) => a.x0 - b.x0 || a.x1 - b.x1 || a.y0 - b.y0)) {
-      const last = rects.at(-1);
-      if (last && last.x0 === r.x0 && last.x1 === r.x1 && Math.abs(last.y1 - r.y0) < 1e-9) last.y1 = r.y1;
-      else rects.push({ ...r });
-    }
-    const best = rects.sort((a, b) => (b.x1 - b.x0) * (b.y1 - b.y0) - (a.x1 - a.x0) * (a.y1 - a.y0))[0];
-    return best && { x0: r2(best.x0 * PX_PER_M * k), x1: r2(best.x1 * PX_PER_M * k), y0: r2(-best.y1 * PX_PER_M * k), y1: r2(-best.y0 * PX_PER_M * k) };
-  };
-  for (const x of zones) {
-    if (x.z.seen && !x.z.seen.length) continue; // BG-313: a title the character has seen none of shows no name
-    const zb = x.z.seen ? seenBox(x.z.seen) ?? x.box : x.box, full = x.z.name, room = { w: zb.x1 - zb.x0 - 2 * PAD, h: zb.y1 - zb.y0 - 2 * PAD };
-    for (let px = NAME_PX.max; px >= NAME_PX.min; px -= 0.5) {
-      const m: Measure = (t, kd) => measure(t, kd, px), line = Math.round(px * 1.2 * 100) / 100;
-      // no plate round a name, so none of the plate's padding; the letters' dark edge instead
-      const lines = room.w > NAME_EDGE ? wrap(full, 'label', room.w - NAME_EDGE + 2 * TEXT.label.pad, 3, m) : null;
-      // the letters' full height (ascenders to descenders) is about 1.3 times their size
-      const h = (lines?.length ?? 1) * line - line + px * 1.3 + NAME_EDGE;
-      if (!lines || h > room.h) continue;
-      const w = Math.ceil(Math.max(...lines.map((l) => m(l, 'label')))) + NAME_EDGE, cx = (zb.x0 + zb.x1) / 2, cy = (zb.y0 + zb.y1) / 2;
-      labels.push({ x0: cx - w / 2, y0: cy - h / 2, x1: cx + w / 2, y1: cy + h / 2, text: lines.join(' '), lines, full, cut: false, zoneId: x.z.id, placement: 'inside', size: px, line });
-      break;
-    }
-  }
+  const labels = zoneNames(zones, k, measure);
 
   // ---- place outlines and titles (MAP-13): the place's own ground, padded and joined, its title above the top-left corner
   const places: SPlace[] = [];
@@ -387,8 +394,13 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean): Scene {
     used.add(st.up ? 'stairs-up' : 'stairs-down');
   }
 
-  // ---- furniture (icons, last to place): at its own point, nudged clear of everything else; left off when its zone is full
+  // ---- furniture (icons, last to place): at its own point, nudged clear of everything else, zone names too; left off when
+  // its zone is full, or zoomed out where it would cover a name (MAP-22, MAP-25)
   const furniture: SFurn[] = [];
+  for (const l of labels) take(l, 'label');
+  // placing, not drawing: clear of the names at the closer set zooms too (a name in a small zone grows with it), each
+  // scaled to this zoom, so zooming in never covers a piece of furniture shown farther out
+  if (!final) PLACE_KS.forEach((kk, i) => { if (kk > k) for (const l of names[i]) take({ x0: l.x0 * k / kk, y0: l.y0 * k / kk, x1: l.x1 * k / kk, y1: l.y1 * k / kk }, 'label'); });
   for (const x of zones) for (const f of x.z.furniture ?? []) {
     if (x.z.seen && !seenIn(x.z.seen, f)) continue; // BG-313: furniture only where the character has seen
     const kept = spotOf(`furn:${f.id}`, x.box, FURN_R + 3);

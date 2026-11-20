@@ -65,7 +65,8 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   leaves). A stair is placed once at its own end, nudged then only if another mark already sits there. After that,
   furniture and stairs never move at any zoom: zoomed out, where one would cover another mark, or a piece of furniture
   the zone's name, it is left off in its own spot (listed in the zone's card) and comes back there when you zoom in.
-  Furniture is also left off when its zone has no free spot. The player and people are never hidden; they step aside
+  A piece of furniture is placed clear of the names at its zoom and at every closer set zoom, so zooming in never covers
+  it (src/ui/mapPlan.ts). Furniture is also left off when its zone has no free spot. The player and people are never hidden; they step aside
   only then (BG-216; WF10 a; RM6 a, RM7 a; Ali, 20/11/2026, Questions hub page "Map rules revision").
 - **MAP-26** To scale, a place's map is laid out by code at the zoom shown and drawn on one screen-pixel layer. No mark
   covers another at any zoom, and the first view fits the whole map with everything inside it (src/ui/mapPlan.ts).

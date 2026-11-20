@@ -28,6 +28,10 @@ export function checkMap(svg: SVGSVGElement): string[] {
     const a = marks[i], b = marks[j];
     if (hit(a.b, b.b)) out.push(`MAP-22/31 ${a.role} ${a.id} overlaps ${b.role} ${b.id}`);
   }
+  // MAP-22: furniture never covers a zone's name (the names' background layer)
+  for (const f of by('icon').filter((x) => x.id?.startsWith('furn:'))) for (const l of by('label').filter((x) => x.el.dataset.layer === 'back')) {
+    if (hit(f.b, l.b)) out.push(`MAP-22 furniture ${f.id} covers the name ${l.id}`);
+  }
   // MAP-32: every exit names its target
   for (const x of by('exit')) if (!x.el.dataset.target) out.push(`MAP-32 exit ${x.id} has no target`);
   // Nothing may render outside the map

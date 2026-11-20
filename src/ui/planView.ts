@@ -197,6 +197,8 @@ export function planView(api: GameApi, opts: PlanOpts) {
         s('path', { d: p.outline, ...(cut ? {} : { 'data-role': 'place', 'data-id': p.id }) }), ...(cut ? [r(c, { class: 'mm-tag', 'data-role': 'place', 'data-id': p.id })] : [])));
     }
     const labels = new Map(sc.labels.map((l) => [l.zoneId, l]));
+    /** each name as drawn: a zone partly out of view has its name sized to the part in view, so furniture is checked again */
+    const names: Box[] = [];
     for (const x of sc.zones) {
       const c = clip(x.box, vb), z = x.z;
       if (!c) continue;
@@ -207,6 +209,8 @@ export function planView(api: GameApi, opts: PlanOpts) {
       if (!n) continue;
       const cx = l && same(c, x.box) ? (l.x0 + l.x1) / 2 : (c.x0 + c.x1) / 2, cy = l && same(c, x.box) ? (l.y0 + l.y1) / 2 : (c.y0 + c.y1) / 2;
       const first = cy - ((n.lines.length - 1) * n.line) / 2 + n.size * 0.36;
+      const nw = Math.max(...n.lines.map((t) => measure(t, 'label', n.size))) + NAME_EDGE, nh = (n.lines.length - 1) * n.line + n.size * 1.3 + NAME_EDGE;
+      names.push({ x0: cx - nw / 2, y0: cy - nh / 2, x1: cx + nw / 2, y1: cy + nh / 2 });
       gNames.append(s('text', { class: `map-name${z.here ? ' here' : ''}`, x: cx, y: first, 'text-anchor': 'middle', 'font-size': n.size,
         'data-role': 'label', 'data-layer': 'back', 'data-id': `label:${z.id}`, 'data-for': z.id, 'data-placement': 'inside' },
       ...n.lines.map((line, i) => s('tspan', { x: cx, y: first + i * n.line }, line))));
@@ -235,7 +239,8 @@ export function planView(api: GameApi, opts: PlanOpts) {
     }
     for (const st of sc.stairs) if (within(st, inView)) gMarks.append(s('g', { class: `map-stair${st.goto ? '' : ' unknown'}${st.zoneId === d.selected ? ' hot' : ''}`, 'data-role': 'icon', 'data-id': st.id, ...(st.goto ? { 'data-goto': st.goto, tabindex: 0, role: 'button' } : exitAttrs(st.zoneId, st.label)), 'aria-label': st.title },
       s('circle', { cx: st.cx, cy: st.cy, r: st.x1 - st.cx }), s('text', { x: st.cx, y: st.cy + 4, 'text-anchor': 'middle' }, st.up ? '▲' : '▼'), s('title', {}, st.title)));
-    for (const f of sc.furniture) if (within(f, inView)) { const g = furnIcon(f.kind, cap(f.name), f.cx, f.cy); g.setAttribute('data-role', 'icon'); g.setAttribute('data-id', f.id); gMarks.append(g); }
+    // MAP-22, MAP-25: furniture never covers a zone's name; where it would, it is left off in its own spot
+    for (const f of sc.furniture) if (within(f, inView) && !names.some((b) => b.x0 < f.x1 && f.x0 < b.x1 && b.y0 < f.y1 && f.y0 < b.y1)) { const g = furnIcon(f.kind, cap(f.name), f.cx, f.cy); g.setAttribute('data-role', 'icon'); g.setAttribute('data-id', f.id); gMarks.append(g); }
     for (const t of sc.tokens) {
       if (!within(t, inView)) continue;
       if (t.you) { const g = pin(t.cx, t.cy, d.youTitle ?? 'You are here', d.facing); g.setAttribute('data-role', 'token'); g.setAttribute('data-id', 'you'); gTokens.append(g); continue; }

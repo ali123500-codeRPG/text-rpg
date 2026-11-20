@@ -198,6 +198,15 @@ describe('BG-216: marks keep their spot in their zone at every zoom', () => {
       for (const f of sc.furniture) expect(sc.dropped).not.toContain(f.id.slice(5));
     }
   });
+  it('MAP-22, MAP-25: furniture never covers a zone\'s name; zoomed out it is left off, and zooming in brings it back', () => {
+    for (const key of ['bent-nail', 'one-room', 'long-names']) for (const k of [0.6, 1, 1.6, 2.5]) {
+      const { sc } = sceneOf(stageState(key), k);
+      for (const f of sc.furniture) for (const l of sc.labels) expect(hit(f, l), `${key} at zoom ${k}: ${f.id} over the name of ${l.zoneId}`).toBe(false);
+    }
+    const shown = (k: number) => sceneOf(stageState('bent-nail'), k).sc.furniture.filter((f) => f.zoneId === 'tavern.common').length;
+    expect(shown(1)).toBe(0);
+    expect(shown(2.5)).toBe(3);
+  });
   it('zooming in never hides a mark that shows when zoomed out', () => {
     const st = stageState('bent-nail'), drawn = (k: number) => new Set(sceneOf(st, k).sc.furniture.map((f) => f.id));
     const ks = [0.6, 0.8, 1, 1.4, 2, 2.5];
@@ -211,7 +220,7 @@ describe('whole turn', () => {
     furnish(g.game.state()!, 'tav_common',
       [{ kind: FU.counter, name: 'scarred counter', at: 'n' }, { kind: FU.hearth, name: 'hearth', at: 'w' }, { kind: FU.table, name: 'long table' }]);
     await g.turn(intent({ action: { type: 'wait' } }));
-    const a = sceneOf(g.game.state()!, 1.2).sc, b = sceneOf(g.game.state()!, 2).sc;
+    const a = sceneOf(g.game.state()!, 1.6).sc, b = sceneOf(g.game.state()!, 2.5).sc;
     const where = (sc: Scene, id: string) => { const f = sc.furniture.find((x) => x.id === id)!, z = sc.zones.find((x) => x.z.id === f.zoneId)!.box, i = FURN_INSET;
       return [(f.cx - z.x0 - i) / (z.x1 - z.x0 - 2 * i), (f.cy - z.y0 - i) / (z.y1 - z.y0 - 2 * i)]; };
     const both = a.furniture.filter((f) => b.furniture.some((q) => q.id === f.id));
