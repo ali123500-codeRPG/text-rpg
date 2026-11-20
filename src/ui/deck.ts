@@ -64,7 +64,10 @@ const LEAN: Partial<Record<DeckKind, IdeaKind>> = {
   stow: 'stow', draw: 'draw', pick_up: 'pick_up', summon: 'summon', look: 'look', search: 'search', perk: 'perk',
 };
 
-const BLANK: Intent = { move: null, action: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null };
+/** housekeeping on your own gear: always at the bottom of its group, whatever the character leans to */
+const LAST = new Set<DeckKind>(['stow', 'equip', 'set_down']);
+
+const BLANK: Intent ={ move: null, action: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null };
 type Act = NonNullable<Intent['action']>;
 
 /** 1st, 2nd, 3rd, 4th … 11th, 12th, 13th, 21st */
@@ -265,7 +268,7 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
   if (acc.some((i) => i.equippedIn.length)) add('remove_acc', 'use', 'Take off', [{ key: 'item', title: 'Take off what?', picks: () => acc.filter((i) => i.equippedIn.length).map(invPick) }], (c) => order(`Take off ${theItem(item(c.item!)?.name ?? '')}`, { gear: [{ op: 'remove_acc', item: c.item! }] }), { free: true });
   const armor = inv.filter((i) => i.kind === 'armor');
   if (armor.length) add('equip', 'use', 'Armor on or off', [{ key: 'item', title: 'Which armor?', picks: () => armor.map((i) => ({ ...invPick(i), note: i.equippedIn.length ? 'worn: take it off' : 'put it on' })) }],
-    (c) => order(`${item(c.item!)?.equippedIn.length ? 'Take off' : 'Put on'} ${theItem(item(c.item!)?.name ?? '')}`, { action: act('equip', { item: c.item! }) }));
+    (c) => order(`${item(c.item!)?.equippedIn.length ? 'Take off' : 'Put on'} ${theItem(item(c.item!)?.name ?? '')}`, { gear: [{ op: 'armor', item: c.item! }] }), { free: true });
   const ground = pv.zone.groundItems.filter((g) => !g.container?.fixed);
   if (ground.length) add('pick_up', 'use', 'Pick up', [{ key: 'item', title: 'Pick up what?', picks: () => ground.map((g) => ({ id: g.id, label: cap(g.name) })) }], (c) => order(`Pick up ${theItem(ground.find((g) => g.id === c.item)?.name ?? '')}`, { gear: [{ op: 'pick_up', item: c.item! }] }), { free: true });
   if (inv.length) add('set_down', 'use', 'Set down', [{ key: 'item', title: 'Set down what?', picks: () => inv.map(invPick) }], (c) => order(`Set down ${theItem(item(c.item!)?.name ?? '')}`, { gear: [{ op: 'set_down', item: c.item! }] }), { free: true });
@@ -312,7 +315,8 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
   const p = ctx.self;
   const pull = (k: IdeaKind | IdeaGroup | undefined) => (p && k ? pullOf(k, p) : 0);
   const by = <T>(xs: T[], v: (x: T) => number) => xs.map((x, i) => ({ x, i, v: v(x) })).sort((a, b) => b.v - a.v || a.i - b.i).map((e) => e.x);
-  const groups = DECK_GROUPS.map((g) => ({ group: g, name: DECK_GROUP_NAME[g], actions: by(A.filter((a) => a.group === g), (a) => pull(LEAN[a.kind])) }))
+  const lean = (xs: DeckAction[]) => by(xs, (a) => pull(LEAN[a.kind]));
+  const groups = DECK_GROUPS.map((g) => ({ group: g, name: DECK_GROUP_NAME[g], actions: [...lean(A.filter((a) => a.group === g && !LAST.has(a.kind))), ...lean(A.filter((a) => a.group === g && LAST.has(a.kind)))] }))
     .filter((g) => g.actions.length && g.actions.some((a) => !a.steps.length || a.steps[0].key === 'words' || (a.steps[0] as { picks: (c: Choice) => Pick[] }).picks({}).length));
   for (const g of groups) for (const a of g.actions) if (p && LEAN[a.kind] && pull(LEAN[a.kind]) <= -CONFIG.IDEA_AGAINST_NATURE) a.against = true;
   if (s) for (const a of A) a.time = timeTip(s, a);

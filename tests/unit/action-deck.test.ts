@@ -12,9 +12,10 @@ import { DECK_KINDS, DECK_LEFT_OUT, actionsOn, deck } from '../../src/ui/deck';
 import { suggestions } from '../../src/ui/suggest';
 import { actionRow } from '../../src/ruleset/actionTime';
 import { DU } from '../../src/library/tableIds';
+import { IT } from '../../src/library/itemIds';
 import { walkOrder, withPlanned } from '../../src/ui/deckView';
 
-const GEAR_OPS = ['draw', 'stow', 'swap', 'wear_acc', 'remove_acc', 'pick_up', 'summon', 'set_down'] as const;
+const GEAR_OPS = ['draw', 'stow', 'swap', 'wear_acc', 'remove_acc', 'armor', 'pick_up', 'summon', 'set_down'] as const;
 const WAY_OPS = ['lock', 'unlock', 'bar', 'unbar', 'open', 'shut'] as const;
 // a new gear or door order that the lists above miss fails to compile here
 const gearAll: Exclude<GearOp['op'], (typeof GEAR_OPS)[number]> extends never ? true : false = true;
@@ -69,6 +70,15 @@ describe('the action deck covers everything (AD10: "make sure you covered EVERYT
     expect(of('go').time).toBe('Takes as long as the way there');
     const f = fight(), atk = deck({ pv: buildPlayerView(f), s: f }).flatMap((g) => g.actions).find((a) => a.kind === 'attack')!;
     expect(atk.time).toMatch(/^Each blow takes \d+ s$/);
+  });
+
+  it('Put away, Armor on or off and Set down are free and sit at the bottom of their group; armor is a gear op, not the action', () => {
+    const s = makeVillage();
+    const use = deck({ pv: buildPlayerView(s), s }).find((g) => g.group === 'use')!.actions;
+    expect(use.slice(-3).map((a) => a.kind)).toEqual(['stow', 'equip', 'set_down']);
+    for (const a of use.slice(-3)) expect(a.free).toBe(true);
+    const armor = use.find((a) => a.kind === 'equip')!, coat = `player_${IT.gambeson}_3`;
+    expect(armor.play({ item: coat }).intent).toMatchObject({ action: null, gear: [{ op: 'armor', item: coat }] });
   });
 
   it('with Aim on, an attack asks for a body part after whom, and the order carries it aimed (AD5)', () => {

@@ -22,7 +22,7 @@ const ROWS: Record<string, Row> = {
   barter: { need: 'voice', who: 'both' },
   intimidate: { need: 'voice', who: 'both' },
   use_item: { need: 'grip', who: 'both' }, // BF13: a healing item on someone else is used within arm's reach of them
-  equip: { need: 'none', who: 'both' },
+  equip: { need: 'none', who: 'npc only: the player puts armor on or off with the free gear op armor (AE10)' },
   give: { need: 'grip', who: 'both' },
   take: { need: 'grip', who: 'both' }, // BF34
   pick: { need: 'grip', who: 'both' },

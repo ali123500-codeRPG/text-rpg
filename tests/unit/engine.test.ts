@@ -446,9 +446,14 @@ describe('gear and combat', () => {
     expect(kinds.slice(1).length).toBeGreaterThan(0);
     expect(kinds.slice(1).every((k) => k === 'attack')).toBe(true);
   });
-  it('equip on armor takes the main action', () => {
-    const ev = resolveTurn(s, input({ intent: intent({ action: { type: 'equip', item: `player_${IT.gambeson}_3` } }) }), createRng(1));
-    expect(ev.filter((e) => e.actorId === 'player').map((e) => e.kind)).toEqual(['equip']);
+  it('armor on or off is a free gear op: taken off beside an attack, the blows still come', () => {
+    place(s, 'guard_1', s.player.zone);
+    beside(s, 'guard_1');
+    const ev = resolveTurn(s, input({ intent: intent({ gear: [{ op: 'armor', item: `player_${IT.gambeson}_3` }], action: { type: 'attack', target: 'guard_1' } }) }), createRng(1));
+    const kinds = ev.filter((e) => e.actorId === 'player').map((e) => e.kind);
+    expect(kinds[0]).toBe('equip');
+    expect(kinds.slice(1).length).toBeGreaterThan(0);
+    expect(kinds.slice(1).every((k) => k === 'attack')).toBe(true);
     expect(s.player.core.inventory.find((i) => i.id === `player_${IT.gambeson}_3`)!.equippedIn).toBeUndefined();
   });
   it('a second defense in a round counts as outnumbered; morale breaks an engaged NPC reaching Injured', () => {
