@@ -8,7 +8,7 @@ import { ageText, talentName } from '../ruleset/age';
 import type { BlueprintPage, GameApi, GameState, ScenarioRecord } from '../types';
 import { GRADES } from '../types';
 import { HIT_OUTCOMES, QUALITY_LEVELS, TIERS } from '../scales';
-import { claudeComments, fmtDate, h, openPanel, readouts, plural, unitOf, type CommentsApi } from './kit';
+import { claudeComments, fmtDate, h, openPanel, readouts, turnShown, plural, unitOf, type CommentsApi } from './kit';
 import { ICON_CREDIT } from './itemIcons';
 import { openPop } from './pop';
 import { CONFIG } from '../config';
@@ -122,14 +122,14 @@ export function gmPage(api: GameApi) {
           // The GM can start a new save, with warnings. The old story is archived, not deleted (D-73).
           s ? (confirm?.kind === 'newSave'
             ? h('div', { class: 'confirm', role: 'alert' },
-                h('span', { class: 'hs-note' }, `Warning: "${s.meta.title}" (turn ${s.turn}) ends now and you make a new character. Play can't return to it: it is archived, not deleted. Download a backup first if you want a copy.`),
+                h('span', { class: 'hs-note' }, `Warning: "${s.meta.title}" (turn ${turnShown(s, api.lines())}) ends now and you make a new character. Play can't return to it: it is archived, not deleted. Download a backup first if you want a copy.`),
                 h('button', { class: 'hs-btn-text', type: 'button', onclick: download }, 'Download backup'),
                 h('button', { class: 'hs-btn-text danger', type: 'button', onclick: async () => { confirm = null; await api.reset(); } }, 'Start a new save'),
                 h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { confirm = null; update(); } }, 'Keep playing'))
             : h('button', { class: 'hs-btn-text danger', type: 'button', title: 'Ends this story and starts a new one. Asks to confirm', onclick: () => { confirm = { kind: 'newSave' }; update(); } }, 'Start a new save')) : '')),
       g.fallbackBanner ? h('div', { class: 'gm-banner', role: 'alert' }, s?.stage.fallback?.reason ?? 'the stage is the flagged placeholder area') : '',
       h('div', { class: 'sec' }, readouts([
-        { label: 'Turn', value: String(s?.turn ?? '–'), unit: s?.mode ?? '', sub: s ? `scenario ${s.stage.scenarioNumber} · since turn ${s.stage.scenarioStartTurn}` : 'No story', how: 'The committed turn and the encounter mode.' },
+        { label: 'Turn', value: String(turnShown(s, api.lines()) ?? '–'), unit: s?.mode ?? '', sub: s ? `scenario ${s.stage.scenarioNumber} · since turn ${s.stage.scenarioStartTurn}` : 'No story', how: 'The last turn played (as the play page shows it) and the encounter mode.' },
         { label: 'Actors', value: String(s?.actors.length ?? 0), unit: unitOf(s?.actors.length ?? 0, 'NPC'), sub: s ? plural(s.bands.length, 'band') : '–', how: 'NPCs and enemies in the story (the player not counted).' },
         { label: 'Agent calls', value: String(g.agentLog.length), unit: unitOf(g.agentLog.length, 'call'), sub: `${g.agentLog.filter((a) => a.errors.length).length} with errors`, how: 'Claude calls made for the last turn.' },
         { label: 'Rolls', value: String(rolls.length), unit: unitOf(rolls.length, 'roll'), sub: plural(g.log.length, 'log code'), how: 'Attacks, contests and checks among this turn’s events.' },

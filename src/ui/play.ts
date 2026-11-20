@@ -19,7 +19,7 @@ import { actorBody, getLibrary, perkName } from '../library';
 import type { TierRoll } from '../types';
 import { fellFacts, fellLine } from './fell';
 import { autopilotBar } from './autopilot';
-import { boxOf, h, dragScroll, lineIcon, playDraft, viewSize, safe } from './kit';
+import { boxOf, h, dragScroll, lineIcon, playDraft, viewSize, safe, turnShown } from './kit';
 import { perkSeries } from './perks';
 import { stealthBadge, stealthyTip } from './stealth';
 import { dayOf, now, timeOfDay, timeView } from '../time';
@@ -628,7 +628,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     // the map opens as a big pop-up over Play (it has no page of its own)
     const mapBtn = s ? h('button', { type: 'button', class: 'hs-btn-text play-map', 'data-open': 'map', title: 'Open the map of every place you know', onclick: () => nav('map') }, mapIcon(), 'Map') : null;
     // the header names the last turn played, the one the last results row shows
-    const lastTurn = [...lines].reverse().find((l) => l.kind === 'narration')?.turn ?? s?.turn;
+    const lastTurn = turnShown(s, lines);
     // data-mh names the header pieces that get a beat when they change (M-36); the place line changes quietly (M-41)
     const mh = <T extends Element | null>(key: string, x: T): T => { x?.setAttribute('data-mh', key); return x; };
     // the agent button is one live element: a stand-in copy is compared, so a header that isn't redrawn keeps the real one

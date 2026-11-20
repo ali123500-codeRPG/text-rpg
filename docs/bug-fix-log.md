@@ -9,6 +9,22 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the spec's bug log, docs/spec/bug-log.md, has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-333
+
+**What was wrong:** The play page's header showed the turn of the last story line (the last turn played, the number its turn record and replay use). The GM page's Turn readout showed `state.turn`, which the pipeline moves on to the next turn as soon as a turn is saved, so in play it was always one ahead. A reload put them back in step until the next turn, which is why it looked random. It was not tied to carrying a world on.
+
+**What was done:** The turn shown is the last turn played. One function, `turnShown` in `src/ui/kit.ts`, gives it, and both the play header and the GM page's Turn readout (and its "Start a new save" warning) read it. The carry-on test checks it: after the opening of turn 13 the state names turn 14 and both pages show 13.
+
+**Fixed by:** #1206
+
+## BG-332
+
+**What was wrong:** Carrying a world on (`carryOn`, `src/save/world.ts`) built the new story's state from the fresh one and copied over a hand-kept list of the world's fields. The floor plans (walls, doorways, roofs, light sources, furniture; PZ2, PZ5, FR1) and the items lying on the ground (PZ11) came after that list was written and were never added to it, so a carried-on world kept its places, people and facts but lost every wall, doorway, roof, lamp, piece of furniture and dropped item. The slime: the lamps were gone and the roofs with them, so at night a room was only moonlit, which counts as dark, and in the dark everyone is seen only partly. The minimap draws people seen partly; Who's here lists, and attacks target, only those seen in full. Measured on the test village at night: with the floor plan lost, everyone in the tavern was seen only partly; with it kept, in full. A plain save and load was never affected: its round trip keeps every field.
+
+**What was done:** `carryOn` now starts from the whole world and replaces only the new story's own fields (who plays, the story id and meta, settings, seed, mode, quests, the per-turn logs), drops the last story's fight and per-turn state as before, and moves the turn, pending turn, stage and plans on as before. World state added later stays by itself. A carry-on test saves a furnished, lit world at night with an item on the ground, carries it on through the real new-story flow, loads it, and checks that every saved field is in one of three lists (kept as it was, kept and moved on, the new story's own), that every kept-as-it-was field matches the saved world, and that the newcomer sees everyone in the lit tavern in full. It fails on the old code (walls lost).
+
+**Fixed by:** #1206
+
 ## BG-331
 
 **What was wrong:** The Character page's Perks tile showed "1" for a new character, but the Perks board it opens showed no perk at all. The tile and the board each had their own rule. The tile counted every perk held and awake except the race's and the essences'. The board drew only three kinds: perks on a skill's ladder (Innate for the race's, Linked for links). A class perk, such as Swordsman's Blade Against Blade or Unwritten Legend's Any Road Will Do, which a classed Start gives at level 1, sits on no ladder, so it was counted and drawn nowhere. The same held for a Start's blessing, an achievement's perk, a Threadbound item's, an All-step's and Hollowed.
