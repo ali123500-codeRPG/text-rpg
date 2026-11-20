@@ -18,7 +18,7 @@ import { minutesSinceRest } from '../engine/heal';
 import { cantExtract } from '../engine/extract';
 import { walksAway } from '../engine/nerve';
 import type { WayOp } from '../engine/barriers';
-import { distText } from '../views';
+import { distText, wallsView, zoneView } from '../views';
 import { lootSources } from './loot';
 import { pullOf, type IdeaGroup, type IdeaKind } from './ideaLeans';
 import { healItems, partName } from './healing';
@@ -28,6 +28,10 @@ import { durationText, secondsSince } from '../time';
 import { orderCost } from '../engine/resolve';
 import { ridesBeside } from '../engine/beside';
 import { fromIntent } from '../engine/merge';
+import { pathM, spotPoint } from '../engine/position';
+import { zoneById } from '../engine/relations';
+import { furnitureRecord } from '../engine/furniture';
+import { sleepersOn } from '../engine/sleep';
 
 export const DECK_GROUPS = ['getaway', 'fight', 'talk', 'move', 'stealth', 'use', 'perks'] as const;
 export type DeckGroup = (typeof DECK_GROUPS)[number];
@@ -363,32 +367,70 @@ export const WAY_LABEL = 'Door, gate or bar';
 const DOOR_KINDS = new Set<DeckKind>(['way', 'pick', 'break']);
 /** MQ10 a: the deck's actions on a piece of furniture, by its kind (FU): a bed is slept on */
 const FURNITURE_ACTS: Partial<Record<string, DeckKind[]>> = { [FU.bed]: ['sleep'] };
-/** MAP-85: a thing drawn on the map, by the deck target it stands for: a person (actor id), a wall (its id), a thing on the
- *  ground (MAP-86: its instance id, whom or what an action picks first: Pick up's item, Open's target), a piece of furniture
- *  (its id and kind: MQ10 a), a doorway
- *  (the two titles it joins; from where you stand its target is the title on the far side, as the deck's ways are) */
-export type MapThing = { kind: 'person' | 'wall' | 'item'; id: string } | { kind: 'door'; ends: string[] } | { kind: 'furniture'; id: string; is: string };
-/** one entry of a thing's list: a deck action with the thing already chosen, or one greyed with what it needs */
-export type ThingEntry = { label: string; a: DeckAction; c: Choice } | { label: string; needs: string };
-/** MAP-85: every deck action for a thing on the map, under the deck's own names. A door with a lock you hold no key to
- *  gets the deck's door entry greyed (the engine's way op answers no_key); nothing else is greyed, since the deck lists
- *  only what can be done from where you stand */
-export function thingActions(groups: ReturnType<typeof deck>, ctx: DeckCtx, t: MapThing): ThingEntry[] {
-  const id = t.kind === 'door' ? (t.ends.includes(ctx.pv.zone.id) ? t.ends.find((e) => e !== ctx.pv.zone.id) : undefined) : t.id;
-  if (!id) return [];
-  // MQ10 a: a piece of furniture in the title you stand in: the deck's action for its kind, played with a walk to it
-  if (t.kind === 'furniture') {
-    const f = ctx.pv.zone.furniture?.find((x) => x.id === id);
-    return f ? groups.flatMap((g) => g.actions).filter((a) => !a.limit && FURNITURE_ACTS[t.is]?.includes(a.kind)).map((a) => ({ label: a.label, c: {},
-      a: { ...a, play: (c: Choice) => { const o = a.play(c); return { line: `${o.line} on ${theItem(f.name)}`, intent: { ...o.intent, move: { toZone: ctx.pv.zone.id, spot: { near: f.id } } } }; } } })) : [];
+/** MAP-85: a thing drawn on the map, by the deck target it stands for: a person (actor id), a wall (its id, the title of
+ *  the side clicked and the middle of the stretch, metres), a thing on the ground (MAP-86: its instance id, whom or what
+ *  an action picks first: Pick up's item, Open's target), a piece of furniture (its id and kind: MQ10 a), a doorway (the
+ *  two titles it joins; worked from the side the character walks to first, its target the title on the far side) */
+export type MapThing = { kind: 'person' | 'item'; id: string } | { kind: 'wall'; id: string; zone: string; at: { x: number; y: number } } | { kind: 'door'; ends: string[] } | { kind: 'furniture'; id: string; is: string };
+/** one entry of a thing's list: a deck action with the thing already chosen, or one greyed with the engine's reason
+ *  (needs: what it lacks, marked with a padlock) */
+export type ThingEntry = { label: string; a: DeckAction; c: Choice } | { label: string; why: string; needs?: string };
+/** MAP-85, MQ8: where the character works a thing from: the title (for a door, the side whose doorway is nearer on foot)
+ *  and the move that walks there, or nothing when it is not known or cannot be reached on foot */
+function thingAt(ctx: DeckCtx, t: Exclude<MapThing, { kind: 'person' }>): { zone: string; id: string; move?: NonNullable<Intent['move']> } | undefined {
+  const { pv, s } = ctx;
+  const foot = (zone: string, pos?: { x: number; y: number }) => zone === pv.zone.id || (!!s && Number.isFinite(pathM(s, s.player, { zone, ...(pos ? { pos } : {}) }, s.player)));
+  if (t.kind === 'door') {
+    const sides = t.ends.includes(pv.zone.id) ? [pv.zone.id] : t.ends.filter((z) => s && zoneById(s, z));
+    const at = (z: string) => s ? spotPoint(s, z, { near: t.ends.find((e) => e !== z)! }, s.player, s.player)?.pos : undefined; // where the walk to it ends
+    const by = s ? sides.map((z) => ({ z, m: z === pv.zone.id ? 0 : pathM(s, s.player, { zone: z, ...(at(z) ? { pos: at(z)! } : {}) }, s.player) })).filter((x) => Number.isFinite(x.m)).sort((x, y) => x.m - y.m)[0]?.z : sides[0];
+    const id = by && t.ends.find((e) => e !== by);
+    return by && id ? { zone: by, id, ...(by !== pv.zone.id ? { move: { toZone: by, spot: { near: id } } } : {}) } : undefined;
   }
-  if (t.kind === 'item') return groups.flatMap((g) => g.actions).flatMap((a) => {
+  if (t.kind === 'wall') return foot(t.zone, t.at) ? { zone: t.zone, id: t.id, ...(t.zone !== pv.zone.id ? { move: { toZone: t.zone, spot: { at: t.at } } } : {}) } : undefined;
+  if (t.kind === 'furniture') {
+    const f = s ? furnitureRecord(s, t.id) : undefined, zone = f?.zone ?? (pv.zone.furniture?.some((x) => x.id === t.id) ? pv.zone.id : undefined);
+    return zone && foot(zone) ? { zone, id: t.id, move: { toZone: zone, spot: { near: t.id } } } : undefined;
+  }
+  const zone = [pv.zone, ...pv.zones].find((z) => z.groundItems.some((g) => g.id === t.id))?.id; // MAP-86: only things seen now
+  return zone && foot(zone) ? { zone, id: t.id } : undefined; // the engine walks to it (FR4 reach, MQ8)
+}
+/** the deck as it would read standing in title `zone` (MQ8: a thing anywhere on the map lists what the deck has for it
+ *  there): that title as the character sees or remembers it, nothing on its ground unless in sight now */
+function deckIn(ctx: DeckCtx, zone: string): { ctx: DeckCtx; groups: ReturnType<typeof deck> } | undefined {
+  const { pv, s } = ctx, z = s && zoneById(s, zone);
+  if (!s || !z) return undefined;
+  const seen = pv.zones.find((x) => x.id === zone) ?? { ...zoneView(s, z, s.player), groundItems: [] };
+  const c = { ...ctx, pv: { ...pv, zone: { ...seen, ...wallsView(s, z) } } };
+  return { ctx: c, groups: deck(c) };
+}
+/** MAP-85: every deck action for a thing on the map, under the deck's own names, wherever it is that the character can
+ *  reach on foot (MQ8): one away from the title you stand in plays with the walk to it, and the engine does it there
+ *  (ACT-334). Greyed only for a reason the engine gives: a door's lock you hold no key to (no_key), a bed full of sleepers
+ *  you see (bed_taken) */
+export function thingActions(groups: ReturnType<typeof deck>, ctx: DeckCtx, t: MapThing): ThingEntry[] {
+  if (t.kind === 'person') return actionsOn(groups, t.id).map((a) => ({ label: a.label, a, c: { target: t.id } }));
+  const at = thingAt(ctx, t);
+  const there = at && (at.zone === ctx.pv.zone.id ? { ctx, groups } : deckIn(ctx, at.zone));
+  if (!at || !there) return [];
+  const { pv } = there.ctx, id = at.id;
+  /** the entry, its order with the walk to the thing first (the engine carries the action along it: MQ15 a) */
+  const walked = (a: DeckAction, c: Choice, line = (l: string) => l): ThingEntry => ({ label: a.label, c,
+    a: at.move ? { ...a, play: (ch: Choice) => { const o = a.play(ch); return { line: line(o.line), intent: { ...o.intent, move: at.move! } }; } } : a });
+  const all = there.groups.flatMap((g) => g.actions);
+  if (t.kind === 'furniture') { // MQ10 a: the deck's action for its kind, played with a walk to it
+    const f = pv.zone.furniture?.find((x) => x.id === id), s = ctx.s;
+    if (!f) return [];
+    const full = !!s && sleepersOn(s, id).filter((x) => x !== s.player && ctx.pv.actors.some((a) => a.id === x.id)).length >= CONFIG.BED_SLEEPERS; // MQ18: full as far as you can see
+    return all.filter((a) => !a.limit && FURNITURE_ACTS[t.is]?.includes(a.kind)).map((a) => full && a.kind === 'sleep' ? { label: a.label, why: 'That bed is full' } : walked(a, {}, (l) => `${l} on ${theItem(f.name)}`));
+  }
+  if (t.kind === 'item') return all.flatMap((a) => {
     const st = a.steps[0];
-    return !a.limit && st && st.key !== 'words' && st.picks({}).some((p) => p.id === id) ? [{ label: a.label, a, c: { [st.key]: id } }] : [];
+    return !a.limit && st && st.key !== 'words' && st.picks({}).some((p) => p.id === id) ? [walked(a, { [st.key]: id })] : [];
   });
-  const out: ThingEntry[] = actionsOn(groups, id).filter((a) => t.kind !== 'door' || DOOR_KINDS.has(a.kind)).map((a) => ({ label: a.label, a, c: { target: id } }));
-  const w = t.kind === 'door' && !ctx.cowering ? ctx.pv.zone.links.find((l) => l.to === id)?.way : undefined;
-  if (w && 'locked' in w && w.locked && !w.key && !w.barred && !w.blocked && !out.some((e) => 'a' in e && e.a.kind === 'way')) out.push({ label: WAY_LABEL, needs: 'its key' });
+  const out: ThingEntry[] = actionsOn(there.groups, id).filter((a) => t.kind !== 'door' || DOOR_KINDS.has(a.kind)).map((a) => walked(a, { target: id }));
+  const w = t.kind === 'door' && !ctx.cowering ? pv.zone.links.find((l) => l.to === id)?.way : undefined;
+  if (w && 'locked' in w && w.locked && !w.key && !w.barred && !w.blocked && !out.some((e) => 'a' in e && e.a.kind === 'way')) out.push({ label: WAY_LABEL, why: 'Needs its key', needs: 'its key' });
   return out;
 }
 
