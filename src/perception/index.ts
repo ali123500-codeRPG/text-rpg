@@ -9,7 +9,8 @@ import { sightLevel, stillGlimpsed } from './sight';
 export { hearingOf, openAirReachM, soundDb } from './noise';
 import { isDark, now, pitchBlack, turnTime, zoneLight } from '../time';
 import { actorById, allActors, atLeast, isActive, isAsleep, zoneById } from '../engine/relations';
-import { getLibrary, itemDef, resolveAlias } from '../library';
+import { actorBody, getLibrary, itemDef, resolveAlias } from '../library';
+import { maxSightFactor } from '../library/bodySize';
 import { hasPerk, perkSum } from '../ruleset/perks';
 import { PK } from '../library/perkIds';
 import { RUSE, queueLearned } from '../engine/ruses';
@@ -91,6 +92,10 @@ export function soundCarries(state: GameState, observer: Actor, at: Located, noi
 /** what `observer` makes out by sight of something of this visibility at a point: by metres and walls (seeingM, the sight
  * table), and at most partial in a dark zone. One rule for events, filching and anything else seen. */
 export function sightAt(state: GameState, observer: Actor, at: Located, visibility: GameEvent['visibility']): 'full' | 'partial' | null {
+  // beyond the table's farthest at the nearest the two can be, as big as it can look from any angle: unseen, without
+  // working out the light or tracing the sight line
+  const far = CONFIG.SIGHT_M[visibility]?.[1];
+  if (far === undefined || leastGapM(state, observer, at) / ('core' in at ? maxSightFactor(actorBody(state, at as Actor).size) : 1) > far) return null;
   const light = zoneLight(state, zoneById(state, at.zone), at.pos);
   const sl = pitchBlack(light) ? null : sightLevel(visibility, seeingM(state, observer, at)); // LT1: nothing is seen in pitch black
   return sl && (isDark(light) ? 'partial' : sl);
