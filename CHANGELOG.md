@@ -3,6 +3,10 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bug-fix-log.md`.
 
+- 20/11/2026: active and archive (the owner: "for the spec for decisions and bugs etc files, I would still want to
+  change them between active and archive"). `docs/instructions.md` section 2: the Deferred items table and the Bug log
+  keep open rows; a finished row moves unchanged to its archive file in the PR that finishes it; a new BG-n is one past
+  the highest in either file. `AGENTS.md` map, the glossary and the provider file follow.
 - 20/11/2026: task tests are temporary (the owner: "I approve your addition to the rules"). `docs/instructions.md`
   section 8: a test written to check one task is deleted with its fixtures before merge; a new permanent test needs the
   owner's OK. Section 4: read by ID, not by file; never a file over 50 KB whole. The PR template's Tests line follows.

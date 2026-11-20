@@ -79,7 +79,8 @@ is fixed in your PR and named there; if you cannot tell which side is right, it 
   in-app instructions; it is history, not rules.
 - `docs/build-spec.md`: the index of the spec, the living design record. Each topic is its own file in `docs/spec/`,
   so read only the ones a task needs. The "Deferred items" table (D-n), the "Bug log" (BG-n) and "Open questions"
-  (OQ-n) are `docs/spec/deferred-items.md`, `bug-log.md` and `open-questions.md`. Play screen rules are
+  (OQ-n) are `docs/spec/deferred-items.md`, `bug-log.md` and `open-questions.md`; finished D-n and closed BG-n rows
+  move to `deferred-items-archive.md` and `bug-log-archive.md`. Play screen rules are
   `docs/spec/part-2-turn-engine/play-screen.md` and `play-screen-motion.md`.
 - `docs/systems.md`: start a task here. Each game system's spec topics, decision history, source files and nearest
   tests.

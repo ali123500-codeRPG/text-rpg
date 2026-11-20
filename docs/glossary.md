@@ -5,9 +5,9 @@ with where its full meaning lives. A term's rules are never defined here.
 
 ## Item IDs
 
-- **D-n**: a parked ("deferred") item. One row each in the "Deferred items" table (`docs/spec/deferred-items.md`),
+- **D-n**: a parked ("deferred") item. One row each in the "Deferred items" table (`docs/spec/deferred-items.md`; finished ones in its archive),
   with its options and a status. The table doubles as the decision log.
-- **BG-n**: a bug. One row each in the spec's "Bug log" (`docs/spec/bug-log.md`): ID, one line, status, claim issue.
+- **BG-n**: a bug. One row each in the spec's "Bug log" (`docs/spec/bug-log.md`; closed ones in `bug-log-archive.md`): ID, one line, status, claim issue.
   Its story (what was wrong, what was done) is only in `docs/bug-fix-log.md`.
 - **OQ-n**: an open question from the original build. In the spec's "Open questions".
 - **Question IDs** (RH3, TL8, BF45): two letters and a number. The letters name one questionnaire the owner answered;
