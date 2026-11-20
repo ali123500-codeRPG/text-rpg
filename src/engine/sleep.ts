@@ -23,6 +23,7 @@ import { logCode } from './effects';
 import { furnitureIn } from './furniture';
 import { boxGap, pieceBox } from '../ruleset/objectCover';
 import { FU } from '../library/tableIds';
+import { actorBody } from '../library';
 import { matchedCritFeat, outmatchedOnce, type ActContest } from './feats';
 
 /** NW18: what wakes a sleeper. blow: struck; noise: a loud noise heard; heard: its hearing check passed (every sleeper sleeps light, NW14);
@@ -34,20 +35,45 @@ export function bedGap(state: GameState, a: Actor, f: Furniture): number {
   const z = zoneById(state, f.zone), box = z && pieceBox(state, z, f);
   return box && a.pos ? boxGap(a.pos, box) : Infinity;
 }
-/** MQ13 a: who lies asleep on bed `id` (a bed holds one sleeper) */
-export const sleeperOn = (state: GameState, id: string): Actor | undefined => allActors(state).find((x) => x.asleep?.bed === id);
-/** MQ13 a: the beds in title `zone` nobody lies asleep on, nearest to `a` first */
+/** MQ18: who lies asleep on bed `id`, first to lie down first */
+export const sleepersOn = (state: GameState, id: string): Actor[] =>
+  allActors(state).filter((x) => x.asleep?.bed === id).sort((x, y) => x.asleep!.since - y.asleep!.since || x.id.localeCompare(y.id));
+/** MQ17 b: who a bed is booked for now (SV3), if anyone: a booking ends at its `until` */
+export const bookedFor = (state: GameState, f: Furniture): string | undefined => (f.booked && f.booked.until > now(state) ? f.booked.by : undefined);
+/** MQ18, MQ17 b: `a` may lie down on bed `f`: fewer than BED_SLEEPERS others asleep on it, and not booked for someone else */
+export const bedHasRoom = (state: GameState, f: Furniture, a: Actor): boolean =>
+  sleepersOn(state, f.id).filter((x) => x !== a).length < CONFIG.BED_SLEEPERS && (bookedFor(state, f) ?? a.id) === a.id;
+/** MQ13 a, MQ18: the beds in title `zone` with room for `a`, nearest to `a` first */
 export const freeBeds = (state: GameState, a: Actor, zone: string): Furniture[] =>
-  furnitureIn(state, zone).filter((f) => f.kind === FU.bed && !sleeperOn(state, f.id)).sort((x, y) => bedGap(state, a, x) - bedGap(state, a, y));
-/** FT8, MQ13 a: the free bed `a` would lie down on going to sleep where it stands: one within BED_REACH_M */
+  furnitureIn(state, zone).filter((f) => f.kind === FU.bed && bedHasRoom(state, f, a)).sort((x, y) => bedGap(state, a, x) - bedGap(state, a, y));
+/** FT8, MQ13 a: the bed with room `a` would lie down on going to sleep where it stands: one within BED_REACH_M */
 export const bedToLieOn = (state: GameState, a: Actor): Furniture | undefined => freeBeds(state, a, a.zone).find((f) => bedGap(state, a, f) <= CONFIG.BED_REACH_M);
+/** MQ17 b: a bed in place `placeId` nobody lies asleep on and nobody has booked, for SV3 to book */
+export const bedToBook = (state: GameState, placeId: string): Furniture | undefined =>
+  state.furniture.find((f) => f.kind === FU.bed && f.placeId === placeId && !sleepersOn(state, f.id).length && !bookedFor(state, f));
 
-/** falls asleep; `lie` (not a collapse, FT10): beside a free bed it lies down on it and holds it while asleep (MQ13 a) */
+/** MQ18: the sleepers on bed `f` side by side across it: its width (pieceBox) shared by their body widths, each at the
+ * middle of its share and of the bed's length; one alone lies at the bed's middle */
+function layBed(state: GameState, f: Furniture): void {
+  const z = zoneById(state, f.zone), box = z && pieceBox(state, z, f), on = sleepersOn(state, f.id);
+  if (!box) return;
+  const across = box.hi.x - box.lo.x < box.hi.y - box.lo.y ? 'x' : 'y', along = across === 'x' ? 'y' : 'x';
+  const widths = on.map((x) => actorBody(state, x).size.widthM), total = widths.reduce((n, w) => n + w, 0);
+  let used = 0;
+  on.forEach((x, i) => {
+    const c = box.lo[across] + ((used + widths[i] / 2) / total) * (box.hi[across] - box.lo[across]);
+    used += widths[i];
+    x.pos = { [across]: c, [along]: (box.lo[along] + box.hi[along]) / 2 } as { x: number; y: number };
+  });
+}
+
+/** falls asleep; `lie` (not a collapse, FT10): beside a bed with room it lies down on it, beside anyone already there, and
+ * holds its place while asleep (MQ13 a, MQ18) */
 export function fallAsleep(state: GameState, a: Actor, until?: number, lie = true): void {
   if (a.asleep || !isActive(a)) return;
   const bed = lie ? bedToLieOn(state, a) : undefined;
-  if (bed) a.pos = { ...bed.pos };
   a.asleep = { since: now(state), ...(until !== undefined ? { until } : {}), ...(bed ? { bed: bed.id } : {}) };
+  if (bed) { a.pos = { ...bed.pos }; layBed(state, bed); }
   logCode(state, 'fell_asleep', { actorId: a.id, ...(until !== undefined ? { until } : {}), ...(bed ? { bed: bed.id } : {}) });
 }
 

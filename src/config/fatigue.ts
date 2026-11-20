@@ -45,6 +45,8 @@ export const FATIGUE = {
   /** FT8, MQ13 a: someone going to sleep within this many metres of a free bed's footprint lies down on it (one step
    * from beside it; placeholder) */
   BED_REACH_M: 1,
+  /** MQ18: how many sleepers one bed holds, side by side across it */
+  BED_SLEEPERS: 2,
   SLEEP_ARMOR_MULT: { light: 1, medium: 1, heavy: 1 } as Record<string, number>, // sleeping in armour makes no difference (less realism; was 1 / 0.75 / 0.5)
   /** FT9: a sleep lasts until the long-term bar is clear, within these hours, or until a named time */
   SLEEP_MIN_HOURS: 1,
