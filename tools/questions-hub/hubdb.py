@@ -133,7 +133,8 @@ def sql(w):
 
 def outbox(w, out, listed=()):
     """The writes as an outbox file for your hub page, so the SQL never travels through the conversation (README
-    "Writing to the hub"). listed = the served paths list_files gave for the hub page. Returns (id, files): publish
+    "Writing to the hub"). out must be under your working folder: publish_files attaches nothing from /tmp. listed = the
+    served paths list_files gave for the hub page. Returns (id, files): publish
     `files` to the hub page with publish_files (mode patch). The page runs each outbox file once, through the viewer's
     Supabase connector, and records the result in hub_docs at outbox/<id>: {at} when written, {at, error} when not."""
     oid = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S%fZ') + '-' + os.urandom(3).hex()  # microseconds: two files of one second keep their order
@@ -141,10 +142,11 @@ def outbox(w, out, listed=()):
     # the marker is a plain insert: a second run of the same file fails on it and rolls the whole file back
     body.insert(1, f"insert into hub_docs (path, data) values ('outbox/{oid}', jsonb_build_object('at', now()));")
     d = os.path.join(os.path.abspath(out), 'outbox'); os.makedirs(d, exist_ok=True)
-    with open(os.path.join(d, oid + '.sql'), 'w') as f: f.write('\n'.join(body))
-    ids = sorted({p[7:-4] for p in listed if p.startswith('outbox/') and p.endswith('.sql')} | {oid})  # ids sort by time: run in order
-    with open(os.path.join(d, 'index.json'), 'w') as f: json.dump(ids, f)
-    return oid, [{'as': f'outbox/{oid}.sql', 'path': os.path.join(d, oid + '.sql')}, {'as': 'outbox/index.json', 'path': os.path.join(d, 'index.json')}]
+    with open(os.path.join(d, oid + '.json'), 'w') as f: json.dump('\n'.join(body), f, ensure_ascii=False)  # an artifact serves .json, not .sql
+    ids = sorted({p[7:-5] for p in listed if p.startswith('outbox/') and p.endswith('.json')} | {oid})  # ids sort by time: run in order
+    idx = os.path.join(os.path.abspath(out), 'outbox.json')
+    with open(idx, 'w') as f: json.dump(ids, f)
+    return oid, [{'as': f'outbox/{oid}.json', 'path': os.path.join(d, oid + '.json')}, {'as': 'outbox.json', 'path': idx}]
 
 def chunks(w, n=50):
     return [w[i:i + n] for i in range(0, len(w), n)]
