@@ -1,6 +1,7 @@
 // W3 — the six deny-by-default view builders (+ the combat packet). Copy whitelisted fields into new objects only.
 import { middle, waysOut, wayTo, type Way } from '../plan/where';
 import { wallsAround } from '../plan/holes';
+import { withBackdrop } from './backdrop';
 import { wallStuff } from '../ruleset/breaking';
 import { groundIn } from '../engine/ground';
 import { landTarget } from '../scenario/ways';
@@ -640,7 +641,7 @@ export function buildPlayerView(state: GameState): PlayerView {
       ...(offersTo(state, p).length ? { standDownOffers: offersTo(state, p).map((o) => ({ id: o.from, name: callName(state, p.id, o.from), landed: OFFER_WORDS[o.landed] })) } : {}), // TF11
       ...(farBelow(state) ? { finishable: true as const } : {}), // IQ7 a
     },
-    zone: zoneView(state, zoneById(state, p.zone)!, p),
+    zone: withBackdrop(state, zoneById(state, p.zone)!, zoneView(state, zoneById(state, p.zone)!, p)), // PS-487
     zones: perceivedZones(state, p.zone, p),
     actors,
     ...(lastSeen(state, actors).length ? { lastSeen: lastSeen(state, actors) } : {}),

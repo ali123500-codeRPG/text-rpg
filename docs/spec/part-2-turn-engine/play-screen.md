@@ -37,6 +37,24 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 - **PS-27** One light-blue accent (--accent) for links, the active pill and main buttons. Main buttons are the light
   accent with dark text (--btn-fill, --on-btn) (LK4 b).
 - **PS-28** Borders are faint see-through lines; placeholders, selection, caret and scrollbars take the theme (LK4 b).
+- **PS-486** Backdrops: a public-domain painting behind the play screen, chosen by where the player stands, under a
+  dark veil so the text sits on the same darkness whatever shows (--veil0, --veil1). The pictures and the zone kinds,
+  region kinds and night they suit are the backdrop table, `src/library/backdrops.ts`; each picture is one row plus its
+  file, credited in `docs/assets.md`. Ali, 20/11/2026, in the RPG game project chat, on the report "Per-place
+  backgrounds: scaling and lazy loading": "all is good, you can proceed with this approach, and add icons according to
+  the zone and other classifications, add as much variety as reasonably possible, I will work on this more as a parked
+  item". Built: the report's recommendations (fade, no prefetch, a plain library viewer), widened from five groups to
+  every zone kind, the region's land and night. Further work on them is D-430.
+- **PS-487** Code picks the picture (the view's `zone.backdrop`; the screen only shows it): the pictures of the zone's
+  kind (a road's when it has none); in the open air after dark (evening, night) the moonlit ones, by day the others;
+  then those of the region's own land; then one of what is left by the zone's id, so a zone keeps its picture and
+  zones of one kind differ. Each narrowing applies only when it leaves a picture. A zone with no kind and no road
+  shows the plain page colour.
+- **PS-488** The picture changes only when a turn shows, never while one runs (M-06). Every rail page keeps the last
+  picture; the library viewer has none.
+- **PS-489** Load time: the page opens in the plain page colour, and the creation screen downloads no picture. Each
+  picture is fetched only when a shown turn names it (no prefetch), one at a time; the one before stays until it is
+  ready. A picture that fails to load leaves the one before it.
 
 #### Text size floor, tokens and words
 
