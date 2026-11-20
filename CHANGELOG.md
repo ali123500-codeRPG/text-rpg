@@ -3,6 +3,8 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bug-fix-log.md`.
 
+- 20/11/2026: `docs/instructions.md` section 8 and `AGENTS.md` "Finding your way" (CU2 b): `test:near` has no `--deep`;
+  tests that reach a change only through another file are left to GitHub.
 - 20/11/2026: `docs/instructions.md` section 8 and `AGENTS.md` "Finding your way": `test:near` is quick by default (direct
   tests plus structural guards, indirect ones left to GitHub and counted), `--deep` for refactors and risky changes;
   push and open the draft PR at the first commit, then run local checks while GitHub runs its own.

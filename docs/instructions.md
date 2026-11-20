@@ -219,13 +219,12 @@ The source of truth for every design decision.
   `npm run sync -- --check ORIG_HEAD` after any rebase done by hand.
 - After pushing, check the PR: `gh api repos/<owner>/<repo>/pulls/<n> --jq .mergeable_state`. `dirty` means a
   conflict, and a PR with a conflict gets no checks at all, so a silent PR is not a passing one.
-- Testing: on your own machine, run `npm run typecheck`, `npm run test:near` and any new test. `test:near` is quick
-  by default: the tests that use the changed files directly, plus the structural guards (tests that check code as
-  text), and it says how many indirect tests it leaves to GitHub. Add `--deep` for refactors, moved code and other
-  risky changes. NOTHING TESTED from `test:near` is not a pass. The full suite and the browser tests run on GitHub
-  only, on every PR, and they decide the merge; a local pass never stands in for them. Push and open a draft PR at the
-  first commit, then run the local checks while GitHub runs its own; do not sit waiting on checks. A newer push
-  cancels the PR's older run. Run the browser tests locally only to debug one that failed; text widths
+- Testing: on your own machine, run `npm run typecheck`, `npm run test:near` and any new test. `test:near` runs
+  the tests that use the changed files directly, plus the structural guards (tests that check code as text); tests
+  that reach a change only through another file are left to GitHub. NOTHING TESTED from `test:near` is not a pass.
+  The full suite and the browser tests run on GitHub only, on every PR, and they decide the merge; a local pass never
+  stands in for them. Push and open a draft PR at the first commit, then run the local checks while GitHub runs its
+  own; do not sit waiting on checks. A newer push cancels the PR's older run. Run the browser tests locally only to debug one that failed; text widths
   count only from GitHub's run (BG-325). Reason: the full suite took 2 to 15 minutes locally and GitHub ran it again.
 - Long runs (anything over about ten minutes, such as a long build or a large soak) go on GitHub too: push the branch
   and read its checks. Decided 19/11/2026; the first agent that needs a long run after 19/12/2026 asks the owner

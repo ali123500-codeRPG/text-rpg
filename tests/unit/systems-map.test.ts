@@ -49,66 +49,40 @@ describe('test:near', () => {
     expect(selects('const look = 1;', words)).toBe(false);
   });
 
-  it('follows a change through its folder and through barrels, name by name', () => {
+  it('follows a change through barrels, name by name', () => {
     const text: Record<string, string> = {
-      'src/save/checks.ts': 'export function checkInvariants() {}',
-      'src/save/index.ts': "import { checkInvariants } from './checks';\nexport function loadStory() { checkInvariants(); }",
       'src/engine/resolve.ts': 'export function resolveTurn() {}',
       'src/engine/xp.ts': 'export const awardXp = () => 0;',
       'src/engine/index.ts': "export { resolveTurn } from './resolve';\nexport * from './xp';",
-      'tests/unit/save.test.ts': "import { loadStory } from '../../src/save';",
       'tests/unit/turn.test.ts': "import { resolveTurn } from '../../src/engine';",
       'tests/unit/xp.test.ts': "import { awardXp } from '../../src/engine';",
     };
     const read = (f: string) => text[f];
     const graph = importGraph(Object.keys(text), read, (f) => f in text);
     const tests = Object.keys(text).filter((f) => f.endsWith('.test.ts'));
-    // the miss found on #1176: save.test.ts reaches checks.ts only through src/save/index.ts
-    expect(pick(['src/save/checks.ts'], tests, read, [], graph)).toEqual(['tests/unit/save.test.ts']);
     expect(pick(['src/engine/resolve.ts'], tests, read, [], graph)).toEqual(['tests/unit/turn.test.ts']);
     expect(pick(['src/engine/xp.ts'], tests, read, [], graph)).toEqual(['tests/unit/xp.test.ts']);
     expect(ownExports("export const a = 1;\nexport async function b() {}\nexport type C = 1;\nexport { d, e as f };")).toEqual(['a', 'b', 'C', 'd', 'f']);
   });
 
-  it('on the real repo, a change to the save checks reaches the save test it once missed', () => {
+  it('a file list in an imported script counts (once missed)', () => {
     const read = (f: string) => readFileSync(f, 'utf8');
     const graph = importGraph([...testFiles('src', '.ts'), ...testFiles('tests', '.ts')], read, existsSync);
-    expect(pick(['src/save/checks.ts'], testFiles(), read, [], graph)).toContain('tests/unit/save.test.ts');
-  });
-
-  it('a part reaches tests through the entry beside its folder, and a file list in an imported script counts (both once missed)', () => {
-    const read = (f: string) => readFileSync(f, 'utf8');
-    const graph = importGraph([...testFiles('src', '.ts'), ...testFiles('tests', '.ts')], read, existsSync);
-    const tests = testFiles();
-    // src/config/fatigue.ts reaches its tests only through src/config.ts, which sits beside the folder
-    expect(pick(['src/config/fatigue.ts'], tests, read, [], graph)).toEqual(expect.arrayContaining(['tests/cases/s278-fatigue-stamina.test.ts', 'tests/cases/s291-stamina-perks.test.ts']));
     // tests/unit/imports-format.test.ts checks resolve.ts through scripts/imports.ts's ONE_PER_LINE
-    expect(pick(['src/engine/resolve.ts'], tests, read, [], graph)).toContain('tests/unit/imports-format.test.ts');
+    expect(pick(['src/engine/resolve.ts'], testFiles(), read, [], graph)).toContain('tests/unit/imports-format.test.ts');
   });
 
-  it('quick follows only the file itself and its barrels; --deep also follows its folder', () => {
-    const read = (f: string) => readFileSync(f, 'utf8');
-    const graph = importGraph([...testFiles('src', '.ts'), ...testFiles('tests', '.ts')], read, existsSync);
-    const quick = pick(['src/engine/xp.ts'], testFiles(), read, [], graph, false);
-    const deep = pick(['src/engine/xp.ts'], testFiles(), read, [], graph, true);
-    expect(quick).toContain('tests/cases/s163-achievement-info.test.ts'); // imports src/engine/xp itself
-    expect(deep.length).toBeGreaterThan(quick.length * 2);
-    expect(deep).toEqual(expect.arrayContaining(quick));
-    // a library part reaches the library's tests through data.ts and src/library/index.ts with --deep
-    expect(pick(['src/library/items.ts'], testFiles(), read, [], graph, true).length).toBeGreaterThan(100);
-  });
-
-  it('quick picks the tests of a config part by setting name, and the tests of a library row by the IDs on changed lines', () => {
+  it('picks the tests of a config part by setting name, and the tests of a library row by the IDs on changed lines', () => {
     const read = (f: string) => readFileSync(f, 'utf8');
     const graph = importGraph([...testFiles('src', '.ts'), ...testFiles('tests', '.ts')], read, existsSync);
     expect(settingKeys('  STAMINA_BASE: 50,\n  /** x */\n  NOT_A_KEY\n  REST_S: 3, // y')).toEqual(['STAMINA_BASE', 'REST_S']);
-    expect(pick(['src/config/fatigue.ts'], testFiles(), read, [], graph, false)).toContain('tests/cases/s278-fatigue-stamina.test.ts');
+    expect(pick(['src/config/fatigue.ts'], testFiles(), read, [], graph)).toContain('tests/cases/s278-fatigue-stamina.test.ts');
     expect(changedIds("+  { id: IT.dagger, skill: SK.parry, n: CONFIG.X },\n-  x.SK.no, ab.cd")).toEqual(['IT.dagger', 'SK.parry']);
     const t = { 'a.test.ts': 'give(IT.dagger)', 'b.test.ts': 'give(IT.daggers)' };
-    expect(pick(['src/library/items.ts'], Object.keys(t), (f) => t[f as keyof typeof t], [], undefined, false, ['IT.dagger'])).toEqual(['a.test.ts']);
+    expect(pick(['src/library/items.ts'], Object.keys(t), (f) => t[f as keyof typeof t], [], undefined, ['IT.dagger'])).toEqual(['a.test.ts']);
   });
 
-  it('the structural guards run with every code change, so a test that checks files as text is never deferred (#1191)', () => {
+  it('the structural guards run with every code change, so a test that checks files as text is never left to GitHub (#1191)', () => {
     const read = (f: string) => readFileSync(f, 'utf8');
     const graph = importGraph([...testFiles('src', '.ts'), ...testFiles('tests', '.ts')], read, existsSync);
     const g = guards(testFiles(), read, graph);

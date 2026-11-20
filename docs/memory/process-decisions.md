@@ -33,3 +33,6 @@ Kind: decision. How changes land and where work runs. The rules that follow from
   tests plus structural guards, the rest "deferred to CI" and named) and a comprehensive `--deep` "for high-risk
   changes, complex refactors". The full suite and browser tests on GitHub stay mandatory; "never allow a quick local
   pass to substitute for successful CI".
+- **`--deep` dropped** (20/11/2026, CU2 b). On 17 one-line code breakages the full suite caught 14, `--deep` 13 and
+  quick 11, with quick running a median of about 60 test files and `--deep` about 98. The owner chose to keep quick
+  only; the full suite on GitHub still decides every PR.
