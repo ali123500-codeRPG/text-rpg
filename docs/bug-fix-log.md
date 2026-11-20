@@ -10,6 +10,16 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the spec's bug log, docs/spec/bug-log.md, has one. Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-348
+
+**What was wrong:** On `?fake=1&stage=bent-nail` the name "back yard" stood on dark, unseen ground: on the Map at the 40 m and 60 m zoom steps, on the minimap from its first 25 m view, and on the Map's fitted view in a 1100 px window. MAP-16 puts a name in the biggest seen part of its title, never on ground not seen. It happened on `main` before #1408 too.
+
+**Root cause:** The layout fitted each name to its title's biggest seen rectangle (`zoneNames` in `src/ui/mapPlan.ts`, BG-313), but the view (`render` in `src/ui/planView.ts`) used that name only when the whole zone was in view and the name fitted. Otherwise it fitted the name again with `nameFit(z.name, c)`, `c` being the zone's whole box cut to the view: the seen part was never read. So a zone partly out of view, or a zone whose seen part is too small for its name, had its name centred on the zone's box, here on the back yard's unseen ground.
+
+**What was done:** A zone's name keeps the room it was fitted to (`SLabel.room`, its biggest seen rectangle or the zone's box when it has no fog record), and the view fits a name partly out of view to that room's part in view, or shows none; a name that does not fit its seen room shows on hover only, as MAP-20 says. Checked by zooming every step in and out on the four fake pages (default, bent-nail, one-room, long-names), on both maps, in a 1600 px and an 1100 px window, sampling each drawn name against the fog: none on ground not seen.
+
+**Fixed by:** #1416
+
 ## BG-346
 
 **What was wrong:** Zooming the Map in once or twice on `?fake=1&stage=bent-nail` (60 m across, zoom 1.56) logged "MAP-20 label label:tavern.common does not fit zone tavern.common": the common room's name, drawn at 31.5 px in the part of the room in view, stood 5.8 px from that part's top edge, short of the 6 px MAP-20 asks. The smoke test checks only the first view, so it passed.
