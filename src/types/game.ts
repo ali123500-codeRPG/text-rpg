@@ -105,7 +105,11 @@ export type Notice =
   | { kind: 'stop_play'; text: string } // not_granted, sampling_disabled, session_expired
   | { kind: 'read_only'; text: string } // another window holds the turn lock
   | { kind: 'save_failed'; text: string }
-  | { kind: 'load_refused'; text: string };
+  | { kind: 'load_refused'; text: string; recovery?: LoadRecovery };
+
+/** YS1 c: the ways back into a saved story that failed its load checks: one turn back (when the save has an undo
+ * bookmark) or one of its backups, newest first. Starting a new save is the creation screen itself. */
+export type LoadRecovery = { storyId: string; back: boolean; backups: number[] };
 
 export type GmSnapshot = {
   state: GameState | null;
@@ -163,6 +167,8 @@ export interface GameApi {
   /** Claude calls in flight now, oldest first: which agent and since when (Date.now ms) */
   working(): { agent: import('./agents').AgentName; since: number }[];
   restoreBackup(turn: number): Promise<void>;
+  /** YS1 c: take a way back offered by a refused load ('back': one turn back; a number: that turn's backup) */
+  recoverLoad(choice: 'back' | number): Promise<void>;
   /** spend a perk point on a ladder perk, or undo it before the next turn (K3); in memory until the next turn saves */
   takePerk(perkId: string): void;
   undoPerk(perkId: string): void;

@@ -503,6 +503,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       return [...(state?.agentLog ?? []).filter((l) => l.actorId === id), ...older].slice(0, CONFIG.GM_AGENT_CALLS_SHOWN);
     },
     async restoreBackup() { emit(); },
+    async recoverLoad() { emit(); },
     takePerk(id) { if (state) { takePerk(state, state.player, id); emit(); } },
     undoPerk(id) { if (state) { undoPerk(state, state.player, id); emit(); } },
     abandonQuest(id) { if (state && abandonQuest(state, id)) emit(); },

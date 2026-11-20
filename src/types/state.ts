@@ -210,7 +210,6 @@ export type Head = Bookmark & {
   schemaVersion: number;
   libraryVersion: number;
   undo: Bookmark | null;
-  safety?: Bookmark;
 };
 
 export type EnginePage = {

@@ -18,7 +18,7 @@ Only the engine writes the save, every load is checked, and the save stays insid
 | Invariants | Exactly one current class; character level = sum of class levels unless a perk says otherwise; every page carries the loaded story id; every actor's placeId equals its zone's placeId; every stage zone id resolves to a zone on its place page; no slot used twice per actor; every slot names a part the actor still has; no part covered by two worn items; stackables hold qty ≥ 1 | Refuse to load, ask the designer |
 | References | Every id resolves: place, actor, fact, library entry (through alias or dormant) | Repair and report: drop the dangling link, list it in the GM view |
 
-Raw skill above 100 is logged as a warning, not refused, because workaround mechanics for the mortal limit are coming. When a load is refused, the designer chooses: the undo bookmark, the safety bookmark, or a confirmed reset.
+Raw skill above 100 is logged as a warning, not refused, because workaround mechanics for the mortal limit are coming. When a load is refused, the creation screen offers the ways back: one turn back, a backup, or a new save (YS1 c, section 10).
 
 **Size budgets.**
 
