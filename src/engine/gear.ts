@@ -58,11 +58,11 @@ function draw(state: GameState, actor: Actor, inst: ItemInstance): boolean {
   return true;
 }
 
-export type GearResult = { picked: { itemId: string; from?: string }[]; summoned: string[]; setDown: { itemId: string; qty?: number }[]; putIn: { itemId: string; into: string; qty?: number }[]; invalid: GearOp[] };
+export type GearResult = { picked: { itemId: string; from?: string }[]; summoned: string[]; armor: string[]; setDown: { itemId: string; qty?: number }[]; putIn: { itemId: string; into: string; qty?: number }[]; invalid: GearOp[] };
 
 /** free gear ops at the actor's initiative, before its action. Invalid ops are skipped and reported. */
 export function applyGearOps(state: GameState, actor: Actor, ops: GearOp[] | null | undefined): GearResult {
-  const res: GearResult = { picked: [], summoned: [], setDown: [], putIn: [], invalid: [] };
+  const res: GearResult = { picked: [], summoned: [], armor: [], setDown: [], putIn: [], invalid: [] };
   for (const op of ops ?? []) {
     const inst = actor.core.inventory.find((i) => i.id === op.item);
     let ok = false;
@@ -106,6 +106,10 @@ export function applyGearOps(state: GameState, actor: Actor, ops: GearOp[] | nul
       case 'remove_acc':
         ok = !!inst?.equippedIn?.some(isAccSlot);
         if (ok) delete inst!.equippedIn;
+        break;
+      case 'armor':
+        ok = equipArmor(state, actor, op.item);
+        if (ok) res.armor.push(op.item);
         break;
       case 'summon': // TB6: the player's own Threadbound item comes to them from wherever it is, at any time
         ok = summon(state, actor, op.item);
@@ -228,7 +232,7 @@ export function giveItem(state: GameState, actor: Actor, instId: string | null |
   return { id: moved.id, qty: n };
 }
 
-/** equip (main action): put an armor piece on, or take it off when worn. Several pieces can be worn when no body part is
+/** the armor gear op (free) and an NPC's equip action: put an armor piece on, or take it off when worn. Several pieces can be worn when no body part is
  * covered twice (IR19): putting one on takes off the worn pieces that cover any of its parts. */
 export function equipArmor(state: GameState, actor: Actor, instId: string | null | undefined, dry = false): boolean {
   const inst = actor.core.inventory.find((x) => x.id === instId);

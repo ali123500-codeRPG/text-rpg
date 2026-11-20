@@ -4,6 +4,10 @@
 // refused is refused at once. A night runs on as one stretch: a foe after the sleeper that reaches them stops it.
 import { describe, expect, it } from 'vitest';
 import { makeVillage, place } from '../harness';
+import { wallsAround, holeSpot } from '../../src/plan/holes';
+import { waysOut } from '../../src/plan/where';
+import { zoneById } from '../../src/engine/relations';
+import { breakJob, jobShare, secondsLeft, type BreakJob } from '../../src/engine/breakThrough';
 import { intent, play } from './w4-kit';
 import { now, startClock } from '../../src/time';
 import { CONFIG } from '../../src/config';
@@ -22,8 +26,17 @@ const shop = () => {
 };
 const buyDrink = intent({ action: { type: 'buy', target: 'trader', item: `service:${SV.drink}` } });
 const tradeMin = () => getLibrary().durations![DU.trade].seconds / 60;
-const armour = (s: GameState) => { s.player.core.inventory.push({ id: 'coat', itemId: IT.lamellar_coat, qty: 1 }); return intent({ action: { type: 'equip', item: 'coat' } }); };
-const worn = (s: GameState) => !!s.player.core.inventory.find((i) => i.id === 'coat')?.equippedIn?.includes('armor');
+// breaking through the brick wall to the bar: a slow action whose work stays on the wall when it is broken off
+const breakWall = (s: GameState) => {
+  const w = wallsAround(s, zoneById(s, 'tav_common')!).find((x) => x.behind?.id === 'tav_counter')!.wall;
+  const z = zoneById(s, 'tav_common')!, at = holeSpot(s, w, s.player.pos ?? { x: 0, y: 0 })!;
+  const c = z.outline.reduce((p, q) => ({ x: p.x + q.x / z.outline.length, y: p.y + q.y / z.outline.length }), { x: 0, y: 0 });
+  const dx = c.x - at.x, dy = c.y - at.y, len = Math.hypot(dx, dy);
+  s.player.pos = { x: at.x + dx / len * 0.5, y: at.y + dy / len * 0.5 }; // half a metre in from the wall
+  return intent({ action: { type: 'break', target: 'tav_counter' } });
+};
+const broken = (s: GameState) => waysOut(s, 'tav_common').some((l) => l.to === 'tav_counter' && !!l.opening.wall);
+const job = (s: GameState) => breakJob(s, s.player, 'tav_counter') as BreakJob;
 
 describe('276 long actions on the world clock', () => {
   it('AT45: a trade nobody disturbs runs its time on the world clock and goes through at its end', () => {
@@ -43,36 +56,32 @@ describe('276 long actions on the world clock', () => {
     expect(now(s) - t0).toBeLessThanOrEqual(CONFIG.EXPLORE_TURN_S / 60);
     expect(s.player.busy).toBeUndefined();
   });
-  it('AT45/AT65: stopped on the way, a slow action waits half done; the same order again finishes it in the time left', () => {
-    // armour is instant now (less realism); give it its old 10 minutes here, so the long-action rules still have one to run
+  it('AT45/AT65: stopped on the way, a slow action keeps its work; the same order again finishes it in the time left', () => {
     const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
-    const row = getLibrary().durations![DU.armor_heavy_on], was = row.seconds;
-    row.seconds = 10 * 60;
     const g = s.actors.find((a) => a.id === 'guard_1')!;
     place(s, 'guard_1', 'street_square');
     g.mind!.overrides = { player: 'hostile' };
     g.mind!.knowledge.player = { status: 'hunting', lastKnownZone: 'tav_common', lastSeenTurn: s.turn, source: 'seen', revealed: [] };
-    const order = armour(s);
+    const order = breakWall(s);
     const ev = play(s, { intent: order });
-    const b = s.player.busy!;
-    expect(b).toMatchObject({ row: DU.armor_heavy_on });
-    expect(b.done).toBeGreaterThan(0);
-    expect(b.done).toBeLessThan(b.need);
-    expect(worn(s)).toBe(false);
+    expect(ev.some((e) => e.actorId === 'player' && e.kind === 'busy')).toBe(true);
+    // its work is kept on the wall (BW13 a): part done, not through
+    expect(jobShare(job(s))).toBeGreaterThan(0);
+    expect(jobShare(job(s))).toBeLessThan(1);
     // the hunting guard stops it: seen closing in, or first heard as a foe (which comes first hangs on the zones' sizes)
-    expect(mechanicsLines(s, ev).some((l) => /^Put on heavy armour stopped (at once|after .+): (someone|a fight)/.test(l))).toBe(true);
+    expect(mechanicsLines(s, ev).some((l) => /^Break through a wall or barrier stopped (at once|after .+): (someone|a fight)/.test(l))).toBe(true);
     // the guard goes off to the far field and forgets the player; the player keeps at it
     place(s, 'guard_1', 'field_far');
     g.mind!.overrides = {};
     g.mind!.knowledge = {};
     s.mode = 'explore'; // no fight any more
     s.pending.mode = 'explore';
-    const left = (b.need - b.done) / 60, t1 = now(s);
-    play(s, { intent: order });
-    expect(worn(s)).toBe(true);
+    const left = secondsLeft(s, s.player, job(s)) / 60, t1 = now(s);
+    const ev2 = play(s, { intent: order });
+    expect(ev2.find((e) => e.actorId === 'player' && e.kind === 'break_through')?.breakThrough).toMatchObject({ share: 1, state: 'destroyed' });
+    expect(broken(s)).toBe(true); // through: a way to the bar
     expect(s.player.busy).toBeUndefined();
     expect(now(s) - t1).toBeCloseTo(Math.max(left, 0), 0);
-    row.seconds = was;
   });
   it('AT46: a short order outside a fight is a short turn (a look around), an order with no time of its own the action row', () => {
     const s = shop();

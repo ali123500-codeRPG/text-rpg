@@ -164,7 +164,7 @@ function packOps(state: GameState, a: Actor, ops: GearOp[]): Set<GearOp> {
  * ground locks movement too. One in `pack` (out of a carried container) takes the from_pack row first */
 function useGearTime(ctx: Ctx, a: Actor, ops: GearOp[], pack: Set<GearOp> = new Set()): void {
   for (const op of ops) {
-    const id = op.op === 'draw' ? DU.draw : op.op === 'stow' || op.op === 'set_down' ? DU.stow : op.op === 'swap' ? DU.swap : op.op === 'pick_up' ? (op.from ? DU.pick_up_reach : DU.pick_up_ground) : undefined;
+    const id = op.op === 'draw' ? DU.draw : op.op === 'stow' || op.op === 'set_down' ? DU.stow : op.op === 'swap' ? DU.swap : op.op === 'pick_up' ? (op.from ? DU.pick_up_reach : DU.pick_up_ground) : op.op === 'armor' ? armorRowId(ctx.state, a, op.item) : undefined;
     for (const row of [pack.has(op) ? actionRow(DU.from_pack) : undefined, id ? actionRow(id) : undefined]) {
     if (!row) continue;
     const s = slotsOf(ctx, a), take = Math.min(s.main, actionSeconds(row, undefined, timeFactor(a)));
@@ -186,6 +186,11 @@ function useWayTime(ctx: Ctx, a: Actor, op: WayOp, mainToo: boolean): boolean {
   ctx.clock.set(a.id, (ctx.clock.get(a.id) ?? 0) + secs);
   payRow(ctx.state, a, row, secs);
   return true;
+}
+/** the Action times row for putting on an armor piece, by its weight (the armor gear op and an NPC's equip action) */
+function armorRowId(state: GameState, a: Actor, ref: string | null | undefined): string | undefined {
+  const w = ref ? itemDef(state, a.core.inventory.find((i) => i.id === ref || i.itemId === ref)?.itemId ?? ref).armor?.weight : undefined;
+  return w === 'heavy' ? DU.armor_heavy_on : w === 'medium' ? DU.armor_medium_on : w === 'light' ? DU.armor_light_on : undefined;
 }
 /** AT11: the Action times row an order's action uses, and its seconds (a crossbow's shot includes its spanning until
  * spanning is an action of its own); undefined when the order names no row (it takes the turn's main time) */
@@ -216,10 +221,7 @@ export function orderCost(state: GameState, a: Actor, o: Order): { row: Duration
     case 'search': case 'observe': return of(DU.look);
     case 'give': case 'take': return of(DU.hand_over); // BF34: taking is a hand-over too
     case 'barter': case 'buy': case 'sell': return of(DU.trade);
-    case 'equip': {
-      const w = o.item ? itemDef(state, inv(o.item)?.itemId ?? o.item).armor?.weight : undefined;
-      return of(w === 'heavy' ? DU.armor_heavy_on : w === 'medium' ? DU.armor_medium_on : w === 'light' ? DU.armor_light_on : undefined);
-    }
+    case 'equip': return of(armorRowId(state, a, o.item));
     default:
       // TP6 c, TK6: plain talk in a fight takes no time (its time stays and carries); TK1 c: words that use a skill (persuade,
       // lie, threaten) take the Speech row's fixed time however long they are, and so does a turn of plain talk outside a
@@ -1986,6 +1988,8 @@ function step(ctx: Ctx, id: string): void {
   useGearTime(ctx, a, gearNow.filter((op) => !g.invalid.includes(op)), pack);
   for (const p of g.picked) emit(ctx, mk(ctx, a, 'pick_up', { itemId: p.itemId, target: p.from }));
   for (const id of g.summoned) emit(ctx, mk(ctx, a, 'summon', { itemId: id })); // TB6
+  for (const id of g.armor) emit(ctx, mk(ctx, a, 'equip', { itemId: id }));
+  for (const op of g.invalid) if (op.op === 'armor') emit(ctx, mk(ctx, a, 'wasted', { itemId: op.item, reason: 'cannot_put_that_on' })); // BG-149: every wasted event says why
   for (const d of g.setDown) emit(ctx, mk(ctx, a, 'set_down', { itemId: d.itemId, ...(d.qty ? { qty: d.qty } : {}) })); // OA4
   for (const d of g.putIn) emit(ctx, mk(ctx, a, 'put_in', { itemId: d.itemId, into: d.into, ...(d.qty ? { qty: d.qty } : {}) })); // PI1
   if (g.invalid.length) logCode(state, 'invalid_gear', { actorId: id, ops: g.invalid });

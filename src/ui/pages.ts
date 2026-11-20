@@ -224,7 +224,7 @@ function threadboundRows(s: GameState, it: { boundTo?: string }, def: ReturnType
 // The equipment panel, laid out the way MMOs show equipped items: the slots the body has (one per grip part,
 // the armor slot, the accessory slots) with what is in them, and the pack beside them as a grid of item icons.
 // Hovering or focusing an item shows its exact stats; Equip and Unequip send the same words the player could type,
-// so the turn rules hold (drawing and putting away are free, armor on or off is the turn's action).
+// so the turn rules hold (drawing, putting away and armor on or off are free).
 type InvItem = GameState['player']['core']['inventory'][number];
 
 /** the words an Equip or Unequip button sends; null: the item can't be equipped */
