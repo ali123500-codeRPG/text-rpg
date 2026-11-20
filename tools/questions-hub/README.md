@@ -37,7 +37,8 @@ project's id, `execute_sql` reads and writes. Supabase's public roles have no ac
   older questionnaires to the shared table". Pressing it copies each of them whole (page, rounds, questions, answers)
   into Supabase, never over a row that is already there, and leaves the own copies in place. From then on the page
   reads and writes those questionnaires in Supabase, so the thread that pressed for the move checks the counts and
-  then deletes the own copies. The button exists because a thread can only send SQL by writing it out, which does not
+  then deletes the own copies. An own copy kept for now gets a `moved` field on its `pages/<name>` naming where the
+  questionnaire lives, so a thread that looks there first is sent on. The button exists because a thread can only send SQL by writing it out, which does not
   work for megabytes of old questionnaires; the page reads both stores directly.
 - Each connector call is a slow round trip, so the page sends the reads it needs at the same moment as one query, and
   the home list also checks the names of all questionnaires, so one copied in with an older `updated` still shows.
@@ -190,8 +191,11 @@ print(oid, json.dumps(files))   # publish_files(slug=<your hub>, base_version=..
 
 ## Reading answers
 
-- In Supabase: `select path, data from hub_docs where starts_with(path, 'answers/<name>/items/')`. A questionnaire
-  written into a hub's own database before 20/11/2026 is still read there.
+- The submit line gives the title. Where it lives and its `<name>`, in one query:
+  `select path from hub_docs where starts_with(path, 'pages/') and data->>'title' = '<title>'`. A row means Supabase
+  (`<name>` is the path after `pages/`). No row means the hub's own database (list `pages` there). There, a page with
+  `moved` is a stale copy: `moved` says where it lives, and nothing is read or written in the copy.
+- In Supabase: `select path, data from hub_docs where starts_with(path, 'answers/<name>/items/')`.
 - Answers are in `answers/<name>/items`. Act only on what the owner wrote.
 - After acting on an answer, mark its question `done` with a one-line result. The page shows the read mark only when
   the page's `updated` is later than the answer's time.

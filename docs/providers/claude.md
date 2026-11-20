@@ -71,8 +71,10 @@ Read when: writing a questionnaire, or acting on the owner's answers or on a hub
 
 - Write only what changed. A new round, or a question marked done or re-asked, writes only its own small documents
   plus the page's `updated` time, in one batch built with `tools/questions-hub/hubdb.py`. Never re-save a whole page.
-- The owner's submit line names the questions answered. Read the answers where the questionnaire lives (Supabase, or
-  a hub's own database for one written there before 20/11/2026), act, and mark each one done.
+- The owner's submit line names the questions answered and the questionnaire's title. Find where it lives with one
+  query (`tools/questions-hub/README.md`, "Reading answers"): a `pages/` row in Supabase's `hub_docs` means Supabase;
+  only with none is it in the hub's own database. An own-database page with a `moved` field is a stale copy, and
+  `moved` names where it lives. Read the answers there, act, and mark each one done.
 - Comments on the hub wake every thread that watches it. Before acting on one, read its comment thread: if a Claude
   reply is already there, another thread owns it.
 

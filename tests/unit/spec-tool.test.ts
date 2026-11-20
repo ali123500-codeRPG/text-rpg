@@ -41,6 +41,14 @@ describe('spec tool', () => {
     expect(mentions(doc, 'SRC/engine/gear.ts').map((m) => [m.section.title, m.count])).toEqual([['One', 1]]);
   });
 
+  it('a setting name finds its config file and line, and the spec sections that write it with escaped underscores', () => {
+    expect(mentions(['## S', 'radius SEARCH\\_AREA\\_M2 × skill'], 'SEARCH_AREA_M2').map((m) => m.section.title)).toEqual(['S']);
+    const out = run(['SEARCH_RING_SHIFTS']).split('\n');
+    expect(out[0]).toMatch(/^SEARCH_RING_SHIFTS: src\/config\/perception\.ts:\d+$/);
+    expect(out.some((l) => l.includes('docs/spec/part-2-turn-engine/explore-mode.md'))).toBe(true);
+    expect(run(['NOT_A_SETTING_X'])).toMatch(/^no heading contains/);
+  });
+
   it('on the real spec: every topic file the index links exists and starts with its heading, and a section stops at the next one', () => {
     const files = specFiles();
     expect(files.length).toBeGreaterThan(50);
