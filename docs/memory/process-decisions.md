@@ -18,8 +18,6 @@ Kind: decision. How changes land and where work runs. The rules that follow from
   started far behind.
 - **Long runs go on GitHub, from a pushed branch** (19/11/2026). Reason: the checks already run the full suite on
   every push, and results stay with the branch. To be asked again after 19/12/2026.
-- **The full test suite may run locally** (19/11/2026). Reason: since #1115 `npm test` takes about two minutes, so
-  it is no longer a long run. Rule 5 stays as it was: the slowness came from how the tests loaded, not from the rule.
 - **Optimise the game for quality and speed, not for model cost** (14/11/2026). Reason: the owner kept a costlier
   set of in-game agent calls because lower cost was the only case for trimming them.
 - **Playtests continue one world** (17/11/2026). New runs carry on an existing world, never a fresh one.

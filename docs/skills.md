@@ -36,11 +36,13 @@ Fetch these from their master, at the latest version. Versions and links were ch
 repo's raw files. If you cannot fetch one, say in your report that it was not used.
 
 - **ponytail**. The smallest complete change.
-  - Master: https://github.com/DietrichGebert/ponytail (`skills/ponytail/SKILL.md`). Licence: MIT.
+  - Master: https://github.com/DietrichGebert/ponytail (`skills/ponytail/SKILL.md`). Licence: MIT. The owner's copy
+    replaces its testing line: look for an existing test first, add one only for a silent break nothing covers.
   - Core rules: solve the whole task with the least new code, taking the first option that fully works (not needed
     at all, already in the codebase, standard library, installed dependency, one clear line, else the minimum).
     Finish every part the change touches: callers, tests, fixtures. Never cut validation at trust boundaries, error
-    handling that prevents data loss, security or accessibility. Here, "no config" gives way to the balancing rule.
+    handling that prevents data loss, security or accessibility. Here, "no config" gives way to the balancing rule,
+    and tests follow `docs/instructions.md` section 8.
 - **interface-design**. The primary lens for product UI: structure, hierarchy, density, tokens, states.
   - Master: https://github.com/Dammyjay93/interface-design. Licence: MIT.
   - Core rules: decide every choice instead of taking the default; state who the screen is for and what they must

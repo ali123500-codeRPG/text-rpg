@@ -3,6 +3,14 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bug-fix-log.md`.
 
+- 20/11/2026: tests by risk (the owner, testing review: "I am fine with both recommendations"; "go ahead with the
+  rest"). `docs/instructions.md` section 8: look for a covering test first, add one only for a silent break nothing
+  covers, in its cheapest form (a whole turn only when the turn is the risk), none for docs, rules, config, tooling
+  or wiring a smoke flow covers; run local checks once and rerun only failures. `AGENTS.md` rule 5: removing a
+  duplicate or a test that guards nothing is allowed, naming what covers it. Section 1: a throwaway test only when
+  reading the code cannot settle a rule. Section 4: ponytail's test line gives way to section 8. The PR template and
+  the TQ5 spec line follow; the memory note letting the full suite run locally is removed (section 8, #1161).
+
 - 20/11/2026: `AGENTS.md` rule 1 and `docs/providers/claude.md` "The live game page and the owner's saves": reading
   the owner's saves and stories is always allowed (the owner, Questions hub page "Map rules revision", RM14: "reading
   my saves is always allowed"); playing the game and writing or deleting saves still need the owner's OK. A thread

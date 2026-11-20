@@ -21,8 +21,8 @@ edge cases. Where a section repeats a rule from `AGENTS.md`, it is there to add 
   IDs and the row becomes Built. Memory notes and the Questions hub link to the row and hold no second copy.
 - An old "Build Spec v0.6" page exists outside the repo. It is the outdated original: never use it.
 - Do not invent mechanics. Report a gap as a question with a recommendation (section 5).
-- When asked what a rule or perk does, run it: write a throwaway test with `tests/harness`, print measured results on
-  the latest `main`, delete the test, and report the numbers. A code reading alone goes stale.
+- When reading the code cannot settle what a rule or perk does, run it: write a throwaway test with `tests/harness`,
+  print measured results on the latest `main`, delete the test, and report the numbers. A code reading alone goes stale.
 
 ## 2. IDs, parked items and bugs
 
@@ -94,7 +94,7 @@ The source of truth for every design decision.
   - A question, a review or a one-line docs fix that leads to no PR needs no issue.
 - **Smallest complete change.** Use the `ponytail` skill (`docs/skills.md`): the least new code that solves the whole
   task, no extras, and every part the change touches is finished (callers, tests, fixtures). Where it says "no
-  config", the balancing rule below wins.
+  config", the balancing rule below wins; where it asks for a test, section 8 decides.
 - **Stay in scope.** Out-of-scope work becomes its own task. Do not widen the current one.
 - **Balancing levers.** Every balancing number lives in one easy-to-edit place (`src/config.ts`, whose parts are in
   `src/config/`, or a library table), with a clear name, placeholders marked, and the lever named in the spec. Use names
@@ -211,9 +211,13 @@ The source of truth for every design decision.
 - Every change is a PR into `main` that follows `.github/pull_request_template.md`. The full CI runs on it: type
   check, unit and scenario tests, build, browser smoke, and the PR rule. The template's terms (completeness rows,
   whole-turn test) are in `docs/glossary.md`.
-- A test earns its place: add one only for behaviour that could break again unnoticed, run it through the game (a
-  whole turn or a browser smoke test), and never match source text. "Tests: none needed" with the reason is a fine
-  answer. A change of meaning gets a search of the whole repo for the old pattern, not a guard test (spec, TQ5).
+- Tests manage risk; they are not a deliverable. Before adding one, search `tests/` for a test or smoke flow that
+  already covers the behaviour; if one does, extend it or name it. Add a new test only when a break would go
+  unnoticed (numbers, saves, RNG, ordering, a sibling path) and nothing covers it, in the cheapest form that catches
+  it: a pure function gets a unit test, a whole turn only when the turn itself is the risk. Never match source text.
+  Docs, spec, rule, config and tooling changes, and wiring a smoke flow already covers, get none. A test that
+  duplicates another, guards nothing or matches source text may be deleted in a PR that touches it, naming what
+  covers it. A change of meaning gets a search of the whole repo for the old pattern, not a guard test (spec, TQ5).
 - The agent that opened a PR reviews it and squash-merges it once every check is green, without asking the
   owner. That includes bug fixes and rule-file changes; a rule-file PR quotes the owner's words it acts on
   (`AGENTS.md` rule 6). The owner does not merge PRs. The same rule holds for agents of every provider.
@@ -224,7 +228,8 @@ The source of truth for every design decision.
   `npm run sync -- --check ORIG_HEAD` after any rebase done by hand.
 - After pushing, check the PR: `gh api repos/<owner>/<repo>/pulls/<n> --jq .mergeable_state`. `dirty` means a
   conflict, and a PR with a conflict gets no checks at all, so a silent PR is not a passing one.
-- Testing: on your own machine, run `npm run typecheck`, `npm run test:near` and any new test. `test:near` runs
+- Testing: on your own machine, run `npm run typecheck` and `npm run test:near` once, after your last edit, and
+  rerun only the files that failed. `test:near` runs
   the tests that use the changed files directly, plus the structural guards (tests that check code as text); tests
   that reach a change only through another file are left to GitHub. NOTHING TESTED from `test:near` is not a pass.
   The full suite and the browser tests run on GitHub only, on every PR, and they decide the merge; a local pass never
