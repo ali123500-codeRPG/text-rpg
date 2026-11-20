@@ -34,14 +34,15 @@ model while it runs, and for that it is published as a private page from the own
 
 ## Starting an AI agent here
 
-Every agent works from the same files. The start-up step differs by tool. Only the Claude steps have been tested
-in this project; the others are written from each tool's documentation and marked untested.
+Every agent works from the same files. The start-up step differs by tool. The entries below say which workflows
+have been tested in this project.
 
 - **Claude (claude.ai project, or Claude Code).** Tested. `CLAUDE.md` imports `AGENTS.md`, so the rules load by
   themselves. Claude Code loads the owner's skills through `.claude/skills/`, which links to `.agents/skills/`. A
   thread inside a claude.ai project loads skills only from the account: there the agent opens the `SKILL.md` it
   needs, or the account gets the skills uploaded (`npm run skills-zip`). Also read `docs/providers/claude.md`.
-- **Codex.** Untested. Codex reads `AGENTS.md` at the repo root and skills in `.agents/skills/`.
+- **Codex.** Tested with a public fetch, manual instruction and skill reads, and the Node 22 checks.
+  See [Codex provider notes](docs/providers/codex.md) for results, question handling and tool limits.
 - **GitHub Copilot (coding agent).** Untested. It reads `AGENTS.md` and skills in `.agents/skills/`.
 - **Cursor.** Untested. It reads `AGENTS.md` and skills in `.agents/skills/`.
 - **Gemini CLI.** Untested. `GEMINI.md` imports `AGENTS.md`. It reads skills in `.agents/skills/`.

@@ -11,6 +11,9 @@ Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instr
   new links; the old pages are frozen, saves cross by Export and Import buttons, and in-game bug reports are
   triaged there and become GitHub issues. The bug number counter is retired: every agent numbers from the Bug log
   (`docs/instructions.md` section 2, spec "Bug log").
+- 19/11/2026: `docs/providers/claude.md`: new section "Claude on another account", with the second account's own
+  Questions hub link and its desk label, `desk:rpg-game`.
+- 19/11/2026: Added Codex provider notes covering the private questionnaire, verified setup and Claude handoffs.
 - 19/11/2026: `docs/instructions.md` section 8: the full test suite is no longer a long run (about two minutes since
   #1115) and may run locally; GitHub stays for runs over about ten minutes. `AGENTS.md`'s map notes the nightly
   isolated run. Rule 5 is unchanged.

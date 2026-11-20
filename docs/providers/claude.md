@@ -107,6 +107,16 @@ and nothing changes. From the PR that records them:
   another account never sees it.
 - **Other agents:** cannot press it. Say in the PR that the pages need a republish; the owner presses the button.
 
+## Claude on another account
+
+The owner also works from a second Claude account. A session there cannot save to the Questions hub above or reach
+its database. That is expected, not a bug. It is the page desk: see "Where the game page and the library viewer live".
+
+- **Its own Questions hub:** https://claude.ai/artifact/Ldhfi7SenB4mkRHXyiwCYu, published 19/11/2026 as
+  `tools/questions-hub/README.md` "Publishing a new hub" says. On that account it takes the place of the hub link in
+  "Questions" above; everything else there applies. Never pass the other account's hub link to a publish.
+- **Desk label:** `desk:rpg-game` (`docs/instructions.md` section 4, "Claim the work first").
+
 ## Bug numbers
 
 - Every agent, Claude threads included, takes the next free number in the Bug log on the latest `main`
