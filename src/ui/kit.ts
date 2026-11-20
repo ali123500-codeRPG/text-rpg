@@ -1,6 +1,8 @@
 import { ms } from './motion';
 // Small DOM helpers and the shared HISAB pieces: readout tiles, visibility tiles, grouped tables, side panel.
 type Attrs = Record<string, unknown>;
+/** YB5: an archived story, shown read-only (a fallen character's sheet in the Hall of fame): nothing on it can act */
+export const ended = (s: { meta?: { archivedAt?: string } }): boolean => !!s.meta?.archivedAt;
 /** the parts of the artifact runtime's comments capability the pages use: a comment sent to Claude wakes a thread */
 export type CommentsApi = { anchorFor(el: Element): Promise<unknown>; canSendToClaude(): Promise<string>; sendToClaude(t: { anchor: unknown; text: string }): Promise<unknown> };
 /** the comments capability when this viewer can send to Claude from here, else null (outside claude.ai, or not allowed) */

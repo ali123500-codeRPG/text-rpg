@@ -13,7 +13,7 @@ import { classMaxLevel } from '../library/spawn';
 import { levelTarget, spendXp } from '../engine/xp';
 import { PK } from '../library/perkIds';
 import { markIcon, skillName } from './creation';
-import { h } from './kit';
+import { ended, h } from './kit';
 import { classIcon } from './itemIcons';
 import { openPop, closePop } from './pop';
 
@@ -224,7 +224,7 @@ export function openClassCard(s: GameState, id: string, opener: HTMLElement | nu
       ...row('Opens from', [...from.map((l) => `${name(l.from)} (${l.via})`), ...(n?.source ? [n.source] : [])].join('; ') || 'Only where a start begins'),
       ...row('Leads to', to.length ? to.map((l) => (hidden(l.to) ? `a class not shown yet (${l.via})` : `${name(l.to)} (${l.via})`)).join('; ')
         : opensAll(c) ? 'Its capstone can open every class' : 'Nothing: a dead end')),
-    n?.pickable ? (n.target
+    n?.pickable && !ended(s) ? (n.target
       ? h('p', { class: 'ct-now' }, 'Your next level goes here.')
       : h('button', { type: 'button', class: 'hs-btn-main', 'data-pick': id, onclick: () => {
         p.progression!.nextClass = id;

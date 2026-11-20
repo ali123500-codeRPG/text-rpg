@@ -6,7 +6,7 @@ import { essenceSlots, removeCostText } from '../engine/essence';
 import { getLibrary } from '../library';
 import { ESSENCE_GRADES } from '../scales';
 import { durationText, now } from '../time';
-import { askInPlace, h } from './kit';
+import { askInPlace, ended, h } from './kit';
 import { skillName } from './creation';
 import { openPop } from './pop';
 
@@ -89,7 +89,7 @@ export const ESSENCE_ABOUT = 'An essence is a package of true skill points you t
 export function essencesBody(api: GameApi, s: GameState, after: () => void): (Node | string | null)[] {
   const p = s.player, held = p.progression?.essences ?? [], offers = p.progression?.essenceOffers ?? [], slots = essenceSlots(p);
   const run = (cmd: string) => { void api.submit(cmd, { aimed: false }).then(after); };
-  const offer = (o: EssenceOffer, i: number) => tile(o, [h('p', { class: 'ess-meta' }, waitText(s, o, true)), offerButtons(p, i, run)]);
+  const offer = (o: EssenceOffer, i: number) => tile(o, [h('p', { class: 'ess-meta' }, waitText(s, o, true)), ended(s) ? null : offerButtons(p, i, run)]);
   // each pair once, where its first offer stands; lone offers on their own
   const seen = new Set<string>();
   const groups = offers.flatMap((o, i) => {

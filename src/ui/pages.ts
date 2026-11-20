@@ -19,7 +19,7 @@ import { othersHealthWord } from '../ruleset';
 import { buildPlayerView, callName, factText, questGoalText } from '../views';
 import { ESSENCE_ABOUT, essencesBody, essencesSummary } from './essences';
 import { chainCard, chainViews, foldAll, type ChainView } from './achievementThreads';
-import { tipOff, tipOn, boxOf, closePanel, groupedTable, playDraft, type PanelRow, h, viewSize, natural, openPanel, plural, unitOf, visPass, visTiles, iconMark, type Col, type TGroup, type TRow, type VisState, type VisTile, safe } from './kit';
+import { tipOff, tipOn, boxOf, closePanel, groupedTable, playDraft, type PanelRow, h, viewSize, natural, openPanel, plural, unitOf, visPass, visTiles, iconMark, type Col, type TGroup, type TRow, type VisState, type VisTile, safe, ended } from './kit';
 import { charCard, charFocus, gearNote, invFocus, treeBars } from './charsheet';
 import { closePop, fullOpen, openFull, openPop } from './pop';
 import { personalityBlock, signaturesBox } from './personality';
@@ -96,7 +96,8 @@ export function listPage(api: GameApi, spec: Spec): { el: HTMLElement; update: (
 /** CP1: the Character page fits one screen: the hero card on the left, the skill trees on the right, and a strip of tiles
  * under them, one per big section, each opening it in a pop-up: Essences and Gear and Personality partial (they float and
  * the page stays usable), Perks full screen (its board needs the room; a perk's card opens on top of it, CP3) */
-export function characterPage(api: GameApi) {
+/** `look`: YB5, the page as a fallen character's sheet in the Hall of fame: its heading and a way back */
+export function characterPage(api: GameApi, look?: { title: (Node | string)[]; close: HTMLElement }) {
   const el = h('main', { class: 'cs-page' });
   const perks = perksSection(api);
   const tileOf = (k: string) => el.querySelector<HTMLElement>(`[data-tile="${k}"]`);
@@ -116,7 +117,7 @@ export function characterPage(api: GameApi) {
     if (!s) { el.replaceChildren(h('h1', {}, 'Character'), h('p', { class: 'empty' }, 'No story yet. Create your character first.')); return; }
     const p = s.player;
     el.replaceChildren(
-      h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Character'))),
+      h('div', { class: 'head' }, h('div', {}, h('h1', {}, ...(look?.title ?? ['Character']))), look?.close ?? null),
       h('div', { class: 'cs-split' }, charCard(s, p, openClasses), h('div', { class: 'cs-right' }, treeBars(p))),
       charTiles(s, { essences: openEss, perks: openPerks, sign: (lines) => api.setSignatures(lines) }));
     if (fullOpen()?.contains(perks)) refreshPerks();
@@ -167,7 +168,7 @@ function charTiles(s: GameState, open: { essences: (b: HTMLElement) => void; per
     tile('essences', 'Essences', ess.used, ess.waiting ? h('span', { class: 'ess-waiting' }, `◆ ${ess.waiting} on offer`) : '', open.essences, false, !!ess.waiting),
     tile('perks', 'Perks', pts ? `✦ ${pts}` : String(owned), pts ? `point${pts === 1 ? '' : 's'} to spend` : '', open.perks, true, pts > 0),
     tile('gear', 'Gear', String(gear.length), gear.length ? gear.map((i) => cap(safe(() => pieceName(s, i)) ?? i.itemId)).join(', ') : 'nothing held or worn', (b) => openGearPop(s, b)),
-    tile('personality', 'Personality', archetypeOf(pe).name, `${nerveTier(p, pe)} · ${cap(nerveLine(pe))} nerve`, (b) => openPop({ title: 'Personality', cls: 'pe-pop', opener: b, body: [personalityBlock(p), signaturesBox(p, open.sign)] })),
+    tile('personality', 'Personality', archetypeOf(pe).name, `${nerveTier(p, pe)} · ${cap(nerveLine(pe))} nerve`, (b) => openPop({ title: 'Personality', cls: 'pe-pop', opener: b, body: [personalityBlock(p), ended(s) ? null : signaturesBox(p, open.sign)] })),
   );
 }
 /** EQ7: "Medium Weapons 50" */

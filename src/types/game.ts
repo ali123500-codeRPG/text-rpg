@@ -137,6 +137,7 @@ export interface GameApi {
   resume(owner?: import('./state').StoryOwner): Promise<boolean>;
   /** autopilot: the agent's next command and one short line of commentary, or null when the call failed */
   hallOfFame(): Promise<FallenCharacter[]>; // archived stories whose character fell, newest first
+  fallenSheet(storyId: string): Promise<GameState | null>; // YB5: a fallen character's story as it ended, read without writing; null if it no longer loads
   /** HF34 a: "Send to NPC template": the fallen character's echo sheet goes on the library send list; the page then wakes Claude */
   sendHero(storyId: string): Promise<{ id: string } | { error: string }>;
   /** HF34 a, the GM view: something the Weaver made in this story (a blueprint, by id) goes on the library send list for review */
