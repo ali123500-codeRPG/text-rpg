@@ -3,10 +3,10 @@
 // way the player knows is not plannable, saying why.
 import { describe, expect, it } from 'vitest';
 import { makeVillage, setBarrier } from '../harness';
-import { carriedMoveS, dashMetres, metresText, planTo, ringMetres, splitAt, zoneAt, type MinimapPlan } from '../../src/ui/minimap';
+import { dashMetres, metresText, planTo, ringMetres, splitAt, zoneAt, type MinimapPlan } from '../../src/ui/minimap';
 import { knownMap } from '../../src/ui/mapData';
 import { walkRoute } from '../../src/engine/position';
-import { moveSpeed, slotMetres } from '../../src/engine/speed';
+import { carriedS, moveSpeed, slotMetres } from '../../src/engine/speed';
 import { zoneById } from '../../src/engine/relations';
 import { BK } from '../../src/library/tableIds';
 import { CONFIG } from '../../src/config';
@@ -40,7 +40,7 @@ describe('minimap plans (AD16)', () => {
     const s = village(['tav_common', 'street_door', 'street_square', 'gate_inner']);
     s.mode = 'tactical';
     s.player.carry = [{ main: 1, move: 1.5, turn: s.turn - 1 }, { main: 0, move: 0.9, turn: s.turn }];
-    expect(carriedMoveS(s)).toBeCloseTo(2.4, 9);
+    expect(carriedS(s, s.player, 'move')).toBeCloseTo(2.4, 9);
     const ring = ringMetres(s)!, per = slotMetres(s, s.player, 'move');
     expect(ring).toBeCloseTo(moveSpeed(s, s.player).walk * (CONFIG.FIGHT_TURN_S + 2.4), 9);
     const far = ok(planTo(s, knownMap(s), 'gate_inner', centre(s, 'gate_inner')));

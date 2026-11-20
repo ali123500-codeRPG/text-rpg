@@ -132,6 +132,8 @@ import {
   routine,
 } from '../library';
 import {
+  carriedIn,
+  carriedS,
   moveSpeed,
   slotMetres,
 } from './speed';
@@ -629,8 +631,8 @@ const roundKey = (ctx: Ctx, id: string): string => `${id}@${Math.max(0, Math.cei
 const slotsOf = (ctx: Ctx, a: Actor): Slots => {
   let s = ctx.slots.get(a.id);
   if (!s) {
-    const carryIn = (a.carry ?? []).filter((c) => ctx.state.turn - c.turn <= CONFIG.CARRY_TURNS); // TP4: oldest first
-    const c = { move: carryIn.reduce((n, x) => n + x.move, 0), main: carryIn.reduce((n, x) => n + x.main, 0) };
+    const carryIn = carriedIn(ctx.state, a); // TP4: oldest first
+    const c = { move: carriedS(ctx.state, a, 'move'), main: carriedS(ctx.state, a, 'main') };
     s = { move: ctx.turnS + c.move, main: ctx.turnS + c.main, carried: c, walkedS: 0, carryIn };
     ctx.slots.set(a.id, s);
   }
