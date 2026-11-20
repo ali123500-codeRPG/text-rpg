@@ -374,7 +374,9 @@ export async function listFallen(store: Store): Promise<(FameEntry & { owner: St
 }
 
 /** A confirmed reset (D-73: the GM can reset the save): the story is archived, not deleted. Its meta is
- * marked, so listStories (and so resume) skips it, and a story still starting is dropped too. */
+ * marked, so listStories (and so resume) skips it, and a story still starting is dropped too. YS2 b: it keeps its pages
+ * (carrying the world on and the sent sheet read them), its meta and its newest backup; its turn records and older
+ * backups, never read again, go. */
 export async function archiveStory(store: Store, storyId: string, at: string, fame?: FameEntry, end?: StoryMeta['end']): Promise<void> {
   const meta = await guard(() => store.get<StoryMeta>(story(storyId)));
   if (meta) await guard(() => store.set(story(storyId), { ...meta, archivedAt: at, ...(fame ? { fame } : {}), ...(end ? { end } : {}) }));
@@ -382,6 +384,11 @@ export async function archiveStory(store: Store, storyId: string, at: string, fa
     const pending = await guard(() => store.get<PendingStart>(pendingPath(owner))).catch(() => null);
     if (pending?.storyId === storyId) await guard(() => store.delete(pendingPath(owner)));
   }
+  // the story is archived by now: a failed prune only leaves documents behind
+  await Promise.all([
+    store.list(`${story(storyId)}/turns`).then((ps) => Promise.all(ps.map((p) => store.delete(p)))),
+    listBackups(store, storyId).then((bs) => Promise.all(bs.slice(1).map((b) => deleteBackup(store, b.path)))),
+  ]).catch((e) => console.warn('archived story not pruned', e));
 }
 
 // ---------- a story still starting ----------

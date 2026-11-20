@@ -38,4 +38,5 @@ roadmap, is linked from #1218.
   replaces first.
 - `MIGRATIONS` holds one step (v10 → v11, BG-312). The rule said to write no migrations; since YS3 b it allows small
   steps (a default or a renamed field), and BG-312's step is one.
-- Archived stories keep every page, turn record and backup (D-73), and they count toward the 25,000-document cap.
+- Archived stories kept every page, turn record and backup (D-73), counting toward the 25,000-document cap. Since
+  YS2 b (#1254) archiving deletes the turn records and all but the newest backup; pages and meta stay.
