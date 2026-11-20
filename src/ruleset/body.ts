@@ -129,6 +129,8 @@ export const averageRoll = (skill: number): number => D100_MEAN + CONFIG.SKILL_W
 /** PW1 b, PW5 a: woundsMods' % values as margin points for a roll at this effective skill, each keeping its % to show */
 export const woundsOnRoll = (mods: Mod[], skill: number): Mod[] =>
   mods.map((m) => ({ ...m, pct: m.value, value: (m.value / 100) * averageRoll(skill) }));
+/** D-76: a situational modifier given as a % of the roller's average roll; roll() sets its points from `pct` (rollSetup) */
+export const pctMod = (source: string, pct: number): Mod => ({ source, type: 'situational', value: pct, pct });
 
 /**
  * wounds-type roll modifiers for a skill: health-track level plus body-part role penalties. Values are % of the average

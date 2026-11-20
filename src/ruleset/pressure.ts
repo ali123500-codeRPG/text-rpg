@@ -4,6 +4,7 @@
 // NT3 Repeat try: each earlier try of the same speech kind at the same listener this engagement costs CONFIG.REPEAT_TRY.
 import type { Actor, Mod } from '../types';
 import { CONFIG } from '../config';
+import { pctMod } from './body';
 
 export function pressureMods(actor: Actor, against: string | undefined): Mod[] {
   const p = against ? actor.pressure?.[against] : undefined;
@@ -17,7 +18,7 @@ export function pressureMods(actor: Actor, against: string | undefined): Mod[] {
 /** NT3: the speaker's penalty for trying `type` again at any of `listeners` this engagement (the most tries counts) */
 export function repeatTryMods(speaker: Actor, listeners: string[], type: string): Mod[] {
   const n = Math.max(0, ...listeners.map((l) => speaker.speechTries?.[l]?.[type] ?? 0));
-  return n ? [{ source: 'Repeat try', type: 'situational', value: -CONFIG.REPEAT_TRY * n }] : [];
+  return n ? [pctMod('Repeat try', -CONFIG.REPEAT_TRY * n)] : [];
 }
 
 /** NT3: count a try; plain talk never counts */

@@ -37,7 +37,7 @@ describe('383 cover from objects (PC1, PC2)', () => {
   });
 
   it('PC2: the sight line over the counter decides; from higher up it hides less (the hub examples)', () => {
-    const cases: [number, number, number][] = [[0, 0.61, 14], [4, 0.49, 10], [8, 0.37, 7]];
+    const cases: [number, number, number][] = [[0, 0.61, 18], [4, 0.49, 13], [8, 0.37, 9]];
     for (const [floor, hid, mod] of cases) {
       const { s, z, t } = range(floor);
       expect(objectHidden(s, t, z, s.player)).toBeCloseTo(hid, 2);

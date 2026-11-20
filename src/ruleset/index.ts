@@ -13,7 +13,7 @@ import { TIERS } from '../scales';
 import { actorBody, getLibrary, itemDef, perkName } from '../library';
 import { actorById, foe, isActive, hostile, zoneById } from '../engine/relations';
 import { seenSizeFactor, sightDistM, withinM } from '../engine/position';
-import { adjacent, healthLevel, hitTable, partPct, poolState, totalHp, woundsMods, woundsOnRoll } from './body';
+import { adjacent, averageRoll, healthLevel, hitTable, partPct, pctMod, poolState, totalHp, woundsMods, woundsOnRoll } from './body';
 import { markUse } from './improve';
 import { boostAdd, boostMult, boostRollMods, hasPerk, trueSkill } from './perks';
 import { baneMods, defeatsMods } from './bane';
@@ -174,7 +174,7 @@ export type RollSetup = { actor: Actor; eff: { skill: string; value: number; par
 export function rollSetup(req: RollRequest, state: GameState, actor: Actor = mustActor(state, req.actorId)): RollSetup {
   const ctx = { itemId: req.itemId, fullValue: [...(req.fullValue ?? []), ...(req.fn ? rollFnSkills(actor, req.fn) : [])], standInFns: req.standInFns, rollKind: req.rollKind, when: req.when };
   const eff: { skill: string; value: number; parts?: string[] } = req.blend ? blendedSkill(state, actor, req.blend, ctx) : effectiveSkill(state, actor, req.skill, ctx); // a combined roll (Throw)
-  const modifiers = [...req.modifiers];
+  const modifiers = req.modifiers.map((m) => (m.pct === undefined ? m : { ...m, value: (m.pct / 100) * averageRoll(eff.value) })); // D-76
   if (req.auto !== false) {
     modifiers.push(...woundsOnRoll(woundsMods(state, actor, eff.skill, { itemId: req.itemId, roles: req.roles }), eff.value)); // PW1 b
     if (req.rollKind) modifiers.push(...rollMods(state, actor, req.rollKind, req.itemId));
@@ -265,9 +265,9 @@ export function rangeMod(dist: number, reach: number): number {
 }
 
 /** a ranged attack's range modifier as a roll modifier (rangeMod), none at 0 */
-export const rangeMods = (far: number): Mod[] => (far ? [{ source: 'range', type: 'situational', value: far }] : []);
+export const rangeMods = (far: number): Mod[] => (far ? [pctMod('range', far)] : []);
 /** RD5, SZ19: a ranged attack with a hostile near the shooter (Point Blank removes it) */
-export const hostileCloseMods = (A: Actor): Mod[] => (CONFIG.HOSTILE_NEAR_MOD && !hasPerk(A, PK.point_blank) ? [{ source: 'hostile close', type: 'situational', value: CONFIG.HOSTILE_NEAR_MOD }] : []);
+export const hostileCloseMods = (A: Actor): Mod[] => (CONFIG.HOSTILE_NEAR_MOD && !hasPerk(A, PK.point_blank) ? [pctMod('hostile close', CONFIG.HOSTILE_NEAR_MOD)] : []);
 /** a mode's weapon class profile (damage, hit), fists' for a mode with none */
 export const modeClass = (mode: AttackMode) => CONFIG.WEAPON_CLASSES[mode.class] ?? CONFIG.UNARMED_PROFILE;
 /** the weapon's own hit modifier: the class hit and the mode's hitAdj, one gear entry at full value (CS2) */
@@ -284,7 +284,7 @@ export function parriesWithMedium(state: GameState, D: Actor, type: DefenseKind)
  * Steady Guard (Parry with a medium melee weapon) and Bare-Handed Guard (Dodge holding no weapon) */
 export function defenseOwnMods(state: GameState, D: Actor, type: DefenseKind, ranged: boolean): Mod[] {
   const dm: Mod[] = [];
-  if (ranged && type === 'dodge') dm.push({ source: 'dodge vs missile', type: 'situational', value: CONFIG.DODGE_VS_MISSILE });
+  if (ranged && type === 'dodge') dm.push(pctMod('dodge vs missile', CONFIG.DODGE_VS_MISSILE));
   if (parriesWithMedium(state, D, type) && hasPerk(D, PK.steady_guard)) {
     dm.push({ source: perkName(PK.steady_guard), type: 'roll_perk', value: CONFIG.SKILL_WEIGHT * CONFIG.STEADY_GUARD });
   }
@@ -352,7 +352,7 @@ export function awarenessMod(A: Actor, awareness: 'unaware' | 'suspicious' | und
   if (!awareness) return undefined;
   const t = CONFIG.AWARENESS_DEFENSE, step = CONFIG.AWARENESS_STEP[awareness] + (hasPerk(A, PK.unseen_strike) ? 1 : 0);
   const value = t[Math.min(step, t.length - 1)];
-  return value ? { source: awareness, type: 'situational', value } : undefined;
+  return value ? pctMod(awareness, value) : undefined;
 }
 /** CE8, CE11: the need a blow's damage grows with: a made weapon's requirement, as armor's soak grows with the armor's.
  * A natural attack or a bare hand has no requirement, so the attacker's skill with it stands in (as Hide does for natural
@@ -418,7 +418,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   // counts it as showing four times as much
   const shown = zoneD ? coverShown(state, D, zoneD, A) : 1; // PC2: seen from the shooter
   const coverHit = ranged ? tagSign('cover', rollTags(skill)) * coverMod(Math.min(1, shown * (hasPerk(A, PK.past_the_cover) ? 2 ** CONFIG.PAST_THE_COVER_HALVINGS : 1))) : 0;
-  if (coverHit) am.push({ source: 'cover', type: 'situational', value: coverHit });
+  if (coverHit) am.push(pctMod('cover', coverHit));
   am.push(...(req.context?.attackerMods ?? []));
   // A1 Hidden Strike: an attack on a target unaware of the owner lands one tier better
   const marks = markShifts(state, A, D, ranged, skill); // A2, A5, A10, B15, TC28
@@ -446,7 +446,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const dm: Mod[] = [];
   // never outnumbered: B19 Blade Wall (Parry 60), B9 Shield Wall (Block 60), B8 Slip the Crowd (Dodge 60)
   const noCrowd = (type === 'parry' && hasPerk(D, PK.blade_wall)) || (type === 'block' && hasPerk(D, PK.shield_wall)) || (type === 'dodge' && hasPerk(D, PK.slip_the_crowd));
-  if ((req.context?.defensesThisTurn ?? 0) >= 1 && !noCrowd) dm.push({ source: 'outnumbered', type: 'situational', value: CONFIG.OUTNUMBERED_MOD });
+  if ((req.context?.defensesThisTurn ?? 0) >= 1 && !noCrowd) dm.push(pctMod('outnumbered', CONFIG.OUTNUMBERED_MOD));
   const aware = awarenessMod(A, req.context?.defenderUnaware ? 'unaware' : req.context?.defenderSuspicious ? 'suspicious' : undefined);
   if (aware) dm.push(aware);
   dm.push(...situational(state, DEFENSE_SKILL[type], { light: zoneA }).modifiers); // ST21: light by tag (sight)

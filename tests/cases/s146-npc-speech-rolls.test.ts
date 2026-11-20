@@ -108,19 +108,19 @@ it('146f the player\'s intimidation leaves the NPC Shaken; a listener that beats
   expect(tells).toBeGreaterThan(0);
 });
 
-it('146g a repeat try of the same kind at the same listener costs the speaker 15 per earlier try; talk never counts (NT3)', () => {
+it('146g a repeat try of the same kind at the same listener costs the speaker REPEAT_TRY % per earlier try; talk never counts (NT3)', () => {
   const s = makeVillage({ playerZone: 'tav_counter' });
   const say = (type: 'talk' | 'persuade' | 'intimidate') => resolveSpeech(s, intent({ action: { type, target: 'trader' }, spoken: 'Come on.', addressees: ['trader'] }), ['trader'], createRng(3)).perSpokesperson.trader.contest.a.modifiers;
   const repeat = (m: { source: string }[]) => m.find((x) => x.source === 'Repeat try');
   expect(repeat(say('talk'))).toBeUndefined();
   expect(repeat(say('talk'))).toBeUndefined();
   expect(repeat(say('persuade'))).toBeUndefined();
-  expect(repeat(say('persuade'))).toEqual({ source: 'Repeat try', type: 'situational', value: -CONFIG.REPEAT_TRY });
-  expect(repeat(say('persuade'))).toEqual({ source: 'Repeat try', type: 'situational', value: -2 * CONFIG.REPEAT_TRY });
+  expect(repeat(say('persuade'))).toMatchObject({ source: 'Repeat try', type: 'situational', pct: -CONFIG.REPEAT_TRY });
+  expect(repeat(say('persuade'))).toMatchObject({ source: 'Repeat try', type: 'situational', pct: -2 * CONFIG.REPEAT_TRY });
   expect(repeat(say('intimidate'))).toBeUndefined(); // another kind starts fresh
   const st = atTheGate(), guard = actorById(st, 'guard_1')!;
   pushContest(st, guard, 'intimidate', createRng(1));
-  expect(pushContest(st, guard, 'intimidate', createRng(1)).a.modifiers).toContainEqual({ source: 'Repeat try', type: 'situational', value: -CONFIG.REPEAT_TRY });
+  expect(pushContest(st, guard, 'intimidate', createRng(1)).a.modifiers).toContainEqual(expect.objectContaining({ source: 'Repeat try', type: 'situational', pct: -CONFIG.REPEAT_TRY }));
   expect(guard.speechTries).toEqual({ player: { intimidate: 2 } });
   s.player.engagement = { start: 0, last: s.pending.turn - 1, kinds: ['talk'] };
   ago(s, s.pending.turn - 1, engagementEndS());

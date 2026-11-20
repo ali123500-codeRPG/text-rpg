@@ -43,7 +43,7 @@ export type ModSource = {
 
 const sg = (n: number) => `${n > 0 ? '+' : ''}${+n.toFixed(2)}`;
 const list = (o: Record<string, number>, skipZero = true) => Object.entries(o).filter(([, v]) => !skipZero || v).map(([k, v]) => `${k.replace(/_/g, ' ')} ${sg(v)}`).join(' · ');
-/** PW5 a: wound penalties are % of the average roll (woundsOnRoll, src/ruleset/body.ts) */
+/** PW5 a, D-76: wound and situational penalties are % of the average roll (woundsOnRoll, pctMod, src/ruleset/body.ts) */
 const OF_AVG = ` of the average roll (${D100_MEAN} + ${CONFIG.SKILL_WEIGHT} × effective skill)`;
 const pctList = (o: Record<string, number>) => `${Object.entries(o).map(([k, v]) => `${k} ${sg(v)}%`).join(' · ')}${OF_AVG}`;
 const W = () => CONFIG.SKILL_WEIGHT;
@@ -53,7 +53,7 @@ const itemRollMods = (lib: Library, eventRoll: boolean): ModFeed[] => Object.val
   .map((e) => ({ table: 'items' as const, id: i.id, name: i.name, value: `${sg(e.value)} ${e.roll} rolls · when ${e.active}` })));
 
 /** CV6: the cover modifier for a standing person at each level */
-const COVER_PERSON = COVER.keys.map((k) => `${COVER.name(k)} ${sg(coverMod(1 - (CONFIG.COVER_HIDDEN[k] ?? 0)))}`).join(' · ');
+const COVER_PERSON = COVER.keys.map((k) => `${COVER.name(k)} ${sg(coverMod(1 - (CONFIG.COVER_HIDDEN[k] ?? 0)))}%`).join(' · ');
 export const MOD_SOURCES: ModSource[] = [
   // achievement
   { type: 'achievement', roll: 'skill', source: 'Bane (race and body type)', at: 'src/ruleset/bane.ts',
@@ -115,29 +115,30 @@ export const MOD_SOURCES: ModSource[] = [
   { type: 'wounds', roll: 'skill', source: 'Shield damaged', at: 'src/ruleset/body.ts', when: 'Block rolls with a Damaged shield.', value: `${sg(CONFIG.ROLE_PENALTY.damaged)}%${OF_AVG}` },
   // situational
   { type: 'situational', roll: 'skill', source: 'Light', at: 'src/ruleset/gear.ts', when: 'Rolls whose skill has a light tag (sight, stealth …): the tag\'s sign × the light where the action is.',
-    value: LIGHT.keys.map((k) => `${LIGHT.name(k)} ${sg(lightMod(k))}`).join(' · ') },
-  { type: 'situational', roll: 'skill', source: 'Cover', at: 'src/ruleset/gear.ts', when: `Rolls with a hide tag (the Stealth skills, stashing), by what shows of the roller in its zone's cover: ${CONFIG.COVER_HALVING_MOD} for each halving (CV6, CV7). A small body shows less (its height ÷ ${HUMANOID_SIZE.heightM} m); a body taller than a person and than what the zone's cover stands shows more. Values here for a standing person.`,
-    value: COVER_PERSON },
+    value: `${LIGHT.keys.map((k) => `${LIGHT.name(k)} ${sg(lightMod(k))}%`).join(' · ')}${OF_AVG}` },
+  { type: 'situational', roll: 'skill', source: 'Cover', at: 'src/ruleset/gear.ts', when: `Rolls with a hide tag (the Stealth skills, stashing), by what shows of the roller in its zone's cover: ${CONFIG.COVER_HALVING_MOD}%${OF_AVG} for each halving (CV6, CV7). A small body shows less (its height ÷ ${HUMANOID_SIZE.heightM} m); a body taller than a person and than what the zone's cover stands shows more. Values here for a standing person.`,
+    value: `${COVER_PERSON}${OF_AVG}` },
   { type: 'situational', roll: 'skill', source: 'Cover (shot)', at: 'src/ruleset/index.ts', when: `Ranged attacks at a target in cover: the same number as a minus, by what shows of the target (Past the Cover counts ${2 ** CONFIG.PAST_THE_COVER_HALVINGS} times as much showing). Melee never takes it.`,
-    value: COVER_PERSON.replace(/\+/g, '−') },
+    value: `${COVER_PERSON.replace(/\+/g, '−')}${OF_AVG}` },
   { type: 'situational', roll: 'skill', source: 'Range', at: 'src/ruleset/index.ts', when: 'Ranged attacks, by the distance to the target as a share of the weapon\'s reach (both from real metres).',
-    value: CONFIG.RANGE_SHARE_MODS.map(([share, v]) => `up to ${Math.round(share * 100)}% ${sg(v)}`).join(' · ') },
+    value: `${CONFIG.RANGE_SHARE_MODS.map(([share, v]) => `up to ${Math.round(share * 100)}% of reach ${sg(v)}%`).join(' · ')}${OF_AVG}` },
   { type: 'situational', roll: 'skill', source: 'Hostile close', at: 'src/ruleset/index.ts', when: `Ranged attacks with a hostile near enough to strike or grab the shooter: within ${CONFIG.HOSTILE_NEAR_STEP_M} m (a step) plus its own melee reach, between bodies (Point Blank removes it).`,
-    value: sg(CONFIG.HOSTILE_NEAR_MOD) },
+    value: `${sg(CONFIG.HOSTILE_NEAR_MOD)}%${OF_AVG}` },
   { type: 'situational', roll: 'skill', source: 'Outnumbered', at: 'src/ruleset/index.ts', when: `Defense rolls after the first this turn (Blade Wall removes it for Parry, Shield Wall for Block, Slip the Crowd for Dodge).`,
-    value: sg(CONFIG.OUTNUMBERED_MOD) },
-  { type: 'situational', roll: 'skill', source: 'Unaware', at: 'src/ruleset/index.ts', when: 'Defense rolls by a defender who didn\'t see the attack coming. One table by awareness (AWARENESS_DEFENSE): an attacker with Unseen Strike moves it one step on, so an unaware defender takes the step after and one only suspicious takes this one.', value: sg(CONFIG.AWARENESS_DEFENSE[CONFIG.AWARENESS_STEP.unaware]) },
+    value: `${sg(CONFIG.OUTNUMBERED_MOD)}%${OF_AVG}` },
+  { type: 'situational', roll: 'skill', source: 'Unaware', at: 'src/ruleset/index.ts', when: 'Defense rolls by a defender who didn\'t see the attack coming. One table by awareness (AWARENESS_DEFENSE): an attacker with Unseen Strike moves it one step on, so an unaware defender takes the step after and one only suspicious takes this one.',
+    value: pctList({ suspicious: CONFIG.AWARENESS_DEFENSE[CONFIG.AWARENESS_STEP.suspicious], unaware: CONFIG.AWARENESS_DEFENSE[CONFIG.AWARENESS_STEP.unaware], 'unaware, Unseen Strike': CONFIG.AWARENESS_DEFENSE[CONFIG.AWARENESS_STEP.unaware + 1] }) },
   { type: 'situational', roll: 'skill', source: "Can't defend", at: 'src/ruleset/index.ts', when: 'Defense rolls by someone down, asleep or held in a grip (BG-207): no dice, the defense fails outright as a Critical Failure.', value: 'fails outright' },
-  { type: 'situational', roll: 'skill', source: 'Dodge vs missile', at: 'src/ruleset/index.ts', when: 'Dodge rolls against a ranged attack.', value: sg(CONFIG.DODGE_VS_MISSILE) },
+  { type: 'situational', roll: 'skill', source: 'Dodge vs missile', at: 'src/ruleset/index.ts', when: 'Dodge rolls against a ranged attack.', value: `${sg(CONFIG.DODGE_VS_MISSILE)}%${OF_AVG}` },
   { type: 'situational', roll: 'skill', source: 'Waking', at: 'src/engine/sleep.ts', when: 'A light sleeper\'s hearing check against someone hostile moving openly near it (NW19): the grade their noise sets, louder is easier.',
     value: Object.entries(CONFIG.WAKE_GRADE).map(([k, g]) => `${NOISE.name(k as NoiseKey)} ${sg(gradeMod(CONFIG.DIFFICULTY[g]))}`).join(' · ') },
   { type: 'situational', roll: 'skill', source: 'How faint', at: 'src/engine/makeOut.ts', when: 'A make-out roll on something half seen or half heard (PG4): the grade set by how far past the clear range it is (darkness one step harder) or how many dB above the hearing floor it reaches.',
     value: [...new Set([...CONFIG.MAKE_OUT_SIGHT_GRADES, ...CONFIG.MAKE_OUT_SOUND_GRADES].map(([, g]) => g))].map((g) => `${g} ${sg(gradeMod(CONFIG.DIFFICULTY[g]))}`).join(' · ') },
-  { type: 'situational', roll: 'skill', source: 'Attention', at: 'src/engine/filch.ts', when: 'A watcher\'s Sight and Hearing rolls against a filch (TN4): how closely they watch.', value: Object.entries(CONFIG.FILCH_ATTENTION).filter(([k]) => k !== 'asleep').map(([k, v]) => `${ATTENTION.name(k as AttentionKey)} ${sg(v)}`).join(' · ') },
-  { type: 'situational', roll: 'skill', source: 'Item size', at: 'src/engine/filch.ts', when: 'A watcher\'s Sight and Hearing rolls against a filch (TN4): the item\'s bulk.', value: CONFIG.FILCH_SIZE.map((v, b) => `bulk ${b} ${sg(v)}`).join(' · ') },
+  { type: 'situational', roll: 'skill', source: 'Attention', at: 'src/engine/filch.ts', when: 'A watcher\'s Sight and Hearing rolls against a filch (TN4): how closely they watch.', value: pctList(Object.fromEntries(Object.entries(CONFIG.FILCH_ATTENTION).filter(([k]) => k !== 'asleep').map(([k, v]) => [ATTENTION.name(k as AttentionKey), v]))) },
+  { type: 'situational', roll: 'skill', source: 'Item size', at: 'src/engine/filch.ts', when: 'A watcher\'s Sight and Hearing rolls against a filch (TN4): the item\'s bulk.', value: pctList(Object.fromEntries(CONFIG.FILCH_SIZE.map((v, b) => [`bulk ${b}`, v]))) },
   { type: 'situational', roll: 'skill', source: 'Lock or grade', at: 'src/ruleset/index.ts', when: 'SE23\'s grade modifier, on rolls in doubt (OD1 b): Lockpicking rolls (BA2) and breaking a container open (BF31) with the weapon in hand (bare hands: Improvised), at the lock\'s grade (shown as lock); use, interact, observe and other at the grade of what they act on, else the Parser\'s (OD3, shown as grade).', value: GRADES.map((k) => `${GRADE_LEVELS.name(k)} ${sg(gradeMod(CONFIG.DIFFICULTY[k]))}`).join(' · ') },
   { type: 'situational', roll: 'skill', source: 'Repeat try', at: 'src/ruleset/pressure.ts',
-    when: 'Persuading, lying, threatening or haggling again at the same listener, out of a fight (plain talk never counts; in a fight there is no repeat penalty, TF9).', value: `−${CONFIG.REPEAT_TRY} × earlier tries` },
+    when: 'Persuading, lying, threatening or haggling again at the same listener, out of a fight (plain talk never counts; in a fight there is no repeat penalty, TF9).', value: `−${CONFIG.REPEAT_TRY}% × earlier tries${OF_AVG}` },
   { type: 'situational', roll: 'skill', source: 'Coin offered', at: 'src/engine/speech.ts', when: 'A bribe in a fight (TF10): the briber\'s Barter roll, by the coin offered against the listener\'s price (OFFER_BRIBE_PRICE per level).',
     value: `${sg(CONFIG.OFFER_BRIBE_MOD)} per doubling over the price, as much less per halving` },
   // status

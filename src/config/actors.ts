@@ -99,7 +99,7 @@ export const ACTORS = {
   OFFER_BRIBE_PRICE: 5, // TF10: coin per character level that makes a bribe neither help nor hurt the Barter roll
   OFFER_BRIBE_MOD: 10, // TF10: modifier on the briber's roll per doubling of the coin over that price (as much less per halving)
   /** NT3: each earlier try of the same speech kind at the same listener this engagement, on the speaker's roll */
-  REPEAT_TRY: 15,
+  REPEAT_TRY: 20, // % of the average roll per earlier try (D-76)
   HARD_BARGAIN_BUY: 0.9,
   HARD_BARGAIN_SELL: 1.1,
   SELL_SHARE: 0.5, // SL1: a Trader pays this share of an item's value (rounded down, at least 1)

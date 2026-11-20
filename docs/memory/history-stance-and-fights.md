@@ -38,3 +38,7 @@ time"; Part 3: "Health track"); every number is in `src/config.ts`.
 - **Wound penalties as percentages (15/11/2026; PW1-PW6).** Wound, morale and fatigue penalties were flat
   points. They are now a percentage of the average roll at the actor's effective skill, in one pile; rolls
   show the percentage and its points (#891, #892). A new wound-type penalty follows the same form.
+- **Situational modifiers as percentages (20/11/2026; D-76).** Outnumbered, unaware and every other flat
+  situational modifier (light, cover, range, hostile close, dodge vs missile, filch attention and size, repeat try)
+  became a % of the roller's average roll, the old numbers ÷ 75.5 as wounds did, still type situational. The
+  difficulty grades stay in points (parked, D-431). A new flat situational modifier follows the same form (pctMod).

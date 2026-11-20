@@ -130,10 +130,10 @@ it('SZ12, CV3, CV4: cover is set for a person; a smaller body shows less by its 
   const p = place(s, 'patron_1', 'field_mid');
   landUnder(s, z.outline, LC.marsh); // reed beds: some cover, 2 m high
   expect(coverShown(s, s.player, z)).toBe(0.5);
-  expect(coverMod(coverShown(s, s.player, z))).toBe(10); // CV6: one halving
+  expect(coverMod(coverShown(s, s.player, z))).toBe(13); // CV6: one halving
   p.core.bodyTypeId = BT.amorphous; p.core.raceId = s.actors.find((a) => a.id === 'slime_1')?.core.raceId ?? RC.slime;
   expect(coverShown(s, p, z)).toBeCloseTo(0.5 * 0.3 / 1.75); // a slime 0.3 m high
-  expect(coverMod(coverShown(s, p, z))).toBe(35);
+  expect(coverMod(coverShown(s, p, z))).toBe(46);
   getLibrary().races![OGRE] = { ...getLibrary().races![s.player.core.raceId!], id: OGRE, sizeMult: { length: 2, width: 2, height: 7 / 1.75 } };
   const giant = { ...s.player, core: { ...s.player.core, raceId: OGRE } };
   expect(coverShown(s, giant, z)).toBe(1); // 7 m tall behind a 1.1 m counter: nothing hidden
@@ -153,11 +153,11 @@ it('SZ13: the range penalty reads the shot\'s metres ÷ the target\'s size facto
   const t = s.actors.find((a) => a.id === 'slime_1')!;
   const r = middle(s.zones.find((z) => z.id === 'field_mid')!);
   s.player.pos = { x: r.x, y: r.y - 19 }; t.pos = { x: r.x, y: s.player.pos.y + 20 }; // a shortbow reaches 50 m
-  const range = () => ruleset.attack({ attackerId: 'player', targetId: t.id, weaponId: 'bow', targetPart: null, aimed: false }, s, forcedRng([50, 50, 50])).attack.modifiers.find((m) => m.source === 'range')?.value ?? 0;
+  const range = () => ruleset.attack({ attackerId: 'player', targetId: t.id, weaponId: 'bow', targetPart: null, aimed: false }, s, forcedRng([50, 50, 50])).attack.modifiers.find((m) => m.source === 'range')?.pct ?? 0;
   const slime = range();
   t.core.bodyTypeId = BT.quadruped; t.core.raceId = RC.horse;
   const horseMod = range();
-  expect(slime).toBe(-15); // a slime 20 m off looks as small as a person at 20 ÷ 0.41 = 48 m (over 75% of the reach)
+  expect(slime).toBe(-20); // a slime 20 m off looks as small as a person at 20 ÷ 0.41 = 48 m (over 75% of the reach)
   expect(horseMod).toBe(0); // a horse looks as near as a person at 20 ÷ 2.1 = 9.5 m (under 25%)
 });
 

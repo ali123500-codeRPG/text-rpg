@@ -71,11 +71,12 @@ export const BODY = {
     nonEssentialOnlyFrom: { block: 0, parry: 0 }, // from this gap up a block or parry lets it land on non-essential parts only
   } as { graze: number; blockFrom: number; shieldFrom: number; heavy: number; crushing: number; movesAdjacent: number; movesAnywhere: number;
     noEssentialFrom: Record<DefenseKind, number>; nonEssentialOnlyFrom: Record<'block' | 'parry', number> },
-  DODGE_VS_MISSILE: 10,
-  OUTNUMBERED_MOD: -5, // Q2 (D-76)
+  /** D-76: situational roll modifiers below are % of the roller's average roll (50.5 + SKILL_WEIGHT × effective skill), as wounds are */
+  DODGE_VS_MISSILE: 13,
+  OUTNUMBERED_MOD: -7, // Q2, D-76
   /** LG11: a defense roll's modifier by the defender's awareness of the attacker, read by step: aware 0, suspicious
-   * AWARENESS_STEP.suspicious, unaware AWARENESS_STEP.unaware (Q2, D-76: −10 when unaware); Unseen Strike moves both one step on */
-  AWARENESS_DEFENSE: [0, -10, -20],
+   * AWARENESS_STEP.suspicious, unaware AWARENESS_STEP.unaware (Q2, D-76: −13% when unaware); Unseen Strike moves both one step on */
+  AWARENESS_DEFENSE: [0, -13, -27],
   AWARENESS_STEP: { suspicious: 0, unaware: 1 } as Record<'suspicious' | 'unaware', number>,
   INIT_UNAWARE: 0, // Q2: unaware actors act last
   /** AT11: the skill at which an Action times row (or a reaction) takes its listed seconds; faster above, slower below */
@@ -108,8 +109,8 @@ export const BODY = {
   SPAR_LIMIT: 'critical' as HealthLevelKey, // SP4 (placeholder): a fighter at this health level or worse is out of the spar; a cruel spar uses Incapacitated
   /** ranged attacks: the penalty by how far the target is as a share of the mode's reach (both from real metres), first
    * band the share fits in; a longbow at 50 m is barely stretched, a shortbow at 50 m is at its limit */
-  RANGE_SHARE_MODS: [[0.25, 0], [0.5, -5], [0.75, -10], [1, -15]] as [number, number][],
-  HOSTILE_NEAR_MOD: -10, // a ranged attack with a hostile near the shooter (HOSTILE_NEAR_STEP_M + its reach) (Point Blank removes it)
+  RANGE_SHARE_MODS: [[0.25, 0], [0.5, -7], [0.75, -13], [1, -20]] as [number, number][],
+  HOSTILE_NEAR_MOD: -13, // a ranged attack with a hostile near the shooter (HOSTILE_NEAR_STEP_M + its reach) (Point Blank removes it)
   /** BG-267, IC7 a: every reach check (withinM) allows this many metres past the reach for a step's rounding */
   REACH_MARGIN_M: 0.1,
   /** SZ8: arm span (fingertip to fingertip) as a share of height; about 1 for people (placeholder). An arm reaches
@@ -122,7 +123,7 @@ export const BODY = {
    * twilight ends at 3.4; full moon 0.05-0.3; moonless clear night 0.002; a shut cellar 0) */
   LIGHT_LUX: { bright: 1000, lamplit: 50, dim: 3, moonlit: 0.2, dark: 0.002, black: 0 } as Record<string, number>,
   /** LT2: a sight roll takes −LIGHT_DECADE_MOD for each tenfold drop below FULL_SIGHT_LUX (the eye works on a log scale) */
-  LIGHT_DECADE_MOD: 5,
+  LIGHT_DECADE_MOD: 7, // % of the average roll (D-76)
   FULL_SIGHT_LUX: 50,
   /** LT2 (placeholder, open question): the lux a roll in pitch black reads, so its modifier stays a number (an overcast
    * moonless night, 0.0001 lux: −28); in pitch black nothing is seen at all (perception) */
@@ -133,8 +134,9 @@ export const BODY = {
    * three-quarters cover; light and dense added at either end) */
   COVER_HIDDEN: { none: 0, light: 0.25, some: 0.5, heavy: 0.75, dense: 0.875 } as Record<string, number>,
   /** CV6, CV7 (placeholder): a shot loses, and a hide gains, this much for each halving of what shows of the body: the step
-   * AIM_PENALTY takes between big, normal and small parts, each half the hit weight of the last */
-  COVER_HALVING_MOD: 10,
+   * AIM_PENALTY takes between big, normal and small parts, each half the hit weight of the last (in points at skill 50: cover is a % of
+   * the average roll, D-76, aim stays flat) */
+  COVER_HALVING_MOD: 13,
   /** PC2: a viewer's eye stands this share of its body's height above its floor (eye height ÷ stature, ANSUR II) */
   EYE_SHARE: 0.94,
   /** PC2: hiding with nobody in particular to hide from, a piece of furniture this near the body (metres, floor gap) hides
