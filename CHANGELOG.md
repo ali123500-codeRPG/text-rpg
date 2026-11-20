@@ -3,6 +3,10 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bug-fix-log.md`.
 
+- 20/11/2026: `AGENTS.md` rule 9 (keep the public repo clean) removed and left as a placeholder for a future rule;
+  rules 10 to 12 keep their numbers (the owner: "I mean the keep the repo clean one. you can remove it, no need to
+  renumber the rest just call it placeholder for future rules."). The "See rule 9" pointer and the rule 9 line in
+  `docs/memory/process-decisions.md` go with it.
 - 20/11/2026: keeping a test takes the same rule as adding one (the owner: "A permanent test must continue to earn its
   place in the suite. Existing tests should not receive automatic protection merely because they were added in the
   past"; RM23: "looks like temporary tests, we can't have everything run every test."). `docs/instructions.md`

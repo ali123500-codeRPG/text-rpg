@@ -13,7 +13,6 @@ Kind: decision. How changes land and where work runs. The rules that follow from
 - **Generated docs fail the checks when stale** (07/11/2026). `docs/perks.md` is one
   (`tests/unit/perk-writeups.test.ts`).
 - **The repo is public** (11/11/2026, confirmed 14/11/2026 and 19/11/2026). Reason: free minutes for the checks.
-  Consequence: `AGENTS.md` rule 9.
 - **The default branch is `main`** (19/11/2026). Before that a stale work branch was the default, and fresh clones
   started far behind.
 - **Long runs go on GitHub, from a pushed branch** (19/11/2026). Reason: the checks already run the full suite on
