@@ -23,6 +23,22 @@ Completed only when every answer has been read.
 Why it exists: the owner answers many design questions a day, so questions must be in one place, never scattered
 through chat, and each one must be answerable in a few seconds.
 
+## Where the data lives
+
+Since 20/11/2026 the documents live in one Supabase table that both of the owner's Claude accounts write to, so either
+account's hub page shows every new questionnaire. The table is `hub_docs` (`path` text key, `data` jsonb, `updated_at`)
+in the Supabase project named `questions-hub`, reached through the Supabase connector: `list_projects` gives the
+project's id, `execute_sql` reads and writes. Supabase's public roles have no access to the table.
+
+- The page reads the table through the viewer's Supabase connector, and also its own database, where questionnaires
+  written before the move still live. The home list shows both. Each questionnaire's rounds, questions and answers stay
+  in the store that holds its page, so a thread keeps reading and writing where it started.
+- New questionnaires go to Supabase only. Supabase cannot push changes, so an open page reads what it watches again
+  every 20 seconds.
+- A red line at the bottom left means Supabase could not be reached, for example because the free project paused after
+  a week without use. The page then shows only its own database. Opening the project in the Supabase dashboard
+  restores it.
+
 ## If you cannot write to the hub
 
 The hub's database takes writes only from Claude sessions signed in to the owner's account. Other agents cannot add a
@@ -50,6 +66,7 @@ start; the owner decides with you.
   as `src/ui/assets/` (`docs/assets.md`). Opened locally without them, the page falls back to system fonts.
 - `blocks.py`: helpers that build a question's body, plus `lint()`, which refuses a wall of text.
 - `hubdb.py`: builds the small database writes for a new questionnaire, a new round, or marking questions done.
+- `checks/stores.mjs`: checks that the page shows both stores and writes each questionnaire to its own (run with Node).
 - `checks/render.cjs`: draws one questionnaire with the local `hub.html` and saves a picture (needs Playwright).
 - `checks/livecheck.cjs`, `checks/test.cjs`, `checks/mkseeds.py`: regression checks from the move to small documents.
   They compare against an older copy of the page and saved real questionnaires, which are kept only in the Claude
@@ -79,6 +96,10 @@ Run from the repo root. Each function writes its documents as files under the fo
 scratch folder outside the repo) and returns the list for one database batch call (at most 50 writes; `chunks()`
 splits longer lists). "ArtifactData" in the helpers' comments is the Claude tool that reads and writes an
 artifact's database; the batch call is made with it.
+
+For a questionnaire in Supabase (every new one), print `sql(w)` instead of `print_writes(w)` and run the result with the
+Supabase connector's `execute_sql` on the project named `questions-hub`. Pass `None` for every version: Supabase keeps
+none. Current documents: `select path, data from hub_docs where starts_with(path, 'qs/<name>/items/')`.
 
 ```python
 import sys; sys.path.insert(0, 'tools/questions-hub')
@@ -117,6 +138,8 @@ print_writes(new_page('page-name', header['title'], header, [('r1', 'Round 1', '
 
 ## Reading answers
 
+- In Supabase: `select path, data from hub_docs where starts_with(path, 'answers/<name>/items/')`. A questionnaire
+  written into a hub's own database before 20/11/2026 is still read there.
 - Answers are in `answers/<name>/items`. Act only on what the owner wrote.
 - After acting on an answer, mark its question `done` with a one-line result. The page shows the read mark only when
   the page's `updated` is later than the answer's time.
@@ -139,9 +162,13 @@ that account publishes its own hub, as a new private page. Never pass an existin
 ```json
 {"db": {"rules": [{"path": "pages", "read": "view", "write": "admin"},
                   {"path": "rounds", "read": "view", "write": "admin"},
-                  {"path": "qs", "read": "view", "write": "admin"}]}}
+                  {"path": "qs", "read": "view", "write": "admin"}]},
+ "mcp": {"servers": [{"server": "Supabase", "tools": ["list_projects", "execute_sql"]}]}}
 ```
 
+- The viewer's account needs the Supabase connector, allowed for the organization that holds `questions-hub`. The
+  first open asks to let the page use it. A hub published before 20/11/2026 needs this declaration and a republish of
+  today's `hub.html` to show the shared questionnaires.
 - A new hub starts empty. Write its first questionnaire with `new_page` (above), then give the owner the link.
 - In the same thread, record the new hub's link in `docs/providers/claude.md`, beside that account's desk label, as
   the section "Claude on another account" does. It opens only for the owner.

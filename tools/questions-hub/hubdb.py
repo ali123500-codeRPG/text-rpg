@@ -88,6 +88,27 @@ def migrate(name, page_doc, page_version, out, at=None):
     # keep `updated` as it was: moving changes nothing the owner can see, so it must not mark answers read
     return w + [_w('set', 'pages', name, {'title': page_doc.get('title', sp.get('title')), 'updated': page_doc['updated'], 'spec': json.dumps(sp, ensure_ascii=False)}, out, page_version)]
 
+def _lit(x):
+    return "'" + x.replace("'", "''") + "'"
+
+def sql(w):
+    """The writes as one SQL transaction for the Supabase table hub_docs (README "Writing to the hub"): run it with the
+    Supabase connector's execute_sql on the project named questions-hub. `set` replaces a doc; `update` merges its fields,
+    and a field written as {'__delete__': True} is removed. Doc versions (if_version) are not checked there."""
+    out = ['begin;']
+    for x in w:
+        path, data = _lit(x['collection'] + '/' + x['doc_id']), json.load(open(x['file_path']))
+        if x['op'] == 'set':
+            out.append(f"insert into hub_docs (path, data) values ({path}, {_lit(json.dumps(data, ensure_ascii=False))}::jsonb) "
+                       "on conflict (path) do update set data = excluded.data, updated_at = now();")
+        else:
+            gone = [k for k, v in data.items() if v == {'__delete__': True}]
+            keep = {k: v for k, v in data.items() if k not in gone}
+            drop = ' - array[' + ', '.join(map(_lit, gone)) + ']::text[]' if gone else ''
+            out.append(f"update hub_docs set data = (data || {_lit(json.dumps(keep, ensure_ascii=False))}::jsonb){drop}, "
+                       f"updated_at = now() where path = {path};")
+    return '\n'.join(out + ['commit;'])
+
 def chunks(w, n=50):
     return [w[i:i + n] for i in range(0, len(w), n)]
 
