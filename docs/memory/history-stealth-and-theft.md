@@ -23,3 +23,6 @@ IDs name the owner's answers.
   by a warning that is given and heard (#1046). Parked: hand signs (D-387), supernatural warnings (D-388)
   (#1044). A new trick that keeps a list of who believes it uses the shared helpers in `src/engine/ruses.ts`
   and gets a re-check in `src/engine/warnings.ts`.
+- **Each sense contests on its own (20/11/2026; D-40, decision card Q1-Q3).** Every detection sense that reaches a
+  watcher makes its own stealth contest, once per turn; slipping away must beat every sense; smell always rolls; Every
+  Sense One makes sight and hearing one contest. One shared list of detection senses for stealth and searches.
