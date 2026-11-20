@@ -10,6 +10,16 @@ import { logCode } from './effects';
 import { bestReward } from '../ruleset/achRewards';
 import { moraleLost, restoreMorale, setMoraleLost } from '../ruleset/morale';
 import { tally } from './xp';
+import { now } from '../time';
+
+/** H5, T7: the clock that holds when an actor last rested */
+export const restClock = (id: string) => `rest:${id}`;
+
+/** game minutes since `a` last rested (Infinity: never); Rest waits until this reaches CONFIG.REST_COOLDOWN_MIN */
+export function minutesSinceRest(state: GameState, a: Actor): number {
+  const last = state.clocks[restClock(a.id)];
+  return last === undefined ? Infinity : now(state) - last;
+}
 
 export const healingName = (id: string) => getLibrary().healing?.[id]?.name ?? id;
 

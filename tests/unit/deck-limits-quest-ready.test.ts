@@ -11,6 +11,7 @@ import { buildPlayerView } from '../../src/views';
 import { deck, actionsOn, type DeckAction } from '../../src/ui/deck';
 import { suggestions } from '../../src/ui/suggest';
 import { now } from '../../src/time';
+import { restClock } from '../../src/engine/heal';
 import { CONFIG } from '../../src/config';
 import { PK } from '../../src/library/perkIds';
 import type { GameState } from '../../src/types';
@@ -37,9 +38,9 @@ describe('A3b limited moves on the deck', () => {
 
   it('Rest within its cooldown waits; past it, it is free', () => {
     const s = makeVillage();
-    s.clocks[`rest:${s.player.id}`] = now(s) - CONFIG.REST_COOLDOWN_MIN / 4;
+    s.clocks[restClock(s.player.id)] = now(s) - CONFIG.REST_COOLDOWN_MIN / 4;
     expect(find(s, 'rest')!.limit).toMatchObject({ share: 0.25, tip: `Ready in ${CONFIG.REST_COOLDOWN_MIN * 0.75} min` });
-    s.clocks[`rest:${s.player.id}`] = now(s) - CONFIG.REST_COOLDOWN_MIN;
+    s.clocks[restClock(s.player.id)] = now(s) - CONFIG.REST_COOLDOWN_MIN;
     expect(find(s, 'rest')!.limit).toBeUndefined();
   });
 

@@ -13,6 +13,7 @@ import { isDownLevel, othersHealthWord, trueSkill } from '../ruleset';
 import { isHeld } from '../ruleset/slots';
 import { actorBody, perkName } from '../library';
 import { cantSteady } from '../engine/steady';
+import { minutesSinceRest } from '../engine/heal';
 import { cantExtract } from '../engine/extract';
 import { walksAway } from '../engine/nerve';
 import type { WayOp } from '../engine/barriers';
@@ -21,7 +22,7 @@ import { lootSources } from './loot';
 import { pullOf, type IdeaGroup, type IdeaKind } from './ideaLeans';
 import { healItems, partName } from './healing';
 import { cap, r1, theItem } from '../words';
-import { durationText, now, secondsSince } from '../time';
+import { durationText, secondsSince } from '../time';
 import { orderCost } from '../engine/resolve';
 import { ridesBeside } from '../engine/beside';
 import { fromIntent } from '../engine/merge';
@@ -295,7 +296,7 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
   if (!fight) {
     add('wait', 'use', 'Wait', [{ key: 'time', title: 'Wait until?', picks: () => [{ id: '', label: 'A moment', note: 'see what happens' }, { id: 'someone', label: 'Someone comes' }, ...['dawn', 'morning', 'afternoon', 'dusk', 'evening', 'night'].map((t) => ({ id: t, label: cap(t) }))] }],
       (c) => c.time ? order(c.time === 'someone' ? 'Wait for someone to come' : `Wait until ${c.time}`, { action: act('wait', { target: c.time }) }) : order('Wait and see', {}));
-    const rested = s?.clocks[`rest:${s.player.id}`], since = s && rested !== undefined ? now(s) - rested : Infinity;
+    const since = s ? minutesSinceRest(s, s.player) : Infinity;
     add('rest', 'use', 'Rest', [], () => order('Rest a while', { action: act('rest') }), { note: 'a short rest', ...(since < CONFIG.REST_COOLDOWN_MIN ? { limit: waiting(since, CONFIG.REST_COOLDOWN_MIN, 'min') } : {}) });
     add('sleep', 'use', 'Sleep', [], () => order('Sleep', { action: act('sleep') }));
   }
