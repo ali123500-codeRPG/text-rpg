@@ -164,6 +164,30 @@ describe('381 Foes share what they notice', () => {
     expect(knowsTrick(friend, 'patron_1', TRICK.play_dead)).toBe(true);
   });
 
+  it('D-51 b: outside a fight a code-run companion following the player warns it of someone hidden, once per foe; a stranger does not', () => {
+    const s = makeVillage();
+    place(s, 'player', 'street_square'); s.player.pos = { x: 14, y: -14 };
+    const sneak = place(s, 'patron_1', 'street_square'); sneak.pos = { x: 18, y: -14 }; delete sneak.asleep;
+    sneak.posture = 'stealthy'; sneak.mind!.overrides = { player: 'hostile' }; sneak.mind!.control = 'code';
+    const friend = place(s, 'guard_1', 'street_square'); friend.pos = { x: 13, y: -14 }; friend.bandId = s.player.bandId; delete friend.asleep;
+    friend.mind!.control = 'code';
+    friend.mind!.knowledge.player = { status: 'aware', source: 'seen', revealed: [], lastKnownZone: 'street_square', lastSeenTurn: s.turn };
+    skill(friend, SK.battle_sense, 10);
+    expect(friend.engagement).toBeUndefined();
+    friend.mind!.toWarn = [{ about: 'patron_1', trick: HIDDEN }];
+    const ev = play(s, { intent: intent() });
+    const warn = ev.find((e) => e.kind === 'warn' && e.actorId === 'guard_1');
+    expect(warn?.target).toBe('patron_1');
+    expect(warn?.line?.text).toBe('There! Someone hiding!');
+    expect(warn?.effects).toContainEqual(expect.objectContaining({ kind: 'warned', actorId: 'player', data: expect.objectContaining({ by: 'guard_1', about: 'patron_1', pointed: true }) }));
+    friend.mind!.toWarn = [{ about: 'patron_1', trick: HIDDEN }]; // spotted again: no second warning about the same foe
+    expect(play(s, { intent: intent() }).some((e) => e.kind === 'warn' && e.actorId === 'guard_1')).toBe(false);
+    const stranger = place(s, 'trader', 'street_square'); stranger.pos = { x: 12, y: -14 }; delete stranger.asleep; stranger.mind!.control = 'code';
+    skill(stranger, SK.battle_sense, 10);
+    stranger.mind!.toWarn = [{ about: 'patron_1', trick: HIDDEN }];
+    expect(play(s, { intent: intent() }).some((e) => e.kind === 'warn' && e.actorId === 'trader')).toBe(false);
+  });
+
   it('whole turn: the player\'s warning is narrated as a shout its ally takes in', async () => {
     const g = wholeTurn();
     const s = g.game.state()!;
