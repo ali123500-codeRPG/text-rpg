@@ -164,6 +164,8 @@ import {
   applyHealing,
   calm,
   healFromPerk,
+  minutesSinceRest,
+  restClock,
   wouldHeal,
 } from './heal';
 import {
@@ -1569,10 +1571,8 @@ function allFiftyAfterAttack(ctx: Ctx, a: Actor, t: Actor, ranged: boolean, item
  * fight it is a long action, done when its time is (an NPC's rest heals at once). */
 function doRest(ctx: Ctx, a: Actor, o: Order): void {
   const { state } = ctx;
-  const key = `rest:${a.id}`;
-  const last = state.clocks[key];
   const ev = bark(mk(ctx, a, 'rest'), o);
-  if (last !== undefined && now(state) - last < CONFIG.REST_COOLDOWN_MIN) {
+  if (minutesSinceRest(state, a) < CONFIG.REST_COOLDOWN_MIN) {
     logCode(state, 'rest_blocked', { actorId: a.id, reason: 'cooldown' });
   } else if (a === state.player && state.mode !== 'tactical') {
     ctx.stretch = { kind: 'rest', seconds: actionRow(DU.rest)?.seconds ?? 0, pose: 'lying', ev };
@@ -1582,7 +1582,7 @@ function doRest(ctx: Ctx, a: Actor, o: Order): void {
     applyHealing(state, a, row);
     restRecover(state, a, 1);
     if (row !== HL.rest) a.paid = a.paid?.filter((x) => x !== row);
-    state.clocks[key] = now(state);
+    state.clocks[restClock(a.id)] = now(state);
     ev.effects.push({ kind: 'rested', actorId: a.id, data: {} });
   }
   emit(ctx, ev);
@@ -1795,7 +1795,7 @@ function runStretch(ctx: Ctx, st: Stretch, onLeg?: OnLeg): void {
       applyHealing(state, p, row, share < 1 ? { share } : {});
       restRecover(state, p, share); // FT7: the line by the share of the hour (and Catnap's sleep debt)
       if (row !== HL.rest) p.paid = p.paid?.filter((x) => x !== row);
-      state.clocks[`rest:${p.id}`] = now(state);
+      state.clocks[restClock(p.id)] = now(state);
       st.ev.effects.push({ kind: 'rested', actorId: p.id, data: share < 1 ? { share: Math.round(share * 100) / 100 } : {} });
     }
   } else if (ran > 0) {
@@ -1866,7 +1866,7 @@ function runNight(ctx: Ctx): number {
     }
     present = new Set(here.map((x) => x.id));
   }
-  if (n.slept) state.clocks[`rest:${p.id}`] = now(state);
+  if (n.slept) state.clocks[restClock(p.id)] = now(state);
   // the night is over at its end, or for the player once something woke them (NW18); companions sleep on to their time
   if (now(state) >= n.end) {
     for (const id of n.members) { const m = actorById(state, id); if (m?.asleep?.until !== undefined) wake(state, m, 'rested'); }
@@ -2662,7 +2662,7 @@ function setAside(state: GameState, a: Actor): void {
 function shareDone(state: GameState, a: Actor, b: NonNullable<Actor['busy']>): void {
   if (b.row !== DU.rest || b.done <= 0) return;
   applyHealing(state, a, restRow(state, a), { share: Math.min(1, b.done / b.need) });
-  state.clocks[`rest:${a.id}`] = now(state);
+  state.clocks[restClock(a.id)] = now(state);
 }
 /** AT25/AT57: an attack aimed at someone at a long action breaks it by the row's focus: careful (and deep) on any attack,
  * hit or miss; steady on a hit that wounds; reflex never. What is left goes by its progress (AT6/AT28): kept or lost.
