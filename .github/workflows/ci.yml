@@ -32,13 +32,13 @@ jobs:
       # the browser and the font packages it needs, kept between runs: the fonts come from an Ubuntu mirror that
       # sometimes crawls (1 s to 3.7 min for the same 22 MB)
       - id: pw
-        run: echo "v=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
+        run: echo "key=$ImageOS-$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@v4
         with:
           path: |
             ~/.cache/ms-playwright
             ~/.cache/apt-debs
-          key: playwright-${{ env.ImageOS }}-${{ steps.pw.outputs.v }}
+          key: playwright-${{ steps.pw.outputs.key }}
       - run: sudo cp ~/.cache/apt-debs/*.deb /var/cache/apt/archives/ 2>/dev/null || true
       - run: npx playwright install --with-deps chromium
       - run: mkdir -p ~/.cache/apt-debs && cp /var/cache/apt/archives/*.deb ~/.cache/apt-debs/ 2>/dev/null || true
