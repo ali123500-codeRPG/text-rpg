@@ -93,20 +93,25 @@ def _lit(x):
 
 def sql(w):
     """The writes as one SQL transaction for the Supabase table hub_docs (README "Writing to the hub"): run it with the
-    Supabase connector's execute_sql on the project named questions-hub. `set` replaces a doc; `update` merges its fields,
-    and a field written as {'__delete__': True} is removed. Doc versions (if_version) are not checked there."""
+    Supabase connector's execute_sql on the project named questions-hub. `set` replaces a doc; `update` merges its fields
+    (creating the doc when there is none), and a field written as {'__delete__': True} is removed. Doc versions
+    (if_version) are not checked there, so give mark() any number as each question's version."""
     out = ['begin;']
     for x in w:
         path, data = _lit(x['collection'] + '/' + x['doc_id']), json.load(open(x['file_path']))
         if x['op'] == 'set':
+            # mark() with version None writes only the changed fields: as a whole doc that would wipe the question
+            if x['collection'].startswith('qs/') and 'title' not in data:
+                raise ValueError(f"{x['doc_id']}: a question with no title would replace the whole question; in Supabase give "
+                                 "mark() any number as the version (e.g. 1), so the change is merged")
             out.append(f"insert into hub_docs (path, data) values ({path}, {_lit(json.dumps(data, ensure_ascii=False))}::jsonb) "
                        "on conflict (path) do update set data = excluded.data, updated_at = now();")
-        else:
+        else:  # merged into the doc, or a new doc when there is none yet (a question still inside an older page's spec)
             gone = [k for k, v in data.items() if v == {'__delete__': True}]
-            keep = {k: v for k, v in data.items() if k not in gone}
+            keep = _lit(json.dumps({k: v for k, v in data.items() if k not in gone}, ensure_ascii=False))
             drop = ' - array[' + ', '.join(map(_lit, gone)) + ']::text[]' if gone else ''
-            out.append(f"update hub_docs set data = (data || {_lit(json.dumps(keep, ensure_ascii=False))}::jsonb){drop}, "
-                       f"updated_at = now() where path = {path};")
+            out.append(f"insert into hub_docs (path, data) values ({path}, {keep}::jsonb) on conflict (path) do update set "
+                       f"data = (hub_docs.data || excluded.data){drop}, updated_at = now();")
     return '\n'.join(out + ['commit;'])
 
 def chunks(w, n=50):
