@@ -37,9 +37,11 @@ describe('map checker on the test stages (MAP-52)', () => {
     const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } }), errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
     await page.goto(`${url}?fake=1&stage=${stage}`);
-    await expect.poll(() => page.evaluate(() => (window as unknown as { __minimapFindings?: Found }).__minimapFindings?.findings), { timeout: 15_000 }).toEqual([]);
+    const diag = (sel: string) => page.evaluate((sel) => ({ fonts: [...document.fonts].map((f) => `${f.family} ${f.weight} ${f.status}`), check: document.fonts.check('700 13px "HISAB Round"'),
+      labels: [...document.querySelectorAll(`${sel} [data-role="label"][data-layer="back"]`)].map((l) => { const z = document.querySelector(`${sel} [data-role="zone"][data-id="${(l as HTMLElement).dataset.for}"]`)!.getBoundingClientRect(), b = l.getBoundingClientRect(); return `${(l as HTMLElement).dataset.for} fs=${l.getAttribute('font-size')} label=${[b.left, b.top, b.right, b.bottom].map((v) => v.toFixed(1))} zone=${[z.left, z.top, z.right, z.bottom].map((v) => v.toFixed(1))} text=${l.textContent}`; }) }), sel);
+    await expect.poll(() => page.evaluate(() => (window as unknown as { __minimapFindings?: Found }).__minimapFindings?.findings), { timeout: 15_000, message: 'minimap' }).toEqual([]).catch(async (e) => { console.log('DIAG minimap', JSON.stringify(await diag('.mm-svg'))); throw e; });
     await page.locator('[data-open="map"]').click();
-    await expect.poll(() => page.evaluate(() => (window as unknown as { __mapFindings?: Found }).__mapFindings?.findings), { timeout: 15_000 }).toEqual([]);
+    await expect.poll(() => page.evaluate(() => (window as unknown as { __mapFindings?: Found }).__mapFindings?.findings), { timeout: 15_000, message: 'map' }).toEqual([]).catch(async (e) => { console.log('DIAG map', JSON.stringify(await diag('.map-svg'))); throw e; });
     expect(errors).toEqual([]);
     await page.close();
   });
