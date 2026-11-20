@@ -375,7 +375,7 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 #### Character page as one screen
 
 - **PS-220** The Character page fits the window with no page scroll (Ali, 14/11/2026, CP1–CP5).
-- **PS-221** The character card is on the left (who, health, level and XP, capstone choice, then the body figure across the
+- **PS-221** The character card is on the left (who, with the class in the circle by the name, health, level and XP, capstone choice, then the body figure across the
   card's width over a row of power, standing attack and defense and a row of the ratings), the skill trees on the right.
   The figure fills the space left on the card and shrinks with the window (its canvas scales; a click reads its on-screen
   box), so the card never scrolls.
@@ -525,10 +525,12 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 - **PS-303** Every library item, container and loot thing has an icon (items sharing a type share one), tinted by item
   kind; the loot pop-up shows each thing's icon.
 - **PS-304** Each class has one of its own (Unwritten Legend, Knight Trainee and Knight have placeholders), shown on
-  the class tree, the Character page's Class line and the creation screen's Starts (a Start shows its class's; The
-  Blessed shows a holy symbol). On the Class line the icon stands in place of the class's name, and its colour says its
-  tier (the class tree's tier hues: accent for tiers 0-2, perk purple for 3-4, gold for 5); name and tier are its tip
-  and accessible name, and a next-level class shows as its icon too. Class icons are tier-coloured wherever they show.
+  the class tree, the circle by the name on the Character page and the creation screen's Starts (a Start shows its
+  class's; The Blessed shows a holy symbol). In the circle the current class's icon stands in place of its name, and its
+  colour says its tier (the class tree's tier hues: accent for tiers 0-2, perk purple for 3-4, gold for 5); its tip and
+  accessible name give the class, its tier, its class level ("level 1 of 20") and where the next level goes, and a
+  press opens the class tree (PROG-190). There is no class row under the XP bar. Class icons are tier-coloured wherever
+  they show.
 - **PS-305** The map keeps its own glyphs (silhouettes blur at 12 px).
 - **PS-306** The credit line sits at the foot of the GM page and the licences in `src/ui/assets/icons-LICENSE.txt`.
 - **PS-307** Scales past 100: game-icons.net has supernatural subjects (rune blades, auras, creatures) for gear and

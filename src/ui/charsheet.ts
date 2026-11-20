@@ -17,6 +17,7 @@ import { treeBlock } from '../ruleset/access';
 import { augmentWindow, burdenOf, burdenParts, groupRollBonus, learningWindow } from '../ruleset/improve';
 import { ended, h, safe } from './kit';
 import { classIcon, skillIcon, treeIcon } from './itemIcons';
+import { classMaxLevel } from '../library/spawn';
 import { figIcon } from './power';
 import { openPop } from './pop';
 import { powerFigure, ratingIcons } from './power';
@@ -161,14 +162,14 @@ export function charCard(s: GameState, p: Actor, openClasses?: (opener: HTMLElem
   const def = standing(s, p);
   const atk = attackOf(s, p);
   return h('div', { class: 'cs-card' },
-    h('div', { class: 'cs-who' }, h('div', { class: 'cs-sigil', 'aria-hidden': 'true' }, '⚔'),
+    h('div', { class: 'cs-who' }, classSigil(p, openClasses),
       h('div', {}, h('b', {}, p.names.current || (getLibrary().classes[cls]?.name ?? cls)), h('span', {}, [ageText(s, p), place ? `In ${theName(place)}` : ''].filter(Boolean).join(' · ')))), // AG16
     h('div', { class: 'cs-track' },
       h('div', { class: 'cs-row' }, h('span', {}, 'Health'), h('b', {}, figBtn('cs-figlink', 'What makes up your total health', (el) => openHealthPop(s, p, el), `${whole(hp)} HP`))),
       // SD5: the boxes (Critical on the left to Bruised, then Unhurt) show the level; its word is the track's tip and name
       h('div', { class: 'cs-hp', role: 'img', title: HEALTH_LEVELS.name(level), 'aria-label': `Health: ${HEALTH_LEVELS.name(level)}` },
         boxes.map((l) => h('i', { class: at <= levels.indexOf(l) ? 'on' : '' })))),
-    xpTrack(s, p, openClasses),
+    xpTrack(s, p),
     capstoneChoice(s, p),
     // the body figure beside the figures (CP5: a click opens each part in a pop-up); gear and personality are tiles under the page
     h('div', { class: 'cs-bodyrow' }, bodyButton(s, p),
@@ -219,30 +220,32 @@ export function openBodyPop(s: GameState, p: Actor, opener?: HTMLElement | null,
   ] });
 }
 
-/** X9/X15: one XP bar, and the class line: the current class, and where the next level goes when that is another class.
- * The line opens the class tree, where the class for the next level is chosen. A class at its top level (classMaxLevel,
- * by tier) takes no levels; while no class can take one, XP banks and the line asks for a class. */
-function xpTrack(s: GameState, p: Actor, openClasses?: (opener: HTMLElement) => void): HTMLElement | null {
+/** the circle by the name (X15): the current class's icon in place of its name, coloured by its tier; its tip names the
+ * class, its tier, its class level and where the next level goes when that is another class. It opens the class tree, where the class for
+ * the next level is chosen; without `openClasses` (the Hall of fame's look) it only shows */
+function classSigil(p: Actor, openClasses?: (opener: HTMLElement) => void): HTMLElement {
+  const lib = getLibrary();
+  const cur = p.core.classes.find((c) => c.state === 'current');
+  const target = p.progression ? levelTarget(p) : null;
+  const levelOf = (id: string) => p.core.classes.find((c) => c.classId === id)?.level ?? 0;
+  const label = (id: string) => `${lib.classes[id]?.name ?? id} · ${CLASS_TIERS.name(lib.classes[id]?.tier ?? 'tier_0')} · level ${levelOf(id)} of ${classMaxLevel(id)}`;
+  const tip = cur ? label(cur.classId) + (target && target.classId !== cur.classId ? ` · next level to ${label(target.classId)}` : '') : 'No class';
+  const icon = cur ? classIcon(cur.classId) : '⚔';
+  if (!openClasses) return h('div', { class: 'cs-sigil', role: 'img', title: tip, 'aria-label': tip }, icon);
+  const b: HTMLElement = h('button', { type: 'button', class: 'cs-sigil', 'aria-haspopup': 'dialog', title: tip, 'aria-label': `${tip}. Open the class tree`, onclick: () => openClasses(b) }, icon);
+  return b;
+}
+
+/** X9: one XP bar. A class at its top level (classMaxLevel, by tier) takes no levels; while no class can take one, XP
+ * banks and a line asks for a class (chosen in the class tree, from the circle by the name). */
+function xpTrack(s: GameState, p: Actor): HTMLElement | null {
   const pr = p.progression;
   if (!pr) return null;
-  const lib = getLibrary();
   const need = xpToNext(p);
-  const cur = p.core.classes.find((c) => c.state === 'current');
   const target = levelTarget(p);
-  const name = (id: string) => lib.classes[id]?.name ?? id;
-  // each class shows as its icon in place of its name, coloured by its tier; name and tier are the icon's tip
-  const next = target && target.classId !== cur?.classId ? target.classId : null;
-  const label = (id: string) => `${name(id)} · ${CLASS_TIERS.name(lib.classes[id]?.tier ?? 'tier_0')}`;
-  const line: (Node | string)[] = cur ? [classIcon(cur.classId, label(cur.classId))] : ['No class'];
-  if (next) line.push(' next level to ', classIcon(next, label(next)));
-  const cls: HTMLElement = openClasses
-    ? h('button', { type: 'button', class: 'cs-class', 'aria-haspopup': 'dialog', title: 'Open the class tree: how classes link, and where your next level goes',
-      onclick: () => openClasses(cls) }, h('b', {}, ...line), h('span', { class: 'cs-class-go', 'aria-hidden': 'true' }, '›'))
-    : h('div', { class: 'cs-row' }, h('span', {}, 'Class'), h('b', {}, ...line));
   return h('div', { class: 'cs-track' },
     h('div', { class: 'cs-row' }, h('span', {}, `Level ${charLevel(p)}`), h('b', {}, `${+pr.xp.toFixed(6)} / ${need} XP`)),
     h('div', { class: 'cs-bar' }, h('b', { style: `width:${xpFill(p).pct}%` })),
-    cls,
     !target ? h('small', { class: 'cs-bank' }, `Your class is at its top level. XP${freeLevelsOwed(p) ? ` and ${freeLevelsOwed(p)} free level${freeLevelsOwed(p) === 1 ? '' : 's'} are` : ' is'} banked until you pick a class for the next level in the class tree.`) : null);
 }
 

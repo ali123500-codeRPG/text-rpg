@@ -123,7 +123,7 @@ export function characterPage(api: GameApi, look?: { title: (Node | string)[]; c
     if (fullOpen()?.contains(perks)) refreshPerks();
     const go = charFocus.open;
     charFocus.open = null;
-    if (go) setTimeout(() => (go === 'perks' ? openPerks(tileOf('perks')) : go === 'classes' ? openClasses(el.querySelector<HTMLElement>('.cs-class')) : openEss(tileOf('essences'))));
+    if (go) setTimeout(() => (go === 'perks' ? openPerks(tileOf('perks')) : go === 'classes' ? openClasses(el.querySelector<HTMLElement>('.cs-sigil')) : openEss(tileOf('essences'))));
   }
   return { el, update };
 }

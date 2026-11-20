@@ -387,12 +387,6 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .gp-rows dd { margin: 0; }
 .pe-pop .cs-gear { border-top: 0; padding-top: 0; }
 .pe-pop .cs-gear .hs-label { display: none; }
-/* the class line on the card: the class tree's button */
-.cs-class { display: flex; align-items: baseline; gap: var(--space-2); width: 100%; margin-top: var(--space-1); padding: var(--space-2) var(--space-3); text-align: left; border: 1px solid var(--border); border-radius: var(--r-md);
-  background: none; color: var(--text); font: inherit; font-size: 13px; cursor: pointer; transition: border-color var(--m-feedback) var(--m-ease); }
-.cs-class:hover, .cs-class:focus-visible { border-color: var(--accent); }
-.cs-class b { flex: 1; min-width: 0; font-weight: 700; }
-.cs-class-go { color: var(--accent); font-size: 16px; line-height: 1; }
 .cs-bank { color: var(--warn); font-size: 13px; }
 /* the class tree, full screen: one band per class tier, Common at the bottom; arrows drawn over the bands */
 .ct-full .fpop-body { height: 100%; }
@@ -450,6 +444,10 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .cs-who b { font-size: 18px; display: block; }
 .cs-who span { color: var(--muted); font-size: 13px; }
 .cs-sigil { width: 56px; height: 56px; border-radius: 50%; border: 2px solid var(--scenario-mark); display: grid; place-items: center; font-size: 26px; color: var(--scenario-mark); flex: none; }
+/* the circle holds the current class's icon (tier-coloured) and opens the class tree */
+.cs-sigil .cico { width: 30px; height: 30px; }
+button.cs-sigil { background: none; padding: 0; font: inherit; cursor: pointer; transition: box-shadow var(--m-feedback) var(--m-ease); }
+button.cs-sigil:hover, button.cs-sigil:focus-visible { box-shadow: 0 0 0 4px var(--accent-soft); }
 .cs-track { display: grid; gap: 6px; }
 .cs-row { display: flex; justify-content: space-between; gap: var(--space-3); font-size: 13px; }
 .cs-track .cs-row b { font-size: 15px; }
