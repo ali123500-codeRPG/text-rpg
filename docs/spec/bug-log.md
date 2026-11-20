@@ -345,3 +345,5 @@ The game files a report at `bugs/new-<time>` (status new) for every bug code it 
 | BG-331 | The Perks tile counted class and other granted perks, but the Perks board drew only ladder, Innate and Linked perks | Thread | Fixed | #1208 |
 | BG-332 | On a carried-on world the floor plans (walls, doorways, roofs, lights, furniture) and ground items were lost | Thread | Fixed | #1206 |
 | BG-333 | The GM page's turn number ran one ahead of the play page's (it showed the next turn) | Thread | Fixed | #1206 |
+| BG-334 | Body parts reached the screen and the Narrator as ids ("Your right_leg"): the combat packet and condition changes gave the part's id | Thread | Fixed | #1209 |
+| BG-335 | A turn that landed scrolled the story to the end of its results, past the prose, so the narration could not be read as it revealed | Thread | Fixed | #1209 |

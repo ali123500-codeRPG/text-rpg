@@ -235,6 +235,15 @@ export function later(fn: () => void, delay: number): void {
   running.add(r);
 }
 
+/** a step that adds something to the screen at its time (a hit card); a skip runs it at once with skipped set, so the final
+ * state is the same either way (M-73) and the step can leave out its motion */
+export function cue(fn: (skipped: boolean) => void, delay: number): void {
+  if (dry) return;
+  const r: Running = { finish: () => { clearTimeout(timer); running.delete(r); fn(true); } };
+  const timer = setTimeout(() => { running.delete(r); fn(false); }, delay);
+  running.add(r);
+}
+
 /** a run of steps that each start a fixed gap after the last, capped: past the cap the rest start together (M-11, M-21) */
 export function timeline(start: number, gap: number, cap: number): () => number {
   let i = 0;

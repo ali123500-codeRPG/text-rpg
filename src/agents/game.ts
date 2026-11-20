@@ -10,13 +10,13 @@ import type { AgentName, StoryOwner, TierRoll, DefeatWhy, XpAward, TierShift,
   AgentTurnLog, ClaudeClient, ClaudeErrorCode, Clock, CreationBuild, DialogueInput, GameApi, GameEvent, GameState,
   GmSnapshot, HealNote, Intent, LineCheck, LogLine, NarrationView, Notice, OppositionView, PartState, HealthLevel, PlannerOutput, Rng, TurnRecord, Actor, WayDid,
 } from '../types';
-import { SCENARIO_ENDING_NAMES, SPEECH_ACTIONS, type ScenarioEndNote } from '../types';
+import { SCENARIO_ENDING_NAMES, SPEECH_ACTIONS, type HitNote, type ScenarioEndNote } from '../types';
 import { pendingEnding } from '../engine/scenarioEnd';
 import { barrierName } from '../engine/barriers';
 import { scenarioGainsNow } from '../engine/growth';
 import { CONFIG, defaultSettings } from '../config';
 import { advanceClock, clockText, DAY_MINUTES, dayOf, durationText, noteTurnEnd, now, now as gameNow, timeOfDay, timeView } from '../time';
-import { outcomeText } from '../ruleset/hits';
+import { outcomeText, struck } from '../ruleset/hits';
 import { GRADE_LEVELS, HEALTH_LEVELS, PART_STATES, TIME_OF_DAY, type TimeOfDay } from '../scales';
 import { createRng } from '../rng';
 import * as engine from '../engine';
@@ -36,6 +36,7 @@ import { createPlayer, refreshCopies, validateBuild } from '../library/spawn';
 import { threadboundInWorld } from '../ruleset/threadboundItems';
 import { achievementName, wearable, wornTitle } from '../engine/xp';
 import { defaultStandingDefense, healthLevel, isDownLevel, partStates, FLAW_MARK, TAG_MARK, takePerk, tierAt, tierAtLeast, tierLevel, tierName, tierPart, undoPerk, usedOffSheet } from '../ruleset';
+import { partName } from '../ruleset/body';
 import { StopPlay, callGate, modelFor, type AgentCtx, type RunResult } from './call';
 import { echoPast, fameEntry } from './fame';
 import { echoSheet } from '../library/echo';
@@ -1259,24 +1260,30 @@ const PICK_WORDS: Partial<Record<string, string>> = { picked: 'the lock opens', 
  * Play screen extras for a narration line, from what the player perceived (no numbers): the player's own check this
  * turn, the lines heard (word for word, unless the narration already quotes them) and the turn's visible changes.
  */
-export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView, narration: string): Pick<LogLine, 'check' | 'speech' | 'changes' | 'incomingChecks' | 'downedBy'> {
-  const out: Pick<LogLine, 'check' | 'speech' | 'changes' | 'incomingChecks' | 'downedBy'> = {};
+export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView, narration: string): Pick<LogLine, 'check' | 'speech' | 'changes' | 'incomingChecks' | 'downedBy' | 'hits'> {
+  const out: Pick<LogLine, 'check' | 'speech' | 'changes' | 'incomingChecks' | 'downedBy' | 'hits'> = {};
   const who = (n: string, start: boolean) => (n === 'player' ? (start ? 'You' : 'you') : start ? cap(n) : n);
   const words = (x: string) => x.replace(/_/g, ' ');
+  const packetOf = (e: GameEvent) => nv.events.find((x) => x.id === e.id)?.packet;
+  /** a blow's result as the roll line and the hit card say it, "full hit, right arm"; an unseen blow is still felt where it lands */
+  const blowResult = (a: NonNullable<GameEvent['attack']>, pk: ReturnType<typeof packetOf>) => {
+    const loc = pk?.location?.part ?? (a.location && a.location !== 'general' && a.location !== 'shield' ? partName(a.location).toLowerCase() : '');
+    return `${pk?.outcome ?? words(a.outcome)}${loc ? `, ${loc}` : ''}`;
+  };
+  /** a change the packet names from the player's side as the screen says it: "player is Wounded" is "You are Wounded" */
+  const shown = (c: string) => c.startsWith('player ') || c.startsWith("player's ") ? c.replace(/^player is /, 'You are ').replace(/^player's /, 'Your ') : who(c, true);
   let check: LineCheck | undefined, checkEv: string | undefined;
   for (const e of events) {
     if (check) break;
     checkEv = e.id;
     if (e.attack && e.attack.attackerId === 'player') {
       const a = e.attack;
-      const pk = nv.events.find((x) => x.id === e.id)?.packet;
-      const loc = pk?.location?.part ?? (a.location ? words(a.location) : '');
+      const pk = packetOf(e);
       check = {
         kind: 'attack', skill: a.attack.skill, ...tierPart(a.attack),
         ...(a.defense && a.defenseType ? { against: { what: `${views.callName(s, 'player', a.targetId)}’s ${a.defenseType}`, ...tierPart(a.defense) } } : {}),
         ...shiftsPart(s, a.gapShifts, 'player', a.targetId),
-        result: `${pk?.outcome ?? words(a.outcome)}${loc ? `, ${loc}` : ''}`,
-        strike: { target: pk?.target ?? views.callName(s, 'player', a.targetId), weapon: pk?.weapon ?? null, changes: pk?.changes ?? [] },
+        result: blowResult(a, pk),
       };
     } else if (e.contest && (e.contest.a.actorId === 'player' || e.contest.b.actorId === 'player')) {
       const c = e.contest;
@@ -1298,14 +1305,13 @@ export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView,
   // rolls others made against the player: attacks on them, and contests they were drawn into beyond their own check
   const incoming: NonNullable<LogLine['incomingChecks']> = [];
   for (const e of events) {
-    const pk = nv.events.find((x) => x.id === e.id)?.packet;
+    const pk = packetOf(e);
     if (e.attack && e.attack.targetId === 'player' && e.attack.attackerId !== 'player') {
       const a = e.attack;
-      const loc = pk?.location?.part ?? '';
       incoming.push({ by: pk?.actor ?? 'someone', kind: 'attack', skill: a.attack.skill, ...tierPart(a.attack),
         ...(a.defense && a.defenseType ? { against: { what: `your ${a.defenseType}`, ...tierPart(a.defense) } } : {}),
         ...shiftsPart(s, a.gapShifts, a.attackerId, 'player'),
-        result: `${pk?.outcome ?? words(a.outcome)}${loc ? `, ${loc}` : ''}` });
+        result: blowResult(a, pk) });
     } else if (e.contest && e.actorId !== 'player' && e.id !== checkEv) {
       const c = e.contest;
       const mine = c.a.actorId === 'player' ? c.a : c.b.actorId === 'player' ? c.b : null;
@@ -1316,6 +1322,16 @@ export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView,
     }
   }
   if (incoming.length) out.incomingChecks = incoming;
+  // PS-200: every blow that landed with the player in it, hitting or hit, in the order it fell (the hit cards)
+  const hits: HitNote[] = [];
+  for (const e of events) {
+    const a = e.attack;
+    if (!a || (a.attackerId !== 'player' && a.targetId !== 'player') || a.attackerId === a.targetId || !struck(a.outcome)) continue;
+    const pk = packetOf(e), mine = a.attackerId === 'player';
+    hits.push({ mine, by: mine ? 'you' : pk?.actor ?? 'someone', target: mine ? pk?.target ?? views.callName(s, 'player', a.targetId) : 'you',
+      weapon: pk?.weapon ?? null, result: blowResult(a, pk), changes: (pk?.changes ?? []).map(shown) });
+  }
+  if (hits.length) out.hits = hits;
   // the turn left the player down: name the last blow that hurt them (only hits lower health), as they perceived it
   if (s.player.id === 'player' && downNow(s.player)) {
     const hit = [...events].reverse().find((e) => e.attack && e.attack.targetId === 'player' && e.attack.damage > 0);
@@ -1337,7 +1353,7 @@ export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView,
     changes.push({ kind: 'combat', text: `${who(p.actor, true)} → ${who(p.target, false)} · ${words(p.outcome)}${p.location ? `, ${p.location.part}` : ''}` });
     for (const c of p.changes) {
       const own = c.startsWith('player ') || c.startsWith("player's ");
-      changes.push({ kind: own && c.startsWith('player is ') ? 'health' : 'condition', text: own ? c.replace(/^player is /, 'You are ').replace(/^player's /, 'Your ') : who(c, true) });
+      changes.push({ kind: own && c.startsWith('player is ') ? 'health' : 'condition', text: shown(c) });
     }
   }
   // BG-199: a foe who broke or surrendered to the player this turn (defeat XP paid) says so

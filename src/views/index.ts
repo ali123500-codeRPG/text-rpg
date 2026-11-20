@@ -65,7 +65,7 @@ import { readsHealthOf } from '../ruleset/achRewards';
 import { IT } from '../library/itemIds';
 import { cap, listWords, mentions, r1, theOf } from '../words';
 import { clutterCover, gripsOf, isAccSlot, isGripSlot, isHeld, meleeReachM, modeName, pieceName, usableModes } from '../ruleset/gear';
-import { usableGrips } from '../ruleset/body';
+import { partName, usableGrips } from '../ruleset/body';
 import { met, outcomeText } from '../ruleset/hits';
 import { itemValue } from '../ruleset/value';
 import { shortShifts } from '../ruleset/requirements';
@@ -406,6 +406,9 @@ function eventView(state: GameState, viewer: Actor, e: GameEvent): EventView {
   };
 }
 
+/** a body part as the story says it mid-sentence ("right_leg" is "right leg"): ids never reach the player or an agent's prose */
+const partWords = (id: string): string => partName(id).toLowerCase();
+
 /** visible condition changes as text: the player's own always; others' only from CONFIG.HEALTH_SHOWN_FROM down (a step earlier
  * with Read Wounds) and parts Crippled or worse */
 function visibleChanges(state: GameState, effects: Effect[], viewerId: string): string[] {
@@ -467,7 +470,7 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
     }
     if (f.kind === 'part_state_changed') {
       const to = f.data.to as PartState;
-      if (own || PART_STATES.pos(to) >= PART_STATES.pos('crippled') || (sharp && to === 'damaged')) out.push(`${who}'s ${String(f.data.part ?? f.data.partId ?? 'part')} is ${PART_STATES.name(to)}`);
+      if (own || PART_STATES.pos(to) >= PART_STATES.pos('crippled') || (sharp && to === 'damaged')) out.push(`${who}'s ${partWords(String(f.data.part ?? f.data.partId ?? 'part'))} is ${PART_STATES.name(to)}`);
     }
   }
   return out;
@@ -1208,7 +1211,7 @@ export function buildCombatPacket(state: GameState, event: GameEvent, viewerId: 
     ? target.core.inventory.find((i) => inArmorSlot(i) && itemDef(state, i.itemId).armor?.covers.includes(r.location!))
     : undefined;
   const shield = r.location === 'shield' && r.shieldItemId ? target.core.inventory.find((i) => i.id === r.shieldItemId) : undefined;
-  const partName = r.location === 'general' ? actorBody(state, target).general.name : r.location;
+  const part = r.location === 'general' ? actorBody(state, target).general.name : r.location && partWords(r.location);
   return {
     event: event.id,
     actor: callName(state, viewerId, attacker.id),
@@ -1220,7 +1223,7 @@ export function buildCombatPacket(state: GameState, event: GameEvent, viewerId: 
     attack: { tier: tierName(r.attack.tier), natural: nat(r.attack.natural), deciding: shownDeciding(state, r.deciding.attack, r.attack, attacker.id, viewerId) },
     defense: r.defense && r.defenseType ? { type: r.defenseType, tier: tierName(r.defense.tier), natural: nat(r.defense.natural), deciding: shownDeciding(state, r.deciding.defense, r.defense, target.id, viewerId) } : null,
     outcome: outcomeLabel(r.outcome),
-    location: r.location && partName ? { part: partName, how: r.locationHow ?? 'rolled' } : null,
+    location: r.location && part ? { part, how: r.locationHow ?? 'rolled' } : null,
     changes: visibleChanges(state, event.effects, viewerId),
     events: [],
   };

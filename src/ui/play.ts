@@ -4,7 +4,7 @@
 // nothing changes with the encounter mode, which agents run or how many Claude calls a turn makes (hidden information).
 import { PK } from '../library/perkIds';
 import { outcomeText, struck } from '../ruleset/hits';
-import type { AchievementNote, Actor, GameApi, GameState, LogLine, Notice, Personality, PlayerView, ScenarioEndNote } from '../types';
+import type { AchievementNote, Actor, GameApi, GameState, HitNote, LogLine, Notice, Personality, PlayerView, ScenarioEndNote } from '../types';
 import { personalityOf } from '../ruleset/personality';
 import { CONFIG } from '../config';
 import { buildPlayerView, distText, questGoalText } from '../views';
@@ -31,7 +31,7 @@ import { cantSteady } from '../engine/steady';
 import { skillName } from './creation';
 import { healCard, healIcon, partName, quickHeal, woundCard } from './healing';
 import { answering } from '../agents/answering';
-import { arrive, bar as barMove, count, delta, finishAll, flare, impact, moving, ms, play, pulse, sentences, shake, slam, stamp } from './motion';
+import { arrive, bar as barMove, count, cue, delta, finishAll, flare, impact, moving, ms, play, pulse, sentences, shake, slam, stamp, timeline } from './motion';
 import { coinWords } from '../engine/trade';
 import { actionsRow, doingChip, doingNow, followingNow, walkingNow } from './doing';
 import { closePop, openPop } from './pop';
@@ -319,8 +319,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     await submit(true);
   }, () => update());
   const el = h('main', { class: 'playmain' }, title, auto.el, wrap, fell, edge, nerveEdge);
-  // M-12: a click on the story finishes everything still moving
-  story.addEventListener('click', () => { if (moving()) finishAll(); });
+  // M-12: a click on the story finishes everything still moving; once nothing moves, it puts the hit cards away (PS-203)
+  story.addEventListener('click', () => { if (moving()) finishAll(); else clearHits(true); });
 
   // Escape closes whatever is open; PageUp/PageDown scroll the story while the box has focus; Tab takes the suggestion
   // (the Commands panel's Keys list says the same, A5: keep the two together)
@@ -412,7 +412,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
 
   // ---- the story list: one cached entry per line, so redraws never rebuild it or close an opened fold
   const entries = new WeakMap<LogLine, HTMLElement>();
-  const lineOf = new WeakMap<HTMLElement, LogLine>(); // a turn's element back to its line (the strike card reads it)
+  const lineOf = new WeakMap<HTMLElement, LogLine>(); // a turn's element back to its line (the hit cards read it)
   let snap: Record<string, string> | null = null, snapLine: LogLine | null | undefined;
   let changedParts = new Set<string>(); // parts whose state the last turn changed: the body figure opens once
   // motion: the values the screen showed after the last turn landed, and a narration line that just arrived live
@@ -710,7 +710,12 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       h('ul', { class: 'cmds' }, COMMANDS.map(([c, what]) => h('li', {}, h('button', { type: 'button', onclick: () => pick(c) }, h('b', {}, c.trim()), h('span', {}, what))))),
       // A5: the keys the play screen answers, beside the commands
       h('p', { class: 'hs-section' }, 'Keys'), h('dl', { class: 'keys' }, KEYS.flatMap(([k, what]) => [h('dt', {}, h('kbd', {}, k)), h('dd', {}, what)])));
-    if (stick || busy) story.scrollTop = story.scrollHeight;
+    // BG-335: a turn that lands opens at its start (the order you gave, then the prose), not at the end of its results
+    const landed = fresh && stick && !busy ? entries.get(fresh) : undefined;
+    const from = landed?.previousElementSibling?.classList.contains('ln-player') ? landed.previousElementSibling : landed;
+    if (from) story.scrollTop += from.getBoundingClientRect().top - story.getBoundingClientRect().top;
+    else if (stick || busy) story.scrollTop = story.scrollHeight;
+    if (busy) clearHits(); // the next turn is on its way: the last one's hit cards are done
     // 2.5: a new essence offer opens its pop-up once, when no turn is running (Take it / Let it go / Decide later)
     if (!busy && !auto.playing()) maybeOfferPop(api, s, update);
 
@@ -826,9 +831,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       const brk = e.querySelector('.pbreak');
       if (brk) t += drawBreak(brk, t);
     }
-    // BF66: the player's own blow that landed shows its strike card as the turn lands, before the prose
-    const c = lineOf.get(e)?.check;
-    const strike = (d: number) => { if (c?.strike) strikeCard(c, d); turnSound(lineOf.get(e), d); };
+    // PS-200: every blow that landed with the player in it shows its hit card as the turn lands, before the prose
+    const l = lineOf.get(e);
+    const strike = (d: number) => { hitCards(l?.hits ?? [], d); turnSound(l, d); };
     // D-226 (M-39): a scenario that gave something opens its gains panel between the old scenario's close and the new one's
     // opening; the rest of the turn plays when the panel closes
     if (gainsLine) { sfx('scenario_end', t); openGains(gainsLine, t, true, () => { strike(0); turnRest(e, b, a, ab, aa, ms('--m-state') * 0.7); }); return; }
@@ -836,13 +841,13 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     turnRest(e, b, a, ab, aa, t);
   }
 
-  /** AU6/AU8: the newest live turn's sounds, as its strike card shows: the player's own roll (an attack by its blow, any
-   * other roll by its tier), then each blow that landed on the player, a stagger apart */
+  /** AU6/AU8: the newest live turn's sounds: the player's own roll as the turn lands, unless it landed a blow (its hit card
+   * sounds it, like every blow on the player) */
   function turnSound(l: LogLine | undefined, d: number) {
     const c = l?.check;
-    if (c) { const o = c.kind === 'attack' ? outcomeOf(c.result) : null; if (o) blowSound(o, d); else tierSound(tierLevel(c), d); }
-    const hits = (l?.incomingChecks ?? []).filter((x) => { const o = outcomeOf(x.result); return o && struck(o); });
-    hits.forEach((_, i) => sfx('hurt', d + ms('--m-stagger') * (i + 1)));
+    if (!c) return;
+    const o = c.kind === 'attack' ? outcomeOf(c.result) : null;
+    if (o && !struck(o)) blowSound(o, d); else if (!o) tierSound(tierLevel(c), d);
   }
 
   /** the gains panel: live plays its moment from t0, otherwise it opens settled (reopened from the story) */
@@ -872,40 +877,57 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     if (!input.disabled) input.focus();
   }
 
-  /** the strike card: when the player's own blow lands, a card rises over the story
-   * with the outcome, the weapon and where it struck, and what the player saw it change ("The slime is Wounded"). Tiers by
-   * outcome (game-feel GF-01): a graze only arrives; a full hit draws the slash; a heavy or crushing hit adds the
-   * hit-stop on the word and a short shake of the card (never the story text, never the input). BF66: it shows as the
-   * turn lands, before the prose, and lives --m-strike whatever happens: a skip (M-12) only lands its motion, it never takes
-   * the card away, and with motion off it shows still for the same time (M-72). It repeats the results row, so it is
-   * hidden from screen readers (the row carries the words, M-34). */
-  let strikeTimer: ReturnType<typeof setTimeout> | undefined;
-  function strikeCard(c: NonNullable<LogLine['check']>, d: number) {
-    const o = outcomeOf(c.result), k = c.strike;
-    if (!o || !struck(o) || !k) return;
-    const beat = OUTCOME_BEAT[o], where = c.result.split(', ').slice(1).join(', ');
-    const target = theOf(k.target);
-    const card = h('div', { class: `strike t${beat}`, 'aria-hidden': 'true', 'data-o': o },
+  /** PS-200–PS-205 the hit cards: every blow that landed with the player in it, hitting or hit, gets a card over the story
+   * with the outcome, who struck with what and where, and what the player saw it change. They come one at a time,
+   * --m-trail apart (past --m-results-cap the rest land together); each new one takes the stage and the ones before it fold
+   * to a line above it. Tiers by outcome (game-feel GF-01): a graze only arrives; a full hit draws the slash; a heavy or
+   * crushing hit adds the hit-stop on the word and a short shake of the card (never the story text, never the input). Blows
+   * on the player are in the danger colour (M-20). They stay until a click on the story once nothing moves; a skip
+   * (M-12) lands them all at once. They repeat the results rows, so they are hidden from screen readers (M-34). */
+  let hitBox: HTMLElement | null = null;
+  function clearHits(exit = false) {
+    const box = hitBox;
+    if (!box) return;
+    hitBox = null;
+    if (!exit) { box.remove(); return; }
+    play(box, [{ opacity: 1 }, { opacity: 0, transform: 'translateY(6px)' }], { dur: ms('--m-state') * 0.7, exit: true, done: () => box.remove() }); // M-51
+  }
+  function hitCards(hits: HitNote[], d0: number) {
+    clearHits();
+    const shown = hits.filter((k) => { const o = outcomeOf(k.result); return o && struck(o); });
+    if (!shown.length) return;
+    const box = h('div', { class: 'strikes', 'aria-hidden': 'true' });
+    body.append(box);
+    hitBox = box;
+    const next = timeline(d0, ms('--m-trail'), ms('--m-results-cap'));
+    for (const k of shown) cue((skipped) => {
+      if (hitBox !== box) return;
+      box.querySelectorAll('.strike:not(.past)').forEach((x) => x.classList.add('past'));
+      const card = hitCard(k);
+      box.append(card);
+      if (!skipped) hitBeat(card, k);
+    }, next());
+  }
+  function hitCard(k: HitNote): HTMLElement {
+    const o = outcomeOf(k.result)!, beat = OUTCOME_BEAT[o], where = k.result.split(', ').slice(1).join(', ');
+    const by = k.mine ? (k.weapon ? `Your ${k.weapon.toLowerCase()}` : 'Your blow') : `${cap(theOf(k.by))}${k.weapon ? `’s ${k.weapon.toLowerCase()}` : ''}`;
+    const on = k.mine ? `${theOf(k.target)}${where ? `’s ${where}` : ''}` : where ? `your ${where}` : 'you';
+    return h('div', { class: `strike t${beat}${k.mine ? '' : ' in'}`, 'data-o': o },
       beat >= 2 ? h('span', { class: 'sk-slash' }) : null,
       h('p', { class: 'sk-out' }, cap(outcomeText(o))),
-      h('p', { class: 'sk-where' }, [k.weapon ? `Your ${k.weapon.toLowerCase()}` : 'Your blow', `${target}${where ? `’s ${where}` : ''}`].join(' · ')),
+      h('p', { class: 'sk-where' }, `${by} · ${on}`),
       k.changes.length ? h('p', { class: 'sk-chg' }, k.changes.map(cap).join(' · ')) : null);
-    body.querySelectorAll('.strike').forEach((x) => x.remove());
-    clearTimeout(strikeTimer);
-    const life = ms('--m-strike');
-    // the card's own clock, apart from the turn's motion, so a skip can't end it early
-    strikeTimer = setTimeout(() => {
-      body.append(card);
-      strikeTimer = setTimeout(() => card.remove(), life);
-      const enter = ms('--m-state') / life, leave = 1 - ms('--m-feedback') * 2 / life;
-      play(card, [{ opacity: 0, transform: 'translateY(10px) scale(.96)' }, { opacity: 1, transform: 'none', offset: enter, easing: 'linear' }, { opacity: 1, transform: 'none', offset: leave, easing: 'cubic-bezier(0.4, 0, 1, 1)' }, { opacity: 0, transform: 'translateY(-6px)' }],
-        { dur: life });
-      const slash = card.querySelector('.sk-slash');
-      if (slash) play(slash, [{ transform: 'rotate(-14deg) scaleX(0)', opacity: 1 }, { transform: 'rotate(-14deg) scaleX(1)', opacity: 1, offset: 0.35 }, { transform: 'rotate(-14deg) scaleX(1)', opacity: 0 }], { dur: ms('--m-trail'), delay: ms('--m-feedback') });
-      const word = card.querySelector('.sk-out');
-      if (beat >= 3) { impact(word, ms('--m-feedback')); shake([card], beat >= 4 ? 1 : 0.6, ms('--m-feedback') + ms('--m-hold')); }
-      else if (beat === 2) pulse(word, ms('--m-feedback'), 2);
-    }, Math.max(0, d));
+  }
+  /** one card's entrance and its beat by tier, with its sound (AU6) */
+  function hitBeat(card: HTMLElement, k: HitNote) {
+    const o = card.dataset.o as AttackOutcome, beat = OUTCOME_BEAT[o];
+    if (k.mine) blowSound(o); else sfx('hurt');
+    play(card, [{ opacity: 0, transform: 'translateY(10px) scale(.96)' }, { opacity: 1, transform: 'none' }], { dur: ms('--m-state') });
+    const slash = card.querySelector('.sk-slash');
+    if (slash) play(slash, [{ transform: 'rotate(-14deg) scaleX(0)', opacity: 1 }, { transform: 'rotate(-14deg) scaleX(1)', opacity: 1, offset: 0.35 }, { transform: 'rotate(-14deg) scaleX(1)', opacity: 0 }], { dur: ms('--m-trail'), delay: ms('--m-feedback') });
+    const word = card.querySelector('.sk-out');
+    if (beat >= 3) { impact(word, ms('--m-feedback')); shake([card], beat >= 4 ? 1 : 0.6, ms('--m-feedback') + ms('--m-hold')); }
+    else if (beat === 2) pulse(word, ms('--m-feedback'), 2);
   }
 
   /** the turn after its opening: the prose, its results, the sheet and the gold cards, from t */
