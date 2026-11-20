@@ -168,7 +168,8 @@ Skills and trees, access, functions, marks and skill gain, growth, XP and levels
 character creation rules.
 
 - Spec: [character-model.md](spec/part-1-rules/character-model.md), [progression.md](spec/part-1-rules/progression.md),
-  [skill-improvement-algorithm.md](spec/part-1-rules/skill-improvement-algorithm.md)
+  [skill-improvement-algorithm.md](spec/part-1-rules/skill-improvement-algorithm.md),
+  [actor-sheet.md](spec/part-4-save/actor-sheet.md) (SHEET-nn: classes, Starts, ranks)
 - History: [history-xp-and-ratings.md](memory/history-xp-and-ratings.md),
   [history-growth-and-skill-gain.md](memory/history-growth-and-skill-gain.md),
   [history-skill-trees.md](memory/history-skill-trees.md),
@@ -404,7 +405,8 @@ NPC minds, routines and goals, memory, templates and spawning, uniques and echoe
 
 - Spec: [who-thinks-for-each-actor.md](spec/part-2-turn-engine/who-thinks-for-each-actor.md),
   [goal-driven-uniques.md](spec/part-2-turn-engine/goal-driven-uniques.md),
-  [explore-mode.md](spec/part-2-turn-engine/explore-mode.md)
+  [explore-mode.md](spec/part-2-turn-engine/explore-mode.md),
+  [actor-sheet.md](spec/part-4-save/actor-sheet.md) (SHEET-nn: templates, guards, NPC fields)
 - History: [history-npc-generation-and-roles.md](memory/history-npc-generation-and-roles.md),
   [history-personality-and-uniques.md](memory/history-personality-and-uniques.md)
 - Code:
@@ -481,7 +483,7 @@ saves are off-limits (AGENTS.md rule 1).
 ## play-ui: the play and creation screens
 
 Every page of the game page: layout, the sheet and Character page, the action deck, pop-ups, motion, sound, creation,
-styles, the fake game the smoke tests drive. Any UI change uses the five design skills (docs/instructions.md section 7).
+styles, the fake game the smoke tests drive. A UI change uses the design skills in proportion to its size (docs/instructions.md section 7).
 
 - Spec: [play-screen.md](spec/part-2-turn-engine/play-screen.md),
   [play-screen-motion.md](spec/part-2-turn-engine/play-screen-motion.md),

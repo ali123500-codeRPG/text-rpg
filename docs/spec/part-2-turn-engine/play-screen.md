@@ -152,8 +152,9 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 - **PS-103** Pop-ups stay as built and movable, and so do the game-moment cards (gains, perk unlocked, strike card)
   (HS7; Ali: "the pop-up is nice").
 - **PS-104** The Play column has no extra veil of its own (HS7; Ali: not transparent "for no reason at all").
-- **PS-105** Design changes: every change to the look, big or small, is made with the five design skills loaded
-  (interface-design, impeccable, frontend-design, ui-ux-pro-max, show-dont-tell-ui).
+- **PS-105** Design changes use the design skills in proportion to the change, as `docs/instructions.md` section 7
+  sets out: a small change uses interface-design and show-dont-tell-ui plus the accessibility checks; everything else
+  uses all five (WF4 a, 20/11/2026).
 - **PS-106** Only a major change is shown first, as 2 to 4 named options drawn over the real page, one recommended, and
   Ali picks one; small fixes and bug fixes ship without a mock-up.
 
@@ -722,6 +723,3 @@ None is settled yet; until the owner rules, the code decides what the game does 
   the world are filled silhouettes; screen controls stay line drawings" (PS-300).
 - **PS-253 and PS-463, perk write-ups:** "The Story / Effect toggle" (PS-253) against "its Story or Rules text"
   (PS-463).
-- **PS-105 and `docs/instructions.md` section 7, design skills:** "every change to the look, big or small, is made with
-  the five design skills loaded" (PS-105) against section 7's "A small change … uses `interface-design` and
-  `show-dont-tell-ui`". Section 7 leads on how to work (`AGENTS.md`, Order of authority).
