@@ -49,7 +49,8 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
 
 - **MAP-20** A zone's name is drawn in bold letters inside its zone, centred, on up to three lines, as large as fit its
   box with at least 6 px padding (4 to 32 px). In a small zone the letters shrink to stay inside. A zone too small even
-  for 4 px letters shows its name in its tooltip only. The name never moves outside its zone (MZ2-MZ4).
+  for 4 px letters shows its name in its tooltip and accessible label only. The name never moves outside its zone
+  (MZ2-MZ4).
 - **MAP-21** A name is never cut with an ellipsis. It shrinks instead (MAP-20).
 - **MAP-22** A zone's name is a background layer behind every mark. Tokens and icons may sit on it, and it takes no room
   from them, so it never pushes a mark aside (MZ2-MZ4).
@@ -57,10 +58,11 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   icons.
 - **MAP-24** Exit notes use one format, attached to their exit: `→ target · state` (for example `→ the plank gate ·
   unexplored`). The note reads "→ its name · unexplored" (or "· to Ashford", ", locked").
-- **MAP-25** A mark inside a zone (furniture, stairs, the player, people) is placed once at the closest zoom, and every
-  zoom keeps it at the same share of its zone (inside the room its size leaves). Furniture and stairs never move: zoomed
-  out, where one would cover another mark it hides in its own spot (listed in the zone's card) and comes back there. The
-  player and people are never hidden; they step aside only then (BG-216).
+- **MAP-25** A mark inside a zone (furniture, stairs, the player, people) is placed once, at the widest of a few set
+  zooms that has room for it (PLACE_KS), and every zoom keeps it at the same share of its zone (inside the room its size
+  leaves). Furniture and stairs never move: zoomed out, where one would cover another mark it hides in its own spot
+  (listed in the zone's card) and comes back there. The player and people are never hidden; they step aside only then
+  (BG-216).
 - **MAP-26** To scale, a place's map is laid out by code at the zoom shown and drawn on one screen-pixel layer. No mark
   covers another at any zoom, and the first view fits the whole map with everything inside it (src/ui/mapPlan.ts).
 - **MAP-27** On a place's map your pin is placed first and furniture last. Place titles sit above their outline's
@@ -176,8 +178,8 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
 - **MAP-51** After every render, run `checkMap` on the live SVG: it measures real text sizes, so it must run after the
   browser lays out the text. Run `checkReach` on the stage data. Any finding fails the change (checkMap,
   src/ui/mapCheck.ts; checkReach, src/ui/mapPlan.ts).
-- **MAP-52** Test stages: (a) the Bent Nail (kitchen, common room, behind the counter) beside the high street with the
-  hidden yard and its locked plank gate; (b) a single room; (c) a 12-zone stage with long zone names. Render each, take
+- **MAP-52** Test stages: (a) the Bent Nail (kitchen, common room, behind the counter) beside the high lane with the
+  midden yard and its locked plank gate; (b) a single room; (c) a 12-zone stage with long zone names. Render each, take
   a screenshot, and look at it before reporting (bent-nail, one-room, long-names in src/ui/fakeStages.ts).
 - **MAP-53** Report every finding verbatim. Never say all checks passed if any check reported something.
 - **MAP-54** `bent-nail-saved` is not a MAP-52 stage. It is a negative fixture holding the live save's stored layout,
@@ -199,17 +201,12 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
 #### Open discrepancies
 
 Where the old copies of these rules disagreed, this file keeps the spec's wording and marks the point here. None is
-settled; each waits for the owner (questionnaire "Workflow proposals", WF5). Until then, the code decides what the game
-does (`AGENTS.md`, Order of authority).
+settled; each waits for the owner (questionnaire "Workflow proposals", WF5: four were aligned to the code; these six,
+and the minimap's edge last, are asked one by one). Until then, the code decides what the game does (`AGENTS.md`,
+Order of authority).
 
 - **MAP-13 and MAP-17:** a place's outline is "the bounding box … plus padding" (MAP-13) but "exactly the box around
   the seen ground of its zones" (MAP-17).
-- **MAP-20:** the old skill said a name too small to draw shows in "its tooltip and accessible label"; the spec says
-  "tooltip only". The code gives every zone tile an `aria-label` with its name (src/ui/map.ts, planZone).
-- **MAP-25:** the old skill placed a mark "at the widest of a few set zooms that has room for it"; the spec says "at the
-  closest zoom". The code tries the widest first (`PLACE_KS`, src/ui/mapPlan.ts).
-- **MAP-33:** the old skill had an "unexplored (dashed outline)" zone state; the spec and the code have none (seen
-  zones are hatched).
 - **MAP-27 and MAP-68:** people out of full sight sit "in the bottom band" (MAP-27) or "in a row under the zone's name"
   (MAP-68).
 - **MAP-27 and MAP-25:** stairs are "nudged only to keep clear of another mark" (MAP-27), but "furniture and stairs
@@ -218,4 +215,5 @@ does (`AGENTS.md`, Order of authority).
   "the box around a place's indoor zones" (MAP-18, which `checkStage` uses).
 - **MAP-30 and MAP-35:** the legend "lists every icon on the current map", but the key leaves out your pin.
 - **MAP-24:** one format `→ target · state`, but a locked exit's note reads ", locked".
-- **MAP-52:** "the high street" and "the hidden yard" are the high lane and the midden yard in src/ui/fakeStages.ts.
+- **MAP-33 and MAP-84 on the minimap:** a zone seen but never entered is hatched on the Map (MAP-33), but has a dashed
+  edge on the minimap (src/ui/styles.css), whose marks are meant to be the Map's own (MAP-84).
