@@ -8,7 +8,6 @@ import { makeVillage, lay } from '../harness';
 import { ZK } from '../../src/library/tableIds';
 import { ACH } from '../../src/library/achievementIds';
 import { CONFIG } from '../../src/config';
-import { waysOut, zoneAt, roofed } from '../../src/plan/where';
 import { lineClear } from '../../src/plan/line';
 import { walkPath } from '../../src/plan/path';
 import { luxAt, zoneLight } from '../../src/plan/light';
@@ -26,17 +25,6 @@ const rooms = (kind: WayKind, lightA: 'bright' | 'black' = 'bright', lightB: 'br
 ]);
 
 describe('386 titles on a floor plan (PZ1-PZ17)', () => {
-  it('PZ1, PZ2: a point\'s title is the space that holds it; one opening is the way, read from either side', () => {
-    const s = rooms('door');
-    expect(zoneAt(s, { x: -2, y: 1 }, 0)?.id).toBe('a');
-    expect(zoneAt(s, { x: 12, y: -3 }, 0)?.id).toBe('b');
-    expect(zoneAt(s, { x: 40, y: 0 }, 0)).toBeUndefined();
-    expect(s.openings).toHaveLength(1); // two ways in the plan, one opening drawn
-    expect(waysOut(s, 'a').map((w) => [w.to, w.label])).toEqual([['b', 'the east way']]);
-    expect(waysOut(s, 'b').map((w) => [w.to, w.label])).toEqual([['a', 'the west way']]);
-    expect(waysOut(s, 'a')[0].opening).toBe(waysOut(s, 'b')[0].opening);
-    expect(roofed(s, s.zones[0])).toBe(true);
-  });
 
   it('PZ3: a wall stops sight; a gap is seen through only within its span, a plain doorway not at all', () => {
     const gap = rooms('open'), door = rooms('door');

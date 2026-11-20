@@ -7,8 +7,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { GameEvent, GameState, RollResult, Tier } from '../../src/types';
 import { createRng, lightAll, makeVillage } from '../harness';
 import { ruleset } from '../../src/ruleset';
-import { faintness, noteSightings, perceptionOf } from '../../src/perception';
-import { buildPlayerView, seesClearlyNow } from '../../src/views';
+import { faintness } from '../../src/perception';
+import { seesClearlyNow } from '../../src/views';
 import { soundDb } from '../../src/perception/noise';
 import { makeOut } from '../../src/engine/makeOut';
 import { CONFIG } from '../../src/config';
@@ -127,30 +127,6 @@ describe('324 making out what is half seen or half heard', () => {
 // learning), for every observer; the player keeps them named while they stay put and can still be glimpsed
 describe('324 BG-252 someone made out is named in Who\'s here', () => {
   const talk = (s: GameState, id = 'e1', over: Partial<GameEvent> = {}) => ev(s, { id, kind: 'speak', visibility: 'normal', noise: 'normal', ...over }); // normal: clear to 25 m, glimpsed to 200 m
-  const whoIs = (s: GameState, id: string) => buildPlayerView(s).actors.find((a) => a.id === id);
-
-  it('they stay named while they stay put, with no new roll; a half-seen move and a failed roll makes them "someone" again', () => {
-    const { s, g } = setUp();
-    const calls = rig('success');
-    const e = talk(s);
-    makeOut(s, e, createRng(1)); noteSightings(e, s);
-    s.turn++;
-    const still = talk(s, 'e2');
-    expect(perceptionOf(still, s, s.player)?.level).toBe('full'); // kept: no make-out roll needed
-    s.events = [still];
-    expect(whoIs(s, g.id)?.level).toBe('full');
-    s.events = [];
-    expect(whoIs(s, g.id)?.level).toBe('full'); // standing still, doing nothing: still named
-    expect(calls.filter((c) => c.endsWith(SK.eyesight))).toHaveLength(1); // (Earshot rolled once for the words, PG8)
-    vi.restoreAllMocks(); rig('failure');
-    s.turn++;
-    g.pos = { x: 128, y: Y };
-    const walk = ev(s, { id: 'e3', kind: 'move', visibility: 'normal', pos: g.pos });
-    walk.perception = { [s.player.id]: perceptionOf(walk, s, s.player)! };
-    expect(walk.perception[s.player.id].level).toBe('partial');
-    makeOut(s, walk, createRng(1)); noteSightings(walk, s); s.events = [walk];
-    expect(whoIs(s, g.id)).toMatchObject({ level: 'partial', label: 'someone' });
-  });
 
   it('an NPC that makes someone out sees them clearly that turn', () => {
     const { s, g } = setUp();

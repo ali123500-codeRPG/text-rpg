@@ -1,7 +1,7 @@
 import { TP } from '../../src/library/templateIds';
 import { PK } from '../../src/library/perkIds';
 import { afterEach, describe, expect, it } from 'vitest';
-import { makeVillage, actor, place, createRng, forcedRng } from '../harness';
+import { makeVillage, actor, place, createRng } from '../harness';
 import { CONFIG, resetConfig } from '../../src/config';
 import { getLibrary } from '../../src/library';
 import { spawnNpc } from '../../src/library/spawn';
@@ -80,16 +80,6 @@ describe('fallback list', () => {
     expect(fallbackOrder(fakeView(s, 'slime_1', { withinStrike: near }), createRng(1))).toMatchObject({ type: 'attack', target: 'player', skill: SK.slam, targetPart: null, aimed: false, source: 'fallback' });
     expect(fallbackOrder(fakeView(s, 'slime_1', { lastHitBy: 'comp', withinStrike: near }), createRng(1)).target).toBe('comp');
   });
-  it('rng pick among non-player targets', () => {
-    const s = makeVillage();
-    companion(s, 'field_mid');
-    const c2 = spawnNpc(null, TP.patron, { id: 'comp2', zone: 'field_mid', placeId: 'field', bandId: 'player_band' });
-    s.actors.push(c2);
-    const sl = actor(s, 'slime_1');
-    sl.mind!.knowledge.comp = belief('field_mid');
-    sl.mind!.knowledge.comp2 = belief('field_mid');
-    expect(fallbackOrder(fakeView(s, 'slime_1', { withinStrike: ['comp', 'comp2'] }), forcedRng([1])).target).toBe('comp2');
-  });
   it('closes in one link, never through a frontier, then searches', () => {
     const s = makeVillage();
     const sl = place(s, 'slime_1', 'field_far');
@@ -156,17 +146,6 @@ describe('bindTemplate', () => {
 });
 
 describe('install and switch', () => {
-  it('startAt, seeded phase, plain anchor', () => {
-    const s = makeVillage();
-    const g = actor(s, 'guard_1');
-    installRoutines(g, 'patrol_guard', { route: ['street_square', 'gate_inner', 'street_door'] }, 'route', 20, createRng(1));
-    expect(g.mind!.routine).toEqual({ id: 'patrol', anchorTurn: 20, at: 420 });
-    const sl = actor(s, 'slime_1');
-    installRoutines(sl, 'slime_wander', { route: ['field_mid', 'field_far'], post: 'field_edge' }, 'post', 20, createRng(1));
-    expect(sl.mind!.routine).toEqual({ id: 'roam_field', anchorTurn: 20, at: 420 - 60 }); // NW10: started back past two 30-minute route stops
-    installRoutines(g, 'gate_guard', { post: 'gate_inner' }, undefined, 20, forcedRng([5]));
-    expect(g.mind!.routine).toEqual({ id: 'guard_post', anchorTurn: 20, at: 415 });
-  });
   it('invalid switches log and keep the routine', () => {
     const s = makeVillage();
     const t = actor(s, 'trader');

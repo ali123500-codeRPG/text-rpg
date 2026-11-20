@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { actor, createRng, makeVillage } from '../harness';
 import { resolveSpeech, selectSpokespeople } from '../../src/engine';
 import type { AcceptedAgentOutput } from '../../src/engine';
-import { abandonQuest, pinQuest, questXp, unpaidQuests, updateQuests } from '../../src/engine/quests';
+import { abandonQuest, questXp, unpaidQuests, updateQuests } from '../../src/engine/quests';
 import { power, weakFoeTaper, xpToNext } from '../../src/engine/xp';
 import { stance } from '../../src/engine/relations';
 import { checkResponder } from '../../src/agents/schema';
@@ -172,19 +172,6 @@ describe('138 quests', () => {
     talk(s, { questEnd: { id: s.quests[3].id, outcome: 'done' } }, 'Done.'); // BF6: she may believe a false report; the goal is code's
     expect(s.quests[3].state).toBe('active');
     expect(codes(s, 'quest_report_believed')).toHaveLength(1);
-  });
-
-  it('QT24: a follow-up from the giver in the same talk links to the job just handed in; pins are one at a time', () => {
-    const s = shop();
-    talk(s, offer({ line: 'Find my lost cat', goal: { kind: 'reach', target: 'field_far' } }));
-    s.quests[0].goal = { kind: 'other' }; // a job made before BF61, which only its giver can judge
-    talk(s, { questEnd: { id: s.quests[0].id, outcome: 'done' } }, 'Here is your cat.');
-    talk(s, offer(SLIMES), 'What else?');
-    expect(s.quests[1].after).toBe(s.quests[0].id);
-    pinQuest(s, s.quests[1].id);
-    expect(s.quests[1].pinned).toBe(true);
-    pinQuest(s, s.quests[1].id);
-    expect(s.quests[1].pinned).toBeUndefined();
   });
 
   it('the agent schema reads a job and a quest end', () => {

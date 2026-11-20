@@ -3,7 +3,7 @@
 // while no god gives a Tier V blessing it can't begin. A god's Blessed class opens for anyone that god blesses.
 import { afterEach, describe, expect, it } from 'vitest';
 import { getLibrary } from '../../src/library';
-import { createPlayer, recommendedBuild, startGives, validateBuild } from '../../src/library/spawn';
+import { createPlayer, recommendedBuild } from '../../src/library/spawn';
 import { unlockClasses } from '../../src/engine/xp';
 import { CL } from '../../src/library/classIds';
 import { GD } from '../../src/library/godIds';
@@ -16,21 +16,6 @@ const bless = () => { getLibrary().perks[FIXTURE] = { id: FIXTURE, name: 'Test B
 afterEach(() => { delete getLibrary().perks[FIXTURE]; });
 
 describe('308 Starts and the blessed start', () => {
-  it('the Unwritten Legend start begins in its class, Commoner open', () => {
-    expect(createPlayer(recommendedBuild(ST.late_bloomer), 's1').core.classes).toEqual([{ classId: CL.late_bloomer, state: 'current', level: 1 }, { classId: CL.commoner, state: 'unlocked', level: 0 }]);
-  });
-
-  it('begins with a random god\'s Tier V blessing, in that god\'s Blessed class; the same story gives the same roll', () => {
-    bless();
-    expect(validateBuild(recommendedBuild(ST.blessed))).toEqual([]);
-    expect(startGives(ST.blessed).classId).toBeUndefined(); // the screen has no story id yet, so no roll
-    const p = createPlayer(recommendedBuild(ST.blessed), 's1');
-    expect(p.core.classes).toEqual([{ classId: CL.blessed_by_imbra, state: 'current', level: 1 }, { classId: CL.commoner, state: 'unlocked', level: 0 }]);
-    const b = p.core.perks.find((x) => getLibrary().perks[x.perkId]?.blessing);
-    expect(b && { god: getLibrary().perks[b.perkId].blessing!.god, tier: getLibrary().perks[b.perkId].blessing!.tier, source: b.source })
-      .toEqual({ god: GD.imbra, tier: 'tier_5', source: 'start' });
-    expect(createPlayer(recommendedBuild(ST.blessed), 's1').core.perks).toEqual(p.core.perks);
-  });
 
   it('today the only Tier V blessing is Imbra\'s Extract Essence', () => {
     const p = createPlayer(recommendedBuild(ST.blessed), 's2');

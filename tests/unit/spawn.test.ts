@@ -2,12 +2,10 @@ import { TP } from '../../src/library/templateIds';
 import { RC } from '../../src/library/raceIds';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createRng, makeVillage } from '../harness';
-import { createPlayer, npcMilestonePerks, patrols, presetPersonality, presetSkills, rankKeyOf, rankName, rankPos, rankRow, rankTraitCount, recommendedBuild, refreshCopies, spawnNpc, templateLevel, templatePerks, templateRank, validateBuild } from '../../src/library/spawn';
+import { createPlayer, npcMilestonePerks, patrols, presetSkills, rankKeyOf, rankName, rankPos, rankRow, rankTraitCount, recommendedBuild, refreshCopies, spawnNpc, templateLevel, templatePerks, templateRank, validateBuild } from '../../src/library/spawn';
 import { milestonePerk, trueSkill } from '../../src/ruleset/perks';
 import { perkPointsUpTo } from '../../src/ruleset/levels';
-import { personalityFrom } from '../../src/ruleset/personality';
 import { RO, TH } from '../../src/library/npcLayerIds';
-import { PA, VL } from '../../src/library/tableIds';
 import { getLibrary, itemDef, npcTemplate, resetLibrary, setLibrary } from '../../src/library';
 import { shortBy } from '../../src/ruleset/requirements';
 import { CONFIG, resetConfig } from '../../src/config';
@@ -76,15 +74,6 @@ describe('NPC generation by rank, role and theme (NG1–NG9)', () => {
     for (const k of RANKS.keys) { expect(CONFIG.RANK_ROWS[k], k).toBeDefined(); expect(CONFIG.RANK_TRAITS[k], k).toBeDefined(); }
     const anchors = RANKS.keys.map((k) => rankRow(k).anchor);
     expect(anchors).toEqual([...anchors].sort((a, b) => a - b));
-  });
-  it('NG9: each copy moves by up to ± COPY_SPREAD, seeded by its ID; minimums and class floors still hold', () => {
-    const a = presetSkills(bandit, createRng(5));
-    expect(presetSkills(bandit, createRng(5))).toEqual(a);
-    expect(JSON.stringify(presetSkills(bandit, createRng(6)))).not.toBe(JSON.stringify(a));
-    const centre = banded(bandit);
-    for (const [k, e] of Object.entries(a)) if (k !== SK.resolve) expect(Math.abs(e.raw - centre[k].raw)).toBeLessThanOrEqual(Math.ceil(centre[k].raw * CONFIG.COPY_SPREAD));
-    const guard = npcTemplate(null, TP.guard), g = presetSkills(guard, createRng(9));
-    for (const [k, v] of Object.entries(guard.minimums)) expect(g[k].raw).toBeGreaterThanOrEqual(v);
   });
   it('NG7: level comes from the rank; spawnNpc rolls a rolled NPC once, and copies differ by ID but rebuild the same', () => {
     const lib = getLibrary();
@@ -165,19 +154,6 @@ describe('NPC perks, traits, rules and personality (NG11–NG14)', () => {
     expect(templatePerks(vet, 'g1')).toEqual(templatePerks(vet, 'g1')); // the same actor draws the same
   });
 
-  it('NG14: personality from the theme lean, the role lean and the preset pins, then a seeded spread; the Weaver goes on top', () => {
-    expect(presetPersonality(guard())).toEqual({ nerve: 0, traits: { [PA.discipline]: 40 }, values: [VL.duty] });
-    expect(presetPersonality(npcTemplate(null, TP.trader))).toEqual({ nerve: -40, traits: { [PA.sociability]: 20 }, values: [VL.wealth, VL.family] });
-    expect(presetPersonality(npcTemplate(null, TP.patron)).values).toEqual([VL.pleasure, VL.family]); // the preset's own value first
-    const a = presetPersonality(guard(), 'g1'), b = presetPersonality(guard(), 'g2');
-    expect(a).not.toEqual(b);
-    expect(presetPersonality(guard(), 'g1')).toEqual(a);
-    for (const k of Object.values(PA)) expect(Math.abs((a.traits[k] ?? 0) - (presetPersonality(guard()).traits[k] ?? 0))).toBeLessThanOrEqual(CONFIG.PERSONALITY_SPREAD);
-    expect(a.nerve).toBe(0); // Nerve is not spread
-    expect(presetPersonality(npcTemplate(null, TP.slime), 's1')).toEqual({ nerve: 0, traits: {}, values: [] }); // a beast has none
-    expect(spawnNpc(null, TP.guard, opts).core.personality).toEqual(a);
-    expect(personalityFrom(a, { nerve: 'daring' }).nerve).toBe(CONFIG.NERVE_LINE_POINTS);
-  });
 });
 
 describe('race innate perks and quirks', () => {

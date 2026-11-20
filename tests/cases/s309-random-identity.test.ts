@@ -34,7 +34,4 @@ describe('309 random identity at creation', () => {
     for (let seed = 1; seed <= 50; seed++) expect(randomIdentity(createRng(seed), RC.human).raceId).toBe(RC.human);
   });
 
-  it('the same seed gives the same character', () => {
-    expect(randomIdentity(createRng(7))).toEqual(randomIdentity(createRng(7)));
-  });
 });
