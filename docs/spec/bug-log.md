@@ -352,3 +352,4 @@ The game files a report at `bugs/new-<time>` (status new) for every bug code it 
 | BG-338 | A failed delete after /undo's head write said there was nothing to undo and kept the pre-undo state on screen | Thread | Fixed | #1225 |
 | BG-339 | Two door marks overlap on the default fake page's minimap (MAP-22/31 door:village.o and door:tavern.o_2); the Map keeps them apart | Thread | Open | #1219 |
 | BG-340 | A crossbow shot ran under its instant spanning row, so it never locked movement and paid base strain, not Hard | Thread | Fixed | #1291 |
+| BG-341 | Test fixtures ran at another distance than asked: `beside()` fell back silently, and `tinyArea()` was undone by `makeVillage()` | Thread | Fixed | #1275 |

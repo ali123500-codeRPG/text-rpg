@@ -1,11 +1,12 @@
 // Balance probe: how often a searcher finds a still hider at an exact distance, searching or waiting, over seeded trials
 // on the village fixture through the real turn (resolveTurn and the turn checker, as the case tests play it). Distances
 // are the game's own: metres between the two bodies on a clear line (sightDistM). The village's own people are left out,
-// and the player stands out of sight in the cellar unless it is one of the two. Every trial checks the gap it got and
-// that nobody moved or dropped out of hiding; anything else is a deviation in the result, never a silent change.
+// and the player stands out of sight in the cellar unless it is one of the two. A gap the title cannot hold stops the run
+// with an error. Every trial checks the gap it got and that nobody moved or dropped out of hiding; anything else is a
+// deviation in the result, never a silent change.
 // Run it with `npm run measure` (scripts/measure.ts).
 import type { Actor, GameState } from '../../src/types';
-import { makeVillage, place, beside, actor } from './village';
+import { makeVillage, place, beside, actor, westEdge } from './village';
 import { play, intent, plannerOut, act } from '../cases/w4-kit';
 import { spawnNpc } from '../../src/library/spawn';
 import { getLibrary } from '../../src/library';
@@ -16,7 +17,6 @@ import { atLeast } from '../../src/engine/relations';
 import { beliefStatus, inLookReach } from '../../src/perception';
 import { searchReach } from '../../src/minds';
 import { searchSees } from '../../src/minds/state';
-import { boxOf } from '../../src/plan/geom';
 import { functionName } from '../../src/library/functionNames';
 
 /** who: 'player' or a template key (guard, thief …); id: the NPC's actor ID, which seeds a copy's skills and traits (NG9,
@@ -61,9 +61,8 @@ function setup(sc: Scenario & { zone: string }, seed: number): { s: GameState; a
   if (a.kind === 'player') a.bandId = 'player_band';
   if (h.kind === 'player') h.bandId = HIDER_BAND;
   for (const [x, side] of [[a, sc.searcher], [h, sc.hider]] as const) for (const p of side.perks ?? []) x.core.perks.push({ perkId: perkId(p) } as never);
-  const r = boxOf(s.zones.find((z) => z.id === sc.zone)!.outline);
-  a.pos = { x: r.x - r.w / 2 + 0.6, y: r.y };
-  beside(s, h.id, a.id, sc.distanceM);
+  westEdge(s, a.id, 0.6);
+  beside(s, h.id, a.id, sc.distanceM); // throws when the title cannot hold the gap (BG-341)
   h.posture = 'stealthy';
   return { s, a, h };
 }

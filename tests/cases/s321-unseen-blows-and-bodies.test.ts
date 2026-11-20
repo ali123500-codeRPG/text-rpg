@@ -3,7 +3,7 @@
 // found once. On a sleep step but awake, someone reads as lying awake, never asleep.
 import { describe, expect, it } from 'vitest';
 import type { GameState } from '../../src/types';
-import { beside, makeVillage } from '../harness';
+import { beside, makeVillage, westEdge } from '../harness';
 import { intent, play } from './w4-kit';
 import { CONFIG } from '../../src/config';
 import { SK } from '../../src/library/skillIds';
@@ -27,6 +27,7 @@ describe('321 unseen blows and bodies', () => {
   it('a shot from hiding: the victim feels it, a bystander sees it, both are alarmed and get to think; the shooter stays unknown', () => {
     const s = hidden();
     const p = s.actors.find((a) => a.id === 'patron_1')!, t = s.actors.find((a) => a.id === 'trader')!;
+    westEdge(s, 'player');
     beside(s, 'patron_1', 'player', 5);
     beside(s, 'trader', 'patron_1', 1.5);
     for (const i of s.player.core.inventory) delete i.equippedIn;

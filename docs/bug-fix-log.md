@@ -10,6 +10,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the spec's bug log, docs/spec/bug-log.md, has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-341
+
+**What was wrong:** Eight case tests ran at a distance other than the one they named, and CI stayed green. `beside()` (`tests/harness/village.ts`) stands an actor `m` metres east, else west, of another, who usually stands in the title's middle. When neither side fit (any gap over about half the title's width), it left the actor outside the title. A spot outside its title reads as the title's middle, and the next `placeAll` (the start of `resolveTurn`) stood it near the middle: 5 m in the 8 m common room, or 10 m in the 20 m square, became about 0.8 m. Affected: s323 (5 tests), s321's shot from hiding, s270 AT11c/AT47, and s221 SE14 (meant to be outside the search area, it ran inside it). A second fixture slip of the same kind: `tinyArea()` in s221 set `CONFIG.SEARCH_RADIUS_AT_0_M` and then called `makeVillage()`, whose `resetConfig()` put the default back, so LX5 b and LX7 a ran at the default radius. LX7 a's comment ("searchReach … a radius of 6.2 m") was wrong too: no perk or achievement gives searchReach.
+
+**What was done:** `beside()` throws when neither side fits, and `byDoor()` throws when its spot falls outside the title. A new `westEdge()` stands the reference person at the west edge first, so the gap fits; the eight tests use it and pass at the distance they name. `tinyArea()` became `smallVillage()`, which sets the radius after `makeVillage()`, and the file resets CONFIG after each test. LX5 b now checks that the radius is the 2 m floor, and LX7 a checks that ring two's shift was taken. LX7 a's comment is corrected. Found with the balance probe (`npm run measure`), which checks the gap of every trial.
+
+**Fixed by:** #1275
+
 ## BG-340
 
 **What was wrong:** A crossbow shot did not lock movement and paid base strain instead of Hard, against ACT-33 and ACT-114. `attackRowIds` (`src/ruleset/actionTime.ts`) lists a crossbow's spanning row before its shot row, and `orderCost` (`src/engine/resolve.ts`) took the first row as the one that governs the action (lock, focus, effort). That was right while spanning took time; since TP8 a made every spanning instant (0 s), the 5 s shot ran under a row with no `locksMove`, no `focus` and effort `base`. A crossbow shooter who also moved walked 8.4 m that turn instead of the 1.4 m the shot's lock leaves.

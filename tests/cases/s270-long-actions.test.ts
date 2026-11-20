@@ -3,7 +3,7 @@
 // progress (a bandage's work is lost and the bandage kept; a crossbow's spanning is kept). An NPC at one is not asked for a
 // new order: it carries on.
 import { describe, expect, it } from 'vitest';
-import { actor, beside, makeVillage } from '../harness';
+import { actor, beside, makeVillage, westEdge } from '../harness';
 import { act, intent, play, plannerOut } from './w4-kit';
 import { IT } from '../../src/library/itemIds';
 import { getLibrary } from '../../src/library';
@@ -65,6 +65,7 @@ describe('270 long actions', () => {
     const rows = getLibrary().durations!, was = rows[DU.span_stirrup];
     rows[DU.span_stirrup] = { ...was, effort: 'hard', seconds: 4, locksMove: true, focus: 'careful', onBreak: [{ upTo: 1, then: 'kept' }] };
     span(s, 'guard_1');
+    westEdge(s, 'player');
     beside(s, 'guard_1', 'player', 4);
     const g = actor(s, 'guard_1');
     g.mind!.overrides = { player: 'hostile' };
