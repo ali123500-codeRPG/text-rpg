@@ -78,7 +78,9 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   counter, locked (and with your key), barred, blocked, not been through yet, opens another map, stairs, last seen here.
   The usual marks (walls, indoors, outdoors, doors, furniture, someone there now, your pin, the current zone's outline)
   are left out: each names itself when you point at it. The pin's tip says "You are here", and the card names where you
-  are once (SD8; WF12 a; RM1 b, RM7 a; Ali, 20/11/2026, Questions hub page "Map rules revision").
+  are once. The Key button shows only when the map has an unusual mark. The World's key, beside its own zoom buttons,
+  lists only what its look does not say: a settlement's size, one known by word and not seen, a landmark (keyTool,
+  planKeyRows, src/ui/map.ts; SD8; WF12 a; RM1 b, RM7 a; Ali, 20/11/2026, Questions hub page "Map rules revision").
 - **MAP-31** Icons never overlap each other or a wall corner. Doors sit at their own point on their wall (MAP-14).
 - **MAP-32** Every exit arrow names its target. No arrow points at empty space without a note.
 - **MAP-33** The map marks no zone states: a zone is only a name on ground (MAP-10). The fog (MAP-16) draws seen ground
@@ -123,7 +125,7 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
 - **MAP-63** There is one map per top-level place (a village, say), with each inner place outlined as an area. A road to
   a known zone on another map is a stub naming that place, and clicking it opens that map.
 - **MAP-64** The map has pan, zoom, find me, show the whole map and place crumbs. Right-clicking a zone (or an exit,
-  MAP-62) opens its card (look, exits with a go button, people, items) beside the map, with the places list and the key;
+  MAP-62) opens its card (look, exits with a go button, people, items) beside the map, with the places list;
   on a touch screen a long press does. A left click on the ground plans a walk, as on the minimap (MAP-81) (MQ3, MQ7 a;
   Ali, 20/11/2026, Questions hub page "Map and minimap: one map, doors").
 - **MAP-65** The zone card leaves out the usual: the place line only when it differs from the zone, light and cover only

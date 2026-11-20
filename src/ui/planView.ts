@@ -11,7 +11,7 @@ import { CONFIG } from '../config';
 import type { KnownMap, MapZone } from './mapData';
 import { MAX_K, PX_PER_M, TEXT, checkReach, checkStage, planScene, roughMeasure, wrap, type Box, type Measure, type Scene } from './mapPlan';
 import { checkMap } from './mapCheck';
-import { doorGlyph, fogClip, floorMarks, floorName, pin, wayGlyph, whoInitial } from './map';
+import { doorGlyph, fogClip, keyTool, planKeyRows, floorMarks, floorName, pin, wayGlyph, whoInitial } from './map';
 import { furnIcon } from './furnitureIcons';
 import { metresText, planTo, splitAt, zoneAt, type MinimapPlan, type MinimapPoint } from './minimap';
 import { areaOf } from '../plan/geom';
@@ -89,11 +89,12 @@ export function planView(api: GameApi, opts: PlanOpts) {
   s('title', {}, HINT), world);
   const floorEl = h('span', { class: 'mm-floor' });
   const tool = (label: string, title: string, on: () => void, open?: string) => h('button', { type: 'button', 'data-tip': title, 'aria-label': title, 'data-open': open, onclick: on }, label);
+  const key = full ? keyTool('mm-key-btn') : null; // MAP-30: the Map's key, beside its zoom buttons
   const say = h('span', { class: 'mm-say' }), carried = h('span', { class: 'mm-carry' });
   const go = h('button', { type: 'button', class: 'mm-go', hidden: true, onclick: () => plan && !api.busy() && opts.onWalk(point(plan)) }, 'Just go');
   const el = h('section', { class: `mm${full ? ' mm-full' : ''}`, 'aria-label': full ? 'Map of this place' : 'Minimap' },
     h('div', { class: 'mm-head' }, floorEl,
-      h('span', { class: 'mm-tools' }, tool('+', 'Zoom in', () => zoom(-1)), tool('−', 'Zoom out', () => zoom(1)), tool('◎', full ? 'Find me' : 'Back to you', recentre),
+      ...(key ? [key.list] : []), h('span', { class: 'mm-tools' }, ...(key ? [key.btn] : []), tool('+', 'Zoom in', () => zoom(-1)), tool('−', 'Zoom out', () => zoom(1)), tool('◎', full ? 'Find me' : 'Back to you', recentre),
         full ? tool('⤢', 'Show the whole map', () => opts.onExpand()) : tool('⤢', 'Open the full map', () => opts.onExpand(), 'map'))),
     svg, h('div', { class: 'mm-foot' }, say, go, carried));
 
@@ -252,6 +253,7 @@ export function planView(api: GameApi, opts: PlanOpts) {
     foot();
     untitle();
     scheduleCheck();
+    key?.set(planKeyRows(sc.used));
     opts.onRender?.();
   }
 
