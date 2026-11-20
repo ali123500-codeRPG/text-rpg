@@ -36,6 +36,11 @@ const PICKS = {
   sk_command: 'gi:rally-the-troops', sk_fieldcraft: 'gi:compass', sk_stratagem: 'gi:chess-knight', sk_guile: 'gi:fox-head',
   // the map's settlements, one per site size (MAP-71)
   hamlet: 'gi:house', village: 'gi:village', town: 'gi:medieval-gate',
+  // what someone on the map is, when nothing they hold or wear stands out (MAP-69): a person, each kind of beast, a slime;
+  // someone not made out
+  person: 'gi:person', someone: 'gi:hooded-figure', slime: 'gi:slime', dog: 'gi:sitting-dog', wolf: 'gi:wolf-head',
+  bear: 'gi:bear-head', boar: 'gi:boar', horse: 'gi:horse-head', big_cat: 'gi:tiger-head', lion: 'gi:lion', hyena: 'gi:hyena-head',
+  lizard: 'gi:gecko', snake: 'gi:snake', spider: 'gi:angular-spider', dragon: 'gi:wyvern', beast: 'gi:paw',
 };
 
 const sets = {};

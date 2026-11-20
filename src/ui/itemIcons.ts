@@ -7,6 +7,7 @@ import { itemDef } from '../library';
 import { IT } from '../library/itemIds';
 import { CL } from '../library/classIds';
 import { SK } from '../library/skillIds';
+import { BT, RC } from '../library/raceIds';
 import { ICON_ART, type IconName } from './iconArt';
 import { instanceItem } from '../views';
 
@@ -36,6 +37,15 @@ const CLASS_ICON: Record<string, IconName> = {
   [CL.a_nobody]: 'a_nobody', [CL.a_somebody]: 'a_somebody', [CL.trader]: 'trader', [CL.merchant]: 'merchant', [CL.guard]: 'guard',
   [CL.threadbounded]: 'threadbounded', [CL.blessed_by_imbra]: 'blessed', [CL.knight]: 'plate', [CL.knight_trainee]: 'plate', // NR13: plate until it has art of its own
 };
+/** MAP-69: what someone is, by race, when nothing they hold or wear stands out; a race not listed falls back on its body */
+const RACE_ICON: Record<string, IconName> = {
+  [RC.human]: 'person', [RC.elf]: 'person', [RC.slime]: 'slime', [RC.dragon]: 'dragon', [RC.dog]: 'dog', [RC.wolf]: 'wolf',
+  [RC.tiger]: 'big_cat', [RC.leopard]: 'big_cat', [RC.lion]: 'lion', [RC.bear]: 'bear', [RC.boar]: 'boar', [RC.horse]: 'horse',
+  [RC.hyena]: 'hyena', [RC.lizard]: 'lizard', [RC.crocodile]: 'lizard', [RC.python]: 'snake', [RC.spider]: 'spider',
+};
+const BODY_ICON: Record<string, IconName> = { [BT.amorphous]: 'slime', [BT.quadruped]: 'beast', [BT.winged_quadruped]: 'dragon', [BT.serpent]: 'snake', [BT.eight_legged]: 'spider' };
+/** MAP-69: the icon of what someone is, from the race and body seen */
+export const kindIconName = (raceId: string | undefined, bodyTypeId: string | undefined): IconName => (raceId && RACE_ICON[raceId]) || (bodyTypeId && BODY_ICON[bodyTypeId]) || 'person';
 /** a class's icon; a class not listed yet shows the Commoner's */
 export const classIconName = (classId: string): IconName => CLASS_ICON[classId] ?? 'commoner';
 /** a skill's icon: the item or class icon it shares where one fits, else its own sk_ pick */
