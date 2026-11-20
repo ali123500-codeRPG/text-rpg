@@ -52,7 +52,8 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
 - **SHEET-37** Rules hold for the player and every NPC: a test fails if a template gives a skill its actor can't use
   (TA9).
 - **SHEET-38** Trees a character can't use are hidden on the creation screen and the character sheet unless the
-  character has points in them; those show "Blocked by: …" or "Needs: …" (TA10).
+  character has points in them; those show "Blocked by: …" or "Needs: …" (TA10). On the Character page that is a
+  padlock by the tree's name whose tip and accessible name carry the words.
 - **SHEET-39** Today's rules: the Swordsman tree opens through the Blade Against Blade perk, Swordsman's level 1 perk.
 - **SHEET-40** Tremor senses needs race Python or Giant spider (AB11, AB19).
 - **SHEET-41** Perception is open to everyone, but its skills carry their own rules: the skill Scent needs an animal

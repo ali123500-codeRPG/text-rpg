@@ -275,8 +275,8 @@ function capstoneChoice(s: GameState, p: Actor): HTMLElement | null {
 export function treeBars(p: Actor): HTMLElement {
   return h('div', { class: 'cs-trees' }, trees(p, true).map((t) =>
     h('div', { class: 'cs-tree', style: `--t:var(--${t.c})` },
-      h('div', { class: 'cs-tree-h' }, h('b', {}, t.name), h('span', { title: `${t.sum} points in this tree` }, String(t.sum))),
-      t.block ? h('small', { class: 'cs-tree-block' }, t.block) : null, // TA10: points kept in a tree the character can't use
+      // TA10: a tree the character can't use yet keeps its points; a padlock by its name says why in its tip
+      h('div', { class: 'cs-tree-h' }, h('b', {}, t.name, t.block ? markIcon('locked', t.block, 'mk-i lock') : null), h('span', { title: `${t.sum} points in this tree` }, String(t.sum))),
       // the icon stands for the name, which (with its SKILL_SUB note) is the row's tip and accessible name
       t.rows.map((r) => { const tip = skillName(r.id) + (SKILL_SUB[r.id] ? ` · ${SKILL_SUB[r.id]}` : ''); return h('div', { class: 'cs-sk' + (r.raw ? '' : ' zero'), role: 'button', tabindex: '0', 'aria-haspopup': 'dialog', 'data-skill': r.id,
         title: tip, 'aria-label': `${tip}: ${trueSkill(p, r.id)}`, onclick: (e: Event) => openSkillPop(p, r.id, e.currentTarget as HTMLElement),
