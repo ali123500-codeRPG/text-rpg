@@ -222,7 +222,10 @@ export function effectiveSkill(state: GameState, actor: Actor, skill: string, ct
   const skills = getLibrary().skills;
   const table = standInTable(skill, actor, ctx.standInFns);
   const share = (id: string) => standInShare(skill, id, table, ctx.fullValue);
-  const cands = ctx.alone ? [skill] : [skill, ...Object.keys(skills).filter((id) => id !== skill && share(id) > 0)]; // alone: no stand-ins (a rating's pool counts each skill once)
+  // a skill stands in only through a function the table names, or when named at full value: that test comes before its share
+  const fns = new Set(table.map((t) => t.fn));
+  const mayStandIn = (id: string) => !!ctx.fullValue?.includes(id) || ((skills[id].functions ?? []) as string[]).some((fn) => fns.has(fn));
+  const cands = ctx.alone ? [skill] : [skill, ...Object.keys(skills).filter((id) => id !== skill && mayStandIn(id) && share(id) > 0)]; // alone: no stand-ins (a rating's pool counts each skill once)
   // base: the skill's own true skill at its share and tier (P2: base plus each gear line is the value)
   let best: { skill: string; value: number; base: number; share: number; gear: { source: string; value: number }[]; items: number } | null = null;
   for (const id of cands) {
