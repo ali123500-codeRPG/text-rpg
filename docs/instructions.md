@@ -16,6 +16,9 @@ edge cases. Where a section repeats a rule from `AGENTS.md`, it is there to add 
 - Where code and spec disagree, report it (a BG-n if the code is wrong, otherwise a question). Never pick one silently.
 - A decision is recorded in the spec where its rule lives, with the question ID and date it came from, and in the
   item's D-n row if it has one.
+- An answer that is not built in the same PR gets a D-n row in the "Deferred items" table, status Decided (older
+  rows say "Agreed, not built"), holding the answer and its question IDs. When it is built, the spec rule cites the
+  IDs and the row becomes Built. Memory notes and the Questions hub link to the row and hold no second copy.
 - An old "Build Spec v0.6" page exists outside the repo. It is the outdated original: never use it.
 - Do not invent mechanics. Report a gap as a question with a recommendation (section 5).
 - When asked what a rule or perk does, run it: write a throwaway test with `tests/harness`, print measured results on
@@ -170,9 +173,14 @@ The source of truth for every design decision.
   while a turn runs; skip is a click on the story or Esc, never a typing key; motion always plays.
 - The look is the game's own. An earlier borrowed design system no longer applies. New tokens are fine when named
   for the game.
-- **Any UI change, however small,** uses all five design skills (`docs/skills.md`), and the report names each one and
-  what it changed. Never claim a skill's method without having used it: if you could not fetch one, say so in the
-  report. Mock-ups only for major changes.
+- **Design skills, in proportion to the change** (`docs/skills.md`). The report names each skill used and what it
+  changed. Never claim a skill's method without having used it: if you could not fetch one, say so in the report.
+  Mock-ups only for major changes.
+  - **A small change** changes an existing element and adds no element type, colour, font, size token or layout
+    change. It uses `interface-design` and `show-dont-tell-ui` (1 and 5 below), plus the accessibility checks: every
+    control has an accessible name, text keeps its contrast, and no meaning rests on colour alone.
+  - **Everything else** (a new or changed layout, colour or type, a new component or screen) uses all five. When
+    unsure, the change is not small.
   1. `interface-design`: the primary lens. Structure, hierarchy, density, tokens, states, consistency.
   2. `impeccable`: its audit and critique (anti-patterns, accessibility, theming, spacing, typography, motion), with
      its P0 to P3 severity scale.

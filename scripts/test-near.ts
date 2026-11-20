@@ -6,7 +6,7 @@
 // A test is near a file when it imports it directly or names its path (a doc a test reads), or, for changed src lines,
 // when it selects an element by a quoted word on them (`[data-kind="search"]`). Nearly every test reaches every file
 // through tests/harness, so a whole import-graph pick (vitest related) selects the whole suite. Browser tests that
-// are near are listed, not run. Plain-syntax TypeScript so Node 22 runs it; tests/unit/systems-map.test.ts checks it.
+// are near are listed, not run. It ends PASSED, FAILED, NOTHING TESTED (exit 3) or could not pick tests (exit 2). Plain-syntax TypeScript so Node 22 runs it; tests/unit/systems-map.test.ts checks it.
 // @ts-expect-error Node types are not installed; Node runs this file
 import { execFileSync, spawnSync } from 'node:child_process';
 // @ts-expect-error Node types are not installed; Node runs this file
@@ -89,9 +89,15 @@ function main(args: string[]): number {
   const tests = pick(paths, testFiles(), read, words);
   const smoke = pick(paths, testFiles('tests/smoke', '.smoke.ts'), read, words);
   console.log(`${tests.length} test files near ${paths.length} changed or named files.`);
+  if (!tests.length && !list) {
+    // a run that tested nothing must not read as a pass: exit 3, so `npm run test:near && git push` stops
+    console.error('test:near: NOTHING TESTED. No test imports or names what you changed. Run the tests you expect by path, or `npm test`.');
+    if (smoke.length) console.error(`Only browser tests reach it: npm run smoke -- ${smoke.join(' ')}`);
+    return 3;
+  }
   if (smoke.length) console.log(`Browser tests that reach what you changed: npm run smoke -- ${smoke.join(' ')} (or leave them to the PR's checks).`);
-  if (list || !tests.length) {
-    if (list) console.log(tests.join('\n'));
+  if (list) {
+    console.log(tests.join('\n'));
     return 0;
   }
   // the vi.mock files need their own fresh module load, as in npm test
@@ -103,9 +109,20 @@ function main(args: string[]): number {
   for (const [config, files] of runs) {
     if (!files.length) continue;
     const r = spawnSync('npx', ['vitest', 'run', '--config', config, ...files], { stdio: 'inherit' });
-    if (r.status !== 0) return r.status ?? 1;
+    if (r.status !== 0) {
+      console.error(`test:near: FAILED (vitest exit ${r.status ?? 'none'}${r.error ? `: ${r.error.message}` : ''}).`);
+      return r.status || 1;
+    }
   }
+  console.log(`test:near: PASSED, ${tests.length} test files near your change. The PR's checks still run the full suite.`);
   return 0;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) process.exitCode = main(process.argv.slice(2));
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  try {
+    process.exitCode = main(process.argv.slice(2));
+  } catch (e) {
+    console.error(`test:near: could not pick tests: ${(e as Error).message}`);
+    process.exitCode = 2;
+  }
+}
