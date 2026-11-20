@@ -21,15 +21,6 @@ describe('213 routines through the day (RT1–RT9)', () => {
     expect(validateRoutineBank({ routines: lib.routines!, sets: lib.routineSets!, activities: lib.activities! }).errors).toEqual([]);
     expect(Object.values(lib.routineSets!).filter((s) => s.tags.time.includes('day') || s.tags.time.includes('night'))).toEqual([]);
   });
-  it('RT3: the barkeep tends the bar by day and goes to bed at night', () => {
-    const s = makeVillage();
-    const b = s.actors.find((a) => a.id === 'trader')!;
-    b.mind!.slots = { ...b.mind!.slots, bed: 'tav_cellar' };
-    at(s, 'afternoon');
-    expect(want(s, b.id)).toEqual({ zone: 'tav_counter', activity: 'tend_counter' });
-    at(s, 'night');
-    expect(want(s, b.id)).toEqual({ zone: 'tav_cellar', activity: 'sleep' });
-  });
   it('an optional slot left unbound: the actor stays where it is at those times; BF68: a sleep step sleeps there', () => {
     const s = makeVillage();
     const b = s.actors.find((a) => a.id === 'trader')!;

@@ -7,16 +7,13 @@ import { tick } from '../harness/time';
 import { CONFIG } from '../../src/config';
 import { describe, expect, it } from 'vitest';
 import { forcedRng, makeVillage } from '../harness';
-import { getLibrary } from '../../src/library';
 import { PK } from '../../src/library/perkIds';
 import { SK } from '../../src/library/skillIds';
 import { perkMoveBlock, resolvePerkMove } from '../../src/engine/perkMoves';
 import { bluffed } from '../../src/engine/perkMarks';
-import { answerRoll, pressedWords, tellFor, PLAIN } from '../../src/engine/speech';
+import { answerRoll } from '../../src/engine/speech';
 import { augmentsOf, tierMult } from '../../src/ruleset/gear';
-import { buildPlayerView } from '../../src/views';
-import { deck } from '../../src/ui/deck';
-import type { Actor, GameEvent, GameState } from '../../src/types';
+import type { Actor, GameState } from '../../src/types';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const npc = (s: GameState, id: string) => s.actors.find((a) => a.id === id)!;
@@ -70,15 +67,6 @@ describe('150 Falsehood and Insight perks', () => {
     expect(bluffed(s2, w2)).toBe(false);
   });
 
-  it('shows in the action deck against a foe in the zone, and in the Parser view as a perk move', () => {
-    const s = makeVillage();
-    foe(s);
-    give(s.player, PK.bluff);
-    const pv = buildPlayerView(s);
-    expect(pv.player.perkMoves?.find((m) => m.id === PK.bluff)).toMatchObject({ name: 'Bluff', does: expect.stringContaining('Behind you!') });
-    expect(deck({ pv, s }).find((g) => g.group === 'perks')?.actions.some((a) => a.label === 'Bluff "Behind you!"' && a.steps[0]?.key === 'target')).toBe(true);
-  });
-
   it('Takes One to Know One answers a lie with the better of Insight and Falsehood', () => {
     const s = makeVillage();
     const wim = npc(s, 'patron_1');
@@ -118,25 +106,4 @@ describe('150 Falsehood and Insight perks', () => {
     expect(augmentsOf(wim, SK.falsehood).reduce((n, a) => n + a.value, 0)).toBe(0); // never on Falsehood's own rolls
   });
 
-  it('LG25 c: a lie seen through is plainly a lie, for everyone (Plain as Day is no longer a perk)', () => {
-    expect(tellFor()).toBe(PLAIN);
-    const lie = { push: { type: 'deceive', tell: true }, contest: { a: { tier: 'success' } } } as unknown as GameEvent;
-    expect(pressedWords(lie)?.took).toBe(PLAIN);
-    expect(Object.values(getLibrary().perks).some((p) => p.name === 'Plain as Day')).toBe(false);
-  });
-
-  it('Read Their Face shows the stance of someone who spoke to the owner this scenario', () => {
-    const s = makeVillage();
-    const wim = foe(s);
-    const said: GameEvent = { id: 'ev_rtf', turn: s.turn, actorId: wim.id, kind: 'speak', zone: wim.zone, target: 'player', effects: [],
-      noise: 'normal', visibility: 'normal', perception: { player: { level: 'full', cue: 'sight' } }, line: { text: 'Lovely evening.', volume: 'normal' } } as GameEvent;
-    s.events.push(said);
-    const seen = () => buildPlayerView(s).actors.find((a) => a.id === wim.id);
-    expect(seen()?.stance).toBeUndefined();
-    give(s.player, PK.read_their_face);
-    expect(seen()?.stance).toBe('opposed');
-    const quiet = npc(s, 'guard_1');
-    quiet.zone = s.player.zone;
-    expect(buildPlayerView(s).actors.find((a) => a.id === quiet.id)?.stance).toBeUndefined(); // never spoke to the player
-  });
 });

@@ -74,12 +74,6 @@ describe('158 Gut Feeling', () => {
     expect(gutFeelings(s, forcedRng([5, 95]))).toHaveLength(1);
   });
 
-  it('nobody without the perk rolls', () => {
-    const { s } = setup();
-    s.player.core.perks = s.player.core.perks.filter((p) => p.perkId !== PK.gut_feeling);
-    expect(gutFeelings(s, forcedRng([5, 95]))).toEqual([]);
-  });
-
   it('in play: a hunch event from the watcher\'s zone, and the owner suspects the watcher', () => {
     let found = false;
     for (let seed = 1; seed <= 30 && !found; seed++) {

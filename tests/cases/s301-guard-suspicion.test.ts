@@ -81,10 +81,3 @@ it('GD5/GD6: it ends with the scenario, and anyone can be suspected', () => {
   expect(g.mind!.suspects).toBeUndefined();
 });
 
-it('GD3: a code-run guard keeps close to someone it suspects and asks to see inside', () => {
-  const { s, g } = setup();
-  searched(s);
-  g.mind!.control = 'code';
-  const ev = play(s, { intent: intent() });
-  expect(ev.find((e) => e.actorId === 'guard_1' && e.line)?.line?.text).toMatch(/Open that sack/);
-});

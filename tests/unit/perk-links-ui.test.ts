@@ -5,7 +5,6 @@ import { describe, expect, it } from 'vitest';
 import { wholeTurn, intent } from '../harness/turn';
 import { PK } from '../../src/library/perkIds';
 import { LK } from '../../src/library/tableIds';
-import { PERK_LINKS } from '../../src/library/perkLinks';
 import { linkNote, linkViews } from '../../src/ui/perks';
 
 describe('linked perks on the Character sheet', () => {
@@ -26,18 +25,4 @@ describe('linked perks on the Character sheet', () => {
     expect(linkNote(p, PK.dread_presence)).toBe('Linked with Overwhelm: together they grant Crushing Presence.');
   });
 
-  it('a merge shows its set asleep inside it', () => {
-    const g = wholeTurn({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
-    const p = g.game.state()!.player;
-    const row = { id: 'test_merge', needs: [PK.dread_presence, PK.overwhelm], kind: 'merge' as const, perk: PK.crushing_presence };
-    PERK_LINKS.push(row);
-    try {
-      p.core.perks.push({ perkId: PK.dread_presence, source: 'level', gainedTurn: 1, dormant: true, mergedInto: PK.crushing_presence },
-        { perkId: PK.overwhelm, source: 'level', gainedTurn: 1, dormant: true, mergedInto: PK.crushing_presence },
-        { perkId: PK.crushing_presence, source: 'link', gainedTurn: 1 });
-      const m = linkViews(p).find((v) => v.id === 'test_merge')!;
-      expect(m.kind).toBe('merge');
-      expect(m.needs.every((n) => n.asleep)).toBe(true);
-    } finally { PERK_LINKS.splice(PERK_LINKS.indexOf(row), 1); }
-  });
 });

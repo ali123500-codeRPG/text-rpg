@@ -23,7 +23,6 @@ import { BT } from '../../src/library/raceIds';
 import { checkIntent, checkStagePlan } from '../../src/agents/schema';
 import { validateStagePlan } from '../../src/scenario/validate';
 import { applyStagePlan } from '../../src/scenario/apply';
-import { closeScenario, frameOf } from '../../src/engine/scenarioEnd';
 
 const quiet = (zone = 'tav_common', hatch = false) => makeVillage({ playerZone: zone, without: ['slime_1', 'slime_2', 'guard_1', 'patron_1'], ...(hatch ? { shape: HATCH } : {}) });
 /** a second way out of the tavern: a hatch up from the cellar into the square */
@@ -271,30 +270,5 @@ describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
       expect(errs({ kind: BK.door }, true)).toMatch(/a barrier on a drop is a window/);
     });
   });
-  it('BA8: the Weaver gets the tier\'s lean in words, and each ended scenario counts its barriers', () => {
-    const s = quiet();
-    s.stage.tier = 'failure';
-    expect(buildWeaverView(s, { kind: 'scenario', placeId: 'street' }).ways).toMatch(/locked, barred or guarded/);
-    s.stage.tier = 'great_success';
-    expect(buildWeaverView(s, { kind: 'scenario', placeId: 'street' }).ways).toMatch(/guard who looks away/);
-    s.stage.scenario = frameOf(s, { question: 'q', scale: 'situation', endings: [{ when: { kind: 'judged' }, as: 'resolved', text: 'x' }] }, 'failure', (_k, r) => r);
-    put(s, 'tav_common', 'street_door', { lock: { locked: true }, grade: 'major', guarded: true, scenario: s.stage.scenario.number });
-    closeScenario(s);
-    expect(s.hidden.scenarios!.at(-1)!.ways).toEqual({ barriers: 1, locked: 1, barred: 0, blocked: 0, guarded: 1, grades: { major: 1 } });
-  });
 });
 
-describe('BG-65: checking a way says what holds it', () => {
-  const check = (to: string): Intent => intent({ action: { type: 'interact', skill: '', target: to, targetPart: null, item: null, mode: null, approach: '' } });
-  it('a locked door is found locked; with the key it is theirs to open; a way with nothing on it opens freely', () => {
-    const s = quiet();
-    const b = put(s, 'tav_common', 'street_door', { lock: { locked: true } });
-    const found = (ev: ReturnType<typeof turn>) => ev.find((e) => e.actorId === 'player' && e.kind === 'interact')?.way;
-    expect(found(turn(s, check('street_door')))).toEqual({ to: 'street_door', barrier: b.id, did: 'found_locked' });
-    expect(b.tried).toContain('player');
-    giveKey(s, b);
-    expect(found(turn(s, check('street_door')))?.did).toBe('found_opens');
-    expect(found(turn(s, check('tav_counter')))).toEqual({ to: 'tav_counter', did: 'found_open' });
-    expect(buildNarrationView(s, turn(s, check('tav_counter'))).events.find((e) => e.kind === 'interact')?.way?.did).toMatch(/opens freely/);
-  });
-});

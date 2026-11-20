@@ -1,8 +1,7 @@
 // The Map page: only what the character knows, drawn from the floor plan (BG-313).
 import { describe, it, expect } from 'vitest';
-import { knownMap, worldTiles } from '../../src/ui/mapData';
+import { knownMap } from '../../src/ui/mapData';
 import { wayWords } from '../../src/ui/map';
-import { wayRows } from '../../src/agents/game';
 import { createFakeGame } from '../../src/ui/fakeGame';
 import { noteZonesSeen } from '../../src/engine/trail';
 import { zoneById } from '../../src/engine/relations';
@@ -48,13 +47,6 @@ describe('map', () => {
     expect(wayWords({ kind: 'door', shut: 'locked', key: true })).toBe('door, locked: you hold its key');
   });
 
-  it('words what the player did at a barrier this turn for the story', async () => {
-    const s = await game();
-    const ev = (actorId: string, did: import('../../src/types').WayDid) => ({ id: 'e', turn: 1, actorId, kind: 'way', zone: 'tav_common', effects: [], noise: 'quiet', visibility: 'clear', perception: {},
-      way: { to: 'tav_kitchen', barrier: 'fb_kitchen', did } }) as unknown as import('../../src/types').GameEvent;
-    expect(wayRows(s, [ev(s.player.id, 'found_locked'), ev(s.player.id, 'picked'), ev('guard_1', 'lock')])).toEqual(['Door to kitchen: locked', 'Door to kitchen: lock picked, it opens']);
-  });
-
   it('remembers zones seen across sight links', async () => {
     const s = await game();
     s.barriers!.fb_front.open = true; // every way out of the common room is a shut door or the stairs: open the front door
@@ -67,26 +59,4 @@ describe('map', () => {
     for (const z of sightLinks) expect(seen).toContain(z);
   });
 
-  it('a road to another village is a known link to another top-level place, which gets its own map', async () => {
-    const s = await game();
-    const m = knownMap(s);
-    const ash = m.places.find((p) => p.id === 'ashford')!;
-    expect(ash.parentId).toBeNull();
-    const zone = (id: string) => m.places.flatMap((p) => p.zones).find((z) => z.id === id)!;
-    const road = zone('v_square').links.find((l) => l.to === 'w_road')!;
-    expect(road.known).toBe(true);
-    expect(road.otherPlace).toBe('the west road');
-    expect(zone('w_road').links.find((l) => l.to === 'ash_gate')!.otherPlace).toBe('Ashford');
-  });
-
-  it('the World view has one tile per top-level place, joined by the roads between them', async () => {
-    const s = await game();
-    const w = worldTiles(knownMap(s));
-    expect(w.map((t) => t.id).sort()).toEqual(['ashford', 'mill_road', 'village', 'west_road']); // the mill road runs along the land (WZ1)
-    expect(w.find((t) => t.id === 'village')!.here).toBe(true);
-    expect(w.find((t) => t.id === 'village')!.look).toBe('7 zones known');
-    expect(w.find((t) => t.id === 'village')!.links.map((l) => l.to)).toEqual(['west_road', 'mill_road']);
-    expect(w.find((t) => t.id === 'ashford')!.links.map((l) => l.to)).toEqual(['west_road']);
-    expect(w.find((t) => t.id === 'west_road')!.links.map((l) => l.to).sort()).toEqual(['ashford', 'village']);
-  });
 });

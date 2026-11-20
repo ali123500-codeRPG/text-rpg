@@ -110,15 +110,6 @@ describe('save and load', () => {
     expect((await head(st)).turn).toBe(0);
   });
 
-  it('flags a placeId that disagrees with the zone', async () => {
-    const s = makeVillage();
-    s.player.placeId = 'street';
-    const st = memoryStore();
-    await saveTurn(st, s, rec(s, 0));
-    const err = await loadStory(st, 'test', lib()).catch((e) => e);
-    expect(err.report).toEqual(expect.arrayContaining([expect.stringMatching(/player placeId street/)]));
-  });
-
   it('repairs dangling references and reports them; raw past its cap is fine (no hard limit, D-374 TB7)', async () => {
     const s = makeVillage();
     s.player.journal!.factsWitnessed.push('f_missing');

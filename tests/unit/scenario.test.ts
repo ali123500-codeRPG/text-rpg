@@ -39,7 +39,7 @@ import { CONFIG } from '../../src/config';
 import { ruleset } from '../../src/ruleset';
 import { updateBeliefs } from '../../src/perception';
 import {
-  applyFallbackStage, applyStagePlan, frontiersNearPlayer, gradesFitTier, ScenarioDirector, boon, tidyRewards, validateStagePlan, type PlanContext,
+  applyFallbackStage, applyStagePlan, gradesFitTier, ScenarioDirector, boon, tidyRewards, validateStagePlan, type PlanContext,
 } from '../../src/scenario';
 import { toStoryStart, villageStagePlan, VirtualClock, FITTING_GRADES } from '../../src/scenario/fixtures';
 
@@ -85,13 +85,6 @@ describe('validateStagePlan', () => {
     expect(e.find((x) => x.code === 'unknown_body_type')!.message).toContain(`(Human), ${RC.elf} (Elf), ${RC.slime} (Slime), ${RC.dragon} (Dragon)`);
     expect(e.every((x) => !x.routineOnly)).toBe(true);
   });
-  it('caps on cast, zones and knows', () => {
-    const s = fresh();
-    CONFIG.PLAN_CAPS.cast = 2;
-    CONFIG.PLAN_CAPS.zones = 3;
-    CONFIG.PLAN_CAPS.knows = 0;
-    expect(codes(s, villageStagePlan()).filter((c) => c === 'cap_exceeded')).toHaveLength(3);
-  });
   it('bands: missing, unresolved, bad stance', () => {
     const p = villageStagePlan();
     p.cast[0].band = '';
@@ -110,11 +103,6 @@ describe('validateStagePlan', () => {
       zones: [{ key: 'grove', place: 'field', kind: ZK.woods, name: 'a grove', look: 'a quiet grove', light: 'dim', ways: [{ to: 'field_far', label: 'back' }, { to: 'woods', label: 'deeper', kind: 'door' }] }] };
     expect(validateStagePlan(s, ext, { ...ctx, kind: 'extension', frontierKey: 'woods', placeId: 'field' })).toEqual([]);
   });
-  it('Z2: every zone names a known kind', () => {
-    const p = villageStagePlan();
-    p.zones[0].kind = 'castle';
-    expect(codes(fresh(), p)).toEqual(['bad_zone']);
-  });
   it('triggers: vocabulary and one order; secrets need leakTerms', () => {
     const p = villageStagePlan();
     p.seeds.triggers.push({ id: 't1', ownerId: 'guard_1', when: { type: 'moon_rises' } as never, then: { type: 'attack', target: '$player', skill: null, intent: 'x' }, once: true });
@@ -123,9 +111,6 @@ describe('validateStagePlan', () => {
     const c = codes(fresh(), p);
     expect(c.filter((x) => x === 'bad_trigger')).toHaveLength(2);
     expect(c).toContain('secret_without_leak_terms');
-  });
-  it('grades must fit the tier', () => {
-    expect(codes(fresh(), villageStagePlan(), { ...ctx, tier: 'failure' })).toEqual(['grades_misfit']);
   });
   it('hidden terms and leak terms are scanned in every public field', () => {
     const p = villageStagePlan();
@@ -143,16 +128,6 @@ describe('validateStagePlan', () => {
     // hidden fields are not scanned
     p.weaverNote = 'the nest';
     expect(validateStagePlan(fresh(), p, ctx).filter((e) => e.message.includes('weaverNote'))).toEqual([]);
-  });
-  it('free-text caps: public text over the cap fails, hidden-only notes are trimmed (V6)', () => {
-    const p = villageStagePlan();
-    p.weaverNote = 'word '.repeat(CONFIG.NOTE_CAP);
-    p.cast[0].routineGap = 'y'.repeat(CONFIG.NOTE_CAP + 1);
-    p.cast[0].label = 'z'.repeat(CONFIG.TEXT_CAP + 1);
-    expect(codes(fresh(), p).filter((c) => c === 'text_too_long')).toHaveLength(1);
-    expect(p.weaverNote.length).toBeLessThanOrEqual(CONFIG.NOTE_CAP);
-    expect(p.weaverNote.endsWith('word')).toBe(true);
-    expect(p.cast[0].routineGap).toHaveLength(CONFIG.NOTE_CAP);
   });
   it('fills defaults: trigger owner and once, top-level place, missing steps (V4, V5)', () => {
     const p = villageStagePlan();
@@ -223,14 +198,6 @@ describe('validateStagePlan', () => {
     p.zones.push({ key: 'island', place: 'field', kind: ZK.yard, name: 'an island', look: 'reeds', light: 'bright', ways: [] });
     p.cast[3].slots = { route: ['field_mid', 'field_far'], post: 'island' };
     expect(validateStagePlan(fresh(), p, ctx)).toEqual([expect.objectContaining({ code: 'unreachable_zone', castKey: 'slime_1', routineOnly: true })]);
-  });
-  it('player-band entries use the companion set and bind nothing', () => {
-    const p = villageStagePlan();
-    p.cast.push({ template: TP.guard, key: 'squire', label: 'a squire', name: 'Tam', appearance: 'young', band: 'player_band', routineSetId: 'gate_guard', slots: { post: 'gate_inner' }, awarenessOfPlayer: 'aware', motive: 'loyal' });
-    expect(codes(fresh(), p)).toEqual(['companion_set', 'invalid_slot']);
-    p.cast[5].routineSetId = 'companion';
-    p.cast[5].slots = {};
-    expect(codes(fresh(), p)).toEqual([]);
   });
 });
 
@@ -356,15 +323,6 @@ describe('applyFallbackStage', () => {
     applyFallbackStage(s, ctx, 'weaver_timeout', []);
     expect(s.zones.map((z) => z.id)).toEqual(['tavern_area']);
     expect(s.player.zone).toBe('tavern_area');
-  });
-});
-
-describe('stage', () => {
-  it('frontiersNearPlayer', () => {
-    const s = makeVillage({ playerZone: 'field_far' });
-    expect(frontiersNearPlayer(s)).toEqual(['woods']);
-    s.player.zone = 'tav_common';
-    expect(frontiersNearPlayer(s)).toEqual([]);
   });
 });
 

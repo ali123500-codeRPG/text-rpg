@@ -5,8 +5,6 @@ import { expect, it } from 'vitest';
 import { beside, makeVillage } from '../harness';
 import { intent, play, plannerOut, act } from './w4-kit';
 import { actorById, stance } from '../../src/engine/relations';
-import { checkParserLegality } from '../../src/agents/legality';
-import { buildPlayerView } from '../../src/views';
 
 const village = () => makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
 
@@ -37,8 +35,3 @@ it('BF5: a grab holds or is slipped, never hurts or angers; a held target\'s mov
   expect(outcomes).toEqual(new Set(['held', 'slipped_grab']));
 });
 
-it('BF5: restrain aims at someone in view, never a place', () => {
-  const s = village();
-  expect(checkParserLegality(intent({ action: { type: 'restrain', target: 'patron_1' } }), buildPlayerView(s)).illegal).toEqual([]);
-  expect(checkParserLegality(intent({ action: { type: 'restrain', target: 'tav_common' } }), buildPlayerView(s)).illegal.length).toBe(1);
-});

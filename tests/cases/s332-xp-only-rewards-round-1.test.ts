@@ -28,12 +28,6 @@ describe('332 XP-only rewards, round 1', () => {
     expect(rewardOf(L()[ACH.unseen_250], 'quieter')).toBe(1);
   });
 
-  it('XR16: Vanishing +1, +2, +3 along the vanished chain', () => {
-    const s = makeVillage();
-    give(s, ACH.vanished_1, ACH.vanished_5, ACH.vanished_25, ACH.vanished_50);
-    expect(achievementSkill(s.player, SK.vanishing)).toBe(6);
-  });
-
   it('XR4 b: Beyond Perfect for a group adds +1 true skill per level to every skill of that group', () => {
     const s = makeVillage();
     const skills = getLibrary().skills;

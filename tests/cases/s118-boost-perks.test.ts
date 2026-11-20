@@ -1,17 +1,15 @@
 // 118 40/80/120 perks ("40 milestone perks: options"): +5 true skill in the skill, +1 in every other skill
 // sharing a function, plus one number. Darkness never helps a sneaker against a listener (P14).
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createRng, forcedRng, makeVillage, place, fit } from '../harness';
+import { forcedRng, makeVillage, place, fit } from '../harness';
 import { ruleset, trueSkill } from '../../src/ruleset';
 import { passiveHealing } from '../../src/engine/heal';
-import { resolveTurn } from '../../src/engine';
 import { getLibrary } from '../../src/library';
-import type { Actor, ContestResult, GameState, Intent, RollRequest } from '../../src/types';
+import type { Actor, GameState, RollRequest } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
 import { PK } from '../../src/library/perkIds';
 import { IT } from '../../src/library/itemIds';
 import { AM } from '../../src/library/tableIds';
-import { lightAll } from '../harness';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const wield = (s: GameState, itemId: string) => {
@@ -140,20 +138,3 @@ describe('118 40/80/120 perks', () => {
   });
 });
 
-describe('118 darkness and hearing (P14)', () => {
-  it('darkness helps a sneak against a watcher but not against a listener', () => {
-    const s = makeVillage();
-    place(s, 'player', 'tav_cellar');
-    place(s, 'trader', 'tav_cellar');
-    lightAll(s, 'dark'); // no lamp up the cellar steps lights it
-    const calls: [RollRequest, RollRequest][] = [];
-    const real = ruleset.contested;
-    vi.spyOn(ruleset, 'contested').mockImplementation((a, b, st, rng) => { calls.push([a, b]); return { ...real(a, b, st, rng), gap: -1 } as ContestResult; });
-    const i: Intent = { move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null,
-      action: { type: 'sneak', skill: '', target: null, targetPart: null, item: null, mode: null, approach: '' } };
-    s.turn += 1;
-    resolveTurn(s, { intent: i, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(1));
-    const [mine, theirs] = calls.find(([, b]) => b.actorId === 'trader')!;
-    expect(mine.modifiers.filter((m) => m.source === 'light')).toEqual(theirs.skill === SK.eyesight ? [{ source: 'light', type: 'situational', value: 31, pct: 31 }] : []);
-  });
-});

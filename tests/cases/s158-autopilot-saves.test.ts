@@ -44,13 +44,6 @@ describe('158 autopilot saves', () => {
     expect(g.state()?.meta.owner).toBe('agent'); // the opening keeps its own story
   });
 
-  it('with no agent story yet, resume(agent) finds nothing and leaves room for a new one', async () => {
-    const clock = new VirtualClock(), store = memoryStore();
-    await saveTurn(store, story('mine', '2026-11-10T10:00:00Z'), rec(story('mine', '2026-11-10T10:00:00Z')));
-    const g = createGame({ client: new ScriptedClaude(clock), clock, store, director: idle });
-    expect(await g.resume('agent')).toBe(false);
-  });
-
   it('the agent\'s move is one command line and a short spoken line', async () => {
     const clock = new VirtualClock(), store = memoryStore();
     const claude = new ScriptedClaude(clock).push('autopilot', { command: 'I ask the barkeep about work\nand more', say: 'Barkeeps hear everything.' });

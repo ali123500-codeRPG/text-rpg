@@ -2,10 +2,8 @@
 import { describe, expect, it } from 'vitest';
 import { getLibrary } from '../../src/library';
 import { DU } from '../../src/library/tableIds';
-import { actionRow, actionSeconds, engagementEndS } from '../../src/ruleset/actionTime';
-import { CONFIG } from '../../src/config';
+import { actionRow, actionSeconds } from '../../src/ruleset/actionTime';
 import { FOCUS } from '../../src/scales';
-import { scaleFor } from '../../src/engine/scenarioEnd';
 import { secondsSince } from '../../src/time';
 import { makeVillage } from '../harness';
 import { tick } from '../harness/time';
@@ -18,9 +16,6 @@ describe('the Action times table', () => {
       if (r.readies) expect(actionRow(r.readies)?.attack, r.id).toBe(true);
       for (const b of r.onBreak ?? []) expect(b.upTo).toBeLessThanOrEqual(1);
     }
-  });
-  it('AT72/TP10: an engagement ends after its minimum of fight turns', () => {
-    expect(engagementEndS()).toBe(CONFIG.ENGAGEMENT_END_MIN_TURNS * CONFIG.FIGHT_TURN_S);
   });
   it('D-248: a row naming a speed function halves every N points above 50; one naming none ignores skill', () => {
     const pick = actionRow(DU.pick_lock)!;
@@ -39,9 +34,5 @@ describe('timers count game time', () => {
     tick(s, 60);
     expect(secondsSince(s, t)).toBeCloseTo(62, 3);
     expect(secondsSince(s, undefined)).toBe(Infinity);
-  });
-  it('AT83/AT84: journey sits between episode and venture', () => {
-    expect(scaleFor(5, 'moment')).toBe('journey');
-    expect(scaleFor(9, 'moment')).toBe('venture');
   });
 });

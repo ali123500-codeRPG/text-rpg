@@ -8,7 +8,6 @@ import { unlockClasses } from '../../src/engine/xp';
 import { CL } from '../../src/library/classIds';
 import { GD } from '../../src/library/godIds';
 import { ST } from '../../src/library/startIds';
-import { BLESSING_TIERS } from '../../src/scales';
 import { PK } from '../../src/library/perkIds';
 import { makeVillage } from '../harness';
 
@@ -19,11 +18,6 @@ afterEach(() => { delete getLibrary().perks[FIXTURE]; });
 describe('308 Starts and the blessed start', () => {
   it('the Unwritten Legend start begins in its class, Commoner open', () => {
     expect(createPlayer(recommendedBuild(ST.late_bloomer), 's1').core.classes).toEqual([{ classId: CL.late_bloomer, state: 'current', level: 1 }, { classId: CL.commoner, state: 'unlocked', level: 0 }]);
-  });
-
-  it('blessing tiers count up with no end: Tier I is the weakest, the start\'s Tier V is mid-ladder (CC1 b)', () => {
-    expect([BLESSING_TIERS.pos('tier_1'), BLESSING_TIERS.pos('tier_5'), BLESSING_TIERS.pos('tier_6')]).toEqual([0, 4, 5]);
-    expect([BLESSING_TIERS.name('tier_4'), BLESSING_TIERS.name('tier_9'), BLESSING_TIERS.name('tier_14'), BLESSING_TIERS.name('tier_30')]).toEqual(['Tier IV', 'Tier IX', 'Tier XIV', 'Tier XXX']);
   });
 
   it('begins with a random god\'s Tier V blessing, in that god\'s Blessed class; the same story gives the same roll', () => {

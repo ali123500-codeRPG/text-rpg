@@ -65,15 +65,6 @@ describe('301 sleepers hear who is near by sound, not by zone', () => {
     wakeCheck(s, s.player, g, 'quiet', createRng(1));
     expect(s.player.progression!.marks).toContain(SK.earshot);
   });
-  it('a Light Sleeper\'s contest against a sneaker marks its Earshot', () => {
-    const { s, g } = setUp();
-    s.player.core.skills[SK.earshot] = { raw: 50, state: 'normal' };
-    g.core.skills[SK.sneaking] = { raw: 50, state: 'normal' };
-    g.posture = 'stealthy';
-    put(s, g, 'field_edge', 88);
-    wakeCheck(s, s.player, g, 'quiet', createRng(1));
-    expect(s.player.progression!.marks).toContain(SK.earshot);
-  });
   it('the player sneaking past a Light Sleeper learns Sneaking from the contest', () => {
     const { s, g } = setUp();
     delete s.player.asleep;

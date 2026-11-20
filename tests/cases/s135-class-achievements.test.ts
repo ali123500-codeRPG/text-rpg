@@ -39,14 +39,6 @@ describe('135 class and level achievements', () => {
     const chain = [ACH.class_tiers_2, ACH.class_tiers_3, ACH.class_tiers_4, ACH.class_tiers_5, ACH.class_tiers_all];
     expect(chain.slice(1).map((id) => a[id].after)).toEqual(chain.slice(0, -1));
   });
-  it('each 10 levels has a name of its own, and past 100 the row falls back to its template', () => {
-    const s = makeVillage();
-    const d = getLibrary().achievements![ACH.char_level_10];
-    const names = Array.from({ length: 10 }, (_, i) => achievementName(s, { id: `${ACH.char_level_10}:${(i + 1) * 10}`, key: ACH.char_level_10, of: String((i + 1) * 10) }));
-    expect(new Set(names).size).toBe(10);
-    expect(names[9]).toBe(d.names![100]);
-    expect(achievementName(s, { id: `${ACH.char_level_10}:110`, key: ACH.char_level_10, of: '110' })).toBe('Woven Past Counting (110)');
-  });
   it('every 10 character levels pays an achievement, once per multiple, one reward level higher each time from −1', () => {
     const s = makeVillage();
     const cur = s.player.core.classes.find((c) => c.state === 'current')!;

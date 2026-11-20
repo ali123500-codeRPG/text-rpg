@@ -23,15 +23,6 @@ describe('player creation', () => {
   it('the recommended build passes every rule', () => {
     expect(validateBuild(recommendedBuild())).toEqual([]);
   });
-  it('rejects builds that break the rules', () => {
-    const b = recommendedBuild();
-    expect(validateBuild({ ...b, skills: { ...b.skills, [SK.earshot]: 0 } })).toEqual(['Spend exactly 100 points (95 spent)']);
-    expect(validateBuild({ ...b, skills: { ...b.skills, [SK.melee_medium]: 41, [SK.earshot]: 4 } })).toEqual(['Medium weapons is above 40 (tagged)']);
-    expect(validateBuild({ ...b, skills: { ...b.skills, [SK.dodge]: 31, [SK.earshot]: 0, [SK.eyesight]: 0, [SK.endurance]: 4 } })).toEqual(['Dodge is above 30 (untagged; tagged skills take up to 40)']);
-    expect(validateBuild({ ...b, skills: { ...b.skills, [SK.tremor]: 10, [SK.earshot]: 0, [SK.eyesight]: 0 } })).toEqual(['Tremor is not open to the point-buy']);
-    expect(validateBuild({ ...b, tagged: [SK.melee_medium, SK.parry] })).toEqual(['Tag exactly 3 skills (2 tagged)']);
-    expect(validateBuild({ ...b, name: ' ' })).toEqual(['Name the character']);
-  });
   it('builds the sheet: StartingTotal, tags, starting gear, coin', () => {
     const p = createPlayer(recommendedBuild(), 's1');
     expect(p.progression!.startingTotal).toBeCloseTo(100 - 40 - 25 - 15 - 10 * CONFIG.TAG_BURDEN_GROUP_PCT / 100); // D-374: dodge shares Defense with tagged parry

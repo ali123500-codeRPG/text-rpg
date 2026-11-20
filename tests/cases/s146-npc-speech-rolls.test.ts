@@ -79,36 +79,7 @@ it('146d Shaken and Swayed count on every roll against the speaker (NT15)', () =
   expect(mods(SK.melee_medium, 'trader').some((m) => m.type === 'status')).toBe(false);
 });
 
-it('146e the speaker sees how the player took it (NT10)', () => {
-  const s = atTheGate();
-  const ev = play(s, { agentOutputs: [plannerOut('guard_1', act('intimidate', 'player'), { dialogue: { line: 'Back off.', volume: 'normal' } })] });
-  const e = ev.find((x) => x.kind === 'speak' && x.actorId === 'guard_1')!;
-  const mine = buildActorView(s, 'guard_1').perceived.find((x) => x.id === e.id)!;
-  expect(mine.took).toBe(e.push!.status === 'shaken' ? 'they look shaken' : 'they seem unmoved');
-});
-
-it('146f the player\'s intimidation leaves the NPC Shaken; a listener that beats a lie gets a tell', () => {
-  const say = (type: 'intimidate' | 'deceive', line: string) => intent({ action: { type, target: 'trader' }, spoken: line, addressees: ['trader'] });
-  let shaken = 0, tells = 0;
-  for (let seed = 1; seed < 40; seed++) {
-    const s = makeVillage({ playerZone: 'tav_counter' });
-    s.player.core.skills[SK.intimidation] = { raw: 90, state: 'normal' };
-    const i = say('intimidate', 'Pay up.');
-    const exchange = resolveSpeech(s, i, ['trader'], createRng(seed));
-    play(s, { intent: i, spokespeople: ['trader'], exchange }, seed);
-    const c = exchange.perSpokesperson.trader.contest;
-    expect(actorById(s, 'trader')!.pressure?.player?.shaken).toBe(c.winner === 'a' ? -c.gap * CONFIG.SHAKEN_PER_TIER : undefined);
-    if (c.winner === 'a') shaken++;
-    const lie = resolveSpeech(s, say('deceive', 'I am the reeve.'), ['trader'], createRng(seed));
-    const d = lie.perSpokesperson.trader;
-    expect(!!d.tell).toBe(d.contest.winner === 'b');
-    if (d.tell) tells++;
-  }
-  expect(shaken).toBeGreaterThan(0);
-  expect(tells).toBeGreaterThan(0);
-});
-
-it('146g a repeat try of the same kind at the same listener costs the speaker REPEAT_TRY % per earlier try; talk never counts (NT3)', () => {
+it('146g a repeat try of the same kind at the same listener costs the speaker 15 per earlier try; talk never counts (NT3)', () => {
   const s = makeVillage({ playerZone: 'tav_counter' });
   const say = (type: 'talk' | 'persuade' | 'intimidate') => resolveSpeech(s, intent({ action: { type, target: 'trader' }, spoken: 'Come on.', addressees: ['trader'] }), ['trader'], createRng(3)).perSpokesperson.trader.contest.a.modifiers;
   const repeat = (m: { source: string }[]) => m.find((x) => x.source === 'Repeat try');

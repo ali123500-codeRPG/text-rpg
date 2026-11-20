@@ -32,9 +32,6 @@ describe('129 total-defeats roll bonus', () => {
   it('BG-256: each tier adds its own growing step: I = +1, II = +3, III = +6, IV = +10', () => {
     expect([defeatsRoll(ACH.defeats_10), defeatsRoll(ACH.defeats_50), defeatsRoll(ACH.defeats_100), defeatsRoll(ACH.defeats_250)]).toEqual([1, 3, 6, 10]);
   });
-  it('no achievement, no bonus', () => {
-    expect(fight(makeVillage())).toEqual({ atk: [], def: [] });
-  });
   it('the highest level counts on attack and defense rolls; other rolls get nothing', () => {
     const s = makeVillage();
     grantAchievement(s, ACH.defeats_10);

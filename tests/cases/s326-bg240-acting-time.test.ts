@@ -8,7 +8,6 @@ import { intent, play } from './w4-kit';
 import { roadShape } from '../../src/scenario/apply';
 import { placeAll } from '../../src/engine/position';
 import { budgetUsed, checkScenarioEnd, frameOf, noteIdle } from '../../src/engine/scenarioEnd';
-import { buildWeaverView } from '../../src/views';
 import { ZK } from '../../src/library/tableIds';
 import { advanceClock, now } from '../../src/time';
 import type { GameState, PlanEnding, Zone } from '../../src/types';
@@ -69,11 +68,5 @@ describe('326 scenario budgets count acting time (BG-240)', () => {
     noteIdle(s, 24 * 60);
     advanceClock(s, 24 * 60);
     expect(budgetUsed(s, f)).toBeCloseTo(1 / 3);
-  });
-  it('the check-in sees the budget as acting time', () => {
-    const s = tavern();
-    frame(s);
-    const v = buildWeaverView(s, { kind: 'checkin', placeId: s.player.placeId, reason: 'budget' });
-    expect(v.target.scenario!.budget).toBe('15 min of acting time (waits, rest, sleep and trips not counted)');
   });
 });

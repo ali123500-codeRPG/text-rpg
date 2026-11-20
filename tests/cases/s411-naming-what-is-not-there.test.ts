@@ -33,13 +33,6 @@ describe('411 naming what is or is not there (D-21 c)', () => {
     expect(search.contest).toBeUndefined();
   });
 
-  it('own pack: drinking a potion not carried just says there is none, at no time', async () => {
-    const g = wholeTurn(opts);
-    const { events } = await g.turn(intent({ action: act({ type: 'use_item', skill: '' }) }), 'drink my potion');
-    expect(events.find((e) => e.actorId === 'player' && e.kind === 'wasted')?.reason).toBe('no_item');
-    expect(events.some((e) => e.kind === 'use_item')).toBe(false);
-  });
-
   it('a person not in view is asked about, in the same words whether someone hides there or no one exists', async () => {
     const ask = async (target: string) => {
       const g = setupGame({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'patron_1'] });

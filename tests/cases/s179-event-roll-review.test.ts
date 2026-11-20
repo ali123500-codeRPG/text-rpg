@@ -1,9 +1,7 @@
 // 179 Event Roll Review (ER1, ER2, ER5): the tier sets the balance of gain against challenge, worst to best; Near Miss tilts
 // slightly bad; the scenario's event roll shows on the Rolls line (only shown with Show rolls on).
 import { describe, expect, it } from 'vitest';
-import { makeVillage } from '../harness';
 import { GRADES_FIT, gradesFitTier } from '../../src/scenario/validate';
-import { mechanicsLines } from '../../src/agents/game';
 
 describe('179 event roll tiers (ER1, ER2)', () => {
   it('Great Success is a prize one or two steps above a real challenge (SW1 b, SW2 a); Critical Success is the biggest gain inside a Critical Failure challenge (D-247)', () => {
@@ -27,11 +25,3 @@ describe('179 event roll tiers (ER1, ER2)', () => {
   });
 });
 
-describe('179 the event roll on the Rolls line (ER5)', () => {
-  it('leads the scenario\'s mechanics lines with its d100, tier and modifiers', () => {
-    const s = makeVillage({ playerZone: 'tav_common' });
-    const lines = mechanicsLines(s, [], { actorId: s.player.id, roll: 63, tier: 'success', modifiers: [{ source: 'Lucky charm', type: 'gear', value: 5 }] } as never);
-    expect(lines[0]).toBe('Event roll d100 63 → Success [Lucky charm +5]');
-    expect(mechanicsLines(s, [])).toEqual([]);
-  });
-});

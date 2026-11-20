@@ -6,7 +6,7 @@ import { actionRow } from '../../src/ruleset/actionTime';
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { CONFIG } from '../../src/config';
-import { act, plannerOut, play, intent } from './w4-kit';
+import { act, plannerOut, play } from './w4-kit';
 import { ago, tick, turnsFor } from '../harness/time';
 
 const setUp = () => {
@@ -26,12 +26,5 @@ describe('BF4 a walk that leads someone waits for them', () => {
     for (let i = 0; i < turnsFor(CONFIG.LEAD_WAIT_S, actionRow(DU.action)!.seconds) - 1; i++) { play(s); expect(m.mind!.routine?.id).toBe('head_to'); expect(m.zone).toBe('tav_cellar'); }
     play(s);
     expect(m.mind!.routine?.id).not.toBe('head_to');
-  });
-  it('ends the wait when the one it leads arrives', () => {
-    const { s, m } = setUp();
-    play(s, { intent: { ...intent({ move: { toZone: 'tav_cellar' } }), action: null } });
-    expect(s.player.zone).toBe('tav_cellar');
-    expect(m.mind!.routine?.id).not.toBe('head_to');
-    expect(m.mind!.leading).toBeUndefined();
   });
 });

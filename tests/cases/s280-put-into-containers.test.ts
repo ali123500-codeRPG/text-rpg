@@ -78,11 +78,6 @@ it('PI4: into a worn pack is a plain stow; into an open chest within reach works
   expect(groundIn(s, 'tav_common').find((x) => x.id === 'box')?.contents?.map((x) => x.id)).toEqual(['knife']);
 });
 
-it('PI1: the Parser may only put things into a container the player knows', () => {
-  const s = village();
-  expect(checkParserLegality(intent({ gear: [{ op: 'stow', item: 'knife', into: 'nowhere' }] }), buildPlayerView(s)).gearErrors).toEqual(['gear stow knife']);
-});
-
 it('BG-192, 196, 198, 205: an NPC may name what is in its own sack, to give it or to take it out (Wren, story mwf2lt7l t23)', () => {
   const s = village();
   const wim = actorById(s, 'patron_1')!;

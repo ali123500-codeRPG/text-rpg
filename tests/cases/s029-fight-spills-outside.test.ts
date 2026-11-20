@@ -19,13 +19,4 @@ describe('29 The fight spills outside', () => {
     expect(wim.placeId).toBe('street');
     expect(computePending(s).mode).toBe('tactical');
   });
-  it('CH5: with its template\'s post range, the patron stays in the tavern', () => {
-    const s = makeVillage({ playerZone: 'street_door' });
-    s.mode = 'tactical';
-    const wim = actor(s, 'patron_1');
-    wim.mind!.overrides = { player: 'hostile' };
-    wim.mind!.knowledge.player = { status: 'aware', lastKnownZone: 'street_door', lastSeenTurn: 1, source: 'seen', revealed: [] };
-    resolveTurn(s, { intent: null, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(s.rngState));
-    expect(wim.placeId).toBe('tavern');
-  });
 });

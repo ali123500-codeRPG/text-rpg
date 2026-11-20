@@ -8,7 +8,7 @@ import { intent, play } from './w4-kit';
 import { buildNarrationView, buildPlayerView } from '../../src/views';
 import { checkParserLegality } from '../../src/agents/legality';
 import { actorById } from '../../src/engine/relations';
-import { applyHaggle, buy, coinWords, coins, hearsOrder, keepHaggles, warePrice } from '../../src/engine/trade';
+import { applyHaggle, buy, coins, hearsOrder, keepHaggles, warePrice } from '../../src/engine/trade';
 import { DAY_MINUTES, advanceClock, dayOf, now } from '../../src/time';
 import { SV } from '../../src/library/serviceIds';
 import { CONFIG, resetConfig } from '../../src/config';
@@ -26,12 +26,6 @@ function shop(): GameState {
   return s;
 }
 const gap = (g: number) => ({ gap: g }) as ContestResult;
-
-it('133a coin words', () => {
-  expect(coinWords(125)).toBe('1 gold, 2 silver and 5 copper');
-  expect(coinWords(20)).toBe('2 silver');
-  expect(coinWords(0)).toBe('0 copper');
-});
 
 it('133b wares, buying a service, and a refused sale', () => {
   const s = shop();

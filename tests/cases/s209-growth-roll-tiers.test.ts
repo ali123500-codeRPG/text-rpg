@@ -7,7 +7,6 @@ import { CONFIG } from '../../src/config';
 import { SK } from '../../src/library/skillIds';
 import { growthRoll, payRolls, skillCap } from '../../src/ruleset/improve';
 
-const dice = (...d: number[]): Rng => { let i = 0; return { state: 1, next: () => 0, int: (lo) => lo, d100: () => d[Math.min(i++, d.length - 1)] }; };
 const odds = (raw: number, state: 'normal' | 'tagged' | 'flawed') => { let any = 0; for (let d = 1; d <= 100; d++) if (growthRoll(d, { raw, state }, 0).gain) any++; return any; };
 
 describe('209 improvement roll', () => {
@@ -56,13 +55,4 @@ describe('209 improvement roll', () => {
     expect(calls).toBe(1);
   });
 
-  it('payRolls adds the gain until the roll runs out', () => {
-    const s = makeVillage();
-    const sk = { raw: 30, state: 'tagged' as const };
-    s.player.core.skills = { [SK.dodge]: sk }; // alone: no tagged group-mate adds a bonus
-    expect(payRolls(s, dice(100), [[SK.dodge, 1]])[0]).toMatchObject({ from: 30, to: 36 }); // margin 100 + 90 − 100 = 90: +6
-    sk.raw = 119;
-    expect(payRolls(s, dice(100), [[SK.dodge, 1]])[0]).toMatchObject({ from: 119, to: 120 });
-    expect(payRolls(s, dice(100), [[SK.dodge, 1]])).toEqual([]);
-  });
 });

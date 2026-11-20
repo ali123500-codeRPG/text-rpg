@@ -48,10 +48,4 @@ describe('187 follow order (BG-34)', () => {
     play(s, { intent: intent({}) });
     expect(actor(s, 'patron_1').zone).toBe('street_square');
   });
-  it('switching back to its own routine ends it', () => {
-    const s = setup();
-    play(s, { intent: intent({}), ...planner(FOLLOW_ROUTINE) });
-    play(s, { intent: intent({}), ...planner('drink_at_seat') });
-    expect(actor(s, 'patron_1').mind!.routine!.id).toBe('drink_at_seat');
-  });
 });

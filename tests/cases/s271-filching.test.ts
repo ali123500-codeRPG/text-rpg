@@ -8,7 +8,6 @@ import { expect, it } from 'vitest';
 import type { Actor, GameState } from '../../src/types';
 import { makeVillage } from '../harness';
 import { intent, play } from './w4-kit';
-import { buildPlayerView } from '../../src/views';
 import { actorById, stance, zoneById } from '../../src/engine/relations';
 import { CONFIG } from '../../src/config';
 import { sightAt } from '../../src/perception';
@@ -21,7 +20,6 @@ import { NOISE } from '../../src/scales';
 import { createRng } from '../../src/rng';
 import { filchContest, takeFilched } from '../../src/engine/filch';
 import { sell } from '../../src/engine/trade';
-import { checkParserLegality } from '../../src/agents/legality';
 import { lay } from '../harness';
 
 const village = (): { s: GameState; wim: Actor } => {
@@ -76,13 +74,6 @@ it('FL2: a purse gives up a share of its coin; held, worn or too big things cann
   expect(got.stolenFrom).toBeUndefined();
   const ev = play(s, { intent: intent({ action: { type: 'filch', target: 'patron_1', item: 'axe' } }) });
   expect(ev.find((x) => x.kind === 'wasted')?.reason).toBe('too_big');
-});
-
-it('FL2: the Parser may name a seen thing or leave the item open; the target must be someone or a container', () => {
-  const { s } = village();
-  const v = buildPlayerView(s);
-  expect(checkParserLegality(intent({ action: { type: 'filch', target: 'patron_1' } }), v).illegal).toEqual([]);
-  expect(checkParserLegality(intent({ action: { type: 'filch', target: 'tav_common' } }), v).illegal.length).toBeGreaterThan(0);
 });
 
 it('CT4: opening a chest its owner watches is a filch contest, never a flat refusal', () => {

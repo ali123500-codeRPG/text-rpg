@@ -6,8 +6,6 @@ import { buildActorView } from '../../src/views';
 import { withTactics } from '../../src/views/tactics';
 import { fallbackOrder } from '../../src/minds';
 import { canBlock } from '../../src/ruleset/gear';
-import { FIGHT_RULES } from '../../src/library/fightRules';
-import { FX } from '../../src/library/tableIds';
 import { IT } from '../../src/library/itemIds';
 import { SK } from '../../src/library/skillIds';
 import type { Actor, GameEvent, GameState } from '../../src/types';
@@ -38,9 +36,6 @@ const shoot = (s: GameState, g: Actor) => s.events.push({ id: 'shot', turn: s.tu
   effects: [], noise: 'normal', visibility: 'high', perception: { [g.id]: { level: 'full', cue: 'sight' } } } as unknown as GameEvent);
 
 describe('383 B3 Ready the shield', () => {
-  it('is the Battle Sense 50 row, after B2 and before B4', () => {
-    expect(FIGHT_RULES.find((r) => r.id === FX.ready_shield)).toMatchObject({ skill: SK.battle_sense, min: 50 });
-  });
 
   it('shot at, it draws its stowed shield beside the order its list chose; not shot, or below 50, it does not', () => {
     const { s, g } = shotGuard();

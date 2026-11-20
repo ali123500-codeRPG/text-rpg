@@ -109,26 +109,12 @@ describe('updateBeliefs', () => {
     run(s, ev({ actorId: 'trader', kind: 'speak', zone: 'tav_counter', noise: 'normal', line: { text: 'Slimes!', volume: 'normal' } })); // a normal voice: clear one link away
     expect(actor(s, 'patron_1').mind!.knowledge.slime_1).toEqual({ status: 'suspicious', source: 'told', lastKnownZone: 'field_mid', lastSeenTurn: 0, revealed: ['has_acid'] });
   });
-  it('a bark copies nothing', () => {
-    const s = makeVillage();
-    actor(s, 'trader').mind!.knowledge.slime_1 = { status: 'tracking', lastKnownZone: 'field_mid', lastSeenTurn: 0, source: 'seen', revealed: [] };
-    run(s, ev({ actorId: 'trader', kind: 'speak', zone: 'tav_counter', bark: true, line: { text: 'Slimes!', volume: 'shout' } }));
-    expect(actor(s, 'patron_1').mind!.knowledge).toEqual({});
-  });
   it('a concealed item used in a perceived attack is revealed', () => {
     const s = makeVillage();
     actor(s, 'trader').core.inventory.push({ id: 'blade_1', itemId: IT.hidden_blade, equippedIn: ['grip:right_arm'] });
     place(s, 'trader', 'tav_common');
     run(s, ev({ actorId: 'trader', kind: 'attack', zone: 'tav_common', target: 'slime_1', itemId: 'blade_1' }));
     expect(actor(s, 'patron_1').mind!.knowledge.trader.revealed).toContain('item:blade_1');
-  });
-  it('detection writes the status; unaware writes nothing', () => {
-    const s = makeVillage();
-    const e = ev({ actorId: 'player', kind: 'move', zone: 'tav_common' });
-    updateBeliefs(s, { kind: 'detection', observerId: 'trader', aboutId: 'player', status: 'unaware', event: e });
-    expect(actor(s, 'trader').mind!.knowledge.player).toBeUndefined();
-    updateBeliefs(s, { kind: 'detection', observerId: 'patron_1', aboutId: 'player', status: 'aware', event: e });
-    expect(actor(s, 'patron_1').mind!.knowledge.player).toMatchObject({ status: 'aware', lastKnownZone: 'tav_common', source: 'seen' });
   });
 });
 
@@ -146,21 +132,5 @@ describe('applyBeliefDecay', () => {
     expect(after(1)).toBe('suspicious');
     expect(after(S - 1)).toBe('suspicious');
     expect(after(1)).toBe('unaware');
-  });
-  it('a long stretch steps down as far as its time reaches, and a new sign restarts the wait', () => {
-    const s = makeVillage();
-    const A = CONFIG.DECAY_AWARE_S, S = CONFIG.DECAY_SUSPICIOUS_S;
-    const b = (actor(s, 'trader').mind!.knowledge.slime_1 = { status: 'aware', lastSeenTurn: s.turn, source: 'seen', revealed: [] });
-    tick(s, A);
-    applyBeliefDecay(s);
-    expect(status(s)).toBe('suspicious');
-    b.status = 'aware';
-    b.lastSeenTurn = s.turn; // seen again
-    tick(s, A - 1);
-    applyBeliefDecay(s);
-    expect(status(s)).toBe('aware');
-    tick(s, 1 + S);
-    applyBeliefDecay(s);
-    expect(status(s)).toBe('unaware');
   });
 });

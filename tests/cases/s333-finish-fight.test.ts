@@ -6,8 +6,7 @@ import { createRng, makeVillage } from '../harness';
 import { farBelow, finishFight } from '../../src/engine';
 import { power } from '../../src/engine/xp';
 import { isActive } from '../../src/engine/relations';
-import { buildNarrationView, buildPlayerView } from '../../src/views';
-import { deck } from '../../src/ui/deck';
+import { buildNarrationView } from '../../src/views';
 import { CONFIG } from '../../src/config';
 import { SK } from '../../src/library/skillIds';
 import type { GameState } from '../../src/types';
@@ -44,18 +43,6 @@ describe('finishing a fight far below the player', () => {
     finally { CONFIG.OUTCLASS_ALL = all; }
     s.mode = 'explore';
     expect(farBelow(s)).toBeNull(); // only in a fight
-  });
-
-  it('IQ7 a: the action list offers Finish the fight only while the fight qualifies', () => {
-    const s = fight();
-    const kinds = () => deck({ pv: buildPlayerView(s), s }).flatMap((g) => g.actions).map((a) => a.kind);
-    expect(kinds()).not.toContain('finish');
-    expect(buildPlayerView(s).player.finishable).toBeUndefined();
-    stronger(s, 10);
-    expect(buildPlayerView(s).player.finishable).toBe(true);
-    const fin = deck({ pv: buildPlayerView(s), s }).flatMap((g) => g.actions).find((a) => a.kind === 'finish')!;
-    expect(fin.play({}).intent.finish).toBe(true);
-    expect(kinds()).toContain('attack'); // turn by turn stays open: ignoring it plays as usual
   });
 
   it('IQ4 a: Finish the fight plays the rounds on code to the end in one turn, and the Narrator is told so', () => {

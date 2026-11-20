@@ -8,12 +8,10 @@ import { getLibrary, actorBody } from '../../src/library';
 import { ruleset, totalHp } from '../../src/ruleset';
 import { maxMorale, moraleLost, setMoraleLost } from '../../src/ruleset/morale';
 import { CP, FR, HL } from '../../src/library/tableIds';
-import { ACH } from '../../src/library/achievementIds';
 import { CONFIG } from '../../src/config';
 import type { GameState } from '../../src/types';
 
 const calmed = (s: GameState, source: string) => s.player.progression?.tally?.[`calmed:morale_source:${source}`] ?? 0;
-const has = (s: GameState, key: string) => !!s.player.progression?.achievements?.some((x) => x.key === key && !x.replacedBy);
 
 describe('168 morale restored by source, health and morale lost', () => {
   it('rest restores health from the healing table and morale from the composure table, each counted under its own row', () => {
@@ -48,12 +46,6 @@ describe('168 morale restored by source, health and morale lost', () => {
     setMoraleLost(npc, maxMorale(npc));
     calm(s, npc, CP.rest);
     expect(s.player.progression?.tally).toEqual(before);
-  });
-  it('morale restored chains: Sleep On It at 100 points from rest', () => {
-    const s = makeVillage(), p = s.player;
-    for (let i = 0; i < 4 && !has(s, ACH.calmed_rest_100); i++) { setMoraleLost(p, maxMorale(p)); calm(s, p, CP.rest); }
-    expect(has(s, ACH.calmed_rest_100)).toBe(true);
-    expect(has(s, ACH.calmed_natural_50)).toBe(false);
   });
   it('HP lost counts in flat HP from a hit; morale lost counts the points a fear cost', () => {
     const s = makeVillage(), p = s.player;

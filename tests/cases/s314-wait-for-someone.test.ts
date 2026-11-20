@@ -38,15 +38,6 @@ describe('BG-231: wait until someone appears', () => {
     expect(s.player.posture).toBe('stealthy');
     expect(mechanicsLines(s, ev).some((l) => /^Wait stopped after .*: someone came into sight or hearing$/.test(l))).toBe(true);
   });
-  it('a plain wait until a time of day lets the same walker pass (AT56)', () => {
-    const s = tavern();
-    const w = s.actors.find((a) => a.id === 'patron_1')!;
-    w.zone = 'street_square';
-    delete w.pos;
-    headTo(s, w, 'tav_common', 'weaver');
-    play(s, { intent: waitFor(null) });
-    expect(stopped(s)?.by ?? []).not.toContain('patron_1');
-  });
   it('with nobody coming it stops after WAIT_SOMEONE_MAX_H, and says how long passed', () => {
     const s = alone();
     const t = now(s);

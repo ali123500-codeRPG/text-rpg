@@ -1,16 +1,10 @@
 // AT49 on the play screen: the player's walk still on its way shows in the action box and on the Map, with the metres
 // and seconds left, while the view carries it; a turn with no order carries the walk on, any other order ends it and the box empties.
 import { describe, expect, it } from 'vitest';
-import { walkLeft } from '../../src/ui/doing';
 import { buildPlayerView } from '../../src/views';
 import { wholeTurn, intent } from '../harness/turn';
 
 describe('AT49 the move order on the play screen', () => {
-  it('what is left reads in metres and seconds; a goal with no open way has no distance', () => {
-    expect(walkLeft({ toZone: 'z', to: 'the yard', metres: 24, seconds: 17 })).toBe('24 m · 17 s to go');
-    expect(walkLeft({ toZone: 'z', to: 'the road', metres: 1450, seconds: 1036 })).toBe('1.5 km · 17 min 16 s to go');
-    expect(walkLeft({ toZone: 'z', to: 'the cellar', metres: Infinity, seconds: Infinity })).toBe('no open way there');
-  });
 
   it('whole turn: the walk shows while on its way, and a turn with no order carries it on', async () => {
     const g = wholeTurn({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });

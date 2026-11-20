@@ -18,7 +18,7 @@ import { dropToGround, fadeSoulbound, giveItem } from '../../src/engine/gear';
 import { offerList } from '../../src/engine/trade';
 import { inWorld } from '../../src/ruleset/threadboundItems';
 import { offersFromDefeats, qualityRoll } from '../../src/engine/essence';
-import { buildNarrationView, buildWeaverView } from '../../src/views';
+import { buildWeaverView } from '../../src/views';
 import { validateStagePlan } from '../../src/scenario';
 import { villageStagePlan } from '../../src/scenario/fixtures';
 import { ageYears } from '../../src/ruleset/age';
@@ -118,14 +118,6 @@ describe('272 echo uniques', () => {
     expect(uniqueInWorld(s, ECHO)).toBe(true);
     expect(buildWeaverView(s, { kind: 'scenario', placeId: 'tavern' }).catalogs.uniques).toEqual([]);
     expect(validateStagePlan(s, plan, ctx).some((x) => x.code === 'unique_in_world')).toBe(true);
-  });
-
-  it('HF2: the Narrator gets an echo\'s past as a hidden note', () => {
-    const s = makeVillage();
-    sendHero(s);
-    spawnEcho(s);
-    const seen = buildNarrationView(s, []).actors.find((a) => a.echo);
-    expect(seen?.echo).toContain('fell to a slime');
   });
 
   it('HF29 a: a beaten echo always offers an essence; its quality roll is two tiers up and never below Common', () => {

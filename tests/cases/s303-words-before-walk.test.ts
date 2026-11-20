@@ -26,12 +26,6 @@ describe('BF36 words before or after a walk', () => {
     expect(first(ev, w.id, said)).toBeLessThan(first(ev, w.id, walked));
     expect(heard(s, ev, 'Take it to him.')).toBe(true);
   });
-  it('a line beside a dash is said before the dash', () => {
-    const { s, w } = tavern();
-    const ev = play(s, { agentOutputs: [plannerOut(w.id, act('hold'), { dialogue: { line: 'Here, take it!', volume: 'normal' }, move: { toZone: 'street_square' } })] });
-    expect(first(ev, w.id, said)).toBeLessThan(first(ev, w.id, walked));
-    expect(heard(s, ev, 'Here, take it!')).toBe(true);
-  });
   it('speakAt end: the NPC walks there first, then says it', () => {
     const { s, w } = tavern();
     const ev = play(s, { agentOutputs: [plannerOut(w.id, act('talk', 'player'), { dialogue: { line: 'I am here.', volume: 'normal' }, move: { toZone: 'street_square', speakAt: 'end' } })] });

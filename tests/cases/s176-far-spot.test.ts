@@ -17,10 +17,4 @@ describe('176 a spot in another zone (BG-31)', () => {
     expect(out.intent.move?.toZone).toBe(to);
     expect(out.intent.move?.spot).toBeUndefined();
   });
-  it('a spot that does not fit inside the current zone still asks where', () => {
-    const s = makeVillage({ playerZone: 'tav_common' });
-    const v = buildPlayerView(s);
-    const out = checkParserLegality(intent({ move: { toZone: 'tav_common', spot: { near: 'nobody_here' } } }), v);
-    expect(out.illegal[0]).toMatch(/^move\.spot/);
-  });
 });

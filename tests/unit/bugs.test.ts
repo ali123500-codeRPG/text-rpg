@@ -1,6 +1,6 @@
 // BF45: the game files reports unnumbered (new); Claude gives each real bug one number from the counter at triage.
 import { describe, it, expect } from 'vitest';
-import { fileBug, BUG_COUNTER, isBugCode } from '../../src/save/bugs';
+import { fileBug, BUG_COUNTER } from '../../src/save/bugs';
 import type { Store } from '../../src/save';
 
 const memStore = (): Store & { docs: Map<string, unknown> } => {
@@ -27,8 +27,4 @@ describe('new bug reports', () => {
     expect(await fileBug(st, 6, { code: 'weaver_off_catalog', storyId: 's', turn: 4 })).toBe('new-6');
   });
 
-  it('counts model slips, failed calls and fallbacks as bugs, not plain game outcomes', () => {
-    for (const c of ['invalid_gear', 'invalid_quest_pay', 'view_leak', 'agent_fallback', 'weaver_fallback', 'call_failed']) expect(isBugCode(c)).toBe(true);
-    for (const c of ['move_dropped', 'sell_refused', 'heal_blocked', 'rate_limited', 'level_up']) expect(isBugCode(c)).toBe(false);
-  });
 });

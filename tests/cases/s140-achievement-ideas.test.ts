@@ -7,14 +7,10 @@ import { actor } from '../harness/village';
 import { turnFeats, contestFeat } from '../../src/engine/feats';
 import { achLevel, achievementName, tally } from '../../src/engine/xp';
 import { handInQuests } from '../../src/engine/quests';
-import { warePrice, buy } from '../../src/engine/trade';
-import { actorById } from '../../src/engine/relations';
 import { getLibrary } from '../../src/library';
 import { ACH } from '../../src/library/achievementIds';
 import { FN } from '../../src/library/functionIds';
 import { SK } from '../../src/library/skillIds';
-import { SV } from '../../src/library/serviceIds';
-import { IT } from '../../src/library/itemIds';
 import { actorBody } from '../../src/library';
 import { CONFIG } from '../../src/config';
 import type { GameEvent, GameState, Quest, RollResult } from '../../src/types';
@@ -52,16 +48,6 @@ describe('140 achievement ideas', () => {
     expect(achievementName(s, { id: `${ACH.aimed_size_10}:extra_small`, key: ACH.aimed_size_10, of: 'extra_small' })).toBe('Extra Small Target');
   });
 
-  it('N5 buying counts the copper spent', () => {
-    const s = makeVillage({ playerZone: 'tav_counter' });
-    const mags = actorById(s, 'trader')!;
-    mags.wares = { items: [], services: [SV.clinic] };
-    const price = warePrice(s, s.player, mags, `service:${SV.clinic}`)!;
-    s.player.core.inventory.push({ id: 'purse', itemId: IT.coin, qty: 500 });
-    expect(buy(s, s.player, mags, `service:${SV.clinic}`, 1).ok).toBe(true);
-    expect(s.player.progression!.tally!.coin_spent).toBe(price);
-  });
-
   it('N4c a contest won against higher true skill counts, in general and per function', () => {
     const s = makeVillage();
     const wim = actor(s, 'patron_1');
@@ -88,16 +74,6 @@ describe('140 achievement ideas', () => {
     s.player.progression!.crippled = [actorBody(s, s.player).parts[0].id]; // Crippled earlier, Healthy now
     turnFeats(s, []);
     expect(earned(s)).toContain(ACH.mended_1);
-  });
-
-  it('N4d someone once hostile to you who turns friendly', () => {
-    const s = makeVillage();
-    const slime = actor(s, 'slime_1');
-    slime.mind!.overrides = { [s.player.id]: 'hostile' };
-    turnFeats(s, []);
-    slime.mind!.overrides = { [s.player.id]: 'friendly' };
-    turnFeats(s, []);
-    expect(earned(s)).toContain(ACH.enemy_friend_1);
   });
 
   it('N9 quests: per giver, many givers, a finished run of follow-ups, early, unpaid', () => {

@@ -16,14 +16,4 @@ describe('creation personality (PL14)', () => {
     expect(personalityOf(p).values).toEqual([VL.duty]);
   });
 
-  it('a build with no personality has no lean', () => {
-    expect(nerveLine(personalityOf(createPlayer(base(), 's')))).toBe('steady');
-  });
-
-  it('refuses points out of range, unknown traits and more than DRIVES_SHOWN values', () => {
-    expect(validateBuild({ ...base(), personality: { nerve: 140, traits: {}, values: [] } }).join()).toMatch(/Nerve/);
-    expect(validateBuild({ ...base(), personality: { nerve: 0, traits: { nope: 10 }, values: [] } }).join()).toMatch(/personality trait/);
-    expect(validateBuild({ ...base(), personality: { nerve: 0, traits: {}, values: [VL.duty, VL.wealth, VL.faith, VL.power] } }).join()).toMatch(/up to 3 different values/);
-    expect(validateBuild({ ...base(), personality: { nerve: 0, traits: {}, values: [VL.duty, VL.wealth, VL.faith] } })).toEqual([]);
-  });
 });

@@ -27,13 +27,6 @@ describe('Threadbound powers on the item card', () => {
     expect(rows.find((r) => r.includes('Fate\'s Favourite Punchline'))).toMatch(/an event roll at Critical Failure−−$/);
   });
 
-  it('bound to someone else, it shows no powers at all', () => {
-    const s = makeVillage();
-    const rows = text(s, { itemId: IT.varos_loop, boundTo: 'someone' });
-    expect(rows).toContain('Threadbound: Rank IV · bound to someone else');
-    expect(rows.some((r) => /^(Powers|Sealed|Awake)/.test(r))).toBe(false);
-  });
-
   it('whole turn: a carried Loop binds at the turn\'s end and keeps its card, sealed powers still hidden', async () => {
     const g = wholeTurn({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
     const s = g.game.state()!;

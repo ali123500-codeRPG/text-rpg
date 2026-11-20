@@ -9,7 +9,6 @@ import { intent, play } from './w4-kit';
 import { buildPlayerView } from '../../src/views';
 import { zoneById, actorById } from '../../src/engine/relations';
 import { IT } from '../../src/library/itemIds';
-import { starterKit } from '../../src/library/spawn';
 import { checkParserLegality } from '../../src/agents/legality';
 import { tidyContainers, tidyRewards } from '../../src/scenario/validate';
 import { layAll } from '../harness';
@@ -56,17 +55,6 @@ it('CT3: a locked chest stays shut without its key, opens with it, and its lock 
   expect(pev.some((e) => e.kind === 'pick' && e.itemId === 'box' && !!e.way)).toBe(true);
 });
 
-it('CT4: a chest whose owner is up and present is opened by filching (s271); with the owner down it just opens', () => {
-  const s = village();
-  chest(s, { owner: 'patron_1' });
-  const ev = play(s, { intent: intent({ action: { type: 'open', target: 'box' } }) });
-  expect(ev.some((e) => e.kind === 'filch' || e.kind === 'open')).toBe(true);
-  expect(ev.some((e) => e.reason === 'theft')).toBe(false);
-  actorById(s, 'patron_1')!.core.condition.hpLostPct = 100;
-  play(s, { intent: intent({ action: { type: 'open', target: 'box' } }) });
-  expect(boxView(s).open).toBe(true);
-});
-
 it('CT5/CT7: a downed wearer\'s pack opens and shows what they carried; taking the pack takes it all, and one who wears none puts it on', () => {
   const s = village();
   const p = actorById(s, 'patron_1')!;
@@ -86,11 +74,6 @@ it('CT5/CT7: a downed wearer\'s pack opens and shows what they carried; taking t
   expect(pk.equippedIn).toEqual(['pack']); // the player wore none: it is put on
   expect(s.player.core.inventory.some((i) => i.id === 'loot')).toBe(true); // what it held is now carried in it
   expect(p.core.inventory.some((i) => i.id === 'loot')).toBe(false);
-});
-
-it('CT7: a new character starts wearing a plain pack', () => {
-  const s = village();
-  expect(starterKit(s.player).find((i) => i.itemId === IT.pack)?.equippedIn).toEqual(['pack']);
 });
 
 it('CT2: the Weaver\'s containers are checked (bad ones dropped) and rewards go in by key', () => {

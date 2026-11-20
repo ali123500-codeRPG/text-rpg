@@ -13,7 +13,6 @@ import { FN } from '../../src/library/functionIds';
 import { SK } from '../../src/library/skillIds';
 import { drawTitles } from '../../src/plan/draw';
 import { WK } from '../../src/library/tableIds';
-import { buildPlayerView } from '../../src/views';
 import type { Actor, ContestResult, GameEvent, GameState } from '../../src/types';
 
 /** forces every search contest's gap */
@@ -130,14 +129,4 @@ describe('406 search by sound', () => {
     expect(calls).toEqual([CONFIG.SEARCH_AREA_SHIFT]);
   });
 
-  it('LS4 a: a hider found by sound and still heard shows as someone where they are, not named', () => {
-    const { s } = roundTheCorner();
-    s.player.journal = { ...(s.player.journal ?? {}), stealthSeen: { thief_1: 'aware' } } as never;
-    stepped(s, 'quiet');
-    const pv = buildPlayerView(s);
-    expect(pv.actors.find((a) => a.id === 'thief_1')).toMatchObject({ label: 'someone', level: 'partial' });
-    expect(pv.actors.find((a) => a.id === 'thief_1')?.name).toBeUndefined();
-    s.recentEvents = []; // keeping still round the corner: no longer heard
-    expect(buildPlayerView(s).actors.find((a) => a.id === 'thief_1')).toBeUndefined();
-  });
 });

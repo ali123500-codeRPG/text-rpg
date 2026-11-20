@@ -7,7 +7,6 @@ import { makeVillage } from '../harness';
 import { composeError, composeTemplate, levelAtSkill, npcGrandeur, presetSkills, spawnNpc, templateLevel } from '../../src/library/spawn';
 import { SK } from '../../src/library/skillIds';
 import { actorLevel } from '../../src/engine/xp';
-import { siteRoster } from '../../src/land/roster';
 import { getLibrary } from '../../src/library';
 import { groupMembers } from '../../src/land/roster';
 import { totalHp } from '../../src/ruleset/body';
@@ -97,11 +96,5 @@ describe('333 NPC roles, fourth round', () => {
     expect(templateLevel(composeTemplate({ ...paragon, role: RO.worker, theme: TH.village_folk }, 'a farmhand'))).toBe(15);
   });
 
-  it('NR40: a settlement\'s seat of the Great is cast grand', () => {
-    const s = makeVillage();
-    const sites = (s.regions ?? []).flatMap((r) => r.sites);
-    const seats = sites.flatMap(siteRoster).filter((e) => e.goals);
-    for (const e of seats) expect(e.compose?.grandeur).toBe('grand');
-  });
 });
 

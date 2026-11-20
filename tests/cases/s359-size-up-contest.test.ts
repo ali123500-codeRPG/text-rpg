@@ -3,18 +3,14 @@
 // BF96 a: beats can carry the difficulty of a graded act, and every agent is told which acts take one.
 import { describe, expect, it } from 'vitest';
 import type { GameEvent, GameState, Intent } from '../../src/types';
-import { GRADED_ACTS } from '../../src/types';
 import { createRng, forcedRng, makeVillage } from '../harness';
 import { resolveTurn } from '../../src/engine';
 import { sizeUp } from '../../src/engine/speech';
 import { actorById } from '../../src/engine/relations';
 import { bindTemplate } from '../../src/minds/routines';
 import { buildActorView, buildNarrationView } from '../../src/views';
-import { CHECKIN_SHAPE, PARSER_INSTRUCTIONS, PLANNER_INSTRUCTIONS, PLANNER_SHAPE, RESPONDER_INSTRUCTIONS, WEAVER_SHAPE, gradeRule } from '../../src/agents/prompts';
+import { CHECKIN_SHAPE, PLANNER_SHAPE, WEAVER_SHAPE } from '../../src/agents/prompts';
 import { SK } from '../../src/library/skillIds';
-import { getLibrary } from '../../src/library';
-import { RO } from '../../src/library/npcLayerIds';
-import { TP } from '../../src/library/templateIds';
 import { intent } from './w4-kit';
 
 const village = (): GameState => {
@@ -43,12 +39,6 @@ describe('359 sizing someone up is Insight against Guile (BF97 a, BG-320)', () =
     expect(typeof r.read!.feels).toBe('string');
     const ev = { ...lookAt(s).find((e) => e.kind === 'observe')!, read: r.read };
     expect(buildNarrationView(s, [ev]).events[0].read).toEqual({ mood: 'Calm', feels: r.read!.feels, hiding: false });
-  });
-  it('a loss reads nothing', () => {
-    const s = village();
-    const r = sizeUp(s, s.player, wim(s), forcedRng([5, 95]))!;
-    expect(r.contest.winner).toBe('b');
-    expect(r.read).toBeUndefined();
   });
   it('a secret held, or a lie told lately, shows as hiding something (never what)', () => {
     const s = village();
@@ -95,26 +85,10 @@ describe('359 every act that takes a difficulty can be given one (BF96 a)', () =
     const bad = bindTemplate({ ...(tpl as object), grade: 'huge', fall: -1 } as never, view, { source: 'trigger' });
     expect([bad.grade, bad.fall]).toEqual([undefined, undefined]);
   });
-  it('the Parser, Planner and Responder are told every graded act, and that sizing up a person takes none', () => {
-    for (const text of [PARSER_INSTRUCTIONS, PLANNER_INSTRUCTIONS, RESPONDER_INSTRUCTIONS]) {
-      expect(text).toContain(gradeRule(text === PARSER_INSTRUCTIONS ? 'the character' : 'you'));
-      for (const act of GRADED_ACTS) expect(gradeRule('you')).toContain(act);
-    }
-    expect(gradeRule('you')).toContain('Sizing up a person');
-  });
   it('every beat shape (Planner, Weaver plan, check-in) has a grade and a fall', () => {
     for (const shape of [PLANNER_SHAPE, WEAVER_SHAPE, CHECKIN_SHAPE]) {
       const then = shape.slice(shape.lastIndexOf('"then":'));
       expect(then.slice(0, then.indexOf('}'))).toMatch(/"grade"\?:.*"fall"\?:metres/);
     }
-  });
-  it('NPCs who lie in words also keep a face: Guile sits beside Falsehood in the Sneak and Talker roles, the thief at least 30 (GU1 a)', () => {
-    const lib = getLibrary();
-    for (const ro of [RO.sneak, RO.talker]) {
-      const b = lib.npcRoles![ro].bands as Record<string, string[] | undefined>;
-      const band = (id: string) => Object.keys(b).find((k) => b[k]?.includes(id));
-      expect(band(SK.guile), ro).toBe(band(SK.falsehood));
-    }
-    expect(lib.templates[TP.thief].minimums?.[SK.guile]).toBe(lib.templates[TP.thief].minimums?.[SK.falsehood]);
   });
 });

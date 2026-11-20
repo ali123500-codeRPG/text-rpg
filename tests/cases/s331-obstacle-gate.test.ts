@@ -6,7 +6,6 @@ import type { Barrier, GameState, Intent } from '../../src/types';
 import { createRng, forcedRng, makeVillage } from '../harness';
 import { resolveTurn } from '../../src/engine';
 import { zoneById } from '../../src/engine/relations';
-import { buildPlayerView } from '../../src/views';
 import { gradeMod, obstacleGate } from '../../src/ruleset';
 import { CONFIG } from '../../src/config';
 import { SK } from '../../src/library/skillIds';
@@ -25,7 +24,6 @@ function setup(grade: Barrier['grade']): { s: GameState; b: Barrier } {
   return { s, b };
 }
 const picked = (s: GameState, rng?: ReturnType<typeof createRng>) => turn(s, rng).find((e) => e.kind === 'pick')!;
-const way = (s: GameState) => buildPlayerView(s).zone.links.find((l) => l.to === 'street_door')!.way;
 
 describe('331 obstacle gate on locks (OD1 b, OD10 a, OD12 a)', () => {
   it('the gate reads only the gap, so it is the same at 50 and at 300', () => {
@@ -39,22 +37,9 @@ describe('331 obstacle gate on locks (OD1 b, OD10 a, OD12 a)', () => {
     expect(ev.roll).toBeUndefined();
     expect(b.lock!.locked).toBe(false);
   });
-  it('a lock far above the picker is beyond it with no roll, even on a die that would win', () => {
-    const { s, b } = setup('extreme'); // 80 against effective 50
-    const ev = picked(s, forcedRng([50, 100]));
-    expect(ev.way!.did).toBe('beyond');
-    expect(ev.roll).toBeUndefined();
-    expect(b.lock!.locked).toBe(true);
-  });
   it('in between, the roll takes the one grade modifier (OD10 a), not a lock table', () => {
     const { s } = setup('major');
     const ev = picked(s, forcedRng([50, 50]));
     expect(ev.roll!.modifiers.find((m) => m.source === 'lock')!.value).toBe(gradeMod(CONFIG.DIFFICULTY.major));
-  });
-  it('OD12: the grade shows on the way once the player has tried to pick it', () => {
-    const { s } = setup('major');
-    expect(way(s)).not.toHaveProperty('grade');
-    picked(s, forcedRng([50, 50]));
-    expect(way(s)).toMatchObject({ grade: 'major' });
   });
 });

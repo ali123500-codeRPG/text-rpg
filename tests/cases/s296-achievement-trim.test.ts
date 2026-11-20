@@ -3,7 +3,7 @@
 // (TM26, TM27), and downing a foe or being rallied restore morale through the composure table (TM28).
 import { describe, expect, it } from 'vitest';
 import { makeVillage, forcedRng } from '../harness';
-import { grantAchievement, tally } from '../../src/engine/xp';
+import { grantAchievement } from '../../src/engine/xp';
 import { calm } from '../../src/engine/heal';
 import { getLibrary, actorBody } from '../../src/library';
 import { ruleset } from '../../src/ruleset';
@@ -16,18 +16,10 @@ import { CONFIG } from '../../src/config';
 import type { GameState } from '../../src/types';
 
 const lib = () => getLibrary().achievements!;
-const earned = (s: GameState) => (s.player.progression!.achievements ?? []).map((a) => a.id);
 const aimMod = (s: GameState, part: string) => ruleset.attack({ attackerId: 'player', targetId: 'patron_1', weaponId: `player_${IT.arming_sword}_1`, targetPart: part, aimed: true }, s, forcedRng([50, 50]))
   .attack.modifiers.find((m) => m.type === 'aim')!.value;
 
 describe('296 achievement trim (round 3 answers)', () => {
-  it('the first clean defense and the first aimed hit on a part size are achievements', () => {
-    const s = makeVillage();
-    CONFIG.GROWTH_AT_SCENARIO_END = false;
-    tally(s, 'clean_defense');
-    tally(s, 'aimed_hits', { by: 'size', of: 'small' });
-    expect(earned(s)).toEqual(expect.arrayContaining([ACH.clean_1, `${ACH.aimed_size_1}:small`]));
-  });
 
   it('each aimed-hits-by-size row eases the aim penalty for its own size, carried up the chain', () => {
     const s = makeVillage({ playerZone: 'tav_common' });

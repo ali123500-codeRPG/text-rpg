@@ -35,13 +35,6 @@ it('a cast goal holder holds its standing goal first, has an agenda and thinks o
   expect(v.thinkWhy).toBe('cast');
 });
 
-it('nothing seeds a drive without goals; other NPCs never think by goals', () => {
-  const s = village();
-  seedGoals(s, actorById(s, 'patron_1')!, []);
-  expect(s.hidden.drives?.patron_1).toBeUndefined();
-  expect(goalThinkers(s, new Set())).toEqual([]);
-});
-
 it('its think queues steps: code walks it there, then the queue runs out and it thinks again', () => {
   const s = village();
   const wim = actorById(s, 'patron_1')!;

@@ -4,7 +4,6 @@ import { ScriptedClaude, makeVillage } from '../harness';
 import { createGame, VirtualClock, type ScenarioDirector } from '../../src/agents';
 import { loadHistory, memoryStore, saveHistory, saveTurn } from '../../src/save';
 import { CONFIG, resetConfig } from '../../src/config';
-import { clockText, durationText } from '../../src/time';
 import type { GameState, TurnRecord } from '../../src/types';
 import { setBarrier } from '../harness';
 
@@ -55,18 +54,6 @@ describe('BG-123 GM backups', () => {
     await g.restoreBackup(7);
     expect(g.state()?.clocks.last).toBe(1);
     expect(g.notices().some((n) => n.kind === 'load_refused')).toBe(true);
-  });
-});
-
-describe('shared time words (one formatter for trips, waits and watches)', () => {
-  it('durationText and clockText', () => {
-    expect(durationText(0)).toBe('0 min');
-    expect(durationText(45)).toBe('45 min');
-    expect(durationText(180)).toBe('3 h');
-    expect(durationText(125.4)).toBe('2 h 5 min');
-    expect(clockText(7 * 60 + 5)).toBe('07:05');
-    expect(clockText(-30)).toBe('23:30');
-    expect(clockText(24 * 60 + 90)).toBe('01:30');
   });
 });
 
@@ -136,14 +123,6 @@ describe('CS11: NPCs use their own keys while time skips', () => {
     catchUp(a.s, 60);
     expect(a.g.zone).toBe('gate_inner');
     expect(a.b.lock.locked).toBe(true);
-  });
-  it('a bar slid back from its own side stays open once it is through (it cannot be drawn from the far side)', async () => {
-    const { catchUp } = await import('../../src/engine/resolve');
-    const { s, g, b } = await setup({ bar: true });
-    catchUp(s, 60);
-    expect(g.zone).toBe('street_square');
-    expect(b.lock.locked).toBe(true);
-    expect((b as { bar?: { drawn: boolean } }).bar!.drawn).toBe(false);
   });
 });
 

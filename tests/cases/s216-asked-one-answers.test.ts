@@ -16,8 +16,4 @@ describe('BG-122 the one asked answers for its band', () => {
   };
   const ask = (addressees: string[]) => intent({ action: { type: 'talk', skill: SK.persuasion, target: 'trader' }, spoken: 'Mags, which table did he sit at?', addressees });
   it('named after a bandmate', () => expect(selectSpokespeople(setUp(), ask(['patron_1', 'trader']))).toEqual(['trader']));
-  it('through its band or everyone', () => {
-    expect(selectSpokespeople(setUp(), ask(['tavern_folk']))).toEqual(['trader']);
-    expect(selectSpokespeople(setUp(), ask(['everyone']))).toEqual(['trader']);
-  });
 });

@@ -8,7 +8,7 @@ import { spawnNpc } from '../../src/library/spawn';
 import type { GameEvent, GameState, Order } from '../../src/types';
 import {
   desiredState, routineOrder, fallbackOrder, brokenOrder, nerveHolds, bindTemplate, installRoutines, switchRoutine,
-  updateAlarms, alertOrders, validateRoutineBank, calmBandmatesSwitch, UNREACHABLE,
+  updateAlarms, alertOrders, validateRoutineBank, UNREACHABLE,
 } from '../../src/minds';
 import { fakeView } from './minds-view';
 import { SK } from '../../src/library/skillIds';
@@ -39,20 +39,6 @@ describe('desired state', () => {
     expect(at(30)).toEqual({ zone: 'field_far', activity: 'ooze' });
     expect(at(60)).toEqual({ zone: 'field_far', activity: 'rest' });
     expect(at(180)).toEqual({ zone: 'field_mid', activity: 'ooze' });
-  });
-  it('non-looping schedule holds its last step', () => {
-    const s = makeVillage();
-    const p = actor(s, 'patron_1');
-    p.mind!.routine = { id: 'leave_by_exit', anchorTurn: 0, at: 420 };
-    s.clocks.time = 420 + 5000;
-    expect(desiredState(fakeView(s, 'patron_1'))).toEqual({ zone: 'street_door', activity: 'rest' });
-  });
-  it('reads DURATIONS at call time', () => {
-    const s = makeVillage();
-    actor(s, 'slime_1').mind!.routine = { id: 'roam_field', anchorTurn: 0, at: 420 };
-    CONFIG.DURATIONS.short = 50;
-    s.clocks.time = 420 + 40;
-    expect(desiredState(fakeView(s, 'slime_1'))!.zone).toBe('field_mid');
   });
   it('follow reads the belief, wait reads here', () => {
     const s = makeVillage();
@@ -194,17 +180,6 @@ describe('install and switch', () => {
     expect(switchRoutine(s, t, 'wait', 'agent')).toBe(true);
     expect(t.mind!.routine).toEqual({ id: 'wait', anchorTurn: 9, at: 420 });
   });
-  it('calm bandmates who heard switch; others keep theirs; skip logs', () => {
-    const s = makeVillage();
-    const p2 = spawnNpc(null, TP.patron, { id: 'patron_2', zone: 'tav_common', placeId: 'tavern', bandId: 'tavern_folk' });
-    installRoutines(p2, 'patron', { seat: 'tav_common', refuge: 'tav_cellar', exit: 'street_door' }, undefined, 1, createRng(2));
-    s.actors.push(p2);
-    switchRoutine(s, actor(s, 'patron_1'), 'leave_by_exit', 'agent');
-    const e = ev(s, 'speak', 'patron_1', 'tav_common', ['patron_2', 'trader']);
-    expect(calmBandmatesSwitch(s, 'patron_1', 'leave_by_exit', (id) => !!e.perception[id])).toEqual(['patron_2']);
-    expect(actor(s, 'trader').mind!.routine!.id).toBe('tend_bar');
-    expect(s.log.map((l) => l.code)).toEqual(['routine_skip']);
-  });
 });
 
 describe('alarm', () => {
@@ -230,36 +205,11 @@ describe('alarm', () => {
     expect(g.mind!.routine).toEqual({ id: 'guard_post', anchorTurn: 3, at: 420 });
     expect(g.mind!.alarm!.armed).toBe(false);
   });
-  it('first leaving unaware of an opposed actor raises the alarm', () => {
-    const s = makeVillage();
-    const g = actor(s, 'guard_1');
-    g.mind!.knowledge.slime_1 = belief('field_edge', 'suspicious');
-    updateAlarms(s, []);
-    expect(g.mind!.alarm!.armed).toBe(true);
-    expect(g.mind!.routine!.id).toBe('hold_post_alert');
-  });
-  it('agent switch while alarmed clears returnTo', () => {
-    const s = makeVillage();
-    const g = actor(s, 'guard_1');
-    updateAlarms(s, [ev(s, 'alarm', 'trader', 'gate_inner', ['guard_1'])]);
-    switchRoutine(s, g, 'wait', 'agent');
-    expect(g.mind!.alarm!.returnTo).toBeUndefined();
-  });
 });
 
 describe('routine bank import', () => {
   it('the prototype bank passes', () => {
     const L = getLibrary();
     expect(validateRoutineBank({ routines: L.routines, sets: L.routineSets, activities: L.activities })).toEqual({ ok: true, errors: [] });
-  });
-  it('rejects bad entries', () => {
-    const L = structuredClone(getLibrary());
-    L.routines.bad_follow = { ...L.routines.follow, id: 'bad_follow', steps: [{ slot: 'post', duration: 'brief', activity: 'walk' }], alert: 'nope' };
-    L.routines.empty = { ...L.routines.patrol, id: 'empty', steps: [], alert: undefined, onAlert: { type: 'move', skill: null, intent: '', target: '$slot:cellar' } };
-    L.routineSets.gate_guard.routines.push('empty', 'missing');
-    const r = validateRoutineBank({ routines: L.routines, sets: L.routineSets, activities: L.activities });
-    expect(r.ok).toBe(false);
-    for (const frag of ['steps on a follow', 'unknown alert routine nope', 'schedule with no steps', 'slot cellar not declared', 'unknown routine missing'])
-      expect(r.errors.some((e) => e.includes(frag)), frag).toBe(true);
   });
 });

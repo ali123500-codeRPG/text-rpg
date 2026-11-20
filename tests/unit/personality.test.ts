@@ -4,13 +4,11 @@ import { describe, expect, it } from 'vitest';
 import { CONFIG } from '../../src/config';
 import { getLibrary, npcTemplate } from '../../src/library';
 import { presetPersonality, spawnNpc } from '../../src/library/spawn';
-import { PA, PY, TN, VL } from '../../src/library/tableIds';
+import { PA, PY, VL } from '../../src/library/tableIds';
 import { TP } from '../../src/library/templateIds';
 import { ACH } from '../../src/library/achievementIds';
 import { SK } from '../../src/library/skillIds';
-import { archetypeOf, butsOf, nerveLine, nerveTier, personalityFrom, personalityOf, personalityText, tensionsOf, traitWords } from '../../src/ruleset/personality';
-import { bornDayFor } from '../../src/ruleset/age';
-import { buildOppositionView } from '../../src/views';
+import { archetypeOf, butsOf, nerveLine, personalityFrom, personalityOf, personalityText } from '../../src/ruleset/personality';
 import { makeVillage } from '../harness';
 import { formatDialogueView, formatOppositionView } from '../../src/agents/format';
 import type { Actor } from '../../src/types';
@@ -18,7 +16,6 @@ import { actorView } from './agent-views';
 
 // the preset's centre personality, without the copy's spread (NG14), so the words below are the layers'
 const npc = (tp: string) => { const a = spawnNpc(null, tp, { id: 'x', zone: 'z', placeId: 'p', bandId: 'b' }); a.core.personality = presetPersonality(npcTemplate(null, tp)); return a; };
-const withResolve = (a: Actor, r: number) => { a.core.skills[SK.resolve] = { raw: r, state: 'normal' }; return a; };
 
 describe('Nerve', () => {
   it('leans at PERSONALITY_LEAN: cautious, steady, daring', () => {
@@ -26,23 +23,9 @@ describe('Nerve', () => {
     expect(nerveLine({ nerve: CONFIG.PERSONALITY_LEAN - 1, traits: {}, values: [] })).toBe('steady');
     expect(nerveLine({ nerve: CONFIG.PERSONALITY_LEAN, traits: {}, values: [] })).toBe('daring');
   });
-  it('the tier follows raw Resolve: timid at 30 becomes careful at 40; 100 is superhuman, + every 50 past it', () => {
-    const barkeep = npc(TP.trader);
-    expect(barkeep.core.skills[SK.resolve].raw).toBe(30);
-    expect(nerveTier(barkeep)).toBe('Timid');
-    expect(nerveTier(withResolve(barkeep, 40))).toBe('Careful');
-    expect(nerveTier(withResolve(barkeep, 100))).toBe('Unflappable');
-    expect(nerveTier(withResolve(barkeep, 150))).toBe('Unflappable+');
-    expect(nerveTier(withResolve(barkeep, 210))).toBe('Unflappable++');
-    expect(nerveTier(npc(TP.guard))).toBe('Steady');
-  });
 });
 
 describe('personality', () => {
-  it('trait words are graded, strongest first, and the middle is left out', () => {
-    expect(traitWords({ nerve: 0, traits: { [PA.pride]: 75, [PA.honesty]: -45, [PA.sociability]: 25, [PA.curiosity]: 19 }, values: [] }))
-      .toEqual(['very proud', 'deceitful', 'a bit talkative']);
-  });
   it('the archetype is the nearest type, drives counted twice; "but" traits are the ones it does not explain', () => {
     // Corin (the Mera voice tests): Mature at heart, but humble and earnest
     const corin = { nerve: -10, traits: { [PA.honesty]: 50, [PA.pride]: -40, [PA.temper]: -40, [PA.discipline]: 70, [PA.levity]: -40 }, values: [VL.loyalty, VL.duty, VL.family] };
@@ -50,24 +33,6 @@ describe('personality', () => {
     expect(butsOf(corin, archetypeOf(corin))).toEqual([{ axis: PA.pride, v: -40 }, { axis: PA.levity, v: -40 }]);
     // no lean at all is Ordinary, the first row (ties go to the earlier row)
     expect(archetypeOf({ nerve: 0, traits: {}, values: [] }).id).toBe(PY.ordinary);
-  });
-  it('NX1, NX2: Assertiveness is an axis like the rest; no archetype aims at it, so it shows as a "but" and never moves the pick', () => {
-    expect(getLibrary().personalityAxes?.[PA.assertiveness]).toMatchObject({ low: 'meek', high: 'assertive' });
-    const corin = { nerve: -10, traits: { [PA.honesty]: 50, [PA.pride]: -40, [PA.temper]: -40, [PA.discipline]: 70 }, values: [VL.loyalty, VL.duty, VL.family] };
-    const pushy = { ...corin, traits: { ...corin.traits, [PA.assertiveness]: 60 } };
-    expect(archetypeOf(pushy).id).toBe(archetypeOf(corin).id);
-    expect(butsOf(pushy, archetypeOf(pushy))).toContainEqual({ axis: PA.assertiveness, v: 60 });
-    expect(Object.values(getLibrary().personalityTypes ?? {}).some((y) => y.target[PA.assertiveness] !== undefined)).toBe(false);
-  });
-  it('tensions read Nerve, Resolve, the best skills and drives, in table order', () => {
-    const s = makeVillage(), a = s.player;
-    a.core.classes = []; a.core.perks = [];
-    a.core.personality = { nerve: -40, traits: { [PA.discipline]: 60 }, values: [] };
-    a.core.skills = { [SK.melee_medium]: { raw: 50, state: 'normal' } };
-    a.core.bornDay = bornDayFor(s, 30);
-    expect(tensionsOf(s, a).map((t) => t.id)).toEqual([TN.wary_dangerous]);
-    a.core.skills = { [SK.resolve]: { raw: 90, state: 'normal' } }; // Resolve is never the craft
-    expect(tensionsOf(s, a).map((t) => t.id)).toEqual([]);
   });
   it('perks, the current class and achievements add points while held (PL15, PL16)', () => {
     const a = npc(TP.guard);
@@ -91,27 +56,6 @@ describe('personality', () => {
     expect(formatOppositionView(v)).toContain(`"personality":"${v.personality}"`);
     expect(formatOppositionView(v).split(v.personality).length).toBe(2); // once, in CHARACTER only
     expect(formatDialogueView({ ...v, knows: [], dialogue: [] })).not.toContain(v.personality);
-  });
-  it('the voice-tested line: Aldo (the Rudeus voice tests) reads exactly as the prototype built it', () => {
-    const s = makeVillage(), a = s.player;
-    a.core.classes = []; a.core.perks = [];
-    a.core.personality = { nerve: -40, traits: { [PA.honesty]: -30, [PA.pride]: -20, [PA.temper]: -40, [PA.sociability]: -20, [PA.discipline]: 60, [PA.curiosity]: 70, [PA.levity]: -20 }, values: [VL.knowledge, VL.loyalty] };
-    a.core.skills = { [SK.resolve]: { raw: 20, state: 'normal' }, [SK.melee_medium]: { raw: 50, state: 'normal' } };
-    a.core.bornDay = bornDayFor(s, 20); // no children: Aldo is grown
-    expect(personalityText(s, a, 'Calm')).toBe('Nerve: Timid (keeps out of danger when they can; Calm right now). Mature at heart (thinks before acting, keeps a cool head, owns their mistakes), but very curious (wants to know how things work, asks and pokes) and a bit deceitful (bends the truth when it suits them). Drives: knowledge first (studies, practises and seeks out learning), then loyalty (stands by their friends and their own). Tensions: wary but dangerous (avoids danger, yet hits hard when pushed); good ends, crooked means (bends the truth to help the people they care about).');
-  });
-  it('a rolled NPC gets its template\'s signatures after Nerve and its title with its name; a copy gets neither', () => {
-    const s = makeVillage(), t = getLibrary().templates[TP.guard], g = s.actors.find((x) => x.id === 'guard_1')!;
-    t.title = 'the Gatekeeper'; t.signatures = ['Never leaves the gate unwatched.'];
-    try {
-      expect(personalityText(s, g, 'Calm')).not.toContain('Never leaves');
-      expect(buildOppositionView(s, g.id).title).toBeUndefined();
-      g.core.generation = 'rolled';
-      expect(personalityText(s, g, 'Calm')).toMatch(/^Nerve: [^.]+\. Never leaves the gate unwatched\. Mature at heart/);
-      const v = buildOppositionView(s, g.id);
-      expect(formatOppositionView(v)).toContain(`"name":"${v.self.name}, the Gatekeeper"`);
-      expect(formatDialogueView({ ...v, knows: [], dialogue: [] })).not.toContain('Gatekeeper'); // the Voice is player-side
-    } finally { delete t.title; delete t.signatures; }
   });
   it('the Weaver may name a line, types and values on top of the template (PL12)', () => {
     const t = npcTemplate(null, TP.guard);

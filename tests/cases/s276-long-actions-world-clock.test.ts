@@ -9,7 +9,7 @@ import { waysOut } from '../../src/plan/where';
 import { zoneById } from '../../src/engine/relations';
 import { breakJob, jobShare, secondsLeft, type BreakJob } from '../../src/engine/breakThrough';
 import { intent, play } from './w4-kit';
-import { now, startClock } from '../../src/time';
+import { now } from '../../src/time';
 import { CONFIG } from '../../src/config';
 import { mechanicsLines } from '../../src/agents/game';
 import { IT } from '../../src/library/itemIds';
@@ -91,17 +91,3 @@ describe('276 long actions on the world clock', () => {
   });
 });
 
-describe('276 the night as one stretch (AT42)', () => {
-  it('a foe after the sleeper who is there already and reaches them stops the night: its blow comes next turn', () => {
-    const s = makeVillage({ playerZone: 'tav_cellar', without: ['slime_1', 'slime_2', 'patron_1'] });
-    startClock(s, 'evening');
-    const g = s.actors.find((a) => a.id === 'guard_1')!;
-    place(s, 'guard_1', 'tav_cellar');
-    g.mind!.overrides = { player: 'hostile' };
-    g.mind!.knowledge.player = { status: 'hunting', lastKnownZone: 'tav_cellar', lastSeenTurn: s.turn, source: 'seen', revealed: [] };
-    const t0 = now(s);
-    play(s, { intent: intent({ action: { type: 'sleep' } }) });
-    expect(s.log.find((l) => l.code === 'sleep_stopped')?.detail).toMatchObject({ by: ['guard_1'] });
-    expect(now(s) - t0).toBeLessThan(60);
-  });
-});

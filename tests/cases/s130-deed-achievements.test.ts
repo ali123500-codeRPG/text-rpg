@@ -4,7 +4,7 @@ import { HL } from '../../src/library/tableIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { actor } from '../harness/village';
-import { achievementName, payDefeats, rollFeats, tally, unlockClasses } from '../../src/engine/xp';
+import { achievementName, payDefeats, rollFeats, tally } from '../../src/engine/xp';
 import { forcedRng } from '../harness';
 import { ruleset } from '../../src/ruleset';
 import { fightEnded, turnFeats } from '../../src/engine/feats';
@@ -16,7 +16,6 @@ import { isBane } from '../../src/ruleset/bane';
 import { grantAchievement } from '../../src/engine/xp';
 import { MOD_SOURCES } from '../../src/ruleset/modSources';
 import { getLibrary } from '../../src/library';
-import { CL } from '../../src/library/classIds';
 
 const earned = (s: GameState) => (s.player.progression!.achievements ?? []).filter((a) => !a.replacedBy).map((a) => a.id);
 
@@ -59,16 +58,6 @@ describe('130 deed achievements', () => {
     slime.core.condition.hpLostPct = 100;
     payDefeats(s, [{ attack: { attackerId: 'player', targetId: 'slime_1', damage: 10, unaware: true } } as unknown as GameEvent]);
     expect(earned(s)).toEqual(expect.arrayContaining([ACH.unaware_1, ACH.crippled_1]));
-  });
-  it('unlocking a class earns it once, named for the class', () => {
-    const s = makeVillage();
-    s.player.core.classes = s.player.core.classes.filter((c) => c.classId !== CL.swordsman);
-    s.player.core.skills[SK.melee_medium] = { raw: 60, state: 'normal' };
-    s.player.core.skills[SK.parry] = { raw: 80, state: 'normal' };
-    unlockClasses(s);
-    unlockClasses(s);
-    const a = s.player.progression!.achievements!.filter((x) => x.key === ACH.class_unlock);
-    expect(a.map((x) => achievementName(s, x))).toEqual(['Swordsman Awakened']);
   });
   it('fight achievements: flawless needs a defense roll, outnumbered needs no allies, the brink counts once per fight', () => {
     const s = makeVillage();

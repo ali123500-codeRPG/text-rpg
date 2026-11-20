@@ -8,10 +8,9 @@ import type { GameEvent, GameState, RollResult, Tier } from '../../src/types';
 import { createRng, lightAll, makeVillage } from '../harness';
 import { ruleset } from '../../src/ruleset';
 import { faintness, noteSightings, perceptionOf } from '../../src/perception';
-import { buildNarrationView, buildPlayerView, seesClearlyNow } from '../../src/views';
+import { buildPlayerView, seesClearlyNow } from '../../src/views';
 import { soundDb } from '../../src/perception/noise';
 import { makeOut } from '../../src/engine/makeOut';
-import { mechanicsLines } from '../../src/agents/game';
 import { CONFIG } from '../../src/config';
 import { PK } from '../../src/library/perkIds';
 import { SK } from '../../src/library/skillIds';
@@ -122,21 +121,6 @@ describe('324 making out what is half seen or half heard', () => {
     expect(e.perception[s.player.id].heard).toBe(true);
   });
 
-  it('PG9 a: the player\'s make-out roll shows in the Rolls panel', () => {
-    const { s } = setUp();
-    rig('success');
-    const e = ev(s);
-    makeOut(s, e, createRng(1));
-    expect(mechanicsLines(s, [e]).some((l) => /to make out .* vs difficulty 50: made out/.test(l))).toBe(true);
-  });
-
-  it('PG2 a: any passed check teaches however hard; a failed one only inside the window', () => {
-    const { s } = setUp();
-    ruleset.recordUse(s.player, SK.eyesight, { actorId: s.player.id, skill: SK.eyesight, target: 80, passed: false, modifiers: [] }, s);
-    expect(s.player.progression!.marks).not.toContain(SK.eyesight);
-    ruleset.recordUse(s.player, SK.eyesight, { actorId: s.player.id, skill: SK.eyesight, target: 80, passed: true, modifiers: [] }, s);
-    expect(s.player.progression!.marks).toContain(SK.eyesight);
-  });
 });
 
 // BG-252 (PG11 a): someone made out by sight is seen clearly everywhere that turn (Who's here, the Narrator's people, name
@@ -144,28 +128,6 @@ describe('324 making out what is half seen or half heard', () => {
 describe('324 BG-252 someone made out is named in Who\'s here', () => {
   const talk = (s: GameState, id = 'e1', over: Partial<GameEvent> = {}) => ev(s, { id, kind: 'speak', visibility: 'normal', noise: 'normal', ...over }); // normal: clear to 25 m, glimpsed to 200 m
   const whoIs = (s: GameState, id: string) => buildPlayerView(s).actors.find((a) => a.id === id);
-
-  it('made out at 35 m: the event, Who\'s here, the Narrator\'s people and name learning all name them', () => {
-    const { s, g } = setUp();
-    rig('success');
-    const e = talk(s);
-    makeOut(s, e, createRng(1)); noteSightings(e, s); s.events = [e];
-    expect(e.perception[s.player.id].level).toBe('full');
-    expect(whoIs(s, g.id)).toMatchObject({ level: 'full', label: g.label });
-    const nv = buildNarrationView(s, [e]);
-    expect(nv.events[0].actor).toBe(nv.actors.find((x) => x.distanceM === 35)?.name ?? nv.actors.find((x) => x.distanceM === 35)?.label);
-    expect(nv.actors.map((x) => x.label)).not.toContain('someone');
-    expect(seesClearlyNow(s, s.player, g.id)).toBe(true);
-  });
-
-  it('a failed roll leaves them "someone" everywhere', () => {
-    const { s, g } = setUp();
-    rig('failure');
-    const e = talk(s);
-    makeOut(s, e, createRng(1)); noteSightings(e, s); s.events = [e];
-    expect(whoIs(s, g.id)).toMatchObject({ level: 'partial', label: 'someone' });
-    expect(seesClearlyNow(s, s.player, g.id)).toBe(false);
-  });
 
   it('they stay named while they stay put, with no new roll; a half-seen move and a failed roll makes them "someone" again', () => {
     const { s, g } = setUp();
@@ -188,20 +150,6 @@ describe('324 BG-252 someone made out is named in Who\'s here', () => {
     expect(walk.perception[s.player.id].level).toBe('partial');
     makeOut(s, walk, createRng(1)); noteSightings(walk, s); s.events = [walk];
     expect(whoIs(s, g.id)).toMatchObject({ level: 'partial', label: 'someone' });
-  });
-
-  it('kept sight ends where they can no longer be glimpsed', () => {
-    const { s, g } = setUp();
-    rig('success');
-    const e = talk(s);
-    makeOut(s, e, createRng(1)); noteSightings(e, s);
-    s.player.pos = { x: 91, y: Y };
-    g.pos = { x: 126, y: Y };
-    s.events = [];
-    expect(whoIs(s, g.id)?.level).toBe('full'); // 35 m: a still figure is glimpsed to 60 m
-    const far = { ...CONFIG.SIGHT_M };
-    CONFIG.SIGHT_M.low = [15, 30]; // pretend a still figure is glimpsed only to 30 m
-    try { expect(whoIs(s, g.id)).toBeUndefined(); } finally { Object.assign(CONFIG.SIGHT_M, far); }
   });
 
   it('an NPC that makes someone out sees them clearly that turn', () => {

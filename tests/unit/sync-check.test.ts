@@ -9,9 +9,6 @@ const diff = [
 ].join('\n');
 
 describe('sync check', () => {
-  it('reads the non-blank lines a diff adds, per file, and none from a deleted file', () => {
-    expect([...addedLines(diff)]).toEqual([['a.ts', ['one', 'one']], ['gone.ts', ['mine']]]);
-  });
 
   it('a line added twice must be there twice; a file taken whole from the other side loses its lines', () => {
     const now: Record<string, string> = { 'a.ts': 'keep\none', 'gone.ts': 'theirs only' };

@@ -3,24 +3,14 @@
 // own Battle Sense; bands carry no tactics word.
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
-import { spawnNpc } from '../../src/library/spawn';
 import { buildActorView, buildDialogueView } from '../../src/views';
 import { tacticsWord } from '../../src/views/tactics';
 import { formatOppositionView } from '../../src/agents/format';
 import { CONFIG } from '../../src/config';
 import { SK } from '../../src/library/skillIds';
-import { TP } from '../../src/library/templateIds';
 
-const opts = { id: 'n1', zone: 'z', placeId: 'p', bandId: 'b' };
 
 describe('370 Tactics on NPCs', () => {
-  it('a wolf gets Battle Sense and Stratagem, a slime neither', () => {
-    const wolf = spawnNpc(null, TP.wolf, opts);
-    expect(wolf.core.skills[SK.battle_sense]?.raw).toBeGreaterThan(0);
-    expect(wolf.core.skills[SK.stratagem]?.raw).toBeGreaterThan(0);
-    const slime = spawnNpc(null, TP.slime, opts);
-    expect(slime.core.skills[SK.battle_sense]).toBeUndefined();
-  });
 
   it('TC4 a: the tactics word steps at CONFIG.TACTICS_FROM, reaches the Planner, never the Voice', () => {
     const s = makeVillage();

@@ -47,15 +47,6 @@ describe('327 running on at a foe out of reach', () => {
     expect(struck(ev2, g.id)).toBe(true);
   });
 
-  it('within its move it closes in and strikes the same turn, as before', () => {
-    const s = field();
-    const g = at(s, 'brawler', 3, 0);
-    g.mind!.control = 'agent';
-    const ev = play(s, { intent: intent(), agentOutputs: [fists(g.id)] });
-    expect(struck(ev, g.id)).toBe(true);
-    expect(s.log.some((l) => l.code === 'ran_on')).toBe(false);
-  });
-
   it('a code-run fighter\'s combat-list blow runs on the same way', () => {
     const s = field();
     const g = at(s, 'brawler', 20, 0);

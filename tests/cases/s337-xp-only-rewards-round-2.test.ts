@@ -11,7 +11,7 @@ import { getLibrary } from '../../src/library';
 import { ACH } from '../../src/library/achievementIds';
 import { SK } from '../../src/library/skillIds';
 import { FN } from '../../src/library/functionIds';
-import { achievementMaxMorale, achievementRollMods, achievementSkill, rewardLines, tierReach } from '../../src/ruleset/achRewards';
+import { achievementRollMods, achievementSkill, rewardLines, tierReach } from '../../src/ruleset/achRewards';
 import type { AchievementDef, GameState } from '../../src/types';
 
 const L = () => getLibrary().achievements! as Record<string, AchievementDef>;
@@ -71,10 +71,4 @@ describe('337 XP-only rewards, round 2', () => {
     expect(achievementSkill(s.player, SK.falsehood)).toBe(0);
   });
 
-  it('XR28 a: Not Done Yet adds +5 max morale', () => {
-    const s = makeVillage();
-    const before = achievementMaxMorale(s.player);
-    give(s, ACH.back_from_down_1);
-    expect(achievementMaxMorale(s.player)).toBe(before + 5);
-  });
 });

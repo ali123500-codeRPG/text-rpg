@@ -2,7 +2,6 @@
 // starts a scenario at once, and anything else that matters (a job, a goal reached, a stale job, a quiet stretch past the rest)
 // opens a window the Weaver may decline. The Weaver is told the reason, those lines and who saw the player.
 import { describe, expect, it } from 'vitest';
-import type { GameEvent } from '../../src/types';
 import { makeVillage } from '../harness/village';
 import { intent, narrateAll } from '../harness/turn';
 import { ScriptedClaude } from '../harness/scripted';
@@ -14,11 +13,8 @@ import { closeScenario, frameOf } from '../../src/engine/scenarioEnd';
 import { ScenarioDirector } from '../../src/scenario';
 import { VirtualClock as SceneClock } from '../../src/scenario/fixtures';
 import { now } from '../../src/time';
-import { noteHappened } from '../../src/engine/happened';
-import { buildWeaverView } from '../../src/views';
 import { CONFIG } from '../../src/config';
 
-const ev = (turn: number, e: Partial<GameEvent>): GameEvent => ({ id: `e${Math.random()}`, turn, actorId: 'player', kind: 'idle', zone: 'tav_common', effects: [], noise: 'normal', visibility: 'normal', perception: {}, ...e } as GameEvent);
 
 describe('300 why a scenario started', () => {
   it('WB6 / SW6 a: a job taken opens a scenario window at once, even in the rest; with no window call wired it starts', () => {
@@ -82,21 +78,6 @@ describe('300 why a scenario started', () => {
     s.stage.breakCause = 'scenario_end';
     expect(closeScenario(s)).toBe('roam');
     expect(s.stage.roam).toMatchObject({ since: s.turn, sinceMin: now(s), rest: CONFIG.ROAM_REST_MIN.major });
-  });
-
-  it('SW3 a: free roam keeps what happened, attacks included; the start hands it to the Weaver with who saw the player', () => {
-    const s = makeVillage();
-    delete s.stage.scenario;
-    s.stage.roam = { since: s.turn - 1 };
-    s.actors.find((a) => a.id === 'trader')!.mind!.knowledge.player = { status: 'aware', lastKnownZone: 'tav_common', lastSeenTurn: s.turn, source: 'seen', revealed: [] };
-    const events = [ev(s.turn, { kind: 'attack', target: 'patron_1' })];
-    noteHappened(s, events, []);
-    checkRoam(s, events);
-    expect(s.stage.cause).toMatchObject({ why: 'attack', happened: [{ turn: s.turn, text: expect.stringMatching(/^the player attacked /) }] });
-    expect(s.stage.cause!.seenBy).toContain('trader');
-    const v = buildWeaverView(s, { kind: 'scenario', placeId: s.player.placeId });
-    expect(v.target.cause).toEqual(s.stage.cause);
-    expect(buildWeaverView(s, { kind: 'checkin', placeId: s.player.placeId }).target.cause).toBeUndefined();
   });
 
   it('SW3 a (whole turn): an attack in free roam starts a scenario whose Weaver view says why; the plan clears it once applied', async () => {

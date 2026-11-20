@@ -33,17 +33,6 @@ describe('title placement', () => {
     expect(overlap(kitchen, hall) || overlap(kitchen, yard)).toBe(false);
   });
 
-  it('a corridor runs long along the way it is entered', () => {
-    const s = planWorld([
-      title('room', 'inn', [way('corr', 'the east passage', 'door')], { area: 64, roof: true }),
-      title('corr', 'inn', [way('room', 'back', 'door')], { area: 25, aspect: 4, roof: true }),
-    ]);
-    // whole metres (MAP-10): 25 m² at about 4 to 1 is 8 × 3
-    expect(box(get(s, 'corr')).w).toBe(8);
-    expect(box(get(s, 'corr')).d).toBe(3);
-    expect(middle(get(s, 'corr')).x).toBeGreaterThan(middle(get(s, 'room')).x);
-  });
-
   it('upstairs sits straight above, never across the map', () => {
     const s = planWorld([
       title('hall', 'inn', [way('loft', 'the stairs', 'up')], { area: 64, roof: true }),

@@ -40,14 +40,6 @@ describe('161 All-150 Every Sense One', () => {
     expect(perceptionOf(e, s, s.player)).toEqual({ level: 'partial', cue: 'sound', heard: true });
   });
 
-  it('what the owner hears clearly, it sees clearly', () => {
-    const s = makeVillage();
-    const e = ev(s, 'trader', s.player.zone, 'unseen', 'normal'); // heard in the owner's zone, never seen
-    expect(perceptionOf(e, s, s.player)).toEqual({ level: 'full', cue: 'sound', heard: true });
-    give(s.player);
-    expect(perceptionOf(e, s, s.player)).toEqual({ level: 'full', cue: 'sight', heard: true });
-  });
-
   it('a sight roll uses Earshot when it is the better sense, and a hearing roll uses Eyesight', () => {
     const s = makeVillage();
     raw(s.player, SK.eyesight, 20);

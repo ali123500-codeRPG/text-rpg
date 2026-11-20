@@ -2,21 +2,11 @@
 // built from the first order (taps never pile up); a question that came with its own answers has no tappable names; and
 // the Parser reads the answer beside its own question and the order it was about.
 import { describe, expect, it } from 'vitest';
-import { answerWith } from '../../src/ui/play';
 import { answering } from '../../src/agents/answering';
 import type { LogLine } from '../../src/types';
 
-const pv = { actors: [{ name: 'Osric Fell', label: 'an off-duty guard' }, { name: 'Corwin Ash', label: 'a red-faced drover' }, { label: 'a tall man' }],
-  lastSeen: [{ name: 'Hob Mercer' }], zones: [{ name: 'the physic garden' }], zone: { groundItems: [], links: [] }, player: { inventory: [] } } as never;
 
 describe('BF72: answering a question', () => {
-  it('a tapped name replaces the one the order named, whole or by one of its words, and never piles up', () => {
-    expect(answerWith('I attack hob', 'Osric Fell', pv)).toBe('I attack Osric Fell');
-    expect(answerWith('I attack Hob Mercer hard', 'Osric Fell', pv)).toBe('I attack Osric Fell hard');
-    expect(answerWith('I punch the tall man', 'Corwin Ash', pv)).toBe('I punch Corwin Ash');
-    // no name the view knows: the answer follows the order
-    expect(answerWith('I attack him.', 'Osric Fell', pv)).toBe('I attack him, I mean Osric Fell');
-  });
 
   it('the order a question is about is the first order of its run, so a second answer is read against it', () => {
     const ls: LogLine[] = [

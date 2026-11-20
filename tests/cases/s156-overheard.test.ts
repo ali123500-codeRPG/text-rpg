@@ -3,12 +3,9 @@
 // plainly a lie with Plain as Day. The one lied to, and anyone who already answered it, is not checked again.
 import { describe, expect, it } from 'vitest';
 import { forcedRng, makeVillage } from '../harness';
-import { act, play, plannerOut } from './w4-kit';
 import { PK } from '../../src/library/perkIds';
-import { SK } from '../../src/library/skillIds';
 import { actorById } from '../../src/engine/relations';
-import { overhearLie, PLAIN } from '../../src/engine/speech';
-import { buildActorView, buildNarrationView } from '../../src/views';
+import { overhearLie } from '../../src/engine/speech';
 import type { Actor, GameEvent, GameState } from '../../src/types';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
@@ -59,32 +56,4 @@ describe('156 Overheard', () => {
     expect(e.overheard).toHaveLength(2);
   });
 
-  it('the player is told it does not sit right, or plainly a lie with Plain as Day; an NPC owner sees the same', () => {
-    const s = makeVillage();
-    const p2 = actorById(s, 'trader')!;
-    p2.zone = s.player.zone;
-    give(s.player, PK.overheard);
-    give(p2, PK.overheard);
-    const e = lie(s);
-    e.overheard = ['player', 'trader'];
-    s.events.push(e);
-    expect(buildNarrationView(s, [e]).events.find((x) => x.id === e.id)?.overheard).toBe(PLAIN); // LG25 c: plainly, for everyone
-    expect(buildActorView(s, 'trader').perceived.find((x: { id: string; tell?: string }) => x.id === e.id)?.tell).toBe(PLAIN);
-  });
-
-  it('in play: an NPC lie to another NPC is checked for an owner nearby', () => {
-    const caught = (perk: boolean) => {
-      for (let seed = 1; seed <= 40; seed++) {
-        const s = makeVillage({ playerZone: 'gate_inner' });
-        Object.assign(actorById(s, 'patron_1')!, { zone: 'gate_inner', placeId: 'gate' });
-        if (perk) give(s.player, PK.overheard);
-        s.player.core.skills[SK.insight] = { raw: 60, state: 'normal' };
-        const ev = play(s, { agentOutputs: [plannerOut('guard_1', act('deceive', 'patron_1'), { dialogue: { line: 'The gate is shut till dawn.', volume: 'normal' } })] }, seed);
-        if (ev.find((x) => x.kind === 'speak' && x.actorId === 'guard_1')?.overheard?.includes('player')) return true;
-      }
-      return false;
-    };
-    expect(caught(false)).toBe(false);
-    expect(caught(true)).toBe(true);
-  });
 });

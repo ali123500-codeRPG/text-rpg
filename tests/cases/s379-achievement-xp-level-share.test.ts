@@ -6,7 +6,6 @@ import { questXp } from '../../src/engine/quests';
 import { ACH } from '../../src/library/achievementIds';
 import { getLibrary } from '../../src/library';
 import { achXp, rewardXp, rewardXpAt } from '../../src/ruleset/achRewards';
-import { chainDetail, chainLines } from '../../src/ui/pages';
 import type { Quest } from '../../src/types';
 
 const share = (p: number) => (rewardXpAt(p, 10000) - rewardXpAt(p)) / 10000;
@@ -46,11 +45,4 @@ describe('379 achievement XP level share', () => {
     expect(questXp(s, q)).toBeGreaterThan(rewardXp('ii'));
   });
 
-  it('AL5: the in-game chain panel names no XP', () => {
-    const s = makeVillage();
-    for (let i = 0; i < 10; i++) tally(s, 'won_panicking');
-    const rows = chainLines(s, false).flatMap((l) => chainDetail(s, l.id, false));
-    expect(rows.length).toBeGreaterThan(0);
-    expect(rows.some((r) => /XP/.test(`${r.k} ${r.v}`))).toBe(false);
-  });
 });

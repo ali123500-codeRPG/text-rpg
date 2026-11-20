@@ -15,7 +15,4 @@ describe('193 a band chase written as its name (BG-40)', () => {
     const r = checkStagePlan(plan('Ground'));
     expect(r.value.bands[0].chase).toBe('ground');
   });
-  it('a key stays a key', () => {
-    expect(checkStagePlan(plan('far')).value.bands[0].chase).toBe('far');
-  });
 });

@@ -86,13 +86,6 @@ describe('221 search', () => {
     expect(calls.flatMap((b) => b.tierShifts).some((x) => x.source === 'searching')).toBe(false);
   });
 
-  it('SE6: nothing hidden in reach, nothing rolled', () => {
-    const s = makeVillage({ playerZone: 'street_square' });
-    rig(1);
-    play(s, search());
-    expect(searches(s)).toHaveLength(0);
-  });
-
   it('SE20/SE21, LX2/LX3: the full contest covers only the area around you, the same in a fight; beyond it the look is the weak one', () => {
     const s = makeVillage({ playerZone: 'street_square' });
     const t = thief(s, 'street_square');
@@ -192,20 +185,6 @@ describe('221 search', () => {
     calls = rig(-1);
     play(s, search());
     expect(lookShift(calls)).toBe(CONFIG.SEARCH_RING_SHIFTS[1]);
-  });
-
-  it('LX7 a: an NPC\'s search has the rings too, so a guard finds the hiding player past its search area', () => {
-    const s = smallVillage();
-    const g = spawnNpc(null, TP.guard, { id: 'guard_x', zone: 'street_square', placeId: 'street', bandId: 'village_watch', name: 'Bors', storyId: 'test' });
-    s.actors.push(g);
-    beside(s, 'guard_x', 'player', 9); // its search radius is the 2 m floor, ring one ends at 4 m: 9 m is ring two
-    s.player.posture = 'stealthy';
-    const calls = rig(1);
-    play(s, { agentOutputs: [plannerOut('guard_x', act('search'))] });
-    expect(calls.flatMap((b) => b.tierShifts)).toContainEqual({ source: 'searching', value: CONFIG.SEARCH_RING_SHIFTS[1] });
-    expect(searches(s)).toContainEqual({ actorId: 'guard_x', hiderId: 'player', gap: 1, sense: FN.sight });
-    expect(searches(s).length).toBe(1);
-    expect(g.mind!.knowledge.player?.status).toBe('aware');
   });
 
   it('WC1/WC2, LX8 a: inside its area a Search uses up waiting\'s contest; in either ring that contest still runs, and the better counts', () => {

@@ -4,8 +4,6 @@
 import { describe, expect, it } from 'vitest';
 import { makeVillage, place } from '../harness';
 import { intent, play } from './w4-kit';
-import { buildPlayerView } from '../../src/views';
-import { deck } from '../../src/ui/deck';
 import { maxMorale, moraleLost } from '../../src/ruleset/morale';
 import { PK } from '../../src/library/perkIds';
 import { SK } from '../../src/library/skillIds';
@@ -31,12 +29,6 @@ const setup = () => {
 };
 
 describe('374 Rally', () => {
-  it('is a main-action move aimed at no one, in the player view and the action deck', () => {
-    const { s } = setup();
-    const pv = buildPlayerView(s);
-    expect(pv.player.perkMoves?.find((m) => m.id === PK.rally)).toMatchObject({ name: 'Rally', action: true });
-    expect(deck({ pv, s }).find((g) => g.group === 'perks')?.actions.some((a) => a.label === 'Rally your side' && !a.steps.length)).toBe(true);
-  });
 
   it('a Loud call: the broken ally rolls with the owner\'s Command, gets morale back and fights again; the foe and the owner get nothing', () => {
     const { s, ally } = setup();

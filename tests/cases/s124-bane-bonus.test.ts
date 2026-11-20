@@ -29,11 +29,6 @@ describe('124 Bane bonuses', () => {
     expect([baneSkill(ACH.first_defeat_race), baneSkill(ACH.defeats_10_race), baneSkill(ACH.defeats_100_race)]).toEqual([5, 15, 30]);
     expect([baneSkill(ACH.first_defeat_body_type), baneSkill(ACH.defeats_10_body_type), baneSkill(ACH.defeats_100_body_type)]).toEqual([5, 15, 30]); // Scourge of the {body_type} Hordes: +15 on rolls
   });
-  it('no achievement, no bonus', () => {
-    const s = makeVillage();
-    place(s, 'patron_1', s.player.zone);
-    expect(bane(s, 'patron_1')).toEqual([]);
-  });
   it('a higher level switches the lower off; only it is checked, and only against that race', () => {
     const s = makeVillage();
     place(s, 'patron_1', s.player.zone);

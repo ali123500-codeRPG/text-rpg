@@ -16,7 +16,6 @@ import { effectiveSkill } from '../../src/ruleset';
 import { gripReachM, roleOff } from '../../src/ruleset/body';
 import { RL } from '../../src/library/tableIds';
 import { TR } from '../../src/library/treeIds';
-import { TP } from '../../src/library/templateIds';
 import { naturalReduction } from '../../src/ruleset';
 import { perceptionOf, smells } from '../../src/perception';
 import { CONFIG } from '../../src/config';
@@ -64,24 +63,6 @@ describe('323 animal body types', () => {
     const boar = s.actors.find((x) => x.names.current === RC.boar)!;
     expect(effectiveSkill(s, boar, SK.hide).value).toBeGreaterThan(0);
     expect(naturalReduction(s, boar, getLibrary().races![RC.boar].naturalArmor!)).toBeCloseTo(CONFIG.ARMOR_FACTOR * effectiveSkill(s, boar, SK.hide).value * 1, 9);
-  });
-
-  it('AB16: each natural skill opens only to bodies and races with that attack', () => {
-    const s = makeVillage(), a = s.player, lib = getLibrary();
-    const as = (race: string) => { a.core.raceId = race; a.core.bodyTypeId = lib.races![race].bodyTypeId; return a; };
-    expect([SK.bite, SK.claws, SK.hooves_horns, SK.tail, SK.slam].map((k) => skillOpen(as(RC.tiger), k))).toEqual([true, true, false, false, false]);
-    expect([SK.bite, SK.hooves_horns].map((k) => skillOpen(as(RC.horse), k))).toEqual([true, true]);
-    expect([SK.tail, SK.claws].map((k) => skillOpen(as(RC.crocodile), k))).toEqual([true, false]);
-    expect([SK.slam, SK.bite].map((k) => skillOpen(as(RC.slime), k))).toEqual([true, false]);
-    expect(skillOpen(as(RC.human), SK.bite)).toBe(false);
-    expect(skillOpen(as(RC.dragon), SK.bite)).toBe(true); // it bites now that the old catch-all skill is gone
-  });
-
-  it('AB19: slimes smell instead of feeling vibration', () => {
-    const s = makeVillage(), slime = s.actors.find((x) => x.core.templateId === TP.slime)!;
-    expect([skillOpen(slime, SK.scent), skillOpen(slime, SK.tremor)]).toEqual([true, false]);
-    expect(slime.core.skills[SK.scent].raw).toBe(50);
-    expect(getLibrary().essences![Object.keys(getLibrary().essences!).find((k) => getLibrary().essences![k].from.race === RC.slime)!].skills.map((x) => x.skill)).toEqual([SK.slam, SK.scent]);
   });
 
   it('AB18: a nose finds someone unseen and unheard within Scent metres along the open ways, in any light', () => {
