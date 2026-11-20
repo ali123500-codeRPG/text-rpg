@@ -8,6 +8,7 @@
 import { type MapLink, type MapPerson, type MapWay, type MapZone } from './mapData';
 import { seenIn, type SeenRun } from '../plan/fog';
 import { verticalOf } from '../scenario/heights';
+import { CONFIG } from '../config';
 
 /** screen pixels per metre before zoom; the scale bar is drawn from it too (MAP-10) */
 export const PX_PER_M = 12;
@@ -50,7 +51,9 @@ export type SStair = Box & { id: string; zoneId: string; cx: number; cy: number;
 export type SFurn = Box & { id: string; zoneId: string; kind: string; name: string; cx: number; cy: number };
 /** `cap` (GSM-193): a body bigger than its disc is drawn as a capsule of its own size, `len` px along the way it faces
  *  (`deg`, screen degrees) and `wide` px across, never narrower than the disc; the box is the turned capsule's */
-export type SToken = Box & { id: string; zoneId: string; cx: number; cy: number; r: number; you?: true; who?: MapPerson; title: string; cap?: { len: number; wide: number; deg: number } };
+export type SToken = Box & { id: string; zoneId: string; cx: number; cy: number; r: number; you?: true; who?: MapPerson; title: string; cap?: { len: number; wide: number; deg: number };
+  /** MAP-68: the faint "somewhere here" circle round the point someone out of full sight was last perceived at */
+  ring?: { cx: number; cy: number; r: number } };
 export type Scene = {
   zones: SZone[]; places: SPlace[]; labels: SLabel[]; doors: SDoor[]; exits: SExit[];
   stairs: SStair[]; furniture: SFurn[]; tokens: SToken[];
@@ -314,7 +317,8 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
     used.add('place');
   }
 
-  // ---- other people (MAP-22: tokens in the bottom band; at their own point when the character sees exactly where)
+  // ---- other people (MAP-68): at their own point when the character sees exactly where; out of full sight, at the point
+  // they were last seen or heard, in a "somewhere here" circle; with no point known, in a row above the zone's south wall
   for (const x of zones) {
     const zb = x.box, row = x.z.people.filter((p) => !p.at), at = x.z.people.filter((p) => p.at);
     for (const who of at) {
@@ -323,13 +327,17 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
       if (p) { tokens.push({ id: `who:${who.id}`, zoneId: x.z.id, ...p, r: WHO_R, ...disc(p.cx, p.cy, hx, hy), who, title: who.name, ...(cap ? { cap } : {}) }); take(disc(p.cx, p.cy, hx, hy), 'token'); }
       else row.push(who);
     }
-    row.forEach((who, i) => {
-      const cx = (zb.x0 + zb.x1) / 2 + (i - (row.length - 1) / 2) * (2 * WHO_R + 4), cy = zb.y1 - WHO_R - 4;
-      const p = keep(spotOf(`who:${who.id}`, zb, WHO_R + 2), WHO_R, zb) ?? nearFree(cx, cy, WHO_R, zb) ?? outsideNear(cx, zb.y1 + WHO_R + 4, WHO_R);
-      tokens.push({ id: `who:${who.id}`, zoneId: x.z.id, ...p, r: WHO_R, ...disc(p.cx, p.cy, WHO_R), who, title: who.now ? `${who.name}: somewhere in here` : `${who.name} (last seen)` });
+    const band = row.filter((p) => !p.lastAt);
+    row.forEach((who) => {
+      const i = band.indexOf(who), pt = who.lastAt && { x: who.lastAt.x * PX_PER_M * k, y: -who.lastAt.y * PX_PER_M * k };
+      const cx = pt ? pt.x : (zb.x0 + zb.x1) / 2 + (i - (band.length - 1) / 2) * (2 * WHO_R + 4), cy = pt ? pt.y : zb.y1 - WHO_R - 4;
+      const p = keep(spotOf(`who:${who.id}`, zb, WHO_R + 2), WHO_R, zb) ?? nearFree(cx, cy, WHO_R, zb) ?? outsideNear(cx, pt ? cy : zb.y1 + WHO_R + 4, WHO_R);
+      tokens.push({ id: `who:${who.id}`, zoneId: x.z.id, ...p, r: WHO_R, ...disc(p.cx, p.cy, WHO_R), who,
+        title: pt ? `${who.name}: somewhere here` : who.now ? `${who.name}: somewhere in here` : `${who.name} (last seen)`,
+        ...(pt ? { ring: { cx: pt.x, cy: pt.y, r: CONFIG.LAST_SEEN_RADIUS_M * PX_PER_M * k } } : {}) });
       take(disc(p.cx, p.cy, WHO_R), 'token');
     });
-    if (x.z.people.some((p) => !p.now)) used.add('who-last');
+    if (x.z.people.some((p) => !p.now || p.lastAt)) used.add('who-last');
     if (x.z.people.some((p) => p.now)) used.add('who');
   }
   /** a free spot for a disc near (cx, cy), searching outward without a zone to stay in */

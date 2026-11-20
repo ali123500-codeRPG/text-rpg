@@ -14,8 +14,9 @@ export type FakeStage = {
   /** where you stand, metres from your zone's centre (east, north) */
   you: [number, number];
   /** who is about: a stranger label, their zone, and metres from its centre when the character sees exactly where;
-   *  `race` and `facing` (GSM-193): a beast whose body is bigger than its disc, drawn as its capsule */
-  people: { id: string; label: string; zone: string; at?: [number, number]; race?: string; facing?: [number, number] }[];
+   *  `race` and `facing` (GSM-193): a beast whose body is bigger than its disc, drawn as its capsule; `last`: out of sight,
+   *  last seen there (MAP-68), at metres from its centre (the journal's last spot, BG-125) or at no point */
+  people: { id: string; label: string; zone: string; at?: [number, number]; race?: string; facing?: [number, number]; last?: [number, number] | 'zone' }[];
   barriers: { id: string; a: string; b: string; rec: Omit<Barrier, 'id'> }[];
 };
 
@@ -62,7 +63,7 @@ function bentNail(saved = false): FakeStage {
   return {
     places, plan, zone: 'midden_yard', placeId: 'thornbury', seen: ['high_lane', 'midden_yard', 'tavern.common', 'tavern.bar', 'tavern.kitchen'], trail: ['high_lane', 'tavern.common', 'tavern.kitchen'],
     you: [-2, -1],
-    people: [{ id: 'f_guard', label: 'an off-duty guard', zone: 'high_lane', at: [0, 1] }, { id: 'f_wren', label: 'a lean man in a patched coat', zone: 'midden_yard', at: [1, 1] }, { id: 'f_keep', label: 'the barkeep', zone: 'tavern.bar' },
+    people: [{ id: 'f_guard', label: 'an off-duty guard', zone: 'high_lane', at: [0, 1] }, { id: 'f_wren', label: 'a lean man in a patched coat', zone: 'midden_yard', at: [1, 1] }, { id: 'f_keep', label: 'the barkeep', zone: 'tavern.bar', last: [0.5, 0] },
       { id: 'f_horse', label: 'a cart horse', zone: 'high_lane', at: [0, 5], race: RC.horse, facing: [0, 1] }],
     barriers: [
       { id: 'fb_front', a: 'high_lane', b: 'tavern.common', rec: { kind: BK.door, grade: 'minor' } },
@@ -100,7 +101,7 @@ function longNames(): FakeStage {
   const all = places.flatMap((p) => p.zones.map((z) => z.id));
   return {
     places, plan, zone: 'm.hall', placeId: M, seen: all, trail: ['g.drive', 'g.garden', 'm.gallery', 'm.library', 'm.dining'], you: [2, -3],
-    people: [{ id: 'f_butler', label: 'a stooped butler', zone: 'm.hall', at: [-3, 2] }, { id: 'f_maid', label: 'a young maid', zone: 'm.dining' }, { id: 'f_gard', label: 'a gardener with a barrow', zone: 'g.garden', at: [4, 0] }],
+    people: [{ id: 'f_butler', label: 'a stooped butler', zone: 'm.hall', at: [-3, 2] }, { id: 'f_maid', label: 'a young maid', zone: 'm.dining', last: 'zone' }, { id: 'f_gard', label: 'a gardener with a barrow', zone: 'g.garden', at: [4, 0] }],
     barriers: [{ id: 'fb_study', a: 'm.library', b: 'm.study', rec: { kind: BK.door, grade: 'moderate', lock: { locked: true }, tried: ['player'] } }],
   };
 }

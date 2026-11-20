@@ -1,7 +1,8 @@
 // The stage map's layout (rpg-map): code places zones on the 1 m grid with buildings in one piece (MAP-10, MAP-12), then
 // places every mark so none covers another (MAP-20..32), and the three test stages (MAP-52) come out clean.
 import { describe, expect, it } from 'vitest';
-import { checkReach, checkStage, planScene, roughMeasure, wrap, type Box, type Scene } from '../../src/ui/mapPlan';
+import { PX_PER_M, checkReach, checkStage, planScene, roughMeasure, wrap, type Box, type Scene } from '../../src/ui/mapPlan';
+import { CONFIG } from '../../src/config';
 import { knownMap, type MapZone } from '../../src/ui/mapData';
 import { createFakeGame } from '../../src/ui/fakeGame';
 import { FAKE_STAGES } from '../../src/ui/fakeStages';
@@ -81,6 +82,17 @@ describe('MAP-52 test stages', () => {
       expect(tavern.title.y1).toBeLessThanOrEqual(top);
       expect(tavern.title.x0).toBeLessThanOrEqual(corner);
       expect(tavern.title.x1).toBeGreaterThan(corner);
+    }
+  });
+  it('MAP-68: someone out of full sight is at the point last seen or heard, in a "somewhere here" circle; with no point, in the row', () => {
+    for (const k of [0.6, 1, 2.5]) {
+      const st = stageState('bent-nail'), spot = st.player.journal!.lastSpot!.f_keep, keep = sceneOf(st, k).sc.tokens.find((t) => t.id === 'who:f_keep')!;
+      expect(keep.ring).toEqual({ cx: spot.x * PX_PER_M * k, cy: -spot.y * PX_PER_M * k, r: CONFIG.LAST_SEEN_RADIUS_M * PX_PER_M * k });
+      expect(Math.hypot(keep.cx - keep.ring!.cx, keep.cy - keep.ring!.cy)).toBeLessThanOrEqual(keep.ring!.r);
+      expect(keep.title).toBe('the barkeep: somewhere here');
+      const { sc } = sceneOf(stageState('long-names'), k), maid = sc.tokens.find((t) => t.id === 'who:f_maid')!, room = sc.zones.find((x) => x.z.id === 'm.dining')!.box;
+      expect(maid.ring).toBeUndefined();
+      expect(maid.cy).toBeGreaterThan((room.y0 + room.y1) / 2);
     }
   });
   it('the stages exist as the fake preview names them', () => expect(Object.keys(FAKE_STAGES)).toEqual(['bent-nail', 'bent-nail-saved', 'one-room', 'long-names']));

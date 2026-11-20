@@ -28,9 +28,11 @@ export type MapWay = { kind: string; shut?: 'locked' | 'barred' | 'blocked'; ope
 export type MapLink = { to: string; label: string; sight: boolean; frontier: boolean; known: boolean; otherPlace?: string; way?: MapWay;
   at?: Pt; out?: [number, number]; opening?: string; stairs?: true; up?: boolean };
 /** at: where they stand (Actor.pos, metres in the map's frame), only for someone in full sight on a zone with a rectangle;
- * someone only heard or glimpsed, or last seen, has no point: the player can't tell where in the zone they are; body (SZ16):
- * its floor size in metres and the way it faces, for someone seen clearly at their own point */
-export type MapPerson = { id: string; name: string; now: boolean; at?: { x: number; y: number }; body?: { lengthM: number; widthM: number; facing: [number, number] } };
+ * lastAt (MAP-68): for someone only heard or glimpsed, or last seen, the point where the character last perceived them
+ * (the journal's last spot, BG-125), when it lies in the zone they are listed in; without either, the player can't tell
+ * where in the zone they are; body (SZ16): its floor size in metres and the way it faces, for someone seen clearly at
+ * their own point */
+export type MapPerson = { id: string; name: string; now: boolean; at?: { x: number; y: number }; lastAt?: { x: number; y: number }; body?: { lengthM: number; widthM: number; facing: [number, number] } };
 export type MapZone = {
   id: string; placeId: string; name: string; look: string; outdoor: boolean; here: boolean; inView: boolean;
   /** metres above the ground outside: the map shows one height (a floor) at a time */
@@ -151,13 +153,18 @@ export function knownMap(s: GameState): KnownMap {
   // people: seen now (PlayerView) and last seen (out of sight now, in the zone they were last seen in)
   const people = new Map<string, MapPerson[]>();
   const add = (zone: string, x: MapPerson) => { if (!people.has(zone)) people.set(zone, []); people.get(zone)!.push(x); };
+  /** MAP-68: where the character last saw or heard someone out of full sight, on the zone they are listed in */
+  const lastAt = (id: string, zone: string): Pick<MapPerson, 'lastAt'> => {
+    const spot = p.journal?.lastSpot?.[id], z = zoneById(s, zone);
+    return spot && z?.outline?.length && Math.abs(spot.floor - z.floor) < 0.01 && inOutline(spot, z.outline, 0.01) ? { lastAt: { x: spot.x, y: spot.y } } : {};
+  };
   for (const a of pv?.actors ?? []) {
     if (a.id === p.id) continue;
     const who = a.level === 'full' ? s.actors.find((x) => x.id === a.id) : undefined, pos = who?.pos;
     const size = who ? actorBody(s, who).size : undefined; // SZ16: seen clearly, so its size and facing are seen too
-    add(a.zone, { id: a.id, name: a.name ?? a.label, now: true, ...(pos && zoneById(s, a.zone)?.outline?.length ? { at: { x: pos.x, y: pos.y }, body: { lengthM: size!.lengthM, widthM: size!.widthM, facing: who!.facing ?? [0, 1] } } : {}) });
+    add(a.zone, { id: a.id, name: a.name ?? a.label, now: true, ...(pos && zoneById(s, a.zone)?.outline?.length ? { at: { x: pos.x, y: pos.y }, body: { lengthM: size!.lengthM, widthM: size!.widthM, facing: who!.facing ?? [0, 1] } } : lastAt(a.id, a.zone)) });
   }
-  for (const a of pv?.lastSeen ?? []) add(a.zone, { id: a.id, name: a.name, now: false });
+  for (const a of pv?.lastSeen ?? []) add(a.zone, { id: a.id, name: a.name, now: false, ...lastAt(a.id, a.zone) });
 
   const byPlace = new Map<string, MapZone[]>();
   for (const id of known) {

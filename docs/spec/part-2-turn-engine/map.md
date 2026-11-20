@@ -144,8 +144,10 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   lists it under Furniture (src/ui/furnitureIcons.ts, one per FU kind; FR5; RM1 b, RM6 a).
 - **MAP-68** People on the plan: everyone in full sight stands at their own point, as you do. Someone only heard or
   glimpsed, or last seen, is their dashed disc at the point where the character last saw or heard them (the journal's
-  last spot, BG-125), inside a faint dashed 2 m "somewhere here" circle (a placeholder setting in config), with
-  "somewhere here" on hover. How the circle should grow or change is parked (D-424) (Actor.pos, MapPerson.at; Ali,
+  last spot, BG-125), inside a faint dashed 2 m "somewhere here" circle (2 m its radius, as the question's picture
+  measured it: CONFIG.LAST_SEEN_RADIUS_M, a placeholder), with "somewhere here" on hover. Someone with no known point
+  stays in a row above their zone's south wall. How the circle should grow or change is parked (D-424) (Actor.pos,
+  MapPerson.at and MapPerson.lastAt; Ali,
   13/11/2026; RM4 a, RM7 a; Ali, 20/11/2026, Questions hub page "Map rules revision").
 - **MAP-69** Each person's disc shows an icon for what the character can see on them first: what they hold or wear
   that stands out (a weapon, armour, a tool of their trade), else what they are (a person, a beast, a slime). It uses

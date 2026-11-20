@@ -246,7 +246,8 @@ export function planView(api: GameApi, opts: PlanOpts) {
       // BG-324: the disc (GSM-193: or the body's capsule) alone is the token the checker measures; the initial's text box is taller than it, its letter is not
       const shape = c ? s('rect', { x: t.cx - c.len / 2, y: t.cy - c.wide / 2, width: c.len, height: c.wide, rx: Math.min(c.len, c.wide) / 2, transform: `rotate(${c.deg} ${t.cx} ${t.cy})`, ...tok })
         : s('circle', { cx: t.cx, cy: t.cy, r: t.r, ...tok });
-      const g = s('g', { class: `map-who plan-who${who.now ? '' : ' last'}${who.at ? ' at' : ''}`, 'data-zone': t.zoneId, 'data-thing': 'person', 'data-of': who.id, tabindex: 0, role: 'button', 'aria-label': `${t.title}: what to do` },
+      const g = s('g', { class: `map-who plan-who${who.now && !who.lastAt ? '' : ' last'}${who.at ? ' at' : ''}`, 'data-zone': t.zoneId, 'data-thing': 'person', 'data-of': who.id, tabindex: 0, role: 'button', 'aria-label': `${t.title}: what to do` },
+        ...(t.ring ? [s('circle', { class: 'map-who-ring', cx: t.ring.cx, cy: t.ring.cy, r: t.ring.r })] : []),
         s('g', {}, shape, s('text', { x: t.cx, y: t.cy + 3, 'text-anchor': 'middle' }, whoInitial(who.name))),
         s('text', { x: t.x1 + 4, y: t.cy + 4, class: 'map-who-label' }, who.name), s('title', {}, t.title));
       gTokens.append(g);

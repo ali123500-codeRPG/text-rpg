@@ -44,4 +44,7 @@ export const PERCEPTION = {
    * light adds sign × lightMod(the light where the action is) to the roll; cover is sign × coverMod (CV6, CV7: what shows of
    * the body there) on the roll. A skill's tags are in the library (SkillDef.tags); linking a table is a row here. */
   SITUATION_TAGS: { light: { sight: 1, stealth: -1 }, cover: { hide: 1, ranged: -1 } } as Record<'light' | 'cover', Partial<Record<import('../types').SituationTag, number>>>,
+  /** MAP-68 (placeholder; how it grows or changes is parked, D-424): the radius in metres of the faint "somewhere here"
+   *  circle the map draws round someone only heard or glimpsed, or last seen, at the point they were last perceived */
+  LAST_SEEN_RADIUS_M: 2,
 };
