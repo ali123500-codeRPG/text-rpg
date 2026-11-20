@@ -33,6 +33,12 @@ project's id, `execute_sql` reads and writes. Supabase's public roles have no ac
 - The page reads the table through the viewer's Supabase connector, and also its own database, where questionnaires
   written before the move still live. The home list shows both. Each questionnaire's rounds, questions and answers stay
   in the store that holds its page, so a thread keeps reading and writing where it started.
+- While the page's own database still holds questionnaires the table lacks, the home list shows a button, "Move N
+  older questionnaires to the shared table". Pressing it copies each of them whole (page, rounds, questions, answers)
+  into Supabase, never over a row that is already there, and leaves the own copies in place. From then on the page
+  reads and writes those questionnaires in Supabase, so the thread that pressed for the move checks the counts and
+  then deletes the own copies. The button exists because a thread can only send SQL by writing it out, which does not
+  work for megabytes of old questionnaires; the page reads both stores directly.
 - New questionnaires go to Supabase only. Supabase cannot push changes, so an open page reads what it watches again
   every 20 seconds.
 - A red line at the bottom left means Supabase could not be reached, for example because the free project paused after
@@ -66,7 +72,8 @@ start; the owner decides with you.
   as `src/ui/assets/` (`docs/assets.md`). Opened locally without them, the page falls back to system fonts.
 - `blocks.py`: helpers that build a question's body, plus `lint()`, which refuses a wall of text.
 - `hubdb.py`: builds the small database writes for a new questionnaire, a new round, or marking questions done.
-- `checks/stores.mjs`: checks that the page shows both stores and writes each questionnaire to its own (run with Node).
+- `checks/stores.mjs`: checks that the page shows both stores, writes each questionnaire to its own, and copies older
+  questionnaires whole (run with Node).
 - `checks/render.cjs`: draws one questionnaire with the local `hub.html` and saves a picture (needs Playwright).
 - `checks/livecheck.cjs`, `checks/test.cjs`, `checks/mkseeds.py`: regression checks from the move to small documents.
   They compare against an older copy of the page and saved real questionnaires, which are kept only in the Claude

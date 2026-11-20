@@ -221,6 +221,7 @@ section { margin-top: 30px; }
       <button type="button" role="tab" id="tabOpen" aria-controls="pageList" aria-selected="true" style="--k:var(--warn)">Open<b id="nOpen"></b></button>
       <button type="button" role="tab" id="tabDone" aria-controls="pageList" aria-selected="false" tabindex="-1" style="--k:var(--ok)">Completed<b id="nDone"></b></button>
     </div>
+    <p id="older" hidden style="margin:12px 0 0;display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:13px;color:var(--muted)"><button type="button" class="btn" id="copyBtn"></button><span id="copyMsg" role="status"></span></p>
     <div class="pages" id="pageList" role="tabpanel"><p class="empty">Loading…</p></div>
   </section>
 </main>
@@ -580,12 +581,44 @@ function supaDb(mcp) {
     delete: async () => { await run(`delete from hub_docs where path = ${q(p)}`); poke(p); },
     onSnapshot: (cb, err) => watch(p, () => getDoc(p), cb, err),
   });
+  // many rows in one transaction, and never over a row that is already there
+  const insertNew = (rows) => run('begin; ' + rows.map(([p, v]) => `insert into hub_docs (path, data) values (${q(p)}, ${q(JSON.stringify(v))}::jsonb)
+    on conflict (path) do nothing;`).join(' ') + ' commit;');
   const collection = (c) => ({
     get: () => getColl(c),
     where: (f, op, v) => { if (op !== '>') throw new Error('only > is supported'); return { get: () => getColl(c, ` and data->>${q(f)} > ${q(v)}`) }; },
     onSnapshot: (cb, err) => watch(c, () => getColl(c), cb, err),
   });
-  return { doc, collection };
+  return { doc, collection, insertNew };
+}
+
+// Questionnaires that are still only in this page's own db go to Supabase when the owner presses the button on the
+// home list. A questionnaire travels whole (its page, rounds, questions and answers) inside one transaction, so a
+// half-copied one can never win the lookup in bothDb. The own copies stay; clearing them is a separate step.
+const COPY_MAX = 400000; // characters of JSON per query: execute_sql refuses a query over about 2 MB
+async function copyOlder(own, shared, todo, say = () => {}) {
+  let rows = [], size = 0, held = 0, done = 0;
+  const flush = async () => { if (!rows.length) return; await shared.insertNew(rows); done += held; rows = []; size = held = 0; say(done); };
+  for (const p of todo) {
+    const part = [['pages/' + p.id, p.data()]];
+    for (const c of ['rounds', 'qs', 'answers']) for (const d of (await own.collection(`${c}/${p.id}/items`).get()).docs) part.push([`${c}/${p.id}/items/${d.id}`, d.data()]);
+    const n = part.reduce((s, r) => s + JSON.stringify(r[1]).length, 0);
+    if (size + n > COPY_MAX) await flush();
+    rows.push(...part); size += n; held++;
+  }
+  await flush(); return done;
+}
+async function offerCopy(own, shared, sharedPages) {
+  const have = new Set(sharedPages.docs.map((d) => d.id));
+  const todo = (await own.collection('pages').get().catch(() => ({ docs: [] }))).docs.filter((d) => !have.has(d.id));
+  if (!todo.length) return;
+  const btn = $('copyBtn'), msg = $('copyMsg'); btn.textContent = `Move ${todo.length} older questionnaire${todo.length > 1 ? 's' : ''} to the shared table`; $('older').hidden = false;
+  btn.addEventListener('click', async () => {
+    btn.disabled = true; msg.textContent = 'Copying…';
+    try { const n = await copyOlder(own, shared, todo, (d) => { msg.textContent = `Copying… ${d} of ${todo.length}`; });
+      btn.hidden = true; msg.textContent = `${n} copied. Tell Claude, who checks the copy and clears the old one.`; rowsById = null; if (!PAGE) showHome(); }
+    catch (e) { btn.disabled = false; msg.textContent = `Stopped (${e?.code || e?.message || e}). Nothing is lost; press again to carry on.`; }
+  });
 }
 
 // Both stores at once: Supabase (shared by both accounts) and this page's own db (questionnaires written before the
@@ -619,8 +652,10 @@ function bothDb(a, b) {
     // the built-in db stays the fallback: a viewer without the Supabase connector still sees this page's own data
     const why = (e) => { const n = document.createElement('p'); n.className = 'supa-off'; n.textContent = `Supabase unavailable (${e?.code || e?.message || e}): showing this page's own data only.`; document.body.append(n); return null; };
     const own = window.claude?.use ? await window.claude.use('db') : null;
-    const shared = sdb ? await sdb.collection('pages').get().then(() => sdb, why) : mcp ? null : why('connectors not offered here');
+    let sharedPages = null;
+    const shared = sdb ? await sdb.collection('pages').get().then((s) => { sharedPages = s; return sdb; }, why) : mcp ? null : why('connectors not offered here');
     db = shared ? bothDb(shared, own) : own;
+    if (shared && own) offerCopy(own, shared, sharedPages).catch(() => {});
   } catch (e) { db = null; }
   const last = db ? await recall('qhub:last') : null;
   if (db && last) openPage(last); else showHome();
