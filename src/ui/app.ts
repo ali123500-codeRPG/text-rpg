@@ -140,7 +140,11 @@ export function mountApp(api: GameApi, root: HTMLElement = document.body) {
       if (lastPage !== 'create' || !creation) creation = creationScreen(api, () => go('play'));
       // a saved story that failed to load says so here, so a new story is never started by mistake
       const refused = api.notices().find((n) => n.kind === 'load_refused');
-      view.replaceChildren(...(refused ? [h('div', { class: 'hs-hl bad', role: 'alert' }, h('span', { class: 'hs-hl-b' }, refused.text))] : []), creation);
+      // YS1 c: its ways back; the creation screen below is the third way, a new save
+      const r = refused?.kind === 'load_refused' ? refused.recovery : undefined;
+      const way = (label: string, choice: 'back' | number) => h('button', { type: 'button', class: 'hs-btn-text', onclick: () => void api.recoverLoad(choice) }, label);
+      const ways = r ? [...(r.back ? [way('Go back one turn', 'back')] : []), ...r.backups.map((t) => way(`Restore turn ${t}`, t))] : [];
+      view.replaceChildren(...(refused ? [h('div', { class: 'hs-hl bad', role: 'alert' }, h('span', { class: 'hs-hl-b' }, refused.text), ...(ways.length ? [h('p', {}, ...ways)] : []))] : []), creation);
     } else {
       creation = null;
       const pg = pages[page];

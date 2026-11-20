@@ -228,7 +228,7 @@ export function gmPage(api: GameApi) {
           h('thead', {}, h('tr', {}, h('th', {}, 'Turn'), h('th', {}, 'Where'), h('th', { class: 'r' }, ''))),
           h('tbody', {}, [...g.backups].sort((a, b) => b.turn - a.turn).map((b) => h('tr', {}, h('td', { class: 'hs-num' }, `Turn ${b.turn}`), h('td', {}, b.path),
             h('td', { class: 'r' }, confirm?.kind === 'restore' && confirm.turn === b.turn
-              ? confirmRow(`Restore turn ${b.turn}? The current head is kept as the safety bookmark.`, 'Restore', () => void api.restoreBackup(b.turn))
+              ? confirmRow(`Restore turn ${b.turn}? The current save is backed up first.`, 'Restore', () => void api.restoreBackup(b.turn))
               : h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { confirm = { kind: 'restore', turn: b.turn }; update(); } }, 'Restore'))))))
           : h('p', { class: 'empty' }, 'No backups yet. One is written every few turns.')),
 

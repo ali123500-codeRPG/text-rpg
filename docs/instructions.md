@@ -104,8 +104,9 @@ The source of truth for every design decision.
   scales, config tables) and use it. Code reads a body type's parts; it never assumes hands.
 - **Performance, not token saving.** Propose dropping or trimming an in-game agent call only when it makes the game
   better or faster. Lower cost alone is not a reason.
-- **Saves.** Until the owner names a keep-saves point, a change may break old saves. Do not write migrations for new
-  changes; raise `CONFIG.OLDEST_SAVE_SCHEMA` when a change breaks loading.
+- **Saves.** Until the owner names a keep-saves point, a change may break old saves. A change that breaks loading adds
+  a migration step (`MIGRATIONS` in `src/save/checks.ts`) when the step is small: it sets a default or renames a
+  field. Otherwise it raises `CONFIG.OLDEST_SAVE_SCHEMA` and says so in its PR.
 - **No decision stamps, no filler notes.** Code, comments and game text state the rule, not who decided it or when.
   A note in displayed prose that never changes play is deleted, not reworded.
 - **Equations prose.** A change to how a roll, gain or mark works also updates the prose in

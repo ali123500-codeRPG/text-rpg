@@ -3,6 +3,11 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bug-fix-log.md`.
 
+- 20/11/2026: `AGENTS.md` "Finding your way" and map: `npm run spec -- <SETTING>` gives the config file and line that
+  set it. `docs/providers/claude.md` "Questions hub: writing and answers": where a questionnaire lives is one lookup
+  in Supabase, not a date; an own-database page with `moved` is a stale copy that names where it lives.
+- 20/11/2026: `docs/instructions.md` section 4 "Saves" (YS3 b): a change that breaks loading adds a migration step when
+  the step is small (it sets a default or renames a field); otherwise it raises `OLDEST_SAVE_SCHEMA` and says so in its PR.
 - 20/11/2026: `docs/instructions.md` section 8, `.agents/skills/root-cause-first` and the PR template: a test earns its
   place (behaviour that could break again, run through the game, never source text; "none needed" is a fine answer);
   a change of meaning gets a whole-repo search, not a guard test; a bug fix no longer must start with a failing test.

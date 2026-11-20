@@ -30,9 +30,9 @@ export class SaveError extends Error {
     super(message);
   }
 }
-/** Load refused: the save is untouched. The designer chooses one of `options`. */
+/** Load refused: the save is untouched. `canGoBack`: the head has an undo bookmark to go back one turn to (YS1 c). */
 export class LoadRefusedError extends Error {
-  constructor(public report: string[], public options: ('undo' | 'safety' | 'reset')[]) {
+  constructor(public report: string[], public canGoBack: boolean) {
     super(`load refused: ${report[0] ?? ''}`);
   }
 }
@@ -47,8 +47,8 @@ const backupPath = (id: string, t: number) => `${story(id)}/backups/${t}`;
 const historyPath = (id: string, n: number) => `${story(id)}/history/${n}`;
 const tail = (p: string) => p.slice(p.lastIndexOf('/') + 1);
 const bookmarkOf = (h: Head): Bookmark => ({ turn: h.turn, pages: h.pages });
-/** the bookmarks whose pages must not be overwritten: the head, its undo and its safety (or the one given) */
-const liveOf = (h: Head | null, safety = h?.safety): Bookmark[] => (h ? [bookmarkOf(h), ...(h.undo ? [h.undo] : []), ...(safety ? [safety] : [])] : []);
+/** the bookmarks whose pages must not be overwritten: the head and its undo */
+const liveOf = (h: Head | null): Bookmark[] => (h ? [bookmarkOf(h), ...(h.undo ? [h.undo] : [])] : []);
 /** the page limit as the save's messages say it */
 const LIMIT_TEXT = `${PAGE_LIMIT / 1024} KiB`;
 
@@ -121,7 +121,7 @@ function prepare(pages: Pages, id: string, schemaVersion: number, library: Libra
 
 const reportLines = (r: CheckReport) => [...r.errors, ...r.repairs, ...r.warnings.map((w) => `warning: ${w}`)];
 const refuse = (r: CheckReport, h: Head | null): never => {
-  throw new LoadRefusedError(reportLines(r), [...(h?.undo ? ['undo' as const] : []), ...(h?.safety ? ['safety' as const] : []), 'reset']);
+  throw new LoadRefusedError(reportLines(r), !!h?.undo);
 };
 
 // ---------- save ----------
@@ -139,12 +139,11 @@ export async function saveTurn(store: Store, state: GameState, record: TurnRecor
   const id = state.storyId;
   if (record.storyId !== id) throw new SaveError('wrong_story', `record is for ${record.storyId}, state is ${id}`);
   const pages = toPages(state);
-  const head = await guard(async () => {
+  const { head, prev } = await guard(async () => {
     const [prev, stored] = await Promise.all([store.get<Head>(headPath(id)), store.get(story(id))]);
     const live = liveOf(prev);
     const meta: StoryMeta = { ...state.meta, settings: state.settings };
     const { refs, write } = planPages(store, id, pages, record.turn, live, prev?.pages);
-    // safety (pre-migration or pre-restore) is dropped after this good turn
     const head: Head = { storyId: id, turn: record.turn, pages: refs, schemaVersion: CONFIG.SCHEMA_VERSION, libraryVersion: state.libraryVersion, undo: prev ? bookmarkOf(prev) : null };
     checkHeadSize(state, head, prev);
     // pages, the turn record and the story meta are written together; the head (the commit) goes last
@@ -154,11 +153,12 @@ export async function saveTurn(store: Store, state: GameState, record: TurnRecor
       stableStringify(stored) !== stableStringify(meta) ? store.set(story(id), meta) : undefined,
     ]);
     await store.set(headPath(id), head);
-    return head;
+    return { head, prev };
   });
   await guard(async () => {
-    await cleanup(store, id, head);
-    if (record.turn > 0 && record.turn % CONFIG.BACKUP_EVERY === 0) await writeBackup(store, id, head, pages);
+    const backupTurn = record.turn % CONFIG.BACKUP_EVERY === 0;
+    await cleanup(store, id, head, backupTurn ? undefined : prev);
+    if (record.turn > 0 && backupTurn) await writeBackup(store, id, head, pages);
   }, true);
   return head;
 }
@@ -172,11 +172,18 @@ function checkHeadSize(state: GameState, head: Head, prev: Head | null): void {
   if (bytes >= warn && (!prev || byteLength(prev) < warn)) state.log.push({ turn: head.turn, code: 'head_large', detail: { bytes, pages: Object.keys(head.pages).length } });
 }
 
-/** Save step 6: drop page versions no bookmark points to, and turn records older than the last N. */
-async function cleanup(store: Store, id: string, head: Head): Promise<void> {
-  const keep = new Set([head, head.undo, head.safety].filter((b): b is Bookmark => !!b).flatMap((b) => Object.entries(b.pages).map(([k, r]) => pagePath(id, k, r.version))));
-  const [pages, turns] = await Promise.all([store.list(`${story(id)}/pages`), store.list(`${story(id)}/turns`)]);
-  await Promise.all([...pages.filter((p) => !keep.has(p)), ...turns.filter((p) => +tail(p) <= head.turn - CONFIG.TURN_RECORDS_KEPT)].map((p) => store.delete(p)));
+/** Save step 6: drop page versions no bookmark points to, and turn records older than the last N. An ordinary turn
+ * works them out from `prev`, the head it replaced: the versions only its bookmarks held, and the one record that just
+ * fell out of the last N. With no `prev` it lists both collections and sweeps them, which also takes what a failed
+ * write left behind (BACKUP_EVERY turns, undo, restore). */
+async function cleanup(store: Store, id: string, head: Head, prev?: Head | null): Promise<void> {
+  const paths = (h: Head | null) => liveOf(h).flatMap((b) => Object.entries(b.pages).map(([k, r]) => pagePath(id, k, r.version)));
+  const keep = new Set(paths(head));
+  const old = head.turn - CONFIG.TURN_RECORDS_KEPT;
+  const [pages, turns] = prev === undefined
+    ? await Promise.all([store.list(`${story(id)}/pages`), store.list(`${story(id)}/turns`)])
+    : [[...new Set(paths(prev))], old >= 0 ? [turnPath(id, old)] : []];
+  await Promise.all([...pages.filter((p) => !keep.has(p)), ...turns.filter((p) => +tail(p) <= old)].map((p) => store.delete(p)));
 }
 
 /** CS12: a change made between turns (a perk taken or undone, a quest abandoned or pinned) saved at once. The saved head's
@@ -204,20 +211,15 @@ export async function loadStory(store: Store, storyId: string, library: Library)
     if (!head || !meta) { r.errors.push('no save for this story'); return refuse(r, head); }
     const pages = await readPages(store, storyId, head, r);
     if (r.errors.length) return refuse(r, head);
-    let safety = head.safety;
-    if (head.schemaVersion < CONFIG.SCHEMA_VERSION) {
-      await writeBackup(store, storyId, head); // on load before any migration (§11)
-      safety = bookmarkOf(head);
-    }
+    const migrating = head.schemaVersion < CONFIG.SCHEMA_VERSION;
+    if (migrating) await writeBackup(store, storyId, head); // on load before any migration (§11)
     prepare(pages, storyId, head.schemaVersion, library, r);
     if (r.errors.length) return refuse(r, head);
     let next = head;
-    if (r.changed.size || head.libraryVersion !== library.version || safety !== head.safety) {
-      const live = liveOf(head, safety);
-      const refs = await commitPages(store, storyId, pages, head.turn, live, head.pages);
-      // after a migration the undo bookmark holds old-schema pages: the safety bookmark replaces it
-      const undo = head.schemaVersion < CONFIG.SCHEMA_VERSION ? null : head.undo;
-      next = { ...head, pages: refs, schemaVersion: CONFIG.SCHEMA_VERSION, libraryVersion: library.version, undo, ...(safety ? { safety } : {}) };
+    if (r.changed.size || head.libraryVersion !== library.version || migrating) {
+      const refs = await commitPages(store, storyId, pages, head.turn, liveOf(head), head.pages);
+      // after a migration the undo bookmark holds old-schema pages: the backup just written stands in for it
+      next = { ...head, pages: refs, schemaVersion: CONFIG.SCHEMA_VERSION, libraryVersion: library.version, undo: migrating ? null : head.undo };
       await store.set(headPath(storyId), next);
     }
     const state = fromPages(meta, next, pages);
@@ -232,21 +234,20 @@ export async function loadStory(store: Store, storyId: string, library: Library)
   });
 }
 
-/** After a refused load, the designer picks the undo or safety bookmark: checked first, then made the head. */
-export async function useBookmark(store: Store, storyId: string, which: 'undo' | 'safety', library: Library): Promise<{ state: GameState; report: string[] }> {
+/** YS1 c: after a refused load, go back one turn: the undo bookmark is checked like a load, then made the head. Unlike
+ * /undo it never reads the refused turn's pages, which may be the ones that are broken. */
+export async function goBackOneTurn(store: Store, storyId: string, library: Library): Promise<{ state: GameState; report: string[] }> {
   await guard(async () => {
     const head = await store.get<Head>(headPath(storyId));
-    const bm = head?.[which];
     const r = newReport();
-    if (!head || !bm) { r.errors.push(`no ${which} bookmark`); return refuse(r, head); }
-    const pages = await readPages(store, storyId, bm, r);
-    // the safety bookmark predates a migration: its schema version is on the backup taken just before it
-    const backup = which === 'safety' ? await store.get<{ schemaVersion: number }>(backupPath(storyId, bm.turn)) : null;
-    const schemaVersion = backup?.schemaVersion ?? head.schemaVersion;
-    if (!r.errors.length) prepare(pages, storyId, schemaVersion, library, r);
-    if (r.errors.length) return refuse(r, head);
-    await store.set(headPath(storyId), { ...head, ...bm, schemaVersion, undo: null, safety: which === 'undo' ? head.safety : undefined } satisfies Head);
-  });
+    if (!head?.undo) { r.errors.push('no turn to go back to'); return refuse(r, head); }
+    const pages = await readPages(store, storyId, head.undo, r);
+    if (!r.errors.length) prepare(pages, storyId, head.schemaVersion, library, r);
+    if (r.errors.length) return refuse(r, null);
+    const next: Head = { storyId, turn: head.undo.turn, pages: head.undo.pages, schemaVersion: head.schemaVersion, libraryVersion: head.libraryVersion, undo: null };
+    await store.set(headPath(storyId), next);
+    return next;
+  }).then((next) => guard(() => cleanup(store, storyId, next), true)); // the refused turn's pages go
   return loadStory(store, storyId, library);
 }
 
@@ -262,8 +263,7 @@ export async function undoTurn(store: Store, storyId: string): Promise<void> {
     const back = await readPages(store, storyId, { turn: head.undo.turn, pages: { engine: head.undo.pages.engine } }, r);
     if (r.errors.length) throw new SaveError('checksum', r.errors.join('; '));
     const engine: EnginePage = { ...(back.engine as EnginePage), rngState: (cur.engine as EnginePage).rngState };
-    const live = [bookmarkOf(head), head.undo, ...(head.safety ? [head.safety] : [])];
-    const refs = await commitPages(store, storyId, { engine }, head.undo.turn, live);
+    const refs = await commitPages(store, storyId, { engine }, head.undo.turn, liveOf(head));
     const next: Head = { ...head, turn: head.undo.turn, pages: { ...head.undo.pages, ...refs }, undo: null };
     await store.set(headPath(storyId), next);
     return { next, undone: head.turn };
@@ -439,7 +439,8 @@ export async function listBackups(store: Store, storyId: string): Promise<{ turn
   return (await store.list(`${story(storyId)}/backups`)).map((path) => ({ turn: +tail(path), path })).sort((a, b) => b.turn - a.turn);
 }
 
-/** Restore runs the same checks as a load, writes a new head on the backup's pages and keeps the current head as safety. */
+/** Restore runs the same checks as a load and writes a new head on the backup's pages. The save it replaces is backed up
+ * first, as before a migration (YS1 c), unless its pages no longer read back (a refused load's broken turn). */
 export async function restoreBackup(store: Store, storyId: string, turn: number, library: Library): Promise<{ state: GameState; report: string[] }> {
   await guard(async () => {
     const r = newReport();
@@ -455,12 +456,12 @@ export async function restoreBackup(store: Store, storyId: string, turn: number,
     }
     if (!r.errors.length) prepare(pages, storyId, doc.schemaVersion, library, r);
     if (r.errors.length) return refuse(r, head);
-    const live = liveOf(head);
-    const refs = await commitPages(store, storyId, pages, turn, live);
-    await store.set(headPath(storyId), {
-      storyId, turn, pages: refs, schemaVersion: CONFIG.SCHEMA_VERSION, libraryVersion: library.version, undo: null,
-      ...(head ? { safety: bookmarkOf(head) } : {}),
-    } satisfies Head);
-  });
+    // the same turn's backup would be overwritten by the save it is about to replace
+    if (head && head.turn !== turn) await writeBackup(store, storyId, head).catch((e) => { if (!(e instanceof SaveError && e.code === 'checksum')) throw e; });
+    const refs = await commitPages(store, storyId, pages, turn, liveOf(head));
+    const next: Head = { storyId, turn, pages: refs, schemaVersion: CONFIG.SCHEMA_VERSION, libraryVersion: library.version, undo: null };
+    await store.set(headPath(storyId), next);
+    return next;
+  }).then((next) => guard(() => cleanup(store, storyId, next), true)); // the replaced save is in its backup now
   return loadStory(store, storyId, library);
 }
