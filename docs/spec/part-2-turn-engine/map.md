@@ -208,9 +208,9 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   (RD1-RD3; RM9 a).
 - **MAP-55** Dev views: `?fake=1&stage=bent-nail|bent-nail-saved|one-room|long-names` and `?mapcheck`. There, after
   every to-scale render, the Map runs `checkMap`, `checkReach` and the MAP-10/MAP-12 stage checks (`checkStage`), logs
-  each finding to the console as "[map-check] …" and sets `window.__mapFindings`. After every render the minimap runs
-  `checkMap` and `checkReach`, logs "[minimap-check] …" and sets `window.__minimapFindings` (src/ui/map.ts,
-  src/ui/minimap.ts, src/ui/mapCheck.ts, src/ui/mapPlan.ts).
+  each finding to the console as "[map-check] …" and sets `window.__mapFindings`. The minimap, the same view (MAP-84),
+  runs the same checks, logs "[minimap-check] …" and sets `window.__minimapFindings` (src/ui/planView.ts,
+  src/ui/mapCheck.ts, src/ui/mapPlan.ts).
 - **MAP-56** The automated check is `npm run smoke`: tests/smoke/map.smoke.ts builds the page and asserts zero findings
   on the minimap and on the Map for the three MAP-52 stages, with no page errors. Agents reuse it and do not write their
   own Playwright scripts. The run in the PR's checks is the judge: a finding that only a local browser shows, where
@@ -230,5 +230,5 @@ the code decides what the game does (`AGENTS.md`, Order of authority).
 
 - **MAP-44 and MAP-45:** someone heard going into a zone the character has never seen is last seen there (MAP-45), but
   the map shows only zones seen or stood in (MAP-44), so they are not drawn anywhere.
-- **MAP-33 until built (D-423):** the code still draws zone states (a hatch on the Map, a dashed edge on the minimap)
-  and judges "in sight now" per zone.
+- **MAP-33 until built (D-423):** the code still draws zone states (a hatch for seen, not been in; an outline where you
+  stand) and judges "in sight now" per zone.

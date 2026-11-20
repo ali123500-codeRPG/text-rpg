@@ -1693,17 +1693,6 @@ button.eq-name:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .mm-go { height: 26px; padding: 0 10px; border: 1px solid var(--accent); border-radius: var(--r-md); background: none; color: var(--accent); font: inherit; font-weight: 700; cursor: pointer;
   transition: background-color var(--m-feedback) var(--m-ease); }
 .mm-go:hover { background: var(--accent-soft); }
-.mm-zone .mm-ground { fill: color-mix(in srgb, var(--surface) 90%, black); }
-.mm-zone.outdoor .mm-ground { fill: color-mix(in srgb, var(--c12) 20%, var(--bg)); }
-.mm-zone.current .mm-ground { fill: color-mix(in srgb, var(--accent) 14%, var(--bg)); }
-.mm-zone.seen .mm-ground { fill-opacity: .55; }
-.mm-zone .mm-ground.mm-box { fill: none; } /* PZ1: a title of another shape: its box only tags it, its outline is drawn */
-.mm-zone .map-edge { stroke: color-mix(in srgb, var(--text) 75%, transparent); }
-.mm-zone .map-edge.wall { stroke-width: 2; }
-.mm-zone.seen .map-edge { stroke-dasharray: 2 4; } /* MAP-34: seen, not been in, reads without colour */
-.mm-zone.current .map-edge { stroke: var(--accent); }
-.mm-here { fill: none; stroke: var(--accent); stroke-width: 1.5; pointer-events: none; }
-.mm-name { font-family: var(--font-round); font-weight: 700; fill: color-mix(in srgb, var(--text) 35%, transparent); paint-order: stroke; stroke: var(--bg); stroke-width: 3px; pointer-events: none; }
 .mm-ring { fill: color-mix(in srgb, var(--accent) 7%, transparent); stroke: color-mix(in srgb, var(--accent) 55%, transparent); stroke-dasharray: 4 4; pointer-events: none; }
 .mm-ring.dash { fill: color-mix(in srgb, var(--accent) 3%, transparent); stroke: color-mix(in srgb, var(--accent) 50%, transparent); stroke-dasharray: 1 5; stroke-linecap: round; } /* BF91: how far a dash runs; told apart from the walk ring by its dots, not colour alone (MAP-34) */
 .mm-path { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: 1 6; pointer-events: none; }
@@ -1720,3 +1709,10 @@ button.eq-name:focus-visible { outline: 2px solid var(--accent); outline-offset:
 /* AU7: the Sound switch and its volume slider on the play header */
 .sound-sw { display: inline-flex; align-items: center; gap: var(--space-1); }
 .sound-sw input[type="range"] { width: 88px; accent-color: var(--accent); }
+/* MAP-84: the Map's place view is the minimap's own component, filling the stage; its tools sit at the bottom right */
+.mm.mm-full { position: absolute; inset: 0; display: flex; flex-direction: column; border: 0; border-radius: 0; background: none; }
+.mm-full .mm-svg { flex: 1 1 auto; height: auto; min-height: 0; position: static; }
+.mm-full .mm-head { position: absolute; right: var(--space-3); bottom: 52px; border: 0; padding: 0; z-index: 2; }
+.mm-full .mm-floor { display: none; }
+.mm-full .mm-foot { background: color-mix(in srgb, var(--surface) 85%, transparent); }
+.mm-tag { fill: none; stroke: none; pointer-events: none; }

@@ -439,6 +439,32 @@ describe('play page smoke (TQ7)', () => {
     expect(errors).toEqual([]);
   });
 
+  it('MAP-84: one map in two sizes: a right-click on the minimap opens that zone on the Map, and a click there plans a walk', async () => {
+    await nav('Play');
+    const mmPin = page.locator('.cs-side .mm-svg .map-pin[data-id="you"] circle').first(), c = (await mmPin.boundingBox())!;
+    for (const [dx, dy] of [[20, 0], [-20, 0], [0, 20], [0, -20], [40, 0], [-40, 0]]) { // a spot of ground the character has seen
+      await page.mouse.click(c.x + c.width / 2 + dx, c.y + c.height / 2 + dy, { button: 'right' });
+      if (await page.locator('.fpop.map-full').count()) break;
+    }
+    const pop = page.locator('.fpop.map-full');
+    await pop.locator('.map-card h2').waitFor();
+    expect(await pop.locator('.mm.mm-full .mm-svg').count()).toBe(1); // the Map's place view is the minimap's component
+    const pin = (await pop.locator('.map-pin[data-id="you"] circle').first().boundingBox())!;
+    let planned = false;
+    for (const [dx, dy] of [[30, 0], [-30, 0], [0, 30], [0, -30]]) {
+      await page.mouse.click(pin.x + pin.width / 2 + dx, pin.y + pin.height / 2 + dy);
+      await page.mouse.move(5, 5); // off the map: the footer shows the plan, not the spot pointed at
+      planned = /^Planned:/.test(await pop.locator('.mm-say').innerText());
+      if (planned) break;
+    }
+    expect(planned).toBe(true);
+    await page.waitForFunction(() => !document.getAnimations().some((a) => a.playState === 'running'));
+    await page.keyboard.press('Escape'); // drops the plan
+    await page.keyboard.press('Escape'); // closes the map
+    await page.locator('.fpop').waitFor({ state: 'detached' });
+    expect(errors).toEqual([]);
+  });
+
   it('the map card of the zone you stand in has no Move to here', async () => {
     await nav('Play');
     await page.locator('[data-open="map"]').click();

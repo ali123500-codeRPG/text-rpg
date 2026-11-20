@@ -392,6 +392,7 @@ furniture, ground items; the Map and minimap screens (see the `rpg-map` skill).
   - `src/ui/mapData.ts`
   - `src/ui/mapPlan.ts`
   - `src/ui/minimap.ts`
+  - `src/ui/planView.ts`
 
 ## world: land, roads and travel
 
@@ -572,6 +573,7 @@ styles, the fake game the smoke tests drive. A UI change uses the design skills 
   - `src/ui/mapData.ts`
   - `src/ui/mapPlan.ts`
   - `src/ui/minimap.ts`
+  - `src/ui/planView.ts`
   - `src/ui/motion.ts`
   - `src/ui/pages.ts`
   - `src/ui/perks.ts`
