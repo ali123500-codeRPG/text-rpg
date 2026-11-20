@@ -9,8 +9,8 @@ redistribution is ever committed to this public repo.
   Each model is CC0 or CC BY 4.0. Credits and links: `assets/figures/models/LICENSE.txt`. CC BY models are credited
   wherever they are shown.
 - **Sound effects**, `src/ui/assets/sfx/*.mp3`. Kenney packs, CC0. Details: `src/ui/assets/sfx/LICENSE.txt`.
-- **Icons**, generated into `src/ui/iconArt.ts` by `npm run icons`. game-icons.net (CC BY 3.0) and Fluent Emoji High
-  Contrast (MIT). Details: `src/ui/assets/icons-LICENSE.txt`.
+- **Icons**, generated into `src/ui/iconArt.ts` by `npm run icons`. game-icons.net (CC BY 3.0), Fluent Emoji High
+  Contrast (MIT) and Material Symbols (Apache-2.0). Details: `src/ui/assets/icons-LICENSE.txt`.
 - **Fonts**, `src/ui/assets/*.woff2`. Literata (SIL OFL, `src/ui/assets/Literata-OFL.txt`) for story text, and the UI
   face named in the spec's "### Play screen". No licence note for the UI face is recorded in the repo: ask the
   owner before reusing it anywhere else.

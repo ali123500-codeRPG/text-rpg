@@ -24,6 +24,7 @@
     "@gltf-transform/functions": "^4.5.1",
     "@iconify-json/fluent-emoji-high-contrast": "^1.2.6",
     "@iconify-json/game-icons": "^1.2.4",
+    "@iconify-json/material-symbols": "^1.2.101",
     "@types/three": "^0.170.0",
     "esbuild": "^0.25.0",
     "meshoptimizer": "^0.22.0",
