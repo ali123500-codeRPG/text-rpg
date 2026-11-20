@@ -3,6 +3,9 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, `docs/build-spec.md` and `docs/bug-fix-log.md`.
 
+- 20/11/2026: `tools/questions-hub/README.md`: a new hub's link is recorded in `docs/providers/claude.md`, in the
+  same thread, as "Claude on another account" does. `AGENTS.md` Upkeep: read the provider file in full and
+  `docs/instructions.md` sections 4 and 5 before the first action, and check every question against rule 10.
 - 20/11/2026: `docs/providers/claude.md`: the move of the game page and the library viewer is stopped. Both stay on
   the account that published them and are shared with the other account for playing; only threads of this project
   publish them and triage in-game bug reports. Numbering bugs from the Bug log stays.

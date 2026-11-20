@@ -103,6 +103,8 @@ Links to `claude.ai/artifact/...` in these files open only for the owner.
 - A change to a rule file or a skill adds a dated line to `CHANGELOG.md`.
 - Read the rules from the latest `main`, not from whatever checkout a session starts on: `git fetch origin main`
   first, and branch from `origin/main`.
+- Before your first action, read your provider file in full and `docs/instructions.md` sections 4 and 5, even when
+  a task names only some sections. Check every question against rule 10 before you send it.
 - A provider's in-app memory holds only pointers and provider-only notes. Durable facts go to the repo: a rule to
   `docs/instructions.md`, a decision or checked note to `docs/memory/`, a game rule to the spec.
 - Dates are written DD/MM/YYYY.
