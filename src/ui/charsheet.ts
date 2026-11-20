@@ -176,8 +176,7 @@ export function charCard(s: GameState, p: Actor, openClasses?: (opener: HTMLElem
         powerFigure(s, p),
         atk ? figBtn('cs-fig', `Standing attack · ${atk.name}`, (el) => openAttackPop(s, p, el), figIcon('fig_attack', `Standing attack · ${atk.name}`), h('b', {}, whole(atk.value)))
           : h('div', { class: 'cs-fig', title: 'Standing attack · no weapon' }, figIcon('fig_attack', 'Standing attack · no weapon'), h('b', {}, '—')),
-        figBtn('cs-fig', `Standing defense · ${def.kind}`, (el) => openDefensePop(s, p, el), figIcon('fig_defense', `Standing defense · ${def.kind}`), h('b', {}, whole(def.value))))),
-    ratingIcons(s, p));
+        figBtn('cs-fig', `Standing defense · ${def.kind}`, (el) => openDefensePop(s, p, el), figIcon('fig_defense', `Standing defense · ${def.kind}`), h('b', {}, whole(def.value))), ratingIcons(s, p))));
 }
 
 /** the card's body figure as one button: a click (on a part, or anywhere on it) opens every part's state in a pop-up */
@@ -276,13 +275,14 @@ function capstoneChoice(s: GameState, p: Actor): HTMLElement | null {
 export function treeBars(p: Actor): HTMLElement {
   return h('div', { class: 'cs-trees' }, trees(p, true).map((t) =>
     h('div', { class: 'cs-tree', style: `--t:var(--${t.c})` },
-      h('div', { class: 'cs-tree-h' }, h('b', {}, t.name), h('span', {}, `${t.sum} pts`)),
+      h('div', { class: 'cs-tree-h' }, h('b', {}, t.name), h('span', { title: `${t.sum} points in this tree` }, String(t.sum))),
       t.block ? h('small', { class: 'cs-tree-block' }, t.block) : null, // TA10: points kept in a tree the character can't use
-      t.rows.map((r) => h('div', { class: 'cs-sk' + (r.raw ? '' : ' zero'), role: 'button', tabindex: '0', 'aria-haspopup': 'dialog', 'data-skill': r.id,
-        title: 'What makes up this skill', onclick: (e: Event) => openSkillPop(p, r.id, e.currentTarget as HTMLElement),
+      // the icon stands for the name, which (with its SKILL_SUB note) is the row's tip and accessible name
+      t.rows.map((r) => { const tip = skillName(r.id) + (SKILL_SUB[r.id] ? ` · ${SKILL_SUB[r.id]}` : ''); return h('div', { class: 'cs-sk' + (r.raw ? '' : ' zero'), role: 'button', tabindex: '0', 'aria-haspopup': 'dialog', 'data-skill': r.id,
+        title: tip, 'aria-label': `${tip}: ${trueSkill(p, r.id)}`, onclick: (e: Event) => openSkillPop(p, r.id, e.currentTarget as HTMLElement),
         onkeydown: (e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openSkillPop(p, r.id, e.currentTarget as HTMLElement); } } },
-        h('div', { class: 'n' }, skillIcon(r.id), skillName(r.id), r.tagged ? [' ', tagIcon()] : null, r.flawed ? [' ', flaw()] : null, r.off ? [' ', offNote()] : null, marked(p, r.id) ? markDot() : null, SKILL_SUB[r.id] ? h('small', {}, SKILL_SUB[r.id]) : null),
-        bar(r.raw, windowOf(p, r.id), BAR_TIP), ((w) => h('div', { class: 'lwn', title: winTitle(w) }, winText(w)))(windowOf(p, r.id)), skillNum(trueSkill(p, r.id), r.raw))))));
+        h('div', { class: 'n' }, skillIcon(r.id) ?? skillName(r.id), r.tagged ? tagIcon() : null, r.flawed ? flaw() : null, r.off ? offNote() : null, marked(p, r.id) ? markDot() : null),
+        bar(r.raw, windowOf(p, r.id), BAR_TIP), ((w) => h('div', { class: 'lwn', title: winTitle(w) }, winText(w)))(windowOf(p, r.id)), skillNum(trueSkill(p, r.id), r.raw)); }))));
 }
 
 const signed = (n: number) => `${n < 0 ? '−' : '+'}${whole(Math.abs(n))}`;
@@ -344,7 +344,7 @@ const partOpen = { on: false, autoTurn: -1 }; // body-part list under the health
 const esc = (t: string) => t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 
 /** BV1 b: where the figure is drawn: still and small in the side sheet; turnable on the character card and in the pop-up */
-const FIG_SIZE = { side: { width: 104, height: 112, turnable: false, ground: false }, card: { width: 168, height: 176, turnable: true, ground: false },
+const FIG_SIZE = { side: { width: 104, height: 112, turnable: false, ground: false }, card: { width: 340, height: 300, turnable: true, ground: false },
   pop: { width: 300, height: 260, turnable: true, ground: true } } as const;
 /** BV4 a: a state's colour (the part list beside the figure names it in words) */
 const STATE_TOKEN: Record<PartState, string> = { healthy: '--ok', damaged: '--warn', crippled: '--danger', destroyed: '--c3' };
