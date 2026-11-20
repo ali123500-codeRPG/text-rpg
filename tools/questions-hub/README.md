@@ -86,10 +86,10 @@ start; the owner decides with you.
 A questionnaire named `<name>` is split into small documents, so a new round or a question marked done never
 re-saves the whole page:
 
-- `pages/<name>` = `{title, updated, spec}`. `spec` is JSON text holding only the header: `title`, `intro` (a list of
-  plain-text paragraphs; HTML is escaped), `K` (the kinds: `{kind: {name, meaning, k}}`, in legend order), optional
-  `NOTE`, optional `sections`, `rules` (`{title, intro, lead}`), optional `css`. It stays text because the database
-  does not keep key order.
+- `pages/<name>` = `{title, desk, updated, spec}`. `desk`: the desk that asks (`main`, `rpg-game`). `spec` is JSON
+  text holding only the header: `title`, `intro` (a list of plain-text paragraphs; HTML is escaped), `K` (the kinds:
+  `{kind: {name, meaning, k}}`, in legend order), optional `NOTE`, optional `sections`, `rules` (`{title, intro,
+  lead}`), optional `css`. It stays text because the database does not keep key order.
 - `rounds/<name>/items/<g>` = `{title, sub, n}`: one per round. Rounds show in `n` order.
 - `qs/<name>/items/<ID>` = one question: `k` (kind), `g` (round), `title`, `body` (or a short `ctx`), `o` (options),
   `rec`, `f` (the one-line form used in the answers summary), `i` (order), and later `done`, `reask` or `withdrawn`.
@@ -151,10 +151,12 @@ q1 = q('XY1', 'ask', 'Question', 'Short title', [
 header = dict(title='Page title', intro=['Plain text paragraph.'],
               K={'ask': {'name': 'Question', 'meaning': 'needs an answer', 'k': 'var(--accent)'}},
               rules={'title': 'Answers, ready to paste', 'intro': '', 'lead': ''})
-print_writes(new_page('page-name', header['title'], header, [('r1', 'Round 1', 'what it asks', [q1])], OUT))
+print(sql(new_page('page-name', header['title'], header, [('r1', 'Round 1', 'what it asks', [q1])], OUT, desk='main')))
 ```
 
-- **New questionnaire:** `new_page(name, title, header, [(g, title, sub, [questions])], OUT)`.
+- **New questionnaire:** `new_page(name, title, header, [(g, title, sub, [questions])], OUT, desk=...)`. `desk` is the
+  asking desk's name, as in its `desk:` label without the prefix (`main`, `rpg-game`): the hub shows it on the card
+  and beside the title, so the owner sees which account asks. `new_page` refuses to run without it.
 - **New round:** `new_round(name, page_version, g, title, sub, [questions], OUT)`. It takes its place from the write
   time, so it lands last, and runs `lint()`.
 - **Mark done, re-ask, withdraw:** `mark(name, page_version, {ID: (doc_version or None, fields)}, OUT)`. A field set to
