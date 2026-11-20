@@ -153,7 +153,13 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   that stands out (a weapon, armour, a tool of their trade), else what they are (a person, a beast, a slime). It uses
   only what is seen, never a hidden role, and the set of icons has enough variety that people in one scene differ.
   Pointing at it shows the name or description they are known by beside it. The discs sit above every tile, so a
-  neighbouring zone never hides one (RM12 b; Ali, 20/11/2026, Questions hub page "Map rules revision").
+  neighbouring zone never hides one. In order: what they hold (a weapon or tool), a shield, armour past plain clothes,
+  wares they offer; else their race or body (a person, a dog, a wolf, a bear, a boar, a horse, a big cat, a lion, a
+  hyena, a lizard, a snake, a spider, a dragon, a slime). A plain person follows what the screen already shows of them
+  in full sight (SeenActor): an elder with a cane from the life stage they look (AG16) at CONFIG.MAP_ELDER_FROM (Old)
+  or later, else a man or a woman figure from their pronouns (he, she), else the plain person. Someone not made out
+  (glimpsed, heard, or out of sight now) shows a hooded figure (personIcon, src/ui/mapData.ts; RACE_ICON,
+  src/ui/itemIcons.ts; RM12 b; RM15 c, RM16 a; Ali, 20/11/2026, Questions hub page "Map rules revision").
 
 #### World view and roads
 

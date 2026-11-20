@@ -9,7 +9,7 @@ import { buildPlayerView, distText } from '../views';
 import { walkLeft } from './doing';
 import { landLayer, landLabels, type LandLabel } from './landSvg';
 import { lineLength, SITE_SIZES, type SiteSize } from '../land/generate';
-import { ICON_ART } from './iconArt';
+import { ICON_ART, type IconName } from './iconArt';
 import { worldTiles, knownMap, pointAlong, rootPlace, type KnownMap, type MapLink, type MapPlace, type MapWay, type MapZone } from './mapData';
 import { cap, theName } from '../words';
 import { MAX_K, PIN_R, PIN_TIP, PX_PER_M } from './mapPlan';
@@ -38,10 +38,10 @@ const s = (tag: string, attrs: Record<string, string | number> = {}, ...kids: (N
 };
 /** a settlement's icon in the key (MAP-71) */
 const kSite = (size: SiteSize, faint = '') => { const i = h('i', { class: `k-site${faint}` }); i.innerHTML = ICON_ART[size]; return i; };
-/** a settlement's icon by its size, px wide, centred on x, y (MAP-71) */
-const siteIcon = (size: SiteSize, x: number, y: number, px: number) => {
-  const g = s('g', { class: 'map-site-icon' });
-  g.innerHTML = ICON_ART[size];
+/** an icon of the set, px wide, centred on x, y: a settlement's by its size (MAP-71), a person's (MAP-69) */
+export const iconMark = (name: IconName, x: number, y: number, px: number, cls = 'map-site-icon') => {
+  const g = s('g', { class: cls });
+  g.innerHTML = ICON_ART[name];
   const box = { x: x - px / 2, y: y - px / 2, width: px, height: px };
   for (const [k, v] of Object.entries(box)) g.firstElementChild!.setAttribute(k, String(v));
   return g;
@@ -74,8 +74,6 @@ export function pin(cx: number, cy: number, title?: string, facing?: [number, nu
   if (title) { g.setAttribute('role', 'img'); g.setAttribute('aria-label', title); g.append(s('title', {}, title)); } // a mark with no visible words
   return g;
 }
-/** the letter a person's dot shows: the first letter of what you know them by, a name or a description ("a lean man" → L) */
-export const whoInitial = (name: string) => (name.replace(/^(a|an|the)\s+/i, '').trim()[0] ?? '?').toUpperCase();
 /** TV7: how far along a road you are, e.g. "1.8 km from the west end of 4.5 km" */
 export const alongText = (a: NonNullable<MapZone['along']>) => `${distText(a.m)} from the ${a.from} end of ${distText(a.len)}`;
 /** a height as the floor buttons and stair tips name it */
@@ -290,7 +288,7 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void, onWalk?:
       taken.push(spot.box);
       const { x, y } = spot, anchor: Record<string, string> = spot.c ? { 'text-anchor': 'middle' } : {};
       return [s('g', { class: `map-world-name${n.here ? ' here' : ''}${n.mid ? ' road' : ''}`, 'data-role': 'label', 'data-id': `world:${n.name}` },
-        ...(n.icon ? [((g) => (g.setAttribute('data-zone', n.id!), g.append(s('title', {}, `${n.name}, a ${n.icon}`)), g))(siteIcon(n.icon, x + 11, y + 2, 24))] : []),
+        ...(n.icon ? [((g) => (g.setAttribute('data-zone', n.id!), g.append(s('title', {}, `${n.name}, a ${n.icon}`)), g))(iconMark(n.icon, x + 11, y + 2, 24))] : []),
         s('text', { x: x + ic, y, class: 'map-tile-name', ...anchor }, n.name), s('text', { x: x + ic, y: y + 16, class: 'map-tile-sub', ...anchor }, n.sub))];
     });
     nameLayer.replaceChildren(...names, ...landMarksAt(v, taken));
@@ -309,7 +307,7 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void, onWalk?:
       taken.push(box);
       const said = `${l.name}${l.kind === 'feature' ? '' : `, a ${l.kind}`}${l.faint ? ': known by word, not seen' : ''}`;
       out.push(s('g', { class: `map-land-mark ${l.kind}${l.faint ? ' faint' : ''}`, 'data-role': 'label', 'data-id': `land:${l.id}`, role: 'img', 'aria-label': said },
-        l.kind === 'feature' ? s('rect', { x: x - rr, y: y - rr, width: 2 * rr, height: 2 * rr, transform: `rotate(45 ${x} ${y})` }) : siteIcon(l.kind, x, y, 2 * rr),
+        l.kind === 'feature' ? s('rect', { x: x - rr, y: y - rr, width: 2 * rr, height: 2 * rr, transform: `rotate(45 ${x} ${y})` }) : iconMark(l.kind, x, y, 2 * rr),
         s('text', { x, y: y - rr - 5, 'text-anchor': 'middle' }, l.name), s('title', {}, said)));
     }
     return out;

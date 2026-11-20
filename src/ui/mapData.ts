@@ -3,8 +3,10 @@
 // what it sees now (PlayerView), its trail, and the places the Journal lists. Never the hidden store: light, cover,
 // people and things on the ground show only for zones in view now; a remembered zone keeps its name, look and exits.
 import { furnitureIn, furniturePos } from '../engine/furniture';
-import type { GameState } from '../types';
-import { buildPlayerView } from '../views';
+import type { Actor, GameState, SeenActor } from '../types';
+import { buildPlayerView, instanceItem } from '../views';
+import { iconName, kindIconName } from './itemIcons';
+import type { IconName } from './iconArt';
 import { seesAcross, zoneById } from '../engine/relations';
 import { knownZoneIds } from '../engine/trail';
 import { journalPlaces } from './pages';
@@ -18,6 +20,8 @@ import { barrierOn, barrierView } from '../engine/barriers';
 import { landSeen } from '../land/sight';
 import { plural } from './kit';
 import { actorBody } from '../library';
+import { CONFIG } from '../config';
+import { LIFE_STAGES } from '../scales';
 
 /** a barrier on an exit as the character knows it: what it is, and whether it stops them (locked or barred only once they
  *  have tried it, or hold its key, or see the bolt on their side; blocked rubble shows to anyone) */
@@ -32,7 +36,24 @@ export type MapLink = { to: string; label: string; sight: boolean; frontier: boo
  * (the journal's last spot, BG-125), when it lies in the zone they are listed in; without either, the player can't tell
  * where in the zone they are; body (SZ16): its floor size in metres and the way it faces, for someone seen clearly at
  * their own point */
-export type MapPerson = { id: string; name: string; now: boolean; at?: { x: number; y: number }; lastAt?: { x: number; y: number }; body?: { lengthM: number; widthM: number; facing: [number, number] } };
+export type MapPerson = { id: string; name: string; now: boolean; at?: { x: number; y: number }; lastAt?: { x: number; y: number }; body?: { lengthM: number; widthM: number; facing: [number, number] }; icon: IconName };
+/** MAP-69: the icon for what the character sees on someone first: what they hold (a weapon or a tool), a shield, armour
+ *  past plain clothes, wares they offer; else what they are, from the race and body seen, a plain person by their life
+ *  stage and pronouns (RM15 c); someone not made out (only
+ *  glimpsed or heard, or out of sight now) shows a hooded figure. Only the PlayerView's seen gear is read */
+function personIcon(s: GameState, a: SeenActor, who: Actor | undefined): IconName {
+  if (!who) return 'someone';
+  for (const where of ['held', 'shield', 'armor'] as const) for (const g of a.gear) {
+    const item = g.where === where ? instanceItem(s, g.id) : undefined, icon = item && iconName(s, item);
+    if (icon && icon !== 'tunic') return icon;
+  }
+  const kind = a.wares?.length ? 'trader' : kindIconName(who.core.raceId, who.core.bodyTypeId);
+  if (kind !== 'person') return kind;
+  // RM15 c: a plain person by what the view shows of them: the life stage they look ("Ancient++", AG16), else their pronouns
+  const stage = a.age && LIFE_STAGES.keyOf(a.age.split('+')[0]);
+  if (stage && LIFE_STAGES.pos(stage) >= LIFE_STAGES.pos(CONFIG.MAP_ELDER_FROM)) return 'elder';
+  return a.pronouns === 'he' ? 'man' : a.pronouns === 'she' ? 'woman' : 'person';
+}
 export type MapZone = {
   id: string; placeId: string; name: string; look: string; outdoor: boolean; here: boolean; inView: boolean;
   /** metres above the ground outside: the map shows one height (a floor) at a time */
@@ -162,9 +183,9 @@ export function knownMap(s: GameState): KnownMap {
     if (a.id === p.id) continue;
     const who = a.level === 'full' ? s.actors.find((x) => x.id === a.id) : undefined, pos = who?.pos;
     const size = who ? actorBody(s, who).size : undefined; // SZ16: seen clearly, so its size and facing are seen too
-    add(a.zone, { id: a.id, name: a.name ?? a.label, now: true, ...(pos && zoneById(s, a.zone)?.outline?.length ? { at: { x: pos.x, y: pos.y }, body: { lengthM: size!.lengthM, widthM: size!.widthM, facing: who!.facing ?? [0, 1] } } : lastAt(a.id, a.zone)) });
+    add(a.zone, { id: a.id, name: a.name ?? a.label, now: true, icon: personIcon(s, a, who), ...(pos && zoneById(s, a.zone)?.outline?.length ? { at: { x: pos.x, y: pos.y }, body: { lengthM: size!.lengthM, widthM: size!.widthM, facing: who!.facing ?? [0, 1] } } : lastAt(a.id, a.zone)) });
   }
-  for (const a of pv?.lastSeen ?? []) add(a.zone, { id: a.id, name: a.name, now: false, ...lastAt(a.id, a.zone) });
+  for (const a of pv?.lastSeen ?? []) add(a.zone, { id: a.id, name: a.name, now: false, icon: 'someone', ...lastAt(a.id, a.zone) });
 
   const byPlace = new Map<string, MapZone[]>();
   for (const id of known) {

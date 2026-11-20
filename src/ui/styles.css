@@ -1089,6 +1089,9 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-who text { fill: var(--on-pill); font-size: 13px; font-weight: 800; }
 .map-who.last :is(circle, rect) { fill: var(--bg); stroke: var(--c4); stroke-dasharray: 3 2; }
 .map-who.last text { fill: var(--c4); }
+/* MAP-69: the icon for what is seen on someone first, inside their disc */
+.map-who-icon { color: var(--on-pill); pointer-events: none; }
+.map-who.last .map-who-icon { color: var(--c4); }
 .map-who.plan-who :is(circle, rect) { stroke-width: 1.5; }
 /* MAP-68: the faint "somewhere here" circle round someone out of full sight */
 .map-who.plan-who .map-who-ring { fill: none; stroke: color-mix(in srgb, var(--c4) 45%, transparent); stroke-width: 1; stroke-dasharray: 4 4; }

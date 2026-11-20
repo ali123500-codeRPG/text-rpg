@@ -11,7 +11,7 @@ import { CONFIG } from '../config';
 import type { KnownMap, MapZone } from './mapData';
 import { MAX_K, PX_PER_M, TEXT, checkReach, checkStage, planScene, roughMeasure, wrap, type Box, type Measure, type Scene } from './mapPlan';
 import { checkMap } from './mapCheck';
-import { doorGlyph, fogClip, fogMask, keyTool, planKeyRows, floorMarks, floorName, pin, wayGlyph, whoInitial } from './map';
+import { doorGlyph, fogClip, fogMask, iconMark, keyTool, planKeyRows, floorMarks, floorName, pin, wayGlyph } from './map';
 import { furnIcon } from './furnitureIcons';
 import { metresText, planTo, splitAt, zoneAt, type MinimapPlan, type MinimapPoint } from './minimap';
 import { areaOf } from '../plan/geom';
@@ -243,12 +243,12 @@ export function planView(api: GameApi, opts: PlanOpts) {
       if (!within(t, inView)) continue;
       if (t.you) { const g = pin(t.cx, t.cy, d.youTitle ?? 'You are here', d.facing); g.setAttribute('data-role', 'token'); g.setAttribute('data-id', 'you'); gTokens.append(g); continue; }
       const who = t.who!, c = t.cap, tok = { 'data-role': 'token', 'data-id': t.id };
-      // BG-324: the disc (GSM-193: or the body's capsule) alone is the token the checker measures; the initial's text box is taller than it, its letter is not
+      // BG-324: the disc (GSM-193: or the body's capsule) alone is the token the checker measures; its icon (MAP-69) sits inside it
       const shape = c ? s('rect', { x: t.cx - c.len / 2, y: t.cy - c.wide / 2, width: c.len, height: c.wide, rx: Math.min(c.len, c.wide) / 2, transform: `rotate(${c.deg} ${t.cx} ${t.cy})`, ...tok })
         : s('circle', { cx: t.cx, cy: t.cy, r: t.r, ...tok });
       const g = s('g', { class: `map-who plan-who${who.now && !who.lastAt ? '' : ' last'}${who.at ? ' at' : ''}`, 'data-zone': t.zoneId, 'data-thing': 'person', 'data-of': who.id, tabindex: 0, role: 'button', 'aria-label': `${t.title}: what to do` },
         ...(t.ring ? [s('circle', { class: 'map-who-ring', cx: t.ring.cx, cy: t.ring.cy, r: t.ring.r })] : []),
-        s('g', {}, shape, s('text', { x: t.cx, y: t.cy + 3, 'text-anchor': 'middle' }, whoInitial(who.name))),
+        s('g', {}, shape, iconMark(who.icon, t.cx, t.cy, 2 * t.r - 4, 'map-who-icon')),
         s('text', { x: t.x1 + 4, y: t.cy + 4, class: 'map-who-label' }, who.name), s('title', {}, t.title));
       gTokens.append(g);
     }
