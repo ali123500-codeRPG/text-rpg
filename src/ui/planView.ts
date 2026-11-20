@@ -189,15 +189,15 @@ export function planView(api: GameApi, opts: PlanOpts) {
         s('path', { d: p.outline, ...(cut ? {} : { 'data-role': 'place', 'data-id': p.id }) }), ...(cut ? [r(c, { class: 'mm-tag', 'data-role': 'place', 'data-id': p.id })] : [])));
     }
     const labels = new Map(sc.labels.map((l) => [l.zoneId, l]));
-    /** each name as drawn: a zone partly out of view has its name sized to the part in view, so furniture is checked again */
+    /** each name as drawn: a name partly out of view is fitted again to the part of its seen room in view (BG-348), so furniture is checked again */
     const names: Box[] = [];
     for (const x of sc.zones) {
       const c = clip(x.box, vb), z = x.z;
       if (!c) continue;
       gZones.append(planZone(z, x.box, c));
-      // MZ2: each zone's name behind every mark, in the part of its box in view; none where it does not fit (MAP-20)
-      const l = labels.get(z.id);
-      const n = z.seen && !z.seen.length ? null : l && same(c, x.box) ? l : nameFit(z.name, c, measure); // BG-313: no name on a title never seen
+      // MZ2: each zone's name behind every mark, in the part of its seen room in view; none where it does not fit (MAP-20)
+      const l = labels.get(z.id), lc = l && clip(l.room, vb);
+      const n = !lc ? null : same(lc, l.room) ? l : nameFit(z.name, lc, measure); // BG-313, BG-348: never on ground not seen
       if (!n) continue;
       const cx = (n.x0 + n.x1) / 2;
       names.push(n);

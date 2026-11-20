@@ -44,7 +44,7 @@ export type SZone = { z: MapZone; box: Box };
 export type SPlace = { id: string; name: string; box: Box; outline: string; title: SText };
 export type SText = Box & { text: string; full: string; cut: boolean; lines: string[] };
 /** a zone's name, drawn behind every mark inside its zone (MZ2); `base`: its first line's baseline */
-export type SLabel = SText & { zoneId: string; placement: 'inside'; base: number };
+export type SLabel = SText & { zoneId: string; placement: 'inside'; base: number; room: Box };
 /** zones: the two titles the doorway joins, the far one too when it is not on this map (MAP-85: its deck target) */
 export type SDoor = Box & { id: string; cx: number; cy: number; dir: 'h' | 'v'; kind: 'door' | 'opening'; way?: MapWay; title: string; zones: string[] };
 export type SExit = { id: string; zoneId: string; target: string; state: string; x1: number; y1: number; x2: number; y2: number; note: SText; goto?: string; way?: MapWay; title: string };
@@ -182,8 +182,8 @@ function zoneNames(zones: Pick<SZone, 'z' | 'box'>[], k: number, measure: Measur
   };
   for (const x of zones) {
     if (x.z.seen && !x.z.seen.length) continue; // BG-313: a title the character has seen none of shows no name
-    const n = nameFit(x.z.name, x.z.seen ? seenBox(x.z.seen) ?? x.box : x.box, measure);
-    if (n) labels.push({ ...n, text: n.lines.join(' '), full: x.z.name, cut: false, zoneId: x.z.id, placement: 'inside' });
+    const room = x.z.seen ? seenBox(x.z.seen) ?? x.box : x.box, n = nameFit(x.z.name, room, measure);
+    if (n) labels.push({ ...n, text: n.lines.join(' '), full: x.z.name, cut: false, zoneId: x.z.id, placement: 'inside', room });
   }
   return labels;
 }
