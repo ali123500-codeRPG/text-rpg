@@ -3,9 +3,9 @@
 import { describe, expect, it } from 'vitest';
 // @ts-expect-error Node types are not installed; vitest runs in Node
 import { readFileSync } from 'node:fs';
-import { BUG_LOG } from '../harness/specDocs';
+import { BUG_LOGS } from '../harness/specDocs';
 
-const rows = (readFileSync(BUG_LOG, 'utf8') as string).split('\n').filter((l) => /^\| BG-\d+/.test(l));
+const rows = BUG_LOGS.map((f) => readFileSync(f, 'utf8') as string).join('\n').split('\n').filter((l) => /^\| BG-\d+/.test(l));
 const cells = (l: string) => l.split('|').slice(1, -1).map((c) => c.trim());
 const log = readFileSync('docs/bug-fix-log.md', 'utf8') as string;
 const entries = log.split('\n## ').slice(1);

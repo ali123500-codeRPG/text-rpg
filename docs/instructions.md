@@ -32,9 +32,13 @@ edge cases. Where a section repeats a rule from `AGENTS.md`, it is there to add 
 - **Parked items.** Anything the owner parks (a perk, a question, a feature, tuning) gets its own D-n the same turn,
   in the spec's "Deferred items" table with its options written out, plus banked rows in the library where it is
   content (perks, achievements, table rows).
+- **Active and archive.** The Deferred items table and the Bug log keep open rows only. A row moves unchanged to
+  `deferred-items-archive.md` or `bug-log-archive.md` (beside them in `docs/spec/`) in the PR that finishes it: built,
+  settled, dropped, closed or merged for a D-n; fixed, won't fix or duplicate for a BG-n. `npm run spec -- <ID>` finds
+  a row in either file.
 - **Bugs.** Every bug found or reported gets a BG-n and a row in the spec's "Bug log": its ID, one line on what was
   wrong (at most 160 characters), its status and its claim issue (`#n`, section 4).
-  - Taking a number: use the next free number in the Bug log on the latest `main`, in the PR that adds the row. A
+  - Taking a number: one past the highest BG-n in the Bug log and its archive on the latest `main`, in the PR that adds the row. A
     clash then shows up as a merge conflict. This holds for every agent.
   - Investigate with the `root-cause-first` skill. Before choosing a fix, list every plausible cause (engine rule,
     agent prompt, view or narration data, numbers), check each against the logs, and keep only what the evidence

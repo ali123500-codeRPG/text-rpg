@@ -104,8 +104,8 @@ How the game saves and loads. Part 4 replaces the single GameState document as t
 
 ## Logs and appendix
 
-- [Deferred items](spec/deferred-items.md)
-- [Bug log](spec/bug-log.md)
+- [Deferred items](spec/deferred-items.md); finished rows: [archive](spec/deferred-items-archive.md)
+- [Bug log](spec/bug-log.md); closed rows: [archive](spec/bug-log-archive.md)
 - [Check on release](spec/check-on-release.md)
 - [Open questions](spec/open-questions.md)
 - [Appendix: library rows](spec/library-rows.md)

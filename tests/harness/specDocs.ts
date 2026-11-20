@@ -6,6 +6,7 @@ import { specFiles } from '../../scripts/spec';
 
 export { SPEC_INDEX, specFiles } from '../../scripts/spec';
 export const BUG_LOG = 'docs/spec/bug-log.md';
+export const BUG_LOGS = [BUG_LOG, 'docs/spec/bug-log-archive.md']; // open rows, then closed ones
 
 const read = (f: string) => readFileSync(f, 'utf8') as string;
 

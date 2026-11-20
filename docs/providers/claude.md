@@ -48,7 +48,7 @@ Read this part before your first action.
   once clicked "Begin the story" on the live page and wrote a story into the owner's saves.
 
 **Bug numbers**
-- Every agent, Claude threads included, takes the next free number in the Bug log on the latest `main`
+- Every agent, Claude threads included, takes the next free number in the Bug log and its archive on the latest `main`
   (`docs/instructions.md` section 2), in the PR that adds the row.
 - The counter in the game page's database (`bugs_meta/counter`) is retired. Do not read it or move it.
 - Bug reports the game files itself land in the `bugs` collection of the game page, unnumbered. A triage thread of
