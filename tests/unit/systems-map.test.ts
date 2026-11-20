@@ -76,6 +76,16 @@ describe('test:near', () => {
     expect(pick(['src/save/checks.ts'], testFiles(), read, [], graph)).toContain('tests/unit/save.test.ts');
   });
 
+  it('a part reaches tests through the entry beside its folder, and a file list in an imported script counts (both once missed)', () => {
+    const read = (f: string) => readFileSync(f, 'utf8');
+    const graph = importGraph([...testFiles('src', '.ts'), ...testFiles('tests', '.ts')], read, existsSync);
+    const tests = testFiles();
+    // src/config/fatigue.ts reaches its tests only through src/config.ts, which sits beside the folder
+    expect(pick(['src/config/fatigue.ts'], tests, read, [], graph)).toEqual(expect.arrayContaining(['tests/cases/s278-fatigue-stamina.test.ts', 'tests/cases/s291-stamina-perks.test.ts']));
+    // tests/unit/imports-format.test.ts checks resolve.ts through scripts/imports.ts's ONE_PER_LINE
+    expect(pick(['src/engine/resolve.ts'], tests, read, [], graph)).toContain('tests/unit/imports-format.test.ts');
+  });
+
   it('a change to how tests are built or run runs the whole suite', () => {
     for (const f of ['package.json', 'package-lock.json', 'tsconfig.json', 'vitest.config.ts', 'vitest.shared.config.ts', 'vitest.mocked.config.ts', 'tests/harness/turnCheckSetup.ts']) expect(WHOLE_SUITE.test(f), f).toBe(true);
     for (const f of ['src/config.ts', 'tests/unit/save.test.ts', 'scripts/test-near.ts']) expect(WHOLE_SUITE.test(f), f).toBe(false);
