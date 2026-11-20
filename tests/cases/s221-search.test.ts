@@ -78,23 +78,40 @@ describe('221 search', () => {
     expect(searches(s)).toHaveLength(0);
   });
 
-  it('SE20/SE21: outside a fight a big area is searched only around you; a fight turn reaches area ÷ 120 m', () => {
+  it('SE20/SE21, LX2/LX3: the full contest covers only the area around you, the same in a fight; beyond it the look is the weak one', () => {
     const s = makeVillage({ playerZone: 'street_square' });
     const t = thief(s, 'street_square');
     const r = boxOf(s.zones.find((z) => z.id === 'street_square')!.outline);
     s.player.pos = { x: r.x - r.w / 2 + 0.5, y: r.y };
     t.pos = { x: r.x + r.w / 2 - 0.5, y: r.y }; // across a 400 m² square: beyond the 60 m² around a skill-50 searcher
+    const calls = rig(-1);
+    play(s, search());
+    expect(searches(s)).toEqual([{ actorId: 'player', hiderId: 'thief_1', gap: -1, look: true }]); // LX1: only the look's weak check
+    expect(calls[0].tierShifts.some((x) => x.source === 'look around')).toBe(true);
+    beside(s, 'thief_1', 'player', 2);
     rig(1);
     play(s, search());
-    expect(searches(s)).toHaveLength(0);
-    beside(s, 'thief_1', 'player', 2);
-    play(s, search());
-    expect(searches(s)).toHaveLength(1);
-    // a fight turn: 2 m is beyond the reach of anyone under skill 240 (240 m² ÷ 120 = 2 m)
+    expect(searches(s)).toEqual([{ actorId: 'player', hiderId: 'thief_1', gap: 1 }]); // inside the area: the full contest, once
+    // LX3: a fight turn searches the same circle
     delete s.player.journal!.stealthSeen;
     s.mode = 'tactical';
     play(s, search());
-    expect(searches(s)).toHaveLength(0);
+    expect(searches(s)).toEqual([{ actorId: 'player', hiderId: 'thief_1', gap: 1 }]);
+  });
+
+  it('LX2: the search circle never has a radius under SEARCH_MIN_RADIUS_M, however small its area', () => {
+    const s = makeVillage({ playerZone: 'street_square' });
+    thief(s, 'street_square');
+    beside(s, 'thief_1', 'player', 1.5); // inside 2 m, body edge to body edge
+    const area = CONFIG.SEARCH_AREA_M2;
+    (CONFIG as { SEARCH_AREA_M2: number }).SEARCH_AREA_M2 = 0.01; // a few cm of radius
+    try {
+      rig(1);
+      play(s, search());
+      expect(searches(s)).toEqual([{ actorId: 'player', hiderId: 'thief_1', gap: 1 }]);
+    } finally {
+      (CONFIG as { SEARCH_AREA_M2: number }).SEARCH_AREA_M2 = area;
+    }
   });
 
   it('SE21/SE24: the area grows in a straight line with skill; searchArea % and searchReach m add to it', () => {
@@ -107,7 +124,7 @@ describe('221 search', () => {
     lib.perks.test_wide = { id: 'test_wide', name: 'Wide Eyes', searchArea: 50, searchReach: 0.5 } as never;
     p.core.perks.push({ perkId: 'test_wide' } as never);
     try {
-      expect(searchAreaM2(p, 50)).toBe(60 * 1.5 + 0.5 * CONFIG.SEARCH_M2_PER_FIGHT_M);
+      expect(searchAreaM2(p, 50)).toBe(60 * 1.5 + 0.5 * CONFIG.SEARCH_M2_PER_REACH_M);
     } finally {
       delete lib.perks.test_wide;
     }

@@ -28,3 +28,7 @@ Kind: context. What was asked, what was decided and which PR built it, oldest fi
 - **Search by sound (19/11/2026; LS1-LS6). Open.** LS1 to LS5 are answered: each sense has its own reach, and a
   hider is found by the sense that reaches it. LS6, how the better sense is picked, waits for the owner. Nothing
   is built and nothing is in the spec yet. It builds on the BG-314 fix (#1089).
+- **Search and Look around merged; Pat down (20/11/2026; LX1-LX4, Questions hub page "Merge Search and Look
+  around" on the second account's hub).** Search is one action around the player: the look and the search together,
+  3 s, the same circle in a fight and out of one, never under a 2 m radius. Searching a person became Pat down (#1129).
+  Open: LX5-LX7 (two outer rings at −1 and −2, hearing in them by LS1-LS5, NPCs). Parked: a 60 s deep search (D-410).

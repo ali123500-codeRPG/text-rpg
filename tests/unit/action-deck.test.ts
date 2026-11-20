@@ -49,10 +49,11 @@ describe('the action deck covers everything (AD10: "make sure you covered EVERYT
     expect(new Set(kinds).size).toBe(kinds.length);
   });
 
-  it('Look around and a dash are there: Look plays at once, Go to runs on with no action', () => {
+  it('Search and a dash are there: Search plays at once around you (LX1), Go to runs on with no action', () => {
     const s = makeVillage();
     const all = deck({ pv: buildPlayerView(s), s }).flatMap((g) => g.actions);
-    expect(all.find((a) => a.kind === 'look')!.play({}).intent.action?.type).toBe('observe');
+    expect(all.find((a) => a.kind === 'search')!.steps).toEqual([]);
+    expect(all.find((a) => a.kind === 'search')!.play({}).intent.action).toMatchObject({ type: 'search', target: null });
     const go = all.find((a) => a.kind === 'go')!;
     const to = go.steps[0].key === 'target' ? go.steps[0].picks({})[0].id : '';
     expect(go.play({ target: to }).intent).toMatchObject({ move: { toZone: to }, action: null });
@@ -64,8 +65,10 @@ describe('the action deck covers everything (AD10: "make sure you covered EVERYT
     const all = deck({ pv: buildPlayerView(s), s }).flatMap((g) => g.actions);
     const of = (k: string) => all.find((a) => a.kind === k)!;
     expect(all.some((a) => /your action|free/.test(a.note ?? ''))).toBe(false);
-    expect(of('look')).toMatchObject({ free: true, time: 'Free: beside your action, not instead of it' });
-    expect(of('search').free).toBeUndefined();
+    const free = all.filter((a) => a.free);
+    expect(free.length).toBeGreaterThan(0);
+    for (const a of free) expect(a.time).toBe('Free: beside your action, not instead of it');
+    expect(of('search').free).toBeUndefined(); // LX1: Search takes your action, the look around in it too
     expect(of('search').time).toBe(`Takes ${actionRow(DU.look)!.seconds} s`); // the Action times row the order uses
     expect(of('go').time).toBe('Takes as long as the way there');
     const f = fight(), atk = deck({ pv: buildPlayerView(f), s: f }).flatMap((g) => g.actions).find((a) => a.kind === 'attack')!;
@@ -95,7 +98,8 @@ describe('the action deck covers everything (AD10: "make sure you covered EVERYT
     const s = fight();
     const on = actionsOn(deck({ pv: buildPlayerView(s), s }), 'patron_1').map((a) => a.kind);
     expect(on).toEqual(expect.arrayContaining(['attack', 'talk', 'persuade']));
-    expect(on).not.toContain('look');
+    expect(on).not.toContain('search'); // LX4: a person gets Pat down, never the Search around you
+    expect(on).toContain('pat_down');
   });
 });
 

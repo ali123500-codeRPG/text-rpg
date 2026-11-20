@@ -294,10 +294,11 @@ const DEFAULTS = {
   SEARCH_AREA_M2: 60,
   /** SE21 b: the search area grows in a straight line with the rolling sense's effective skill: area × skill ÷ this */
   SEARCH_AREA_SKILL_BASE: 50,
-  /** SA8 b: a fight turn (6 s) reaches search area ÷ this metres (0.5 m at skill 50, 1 m at 100); searchReach adds this
-   * many m² of area per metre (SE24) */
-  SEARCH_M2_PER_FIGHT_M: 120,
-  /** SE14 b: Look around is also a search against anyone hiding in its range, this many tiers down */
+  /** SE24: a searchReach reward adds this many m² of search area per metre */
+  SEARCH_M2_PER_REACH_M: 120,
+  /** LX2: a search's circle never has a smaller radius than this (in a fight or out of one, LX3) */
+  SEARCH_MIN_RADIUS_M: 2,
+  /** SE14 b, LX2: a look (the Search around you beyond its search area, Look at, Listen) is also a search against anyone hiding in its range, this many tiers down */
   LOOK_SEARCH_SHIFT: -1,
   WARNED_SHIFT: 2, // WN3: tiers on an answer to a lie (Insight) by one that knows the trick (saw through it, or was warned)
   POINTED_SHIFT: 1, // WN4 b (placeholder): tiers on the next notice or search roll at a hidden foe an ally pointed out

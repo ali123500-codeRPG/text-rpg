@@ -1466,6 +1466,22 @@ function doHeal(ctx: Ctx, a: Actor, o: Order): void {
 /** SE23 (the rule lives in the ruleset) */
 export { gradeMod };
 
+/** Q17/SE15: the player's look is a sight (or hearing) roll with light only, no scene number; Success or better shows
+ * everyone in sight clearly. SE14: it is also a weak search out to the look's range (`outside`: only beyond the looker's
+ * search area, which the Search it is part of already covered, LX2). */
+function look(ctx: Ctx, a: Actor, skill: string, ev: GameEvent, outside = false): void {
+  const { state, rng } = ctx;
+  const target = CONFIG.DIFFICULTY.moderate; // it learns like a solo roll at Moderate
+  const fn = noticeCue(skill) === 'sound' ? FN.hearing : FN.sight;
+  const modifiers = [...situational(state, fnRoller(state, a, fn), { light: zoneById(state, a.zone), actor: a }).modifiers]; // ST21: light by the rolling skill's tags (Q3)
+  const r = ruleset.roll({ actorId: a.id, skill, modifiers, tierShifts: [], fn }, state, rng); // function roll
+  ev.roll = r;
+  ev.tier = r.tier;
+  if (tierAtLeast(r.tier, 'success')) lookAround(state);
+  ev.effects.push(...foundEffects(a, searchFor(state, a, ev, rng, { look: fn, outside })));
+  ruleset.recordUse(a, r.skill, { actorId: a.id, skill: r.skill, target, passed: tierAtLeast(r.tier, 'success'), modifiers }, state);
+}
+
 function doGeneric(ctx: Ctx, a: Actor, o: Order): void {
   const { state, rng } = ctx;
   const kind = o.type === 'idle' ? 'idle' : o.type;
@@ -1480,18 +1496,7 @@ function doGeneric(ctx: Ctx, a: Actor, o: Order): void {
     ev.way = { to: link.to, ...(b ? { barrier: b.id } : {}), did: pass === 'open' ? 'found_open' : pass === 'opens' ? 'found_opens' : (`found_${shutBy(b!, a.zone)}` as WayDid) };
   }
   if (o.skill && o.type === 'observe' && a.id === state.player.id && noticeCue(o.skill)) {
-    // Q17/SE15: looking is a sight (or hearing) roll with light only, no scene number; Success or better shows everyone in sight clearly
-    const target = CONFIG.DIFFICULTY.moderate; // it learns like a solo roll at Moderate
-    const modifiers = [
-      ...situational(state, fnRoller(state, a, noticeCue(o.skill) === 'sound' ? FN.hearing : FN.sight), { light: zoneById(state, a.zone), actor: a }).modifiers, // ST21: light by the rolling skill's tags (Q3)
-    ];
-    const fn = noticeCue(o.skill) === 'sound' ? FN.hearing : FN.sight;
-    const r = ruleset.roll({ actorId: a.id, skill: o.skill, modifiers, tierShifts: [], fn }, state, rng); // function roll
-    ev.roll = r;
-    ev.tier = r.tier;
-    if (tierAtLeast(r.tier, 'success')) lookAround(state);
-    ev.effects.push(...foundEffects(a, searchFor(state, a, ev, rng, { look: fn }))); // SE14: also a weak search
-    ruleset.recordUse(a, r.skill, { actorId: a.id, skill: r.skill, target, passed: tierAtLeast(r.tier, 'success'), modifiers }, state);
+    look(ctx, a, o.skill, ev);
   } else if (o.skill === SK.insight && o.type === 'observe' && person && person !== a) {
     // BF97 a: sizing someone up is Insight against their Guile (BG-320), never a roll against a grade; out of clear sight, nothing
     const r = sizeUp(state, a, person, rng);
@@ -1557,7 +1562,7 @@ function gradedThing(state: GameState, o: Order, link: { barrier?: string } | un
 
 const foundEffects = (a: Actor, won: { found: Actor }[]): Effect[] => won.map(({ found }) => ({ kind: 'found', actorId: found.id, data: { by: a.id } }));
 /** SE1/SE3/SE6/SE16/SE19: a search is the main action, the same for everyone: a contest against everyone hiding in reach
- * (searchFor), or against the one person named. With nothing hidden nothing is rolled, a lost roll reads the same as an
+ * (searchFor), or against the one person named (Pat down, LX4). The player's search around them is also a look (LX1). With nothing hidden nothing is rolled, a lost roll reads the same as an
  * empty spot, and the dice show only with a find (SE6). */
 function doSearch(ctx: Ctx, a: Actor, o: Order): void {
   const { state, rng } = ctx;
@@ -1576,6 +1581,8 @@ function doSearch(ctx: Ctx, a: Actor, o: Order): void {
     ev.effects.push({ kind: 'found_items', actorId: t?.id ?? a.id, data: { by: a.id, items: items.found.map((i) => i.id), ...(t ? { on: true } : {}) } });
   }
   if (items.hint) ev.effects.push({ kind: 'disturbed', actorId: a.id, data: {} });
+  // LX1/LX2: the player's Search around them is also the look around, the weak search beyond the search area included
+  if (!t && a.id === state.player.id && a.core.skills[SK.eyesight] !== undefined) { const r = ev.roll; look(ctx, a, SK.eyesight, ev, true); if (r) { ev.roll = r; ev.tier = r.tier; } else ev.glance = true; }
   // SE17: a person searched may give up a secret a sight or hearing roll can reveal
   const secrets = t && atLeast(beliefStatus(state, a, t), 'aware') ? searchSecrets(state, a, t, rng) : { found: [] };
   if (secrets.found.length) {
