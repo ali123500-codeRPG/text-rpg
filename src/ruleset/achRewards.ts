@@ -157,10 +157,17 @@ export function tierReach(a: Actor, roll: RollKind | undefined, contest = false)
 /** a reward that adds up over every source: every current achievement's along its chain, plus every active owned perk's.
  * Free levels are level-ups that cost no XP (into a class); bonus levels are character levels no class gets; searchArea
  * and searchReach widen a search (SE24). */
-export function rewardSum(a: Actor, f: 'freeLevels' | 'bonusLevels' | 'searchArea' | 'searchReach' | 'essenceSlots'): number {
+export function rewardSum(a: Actor, f: SummedReward): number {
+  return rewardSources(a, f).reduce((n, x) => n + x.value, 0);
+}
+type SummedReward = 'freeLevels' | 'bonusLevels' | 'searchArea' | 'searchReach' | 'essenceSlots';
+/** rewardSum's terms, one per achievement or perk that gives any (the balance probe shows them) */
+export function rewardSources(a: Actor, f: SummedReward): { source: string; value: number }[] {
   const perks = getLibrary().perks ?? {};
-  return currentAchievements(a).reduce((n, x) => n + rewardOf(x.d, f), 0)
-    + a.core.perks.filter((p) => !p.dormant).reduce((n, p) => n + ((perks[p.perkId] as Partial<Record<typeof f, number>> | undefined)?.[f] ?? 0), 0);
+  return [
+    ...currentAchievements(a).map((x) => ({ source: `achievement ${x.d.name}`, value: rewardOf(x.d, f) })),
+    ...a.core.perks.filter((p) => !p.dormant).map((p) => ({ source: `perk ${perks[p.perkId]?.name ?? p.perkId}`, value: (perks[p.perkId] as Partial<Record<SummedReward, number>> | undefined)?.[f] ?? 0 })),
+  ].filter((x) => x.value);
 }
 export const freeLevelsEarned = (a: Actor) => rewardSum(a, 'freeLevels');
 /** free levels earned and not yet taken: halves add up over every source first, and only whole levels are given */

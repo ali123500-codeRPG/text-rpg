@@ -313,6 +313,9 @@ filching.
   [information-model.md](spec/part-2-turn-engine/information-model.md)
 - History: [history-senses-and-search.md](memory/history-senses-and-search.md),
   [history-stealth-and-theft.md](memory/history-stealth-and-theft.md)
+- Balance probe: `npm run measure -- --searcher guard --hider thief --m 5` plays seeded trials of a search and of a
+  wait against a still hider at that exact gap, and prints the find rates with the search reach and every term behind
+  it. Options and what it checks: `scripts/measure.ts`, `tests/harness/measure.ts`.
 - Code:
   - `src/config/perception.ts`
   - `src/engine/filch.ts`
