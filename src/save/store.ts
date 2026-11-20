@@ -93,7 +93,7 @@ export function artifactDbStore(db: DB, delay: (ms: number) => Promise<void> = (
     set: (path, value) => call(() => db.doc(path).set(value as Record<string, unknown>)),
     delete: (path) => call(() => db.doc(path).delete()),
     async list(prefix) {
-      // shortcut: one page of LIST_LIMIT docs; story collections stay far below it (pages are cleaned every turn)
+      // shortcut: one page of LIST_LIMIT docs and the db has no cursor, so a sweep past it misses stale pages (D-427)
       const q = await call(() => db.collection(prefix).limit(LIST_LIMIT).get());
       return q.docs.map((d) => `${prefix}/${d.id}`);
     },

@@ -21,7 +21,7 @@ roadmap, is linked from #1218.
   past HEAD_WARN_SHARE of the limit it files head_large once, and past the limit the save is refused with a clear error.
 - `artifactDbStore.list` reads one page of 1,000 documents. Past about 1,000 page documents, the sweep misses some stale
   versions: they stay forever (no loss, only growth toward the 25,000-document cap). Since #1252 only the sweep (backup
-  turns, undo, restore) lists; ordinary turns never do.
+  turns, undo, restore) lists; ordinary turns never do. Parked as D-427 (no cursor in the db).
 - Backups write the whole state every BACKUP_EVERY turns, the largest write cost when amortised.
 - Saved playtest worlds (`tests/soak/worlds`) had 9 to 16 pages by turn 49; all were schema 9, below
   OLDEST_SAVE_SCHEMA. #1229 retired them (YS4 a was already done), so no real long world is measured.
