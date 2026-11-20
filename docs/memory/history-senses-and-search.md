@@ -27,7 +27,9 @@ Kind: context. What was asked, what was decided and which PR built it, oldest fi
   #840, #854). Parked: senses past 100 widen ranges (D-321).
 - **Search by sound (19-20/11/2026; LS1-LS8).** Recorded as D-411 and built (#1224): each sense (sight, hearing,
   smell) reaches a hider by its own rule and makes its own test, the best counts, with the same rings by distance.
-  It builds on the BG-314 fix (#1089).
+  It builds on the BG-314 fix (#1089). LS9 (a decision card, the owner: "the scaling is too weak, check what 200
+  corresponds to in the lore", then "Both senses, double per 50"): the search radius doubles every 50 points from 2 m
+  at 0 (TL17's ladder) and hearing's dB follow it; this settles D-422 (#1247).
 - **Search and Look around merged; Pat down (20/11/2026; LX1-LX4, Questions hub page "Merge Search and Look
   around" on the second account's hub).** Search is one action around the player: the look and the search together,
   3 s, the same circle in a fight and out of one, never under a 2 m radius. Searching a person became Pat down (#1129).

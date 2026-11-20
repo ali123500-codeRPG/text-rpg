@@ -13,10 +13,11 @@ export const PERCEPTION = {
    * row it reaches (clear starts at CLEAR_ABOVE_FLOOR_DB, 15) */
   MAKE_OUT_SOUND_GRADES: [[11, 'minor'], [7, 'moderate'], [3, 'major'], [0, 'extreme']] as [number, GradeLevel][],
   // ---- searching (SE20, SE21, SE24, SA8; placeholders) ----
-  /** SE20: what one search covers outside a fight at the base skill: the game's room size (a tavern common room) */
-  SEARCH_AREA_M2: 60,
-  /** SE21 b: the search area grows in a straight line with the rolling sense's effective skill: area × skill ÷ this */
-  SEARCH_AREA_SKILL_BASE: 50,
+  /** LS9: a search's circle at skill 0 (placeholder) */
+  SEARCH_RADIUS_AT_0_M: 2,
+  /** LS9 (TL17's ladder): the search radius doubles every this many points of the rolling sense's skill, so 4 m at 50,
+   * 8 m at 100 (the human limit), 32 m at 200 (four times it); hearing gets the dB that carry sound as much further */
+  SEARCH_RADIUS_DOUBLING: 50,
   /** SE24: a searchReach reward adds this many m² of search area per metre */
   SEARCH_M2_PER_REACH_M: 120,
   /** LX2: a search's circle never has a smaller radius than this (in a fight or out of one, LX3) */

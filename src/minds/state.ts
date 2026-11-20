@@ -321,12 +321,13 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): voi
 
 /** SE21/SE24: the actor's effective skill with one sense (a function roll's best skill) */
 const senseSkill = (state: GameState, a: Actor, sense: Sense): number => effectiveSkill(state, a, SENSE_SKILL[sense], { fullValue: rollFnSkills(a, sense) }).value;
-/** SE20/SE21/SE24: the m² one search covers: SEARCH_AREA_M2 × the rolling skill ÷ SEARCH_AREA_SKILL_BASE, + the owner's
- * searchArea %, + SEARCH_M2_PER_REACH_M m² per metre of searchReach (perks and achievements; every source adds up) */
+/** SE21/SE24, LS9: the m² one search covers: the circle of SEARCH_RADIUS_AT_0_M doubled every SEARCH_RADIUS_DOUBLING points of
+ * the rolling skill, × the owner's searchArea %, + SEARCH_M2_PER_REACH_M m² per metre of searchReach (perks and
+ * achievements; every source adds up) */
 export const searchAreaM2 = (a: Actor, skill: number): number => searchAreaParts(a, skill).areaM2;
 /** searchAreaM2 with its terms: the skill's base m², each searchArea % and searchReach m by source */
 function searchAreaParts(a: Actor, skill: number) {
-  const baseM2 = CONFIG.SEARCH_AREA_M2 * skill / CONFIG.SEARCH_AREA_SKILL_BASE;
+  const baseM2 = Math.PI * (CONFIG.SEARCH_RADIUS_AT_0_M * 2 ** (skill / CONFIG.SEARCH_RADIUS_DOUBLING)) ** 2;
   const areaPct = rewardSources(a, 'searchArea'), reachM = rewardSources(a, 'searchReach');
   const sum = (xs: { value: number }[]) => xs.reduce((n, x) => n + x.value, 0);
   return { baseM2, areaPct, reachM, areaM2: Math.max(0, baseM2 * (1 + sum(areaPct) / 100) + sum(reachM) * CONFIG.SEARCH_M2_PER_REACH_M) };
@@ -350,7 +351,8 @@ export const searchSees = (state: GameState, a: Actor, h: Located, r: number): b
 /** D-411 (LS1–LS3, LS7, LS8): what one sense of a Search reaches of `h`, as the tiers that sense's test takes, or null.
  * Each sense has its own search area (its own skill, SE21) and its own reach: sight a clear line out to the look's 25 m,
  * never in pitch black; hearing `h`'s own sound (its step, else HIDE_STILL_NOISE) carried to `a` above the hearing floor,
- * with Keen Ear and 10·log10(area ÷ SEARCH_AREA_M2) dB; smell its usual reach (AB18). The same metres for every sense
+ * with Keen Ear and the dB that carry sound as much further as the circle has grown since skill 0 (LS3, LS9); smell its
+ * usual reach (AB18). The same metres for every sense
  * (LS7 a): inside the sense's search radius SEARCH_AREA_SHIFT, out to SEARCH_RING1_RADII radii ring one, past it ring
  * two (LX5 b, LX8 a). A Pat down (`only`) takes none. */
 function senseReach(state: GameState, a: Actor, h: Actor, sense: Sense, noise: NoiseKey, only: boolean): number | null {
@@ -362,7 +364,7 @@ function senseReach(state: GameState, a: Actor, h: Actor, sense: Sense, noise: N
     d = sightDistM(state, a, h);
     if (!inLookReach(d)) return null;
   } else {
-    const heard = sense === FN.hearing && (soundDb(state, noise, h, a, perkSum(a, 'hearingDb') + 10 * Math.log10(area / CONFIG.SEARCH_AREA_M2)) ?? -Infinity) >= CONFIG.HEARING_FLOOR_DB;
+    const heard = sense === FN.hearing && (soundDb(state, noise, h, a, perkSum(a, 'hearingDb') + 10 * Math.log10(area / (Math.PI * CONFIG.SEARCH_RADIUS_AT_0_M ** 2))) ?? -Infinity) >= CONFIG.HEARING_FLOOR_DB;
     if (sense === FN.hearing ? !heard : !smells(state, a, h)) return null;
     d = distM(state, a, h);
   }
