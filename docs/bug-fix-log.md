@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** The tip code now reads the delay with the game's one duration reader, which reads the unit, so the tips wait 150 ms as the spec says. A browser test on the shrunk page now checks that the minimap's tip waits.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #1143](https://github.com/ali123500-codeRPG/text-rpg/pull/1143)
 
 ## BG-325
 
