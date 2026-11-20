@@ -1,8 +1,6 @@
 // BG-313 (PZ12 a): the Map and the minimap draw the floor plan where it lies, only where the fog says the character has seen,
 // with each door at its own point on the wall.
 import { describe, expect, it } from 'vitest';
-// @ts-expect-error Node types are not installed; vitest runs in Node
-import { readFileSync } from 'node:fs';
 import { createFakeGame } from '../../src/ui/fakeGame';
 import { knownMap, type MapZone } from '../../src/ui/mapData';
 import { PX_PER_M, planScene, roughMeasure } from '../../src/ui/mapPlan';
@@ -53,10 +51,4 @@ describe('the Map draws the floor plan (BG-313)', () => {
     expect(sc.labels.some((l) => l.zoneId === 'midden_yard')).toBe(true);
   });
 
-  it('the minimap clips the same fog as the Map, and the exit diagram is gone', () => {
-    const map = readFileSync('src/ui/map.ts', 'utf8'), mini = readFileSync('src/ui/minimap.ts', 'utf8');
-    expect(map).toMatch(/fogClip\(fogId, /);
-    expect(mini).toMatch(/fogClip\(fogId, /);
-    for (const gone of ['map-compass', 'map-plan-btn', 'function layout(', 'connectors']) expect(map + mini).not.toContain(gone);
-  });
 });

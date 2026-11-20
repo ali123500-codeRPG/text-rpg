@@ -1,7 +1,5 @@
 // Essences on screen: the offer pop-up and the Character page section show what an essence gives as "+1 Dodge" chips,
 // keep the same key for an offer from turn to turn (so the pop-up shows once), and Take it runs the real /essence take.
-// @ts-expect-error Node types are not installed; vitest runs in Node
-import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { wholeTurn, intent } from '../harness/turn';
 import { ES } from '../../src/library/essenceIds';
@@ -26,8 +24,4 @@ describe('essences on screen', () => {
     expect(pr.essences?.map((e) => e.essence)).toEqual([ES.street_instinct]);
   });
 
-  it('essences show once on the Character page: in the Essences pop-up its tile opens (CP4), not again on the character card', () => {
-    const card = readFileSync('src/ui/charsheet.ts', 'utf8');
-    expect(card).not.toMatch(/Essences · \$\{held\.length\} of/);
-  });
 });

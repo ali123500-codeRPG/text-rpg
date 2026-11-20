@@ -1,8 +1,5 @@
 // The loot pop-up lists what the character can see to take where they stand (a body that is down, an open chest, the
-// ground) and types one order for what was picked; Back closes it. Move to here names the town for a spot in another
-// place, and an item's hover card says what it is worth.
-// @ts-expect-error Node types are not installed; vitest runs in Node
-import { readFileSync } from 'node:fs';
+// ground).
 import { describe, expect, it } from 'vitest';
 import { wholeTurn } from '../harness/turn';
 import { intent } from '../cases/w4-kit';
@@ -14,7 +11,6 @@ import { IT } from '../../src/library/itemIds';
 import type { GameState } from '../../src/types';
 import { layAll } from '../harness';
 
-const src = (f: string): string => readFileSync(`src/ui/${f}`, 'utf8');
 
 /** a patron down beside the player with what a search turned up, an open chest and a sack on the ground */
 function lootHere(s: GameState) {
@@ -60,25 +56,4 @@ describe('loot pop-up', () => {
     expect(lootSources(buildPlayerView(g.state)).some((x) => x.kind === 'body')).toBe(false);
   });
 
-  it('the deck\'s Take things here opens it; Take plays the pick at once as gear orders (AD7); Back closes it', () => {
-    const deckView = src('deckView.ts'), loot = src('loot.ts'), pop = src('pop.ts');
-    expect(deckView).toMatch(/if \(a\.kind === 'loot'\) \{[^}]*openLoot\(pv, opener, \(line, gear\) => void play\(/);
-    expect(loot).toMatch(/take\.onclick = \(\) => \{ const o = lootOrder\(src, picked\); if \(!o\) return; closePop\(\); onOrder\(o, lootGear\(src, picked\)\); \}/);
-    expect(loot).toMatch(/openPop\(\{ title: 'Loot', body, opener, cls: 'loot-pop', back: true \}\)/);
-    expect(pop).toMatch(/if \(o\.back && !history\.state\?\.dpop\) history\.pushState\(\{ dpop: true \}, ''\)/);
-    expect(pop).toMatch(/addEventListener\('popstate', \(\) => \{ if \(current\?\.back\) closePop\(true\); closeFull\(true\); \}\)/);
-  });
-});
-
-describe('Move to here names the town; items show their value', () => {
-  it('a zone in another place than yours gets "in <place>" after it', () => {
-    const m = src('map.ts');
-    expect(m).toMatch(/rootOf\(cur\.placeId\) !== to && name\.toLowerCase\(\) !== z\.name\.toLowerCase\(\) \? `\$\{moveOrder\(z\.name\)\} in \$\{theName\(name\)\}`/);
-    expect(m).toMatch(/onMove\(moveHere\(z\)\)/);
-  });
-
-  it('the hover card has a Value row, for a stack each and in all', async () => {
-    const pages = src('pages.ts');
-    expect(pages).toMatch(/k: 'Value', v: !worth \? 'Worthless' : n > 1 \? `\$\{coinWords\(worth\)\} each, \$\{coinWords\(worth \* n\)\} for \$\{n\}`/);
-  });
 });

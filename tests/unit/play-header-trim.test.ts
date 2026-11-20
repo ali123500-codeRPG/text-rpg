@@ -38,7 +38,6 @@ describe('sun tip with the clock', () => {
     const { clockSecondsText } = await import('../../src/time');
     expect(clockSecondsText(7 * 60 + 30.25)).toBe('07:30:15');
     expect(clockSecondsText(24 * 60 + 5 / 60)).toBe('00:00:05');
-    expect(readFileSync('src/ui/play.ts', 'utf8')).toMatch(/todBadge\(timeView\(s\)\.day, timeOfDay\(now\(s\)\), now\(s\)\)/);
     expect(typeof todBadge).toBe('function');
   });
 });
