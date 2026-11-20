@@ -3,6 +3,11 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bug-fix-log.md`.
 
+- 20/11/2026: `docs/providers/claude.md` is split: an "Every thread" part (how the project runs, desk labels, how to
+  ask, never open the live game page, the owner's saves, bug numbers, in-app memory, the REST commands GitHub needs
+  from a Claude session) and parts read only when the task needs them, each with a "Read when" line. No rule
+  was dropped. `AGENTS.md` Upkeep: read the provider file's "Every thread" part before the first action, the rest when
+  needed. `tools/questions-hub/README.md`: a new hub's link goes beside the hub links in "Every thread".
 - 20/11/2026: `docs/instructions.md` section 7 (WF4 a): design skills in proportion to the change; a small change to
   an existing element uses `interface-design` and `show-dont-tell-ui` plus the accessibility checks, everything else
   all five. Section 1 (WF6 a): an answer not built in the same PR gets a D-n row, status Decided (D-411, D-412).

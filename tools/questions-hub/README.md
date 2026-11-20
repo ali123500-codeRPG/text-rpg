@@ -179,8 +179,8 @@ that account publishes its own hub, as a new private page. Never pass an existin
   first open asks to let the page use it. A hub published before 20/11/2026 needs this declaration and a republish of
   today's `hub.html` to show the shared questionnaires.
 - A new hub starts empty. Write its first questionnaire with `new_page` (above), then give the owner the link.
-- In the same thread, record the new hub's link in `docs/providers/claude.md`, beside that account's desk label, as
-  the section "Claude on another account" does. It opens only for the owner.
+- In the same thread, record the new hub's link in `docs/providers/claude.md`, "Every thread", beside the hub links
+  already there. It opens only for the owner.
 
 ## Changing the page itself
 
