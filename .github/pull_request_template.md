@@ -8,4 +8,4 @@
 
 ## Tests
 
-<!-- "covered by <test>" or "none needed: <why>"; task tests are deleted before merge; a new permanent test quotes the owner's OK and names the silent break it catches; completeness rows added -->
+<!-- "covered by <test>" or "none needed: <why>"; task tests are deleted before merge; a new permanent test says why it is needed and why existing coverage falls short; completeness rows added -->
