@@ -25,6 +25,10 @@ export const DEFENSE_SKILL = { dodge: SK.dodge, block: SK.block, parry: SK.parry
 export const ROLLED_SKILL = '$rolled';
 /** a sense function's default skill: a function roll asks for it, and the best skill with the function rolls */
 export const SENSE_SKILL = { [FN.sight]: SK.eyesight, [FN.hearing]: SK.earshot, [FN.smell]: SK.scent } as const;
+export type Sense = keyof typeof SENSE_SKILL;
+/** D-40: the detection senses. Each one that reaches contests a hider on its own, once per turn (stealth contests and
+ * searches). A new sense joins here, with its reach in perception sensesReaching and in minds/state senseReach. */
+export const DETECTION_SENSES = Object.keys(SENSE_SKILL) as Sense[];
 /** an armor weight and the skill that wears it */
 export const ARMOR_SKILL: Record<string, SkillId> = { light: SK.light_armor, medium: SK.medium_armor, heavy: SK.heavy_armor };
 /** a weapon tree and size class and the skill that wields it */

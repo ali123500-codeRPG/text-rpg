@@ -10,7 +10,7 @@ import { CONFIG } from '../config';
 import { now, pitchBlack, secondsSince, timeOfDay, zoneLight } from '../time';
 import { routine as getRoutine, routineSet } from '../library';
 import { actorById, allActors, atLeast, isActive, isAsleep, isEngaged, sparring, wary, zoneById } from '../engine/relations';
-import { beliefStatus, computePerception, hearsClearly, inLookReach, perceptionOf, smells, updateBeliefs } from '../perception';
+import { beliefStatus, computePerception, hearsClearly, inLookReach, perceptionOf, sensesReaching, smells, updateBeliefs } from '../perception';
 import { soundDb, VOLUME_NOISE } from '../perception/noise';
 import { markUse, ruleset, situational, fnRoller, tierLevel, toContest, usableModes, fallbackAttackSkill, modeSkill, effectiveSkill } from '../ruleset';
 import { coverShown, rollFnSkills } from '../ruleset/gear';
@@ -20,7 +20,7 @@ import { hasPerk, meltAwayHere, perkSum } from '../ruleset/perks';
 import { blindSpotNow } from '../engine/perkMarks';
 import { fightingWith } from '../engine/engagement';
 import { bindTemplate, expandSteps, HEAD_TO, offeredRoutines, slotsRead } from './routines';
-import { SK, SENSE_SKILL } from '../library/skillIds';
+import { DETECTION_SENSES, SK, SENSE_SKILL, type Sense } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { contestFeat, matchedCritFeat, outmatchedOnce, type ActContest } from '../engine/feats';
 import { tally } from '../engine/xp';
@@ -220,9 +220,11 @@ export function alertOrders(state: GameState, views: ActorView[]): Order[] {
 /** ST2: Combat Stealth in an engagement, or for a shot, which starts one (ST5); Sneaking otherwise */
 export const stealthSkill = (s: Actor, event?: GameEvent): string => (s.engagement || event?.kind === 'attack' ? SK.combat_stealth : SK.sneaking);
 
-type Sense = typeof FN.sight | typeof FN.hearing | typeof FN.smell;
 /** the sense a perception cue rolls (a stealth contest, an ambush): smell rolls Scent (AB18), sound hearing, else sight */
 const cueSense = (cue: Cue | undefined): Sense => (cue === 'sound' ? FN.hearing : cue === 'smell' ? FN.smell : FN.sight);
+/** Every Sense One: the senses it makes one */
+const ONE_SENSE: Sense[] = [FN.sight, FN.hearing];
+const sumMods = (ms: { value: number }[]) => ms.reduce((n, m) => n + m.value, 0);
 /** the hider's stealth roll against one sense. ST21/ST22: light and cover reach it by situation tag; staying put
  * (a sneak that stays put with Melt Away or Strike and Fade, or hiding from a search) ignores leg wounds (ST10). P14: darkness never hurts hearing, so it gives no help against one who only hears.
  * All-50 Hushed Steps: the owner's Sneaking Near Miss counts as a Success against one who only hears. */
@@ -238,7 +240,7 @@ function watcherRoll(state: GameState, a: Actor, sense: Sense, light: Zone | und
   const pointed = hider ? pointedShift(state, a, hider) : [];
   return { actorId: a.id, skill: SENSE_SKILL[sense], ...sit, ...(pointed.length ? { tierShifts: [...(sit.tierShifts ?? []), ...pointed] } : {}), rollKind: 'perception' as const, fn: sense };
 }
-/** ST4/SE5: this turn's stealth contests, one per hider and watcher (`key`) */
+/** ST4/SE5, D-40: this turn's stealth contests, one per hider, watcher and sense (`key:sense`) */
 function contestedThisTurn(state: GameState): { turn: number; ids: string[] } {
   const sc = (state.scratch ??= {});
   const done = (sc.stealthContested as { turn: number; ids: string[] } | undefined)?.turn === state.turn ? (sc.stealthContested as { turn: number; ids: string[] }) : { turn: state.turn, ids: [] };
@@ -248,14 +250,18 @@ function contestedThisTurn(state: GameState): { turn: number; ids: string[] } {
 const pairKey = (s: Actor, a: Actor) => (s.kind === 'player' ? a.id : `${s.id}>${a.id}`);
 
 /** ST3–ST8, ST11–ST19, NS1–NS5, VS1–VS5: while an actor is stealthy, every observer outside its band who could perceive the
- * event rolls its sight or hearing against the actor's stealth, once per turn (ST4). The player is an observer like any other
- * (NS3); NPCs contest each other too (NS5).
+ * event rolls each detection sense that reaches it (D-40: sight, hearing, smell, each on its own) against the actor's
+ * stealth, each sense once per turn (ST4). Felt only (a blow from the unseen): sight, as the cue says. With Every Sense
+ * One, sight and hearing are one contest, rolled as whichever set-up nets the watcher more. The player is an observer like
+ * any other (NS3); NPCs contest each other too (NS5).
  * - An observer not aware of the actor rolls against its Sneaking (Combat Stealth in an engagement or for an attack, ST2).
- *   Observer wins: aware. Tie: suspicious. A shot's target that loses still turns suspicious, at the shooter's zone (ST19).
+ *   A win on any sense: aware. Else a tie on any: suspicious. A shot's target that loses still turns suspicious, at the
+ *   shooter's zone (ST19).
  * - An observer aware of it rolls against its Vanishing (VS1), only when the actor moves (any step), or stays put with Melt
- *   Away where cover or shade allows (VS2; Blind Spot: no cover needed). Observer loses: it loses the actor and drops to
- *   suspicious where it last saw it (ST15); a win or a tie changes nothing. A foe fighting the actor within VANISH_NEAR_M
- *   makes it harder (VS5). With Unblinking, it must also lose a Sneaking or Combat Stealth contest (ST23).
+ *   Away where cover or shade allows (VS2; Blind Spot: no cover needed). Only when every sense loses does it lose the
+ *   actor and drop to suspicious where it last saw it (ST15); any sense that wins or ties keeps it. A foe fighting the
+ *   actor within VANISH_NEAR_M makes it harder (VS5). With Unblinking, a sense that loses must also lose a Sneaking or
+ *   Combat Stealth contest (ST23).
  * - Strike and Fade (VS3): right after an attack from hiding, each observer the attack made aware (`event.spotted`) rolls
  *   against Vanishing at once, in place with no cover needed: the one second roll a watcher makes in a turn.
  * Light and cover reach the rolls by situation tag (CONFIG.SITUATION_TAGS, ST21); staying put ignores leg wounds (ST10). */
@@ -273,48 +279,63 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): voi
   // VS5: slipping away from a foe that is fighting you within VANISH_NEAR_M is harder (by distance, not weapon reach)
   // LG15 In the Thick of It (Vanishing 40): not for its owner
   const near = (a: Actor) => !hasPerk(s, PK.thick_of_it) && fightingWith(state, a, s) && withinM(distM(state, from, a), CONFIG.VANISH_NEAR_M);
-  // one contest per observer per turn (ST4): later events of the turn are not tested again. BG-263: a shot (any attack while
-  // stealthy) keeps its own contest, so a step earlier in the turn never stands in for its Combat Stealth roll; the shot's
-  // contest still counts for the turn's later events. VS3: Strike and Fade's roll is its own too.
+  // one contest per observer and sense per turn (ST4, D-40): later events of the turn are not tested again by that sense.
+  // BG-263: a shot (any attack while stealthy) keeps its own contests, so a step earlier in the turn never stands in for its
+  // Combat Stealth roll; the shot's contests still count for the turn's later events. VS3: Strike and Fade's are its own too.
   const done = contestedThisTurn(state);
   const own = event.kind === 'attack' ? ':shot' : fade ? ':fade' : '';
   let saw = 0, lost = 0; // a player's Vanishing rolls: those who saw them, and those it lost (N2)
   for (const a of allActors(state)) {
-    const key = pairKey(s, a) + own;
-    if (a.id === s.id || a.bandId === s.bandId || (!a.mind && a.kind !== 'player') || !isActive(a) || done.ids.includes(key)) continue;
+    const pair = pairKey(s, a) + own;
+    if (a.id === s.id || a.bandId === s.bandId || (!a.mind && a.kind !== 'player') || !isActive(a)) continue;
     const sees = atLeast(beliefStatus(state, a, s), 'aware');
     if (fade ? !sees || !event.spotted?.includes(a.id) : sees && !moved && !melt) continue; // ST12: no slipping away without a step or Melt Away
     const seen = perceptionOf(event, state, a);
     if (!seen) continue;
-    const sense = cueSense(seen.cue);
     const skill = sees ? SK.vanishing : stealthSkill(s, event);
-    const roll = mine(skill, sense, a);
-    if (sees && near(a)) roll.tierShifts = [...roll.tierShifts, { source: 'foe close by', value: CONFIG.VANISH_NEAR_SHIFT }];
-    const r = ruleset.contested(roll, theirs(a, sense), state, rng);
-    done.ids.push(key);
-    if (own === ':shot') done.ids.push(pairKey(s, a));
-    if (sees) saw++;
-    contestFeat(state, r, a.kind === 'player' ? [sense] : undefined); // N4c
-    if (a.kind === 'player' && !sees && r.gap > 0) { tally(state, 'spotted'); tally(state, 'spotted', { by: 'function', of: sense }); } // N3
-    markUse(state, s, skill, r); // ST8
-    markUse(state, a, r.b.skill, r); // the watcher's sense learns too (only the player keeps marks)
-    log(state, 'stealth_contest', { ...(s.kind === 'player' ? {} : { actorId: s.id }), observerId: a.id, skill, kind: event.kind, gap: r.gap });
-    if (r.gap > 0) { updateBeliefs(state, { kind: 'detection', observerId: a.id, aboutId: s.id, status: 'aware', event }); spotted(a, s); } // WN8
-    else if (sees) {
-      if (r.gap >= 0) continue;
-      // ST23: an observer with Unblinking who loses the Vanishing roll still needs beating with Sneaking or Combat Stealth
-      if (hasPerk(a, PK.unblinking)) {
+    const reaching = sensesReaching(event, state, a);
+    const tests = (reaching.length ? reaching : [cueSense(seen.cue)]).filter((f) => !done.ids.includes(`${pair}:${f}`)).map((f): { sense: Sense; stands: Sense[] } => ({ sense: f, stands: [f] }));
+    if (hasPerk(a, PK.one_sense) && tests.some((t) => ONE_SENSE.includes(t.sense))) {
+      // Every Sense One: sight and hearing are one contest, rolled as whichever set-up nets the watcher more (sight on a tie)
+      const net = (f: Sense) => sumMods(watcherRoll(state, a, f, zone).modifiers) - sumMods(mine(skill, f, a).modifiers);
+      tests.splice(0, tests.length, ...tests.filter((t) => !ONE_SENSE.includes(t.sense)), { sense: net(FN.sight) >= net(FN.hearing) ? FN.sight : FN.hearing, stands: ONE_SENSE });
+    }
+    if (!tests.length) continue;
+    let won: Sense | undefined, held = false;
+    for (const { sense, stands } of tests) {
+      const roll = mine(skill, sense, a);
+      if (sees && near(a)) roll.tierShifts = [...roll.tierShifts, { source: 'foe close by', value: CONFIG.VANISH_NEAR_SHIFT }];
+      const r = ruleset.contested(roll, theirs(a, sense), state, rng);
+      for (const f of stands) {
+        done.ids.push(`${pair}:${f}`);
+        if (own === ':shot') done.ids.push(`${pairKey(s, a)}:${f}`);
+      }
+      contestFeat(state, r, a.kind === 'player' ? [sense] : undefined); // N4c
+      markUse(state, s, skill, r); // ST8
+      markUse(state, a, r.b.skill, r); // the watcher's sense learns too (only the player keeps marks)
+      log(state, 'stealth_contest', { ...(s.kind === 'player' ? {} : { actorId: s.id }), observerId: a.id, skill, sense, kind: event.kind, gap: r.gap });
+      if (r.gap > 0) won ??= sense;
+      else if (r.gap === 0) held = true;
+      else if (sees && hasPerk(a, PK.unblinking)) {
+        // ST23: an observer with Unblinking whose sense loses the Vanishing roll still needs beating with Sneaking or Combat Stealth
         const second = stealthSkill(s);
         const r2 = ruleset.contested(mine(second, sense, a), theirs(a, sense), state, rng);
         contestFeat(state, r2, a.kind === 'player' ? [sense] : undefined);
         markUse(state, s, second, r2);
         markUse(state, a, r2.b.skill, r2);
-        log(state, 'stealth_contest', { ...(s.kind === 'player' ? {} : { actorId: s.id }), observerId: a.id, skill: second, kind: event.kind, gap: r2.gap, perk: PK.unblinking });
-        if (r2.gap >= 0) continue;
+        log(state, 'stealth_contest', { ...(s.kind === 'player' ? {} : { actorId: s.id }), observerId: a.id, skill: second, sense, kind: event.kind, gap: r2.gap, perk: PK.unblinking });
+        if (r2.gap >= 0) held = true;
       }
+    }
+    if (sees) saw++;
+    if (won) {
+      if (a.kind === 'player' && !sees) { tally(state, 'spotted'); tally(state, 'spotted', { by: 'function', of: won }); } // N3
+      updateBeliefs(state, { kind: 'detection', observerId: a.id, aboutId: s.id, status: 'aware', event }); spotted(a, s); // WN8
+    } else if (sees) {
+      if (held) continue; // VS1, D-40: any sense still holding on keeps them
       updateBeliefs(state, { kind: 'lost', observerId: a.id, aboutId: s.id, zone: from.zone });
       lost++;
-    } else if (r.gap === 0 || (event.kind === 'attack' && event.target === a.id)) updateBeliefs(state, { kind: 'detection', observerId: a.id, aboutId: s.id, status: 'suspicious', event });
+    } else if (held || (event.kind === 'attack' && event.target === a.id)) updateBeliefs(state, { kind: 'detection', observerId: a.id, aboutId: s.id, status: 'suspicious', event });
   }
   if (s.kind === 'player' && saw && lost === saw) tally(state, 'vanished'); // N2: everyone who saw you lost you
 }
@@ -358,16 +379,15 @@ export const searchSees = (state: GameState, a: Actor, h: Located, r: number): b
 function senseReach(state: GameState, a: Actor, h: Actor, sense: Sense, noise: NoiseKey, only: boolean): number | null {
   const { areaM2: area, radiusM: r, ring1M } = searchReach(state, a, sense);
   if (area <= 0) return null;
-  let d: number;
-  if (sense === FN.sight) {
-    if (pitchBlack(zoneLight(state, zoneById(state, h.zone), h.pos))) return null; // LT1: nothing is seen in pitch black
-    d = sightDistM(state, a, h);
-    if (!inLookReach(d)) return null;
-  } else {
-    const heard = sense === FN.hearing && (soundDb(state, noise, h, a, perkSum(a, 'hearingDb') + 10 * Math.log10(area / (Math.PI * CONFIG.SEARCH_RADIUS_AT_0_M ** 2))) ?? -Infinity) >= CONFIG.HEARING_FLOOR_DB;
-    if (sense === FN.hearing ? !heard : !smells(state, a, h)) return null;
-    d = distM(state, a, h);
-  }
+  // each sense's reach: the metres to `h`, or null (D-40: a new sense gives its reach here)
+  const reach: Record<Sense, () => number | null> = {
+    // LT1: nothing is seen in pitch black
+    [FN.sight]: () => { if (pitchBlack(zoneLight(state, zoneById(state, h.zone), h.pos))) return null; const m = sightDistM(state, a, h); return inLookReach(m) ? m : null; },
+    [FN.hearing]: () => ((soundDb(state, noise, h, a, perkSum(a, 'hearingDb') + 10 * Math.log10(area / (Math.PI * CONFIG.SEARCH_RADIUS_AT_0_M ** 2))) ?? -Infinity) >= CONFIG.HEARING_FLOOR_DB ? distM(state, a, h) : null),
+    [FN.smell]: () => (smells(state, a, h) ? distM(state, a, h) : null),
+  };
+  const d = reach[sense]();
+  if (d === null) return null;
   if (only) return 0;
   return withinM(d, r) ? CONFIG.SEARCH_AREA_SHIFT : withinM(d, ring1M) ? CONFIG.SEARCH_RING_SHIFTS[0] : CONFIG.SEARCH_RING_SHIFTS[1];
 }
@@ -387,7 +407,7 @@ export function searchFor(state: GameState, a: Actor, event: GameEvent, rng: Rng
     if (atLeast(beliefStatus(state, a, h), 'aware')) continue;
     const noise = opts.noiseOf?.(h) ?? CONFIG.HIDE_STILL_NOISE;
     const tests: [Sense, number][] = opts.look ? (inLookReach(seeingM(state, a, h)) ? [[opts.look, CONFIG.LOOK_SEARCH_SHIFT]] : [])
-      : ([FN.sight, FN.hearing, FN.smell] as Sense[]).flatMap((f) => { const t = senseReach(state, a, h, f, noise, !!opts.only); return t === null ? [] : [[f, t] as [Sense, number]]; });
+      : DETECTION_SENSES.flatMap((f) => { const t = senseReach(state, a, h, f, noise, !!opts.only); return t === null ? [] : [[f, t] as [Sense, number]]; });
     let best: { r: ContestResult; sense: Sense } | undefined;
     for (const [sense, shift] of tests) {
       const w = watcherRoll(state, a, sense, zoneById(state, h.zone), h);
@@ -399,7 +419,7 @@ export function searchFor(state: GameState, a: Actor, event: GameEvent, rng: Rng
       if (!best || r.gap > best.r.gap) best = { r, sense };
     }
     if (!best) continue;
-    if (!done.ids.includes(pairKey(h, a))) done.ids.push(pairKey(h, a));
+    for (const [f] of tests) if (!done.ids.includes(`${pairKey(h, a)}:${f}`)) done.ids.push(`${pairKey(h, a)}:${f}`); // SE5, D-40: each sense tested is that sense's contest
     const r = best.r;
     if (a.kind === 'player' && r.gap > 0) { tally(state, 'spotted'); tally(state, 'spotted', { by: 'function', of: best.sense }); } // N3
     const at = { ...event, zone: h.zone, ...(h.pos ? { pos: { ...h.pos } } : {}) };

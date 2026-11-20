@@ -10,6 +10,7 @@ import { stealthyArrival } from '../../src/scenario/apply';
 import { spawnNpc } from '../../src/library/spawn';
 import type { ContestResult, GameState, Intent, RollRequest } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
+import { FN } from '../../src/library/functionIds';
 import { PK } from '../../src/library/perkIds';
 import { IT } from '../../src/library/itemIds';
 import { BK, FU } from '../../src/library/tableIds';
@@ -55,7 +56,9 @@ describe('117 stealth', () => {
     turn(s, intent({ toZone: 'street_square' }, { type: 'sneak' }));
     expect(s.player.zone).toBe('street_square');
     expect(s.player.posture).toBe('stealthy');
-    expect(calls.filter(([, b]) => b.actorId.startsWith('guard_')).map(([a]) => a.skill)).toEqual([SK.vanishing, SK.vanishing]); // VS1: those who see you roll Vanishing
+    // VS1: those who see you roll Vanishing; D-40: once for each sense that reaches them (sight and hearing)
+    expect(calls.filter(([, b]) => b.actorId.startsWith('guard_')).map(([a, b]) => `${b.actorId} ${a.skill} ${b.fn}`))
+      .toEqual(['guard_1', 'guard_2'].flatMap((g) => [FN.sight, FN.hearing].map((f) => `${g} ${SK.vanishing} ${f}`)));
     expect(calls.filter(([, b]) => !b.actorId.startsWith('guard_')).every(([a]) => a.skill === SK.sneaking)).toBe(true); // the rest, Sneaking
     const b1 = s.actors.find((a) => a.id === 'guard_1')!.mind!.knowledge.player!;
     expect(b1.status).toBe('suspicious');
@@ -143,8 +146,9 @@ describe('117 stealth', () => {
     const calls = rig();
     turn(s, intent(null, { type: 'attack', target: 'slime_1' })); // the order steps into range first, then shoots
     expect(s.log.some((l) => l.turn === s.turn && l.code === 'stealth_contest' && (l.detail as { kind: string }).kind === 'move')).toBe(true);
-    const vsSlime = calls.filter(([, b]) => b.actorId === 'slime_1').map(([a]) => a.skill);
-    expect(vsSlime).toEqual([SK.sneaking, SK.combat_stealth]); // the step, then the shot
+    const vsSlime = calls.filter(([, b]) => b.actorId === 'slime_1').map(([a, b]) => `${a.skill} ${b.fn}`);
+    // the step (seen and smelled), then the shot, by each sense it reaches (D-40)
+    expect(vsSlime).toEqual([...[FN.sight, FN.smell].map((f) => `${SK.sneaking} ${f}`), ...[FN.sight, FN.hearing, FN.smell].map((f) => `${SK.combat_stealth} ${f}`)]);
   });
   it('darkness and cover help a sneak; it feels leg wounds (ST6, ST10, HA1)', () => {
     const s = makeVillage();
@@ -205,6 +209,33 @@ describe('117 stealth', () => {
     expect(shifts(true, CONFIG.VANISH_NEAR_M + 2)).toEqual([]);
     expect(shifts(true, 1, true)).toEqual([]); // In the Thick of It: no shift for its owner
   });
+  it('each sense that reaches a watcher contests a sneak once per turn (ST4, D-40)', () => {
+    const s = makeVillage();
+    place(s, 'player', 'street_square');
+    const calls = rig(); // every contest: the sneak wins
+    const guard = () => calls.filter(([, b]) => b.actorId === 'guard_1').map(([a, b]) => `${a.skill} ${b.fn}`).sort();
+    const ev = turn(s, intent({ toZone: 'gate_inner' }, { type: 'sneak' }));
+    expect(ev.filter((e) => e.actorId === 'player').length).toBeGreaterThan(1); // the step and the sneak: more than one event this turn
+    expect(guard()).toEqual([FN.hearing, FN.sight].map((f) => `${SK.sneaking} ${f}`).sort()); // it sees and hears: one roll per sense, not per event
+    expect(status(s, 'guard_1')).toBe('unaware');
+    calls.length = 0;
+    turn(s, intent({ toZone: 'street_square' }));
+    expect(guard()).toEqual([FN.hearing, FN.sight].map((f) => `${SK.sneaking} ${f}`).sort()); // the next turn's event: once per sense again
+  });
+  it('slipping away must beat every sense: one that ties keeps you (VS1, D-40); Every Sense One makes sight and hearing one contest', () => {
+    const s = makeVillage();
+    place(s, 'player', 'gate_inner');
+    aware(s, 'guard_1', 'gate_inner');
+    rig({ guard_1: [-1, 0] }); // sight loses, hearing ties
+    turn(s, intent({ toZone: 'street_square' }, { type: 'sneak' }));
+    expect(['aware', 'tracking']).toContain(status(s, 'guard_1'));
+    const v = makeVillage();
+    place(v, 'player', 'street_square');
+    v.actors.find((a) => a.id === 'guard_1')!.core.perks.push({ perkId: PK.one_sense, source: 'level', gainedTurn: 0 });
+    const calls = rig();
+    turn(v, intent({ toZone: 'gate_inner' }, { type: 'sneak' }));
+    expect(calls.filter(([, b]) => b.actorId === 'guard_1')).toHaveLength(1);
+  });
   it('an observer with Unblinking who loses a Vanishing roll must also lose a stealth contest (ST23)', () => {
     const s = makeVillage();
     place(s, 'player', 'gate_inner');
@@ -212,7 +243,8 @@ describe('117 stealth', () => {
     s.actors.find((a) => a.id === 'guard_1')!.core.perks.push({ perkId: PK.unblinking } as never);
     const calls = rig({ guard_1: [-1, 0] });
     turn(s, intent({ toZone: 'street_square' }, { type: 'sneak' }));
-    expect(calls.filter(([, b]) => b.actorId === 'guard_1').map(([a]) => a.skill)).toEqual([SK.vanishing, SK.sneaking]); // the slimes in the field see it too now
+    // sight loses its Vanishing roll but holds on with Unblinking; hearing loses both; one sense holding keeps them (D-40)
+    expect(calls.filter(([, b]) => b.actorId === 'guard_1').map(([a, b]) => `${a.skill} ${b.fn}`)).toEqual([FN.sight, FN.hearing].flatMap((f) => [`${SK.vanishing} ${f}`, `${SK.sneaking} ${f}`]));
     expect(['aware', 'tracking']).toContain(status(s, 'guard_1'));
   });
 });

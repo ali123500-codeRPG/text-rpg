@@ -227,7 +227,7 @@ export function equations(lib: Library): EquationGroup[] {
         formula: 'check → its difficulty · contest → the other side\'s true skill in the skill it rolled · attack → each side against the other\'s true skill',
         terms: [['difficulty', GRADE_LEVELS.keys.map((k) => `${GRADE_LEVELS.name(k)} ${CONFIG.DIFFICULTY[k]}`).join(' · ')]],
         notes: ['When a stand-in makes the roll, the stand-in and the skill the action asked for each mark, each against its own window.',
-          'Stealth and ambush contests mark the watcher\'s sight or hearing skill (the one that rolled) as well as the sneaker\'s skill.'] },
+          'Stealth and ambush contests mark the watcher\'s sense skill (the one that rolled) as well as the sneaker\'s skill. A stealth contest is rolled once per detection sense that reaches the watcher (sight, hearing, smell), each sense once a turn (D-40), so each sense learns on its own.'] },
       { name: 'Augmenting skills', at: 'markAugments · src/ruleset/improve.ts',
         formula: `the roll gets one window from its sums: low = rolled skill raw + Σ augment raw × share × tier − ${CONFIG.MARK_WINDOW}; high = rolled skill max(raw, true) + Σ augment max(raw, true) × share × tier + ${CONFIG.MARK_WINDOW}. Every augment that added to the roll marks when the opposition is inside it, or on a close call`,
         terms: [['opposition', 'a check\'s difficulty, or the other side\'s true skill plus what its own augments added to its roll']],

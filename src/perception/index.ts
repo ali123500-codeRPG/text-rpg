@@ -15,7 +15,7 @@ import { PK } from '../library/perkIds';
 import { RUSE, queueLearned } from '../engine/ruses';
 import { FN } from '../library/functionIds';
 import { recordMadeOut } from './madeOut';
-import { SK } from '../library/skillIds';
+import { DETECTION_SENSES, SK, type Sense } from '../library/skillIds';
 import { effectiveSkill } from '../ruleset/gear';
 
 export type BeliefUpdate =
@@ -147,14 +147,8 @@ export function faintness(state: GameState, event: GameEvent, observer: Actor, c
   return ps.length ? GRADE_LEVELS.at(Math.min(...ps)) : null;
 }
 
-/** raw perception of an event by one observer, ignoring the unaware-of-player rule (detectPlayer uses this). */
-export function perceptionOf(event: GameEvent, state: GameState, observer: Actor): Seen | null {
-  if (!isActive(observer)) return null;
-  if (observer.id === event.actorId) return { level: 'full', cue: 'sight' };
-  // NW12/NW20: a sleeper perceives nothing; a blow on it is felt (and wakes it, src/engine/sleep.ts)
-  if (isAsleep(observer)) return event.target === observer.id && CONTACT.has(event.kind) ? { level: 'partial', cue: 'touch' } : null;
-  const at = madeAt(state, event);
-  /** what is seen of it at one point: step 2, metres from where it happened, half seen in the dark */
+/** what `observer` sees of the event: step 2, metres from where it happened, half seen in the dark */
+function sightOf(event: GameEvent, state: GameState, observer: Actor, at: Located): Seen | null {
   const seenAt = (p: { zone: string; pos?: { x: number; y: number } }): Seen | null => {
     const level = sightAt(state, observer, p, event.visibility);
     return level ? { level, cue: 'sight' } : null;
@@ -167,6 +161,31 @@ export function perceptionOf(event: GameEvent, state: GameState, observer: Actor
   // (PG11 a): as long as they can still be glimpsed, the same rule as Who's here (seenActors)
   if (observer.kind === 'player' && event.kind !== 'move' && event.kind !== 'flee' && observer.journal?.clearSight?.[event.actorId] === event.zone
     && stillGlimpsed(event.visibility, seeingM(state, observer, at))) sight = { level: 'full', cue: 'sight' };
+  return sight;
+}
+
+/** D-40: the detection senses that reach `observer` from the event, each by its own reach and each on its own (smell
+ * too when the event is seen or heard): sight as perceptionOf sees it, hearing its sound above the floor, smell its
+ * reach (AB18). A sleeper reaches nothing. */
+export function sensesReaching(event: GameEvent, state: GameState, observer: Actor): Sense[] {
+  if (!isActive(observer) || isAsleep(observer)) return [];
+  const at = madeAt(state, event);
+  const reach: Record<Sense, () => boolean> = {
+    [FN.sight]: () => !!sightOf(event, state, observer, at),
+    [FN.hearing]: () => !!soundReach(state, observer, at, event.noise, leansIn(event, observer)),
+    [FN.smell]: () => smells(state, observer, at),
+  };
+  return DETECTION_SENSES.filter((f) => reach[f]());
+}
+
+/** raw perception of an event by one observer, ignoring the unaware-of-player rule (detectPlayer uses this). */
+export function perceptionOf(event: GameEvent, state: GameState, observer: Actor): Seen | null {
+  if (!isActive(observer)) return null;
+  if (observer.id === event.actorId) return { level: 'full', cue: 'sight' };
+  // NW12/NW20: a sleeper perceives nothing; a blow on it is felt (and wakes it, src/engine/sleep.ts)
+  if (isAsleep(observer)) return event.target === observer.id && CONTACT.has(event.kind) ? { level: 'partial', cue: 'touch' } : null;
+  const at = madeAt(state, event);
+  const sight = sightOf(event, state, observer, at);
   const nl = soundReach(state, observer, at, event.noise, leansIn(event, observer));
   const sound: Seen | null = nl ? { level: nl, cue: 'sound' } : null;
   let best = better(sight, sound);
