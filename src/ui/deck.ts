@@ -217,7 +217,8 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
       if (!broken) add('follow', 'move', 'Follow', [who('Follow whom?', near)], (c) => order(`Follow ${them(c)}`, { move: { toZone: near.find((a) => a.id === c.target)!.zone, spot: { near: c.target!, follow: true } } }));
     }
     if (pv.player.walking && !broken) {
-      add('keep_walking', 'move', pv.player.following ? `Keep following ${pv.player.following.name}` : `Keep walking to ${pv.player.walking.to}`, [], () => order(pv.player.following ? `Keep following ${pv.player.following.name}` : `Keep walking to ${pv.player.walking!.to}`, {}), { note: 'carries the walk on' });
+      const then = pv.player.walking.then ? `, then ${pv.player.walking.then}` : ''; // MQ15 a: the action the walk carries
+      add('keep_walking', 'move', pv.player.following ? `Keep following ${pv.player.following.name}` : `Keep walking to ${pv.player.walking.to}${then}`, [], () => order(pv.player.following ? `Keep following ${pv.player.following.name}` : `Keep walking to ${pv.player.walking!.to}${then}`, {}), { note: 'carries the walk on' });
       add('stop', 'move', 'Stop here', [], () => order('Stop here', { move: { toZone: pv.zone.id } }));
     }
     // BA3/BA4/SD: the ways out that have a door, gate or bar: what you can do to each from here (it takes the move)

@@ -51,7 +51,7 @@ export function walkingNow(w: WalkingView | undefined, pick: (text: string) => v
   if (!w) return null;
   return h('div', { class: 'walking-now', role: 'status', 'data-to': w.toZone },
     h('span', { class: 'wk-i', 'aria-hidden': 'true' }, '➜'),
-    h('span', { class: 'dg-t' }, 'Walking to ', h('b', {}, w.to), ' · ', h('b', { class: 'dg-left' }, walkLeft(w))),
+    h('span', { class: 'dg-t' }, 'Walking to ', h('b', {}, w.to), w.then ? `, then ${w.then}` : '', ' · ', h('b', { class: 'dg-left' }, walkLeft(w))),
     h('span', { class: 'hs-note' }, 'Carries on next turn while you only talk; any other order stops it.'),
     h('div', { class: 'hs-picker dg-pick' },
       chip('keep-walking', 'Keep walking', `I keep walking to ${w.to}`, 'Fills the box to carry on walking. Nothing is sent until Send', pick, disabled),

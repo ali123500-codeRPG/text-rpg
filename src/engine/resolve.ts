@@ -30,6 +30,7 @@ import {
   CP,
   DU,
   FR,
+  FU,
   FX,
   HL,
   RL,
@@ -95,6 +96,7 @@ import type {
   Rng,
   RollResult,
   TierShift,
+  WalkThen,
   WayDid,
 } from '../types';
 import {
@@ -141,6 +143,7 @@ import {
   companions,
   travel,
   tripGoal,
+  type TripStop,
   type TripWorld,
 } from './travel';
 import {
@@ -419,6 +422,7 @@ import {
   brokenVersion,
 } from './breakage';
 import {
+  furnitureById,
   furnitureRecord,
 } from './furniture';
 import {
@@ -565,6 +569,7 @@ import {
   hostilesNear,
   nextChange,
   planNight,
+  bedGap,
   bedHasRoom,
   settleSleepers,
   wake,
@@ -783,10 +788,17 @@ type Ctx = {
   saidOnWay?: Order;
   /** BW13 a: the seconds the break through resolving now puts in this fight turn */
   breakS?: number;
+  /** MQ8/MQ15 a: the player's action on a thing out of reach waits for the walk to it (walk: that walk's order) */
+  then?: { then: WalkThen; walk: Order };
+  /** MQ15 a: the action a walk carried on through words or a sneak (it stays with the walk) */
+  carried?: WalkThen;
+  /** MQ8: the walk got there and its action is done now: it waits no more */
+  arrived?: true;
 };
 /** AT56/AT65: a span of time the player's order covers, run by the world clock: its length, the pose it is spent in (how
  * soon the player is ready, AT67), and the event its outcome goes on */
-type Stretch = { kind: 'rest' | 'wait' | 'walk' | 'busy'; seconds: number; pose: BodyPoseKey; ev: GameEvent; ran?: number; stop?: StretchStop; walk?: Order; order?: Order; someone?: true /* BG-231: stops when anyone new comes into the senses */ };
+type Stretch = { kind: 'rest' | 'wait' | 'walk' | 'busy'; seconds: number; pose: BodyPoseKey; ev: GameEvent; ran?: number; stop?: StretchStop; walk?: Order; order?: Order; someone?: true /* BG-231: stops when anyone new comes into the senses */;
+  then?: WalkThen; there?: true /* MQ8: the walk's action, and that the walk got there */ };
 type StretchStop = NearStop | { why: 'fight'; by: string[] };
 
 function mk(ctx: Ctx, a: Actor, kind: string, extra: Partial<GameEvent> = {}): GameEvent {
@@ -1690,14 +1702,21 @@ function walkThere(state: GameState, a: Actor, o: Order): boolean {
   return a.zone === goal.zone && (!goal.pos || withinM(distM(state, a, goal), opts.stopShort ?? 0));
 }
 /** the move to carry on (AT49), as the Parser gave it */
-const walkOf = (o: Order): NonNullable<Actor['walking']> => ({ toZone: o.move!, ...(o.moveSpot ? { spot: o.moveSpot } : {}), ...(o.jump ? { jump: true } : {}) });
+const walkOf = (o: Order, then?: WalkThen): NonNullable<Actor['walking']> => ({ toZone: o.move!, ...(o.moveSpot ? { spot: o.moveSpot } : {}), ...(o.jump ? { jump: true } : {}), ...(then ? { then } : {}) });
 /** AT49: a walk carries on while the player orders neither a move nor an action (words are said on the way, and a sneak,
- * BG-190, sneaks along it); anything else stops it */
+ * BG-190, sneaks along it); anything else stops it. MQ15 a: the action it walks to do goes with it: with nothing else
+ * ordered it is the turn's action again (done once in reach); with words or a sneak it stays with the walk */
 function carryOnWalk(state: GameState, intent: Intent | null): Intent | null {
   const p = state.player;
   delete p.followLost; // BG-190: told once, the turn after it was lost
   if (!p.walking || !intent) return intent;
-  if (!intent.move && (!intent.action || isSpeech(intent.action.type) || intent.action.type === 'sneak')) return { ...intent, move: p.walking };
+  const { then, ...walk } = p.walking;
+  if (!intent.move && !(then && intent.way) && (!intent.action || isSpeech(intent.action.type) || intent.action.type === 'sneak')) {
+    if (!then || intent.action) return { ...intent, move: walk };
+    p.walking = walk; // the order carries it now
+    return { ...intent, move: walk, action: then.type === 'hold' ? null : { type: then.type as NonNullable<Intent['action']>['type'], skill: '', target: then.target, targetPart: null, item: then.item, mode: null, approach: '' },
+      ...(then.way ? { way: then.way } : {}), ...(then.gear ? { gear: [...(intent.gear ?? []), ...then.gear] } : {}) };
+  }
   delete p.walking;
   return intent;
 }
@@ -1794,8 +1813,9 @@ function runStretch(ctx: Ctx, st: Stretch, onLeg?: OnLeg): void {
     logCode(state, 'stretch_stopped', { actorId: p.id, kind: st.kind, why: stop.why, by: stop.by, seconds: Math.round(ran), ...(st.kind === 'busy' && p.busy ? { row: p.busy.row } : {}) });
   }
   if (st.kind === 'walk') {
-    if (st.walk && !walkEnd) p.walking = walkOf(st.walk); // AT49: stopped on the way, it carries on next turn
+    if (st.walk && !walkEnd) p.walking = walkOf(st.walk, st.then); // AT49: stopped on the way, it carries on next turn (MQ15 a: its action too)
     else delete p.walking;
+    if (walkEnd === 'there') st.there = true;
     if (ran > 0) logCode(state, 'walked_on', { actorId: p.id, seconds: Math.round(ran), arrived: !!st.walk && walkThere(state, p, st.walk) });
   } else if (st.kind === 'busy') {
     const b = p.busy;
@@ -2508,9 +2528,23 @@ function step(ctx: Ctx, id: string): void {
   for (const d of g.setDown) emit(ctx, mk(ctx, a, 'set_down', { itemId: d.itemId, ...(d.qty ? { qty: d.qty } : {}) })); // OA4
   for (const d of g.putIn) emit(ctx, mk(ctx, a, 'put_in', { itemId: d.itemId, into: d.into, ...(d.qty ? { qty: d.qty } : {}) })); // PI1
   if (g.invalid.length) logCode(state, 'invalid_gear', { actorId: id, ops: g.invalid });
-  // TV1: a move along a road with nothing else going on is a trip, walked in one turn
-  const trip = tripGoal(state, a, o);
-  if (trip) { if (a === state.player) ctx.travelled = true; return doTravel(ctx, a, o, trip); }
+  // MQ8: the player's action on a thing (a door, a wall, an item, a container, a bed) out of reach waits for the walk to it
+  const then = thenOf(ctx, a, o, later), bed = bedOf(state, o), walkO = then && !thingInReach(state, a, o, then, bed) ? walkTo(state, a, o) : undefined;
+  const waits = (gear?: GearOp[]): boolean => {
+    if (!then || !walkO || thingInReach(state, a, o, then, bed) || walkThere(state, a, walkO)) return false;
+    ctx.then = { then: gear ? { ...then, gear } : then, walk: walkO };
+    return true;
+  };
+  // TV1: a move along a road with nothing else going on is a trip, walked in one turn; MQ16 a: so is one whose action waits,
+  // done on arrival
+  const trip = tripGoal(state, a, walkO && !o.perkMove ? walkO : o);
+  if (trip) {
+    if (a === state.player) ctx.travelled = true;
+    const stop = doTravel(ctx, a, o, trip);
+    if (!walkO) return;
+    if (stop !== 'arrived') { ctx.then = { then: then!, walk: walkO }; return; } // MQ15 a: stopped, the action stays with the walk
+    o.move = null;
+  }
   // AE1/ZP3/AT19: a shot or a throw that locks movement takes its seconds of move time too. One that reaches from here takes
   // that move time first, and the move goes only on what is left; one that doesn't is dropped and the move stands
   let cost = orderCost(state, a, o);
@@ -2546,7 +2580,7 @@ function step(ctx: Ctx, id: string): void {
   const closer = () => { if (closeIn && !near!.ok()) closeInOn(ctx, a, o, near!, behind, false, takeDash); };
   // BA3/BA4: the key or the bar takes the move slot; BG-54: a way op that can't be done leaves the move to happen.
   // BG-86: out of reach of the door, the move slot walks to it, and the op takes the main action if that is free
-  let turned = false;
+  let turned = false, wayLater = false;
   if (o.way) {
     const walked = closeIn && !near!.ok();
     const was = a.pos && { zone: a.zone, pos: { ...a.pos } }, moveLeft = slotsOf(ctx, a).move;
@@ -2554,6 +2588,7 @@ function step(ctx: Ctx, id: string): void {
     // BG-172: a step up to the way (a step at most) is part of working it, so the op still has the move time
     if (walked && was && near?.ok() && distM(state, a, was) <= CONFIG.ENTER_M) slotsOf(ctx, a).move = moveLeft;
     if (near?.ok()) turned = doWayOp(ctx, a, o.way, o.type === 'hold'); // BG-165: a way not out of this zone (null) is out of reach too
+    else if (walkO) wayLater = true; // MQ8: done if the walk gets there this turn, else it waits for the walk
     else { // BG-144: the walk did not reach the way, so the op comes to nothing this turn, and the story says why
       logCode(state, 'way_op_dropped', { actorId: id, to: o.way.toZone, op: o.way.op, reason: 'out_of_reach' });
       emit(ctx, mk(ctx, a, 'wasted', { target: o.way.toZone, reason: 'out_of_reach' }));
@@ -2562,8 +2597,13 @@ function step(ctx: Ctx, id: string): void {
   }
   // BF36: words the NPC says as it sets off are heard from where it stands, before the walk
   if (o.wordsFirst && o.line && o.move && !turned && !o.moveAfter) { emit(ctx, bark(mk(ctx, a, 'hold'), o)); o.line = null; }
-  if (!turned && !o.moveAfter) move(o.type === 'hold');
+  if (!turned && !o.moveAfter) move(o.type === 'hold' && !walkO); // MQ8: a walk to an action walks, as closing in does
   if (!o.way) closer();
+  if (wayLater && reachOf(state, a, o)?.ok()) doWayOp(ctx, a, o.way!, o.type === 'hold');
+  else if (wayLater && !waits()) {
+    logCode(state, 'way_op_dropped', { actorId: id, to: o.way!.toZone, op: o.way!.op, reason: 'out_of_reach' });
+    emit(ctx, mk(ctx, a, 'wasted', { target: o.way!.toZone, reason: 'out_of_reach' }));
+  }
   if (later.length) {
     // still out of reach after the walk: the take waits for the next turn. That is play, not a bug (pick_up_short), and
     // the story says how far short it fell (BG-163); a take the walk could not help (the thing is gone) is still invalid_gear
@@ -2571,7 +2611,7 @@ function step(ctx: Ctx, id: string): void {
     const g2 = applyGearOps(state, a, later.filter((op) => !short.includes(op)));
     for (const p of g2.picked) emit(ctx, mk(ctx, a, 'pick_up', { itemId: p.itemId, target: p.from }));
     if (g2.invalid.length) logCode(state, 'invalid_gear', { actorId: id, ops: g2.invalid, reason: 'out_of_reach' });
-    if (short.length) {
+    if (short.length && !waits(short)) {
       logCode(state, 'pick_up_short', { actorId: id, ops: short });
       emit(ctx, mk(ctx, a, 'wasted', { ...(short[0].from ? { target: short[0].from } : {}), itemId: short[0].item, reason: 'out_of_reach' }));
     }
@@ -2584,6 +2624,7 @@ function step(ctx: Ctx, id: string): void {
   // AT48: the main action finishes after the walk that led to it and the gear ops before it
   const pools = slotsOf(ctx, a);
   if (!o.moveAfter) ctx.clock.set(id, Math.max(ctx.clock.get(id) ?? 0, pools.walkedS));
+  if (o.type !== 'hold' && waits()) return; // MQ8: the walk goes on to it first
   // FT10: Spent, an action above Light comes to nothing (picking pays at the lock's row)
   if (!ctx.spoke.has(id) && tooSpent(a, o.type === 'pick' ? actionRow(DU.pick_lock)?.effort : cost?.row.effort)) {
     logCode(state, 'spent_no_action', { actorId: id, type: o.type });
@@ -2793,7 +2834,7 @@ function tripWorld(ctx: Ctx, group: string[]): TripWorld<{ before: Map<string, L
 
 /** TV1–TV8: the trip: one travel event where it ends; an encounter breaks the scenario (the next one starts there, with the
  * encounter's event roll); reaching a frontier at the road's end crosses it */
-function doTravel(ctx: Ctx, a: Actor, o: Order, t: NonNullable<ReturnType<typeof tripGoal>>): void {
+function doTravel(ctx: Ctx, a: Actor, o: Order, t: NonNullable<ReturnType<typeof tripGoal>>): TripStop {
   const { state } = ctx;
   const group = [a.id, ...companions(state, a).map((x) => x.id)];
   const t0 = now(state);
@@ -2812,6 +2853,7 @@ function doTravel(ctx: Ctx, a: Actor, o: Order, t: NonNullable<ReturnType<typeof
     state.stage.encounter = { eventRoll: trip.encounter.eventRoll, zone: a.zone, at: trip.encounter.at };
     state.stage.breakCause = 'encounter';
   } else if (t.frontier && trip.stop === 'arrived') doMove(ctx, a, { zone: t.frontier }, o, false, 0);
+  return trip.encounter ? 'encounter' : trip.stop;
 }
 
 /** AE5/AE8: a perk move; a free one resolves beside the main action, just before it (engine/beside.ts) */
@@ -2930,6 +2972,54 @@ function reachOf(state: GameState, a: Actor, o: Order): { at: Located; m: number
   if (d) return grip(d);
   for (const op of o.gear ?? []) if (op.op === 'pick_up' && !reachable(state, a, op)) { const p = pickUpAt(state, op, a); if (p) return grip(p); }
   return null;
+}
+
+/** MQ8: the actions on a thing that wait for the walk to it (a door's lock, a wall or door broken through, a container,
+ * a bed); a way op and pick-ups too. Never an attack (it runs on, BG-255) and never someone */
+const THEN_ACTS = new Set(['pick', 'break', 'open', 'filch', 'sleep']);
+/** MQ8/MQ15 a: what the player's order would carry along a walk to its thing (walking.then), or nothing */
+function thenOf(ctx: Ctx, a: Actor, o: Order, later: GearOp[]): WalkThen | undefined {
+  const { state } = ctx;
+  if (a !== state.player || ctx.arrived || o.moveAfter || ctx.spoke.has(a.id)) return undefined;
+  if (later.some((op) => op.from)) return undefined; // taking from someone down runs on to them (BF91 a), never waits
+  const thing = o.type === 'hold' ? !!o.way || later.length > 0
+    : THEN_ACTS.has(o.type) && !(o.target && actorById(state, o.target)) && (o.type !== 'sleep' || !!bedOf(state, o));
+  return thing ? { type: o.type, target: o.target, item: o.item ?? null, ...(o.way ? { way: o.way } : {}), ...(later.length ? { gear: later } : {}) } : undefined;
+}
+/** MQ10 a: the bed a sleep order walks to (its move's spot) */
+const bedOf = (state: GameState, o: Order) => {
+  const f = o.type === 'sleep' && o.move && o.moveSpot?.near ? furnitureById(state, o.move, o.moveSpot.near) : undefined;
+  return f?.kind === FU.bed ? f : undefined;
+};
+/** MQ8: the thing is within reach to be worked now (FR4's reach; a bed within BED_REACH_M) */
+function thingInReach(state: GameState, a: Actor, o: Order, then: WalkThen, bed: ReturnType<typeof bedOf>): boolean {
+  if (then.type === 'sleep') return !!bed && a.zone === bed.zone && bedGap(state, a, bed) <= CONFIG.BED_REACH_M;
+  const r = reachOf(state, a, o);
+  return r ? r.ok() : o.type === 'hold' && !o.way; // no reach from here: a door or wall of another title
+}
+/** MQ8: the walk to a thing: a door of this title to its doorway, anything else to its reach point (FR4), else the
+ * order's own move (a door or wall of another title, a bed) */
+function walkTo(state: GameState, a: Actor, o: Order): Order | undefined {
+  const door = o.way?.toZone ?? (o.type === 'pick' || o.type === 'break' ? o.target : null);
+  const r = o.type === 'sleep' ? null : reachOf(state, a, o);
+  const to = door && wayTo(state, a.zone, door) ? { move: a.zone, moveSpot: { near: door } }
+    : r?.at.pos ? { move: r.at.zone, moveSpot: { at: { ...r.at.pos } } } : o.move ? { move: o.move, ...(o.moveSpot ? { moveSpot: o.moveSpot } : {}) } : undefined;
+  return to && { actorId: a.id, type: 'hold', target: null, skill: null, intent: '', source: 'player', ...to };
+}
+/** MQ8/MQ16 a: the walk got there: its action is done now, as the turn's action (fresh pools), with its own time; a long
+ * one then runs on the world clock (AT45), a sleep runs its night */
+function actThere(ctx: Ctx, then: WalkThen, walk: Order, onLeg?: OnLeg): void {
+  const { state } = ctx;
+  const p = state.player;
+  const o: Order = { actorId: p.id, type: then.type, target: then.target, item: then.item, skill: null, intent: '', source: 'player', move: null,
+    ...(then.type === 'sleep' && walk.moveSpot ? { moveSpot: walk.moveSpot } : {}), ...(then.way ? { way: then.way } : {}), gear: then.gear ?? null };
+  ctx.orders.set(p.id, o);
+  ctx.slots.delete(p.id); ctx.clock.set(p.id, 0); ctx.acted.delete(p.id);
+  delete ctx.own; delete ctx.stretch;
+  ctx.arrived = true;
+  step(ctx, p.id);
+  if (ctx.stretch) runStretch(ctx, ctx.stretch, onLeg);
+  else passTime(state, exploreSeconds(ctx, o) / 60);
 }
 
 /** BG-86: the actor is within grip reach of the doorway to `to` (a zone without a rectangle has no point to measure) */
@@ -3117,6 +3207,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   const ctx: Ctx = {
     state, rng, input, events: [], orders, acted: new Set(), slots: new Map(), surprised: new Set(), risen: new Map(), defenses: new Map(), strikeBacks: new Map(), exchangeEvents: [],
     turnS: state.mode === 'tactical' ? turnSeconds(state, playerOrder) : CONFIG.FIGHT_TURN_S, clock: new Map(), at: 0, finished: new Set(), stopped: new Set(), spoke: new Set(),
+    ...(state.player.walking?.then ? { carried: state.player.walking.then } : {}), // MQ15 a: carried through words or a sneak
   };
   // Dreaded on Sight: whoever first sees the owner pays its fear and turns colder, before anyone acts
   for (const c of sightDread(state, (a, id, _g, _o, mult) => fear(ctx, a, id, mult && mult !== 1 ? { mult } : {}))) logCode(state, 'dreaded_on_sight', { actorId: c.target.id, by: c.owner.id, perk: c.perk });
@@ -3239,22 +3330,30 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   // AT45/AT46/AT49: the player's walk. Outside a fight it is one turn whatever its length: what the turn's move time left,
   // the world clock walks; in a fight a walk not yet at its goal carries on next turn by itself. At its goal, at a way found
   // shut (BG-69), after a road trip, or with another long thing to do, it ends (BG-184: at its goal it always ends)
-  const p = state.player, wo = playerOrder.move ? playerOrder : ctx.saidOnWay; // BG-185: words said on the way
-  if (!wo?.move || wo.way || ctx.travelled || !isActive(p) || !ctx.acted.has(p.id) || walkThere(state, p, wo) || foundShut(ctx.events, p)) delete p.walking;
-  else if (state.mode === 'tactical') p.walking = walkOf(wo);
+  // MQ8/MQ15 a: a walk to an action carries it: done where the walk gets there, kept with the walk while it goes on
+  const p = state.player, wo = ctx.then?.walk ?? (playerOrder.move ? playerOrder : ctx.saidOnWay); // BG-185: words said on the way
+  const then = ctx.then?.then ?? ctx.carried;
+  let actNow = false;
+  if (!wo?.move || (!then && (wo.way || ctx.travelled)) || !isActive(p) || !ctx.acted.has(p.id) || foundShut(ctx.events, p)) delete p.walking;
+  else if (walkThere(state, p, wo)) {
+    if (then && state.mode === 'tactical') p.walking = walkOf(wo, then); // the turn's action went on words: it is done next turn
+    else { delete p.walking; actNow = !!then; }
+  } else if (state.mode === 'tactical' || ctx.travelled) p.walking = walkOf(wo, then);
   else if (ctx.stretch) delete p.walking;
   else {
     const { goal } = moveGoal(state, p, wo), walkS = moveSpeed(state, p).walk, m = distOrNull(state, p, goal);
     if (m !== null && walkS > 0) {
       const ev = [...ctx.events].reverse().find((e) => e.actorId === p.id) ?? mk(ctx, p, 'hold');
       if (!ctx.events.includes(ev)) emit(ctx, ev);
-      ctx.stretch = { kind: 'walk', seconds: (m / walkS) * 2 + CONFIG.STEP_MAX_S, pose: 'standing', ev, walk: wo };
+      ctx.stretch = { kind: 'walk', seconds: (m / walkS) * 2 + CONFIG.STEP_MAX_S, pose: 'standing', ev, walk: wo, ...(then ? { then } : {}) };
     } else delete p.walking; // an old map's zone with no rectangle: the turn's own walk only
   }
   const stretch = state.mode !== 'tactical' && isActive(state.player) ? ctx.stretch : undefined;
   if (stretch?.kind === 'walk' || stretch?.kind === 'busy') passTime(state, slotsOf(ctx, state.player).walkedS / 60); // the turn's own walk came first
   if (stretch) runStretch(ctx, stretch, legs(true)); // AT56: a rest, a wait, a walk or a long action runs on the world clock, step by step
   else passTime(state, (state.mode === 'tactical' ? ctx.turnS : exploreSeconds(ctx, playerOrder)) / 60); // AT13/AT46: every turn lasts its order's time
+  const there = stretch?.kind === 'walk' && stretch.there ? stretch.then : actNow ? then : undefined;
+  if (there && wo && isActive(p)) actThere(ctx, there, wo, legs(true));
   keepFollowing(ctx, wo);
   const catchMin = now(state) - clockStart - ((state.scratch?.caughtUp as number | undefined) ?? 0);
   const long = !!stretch || catchMin > (getLibrary().durations?.[DU.action]?.seconds ?? 0) / 60;
