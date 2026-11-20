@@ -48,7 +48,9 @@ export type SDoor = Box & { id: string; cx: number; cy: number; dir: 'h' | 'v'; 
 export type SExit = { id: string; zoneId: string; target: string; state: string; x1: number; y1: number; x2: number; y2: number; note: SText; goto?: string; way?: MapWay; title: string };
 export type SStair = Box & { id: string; zoneId: string; cx: number; cy: number; up: boolean; goto?: string; title: string; label: string };
 export type SFurn = Box & { id: string; zoneId: string; kind: string; name: string; cx: number; cy: number };
-export type SToken = Box & { id: string; zoneId: string; cx: number; cy: number; r: number; you?: true; who?: MapPerson; title: string };
+/** `cap` (GSM-193): a body bigger than its disc is drawn as a capsule of its own size, `len` px along the way it faces
+ *  (`deg`, screen degrees) and `wide` px across, never narrower than the disc; the box is the turned capsule's */
+export type SToken = Box & { id: string; zoneId: string; cx: number; cy: number; r: number; you?: true; who?: MapPerson; title: string; cap?: { len: number; wide: number; deg: number } };
 export type Scene = {
   zones: SZone[]; places: SPlace[]; labels: SLabel[]; doors: SDoor[]; exits: SExit[];
   stairs: SStair[]; furniture: SFurn[]; tokens: SToken[];
@@ -85,9 +87,20 @@ export const PIN_R = 9, PIN_TIP = 15;
 const GAP = 2, PAD = 7; // PAD: 6 px (MAP-20) plus the hair the drawn zone sits inside its walls
 const ARROWS = [22, 40, 60, 84, 112, 144, 180];
 const hit = (a: Box, b: Box, m = 0) => a.x0 < b.x1 + m && b.x0 < a.x1 + m && a.y0 < b.y1 + m && b.y0 < a.y1 + m;
-const disc = (cx: number, cy: number, r: number): Box => ({ x0: cx - r, y0: cy - r, x1: cx + r, y1: cy + r });
+const disc = (cx: number, cy: number, r: number, ry = r): Box => ({ x0: cx - r, y0: cy - ry, x1: cx + r, y1: cy + ry });
 const r2 = (v: number) => Math.round(v * 100) / 100;
 const union = (bs: Box[]): Box => bs.reduce((a, b) => ({ x0: Math.min(a.x0, b.x0), y0: Math.min(a.y0, b.y0), x1: Math.max(a.x1, b.x1), y1: Math.max(a.y1, b.y1) }), { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity });
+/** GSM-193 (SZ16): the capsule a body bigger than its disc is drawn as at zoom k, none for a body the disc covers */
+function capsule(who: MapPerson, k: number): SToken['cap'] {
+  const b = who.body, s = PX_PER_M * k;
+  if (!b || Math.max(b.lengthM, b.widthM) * s <= 2 * WHO_R) return undefined;
+  return { len: Math.max(b.lengthM * s, 2 * WHO_R), wide: Math.max(b.widthM * s, 2 * WHO_R), deg: (Math.atan2(-b.facing[1], b.facing[0]) * 180) / Math.PI };
+}
+/** half the width and height of the box around a turned capsule (its rectangle's corners, as the browser measures it) */
+const half = (c: NonNullable<SToken['cap']>) => {
+  const a = (c.deg * Math.PI) / 180, co = Math.abs(Math.cos(a)), si = Math.abs(Math.sin(a));
+  return [(c.len * co + c.wide * si) / 2, (c.len * si + c.wide * co) / 2];
+};
 /** a shut way's entry in the map key */
 const wayKey = (w: MapWay) => `way:${w.shut}${w.key ? '-key' : ''}`;
 /** a barrier in a few words, for exit notes */
@@ -166,8 +179,8 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean): Scene {
 
   const tokens: SToken[] = [];
   /** the first spot near (cx, cy) inside `zb` where a disc of radius r is free, searching outward */
-  const nearFree = (cx: number, cy: number, r: number, zb: Box, inset = r + 2): { cx: number; cy: number } | null => {
-    const lo = { x: zb.x0 + inset, y: zb.y0 + inset }, hi = { x: zb.x1 - inset, y: zb.y1 - inset };
+  const nearFree = (cx: number, cy: number, r: number, zb: Box, inset = r + 2, ry = r): { cx: number; cy: number } | null => {
+    const lo = { x: zb.x0 + inset, y: zb.y0 + inset + ry - r }, hi = { x: zb.x1 - inset, y: zb.y1 - inset - ry + r };
     if (lo.x > hi.x || lo.y > hi.y) return null;
     const cl = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
     const x0 = cl(cx, lo.x, hi.x), y0 = cl(cy, lo.y, hi.y);
@@ -176,7 +189,7 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean): Scene {
       const pts = ring === 0 ? [[0, 0]] : Array.from({ length: 8 * ring }, (_, i) => { const a = (i / (8 * ring)) * Math.PI * 2; return [Math.cos(a) * ring * step, Math.sin(a) * ring * step]; });
       for (const [dx, dy] of pts) {
         const x = cl(x0 + dx, lo.x, hi.x), y = cl(y0 + dy, lo.y, hi.y);
-        if (free(disc(x, y, r))) return { cx: x, cy: y };
+        if (free(disc(x, y, r, ry))) return { cx: x, cy: y };
       }
     }
     return null;
@@ -190,7 +203,7 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean): Scene {
     return { cx: fromShare(shareOf(m.cx, rb.x0, rb.x1, inset), zb.x0, zb.x1, inset), cy: fromShare(shareOf(m.cy, rb.y0, rb.y1, inset), zb.y0, zb.y1, inset) };
   };
   /** you and people are never hidden: their own spot when it is free, else the nearest free one, only when zoomed far out */
-  const keep = (p: { cx: number; cy: number } | undefined, r: number, zb: Box) => (!p ? undefined : free(disc(p.cx, p.cy, r)) ? p : nearFree(p.cx, p.cy, r, zb) ?? outsideNear(p.cx, p.cy, r));
+  const keep = (p: { cx: number; cy: number } | undefined, r: number, zb: Box, ry = r) => (!p ? undefined : free(disc(p.cx, p.cy, r, ry)) ? p : nearFree(p.cx, p.cy, r, zb, r + 2, ry) ?? outsideNear(p.cx, p.cy, r, ry));
   // ---- doors (MAP-14, BG-313): each doorway the character has seen, drawn where it stands on the floor plan (Opening.at),
   // across the wall it is in: a door's leaf, a gap between posts for a way with no door, or its barrier's mark. Both titles
   // of a doorway read the same opening, drawn once.
@@ -304,8 +317,9 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean): Scene {
   for (const x of zones) {
     const zb = x.box, row = x.z.people.filter((p) => !p.at), at = x.z.people.filter((p) => p.at);
     for (const who of at) {
-      const p = keep(spotOf(`who:${who.id}`, zb, WHO_R + 2), WHO_R, zb) ?? nearFree(who.at!.x * PX_PER_M * k, -who.at!.y * PX_PER_M * k, WHO_R, zb);
-      if (p) { tokens.push({ id: `who:${who.id}`, zoneId: x.z.id, ...p, r: WHO_R, ...disc(p.cx, p.cy, WHO_R), who, title: who.name }); take(disc(p.cx, p.cy, WHO_R), 'token'); }
+      const cap = capsule(who, k), [hx, hy] = cap ? half(cap) : [WHO_R, WHO_R];
+      const p = keep(spotOf(`who:${who.id}`, zb, hx + 2), hx, zb, hy) ?? nearFree(who.at!.x * PX_PER_M * k, -who.at!.y * PX_PER_M * k, hx, zb, hx + 2, hy);
+      if (p) { tokens.push({ id: `who:${who.id}`, zoneId: x.z.id, ...p, r: WHO_R, ...disc(p.cx, p.cy, hx, hy), who, title: who.name, ...(cap ? { cap } : {}) }); take(disc(p.cx, p.cy, hx, hy), 'token'); }
       else row.push(who);
     }
     row.forEach((who, i) => {
@@ -318,10 +332,10 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean): Scene {
     if (x.z.people.some((p) => p.now)) used.add('who');
   }
   /** a free spot for a disc near (cx, cy), searching outward without a zone to stay in */
-  function outsideNear(cx: number, cy: number, r: number): { cx: number; cy: number } {
+  function outsideNear(cx: number, cy: number, r: number, ry = r): { cx: number; cy: number } {
     for (let ring = 0; ring < 20; ring++) for (let i = 0; i < Math.max(1, 8 * ring); i++) {
       const a = (i / Math.max(1, 8 * ring)) * Math.PI * 2, x = cx + Math.cos(a) * ring * (r + GAP), y = cy + Math.sin(a) * ring * (r + GAP);
-      if (free(disc(x, y, r))) return { cx: x, cy: y };
+      if (free(disc(x, y, r, ry))) return { cx: x, cy: y };
     }
     return { cx, cy };
   }

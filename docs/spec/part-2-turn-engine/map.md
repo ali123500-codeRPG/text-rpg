@@ -198,7 +198,7 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   browser lays out the text. Run `checkReach` on the stage data. Any finding fails the change (checkMap,
   src/ui/mapCheck.ts; checkReach, src/ui/mapPlan.ts).
 - **MAP-52** Test stages: (a) the Bent Nail (kitchen, common room, behind the counter) beside the high lane with the
-  midden yard and its locked plank gate; (b) a single room; (c) a 12-zone stage with long zone names. Render each, take
+  midden yard and its locked plank gate, and a cart horse in the lane, drawn as its capsule (GSM-193); (b) a single room; (c) a 12-zone stage with long zone names. Render each, take
   a screenshot, and look at it before reporting (bent-nail, one-room, long-names in src/ui/fakeStages.ts).
 - **MAP-53** Report every finding verbatim. Never say all checks passed if any check reported something.
 - **MAP-54** `bent-nail-saved` is not a MAP-52 stage. It is a negative fixture holding the live save's stored layout,
