@@ -89,7 +89,7 @@ describe('save and load', () => {
     s.player.core.inventory.push({ id: 'c2', itemId: IT.coin, qty: 0 });
     await saveTurn(st, s, rec(s, 1));
     const err = await loadStory(st, 'test', lib()).catch((e) => e);
-    expect(err.report).toEqual(expect.arrayContaining([expect.stringMatching(/exactly one current class/), expect.stringMatching(/qty < 1/)]));
+    expect(err.report).toEqual(expect.arrayContaining([expect.stringMatching(/more than one current class/), expect.stringMatching(/qty < 1/)]));
     expect(err.options).toContain('undo');
     const back = await useBookmark(st, 'test', 'undo', lib());
     expect(back.state.player.core.classes).toHaveLength(1);

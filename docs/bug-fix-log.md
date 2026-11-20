@@ -9,6 +9,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the spec's bug log, docs/spec/bug-log.md, has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-328
+
+**What was wrong:** The save check required exactly one current class whenever an actor knew any class. That rule dates from the first prototype, before classless starts (CC6 b): a Start with no class begins with Commoner open but no current class (SHEET-50, SHEET-95), so its save would have been reported broken. No Start is classless today (SHEET-97), so no player met it; it was found while settling the actor-sheet discrepancies.
+
+**What was done:** The check now allows at most one current class, as SHEET-50 says, and still reports an actor with two. A scenario test builds a classless player and runs the save checks on it, and checks that two current classes are still caught.
+
+**Fixed by:** #1175
+
 ## BG-326
 
 **What was wrong:** The game's own hover tips (item cards, Loot, the side rail) were meant to wait 150 ms but showed at once in the published game. The build shrinks the CSS and writes 150ms as .15s. The tip code read that number without its unit, so it took .15s as 0.15 ms.

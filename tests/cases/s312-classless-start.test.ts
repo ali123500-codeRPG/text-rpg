@@ -9,6 +9,8 @@ import { CL } from '../../src/library/classIds';
 import { ST } from '../../src/library/startIds';
 import { perkPointsUpTo } from '../../src/ruleset/levels';
 import { makeVillage } from '../harness';
+import { toPages } from '../../src/save/pages';
+import { checkInvariants, newReport } from '../../src/save/checks';
 
 const FIXTURE = 'ST_test_classless';
 const addStart = () => { getLibrary().starts[FIXTURE] = { id: FIXTURE, name: 'Test Classless', level: 3 }; };
@@ -58,5 +60,15 @@ describe('312 classless start', () => {
     spendXp(s);
     expect(p.core.classes.find((c) => c.classId === CL.commoner)).toMatchObject({ state: 'current' });
     expect(charLevel(p)).toBeGreaterThanOrEqual(2);
+  });
+
+  it('a classless player passes the save checks; two current classes do not (BG-328)', () => {
+    const s = makeVillage();
+    addStart();
+    s.player.core.classes = createPlayer(recommendedBuild(FIXTURE), 's1').core.classes;
+    const errs = () => { const r = newReport(); checkInvariants(toPages(s), s.storyId, getLibrary(), r); return r.errors.filter((e) => e.includes('current class')); };
+    expect(errs()).toEqual([]);
+    s.player.core.classes = [{ classId: CL.commoner, state: 'current', level: 1 }, { classId: CL.trader, state: 'current', level: 1 }];
+    expect(errs()).toHaveLength(1);
   });
 });
