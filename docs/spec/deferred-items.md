@@ -78,7 +78,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-70 | Setting-specific library content | 4 | Deferred | Tags so a story draws only fitting entries |
 | D-71 | Visibility of saved fields | 4 | Deferred | Separate thread, with "What code produces, agents see, player sees": tags plus builders, default for untagged fields, whether an NPC sees its own Damaged parts |
 | D-72 | Undo depth | 4 | Deferred | One turn for now |
-| D-73 | Reset: archive or delete | 4 | Settled | Settled by Ali (07/11/2026, easy open questions Q13): archive. A confirmed reset starts a new story id and keeps the old story's pages and backups under its own id, so a misclick can be recovered. Play shows only the newest story |
+| D-73 | Reset: archive or delete | 4 | Settled | Settled by Ali (07/11/2026, easy open questions Q13): archive. A confirmed reset starts a new story id and keeps the old story's pages and backups under its own id, so a misclick can be recovered. Play shows only the newest story. Since YS2 b (20/11/2026) it keeps only the newest backup and no turn records |
 | D-74 | Turn-record count N and proposal caps | 4 | Deferred | Placeholders; set after measuring the platform caps |
 | D-75 | Diminishing-returns values per modifier type | 1 | Deferred | Roll perks, wounds, situational, aim |
 | D-76 | Outnumbered and unaware values | 3 | Deferred | For the defense roll |

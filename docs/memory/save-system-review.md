@@ -36,4 +36,5 @@ roadmap, is linked from #1218.
   bookmark is never usable.
 - `MIGRATIONS` holds one step (v10 → v11, BG-312), although `docs/instructions.md` section 4 says to write no
   migrations. The spec line saying it was empty is corrected.
-- Archived stories keep every page, turn record and backup (D-73), and they count toward the 25,000-document cap.
+- Archived stories kept every page, turn record and backup (D-73), counting toward the 25,000-document cap. Since
+  YS2 b (#1254) archiving deletes the turn records and all but the newest backup; pages and meta stay.
