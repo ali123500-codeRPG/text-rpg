@@ -350,3 +350,4 @@ The game files a report at `bugs/new-<time>` (status new) for every bug code it 
 | BG-336 | A failed first save in a carried-on world left a story with no save that kept the world taken, so reopening said it was no longer free | Thread | Fixed | #1218 |
 | BG-337 | After a turn failed to save, its story text was saved anyway, so a reload showed a turn the save did not hold (and the Universe day moved on) | Thread | Fixed | #1218 |
 | BG-338 | A failed delete after /undo's head write said there was nothing to undo and kept the pre-undo state on screen | Thread | Open | #1225 |
+| BG-339 | Two door marks overlap on the default fake page's minimap (MAP-22/31 door:village.o and door:tavern.o_2); the Map keeps them apart | Thread | Open | #1219 |
