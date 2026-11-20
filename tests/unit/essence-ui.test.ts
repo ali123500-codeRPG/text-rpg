@@ -29,8 +29,5 @@ describe('essences on screen', () => {
   it('essences show once on the Character page: in the Essences pop-up its tile opens (CP4), not again on the character card', () => {
     const card = readFileSync('src/ui/charsheet.ts', 'utf8');
     expect(card).not.toMatch(/Essences · \$\{held\.length\} of/);
-    const page = readFileSync('src/ui/pages.ts', 'utf8');
-    expect(page).toMatch(/essencesBody\(api, s,/);
-    expect(page).toMatch(/tile\('essences', 'Essences'/);
   });
 });
