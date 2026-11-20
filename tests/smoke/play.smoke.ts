@@ -470,7 +470,7 @@ describe('play page smoke (TQ7)', () => {
     await page.locator('[data-open="map"]').click();
     const pop = page.locator('.fpop.map-full');
     await pop.locator('.map-card h2').waitFor();
-    expect(await pop.locator('[data-zone].here').count()).toBe(1);
+    expect(await pop.locator('[data-zone][aria-current="location"]').count()).toBe(1);
     expect(await pop.locator('[data-move]').count()).toBe(0);
     await page.waitForFunction(() => !document.getAnimations().some((a) => a.playState === 'running'));
     await page.keyboard.press('Escape');

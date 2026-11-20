@@ -163,7 +163,7 @@ export function planView(api: GameApi, opts: PlanOpts) {
     const fm = floorMarks(z, z.rect!.w ? w / z.rect!.w : PX_PER_M, 0, 0), tag = { 'data-role': 'zone', 'data-id': z.id, 'data-parent': z.placeId };
     const box = (cls2: string, extra = {}) => fm.floor ? s('polygon', { points: fm.floor, class: cls2, ...extra }) : s('rect', { x: b.x0 + 0.5, y: b.y0 + 0.5, width: Math.max(0, w - 1), height: Math.max(0, hh - 1), class: cls2, ...extra });
     // MAP-50: nothing tagged past the edge: a zone partly in view is tagged by the part in view, drawn whole
-    const cut = !same(c, b), g = s('g', { class: cls, 'data-zone': z.id, 'aria-label': `${z.name}, ${m2} m²${z.id === d?.heading ? ', you are heading here' : ''}` }, box('map-tile-box', cut ? {} : tag),
+    const cut = !same(c, b), g = s('g', { class: cls, 'data-zone': z.id, ...(z.here ? { 'aria-current': 'location' } : {}), 'aria-label': `${z.name}, ${m2} m²${z.id === d?.heading ? ', you are heading here' : ''}` }, box('map-tile-box', cut ? {} : tag),
       ...(cut ? [s('rect', { x: c.x0 + 0.5, y: c.y0 + 0.5, width: Math.max(0, c.x1 - c.x0 - 1), height: Math.max(0, c.y1 - c.y0 - 1), class: 'mm-tag', ...tag })] : []));
     g.append(...fm.walls, s('title', {}, `${cap(z.name)}: ${Math.round(z.rect!.w)} × ${Math.round(z.rect!.d)} m`));
     return g;
