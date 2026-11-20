@@ -106,6 +106,7 @@ The game clock, how long each action takes, waiting and busy actors, sleep timin
   - `src/engine/busy.ts`
   - `src/engine/comingNear.ts`
   - `src/engine/sleep.ts`
+  - `src/engine/worldClock.ts`
   - `src/ruleset/actionTime.ts`
   - `src/time.ts`
   - `src/ui/doing.ts`
@@ -420,6 +421,7 @@ The scenario director, stages and triggers, quests, scenario setup and validatio
   [opening-narration.md](spec/part-2-turn-engine/opening-narration.md)
 - History: [history-scenarios-and-quests.md](memory/history-scenarios-and-quests.md)
 - Code:
+  - `src/engine/pacing.ts`
   - `src/engine/quests.ts`
   - `src/engine/scenarioEnd.ts`
   - `src/engine/triggers.ts`
