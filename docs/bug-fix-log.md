@@ -9,6 +9,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the spec's bug log, docs/spec/bug-log.md, has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-331
+
+**What was wrong:** The Character page's Perks tile showed "1" for a new character, but the Perks board it opens showed no perk at all. The tile and the board each had their own rule. The tile counted every perk held and awake except the race's and the essences'. The board drew only three kinds: perks on a skill's ladder (Innate for the race's, Linked for links). A class perk, such as Swordsman's Blade Against Blade or Unwritten Legend's Any Road Will Do, which a classed Start gives at level 1, sits on no ladder, so it was counted and drawn nowhere. The same held for a Start's blessing, an achievement's perk, a Threadbound item's, an All-step's and Hollowed.
+
+**What was done:** One rule, heldPerks in src/ui/perks.ts, is now what the tile counts. The board adds a Granted list beside Innate, in the same look, for every held perk that the ladders and Linked do not show, each tagged with where it came from (Class, Start, Achievement, Threadbound, All-step, Inflicted) and with its Story / Effect write-up. A test checks that every perk the tile counts shows in exactly one place on the board (spec PS-256).
+
+**Fixed by:** #1208
+
 ## BG-330
 
 **What was wrong:** The browser smoke test "BF66: a landed blow shows the strike card…" failed now and then on `main` (twice on 20/11/2026): the Send click timed out, the button first "not stable", then "not visible". The test sets up a straw dummy to hit, made as a copy of the player with its weapon taken away. Standing, it still had the player's skills and fought back with its fists, and the test keeps attacking for up to eight turns until one blow lands. When the player's first blows missed, the dummy's took about 45% of the player's health a turn (measured: 0, 48 and 91% lost over three turns), and the player fell. The fall shakes the play screen (not stable) and then hides it behind "You fell" (not visible). The game was right; the test's dummy was not a straw dummy.

@@ -3,7 +3,7 @@
 // number and nothing hints at what comes next (K4). A small card beside the tapped milestone takes or undoes, with its
 // own Story / Effect toggle for the write-up, as the innate and linked lists have.
 import { termAttrs } from '../words';
-import type { Actor, GameApi, GameState, PerkDef } from '../types';
+import type { Actor, GameApi, GameState, OwnedPerk, PerkDef } from '../types';
 import { getLibrary } from '../library';
 import { allStepsUpTo, canUndo, milestonesUpTo, milestonePerk, milestoneState, trueSkill, type MilestoneState } from '../ruleset';
 import { boxOf, h, pointOf, viewSize } from './kit';
@@ -165,6 +165,24 @@ function innate(p: Actor) {
     list.map((d) => h('div', { class: `pk-in${d.quirk ? ' quirk' : ''}` }, h('b', {}, d.name), h('span', { class: 'pk-tag' }, d.quirk ? 'Quirk' : 'Perk'), ...writeup(d))));
 }
 
+/** the perks the Perks tile counts: everything held and awake, but what the race gives (Innate) and essences give (their own tile) */
+export const heldPerks = (p: Actor) => p.core.perks.filter((x) => !x.dormant && x.source !== 'race' && x.source !== 'essence');
+
+const GRANTED_FROM: Partial<Record<OwnedPerk['source'], string>> = { class: 'Class', start: 'Start', achievement: 'Achievement', item: 'Threadbound', mastery: 'All-step', inflicted: 'Inflicted', level: 'Taken' };
+/** BG-331: held perks the ladders and Linked don't show (a class perk, a Start's blessing…), so every perk the tile counts shows somewhere */
+export function grantedPerks(p: Actor): { def: PerkDef; from: string }[] {
+  const lib = getLibrary(), skills = new Set(treesOf(p).flatMap((t) => t.skills));
+  return heldPerks(p).filter((o) => o.source !== 'link' && !(lib.perks[o.perkId]?.ladder && skills.has(lib.perks[o.perkId].ladder!.skill)))
+    .flatMap((o) => (lib.perks[o.perkId] ? [{ def: lib.perks[o.perkId], from: GRANTED_FROM[o.source] ?? o.source }] : []));
+}
+
+function granted(p: Actor) {
+  const list = grantedPerks(p);
+  if (!list.length) return null;
+  return h('section', { class: 'pk-inn', 'aria-label': 'Granted perks' }, h('div', { class: 'pk-inn-h' }, h('h3', {}, 'Granted'), textToggle()),
+    list.map((v) => h('div', { class: `pk-in${v.def.quirk ? ' quirk' : ''}` }, h('b', {}, v.def.name), h('span', { class: 'pk-tag' }, v.from), ...writeup(v.def))));
+}
+
 let redraw = () => {};
 
 export function perksSection(api: GameApi): HTMLElement {
@@ -179,6 +197,7 @@ export function perksSection(api: GameApi): HTMLElement {
       h('div', { class: 'pk-h' }, h('h2', {}, 'Perks'),
         h('span', { class: 'pk-pts' + (pts ? '' : ' none') }, `✦ ${pts} point${pts === 1 ? '' : 's'}`)),
       innate(p),
+      granted(p),
       linked(p),
       // every tree in its own box, side by side; a box is as wide as its skills need
       trees.length ? h('div', { class: 'pk-trees' }, trees.map((t) => h('section', { class: 'pk-board', 'aria-label': t.name, style: `--n:${t.skills.length}` },
