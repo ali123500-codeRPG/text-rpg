@@ -6,7 +6,7 @@ with a `SKILL.md` that an agent reads when its description fits the task. Which 
 
 ## The owner's skills (master copy in this repo)
 
-Each is in `.agents/skills/<name>/SKILL.md`, in full. Change one only through a PR here, with the owner's OK
+Each is in `.agents/skills/<name>/SKILL.md`, in full. Change one only through a PR here, on the owner's word
 (`AGENTS.md` rule 6). Copies elsewhere, such as in the owner's Claude account, follow the repo.
 
 - **root-cause-first**: for any bug, error, failing test or "it is not working" report, before proposing a fix. Find

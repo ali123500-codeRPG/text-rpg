@@ -38,10 +38,9 @@ edge cases. Where a section repeats a rule from `AGENTS.md`, it is there to add 
   - Then find every action, actor kind (player and NPC) and code path that shares the cause, and fix them with one
     shared rule or table. Say in the PR which siblings you checked. Reason: fixing only the symptom a playtest showed
     left its siblings for the next run.
-  - Show the owner the cause and the planned fix and get their OK before pushing a branch or merging. Investigating and
-    writing code and tests locally is fine. Ask for the OK through your question channel (section 5), laid out as a
-    fix plan (section 6).
-  - Order after the OK: push, open the PR, then write the PR's number into the Bug log row and the bug-fix-log
+  - A bug fix needs no OK from the owner. Write the cause and the fix in the PR, laid out as a fix plan (section 6),
+    and merge it when every check is green. The owner reads it there.
+  - Order: push, open the PR, then write the PR's number into the Bug log row and the bug-fix-log
     entry in a second commit. A test fails on "this PR" and on a fixed row without a PR number
     (`tests/unit/bug-log.test.ts`).
   - When a fix needs a design choice, still call it a bug: file the BG-n and ask the fix question with a
@@ -118,8 +117,8 @@ The source of truth for every design decision.
   options, a recommendation, an answer box each), and agree with them how you will ask. Do this once, before your
   first question, in a plain message with your options and a recommendation; it is the one question that has no
   channel yet. The agreement also settles how you show colour where your surface has none.
-  - Write what was agreed into your provider's file, `docs/providers/<provider>.md`, in a PR. It is a rule file, so
-    it merges with the owner's OK. From then on that file names your channel, for one question or for many.
+  - Write what was agreed into your provider's file, `docs/providers/<provider>.md`, in a PR. It is a rule file: quote
+    the agreement in the PR. From then on that file names your channel, for one question or for many.
   - Quote each question, its options and the owner's answer in the PR that acts on it. The spec cites question IDs
     as the source of a decision, so the PR is where a reader finds them.
 - **A direction without an amount** ("a bit longer", "harsher early on") is a question, not a number to pick. Offer
@@ -199,9 +198,9 @@ The source of truth for every design decision.
 - Every change is a PR into `main` that follows `.github/pull_request_template.md`. The full CI runs on it: type
   check, unit and scenario tests, build, browser smoke, and the PR rule. The template's terms (completeness rows,
   guard test, whole-turn test) are in `docs/glossary.md`.
-- The agent that opened a PR reviews it and squash-merges it once every check is green. Exceptions: a bug fix waits
-  for the owner's OK on cause and plan, and a rule-file change (`AGENTS.md` rule 6) waits for the owner's OK. The
-  owner does not merge PRs. The same rule holds for agents of every provider (decided 19/11/2026).
+- The agent that opened a PR reviews it and squash-merges it once every check is green, without asking the
+  owner. That includes bug fixes and rule-file changes; a rule-file PR quotes the owner's words it acts on
+  (`AGENTS.md` rule 6). The owner does not merge PRs. The same rule holds for agents of every provider.
 - After resolving a merge conflict, search the repo for conflict markers before committing, and stage only the files
   you resolved.
 - Long runs (anything over about ten minutes, such as a long build or a large soak) go on GitHub: push the branch and

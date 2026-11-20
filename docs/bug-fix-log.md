@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-323
+
+**What was wrong:** Since the test files began to share one module load per worker, the suite failed or passed depending on file order. One test file empties the library's perk table for its own stand-in perks and never restores it. The shared setup put CONFIG back after each file but not the library, so the next file in the same worker could read an empty perk table.
+
+**What was done:** The shared setup now resets the library after every test file, beside the CONFIG reset. Every file starts from the built library, whatever the file before it did. No game code changed.
+
+**Fixed by:** [PR #1121](https://github.com/ali123500-codeRPG/text-rpg/pull/1121)
+
 ## BG-313
 
 **What was wrong:** The Map and the minimap disagreed about the same back yard. The Map had never been moved to the floor plan: it still drew titles as tiles joined by their links, laid out an exit diagram with a force layout that guessed from compass words, put doors in the middle of a shared box edge, and pointed exits by their compass word. None of it read the fog, so it showed ground the character had never seen and moved things away from where they really are.
