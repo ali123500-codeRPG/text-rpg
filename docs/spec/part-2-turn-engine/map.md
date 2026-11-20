@@ -87,7 +87,10 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
 - **MAP-33** The map marks no zone states: a zone is only a name on ground (MAP-10). The fog (MAP-16) draws seen ground
   in two tones, square by square: ground in sight now is drawn full, ground the character only remembers is faded. No
   hatch, and no outline on the zone you stand in: your pin says where you are. Exits not taken keep their dotted arrow,
-  and locked is shown on the door (RM11 a; Ali, 20/11/2026, Questions hub page "Map rules revision").
+  and locked is shown on the door. In sight now is what the latest look saw (journal.sightSquares); a title with no
+  squares of its own (over the land, or too big to mark) is in sight whole while it is in view. The zone you stand in
+  has no outline even while its card is open (fogMask, src/ui/map.ts; RM11 a; Ali, 20/11/2026, Questions hub page "Map
+  rules revision").
 - **MAP-34** Every state is readable without colour: outline style plus an icon or text, never colour alone.
 - **MAP-35** Merged into MAP-30 (RM7 a).
 - **MAP-36** A barrier the character knows stops them sits as a badge on its exit: a padlock for locked (green when they
@@ -109,7 +112,8 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   exits; people out of sight show where last seen.
 - **MAP-46** The fog (journal.seenSquares) is kept in 1 m squares under a roof, FOG_OPEN_SQUARE_M squares in the open
   and the land's own cells over the land. Squares are marked from the player's eye when a plan is applied and on every
-  turn (seenRuns, src/plan/fog.ts; fogClip, src/ui/map.ts; PZ12 a; BG-313).
+  turn; each marking also replaces the squares in sight now (journal.sightSquares, MAP-33) (seenRuns, src/plan/fog.ts;
+  fogClip, src/ui/map.ts; PZ12 a; BG-313).
 
 #### The Map screen
 
@@ -243,5 +247,3 @@ the code decides what the game does (`AGENTS.md`, Order of authority).
   map, and the deck has no action on furniture, so neither opens a list yet.
 - **MAP-44 and MAP-45:** someone heard going into a zone the character has never seen is last seen there (MAP-45), but
   the map shows only zones seen or stood in (MAP-44), so they are not drawn anywhere.
-- **MAP-33 until built (D-423):** the code still draws zone states (a hatch for seen, not been in; an outline where you
-  stand) and judges "in sight now" per zone.

@@ -6,7 +6,7 @@ import { furnitureIn, furniturePos } from '../engine/furniture';
 import type { GameState } from '../types';
 import { buildPlayerView } from '../views';
 import { seesAcross, zoneById } from '../engine/relations';
-import { knownZoneIds, visitedZoneIds } from '../engine/trail';
+import { knownZoneIds } from '../engine/trail';
 import { journalPlaces } from './pages';
 import { heightOf } from '../scenario/heights';
 import { WK } from '../library/tableIds';
@@ -54,13 +54,15 @@ export type MapZone = {
   /** PZ12 a, BG-313: the parts of the title the character has seen (the fog), in metres: the map draws its floor, walls,
    *  doors and furniture only there */
   seen?: SeenRun[];
+  /** MAP-33: the parts of `seen` in sight at the latest look, drawn full; the rest of `seen` is drawn faded */
+  sight?: SeenRun[];
 };
 type Compass = 'west' | 'east' | 'south' | 'north';
 type Pt = { x: number; y: number };
 export type MapPlace = { id: string; name: string; kind: string; parentId: string | null; depth: number; zones: MapZone[]; facts: string[] };
 /** WZ4 a region's land as the character knows it: the cells made out, and the sites known by word only (drawn faint) */
 export type MapLand = { region: import('../types').Region; seen: (i: number) => boolean; faint: Set<string>; /** changes when the cells seen do */ key: string };
-export type KnownMap = { placeId: string; zoneId: string; places: MapPlace[]; /** zones the player has stood in (MAP-33) */ visited: string[]; land?: MapLand[] };
+export type KnownMap = { placeId: string; zoneId: string; places: MapPlace[]; land?: MapLand[] };
 
 /** FR5: a zone's furniture with its points, for the map's icons */
 function furnitureOn(s: GameState, zoneId: string): Pick<MapZone, 'furniture'> {
@@ -176,7 +178,7 @@ export function knownMap(s: GameState): KnownMap {
     const you = id === p.zone && p.pos && placed ? { x: p.pos.x, y: p.pos.y } : undefined;
     const line = z.line; // WZ1, PZ14: a road runs along its line
     const mz: MapZone = { id, placeId: z.placeId, name: z.name, look: z.look, outdoor: !roofed(s, z), here: id === p.zone, inView: !!v, height: heightOf(z),
-      ...(box ? { rect: box, outline: z.outline.map((q) => ({ x: q.x, y: q.y })), walls: wallsOn(s, z), ...furnitureOn(s, id), seen: seenRuns(s, z) } : {}), links,
+      ...(box ? { rect: box, outline: z.outline.map((q) => ({ x: q.x, y: q.y })), walls: wallsOn(s, z), ...furnitureOn(s, id), seen: seenRuns(s, z), sight: seenRuns(s, z, { inView: !!v }) } : {}), links,
       ...(you ? { you } : {}), ...(line ? { line } : {}),
       ...(you && line ? { along: alongLine(line, you) } : {}),
       people: people.get(id) ?? [], items: v ? v.groundItems.map((i) => i.name) : [], ...(v ? { light: v.light, cover: v.cover } : {}) };
@@ -200,7 +202,7 @@ export function knownMap(s: GameState): KnownMap {
   // WZ4: each region's land the character has made out; a site is known by word once its place is (the Journal's)
   const land: MapLand[] = (s.regions ?? []).map((r) => ({ region: r, seen: landSeen(s, r.id), faint: new Set(r.sites.filter((x) => x.placeId && ids.has(x.placeId)).map((x) => x.id)),
     key: `${r.id}:${s.player.journal?.landSeen?.[r.id] ?? ''}` }));
-  return { placeId: p.placeId, zoneId: p.zone, places: order, visited: visitedZoneIds(s), land };
+  return { placeId: p.placeId, zoneId: p.zone, places: order, land };
 }
 
 /** the top-level place a place sits in (itself when it has no known parent). A road is only a line on the World map, so a

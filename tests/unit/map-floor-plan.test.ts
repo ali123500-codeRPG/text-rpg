@@ -51,4 +51,17 @@ describe('the Map draws the floor plan (BG-313)', () => {
     expect(sc.labels.some((l) => l.zoneId === 'midden_yard')).toBe(true);
   });
 
+  it('MAP-33: seen ground is in sight now or faded square by square, and what the latest look sees alone is in sight', () => {
+    const { s, zones } = fromTheYard();
+    const area = (rs: { x0: number; x1: number; y0: number; y1: number }[] = []) => rs.reduce((a, r) => a + (r.x1 - r.x0) * (r.y1 - r.y0), 0);
+    const yard = zone(zones, 'midden_yard');
+    expect(area(yard.sight)).toBeGreaterThan(0); // where you stand is in sight
+    expect(area(yard.sight)).toBeLessThanOrEqual(area(yard.seen));
+    s.player.zone = 'tavern.yard'; s.player.pos = { ...boxOf(s.zones.find((z) => z.id === 'tavern.yard')!.outline) };
+    noteZonesSeen(s);
+    const after = knownMap(s).places.flatMap((p) => p.zones), lane = zone(after, 'high_lane');
+    expect(area(lane.seen)).toBeGreaterThan(0); // still remembered
+    expect(area(lane.sight)).toBeLessThan(area(lane.seen)); // but not all of it in sight from behind the plank gate
+  });
+
 });

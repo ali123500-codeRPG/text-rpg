@@ -11,7 +11,7 @@ import { CONFIG } from '../config';
 import type { KnownMap, MapZone } from './mapData';
 import { MAX_K, PX_PER_M, TEXT, checkReach, checkStage, planScene, roughMeasure, wrap, type Box, type Measure, type Scene } from './mapPlan';
 import { checkMap } from './mapCheck';
-import { doorGlyph, fogClip, keyTool, planKeyRows, floorMarks, floorName, pin, wayGlyph, whoInitial } from './map';
+import { doorGlyph, fogClip, fogMask, keyTool, planKeyRows, floorMarks, floorName, pin, wayGlyph, whoInitial } from './map';
 import { furnIcon } from './furnitureIcons';
 import { metresText, planTo, splitAt, zoneAt, type MinimapPlan, type MinimapPoint } from './minimap';
 import { areaOf } from '../plan/geom';
@@ -84,10 +84,10 @@ export function planView(api: GameApi, opts: PlanOpts) {
   // SD4: how to use it is the map's tip and name, not a line under it
   const svg = s('svg', { class: `mm-svg${full ? ' map-svg' : ''}`, tabindex: 0, role: 'group', 'aria-label': `${full ? 'Map' : 'Minimap'}. ${HINT}` }) as SVGSVGElement;
   const fogId = `pv-fog-${++fogIds}`;
-  const world = s('g'), gFog = s('defs'), gAreas = s('g'), gZones = s('g', { class: 'map-zones', 'clip-path': `url(#${fogId})` }), gNames = s('g', { class: 'map-names', 'aria-hidden': 'true' });
+  const world = s('g'), gFog = s('defs'), gAreas = s('g'), gZones = s('g', { class: 'map-zones', 'clip-path': `url(#${fogId})`, mask: `url(#${fogId}-now)` }), gNames = s('g', { class: 'map-names', 'aria-hidden': 'true' });
   const gRing = s('g'), gMarks = s('g', { class: 'map-marks' }), gPath = s('g'), gTokens = s('g');
   world.append(gFog, gAreas, gZones, gNames, gRing, gMarks, gPath, gTokens);
-  svg.append(s('defs', {}, s('pattern', { id: `${fogId}-hatch`, width: 7, height: 7, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' }, s('line', { x1: 0, y1: 0, x2: 0, y2: 7, class: 'map-hatch-line' })),
+  svg.append(s('defs', {},
     s('marker', { id: `${fogId}-arrow`, viewBox: '0 0 10 10', refX: 8, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }, s('path', { d: 'M0 0 10 5 0 10z', class: 'map-arrowhead' }))),
   s('title', {}, HINT), world);
   const floorEl = h('span', { class: 'mm-floor' });
@@ -151,22 +151,20 @@ export function planView(api: GameApi, opts: PlanOpts) {
     }
     return null;
   }
-  const sceneAt = (kk: number) => planScene({ zones: d!.floor, every: d!.every, places: d!.places, k: kk, measure, visits: new Set(d!.km.visited), awayName: d!.awayName });
+  const sceneAt = (kk: number) => planScene({ zones: d!.floor, every: d!.every, places: d!.places, k: kk, measure, awayName: d!.awayName });
 
-  /** a zone to scale: its floor at its real size, each side drawn as its edge kind; a zone only seen, never stood in, is
-   *  hatched (MAP-33, MAP-34: the state reads without colour) */
-  function planZone(z: MapZone, b: Box, state: string, c: Box) {
-    const cls = ['map-tile', 'plan', z.outdoor ? 'outdoor' : 'indoor', z.inView ? 'in-view' : 'remembered', state, z.here ? 'here' : '', z.id === d?.heading ? 'heading' : '', z.id === d?.selected ? 'selected' : '', z.light === 'dark' ? 'dark' : ''].filter(Boolean).join(' ');
+  /** a zone to scale: its floor at its real size, each side drawn as its edge kind; no zone state (MAP-33): the fog's
+   *  two tones say what is in sight now, and the zone you stand in has no outline, even when its card is open */
+  function planZone(z: MapZone, b: Box, c: Box) {
+    const cls = ['map-tile', 'plan', z.outdoor ? 'outdoor' : 'indoor', z.id === d?.heading ? 'heading' : '', z.id === d?.selected && !z.here ? 'selected' : '', z.light === 'dark' ? 'dark' : ''].filter(Boolean).join(' ');
     const m2 = Math.round(z.outline?.length ? areaOf(z.outline) : z.rect!.w * z.rect!.d);
-    const said = state === 'current' ? 'you are here' : state === 'explored' ? 'you have been here' : 'seen, not been in';
     const w = b.x1 - b.x0, hh = b.y1 - b.y0;
     // the drawn floor sits a hair inside its walls, so zones that share a wall never measure as overlapping (MAP-11)
     const fm = floorMarks(z, z.rect!.w ? w / z.rect!.w : PX_PER_M, 0, 0), tag = { 'data-role': 'zone', 'data-id': z.id, 'data-parent': z.placeId };
     const box = (cls2: string, extra = {}) => fm.floor ? s('polygon', { points: fm.floor, class: cls2, ...extra }) : s('rect', { x: b.x0 + 0.5, y: b.y0 + 0.5, width: Math.max(0, w - 1), height: Math.max(0, hh - 1), class: cls2, ...extra });
     // MAP-50: nothing tagged past the edge: a zone partly in view is tagged by the part in view, drawn whole
-    const cut = !same(c, b), g = s('g', { class: cls, 'data-zone': z.id, 'aria-label': `${z.name}, ${m2} m², ${said}${z.id === d?.heading ? ', you are heading here' : ''}` }, box('map-tile-box', cut ? {} : tag),
+    const cut = !same(c, b), g = s('g', { class: cls, 'data-zone': z.id, ...(z.here ? { 'aria-current': 'location' } : {}), 'aria-label': `${z.name}, ${m2} m²${z.id === d?.heading ? ', you are heading here' : ''}` }, box('map-tile-box', cut ? {} : tag),
       ...(cut ? [s('rect', { x: c.x0 + 0.5, y: c.y0 + 0.5, width: Math.max(0, c.x1 - c.x0 - 1), height: Math.max(0, c.y1 - c.y0 - 1), class: 'mm-tag', ...tag })] : []));
-    if (state === 'seen') g.append(box('map-tile-hatch', { fill: `url(#${fogId}-hatch)` }));
     g.append(...fm.walls, s('title', {}, `${cap(z.name)}: ${Math.round(z.rect!.w)} × ${Math.round(z.rect!.d)} m`));
     return g;
   }
@@ -188,7 +186,7 @@ export function planView(api: GameApi, opts: PlanOpts) {
     world.setAttribute('transform', `translate(${off.x} ${off.y})`);
     const vb: Box = { x0: -off.x, y0: -off.y, x1: w - off.x, y1: hh - off.y }, inView: Box = { x0: vb.x0 + 1, y0: vb.y0 + 1, x1: vb.x1 - 1, y1: vb.y1 - 1 };
     const sc = (scene = sceneAt(k));
-    gFog.append(fogClip(fogId, sc.zones.map((x) => x.z), K())); // BG-313: only ground the character has seen
+    gFog.append(fogClip(fogId, sc.zones.map((x) => x.z), K()), fogMask(`${fogId}-now`, sc.zones.map((x) => x.z), K())); // BG-313: only ground the character has seen; MAP-33: in sight now full, the rest faded
     for (const p of sc.places) {
       const c = clip(p.box, vb);
       if (!c) continue;
@@ -202,7 +200,7 @@ export function planView(api: GameApi, opts: PlanOpts) {
     for (const x of sc.zones) {
       const c = clip(x.box, vb), z = x.z;
       if (!c) continue;
-      gZones.append(planZone(z, x.box, x.state, c));
+      gZones.append(planZone(z, x.box, c));
       // MZ2: each zone's name behind every mark, sized to the part of its box in view
       const l = labels.get(z.id);
       const n = z.seen && !z.seen.length ? null : l && same(c, x.box) ? l : nameIn(z.name, c); // BG-313: no name on a title never seen
@@ -211,7 +209,7 @@ export function planView(api: GameApi, opts: PlanOpts) {
       const first = cy - ((n.lines.length - 1) * n.line) / 2 + n.size * 0.36;
       const nw = Math.max(...n.lines.map((t) => measure(t, 'label', n.size))) + NAME_EDGE, nh = (n.lines.length - 1) * n.line + n.size * 1.3 + NAME_EDGE;
       names.push({ x0: cx - nw / 2, y0: cy - nh / 2, x1: cx + nw / 2, y1: cy + nh / 2 });
-      gNames.append(s('text', { class: `map-name${z.here ? ' here' : ''}`, x: cx, y: first, 'text-anchor': 'middle', 'font-size': n.size,
+      gNames.append(s('text', { class: 'map-name', x: cx, y: first, 'text-anchor': 'middle', 'font-size': n.size,
         'data-role': 'label', 'data-layer': 'back', 'data-id': `label:${z.id}`, 'data-for': z.id, 'data-placement': 'inside' },
       ...n.lines.map((line, i) => s('tspan', { x: cx, y: first + i * n.line }, line))));
     }

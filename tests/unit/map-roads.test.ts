@@ -13,7 +13,7 @@ describe('roads on the map', () => {
   it('a place along a road is its own World place; the road tile is the road alone, joined to its ends and the places along it', () => {
     const z = (id: string, placeId: string, links: string[], rect: MapZone['rect']): MapZone =>
       ({ id, placeId, name: id, look: '', outdoor: true, here: false, inView: false, height: 0, links: links.map((to) => ({ to, label: to, sight: true, frontier: false, known: true })), people: [], items: [], rect });
-    const m: KnownMap = { placeId: 'road', zoneId: 'r1', visited: [], places: [
+    const m: KnownMap = { placeId: 'road', zoneId: 'r1', places: [
       { id: 'town', name: 'Town', kind: 'village', parentId: null, depth: 0, facts: [], zones: [z('sq', 'town', ['r1'], { x: 0, y: 0, w: 20, d: 20 })] },
       { id: 'road', name: 'the road', kind: 'road', parentId: null, depth: 0, facts: [], zones: [z('r1', 'road', ['sq', 'yard'], { x: 1010, y: 0, w: 2000, d: 4 })] },
       { id: 'halt', name: 'the halt', kind: 'waystation', parentId: 'road', depth: 1, facts: [], zones: [z('yard', 'halt', ['r1', 'hut1'], { x: 2020, y: 0, w: 20, d: 20 })] },
@@ -32,7 +32,7 @@ describe('roads on the map', () => {
   it('a road joins as many places and other roads as you know: each is an end on its tile, and the map fills in as you go', () => {
     const z = (id: string, placeId: string, links: string[]): MapZone =>
       ({ id, placeId, name: id, look: '', outdoor: true, here: false, inView: false, height: 0, links: links.map((to) => ({ to, label: to, sight: true, frontier: false, known: true })), people: [], items: [] });
-    const m: KnownMap = { placeId: 'east', zoneId: 'e1', visited: [], places: [
+    const m: KnownMap = { placeId: 'east', zoneId: 'e1', places: [
       { id: 'town', name: 'Town', kind: 'village', parentId: null, depth: 0, facts: [], zones: [z('sq', 'town', ['e1'])] },
       { id: 'east', name: 'the east road', kind: 'road', parentId: null, depth: 0, facts: [], zones: [z('e1', 'east', ['sq', 'mkt', 'n1', 'farm'])] },
       { id: 'north', name: 'the north road', kind: 'road', parentId: null, depth: 0, facts: [], zones: [z('n1', 'north', ['e1'])] },

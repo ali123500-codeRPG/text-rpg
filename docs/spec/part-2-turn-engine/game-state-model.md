@@ -186,9 +186,11 @@ type Band = {                   // a small group: a guard post, a gang, a househ
 - **GSM-102** Fog: the player's journal keeps the ground it has seen, in squares per floor (1 m under a roof,
   FOG_OPEN_SQUARE_M in the open where no land lies under it; chunks of FOG_CHUNK squares a side, one bit a square,
   journal.seenSquares), and over the land by its cells (journal.landSeen, WZ4); the Map draws the walls, openings,
-  furniture and land it has seen, with titles as labels on their outlines (PZ12 a, `src/plan/fog.ts`).
+  furniture and land it has seen, with titles as labels on their outlines (PZ12 a, `src/plan/fog.ts`). The squares in
+  sight at the latest look are kept the same way (journal.sightSquares), replaced at each look (MAP-33). A save without
+  them loads, its seen ground faded until the next look.
 - **GSM-103** journal.zonesSeen keeps every title the player has stood in or looked into (its name is known) and
-  journal.zonesVisited the titles stood in (MAP-33).
+  journal.zonesVisited the titles stood in (the turn's new places).
 - **GSM-104** The titles the player has entered (progression.zonesSeen) count for the titles chain (PZ13 a, ACH
   zones_1 to zones_300) and the land cells it has stood in (progression.cellsStood, '<x>:<y>' on the world's
   REGION_CELL_M grid) for the new-ground chain (New ground, below).

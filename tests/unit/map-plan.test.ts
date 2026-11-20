@@ -112,11 +112,6 @@ describe('MR1: the zones the player has stood in', () => {
     expect(st.player.journal!.zonesVisited).toContain('tavern.yard');
     expect(st.player.journal!.zonesSeen).not.toEqual(st.player.journal!.zonesVisited);
   });
-  it('the map draws a zone only seen apart from one stood in, from the saved list', () => {
-    const st = stageState('long-names'), m = knownMap(st);
-    expect(m.visited).toContain('g.drive');
-    expect(m.visited).not.toContain('g.orchard');
-  });
 });
 
 describe('labels, doors and exits', () => {
@@ -160,14 +155,6 @@ describe('labels, doors and exits', () => {
     expect(l.size).toBeLessThan(11);
     expect(l.lines.join(' ')).toBe(z.name);
     expect(at(0.3)).toEqual([]);
-  });
-  it('MAP-33: with a record of visits, a zone only seen is drawn apart from one stood in; without it, none is', () => {
-    const { m, zones } = sceneOf(stageState('long-names'), 1);
-    const base = { every: zones, places: [], k: 1, measure: roughMeasure, awayName: () => undefined };
-    expect(new Set(planScene({ ...base, zones }).zones.map((x) => x.state))).toEqual(new Set(['current', 'explored']));
-    const st = planScene({ ...base, zones, visits: new Set([m.zoneId, 'g.drive']) }).zones;
-    expect(st.find((x) => x.z.id === 'g.orchard')!.state).toBe('seen');
-    expect(st.find((x) => x.z.id === 'g.drive')!.state).toBe('explored');
   });
 });
 
