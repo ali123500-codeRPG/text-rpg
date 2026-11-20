@@ -71,6 +71,20 @@ describe('221 search', () => {
     expect(ev.effects.map((f) => f.kind)).toEqual(['found_nothing']); // BG-142: reads the same as an empty spot
   });
 
+  it('LX8 a: inside its area a Search takes SEARCH_AREA_SHIFT, so it beats waiting; a Pat down takes none', () => {
+    const s = makeVillage({ playerZone: 'street_square' });
+    thief(s, 'street_square');
+    beside(s, 'thief_1', 'player', 2);
+    let calls = rig(-1);
+    play(s, search());
+    expect(calls.flatMap((b) => b.tierShifts)).toContainEqual({ source: 'searching', value: CONFIG.SEARCH_AREA_SHIFT });
+    vi.restoreAllMocks();
+    calls = rig(-1);
+    play(s, search('thief_1'));
+    expect(calls.length).toBeGreaterThan(0);
+    expect(calls.flatMap((b) => b.tierShifts).some((x) => x.source === 'searching')).toBe(false);
+  });
+
   it('SE6: nothing hidden in reach, nothing rolled', () => {
     const s = makeVillage({ playerZone: 'street_square' });
     rig(1);
@@ -159,7 +173,7 @@ describe('221 search', () => {
     (CONFIG as { SEARCH_AREA_M2: number }).SEARCH_AREA_M2 = 0.01;
     try { return f(); } finally { (CONFIG as { SEARCH_AREA_M2: number }).SEARCH_AREA_M2 = area; }
   }
-  const lookShift = (calls: RollRequest[]) => calls.flatMap((b) => b.tierShifts).find((x) => x.source === 'look around')?.value;
+  const lookShift = (calls: RollRequest[]) => calls.flatMap((b) => b.tierShifts).find((x) => x.source === 'look around')?.value ?? 0; // a ±0 ring adds no shift
 
   it('LX5 b: past the search area a Search takes ring one\'s shift, past SEARCH_RING1_RADII radii ring two\'s', () => tinyArea(() => {
     const s = makeVillage({ playerZone: 'street_square' });

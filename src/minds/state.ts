@@ -359,8 +359,10 @@ export function searchFor(state: GameState, a: Actor, event: GameEvent, rng: Rng
     if (h.id === a.id || h.posture !== 'stealthy' || h.bandId === a.bandId || !isActive(h) || (opts.only && h.id !== opts.only)) continue;
     if (atLeast(beliefStatus(state, a, h), 'aware') || !reaches(h)) continue;
     const w = watcherRoll(state, a, sense, zoneById(state, h.zone), h);
-    const shift = opts.outside ? ringShift(state, a, h, area) : CONFIG.LOOK_SEARCH_SHIFT;
-    const r = ruleset.contested(hiderRoll(state, h, stealthSkill(h), sense, true, a), opts.look ? { ...w, tierShifts: [...w.tierShifts, { source: 'look around', value: shift }] } : w, state, rng);
+    // LX8 a: a Search around you beats waiting: SEARCH_AREA_SHIFT inside its area, the rings past it (a Pat down: none)
+    const shift = opts.look ? { source: 'look around', value: opts.outside ? ringShift(state, a, h, area) : CONFIG.LOOK_SEARCH_SHIFT }
+      : opts.only ? undefined : { source: 'searching', value: CONFIG.SEARCH_AREA_SHIFT };
+    const r = ruleset.contested(hiderRoll(state, h, stealthSkill(h), sense, true, a), shift?.value ? { ...w, tierShifts: [...w.tierShifts, shift] } : w, state, rng);
     if (!done.ids.includes(pairKey(h, a))) done.ids.push(pairKey(h, a));
     contestFeat(state, r, a.kind === 'player' ? [sense] : undefined); // N4c
     if (a.kind === 'player' && r.gap > 0) { tally(state, 'spotted'); tally(state, 'spotted', { by: 'function', of: sense }); } // N3
