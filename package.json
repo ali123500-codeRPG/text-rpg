@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "test": "vitest run --config vitest.shared.config.ts && vitest run --config vitest.mocked.config.ts",
+    "test:near": "node scripts/test-near.ts",
     "typecheck": "tsc --noEmit",
     "build": "node scripts/build.mjs",
+    "spec": "node scripts/spec.ts",
     "skills-zip": "python3 tools/pack-skills.py",
     "perks-doc": "esbuild scripts/perks-doc.ts --bundle --platform=node --format=esm --outfile=dist/perks-doc.mjs --log-level=warning && node dist/perks-doc.mjs",
     "playtest": "esbuild scripts/playtest.ts --bundle --platform=node --format=esm --outfile=dist/playtest.mjs --log-level=warning && node dist/playtest.mjs",
