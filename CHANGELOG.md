@@ -3,6 +3,9 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, `docs/build-spec.md` and `docs/bug-fix-log.md`.
 
+- 19/11/2026: New rule "Claim the work first" (`docs/instructions.md` section 4): one GitHub issue per piece of
+  work, labelled with the desk that took it, so agents on different accounts and providers do not do the same work
+  twice. `docs/providers/claude.md` names the desk labels.
 - 19/11/2026: `docs/providers/claude.md`: new section "Republish button". The game's rail button starts a saved
   task that republishes the game page and the library viewer from `main`; the viewer's "refresh is manual" line and
   the scheduled tasks list changed to match, and the game page's capability declaration is written down.
