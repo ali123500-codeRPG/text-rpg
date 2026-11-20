@@ -2,7 +2,7 @@
 // screen lists it, and a new character picked into it carries on its last save. The fallen character stays there, dead,
 // under their own id, so people remember them and not the newcomer. The world's date jumps to the Universe date.
 import { describe, expect, it } from 'vitest';
-import { ScriptedClaude, makeVillage } from '../harness';
+import { ScriptedClaude, furnish, lay, makeVillage } from '../harness';
 import { createGame, VirtualClock, type ScenarioDirector } from '../../src/agents';
 import { carryOn, loadStory, memoryStore, pastCharacterId, reachDay, readTurnRecord, saveTurn, storySaved } from '../../src/save';
 import { createPlayer, recommendedBuild } from '../../src/library/spawn';
@@ -17,6 +17,9 @@ import type { GameState, TurnRecord } from '../../src/types';
 import { IT } from '../../src/library/itemIds';
 import { threadboundStartBlocked } from '../../src/ruleset/threadboundItems';
 import { bindCarriedCharms } from '../../src/engine/gear';
+import { FU } from '../../src/library/tableIds';
+import { buildPlayerView } from '../../src/views';
+import { turnShown } from '../../src/ui/kit';
 
 const rec = (s: GameState): TurnRecord => ({ storyId: s.storyId, turn: s.turn, libraryVersion: s.libraryVersion, rngBefore: 0, playerInput: '', agentLog: [], events: [], factsAdded: [] });
 const tick = () => new Promise((r) => setTimeout(r, 0));
@@ -154,5 +157,36 @@ describe('272 carrying a world on', () => {
     const s = carryOn(world, { ...world, storyId: 'story_b', player: createPlayer(build, 'story_b', { world }), actors: [], bands: [], hidden: { ...world.hidden, plans: {} } });
     expect(s.actors.find((a) => a.id === pastCharacterId('story_a'))!.core.inventory.map((i) => i.id)).toEqual(kit);
   });
-});
 
+  it('BG-332: the world carried on is the world as it was saved; BG-333: both pages show the turn just played', async () => {
+    const clock = new VirtualClock(), store = memoryStore();
+    const g = createGame({ client: new ScriptedClaude(clock), clock, store, director: arrive });
+    const old = fallenWorld();
+    old.clocks.time = 9 * 24 * 60 + 22 * 60; // night: only the tavern's lamps light it
+    furnish(old, 'tav_common', [{ kind: FU.hearth, name: 'smoky hearth', at: 'e' }]);
+    lay(old, 'tav_common', { id: 'coin_x', itemId: IT.coin, qty: 3 });
+    await saveTurn(store, old, rec(old));
+    await g.resume();
+    await g.reset();
+    const [w] = await g.worlds();
+    await g.newStory(build, { worldId: w.worldId });
+    for (let i = 0; i < 20 && !(await storySaved(store, g.state()!.storyId)); i++) await tick();
+    const s = (await loadStory(store, g.state()!.storyId, getLibrary())).state;
+    // every piece of the saved state is in exactly one list: kept as it was, kept and moved on, or the new story's own
+    const asWas = ['places', 'zones', 'regions', 'facts', 'walls', 'openings', 'roofs', 'lights', 'furniture', 'ground', 'barriers', 'blueprints'];
+    const movedOn = ['actors', 'bands', 'hidden', 'clocks', 'turnEnds', 'recentEvents', 'turn', 'pending', 'stage'];
+    const storyOwn = ['storyId', 'player', 'meta', 'settings', 'libraryVersion', 'rngSeed', 'rngState', 'mode', 'events', 'agentLog', 'log', 'scenarioCaps', 'quests'];
+    expect(Object.keys(old).filter((k) => ![...asWas, ...movedOn, ...storyOwn].includes(k))).toEqual([]);
+    const same = (v: unknown) => (Array.isArray(v) ? v : [v]).map((x) => JSON.stringify(x ?? null).replaceAll('"story_a"', `"${s.storyId}"`)).sort();
+    for (const k of asWas) expect([k, same(s[k as keyof GameState])]).toEqual([k, same(old[k as keyof GameState])]);
+    expect(s.furniture.length + s.walls.length + s.openings.length + s.lights.length + s.ground.length).toBeGreaterThan(0);
+    expect(s.actors.map((a) => a.id)).toEqual(expect.arrayContaining(old.actors.map((a) => a.id)));
+    // the tavern is still lit at night, so the newcomer sees everyone in it in full (Who's here, and so attackable)
+    expect(s.player.zone).toBe('tav_common');
+    const inTavern = s.actors.filter((a) => a.zone === 'tav_common').map((a) => a.id);
+    expect(buildPlayerView(s).actors.filter((a) => inTavern.includes(a.id)).map((a) => a.level)).toEqual(inTavern.map(() => 'full'));
+    // the opening is turn 13; the live state already names turn 14, the next one. Play and GM pages read turnShown
+    expect(g.state()!.turn).toBe(14);
+    expect(turnShown(g.state(), g.lines())).toBe(13);
+  });
+});

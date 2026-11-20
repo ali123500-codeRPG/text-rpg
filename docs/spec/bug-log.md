@@ -343,3 +343,5 @@ The game files a report at `bugs/new-<time>` (status new) for every bug code it 
 | BG-329 | Bluff listed allies in reach as targets, which the engine then refused as not foes | Thread | Fixed | #1193 |
 | BG-330 | The strike-card smoke test (BF66) failed now and then: its dummy, a standing copy of the player, punched back and felled the player | Thread | Fixed | #1202 |
 | BG-331 | The Perks tile counted class and other granted perks, but the Perks board drew only ladder, Innate and Linked perks | Thread | Fixed | #1208 |
+| BG-332 | On a carried-on world the floor plans (walls, doorways, roofs, lights, furniture) and ground items were lost | Thread | Fixed | #1206 |
+| BG-333 | The GM page's turn number ran one ahead of the play page's (it showed the next turn) | Thread | Fixed | #1206 |

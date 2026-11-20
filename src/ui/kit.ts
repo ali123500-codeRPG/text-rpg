@@ -51,6 +51,11 @@ export function h<K extends keyof HTMLElementTagNameMap>(tag: K, attrs: Attrs = 
   return el;
 }
 
+/** BG-333: the turn both the play and GM pages show: the last turn played, as its story line and turn record number it
+ * (state.turn already names the next turn once a turn is saved) */
+export const turnShown = (s: { turn: number } | null | undefined, lines: readonly { kind: string; turn: number }[]): number | undefined =>
+  [...lines].reverse().find((l) => l.kind === 'narration')?.turn ?? s?.turn;
+
 /** Dates are DD/MM/YYYY (project rule). */
 export function fmtDate(iso: string | number | Date | undefined): string {
   if (iso === undefined) return '–';

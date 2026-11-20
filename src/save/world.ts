@@ -26,7 +26,7 @@ export const pastCharacterId = (storyId: string) => `hero_${storyId.replace(/^st
 
 /**
  * HF26/HF31: `fresh` (a new story's state, its new player standing nowhere yet) carried on in `world` (the world's last
- * save). Places, people, their memories, deals and things lying about stay. The last character stays where they fell,
+ * save). Places and their floor plans, people, their memories, deals and things lying about stay. The last character stays where they fell,
  * dead (HF27: the original perished there), under their own id, so everything people knew of them stays theirs and
  * nothing of it passes to the newcomer. The story's own state (stage, plans, quests, fights) starts fresh, and the turn
  * count runs on from the world's. The world's clock is left as it was: the caller moves it to the Universe date (HF32).
@@ -54,17 +54,20 @@ export function carryOn(world: GameState, fresh: GameState, fell = true): GameSt
     if (a.mind.earlier) a.mind.earlier.lines = a.mind.earlier.lines.map((l) => l.replace(/\bplayer\b/g, was));
   }
   if (fell) lootTheFallen(w, past);
+  // BG-332: everything is the world's unless named here as the story's own, so world state added later stays by itself.
+  // The last story's fights (spars, yields, stand-downs, mercy), its night and its per-turn scratch end with it.
+  const { spars: _sp, yielding: _y, offers: _o, mercy: _m, night: _n, scratch: _sc, ...kept } = w;
+  const { storyId, player: newcomer, meta, settings, libraryVersion, rngSeed, rngState, mode, events, agentLog, log, scenarioCaps, quests } = fresh;
   const s: GameState = {
-    ...fresh,
+    ...kept,
+    storyId, player: newcomer, meta, settings, libraryVersion, rngSeed, rngState, mode, events, agentLog, log, scenarioCaps, quests,
     turn: world.turn + 1,
     pending: { ...fresh.pending, turn: world.turn + 1 },
     actors: fell ? [...w.actors, past] : w.actors,
     bands: [...fresh.bands, ...w.bands],
     hidden: { ...w.hidden, plans: {}, stage: fresh.hidden.stage }, // plans and the stage brief were the last story's
-    places: w.places, zones: w.places.flatMap((pl) => pl.zones), // WI8 a: the whole built world is live
-    ...(w.regions ? { regions: w.regions } : {}), facts: w.facts, clocks: w.clocks, blueprints: w.blueprints,
+    zones: w.places.flatMap((pl) => pl.zones), // WI8 a: the whole built world is live
     stage: { ...fresh.stage, scenarioNumber: world.stage.scenarioNumber, scenarioStartTurn: world.turn + 1 },
-    ...(w.barriers ? { barriers: w.barriers } : {}), ...(w.turnEnds ? { turnEnds: w.turnEnds } : {}), ...(w.recentEvents ? { recentEvents: w.recentEvents } : {}),
   };
   // the newcomer's starting kit keeps ids no item in the world already has
   const p = s.player;
