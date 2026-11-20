@@ -375,12 +375,15 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 #### Character page as one screen
 
 - **PS-220** The Character page fits the window with no page scroll (Ali, 14/11/2026, CP1–CP5).
-- **PS-221** The character card is on the left (who, with the class in the circle by the name, health, level and XP, capstone choice, then the body figure across the
+- **PS-221** The character card is on the left (who, with the class in the circle by the name, health, then morale and
+  stamina as on the full sheet (PS-340), level and XP, capstone choice, then the body figure across the
   card's width over a row of power, standing attack and defense and a row of the ratings), the skill trees on the right.
   The figure fills the space left on the card and shrinks with the window (its canvas scales; a click reads its on-screen
   box), so the card never scrolls.
-- **PS-222** A strip of four tiles runs along the bottom, Essences, Perks, Gear and Personality, each with a one-line
-  summary, each opening its section in a pop-up.
+- **PS-222** One compact row of four tiles runs along the bottom, Essences, Perks, Gear and Personality, each its icon
+  and one value (essences held of slots, perks held or ✦ points to spend, gear count, the personality's archetype),
+  each opening its section in a pop-up. Details (the gear's names, the nerve) are the tile's tip, never a line; only the
+  exception shows as a mark (◆ N essences on offer).
 - **PS-223** There are two kinds of pop-up. Partial ones float, drag by their head and leave the page usable (Essences,
   Gear, Personality, a skill, the body, power). The full-screen one covers the page for a board too big for a panel
   (Perks), and partial pop-ups and the perk card open on top of it (CP2, CP3; src/ui/pop.ts).

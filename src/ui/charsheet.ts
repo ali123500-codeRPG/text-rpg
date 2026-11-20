@@ -168,7 +168,9 @@ export function charCard(s: GameState, p: Actor, openClasses?: (opener: HTMLElem
       h('div', { class: 'cs-row' }, h('span', {}, 'Health'), h('b', {}, figBtn('cs-figlink', 'What makes up your total health', (el) => openHealthPop(s, p, el), `${whole(hp)} HP`))),
       // SD5: the boxes (Critical on the left to Bruised, then Unhurt) show the level; its word is the track's tip and name
       h('div', { class: 'cs-hp', role: 'img', title: HEALTH_LEVELS.name(level), 'aria-label': `Health: ${HEALTH_LEVELS.name(level)}` },
-        boxes.map((l) => h('i', { class: at <= levels.indexOf(l) ? 'on' : '' })))),
+        boxes.map((l) => h('i', { class: at <= levels.indexOf(l) ? 'on' : '' }))),
+      // morale and stamina under health, as on the play screen's full sheet (PS-340)
+      h('div', { class: 'cs-mbar' }, ...moraleBar(p, true)), h('div', { class: 'cs-mbar cs-sbar' }, ...staminaBar(p, true))),
     xpTrack(s, p),
     capstoneChoice(s, p),
     // the body figure beside the figures (CP5: a click opens each part in a pop-up); gear and personality are tiles under the page

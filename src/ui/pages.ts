@@ -159,18 +159,23 @@ function charTiles(s: GameState, open: { essences: (b: HTMLElement) => void; per
   const gear = p.core.inventory.filter((i) => i.equippedIn?.length);
   const pe = personalityOf(p);
   // the section's icon in place of its name, which is the icon's tip and accessible name
-  const tileIcon = (key: string, label: string) => { const el = itemIcon(`tile_${key}` as IconName, undefined, 'mk-i'); el.setAttribute('role', 'img'); el.title = label; el.setAttribute('aria-label', label); return el; };
-  const tile = (key: string, label: string, value: Node | string, sub: Node | string, onclick: (b: HTMLElement) => void, full = false, lit = false) => {
-    const b: HTMLElement = h('button', { type: 'button', class: 'cs-tile' + (lit ? ' lit' : ''), 'data-tile': key, 'aria-haspopup': 'dialog', title: full ? `Open ${label} full screen` : `Open ${label}`, onclick: () => onclick(b) },
-      h('span', { class: 'hs-label' }, tileIcon(key, label)), h('b', {}, value), h('span', { class: 'cs-tile-sub' }, sub));
+  const tileIcon = (key: string, label: string) => { const el = itemIcon(`tile_${key}` as IconName, undefined, 'mk-i'); el.setAttribute('role', 'img'); el.setAttribute('aria-label', label); return el; }; // the tile's title carries the words
+  // one compact row: each section's icon and its number; its details are the tip, and only the exception (an essence
+  // on offer, a perk point to spend) shows as a mark (SD3)
+  const tile = (key: string, label: string, value: string, tip: string, mark: Node | null, onclick: (b: HTMLElement) => void, full = false, lit = false) => {
+    const b: HTMLElement = h('button', { type: 'button', class: 'cs-tile' + (lit ? ' lit' : ''), 'data-tile': key, 'aria-haspopup': 'dialog',
+      title: `${tip}. ${full ? `Open ${label} full screen` : `Open ${label}`}`, onclick: () => onclick(b) },
+      tileIcon(key, label), h('b', {}, value), mark);
     return b;
   };
+  const gearNames = gear.map((i) => cap(safe(() => pieceName(s, i)) ?? i.itemId)).join(', ');
   return h('nav', { class: 'cs-tiles', 'aria-label': 'Character sections' },
-    // SD3: a sub-line only for the exception (an offer waiting, a point to spend), never a unit that restates the number
-    tile('essences', 'Essences', ess.used, ess.waiting ? h('span', { class: 'ess-waiting' }, `◆ ${ess.waiting} on offer`) : '', open.essences, false, !!ess.waiting),
-    tile('perks', 'Perks', pts ? `✦ ${pts}` : String(owned), pts ? `point${pts === 1 ? '' : 's'} to spend` : '', open.perks, true, pts > 0),
-    tile('gear', 'Gear', String(gear.length), gear.length ? gear.map((i) => cap(safe(() => pieceName(s, i)) ?? i.itemId)).join(', ') : 'nothing held or worn', (b) => openGearPop(s, b)),
-    tile('personality', 'Personality', archetypeOf(pe).name, `${nerveTier(p, pe)} · ${cap(nerveLine(pe))} nerve`, (b) => openPop({ title: 'Personality', cls: 'pe-pop', opener: b, body: [personalityBlock(p), ended(s) ? null : signaturesBox(p, open.sign)] })),
+    tile('essences', 'Essences', ess.used, `Essences: ${ess.used}${ess.waiting ? `, ${ess.waiting} on offer` : ''}`,
+      ess.waiting ? h('span', { class: 'ess-waiting', 'aria-hidden': 'true' }, `◆ ${ess.waiting}`) : null, open.essences, false, !!ess.waiting),
+    tile('perks', 'Perks', pts ? `✦ ${pts}` : String(owned), pts ? `Perks: ${pts} point${pts === 1 ? '' : 's'} to spend` : `Perks: ${owned} held`, null, open.perks, true, pts > 0),
+    tile('gear', 'Gear', String(gear.length), gear.length ? `Gear: ${gearNames}` : 'Gear: nothing held or worn', null, (b) => openGearPop(s, b)),
+    tile('personality', 'Personality', archetypeOf(pe).name, `Personality: ${archetypeOf(pe).name}, ${nerveTier(p, pe)} · ${cap(nerveLine(pe))} nerve`, null,
+      (b) => openPop({ title: 'Personality', cls: 'pe-pop', opener: b, body: [personalityBlock(p), ended(s) ? null : signaturesBox(p, open.sign)] })),
   );
 }
 /** EQ7: "Medium Weapons 50" */
