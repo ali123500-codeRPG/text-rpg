@@ -11,7 +11,7 @@ import { CONFIG } from '../config';
 import type { KnownMap, MapZone } from './mapData';
 import { MAX_K, PX_PER_M, TEXT, checkReach, checkStage, planScene, roughMeasure, wrap, type Box, type Measure, type Scene } from './mapPlan';
 import { checkMap } from './mapCheck';
-import { doorGlyph, fogClip, floorMarks, floorName, footprintMark, pin, wayGlyph, whoInitial } from './map';
+import { doorGlyph, fogClip, floorMarks, floorName, pin, wayGlyph, whoInitial } from './map';
 import { furnIcon } from './furnitureIcons';
 import { metresText, planTo, splitAt, zoneAt, type MinimapPlan, type MinimapPoint } from './minimap';
 import { areaOf } from '../plan/geom';
@@ -235,11 +235,13 @@ export function planView(api: GameApi, opts: PlanOpts) {
     for (const t of sc.tokens) {
       if (!within(t, inView)) continue;
       if (t.you) { const g = pin(t.cx, t.cy, d.youTitle ?? 'You are here', d.facing); g.setAttribute('data-role', 'token'); g.setAttribute('data-id', 'you'); gTokens.append(g); continue; }
-      const who = t.who!, footG = footprintMark(t.cx, t.cy, t.r, who, K());
-      // BG-324: the disc alone is the token the checker measures; the initial's text box is taller than the disc, its letter is not
-      const g = s('g', { class: `map-who plan-who${who.now ? '' : ' last'}${who.at ? ' at' : ''}`, 'data-zone': t.zoneId, 'data-who': who.id, tabindex: 0, role: 'button', 'aria-label': `${t.title}: what to do` }, ...(footG ? [footG] : []),
-        s('g', {}, s('circle', { cx: t.cx, cy: t.cy, r: t.r, 'data-role': 'token', 'data-id': t.id }), s('text', { x: t.cx, y: t.cy + 3, 'text-anchor': 'middle' }, whoInitial(who.name))),
-        s('text', { x: t.cx + t.r + 4, y: t.cy + 4, class: 'map-who-label' }, who.name), s('title', {}, t.title));
+      const who = t.who!, c = t.cap, tok = { 'data-role': 'token', 'data-id': t.id };
+      // BG-324: the disc (GSM-193: or the body's capsule) alone is the token the checker measures; the initial's text box is taller than it, its letter is not
+      const shape = c ? s('rect', { x: t.cx - c.len / 2, y: t.cy - c.wide / 2, width: c.len, height: c.wide, rx: Math.min(c.len, c.wide) / 2, transform: `rotate(${c.deg} ${t.cx} ${t.cy})`, ...tok })
+        : s('circle', { cx: t.cx, cy: t.cy, r: t.r, ...tok });
+      const g = s('g', { class: `map-who plan-who${who.now ? '' : ' last'}${who.at ? ' at' : ''}`, 'data-zone': t.zoneId, 'data-who': who.id, tabindex: 0, role: 'button', 'aria-label': `${t.title}: what to do` },
+        s('g', {}, shape, s('text', { x: t.cx, y: t.cy + 3, 'text-anchor': 'middle' }, whoInitial(who.name))),
+        s('text', { x: t.x1 + 4, y: t.cy + 4, class: 'map-who-label' }, who.name), s('title', {}, t.title));
       gTokens.append(g);
     }
     // the scale bar under the plan: 10 m and its paces

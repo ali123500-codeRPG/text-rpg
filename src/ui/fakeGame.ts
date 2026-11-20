@@ -282,6 +282,8 @@ function useStage(st: GameState, stage: FakeStage): void {
     const a = spawnNpc(null, TP.patron, { id: x.id, zone: x.zone, placeId: zone.placeId, bandId: `band_${x.id}`, storyId: 'fake', label: x.label });
     const pos = x.at ? at(x.zone, x.at) : undefined;
     if (pos) a.pos = pos;
+    if (x.race) { a.core.raceId = x.race; a.core.bodyTypeId = getLibrary().races![x.race].bodyTypeId; }
+    if (x.facing) a.facing = x.facing;
     return a;
   });
   st.hidden.plans = {}; st.hidden.agreements = []; st.quests = [];

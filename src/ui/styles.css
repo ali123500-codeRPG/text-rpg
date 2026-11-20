@@ -1011,7 +1011,7 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-tile-name { fill: var(--text); font-size: 15px; font-weight: 800; }
 .map-tile-sub { fill: var(--muted); font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
 .map-tile.here .map-tile-sub { fill: var(--accent); }
-.map-who circle { fill: var(--c4); stroke: var(--bg); stroke-width: 2; }
+.map-who :is(circle, rect) { fill: var(--c4); stroke: var(--bg); stroke-width: 2; }
 /* To scale (CO1): zones as rectangles in metres; each side drawn by its edge kind */
 .map-tile.plan .map-tile-box { stroke: none; }
 .map-tile.world-place.plan .map-tile-box { stroke: color-mix(in srgb, var(--c9) 55%, var(--border)); stroke-width: 2; }
@@ -1075,11 +1075,9 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .k-edge.window { border-top: 1px double var(--text); border-bottom: 1px solid var(--text); height: 3px; }
 .k-edge.open { border-top: 1px dotted var(--muted); }
 .map-who text { fill: var(--on-pill); font-size: 13px; font-weight: 800; }
-.map-who.last circle { fill: var(--bg); stroke: var(--c4); stroke-dasharray: 3 2; }
+.map-who.last :is(circle, rect) { fill: var(--bg); stroke: var(--c4); stroke-dasharray: 3 2; }
 .map-who.last text { fill: var(--c4); }
-.map-who.plan-who circle { stroke-width: 1.5; }
-/* SZ16: a body bigger than its token: its footprint to scale beneath it */
-.map-foot { fill: color-mix(in srgb, var(--c4) 22%, transparent); stroke: var(--c4); stroke-width: 1.5; stroke-dasharray: 4 3; pointer-events: none; }
+.map-who.plan-who :is(circle, rect) { stroke-width: 1.5; }
 .map-who.plan-who text { font-size: 13px; pointer-events: none; }
 .map-who.plan-who .map-who-label { fill: var(--text); font-size: 13px; font-weight: 700; paint-order: stroke; stroke: var(--bg); stroke-width: 3px; opacity: 0; pointer-events: none; }
 .map-who.plan-who:hover .map-who-label { opacity: 1; }
@@ -1703,8 +1701,8 @@ button.eq-name:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .mm-goal.set { fill: color-mix(in srgb, var(--accent) 35%, transparent); }
 .mm-svg .map-pin { pointer-events: none; }
 .mm-svg .map-who { cursor: pointer; }
-.mm-svg .map-who circle { transition: stroke var(--m-feedback) var(--m-ease); }
-.mm-svg .map-who:hover circle, .mm-svg .map-who:focus-visible circle { stroke: var(--scenario-mark); }
+.mm-svg .map-who :is(circle, rect) { transition: stroke var(--m-feedback) var(--m-ease); }
+.mm-svg .map-who:hover :is(circle, rect), .mm-svg .map-who:focus-visible :is(circle, rect) { stroke: var(--scenario-mark); }
 
 /* AU7: the Sound switch and its volume slider on the play header */
 .sound-sw { display: inline-flex; align-items: center; gap: var(--space-1); }

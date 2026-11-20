@@ -4,6 +4,7 @@
 import type { Barrier, GameState, TitleSpec, WayKind } from '../types';
 import { drawTitles } from '../plan/draw';
 import { BK, FU, WK, ZK } from '../library/tableIds';
+import { RC } from '../library/raceIds';
 
 type Place = GameState['places'][number];
 /** a stage's titles and floor plan, drawn by the game's own code */
@@ -12,8 +13,9 @@ export type FakeStage = {
   places: Place[]; plan: FakePlan; zone: string; placeId: string; seen: string[]; trail: string[];
   /** where you stand, metres from your zone's centre (east, north) */
   you: [number, number];
-  /** who is about: a stranger label, their zone, and metres from its centre when the character sees exactly where */
-  people: { id: string; label: string; zone: string; at?: [number, number] }[];
+  /** who is about: a stranger label, their zone, and metres from its centre when the character sees exactly where;
+   *  `race` and `facing` (GSM-193): a beast whose body is bigger than its disc, drawn as its capsule */
+  people: { id: string; label: string; zone: string; at?: [number, number]; race?: string; facing?: [number, number] }[];
   barriers: { id: string; a: string; b: string; rec: Omit<Barrier, 'id'> }[];
 };
 
@@ -60,7 +62,8 @@ function bentNail(saved = false): FakeStage {
   return {
     places, plan, zone: 'midden_yard', placeId: 'thornbury', seen: ['high_lane', 'midden_yard', 'tavern.common', 'tavern.bar', 'tavern.kitchen'], trail: ['high_lane', 'tavern.common', 'tavern.kitchen'],
     you: [-2, -1],
-    people: [{ id: 'f_guard', label: 'an off-duty guard', zone: 'high_lane', at: [0, 1] }, { id: 'f_wren', label: 'a lean man in a patched coat', zone: 'midden_yard', at: [1, 1] }, { id: 'f_keep', label: 'the barkeep', zone: 'tavern.bar' }],
+    people: [{ id: 'f_guard', label: 'an off-duty guard', zone: 'high_lane', at: [0, 1] }, { id: 'f_wren', label: 'a lean man in a patched coat', zone: 'midden_yard', at: [1, 1] }, { id: 'f_keep', label: 'the barkeep', zone: 'tavern.bar' },
+      { id: 'f_horse', label: 'a cart horse', zone: 'high_lane', at: [0, 5], race: RC.horse, facing: [0, 1] }],
     barriers: [
       { id: 'fb_front', a: 'high_lane', b: 'tavern.common', rec: { kind: BK.door, grade: 'minor' } },
       { id: 'fb_plank', a: 'midden_yard', b: 'tavern.yard', rec: { kind: BK.gate, grade: 'moderate', lock: { locked: true }, tried: ['player'] } },

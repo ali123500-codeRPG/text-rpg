@@ -303,7 +303,9 @@ type Band = {                   // a small group: a guard post, a gang, a househ
 - **GSM-192** A walk never plans through a way too small for the walker (fitsThrough).
 - **GSM-193** On the map and minimap, someone seen clearly at their own point whose body is bigger than its token is
   drawn as a token of the body's own size and shape: a capsule, its length along the way it faces, with nothing outside
-  it (SZ16; RM13 c, Ali, 20/11/2026, Questions hub page "Map rules revision"; ui/map footprintMark; MapPerson.body).
+  it. The capsule is never narrower than the usual disc, so its initial stays readable, and the layout keeps the
+  turned capsule's box clear of other marks (SZ16; RM13 c, Ali, 20/11/2026, Questions hub page "Map rules revision";
+  capsule in ui/mapPlan; MapPerson.body).
 
 #### State shapes
 

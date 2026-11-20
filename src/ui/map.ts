@@ -11,7 +11,7 @@ import { walkLeft } from './doing';
 import { landLayer, landLabels, type LandLabel } from './landSvg';
 import { lineLength, SITE_SIZES, type SiteSize } from '../land/generate';
 import { ICON_ART } from './iconArt';
-import { worldTiles, knownMap, pointAlong, rootPlace, type KnownMap, type MapLink, type MapPerson, type MapPlace, type MapWay, type MapZone } from './mapData';
+import { worldTiles, knownMap, pointAlong, rootPlace, type KnownMap, type MapLink, type MapPlace, type MapWay, type MapZone } from './mapData';
 import { cap, theName } from '../words';
 import { MAX_K, PIN_R, PIN_TIP, PX_PER_M } from './mapPlan';
 import { planView, type PlanData } from './planView';
@@ -56,14 +56,6 @@ export function fogClip(id: string, zones: MapZone[], pxPerM: number): SVGElemen
 }
 /** below this stage width, fitting a place never shrinks tiles past NARROW_MIN_K */
 const NARROW_W = 640, NARROW_MIN_K = 0.75;
-/** SZ16: a body bigger than its token draws its footprint to scale beneath it: a capsule (its narrower side round), its
- * length along the way it faces; none for a body the token already covers, or one not seen at its own point */
-export function footprintMark(cx: number, cy: number, r: number, who: MapPerson, pxPerM: number): SVGElement | null {
-  const b = who.body;
-  if (!b || Math.max(b.lengthM, b.widthM) * pxPerM <= 2 * r) return null;
-  const L = b.lengthM * pxPerM, W = b.widthM * pxPerM, deg = (Math.atan2(-b.facing[1], b.facing[0]) * 180) / Math.PI;
-  return s('rect', { class: 'map-foot', x: cx - L / 2, y: cy - W / 2, width: L, height: W, rx: Math.min(L, W) / 2, transform: `rotate(${deg} ${cx} ${cy})`, 'aria-hidden': 'true' }) as SVGElement;
-}
 /** the "you are here" pin, on the Map and the minimap alike; its point shows the way you face (BG-18: left and right in
  *  orders are taken from it), none before you have walked */
 export function pin(cx: number, cy: number, title?: string, facing?: [number, number]) {
