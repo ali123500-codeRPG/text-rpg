@@ -49,7 +49,7 @@ import { readSpec } from '../harness/specDocs';
 const ROUND_1 = ['src/ui/play.ts', 'src/ruleset/index.ts', 'src/scenario/apply.ts', 'src/minds/state.ts', 'src/engine/heal.ts'];
 const ROUND_2 = ['src/engine/resolve.ts', 'src/agents/prompts.ts', 'src/engine/merge.ts', 'src/ui/perks.ts'];
 const ROUND_3 = ['src/views/index.ts', 'src/agents/game.ts', 'src/engine/effects.ts'];
-const ROUND_4 = ['src/config.ts', 'src/types/views.ts', 'src/types/actor.ts', 'src/ui/fakeGame.ts', 'src/types/agents.ts', 'src/agents/schema.ts',
+const ROUND_4 = ['src/config.ts', 'src/config/actors.ts', 'src/config/body.ts', 'src/config/clock.ts', 'src/config/engine.ts', 'src/config/fatigue.ts', 'src/config/gear.ts', 'src/config/land.ts', 'src/config/morale.ts', 'src/config/past100.ts', 'src/config/perception.ts', 'src/config/progression.ts', 'src/config/rules.ts', 'src/config/world.ts', 'src/types/views.ts', 'src/types/actor.ts', 'src/ui/fakeGame.ts', 'src/types/agents.ts', 'src/agents/schema.ts',
   'src/agents/legality.ts', 'src/engine/engagement.ts'];
 const ROUND_5 = ['src/ui/libraryViewer.ts', 'src/types/library.ts', 'src/ruleset/equations.ts', 'src/ui/charsheet.ts', 'src/ui/sheet.ts'];
 const ROUND_6 = ['src/ui/pages.ts', 'src/engine/xp.ts', 'src/scenario/validate.ts', 'src/engine/speech.ts', 'src/engine/position.ts', 'src/scales.ts',
@@ -156,8 +156,8 @@ describe('leftover scan round 1', () => {
     expect(copies).toEqual([]);
   });
 
-  it('round 4: every CONFIG lever is read somewhere outside config.ts', () => {
-    const code = [...files('src'), ...files('tests'), ...files('scripts')].filter((f) => f !== 'src/config.ts' && !f.endsWith('leftover-scan-1.test.ts')).map((f) => readFileSync(f, 'utf8') as string).join('\n');
+  it('round 4: every CONFIG lever is read somewhere outside config.ts and its parts', () => {
+    const code = [...files('src'), ...files('tests'), ...files('scripts')].filter((f) => f !== 'src/config.ts' && !f.startsWith('src/config/') && !f.endsWith('leftover-scan-1.test.ts')).map((f) => readFileSync(f, 'utf8') as string).join('\n');
     const unread = Object.keys(CONFIG).filter((k) => !new RegExp(`\\b${k}\\b`).test(code) && !UNREAD_LEVERS.includes(k));
     expect(unread).toEqual([]);
   });
