@@ -429,6 +429,7 @@ The scenario director, stages and triggers, quests, scenario setup and validatio
   - `src/engine/pacing.ts`
   - `src/engine/quests.ts`
   - `src/engine/scenarioEnd.ts`
+  - `src/engine/loot.ts`
   - `src/engine/triggers.ts`
   - `src/scenario/apply.ts`
   - `src/scenario/checkin.ts`

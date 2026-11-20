@@ -12,6 +12,7 @@ import { actorById, isActive, isEngaged, stance, zoneById } from './relations';
 import { actorIn, givenTo, playerFound, playerIn } from './quests';
 import { logCode } from './effects';
 import { flushGrowth, keepGains, xpBar } from './growth';
+import { lootFoundBodies } from './loot';
 import { triggerErrors } from '../scenario/triggers';
 import { checkGround, offGround, onGround, pursuers } from './chase';
 
@@ -298,6 +299,7 @@ export function closeScenario(state: GameState, rng?: Rng): 'resume' | 'new' | '
     flushGrowth(state, f, as, r);
     if (!rng) state.rngState = r.state;
     keepGains(state, as); // the Gains page keeps every scenario's gains
+    lootFoundBodies(state); // D-253 b
   }
   if (cur) keep(state, record(state, cur, endsOuter && outer ? 'interrupted' : as, text, !!outer));
   if (paused && endsOuter) { keep(state, record(state, paused, 'interrupted', text, true)); delete st.paused; }
