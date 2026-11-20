@@ -479,6 +479,9 @@ export const creationCap = (tagged: boolean, flawed = false): number =>
   (tagged ? CONFIG.CREATION_MAX_TAGGED : flawed ? CONFIG.CREATION_MAX_FLAWED : CONFIG.CREATION_MAX_UNTAGGED);
 
 /** a build's state for one skill: tagged, flawed or normal */
+/** YB1: a skill's starting raw: the points spent on it, plus CREATION_TAG_BONUS when tagged */
+export const startRaw = (b: Pick<CreationBuild, 'skills' | 'tagged'>, k: string): number =>
+  (b.skills[k] ?? 0) + (b.tagged.includes(k) ? CONFIG.CREATION_TAG_BONUS : 0);
 export const buildState = (b: Pick<CreationBuild, 'tagged' | 'flawed'>, k: string): SkillState =>
   b.tagged.includes(k) ? 'tagged' : b.flawed.includes(k) ? 'flawed' : 'normal';
 /** AG15: the age picker: from the race's youngest age (no children) to its Venerable start; the start's default, else CREATION_AGE_DEFAULT */
@@ -690,7 +693,7 @@ export function createPlayer(build: CreationBuild, storyId: string, opts: { prev
   const errs = opts.preview ? [] : validateBuild(build);
   if (errs.length) throw new Error(`invalid build: ${errs.join('; ')}`);
   const skills = Object.fromEntries([...new Set([...Object.keys(build.skills), ...build.tagged, ...build.flawed])]
-    .filter((k) => (build.skills[k] ?? 0) > 0 || buildState(build, k) !== 'normal').map((k) => [k, { raw: build.skills[k] ?? 0, state: buildState(build, k) }]));
+    .filter((k) => (build.skills[k] ?? 0) > 0 || buildState(build, k) !== 'normal').map((k) => [k, { raw: startRaw(build, k), state: buildState(build, k) }]));
   const p: Actor = {
     id: 'player', storyId, kind: 'player', names: { current: build.name.trim(), past: [] }, ...(build.pronouns ? { pronouns: build.pronouns } : {}),
     label: 'a stranger', // the start class's stranger label, set below
@@ -702,7 +705,7 @@ export function createPlayer(build: CreationBuild, storyId: string, opts: { prev
       condition: { hpLostPct: 0, parts: fullParts(null, getLibrary().races?.[build.raceId ?? PLAYER_RACE]?.bodyTypeId ?? BT.humanoid), status: [] },
       inventory: [{ id: 'player_coin', itemId: IT.coin, qty: CONFIG.STARTING_COIN }, { id: 'player_bandage', itemId: IT.bandage, qty: CONFIG.STARTING_BANDAGES }],
       // GAP: [Proposed] default is the higher effective skill; effective skill is W2's, so raw is compared here (the game re-picks at start)
-      standingDefense: rawDefense((id) => build.skills[id] ?? 0),
+      standingDefense: rawDefense((id) => startRaw(build, id)),
       personality: structuredClone(build.personality ?? { nerve: 0, traits: {}, values: [] }), // PL14
       bornDay: -Math.round((build.age ?? creationAge(build.startId)) * CONFIG.YEAR_DAYS), // AG2, AG15: the story starts on day 1
     },

@@ -60,6 +60,7 @@ export const ACTORS = {
   START_LEVEL: 4, // EQ13: a Start's level when its row names none (every Start names 1 today)
   CREATION_MAX_UNTAGGED: 30, // the most points one untagged skill can take at creation
   CREATION_MAX_TAGGED: 40, // the most points one tagged skill can take at creation
+  CREATION_TAG_BONUS: 10, // YB1: a tagged skill starts this much above the points spent on it, on top of CREATION_MAX_TAGGED
   CREATION_MAX_FLAWED: 20, // FC3: the most points one flawed skill can take at creation
   // Character age (AG1–AG22; placeholders)
   YEAR_DAYS: 365, // AG2: game days in a year; age = (today − birth day) ÷ YEAR_DAYS
