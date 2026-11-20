@@ -72,16 +72,17 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
 #### Symbols and states
 
 - **MAP-30** One icon has one meaning. The key is a short list behind a Key button beside the Map's zoom buttons, and
-  lists only the unusual marks the current map shows, in short words: seen not been in, out of sight now, low wall or
+  lists only the unusual marks the current map shows, in short words: out of sight now, low wall or
   counter, locked (and with your key), barred, blocked, not been through yet, opens another map, stairs, last seen here.
   The usual marks (walls, indoors, outdoors, doors, furniture, someone there now, your pin, the current zone's outline)
   are left out: each names itself when you point at it. The pin's tip says "You are here", and the card names where you
   are once (SD8; WF12 a; RM1 b, RM7 a; Ali, 20/11/2026, Questions hub page "Map rules revision").
 - **MAP-31** Icons never overlap each other or a wall corner. Doors sit at their own point on their wall (MAP-14).
 - **MAP-32** Every exit arrow names its target. No arrow points at empty space without a note.
-- **MAP-33** Zone states are fixed: where you are (current, highlighted); explored (stood in: journal.zonesVisited, each
-  zone once as you stand in it; a save without the list starts it from its trail); seen but never stood in (hatched);
-  and exits to somewhere unknown. Locked is shown on the door, not on the zone.
+- **MAP-33** The map marks no zone states: a zone is only a name on ground (MAP-10). The fog (MAP-16) draws seen ground
+  in two tones, square by square: ground in sight now is drawn full, ground the character only remembers is faded. No
+  hatch, and no outline on the zone you stand in: your pin says where you are. Exits not taken keep their dotted arrow,
+  and locked is shown on the door (RM11 a; Ali, 20/11/2026, Questions hub page "Map rules revision").
 - **MAP-34** Every state is readable without colour: outline style plus an icon or text, never colour alone.
 - **MAP-35** Merged into MAP-30 (RM7 a).
 - **MAP-36** A barrier the character knows stops them sits as a badge on its exit: a padlock for locked (green when they
@@ -121,7 +122,8 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   a known zone on another map is a stub naming that place, and clicking it opens that map.
 - **MAP-64** The map has pan, zoom, find me, show the whole map and place crumbs. Right-clicking a zone (or an exit,
   MAP-62) opens its card (look, exits with a go button, people, items) beside the map, with the places list and the key;
-  a left click on the ground plans a walk, as on the minimap (MAP-81) (MQ3; Ali, 20/11/2026, Questions hub page "Map and minimap: one map, doors").
+  on a touch screen a long press does. A left click on the ground plans a walk, as on the minimap (MAP-81) (MQ3, MQ7 a;
+  Ali, 20/11/2026, Questions hub page "Map and minimap: one map, doors").
 - **MAP-65** The zone card leaves out the usual: the place line only when it differs from the zone, light and cover only
   when indoors, short of bright or above none, and no Exits heading when there are none.
 - **MAP-66** The map shows one height at a time. A vertical slider at the bottom left has one stop per height the map
@@ -136,9 +138,11 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   last spot, BG-125), inside a faint dashed 2 m "somewhere here" circle (a placeholder setting in config), with
   "somewhere here" on hover. How the circle should grow or change is parked (D-424) (Actor.pos, MapPerson.at; Ali,
   13/11/2026; RM4 a, RM7 a; Ali, 20/11/2026, Questions hub page "Map rules revision").
-- **MAP-69** Each person's disc shows the initial of what you know them by, a learned name or a description ("a lean
-  man" shows L), and pointing at it shows that full name or description beside it. The discs sit above every tile, so a
-  neighbouring zone never hides one (whoInitial, src/ui/map.ts).
+- **MAP-69** Each person's disc shows an icon for what the character can see on them first: what they hold or wear
+  that stands out (a weapon, armour, a tool of their trade), else what they are (a person, a beast, a slime). It uses
+  only what is seen, never a hidden role, and the set of icons has enough variety that people in one scene differ.
+  Pointing at it shows the name or description they are known by beside it. The discs sit above every tile, so a
+  neighbouring zone never hides one (RM12 b; Ali, 20/11/2026, Questions hub page "Map rules revision").
 
 #### World view and roads
 
@@ -223,7 +227,5 @@ the code decides what the game does (`AGENTS.md`, Order of authority).
 
 - **MAP-44 and MAP-45:** someone heard going into a zone the character has never seen is last seen there (MAP-45), but
   the map shows only zones seen or stood in (MAP-44), so they are not drawn anywhere.
-- **MAP-33 and MAP-84 on the minimap:** a zone seen but never entered is hatched on the Map (MAP-33), but has a dashed
-  edge on the minimap (src/ui/styles.css), whose marks are meant to be the Map's own (MAP-84). Its walls then look like
-  the key's "Open side", against MAP-30 (one look, one meaning). Re-asked as RM11: the owner asked why the map still
-  shows zones as zones rather than fog alone.
+- **MAP-33 until built (D-423):** the code still draws zone states (a hatch on the Map, a dashed edge on the minimap)
+  and judges "in sight now" per zone.

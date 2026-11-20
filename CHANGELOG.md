@@ -3,6 +3,10 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bug-fix-log.md`.
 
+- 20/11/2026: `AGENTS.md` rule 1 and `docs/providers/claude.md` "The live game page and the owner's saves": reading
+  the owner's saves and stories is always allowed (the owner, Questions hub page "Map rules revision", RM14: "reading
+  my saves is always allowed"); playing the game and writing or deleting saves still need the owner's OK. A thread
+  that cannot reach the game's database asks for the GM page's "Download backup" file.
 - 20/11/2026: `docs/instructions.md` section 2 "Bugs": every Bug log row is one line, BG-1 to BG-326 included (the
   owner chose "Normalise, change rule"); an older row that held more than its fix log entry is kept as filed at the
   end of that entry.
