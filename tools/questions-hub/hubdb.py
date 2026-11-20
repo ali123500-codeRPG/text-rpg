@@ -88,6 +88,20 @@ def migrate(name, page_doc, page_version, out, at=None):
     # keep `updated` as it was: moving changes nothing the owner can see, so it must not mark answers read
     return w + [_w('set', 'pages', name, {'title': page_doc.get('title', sp.get('title')), 'updated': page_doc['updated'], 'spec': json.dumps(sp, ensure_ascii=False)}, out, page_version)]
 
+IMG_MAX = 400_000  # bytes of one picture file: it travels inside one SQL query (about 2 MB at most) and loads with its page
+IMG_TYPES = {'.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.svg': 'image/svg+xml'}
+
+def image(name, key, path, out):
+    """One picture for questionnaire `name`, shown by blocks.fig(key, alt) (README "Pictures"). Returns a one-item writes
+    list; write it on its own (sql() for Supabase) when the picture is large."""
+    import base64
+    ext = os.path.splitext(path)[1].lower()
+    if ext not in IMG_TYPES: raise ValueError(f'{path}: use one of {", ".join(IMG_TYPES)}')
+    raw = open(path, 'rb').read()
+    if len(raw) > IMG_MAX: raise ValueError(f'{path}: {len(raw)} bytes, over {IMG_MAX}: crop it, or save it as WebP or JPEG')
+    src = f'data:{IMG_TYPES[ext]};base64,' + base64.b64encode(raw).decode()
+    return [_w('set', f'imgs/{name}/items', key, {'src': src}, out)]
+
 def _lit(x):
     return "'" + x.replace("'", "''") + "'"
 

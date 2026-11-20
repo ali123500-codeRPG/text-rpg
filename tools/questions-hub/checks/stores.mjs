@@ -24,6 +24,8 @@ const fresh = bothDb(mem(A), mem(B)); let got; fresh.collection('qs/old/items').
 await new Promise((r) => setTimeout(r, 10)); assert.deepStrictEqual(got.docs.map((d) => d.id), ['O1']); // no listing first
 assert.strictEqual((await db.collection('pages').where('updated', '>', '1').get()).docs.map((d) => d.id).join(), 'new');
 assert.deepStrictEqual((await db.ids('pages')).sort(), ['dup', 'new', 'old']);                    // names from both, once
+B['imgs/old/items/m1'] = { src: 'data:,x' };
+assert.deepStrictEqual((await db.collection('imgs/old/items').get()).docs.map((d) => d.id), ['m1']);   // pictures go with their page
 console.log('bothDb: all checks pass');
 
 // copyOlder: whole questionnaires, in batches under the size cap, never over a row that is already in Supabase

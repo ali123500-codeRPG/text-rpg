@@ -3,6 +3,8 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bug-fix-log.md`.
 
+- 20/11/2026: Pictures in questions. `docs/instructions.md` section 6: a picture goes beside the words when it shows
+  the point faster. The Questions hub shows them (`tools/questions-hub/README.md` "Pictures": `fig()`, `image()`).
 - 20/11/2026: `docs/instructions.md` section 2 (WF3 a): a Bug log row is ID, one line on what was wrong (at most 160
   characters), status and claim issue (`#n`); the story is written once, in `docs/bug-fix-log.md`, which the PR links;
   no second commit to write a PR number in. Rows up to BG-326 keep their form.
