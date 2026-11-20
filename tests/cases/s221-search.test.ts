@@ -118,28 +118,27 @@ describe('221 search', () => {
     const s = makeVillage({ playerZone: 'street_square' });
     thief(s, 'street_square');
     beside(s, 'thief_1', 'player', 1.5); // inside 2 m, body edge to body edge
-    const area = CONFIG.SEARCH_AREA_M2;
-    (CONFIG as { SEARCH_AREA_M2: number }).SEARCH_AREA_M2 = 0.01; // a few cm of radius
+    const r0 = CONFIG.SEARCH_RADIUS_AT_0_M;
+    (CONFIG as { SEARCH_RADIUS_AT_0_M: number }).SEARCH_RADIUS_AT_0_M = 0.001; // a few cm of radius
     try {
       const calls = rig(1);
       play(s, search());
       expect(calls[0].tierShifts).toContainEqual({ source: 'searching', value: CONFIG.SEARCH_AREA_SHIFT }); // inside the 2 m floor
     } finally {
-      (CONFIG as { SEARCH_AREA_M2: number }).SEARCH_AREA_M2 = area;
+      (CONFIG as { SEARCH_RADIUS_AT_0_M: number }).SEARCH_RADIUS_AT_0_M = r0;
     }
   });
 
-  it('SE21/SE24: the area grows in a straight line with skill; searchArea % and searchReach m add to it', () => {
+  it('LS9 (TL17\'s ladder): the search radius doubles every 50 points from 2 m at 0; searchArea % and searchReach m add to it', () => {
     const s = makeVillage();
     const p = s.player;
-    expect(searchAreaM2(p, 50)).toBe(60);
-    expect(searchAreaM2(p, 100)).toBe(120);
-    expect(searchAreaM2(p, 200)).toBe(240);
+    const radius = (skill: number) => Math.sqrt(searchAreaM2(p, skill) / Math.PI);
+    expect([0, 50, 100, 150, 200].map((k) => Math.round(radius(k) * 100) / 100)).toEqual([2, 4, 8, 16, 32]);
     const lib = getLibrary();
     lib.perks.test_wide = { id: 'test_wide', name: 'Wide Eyes', searchArea: 50, searchReach: 0.5 } as never;
     p.core.perks.push({ perkId: 'test_wide' } as never);
     try {
-      expect(searchAreaM2(p, 50)).toBe(60 * 1.5 + 0.5 * CONFIG.SEARCH_M2_PER_REACH_M);
+      expect(searchAreaM2(p, 50)).toBeCloseTo(Math.PI * 16 * 1.5 + 0.5 * CONFIG.SEARCH_M2_PER_REACH_M);
     } finally {
       delete lib.perks.test_wide;
     }
@@ -170,9 +169,9 @@ describe('221 search', () => {
 
   /** LX5 b: with a 2 m search radius (the floor), ring one reaches SEARCH_RING1_RADII × 2 m, ring two the look's 25 m */
   function tinyArea<T>(f: () => T): T {
-    const area = CONFIG.SEARCH_AREA_M2;
-    (CONFIG as { SEARCH_AREA_M2: number }).SEARCH_AREA_M2 = 0.01;
-    try { return f(); } finally { (CONFIG as { SEARCH_AREA_M2: number }).SEARCH_AREA_M2 = area; }
+    const r0 = CONFIG.SEARCH_RADIUS_AT_0_M;
+    (CONFIG as { SEARCH_RADIUS_AT_0_M: number }).SEARCH_RADIUS_AT_0_M = 0.001;
+    try { return f(); } finally { (CONFIG as { SEARCH_RADIUS_AT_0_M: number }).SEARCH_RADIUS_AT_0_M = r0; }
   }
   const lookShift = (calls: RollRequest[]) => calls.flatMap((b) => b.tierShifts).find((x) => x.source === 'searching')?.value ?? 0; // a ±0 ring adds no shift
 

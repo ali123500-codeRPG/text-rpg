@@ -117,7 +117,7 @@ export function report(m: Measurement): string {
     `config     ${Object.entries(sc.set ?? {}).map(([k, v]) => `${k}=${v}`).join(' ') || 'defaults'}`,
     `window     ${sc.trials} trials x up to ${sc.turns} turn(s); seeds ${sc.seed}..${sc.seed + sc.trials - 1} (village seed; turn t rolls seed*7919+t)`,
     `positions  asked ${n2(sc.distanceM)} m body to body; stood ${n2(m.start.gapM)} m (searcher (${n2(m.start.searcher.x)}, ${n2(m.start.searcher.y)}), hider (${n2(m.start.hider.x)}, ${n2(m.start.hider.y)}))`,
-    `search     sense ${functionName(r.sense)}, effective skill ${n2(r.skill)}: base ${n2(r.baseM2)} m² (SEARCH_AREA_M2 ${CONFIG.SEARCH_AREA_M2} x skill / ${CONFIG.SEARCH_AREA_SKILL_BASE})`,
+    `search     sense ${functionName(r.sense)}, effective skill ${n2(r.skill)}: base ${n2(r.baseM2)} m² (a circle of SEARCH_RADIUS_AT_0_M ${CONFIG.SEARCH_RADIUS_AT_0_M} m doubled every ${CONFIG.SEARCH_RADIUS_DOUBLING} points)`,
     `           searchArea: ${terms(r.areaPct, '%')}; searchReach: ${terms(r.reachM, ' m')} (x ${CONFIG.SEARCH_M2_PER_REACH_M} m² per m)`,
     `           area ${n2(r.areaM2)} m², radius ${n2(r.radiusM)} m (min ${CONFIG.SEARCH_MIN_RADIUS_M}), ring one to ${n2(r.ring1M)} m; the hider is ${r.band}`,
     ...m.runs.map((x) => `${x.mode.padEnd(10)} found ${x.found}/${sc.trials} (${pct(x.found)})${x.firstTurns.length && sc.turns > 1 ? `, mean turn ${(x.firstTurns.reduce((n, t) => n + t, 0) / x.firstTurns.length).toFixed(1)}` : ''}; suspicious only ${x.suspicious}`),
