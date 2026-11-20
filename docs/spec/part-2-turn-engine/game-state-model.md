@@ -449,8 +449,8 @@ type ActivityDef = {
 - **GSM-241** A bed is never left blank: placed with a set that has a bed slot and none given, an NPC gets the nearest
   real bed within BED\_NEAR\_M (30 m, placeholder) of its own spots by the walking path, else its refuge, else its
   work spot (`withBed` in src/scenario/apply.ts) (BF68, BG-303).
-- **GSM-242** One still without a bed in play sleeps where it stands when its routine says sleep (on a free bed of that
-  title if there is one, MQ13 a), and the gap is filed once as a bug (bed_missing).
+- **GSM-242** One still without a bed in play sleeps where it stands when its routine says sleep (on a bed with room in that
+  title if there is one, MQ13 a, MQ18), and the gap is filed once as a bug (bed_missing).
 
 #### Time moves everyone
 

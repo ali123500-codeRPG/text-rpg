@@ -139,7 +139,9 @@ export type LandFeature = { id: string; kind: string; name: string; look: string
  * rail) shows from both sides. grade (OD2): set when someone can do something hard with it, or by the first act on it
  * (OD3); graded: who has tried it, and sees its grade (OD12). */
 export type Furniture = { id: string; kind: string; name: string; placeId: PlaceId; zone: string; pos: Pt; floor: number; side?: string; edge?: true;
-  grade?: Grade; graded?: string[]; beyond?: Record<string, number> };
+  grade?: Grade; graded?: string[]; beyond?: Record<string, number>;
+  /** MQ17 b: a bed bought for the night (SV3): kept for `by` until game minute `until`; no one else lies down on it */
+  booked?: { by: string; until: number } };
 /** PZ7: a point with the floor it is on (metres above the ground outside) */
 export type Pt3 = Pt & { floor: number };
 /** PZ1 a: a title: the name of a space. Its space is a footprint of any shape (outline, a polygon in metres, corners

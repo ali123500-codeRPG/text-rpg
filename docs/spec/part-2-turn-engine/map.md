@@ -219,8 +219,8 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   carries the deck target it stands for: a doorway the title on its far side from where you stand, a stretch of wall the
   wall standing there, a person their id, a piece of furniture its id and kind (src/ui/planView.ts `data-thing`,
   src/ui/deck.ts `thingActions`). Furniture lists the deck's actions on its kind: a bed offers Sleep, which walks to the
-  bed and sleeps there (MQ10 a; Ali, 20/11/2026, Questions hub page "Map and minimap: one map, doors"), on it and holding it, or
-  comes to nothing when someone else lies asleep on it (MQ13 a; Sleeping on a bed, in the Game clock topic). A thing the deck
+  bed and sleeps there (MQ10 a; Ali, 20/11/2026, Questions hub page "Map and minimap: one map, doors"), on it and holding a place, or
+  comes to nothing when it is full (MQ13 a, MQ18; Sleeping on a bed, in the Game clock topic). A thing the deck
   has nothing for opens no list, and the click plans a walk as on bare ground. Over the Map the list opens on top, and an
   action picked there plays from Play with the Map closed, as the Map's walk does (MAP-84).
 - **MAP-86** The things on the ground the character sees now, containers too, are drawn on both maps at their own spot

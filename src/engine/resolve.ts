@@ -565,7 +565,7 @@ import {
   hostilesNear,
   nextChange,
   planNight,
-  sleeperOn,
+  bedHasRoom,
   settleSleepers,
   wake,
   wakeByEvent,
@@ -1626,9 +1626,9 @@ function doWait(ctx: Ctx, a: Actor, o: Order): void {
       return emit(ctx, ev);
     }
     const until = named ?? nextTimeOfDay(timeOfDay(t));
-    // MQ13 a: a bed someone else lies asleep on is theirs; the sleep comes to nothing
-    const held = o.type === 'sleep' && o.moveSpot?.near ? sleeperOn(state, o.moveSpot.near) : undefined;
-    if (held && held !== a) {
+    // MQ13 a, MQ18: a bed already full of sleepers (or booked for someone else) has no room; the sleep comes to nothing
+    const bed = o.type === 'sleep' && o.moveSpot?.near ? furnitureRecord(state, o.moveSpot.near) : undefined;
+    if (bed && !bedHasRoom(state, bed, a)) {
       logCode(state, 'wait_blocked', { actorId: a.id, reason: 'bed_taken' });
       return emit(ctx, ev);
     }

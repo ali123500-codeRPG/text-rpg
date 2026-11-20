@@ -17,6 +17,9 @@ import { hearsClearly } from '../perception';
 import { canSpeak, gripReachM } from '../ruleset/body';
 import { withinGrip } from './position';
 import { listWords } from '../words';
+import { SV } from '../library/serviceIds';
+import { minutesUntil, now } from '../time';
+import { bedToBook } from './sleep';
 
 const GOODS = 'goods:';
 const SERVICE = 'service:';
@@ -113,7 +116,7 @@ export function payCoin(from: Actor, to: Actor, n: number): void {
 
 export type BuyResult =
   | { ok: true; price: number; qty: number; itemInst?: string; service?: string; to: Actor }
-  | { ok: false; reason: 'not_here' | 'out_of_earshot' | 'out_of_reach' | 'refuses' | 'not_offered' | 'out_of_stock' | 'not_enough_coin' };
+  | { ok: false; reason: 'not_here' | 'out_of_earshot' | 'out_of_reach' | 'refuses' | 'not_offered' | 'out_of_stock' | 'not_enough_coin' | 'no_free_bed' };
 
 /** RD2, BG-57: a called order carries as far as a voice at CONFIG.ORDER_NOISE is heard clearly where `b` stands (hearingOf,
  * real metres and walls). Farther trades (messengers, letters) stay parked (D-194). */
@@ -136,6 +139,9 @@ export function buy(state: GameState, buyer: Actor, seller: Actor | undefined, w
   const qty = Math.max(1, Math.floor(qtyIn ?? 1));
   const goods = wareId!.startsWith(GOODS) ? stockOf(seller, wareId!.slice(GOODS.length)) : null;
   if (goods && count(goods) < qty) return { ok: false, reason: 'out_of_stock' };
+  // MQ17 b: the player's bed for the night books a free bed in the seller's place until morning; none free, no sale
+  const bed = wareId === SERVICE + SV.bed && buyer === state.player && to === buyer ? bedToBook(state, seller.placeId) ?? null : undefined;
+  if (bed === null) return { ok: false, reason: 'no_free_bed' };
   const price = each * qty;
   if (coins(buyer) < price) return { ok: false, reason: 'not_enough_coin' };
   if (dry) return { ok: true, price, qty, to }; // AT45: would it go through (before a trade's time is spent)
@@ -145,6 +151,7 @@ export function buy(state: GameState, buyer: Actor, seller: Actor | undefined, w
     const id = wareId!.slice(SERVICE.length);
     const heals = getLibrary().services?.[id]?.heals;
     if (heals && !(to.paid ??= []).includes(heals)) to.paid.push(heals);
+    if (bed) bed.booked = { by: to.id, until: now(state) + minutesUntil(now(state), 'morning') };
     return { ok: true, price, qty, service: id, to };
   }
   const itemId = wareId!.slice(GOODS.length);
