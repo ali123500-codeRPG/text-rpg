@@ -37,7 +37,8 @@ project: "the owner" below is its designer and its only player.
 5. **No direct commits to `main`.** Every change is a PR that follows `.github/pull_request_template.md`, with "Siblings
    checked" and "Tests" filled in (the `pr-rule` check fails without them). Merge only when every check is green.
    Never skip, disable or weaken a test to get there. Correcting a test that asserts the wrong thing is allowed:
-   say in the PR what it now checks and why.
+   say in the PR what it now checks and why. Removing a duplicate, or a test that guards nothing, is allowed the same
+   way: name what covers it.
 6. **Rule files change only on the owner's word.** A PR that touches `AGENTS.md`, `docs/instructions.md`,
    `docs/providers/` or any skill in `.agents/skills/` quotes what the owner said or answered that it acts on. It
    then merges like any other PR (rule 5), without a second OK. An agent never changes a rule on its own idea.

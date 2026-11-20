@@ -8,4 +8,4 @@
 
 ## Tests
 
-<!-- the test that checks this change through the game (whole turn or browser smoke, never source text), completeness rows added, or "none needed: why" -->
+<!-- "covered by <test>" or "none needed: <why>"; a new test names the silent break it catches and the search that found nothing covering it; completeness rows added -->
