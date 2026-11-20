@@ -34,8 +34,8 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   seen ground can be pointed at (PZ12 a).
 - **MAP-17** The map is always drawn to scale: each zone at its real position and size in metres, so zones and places
   that adjoin touch along x and y and their shared side is the exit. The exit diagram, its force layout and its compass
-  guessing are gone. Each inner place's outline is exactly the box around the seen ground of its zones, with square
-  corners and its name above its north side (Ali, 14/11/2026, CO9; BG-313).
+  guessing are gone. Each inner place's outline is the box around the seen ground of its zones, padded as MAP-13 says,
+  with square corners and its name above its north side (Ali, 14/11/2026, CO9; BG-313; WF8 a).
 - **MAP-18** Code places every zone on the 1 m grid, with whole-metre sides and corners and the area's best whole-metre
   fit (MAP-10). It places a zone beside what it links to, never partly over another zone, and never inside another
   building's footprint (the box around a place's indoor zones), so a street runs beside a building and never through it
@@ -60,19 +60,21 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   unexplored`). The note reads "→ its name · unexplored" (or "· to Ashford", ", locked").
 - **MAP-25** A mark inside a zone (furniture, stairs, the player, people) is placed once, at the widest of a few set
   zooms that has room for it (PLACE_KS), and every zoom keeps it at the same share of its zone (inside the room its size
-  leaves). Furniture and stairs never move: zoomed out, where one would cover another mark it hides in its own spot
+  leaves). A stair is placed once at its own end, nudged then only if another mark already sits there. After that,
+  furniture and stairs never move at any zoom: zoomed out, where one would cover another mark it hides in its own spot
   (listed in the zone's card) and comes back there. The player and people are never hidden; they step aside only then
-  (BG-216).
+  (BG-216; WF10 a).
 - **MAP-26** To scale, a place's map is laid out by code at the zoom shown and drawn on one screen-pixel layer. No mark
   covers another at any zoom, and the first view fits the whole map with everything inside it (src/ui/mapPlan.ts).
 - **MAP-27** On a place's map your pin is placed first and furniture last. Place titles sit above their outline's
-  top-left corner; people sit in the bottom band or at their own point; stairs sit at their own end on this floor,
-  nudged only to keep clear of another mark. Furniture is left off (and still listed in the zone's card) when its zone
-  has no free spot.
+  top-left corner; people sit in the bottom band or at their own point; a stair is placed once at its own end on this
+  floor, nudged then only if another mark already sits there, and after that never moves at any zoom (MAP-25).
+  Furniture is left off (and still listed in the zone's card) when its zone has no free spot (WF10 a).
 
 #### Symbols and states
 
-- **MAP-30** One icon has one meaning. The legend is always available and lists every icon on the current map.
+- **MAP-30** One icon has one meaning. The legend is always available and lists every icon on the current map except
+  your pin (MAP-35; WF12 a).
 - **MAP-31** Icons never overlap each other or a wall corner. Doors sit at their own point on their wall (MAP-14).
 - **MAP-32** Every exit arrow names its target. No arrow points at empty space without a note.
 - **MAP-33** Zone states are fixed: where you are (current, highlighted); explored (stood in: journal.zonesVisited, each
@@ -202,20 +204,14 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
 
 #### Open discrepancies
 
-Where the old copies of these rules disagreed, this file keeps the spec's wording and marks the point here. None is
-settled; each waits for the owner (questionnaire "Workflow proposals", WF5: four were aligned to the code; these six,
-and the minimap's edge last, are asked one by one). Until then, the code decides what the game does (`AGENTS.md`,
-Order of authority).
+Where the old copies of these rules disagreed, this file keeps the spec's wording and marks the point here. The owner
+moved these four to a revision of the map's rules, recorded as D-413 (questionnaire "Workflow proposals", WF9, WF11,
+WF13, WF14). Until then, the code decides what the game does (`AGENTS.md`, Order of authority).
 
-- **MAP-13 and MAP-17:** a place's outline is "the bounding box … plus padding" (MAP-13) but "exactly the box around
-  the seen ground of its zones" (MAP-17).
 - **MAP-27 and MAP-68:** people out of full sight sit "in the bottom band" (MAP-27) or "in a row under the zone's name"
   (MAP-68).
-- **MAP-27 and MAP-25:** stairs are "nudged only to keep clear of another mark" (MAP-27), but "furniture and stairs
-  never move" (MAP-25).
 - **Footprint:** "one connected footprint" (MAP-12), "the bounding box of the seen ground … plus padding" (MAP-13),
   "the box around a place's indoor zones" (MAP-18, which `checkStage` uses).
-- **MAP-30 and MAP-35:** the legend "lists every icon on the current map", but the key leaves out your pin.
 - **MAP-24:** one format `→ target · state`, but a locked exit's note reads ", locked".
 - **MAP-33 and MAP-84 on the minimap:** a zone seen but never entered is hatched on the Map (MAP-33), but has a dashed
   edge on the minimap (src/ui/styles.css), whose marks are meant to be the Map's own (MAP-84).
