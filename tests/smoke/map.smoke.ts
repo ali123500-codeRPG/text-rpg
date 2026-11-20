@@ -1,5 +1,6 @@
 // rpg-map MAP-04, MAP-51, MAP-52: the Map's and the minimap's checkers find nothing on the three test stages, drawn by
 // the page as built. Run: npm run smoke.
+// near: src/ui/map src/ui/minimap.ts src/ui/furnitureIcons.ts src/ui/fakeStages.ts src/ui/styles.css src/plan/ src/scenario/geometry.ts
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { build } from 'esbuild';
 import { chromium, type Browser } from 'playwright';

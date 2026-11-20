@@ -1,6 +1,7 @@
 // TQ7 browser smoke tests: the play page, built (and minified) as in production, on the real game (tests/smoke/game.ts: in-memory save,
 // stand-in Claude). Few flows, the ones where screen wiring broke before: load and create (the opening), play a turn,
 // report a bug (BG-27), switch story (BG-63), restore a backup (BG-123). Run: npm run smoke.
+// near: src/ui/ tests/smoke/game.ts tests/smoke/entry.ts
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { build } from 'esbuild';
 import { chromium, type Browser, type Page } from 'playwright';
