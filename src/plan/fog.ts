@@ -1,7 +1,7 @@
 // PZ12 a, PZ13: the Map's fog on the floor plan. Each look marks the squares the player sees: 1 m squares under a roof,
 // FOG_OPEN_SQUARE_M squares in the open where no land lies under it (over the land, land/sight's cells do it), out to
 // FOG_ROOF_M indoors and FOG_OPEN_M in the open. Kept on the journal per floor in chunks of FOG_CHUNK squares a side, one
-// bit per square, base64.
+// bit per square, base64; the squares in sight at the latest look are kept the same way, replaced at each look (MAP-33).
 import type { GameState, Journal, Pt, Pt3, Zone } from '../types';
 import { CONFIG } from '../config';
 import { actorBody } from '../library';
@@ -28,27 +28,29 @@ function slot(floor: number, size: number, p: Pt): { key: string; bit: number } 
   return { key: `${fl(floor)}:${size}:${cx}:${cy}`, bit: (j - cy * N) * N + (i - cx * N) };
 }
 /** PZ12: the player has seen the square holding p on its floor (at the fog's square size `size`) */
-export function seenAt(j: Journal | undefined, p: Pt3, size: number): boolean {
-  const s = slot(p.floor, size, p), raw = j?.seenSquares?.[s.key];
+export function seenAt(j: Journal | undefined, p: Pt3, size: number, now = false): boolean {
+  const s = slot(p.floor, size, p), raw = (now ? j?.sightSquares : j?.seenSquares)?.[s.key];
   if (!raw) return false;
   const bits = decode(raw, CONFIG.FOG_CHUNK ** 2);
   return !!(bits[s.bit >> 3] & (1 << (s.bit & 7)));
 }
 /** PZ12: marks the squares of `zones` the player sees from where it stands now (a line from its eye to each square's
- * middle, a metre above its floor) */
+ * middle, a metre above its floor); MAP-33: they alone are in sight now, until the next look */
 export function seeSquares(state: GameState, zones: Zone[]): void {
   const p = state.player, here = zones.find((z) => z.id === p.zone);
+  if (p.journal) p.journal.sightSquares = {};
   if (!p.pos || !here) return;
   const eye = { x: p.pos.x, y: p.pos.y, z: here.floor + actorBody(state, p).size.heightM * CONFIG.EYE_SHARE };
-  markSquares(state, zones, (z, q, size) => dist(q, eye) <= (size > 1 ? CONFIG.FOG_OPEN_M : CONFIG.FOG_ROOF_M) && lineClear(state, eye, { ...q, z: z.floor + 1 }));
+  markSquares(state, zones, (z, q, size) => dist(q, eye) <= (size > 1 ? CONFIG.FOG_OPEN_M : CONFIG.FOG_ROOF_M) && lineClear(state, eye, { ...q, z: z.floor + 1 }), true);
 }
 /** BG-313: marks every square of `zones` as seen, ground the player already knows whole (the play screen's test stages) */
 export const seeWhole = (state: GameState, zones: Zone[]): void => markSquares(state, zones, () => true);
 
-/** sets the fog bit of each square of `zones` (off the land, under FOG_MAX_SQUARES) whose middle `sees` passes */
-function markSquares(state: GameState, zones: Zone[], sees: (z: Zone, q: Pt, size: number) => boolean): void {
+/** sets the fog bit of each square of `zones` (off the land, under FOG_MAX_SQUARES) whose middle `sees` passes; `now`:
+ *  and its bit among the squares in sight now (every square is tested then, not only those never seen) */
+function markSquares(state: GameState, zones: Zone[], sees: (z: Zone, q: Pt, size: number) => boolean, now = false): void {
   const j = (state.player.journal ??= { secretsKnown: [], factsWitnessed: [], remembered: {}, namesKnown: [] });
-  const chunks = new Map<string, Uint8Array>();
+  const chunks = new Map<string, Uint8Array>(), sight = new Map<string, Uint8Array>();
   for (const z of zones) {
     if (!z.outline?.length) continue;
     const size = squareOf(state, z);
@@ -62,28 +64,36 @@ function markSquares(state: GameState, zones: Zone[], sees: (z: Zone, q: Pt, siz
       if (!inTitle(z, q, size / 2)) continue;
       const s = slot(z.floor, size, q);
       let bits = chunks.get(s.key);
-      if (bits && bits[s.bit >> 3] & (1 << (s.bit & 7))) continue;
+      if (!now && bits && bits[s.bit >> 3] & (1 << (s.bit & 7))) continue;
       if (!sees(z, q, size)) continue;
       if (!bits) { bits = decode(j.seenSquares?.[s.key], CONFIG.FOG_CHUNK ** 2); chunks.set(s.key, bits); }
       bits[s.bit >> 3] |= 1 << (s.bit & 7);
+      if (!now) continue;
+      let lit = sight.get(s.key);
+      if (!lit) { lit = new Uint8Array(Math.ceil(CONFIG.FOG_CHUNK ** 2 / 8)); sight.set(s.key, lit); }
+      lit[s.bit >> 3] |= 1 << (s.bit & 7);
     }
   }
   for (const [k, bits] of chunks) (j.seenSquares ??= {})[k] = encode(bits);
+  for (const [k, bits] of sight) (j.sightSquares ??= {})[k] = encode(bits);
 }
 
 /** a stretch of seen squares on one row, in metres (y up): the Map draws a title's floor only under these (BG-313) */
 export type SeenRun = { x0: number; x1: number; y0: number; y1: number };
 /** PZ12 a, BG-313: the parts of a title the player has seen, as runs along each row of its fog squares, clipped to the
- *  title's box. Over the land (an open title on a region) the land's own cells say what is seen, as seeSquares leaves it */
-export function seenRuns(state: GameState, z: Zone): SeenRun[] {
+ *  title's box. Over the land (an open title on a region) the land's own cells say what is seen, as seeSquares leaves it.
+ *  `now` (MAP-33): only the squares in sight at the latest look; a title with no squares of its own (over the land, or
+ *  too big to mark) is in sight whole while it is in view, else not at all */
+export function seenRuns(state: GameState, z: Zone, now?: { inView: boolean }): SeenRun[] {
   if (!z.outline?.length) return [];
   const j = state.player.journal, b = boxOf(z.outline), bx0 = b.x - b.w / 2, bx1 = b.x + b.w / 2, by0 = b.y - b.d / 2, by1 = b.y + b.d / 2;
   const size = squareOf(state, z), land = size > 1 ? regionAt(state, b) : undefined, cells = land ? landSeen(state, land.id) : undefined;
   const i0 = Math.floor(bx0 / size), i1 = Math.floor((bx1 - 1e-9) / size), j0 = Math.floor(by0 / size), j1 = Math.floor((by1 - 1e-9) / size);
   const marked = (Math.floor(bx1 / size) - i0 + 1) * (Math.floor(by1 / size) - j0 + 1); // as seeSquares counts them
+  if (now && !now.inView) return [];
   if (!land && marked > FOG_MAX_SQUARES) return [{ x0: bx0, x1: bx1, y0: by0, y1: by1 }]; // never marked: all of it
   if ((i1 - i0 + 1) * (j1 - j0 + 1) > 40000) return [];
-  const seen = (q: Pt) => (land ? cells!(cellAt(land, q)) : seenAt(j, { ...q, floor: z.floor }, size));
+  const seen = (q: Pt) => (land ? cells!(cellAt(land, q)) : seenAt(j, { ...q, floor: z.floor }, size, !!now));
   const out: SeenRun[] = [];
   for (let k = j0; k <= j1; k++) {
     const y0 = Math.max(by0, k * size), y1 = Math.min(by1, (k + 1) * size);

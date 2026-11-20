@@ -384,12 +384,15 @@ export type Journal = {
   trail?: { zone: string; left: Turn }[];
   /** PZ13: every title the player has stood in or looked into (its name is known), oldest first */
   zonesSeen?: string[];
-  /** the Map page (MAP-33): every title the player has stood in, oldest first */
+  /** every title the player has stood in, oldest first (the turn's new places, agents/game.ts) */
   zonesVisited?: string[];
   /** PZ12 a, the Map's fog: the ground the player has seen, in squares (1 m under a roof, FOG_OPEN_SQUARE_M in the open
    * where no land lies under it) per floor: chunks of FOG_CHUNK squares a side, keyed '<floor>:<size>:<cx>:<cy>', one bit
    * per square, base64 (src/plan/fog.ts); in the open over the land, landSeen */
   seenSquares?: Record<string, string>;
+  /** MAP-33: the squares of seenSquares in sight at the latest look, kept the same way and replaced at each look; the Map
+   *  draws the rest of the seen ground faded */
+  sightSquares?: Record<string, string>;
   /** WZ4 the land the player has made out, per region id: one bit per grid cell, base64 (src/land/sight.ts) */
   landSeen?: Record<string, string>;
 };

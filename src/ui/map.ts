@@ -55,6 +55,14 @@ export function fogClip(id: string, zones: MapZone[], pxPerM: number): SVGElemen
     .map((r) => s('rect', { x: r.x0 * pxPerM - pad, y: -r.y1 * pxPerM - pad, width: (r.x1 - r.x0) * pxPerM + 2 * pad, height: (r.y1 - r.y0) * pxPerM + 2 * pad })));
   return s('clipPath', { id, clipPathUnits: 'userSpaceOnUse' }, ...rects);
 }
+/** MAP-33: the fog's two tones as a mask: the seen ground faded, the ground in sight now (a title with no fog record:
+ *  all of it) drawn full over it, each square a hair wider as in fogClip */
+export function fogMask(id: string, zones: MapZone[], pxPerM: number): SVGElement {
+  const pad = 1.5, whole = (z: MapZone) => (z.rect ? [{ x0: z.rect.x - z.rect.w / 2, x1: z.rect.x + z.rect.w / 2, y0: z.rect.y - z.rect.d / 2, y1: z.rect.y + z.rect.d / 2 }] : []);
+  const rect = (cls: string) => (r: { x0: number; x1: number; y0: number; y1: number }) => s('rect', { class: cls, x: r.x0 * pxPerM - pad, y: -r.y1 * pxPerM - pad, width: (r.x1 - r.x0) * pxPerM + 2 * pad, height: (r.y1 - r.y0) * pxPerM + 2 * pad });
+  return s('mask', { id, maskUnits: 'userSpaceOnUse', x: -1e6, y: -1e6, width: 2e6, height: 2e6 },
+    ...zones.flatMap((z) => (z.seen ?? whole(z)).map(rect('map-fog-faded'))), ...zones.flatMap((z) => (z.sight ?? z.seen ?? whole(z)).map(rect('map-fog-now'))));
+}
 /** below this stage width, fitting a place never shrinks tiles past NARROW_MIN_K */
 const NARROW_W = 640, NARROW_MIN_K = 0.75;
 /** the "you are here" pin, on the Map and the minimap alike; its point shows the way you face (BG-18: left and right in
@@ -170,7 +178,6 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void, onWalk?:
   const vp = s('g', { class: 'map-vp' }) as SVGGElement;
   const defs = s('defs', {},
     s('pattern', { id: 'map-dots', width: 28, height: 28, patternUnits: 'userSpaceOnUse' }, s('circle', { cx: 2, cy: 2, r: 1.2, class: 'map-dot' })),
-    s('pattern', { id: 'map-hatch', width: 7, height: 7, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' }, s('line', { x1: 0, y1: 0, x2: 0, y2: 7, class: 'map-hatch-line' })),
     s('marker', { id: 'map-arrow', viewBox: '0 0 10 10', refX: 8, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }, s('path', { d: 'M0 0 10 5 0 10z', class: 'map-arrowhead' })));
   const bg = s('rect', { x: -6000, y: -6000, width: 12000, height: 12000, fill: 'url(#map-dots)', class: 'map-bg' });
   // to scale, your pin sits on its own layer at a fixed size, so it stays visible however far out a long road zooms (TV7)

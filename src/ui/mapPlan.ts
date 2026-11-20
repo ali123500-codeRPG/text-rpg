@@ -37,9 +37,7 @@ export type Measure = (text: string, kind: TextKind, px?: number) => number;
 /** a stand-in for the browser's measure where there is none (tests): a little wide, so real text always fits its box */
 export const roughMeasure: Measure = (t, k, px) => t.length * (px ?? TEXT[k].size) * (k === 'title' ? 0.72 : 0.6);
 
-/** what a zone is to the character (MAP-33): where it is, been in, or only seen across an exit */
-export type ZoneState = 'current' | 'explored' | 'seen';
-export type SZone = { z: MapZone; box: Box; state: ZoneState };
+export type SZone = { z: MapZone; box: Box };
 /** box: the box round its outline; outline: its footprint as an SVG path (MAP-13) */
 export type SPlace = { id: string; name: string; box: Box; outline: string; title: SText };
 export type SText = Box & { text: string; full: string; cut: boolean; lines: string[] };
@@ -75,9 +73,6 @@ export type PlanInput = {
   /** zoom: screen pixels per map pixel */
   k: number;
   measure: Measure;
-  /** MAP-33: the zones the character has stood in, when the save records them; without it every known zone is drawn as
-   *  explored (the trail keeps only the last few zones left, too few to tell seen from been in) */
-  visits?: Set<string>;
   /** the name of the top-level place a known zone off this map sits in, for exits that open another map */
   awayName: (zoneId: string) => string | undefined;
 };
@@ -90,6 +85,7 @@ const GAP = 2, PAD = 7; // PAD: 6 px (MAP-20) plus the hair the drawn zone sits 
 const ARROWS = [22, 40, 60, 84, 112, 144, 180];
 const hit = (a: Box, b: Box, m = 0) => a.x0 < b.x1 + m && b.x0 < a.x1 + m && a.y0 < b.y1 + m && b.y0 < a.y1 + m;
 const disc = (cx: number, cy: number, r: number, ry = r): Box => ({ x0: cx - r, y0: cy - ry, x1: cx + r, y1: cy + ry });
+const runsArea = (rs: { x0: number; x1: number; y0: number; y1: number }[]) => rs.reduce((a, r) => a + (r.x1 - r.x0) * (r.y1 - r.y0), 0);
 const r2 = (v: number) => Math.round(v * 100) / 100;
 const union = (bs: Box[]): Box => bs.reduce((a, b) => ({ x0: Math.min(a.x0, b.x0), y0: Math.min(a.y0, b.y0), x1: Math.max(a.x1, b.x1), y1: Math.max(a.y1, b.y1) }), { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity });
 /** GSM-193 (SZ16): the capsule a body bigger than its disc is drawn as at zoom k, none for a body the disc covers */
@@ -199,13 +195,13 @@ const fromShare = (f: number, a: number, b: number, inset: number) => (b - a - 2
  *  here, is hidden (listed in `dropped`) rather than placed anew; `names`: the zone names at each of PLACE_KS */
 function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: Box[][]): Scene {
   const { k, measure } = inp;
-  const zones: SZone[] = inp.zones.filter((z) => z.rect).map((z) => ({ z, box: zoneBox(z, k), state: z.here ? 'current' : !inp.visits || inp.visits.has(z.id) ? 'explored' : 'seen' }));
+  const zones: SZone[] = inp.zones.filter((z) => z.rect).map((z) => ({ z, box: zoneBox(z, k) }));
   const byId = new Map(zones.map((x) => [x.z.id, x]));
-  const used = new Set<string>(zones.map((x) => `state:${x.state}`));
+  const used = new Set<string>();
   for (const { z } of zones) {
     used.add(z.outdoor ? 'outdoor' : 'indoor');
     for (const w of z.walls ?? []) used.add(`edge:${w.cls}`);
-    if (!z.inView) used.add('remembered');
+    if (z.seen && z.sight && runsArea(z.sight) < runsArea(z.seen) - 1e-6) used.add('remembered'); // MAP-33: seen ground out of sight now
   }
   // every mark placed so far, with its role: later marks keep clear of them
   const taken: { box: Box; role: 'label' | 'token' | 'icon' | 'exit' | 'title' }[] = [];

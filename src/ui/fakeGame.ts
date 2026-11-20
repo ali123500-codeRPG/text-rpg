@@ -1,7 +1,7 @@
 // In-memory fake GameApi with canned lines, for building and screenshotting the screens until W7's pipeline lands.
 import { drawTitles } from '../plan/draw';
 import { middle } from '../plan/where';
-import { seeWhole } from '../plan/fog';
+import { seeSquares, seeWhole } from '../plan/fog';
 import { boxOf } from '../plan/geom';
 import { dropOnGround, groundIn } from '../engine/ground';
 import { BK, PA, VL, WK } from '../library/tableIds';
@@ -348,7 +348,9 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     const commonZ = state.zones.find((z) => z.id === 'tav_common'), common = commonZ?.outline.length ? boxOf(commonZ.outline) : undefined;
     if (common) { player.pos = { x: common.x - common.w / 4, y: common.y - common.d / 4 }; guard.pos = { x: common.x + common.w / 3, y: common.y + common.d / 5 }; }
     // BG-313: the ground you know is remembered whole on the Map's fog
-    seeWhole(state, (player.journal?.zonesSeen ?? []).map((id) => zoneById(state!, id)!).filter(Boolean));
+    const known = (player.journal?.zonesSeen ?? []).map((id) => zoneById(state!, id)!).filter(Boolean);
+    seeWhole(state, known);
+    seeSquares(state, known); // MAP-33: and what of it is in sight from where you stand
     // a little move time carried from last turn (TP4)
     if (state.mode === 'tactical') player.carry = [{ main: 0, move: 2.4, turn: state.turn - 1 }];
     player.core.inventory.push({ id: 'player_draught', itemId: IT.healing_draught, qty: 2 }, { id: 'player_draught_2', itemId: IT.healing_draught, qty: 1 }, { id: 'player_bandage', itemId: IT.bandage, qty: 2 },
