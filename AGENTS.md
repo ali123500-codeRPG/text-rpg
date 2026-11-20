@@ -24,9 +24,9 @@ project: "the owner" below is its designer and its only player.
 1. **The owner's game and saves are off-limits.** Never play the published game, and never read, write or delete the
    owner's saves or stories, without the owner's OK. Publishing the game means build, test and publish only.
 2. **Every bug gets a number and its root cause.** Every bug gets a BG-n and a row in the spec's Bug log. Find the
-   root cause with the `root-cause-first` skill, and say the cause and the fix in the PR. A bug fix does not wait
-   for the owner: it merges like any other PR (rule 5). A fix that needs a design choice is still a question to the
-   owner first (rule 3). Every bug-fix PR adds an entry to `docs/bug-fix-log.md`.
+   root cause with the `root-cause-first` skill. Write the cause and the fix once, in the bug's `docs/bug-fix-log.md`
+   entry, and link that entry from the PR. A bug fix does not wait for the owner: it merges like any other PR (rule
+   5). A fix that needs a design choice is still a question to the owner first (rule 3).
 3. **Do not invent mechanics or guess a rule.** A gap, or a request that can be read more than one way, is a question
    to the owner with a recommendation. Build only the clear parts. When the shape of a curve, formula or table is
    open, or a request gives a direction for a number but no amount, show options before building.

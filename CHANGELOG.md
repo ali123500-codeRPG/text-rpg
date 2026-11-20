@@ -3,6 +3,8 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bug-fix-log.md`.
 
+- 20/11/2026: `AGENTS.md` rule 2 (WF3 a): the cause and the fix are written once, in the bug's `docs/bug-fix-log.md`
+  entry, which the PR links, as `docs/instructions.md` section 2 already says; it no longer asks for them in the PR.
 - 20/11/2026: `docs/instructions.md` section 8 (WF2 a): locally, typecheck plus `npm run test:near` and new tests;
   the full suite and browser tests run on GitHub only, on every PR; open a draft PR early; a newer push cancels the
   PR's older run (`ci.yml` concurrency, PR runs only). `docs/providers/claude.md`: the draft and ready-for-review
