@@ -31,6 +31,11 @@ const PICKS = {
   fig_power: 'gi:power-lightning', fig_attack: 'gi:sword-brandish', fig_defense: 'gi:checked-shield',
   // the Character page's section tiles
   tile_essences: 'gi:floating-crystal', tile_perks: 'gi:star-formation', tile_gear: 'gi:battle-gear', tile_personality: 'gi:drama-masks',
+  // skill trees, drawn large in each band's heading (TREE_ICON in src/ui/itemIcons.ts)
+  tr_melee: 'gi:sword-in-stone', tr_defense: 'gi:templar-shield', tr_fortitude: 'gi:heart-tower', tr_armor: 'gi:closed-barbute',
+  tr_swordsman: 'gi:winged-sword', tr_perception: 'gi:all-seeing-eye', tr_ranged: 'gi:arrow-cluster', tr_unarmed: 'gi:punch-blast',
+  tr_stealth: 'gi:cloak-dagger', tr_speech: 'gi:public-speaker', tr_trickery: 'gi:jester-hat', tr_natural: 'gi:wolf-head',
+  tr_slime_senses: 'gi:transparent-slime', tr_tools: 'gi:toolbox', tr_medicine: 'gi:caduceus', tr_tactics: 'gi:flag-objective',
   // skills that have no item or class icon to share (SKILL_ICON in src/ui/itemIcons.ts)
   sk_ranged_light: 'gi:pocket-bow', sk_strike: 'gi:punch', sk_grapple: 'gi:grab', sk_improvised: 'gi:broken-bottle', sk_slam: 'gi:fist',
   sk_dodge: 'gi:dodging', sk_endurance: 'gi:heart-plus', sk_eyesight: 'gi:eyeball', sk_earshot: 'gi:sound-waves',
