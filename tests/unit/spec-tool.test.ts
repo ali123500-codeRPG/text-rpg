@@ -28,7 +28,7 @@ describe('spec tool', () => {
   });
 
   it('a question ID is cited alone or inside a range, never by a longer ID or another prefix', () => {
-    expect(cites('settled by LS3 (Ali)', 'LS3')).toBe(true);
+    expect(cites('settled by LS3 (hub page)', 'LS3')).toBe(true);
     expect(cites('LS1 to LS5 are answered', 'LS3')).toBe(true);
     expect(cites('hearing by LS1-LS5, NPCs', 'LS4')).toBe(true);
     expect(cites('ST1–ST19', 'ST7')).toBe(true);
