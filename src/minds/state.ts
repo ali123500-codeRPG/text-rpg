@@ -550,7 +550,7 @@ export function detectPlayer(state: GameState, event: GameEvent, rng: Rng): void
   }
 }
 
-/** OQ-4, BG-342: an attack on someone unaware of the attacker is an ambush. It rolls nothing of its own: the attack's own
+/** OQ-4, BG-343: an attack on someone unaware of the attacker is an ambush. It rolls nothing of its own: the attack's own
  * Combat Stealth contests (stealthDetect, from hiding or not: one per sense that reaches each watcher, once per turn)
  * decide who notices, before the blow. The target is surprised when it rolled and every sense lost: a win or a tie on any
  * sense keeps it from being caught off guard, and a later blow in the same turn keeps that result. A watcher who wins

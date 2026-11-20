@@ -1,4 +1,4 @@
-// 412 BG-342: an ambush is the attack's own Combat Stealth contests, one per sense that reaches each watcher, once per
+// 412 BG-343: an ambush is the attack's own Combat Stealth contests, one per sense that reaches each watcher, once per
 // turn, from hiding or not; only the outcome is special: the target is caught off guard when every sense it rolled lost.
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { beside, createRng, makeVillage, place } from '../harness';
@@ -33,7 +33,7 @@ const against = (calls: [RollRequest, RollRequest][], id: string) => calls.filte
 
 afterEach(() => vi.restoreAllMocks());
 
-describe('412 ambush as Combat Stealth (BG-342)', () => {
+describe('412 ambush as Combat Stealth (BG-343)', () => {
   it('a blow from hiding rolls Combat Stealth against each sense, never the weapon; every sense lost: caught off guard', () => {
     const s = makeVillage();
     unawareGuard(s);

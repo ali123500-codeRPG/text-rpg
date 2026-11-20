@@ -1,5 +1,5 @@
 // detectPlayer with local fakes for W3's updateBeliefs and W2's roll. The ambush is the attack's own stealth contests
-// (BG-342): tests/cases/s412-ambush-combat-stealth.test.ts.
+// (BG-343): tests/cases/s412-ambush-combat-stealth.test.ts.
 import { AM } from '../../src/library/tableIds';
 import { IT } from '../../src/library/itemIds';
 import type { Tier } from '../../src/types';
