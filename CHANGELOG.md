@@ -3,6 +3,8 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bug-fix-log.md`.
 
+- 20/11/2026: the bug fix log's entries up to BG-326 (the ones that name a PR) move unchanged to
+  `docs/bug-fix-log-archive.md` (the owner, asked whether to split it as well: "yeah"). `AGENTS.md` map follows.
 - 20/11/2026: active and archive (the owner: "for the spec for decisions and bugs etc files, I would still want to
   change them between active and archive"). `docs/instructions.md` section 2: the Deferred items table and the Bug log
   keep open rows; a finished row moves unchanged to its archive file in the PR that finishes it; a new BG-n is one past

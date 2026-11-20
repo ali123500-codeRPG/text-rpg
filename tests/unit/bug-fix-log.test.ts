@@ -7,7 +7,7 @@ import { BUG_LOGS } from '../harness/specDocs';
 
 const rows = BUG_LOGS.map((f) => readFileSync(f, 'utf8') as string).join('\n').split('\n').filter((l) => /^\| BG-\d+/.test(l));
 const cells = (l: string) => l.split('|').slice(1, -1).map((c) => c.trim());
-const log = readFileSync('docs/bug-fix-log.md', 'utf8') as string;
+const log = ['docs/bug-fix-log.md', 'docs/bug-fix-log-archive.md'].map((f) => readFileSync(f, 'utf8') as string).join('\n');
 const entries = log.split('\n## ').slice(1);
 
 describe('bug fix log', () => {
