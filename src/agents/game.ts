@@ -849,6 +849,7 @@ export function createGame(deps: GameDeps): Game {
       const sent = new Set(sends.map((x) => x.storyId));
       return fallen.map((f) => ({ ...f, ...(inLib.has(f.storyId) ? { inLibrary: true as const } : sent.has(f.storyId) ? { sent: true as const } : {}) }));
     },
+    fallenSheet: (storyId) => save.loadStory(store, storyId, getLibrary(), true).then((r) => r.state, () => null),
     async sendBlueprint(id) {
       const b = state?.blueprints.find((x) => x.id === id);
       if (!state || !b) return { error: 'Nothing with that id was made in this story.' };

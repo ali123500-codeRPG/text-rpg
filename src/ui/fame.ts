@@ -1,15 +1,52 @@
 // Hall of fame: every fallen character, newest fall first. Read from the save (archived stories carry their fame entry),
 // so it opens even when no story is running, which is right after a reset. HF34 a: "Send to NPC template" puts the
 // character's echo sheet on the library send list and wakes Claude, who adds it to the code library by PR.
-import type { FallenCharacter, GameApi } from '../types';
+import type { FallenCharacter, GameApi, GameState } from '../types';
 import { claudeComments, h, type CommentsApi } from './kit';
 import { fellFacts, fellLine } from './fell';
 import { gradeLetter } from '../ruleset/reportCard';
+import { characterPage } from './pages';
 
 const REFRESH_MS = 5000;
 
+/** YB5: a game handle on a fallen character's story as it ended: it reads, and nothing on the page can act through it */
+function lookOnly(api: GameApi, s: GameState): GameApi {
+  const none = async () => {};
+  return { ...api, state: () => s, busy: () => true, fell: () => true, takePerk: none, undoPerk: none, submit: none, setSignatures: () => {} } as GameApi;
+}
+
 export function famePage(api: GameApi) {
-  const el = h('main', { class: 'fame' });
+  // the page holds the list, or one fallen character's sheet in its place (YB5 a: their Character page, read-only)
+  const el = h('div', { class: 'fame-view' });
+  const board = h('main', { class: 'fame' });
+  let sheet: { storyId: string; el: HTMLElement } | null = null;
+  const closeSheet = () => {
+    if (!sheet) return;
+    const id = sheet.storyId;
+    sheet = null;
+    if (history.state?.fameSheet) history.back();
+    draw();
+    el.querySelector<HTMLElement>(`[data-sheet="${id}"]`)?.focus();
+  };
+  async function openSheet(c: FallenCharacter) {
+    notes.set(c.storyId, 'Opening their sheet…');
+    draw();
+    const s = await api.fallenSheet(c.storyId).catch(() => null);
+    if (!s) { notes.set(c.storyId, 'Their story no longer loads, so their sheet can’t be opened.'); draw(); return; }
+    notes.delete(c.storyId);
+    const close = h('button', { type: 'button', class: 'hs-icon-btn', 'aria-label': 'Back to the Hall of fame', title: 'Back to the Hall of fame (Esc)', onclick: closeSheet }, '✕');
+    const page = characterPage(lookOnly(api, s), { title: [c.name, c.title ? h('small', {}, ` · ${c.title}`) : '', h('small', {}, ` · fell on day ${c.day}, turn ${c.turn}`)], close });
+    page.update();
+    sheet = { storyId: c.storyId, el: page.el };
+    if (!history.state?.fameSheet) history.pushState({ fameSheet: true }, ''); // Back closes it
+    draw();
+    close.focus();
+  }
+  // Esc and Back close the sheet, but only once no pop-up is open over it (those close first)
+  addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && sheet && el.isConnected && !document.querySelector('.dpop, .fpop, .pk-card')) { e.preventDefault(); closeSheet(); }
+  }, true);
+  addEventListener('popstate', () => { if (sheet && !history.state?.fameSheet) { sheet = null; draw(); } });
   let rows: FallenCharacter[] | null = null, failed = false, fetchedAt = 0;
   let comments: CommentsApi | null = null;
   const notes = new Map<string, string>(); // what the last send said, by story
@@ -36,7 +73,7 @@ export function famePage(api: GameApi) {
   // a card is two parts side by side when there is room: who they were and how they fell, then what they had
   const card = (c: FallenCharacter) => h('article', { class: 'fame-card' }, h('div', { class: 'fame-who' },
     h('div', { class: 'fame-h' },
-      h('h2', {}, c.name, c.title ? h('small', {}, ` · ${c.title}`) : ''),
+      h('h2', {}, h('button', { type: 'button', class: 'fame-open', 'data-sheet': c.storyId, title: 'Their full sheet', onclick: () => void openSheet(c) }, c.name), c.title ? h('small', {}, ` · ${c.title}`) : ''),
       c.owner === 'agent' ? h('span', { class: 'hs-tg cap' }, 'Agent’s story') : ''),
     h('p', { class: 'hs-note' }, `${c.classes.map((k) => `${k.name} ${k.level}`).join(', ') || 'No class'} · level ${c.level} · ${c.defeats} defeated`),
     h('p', { class: 'hs-note' }, `Fell on day ${c.day}, turn ${c.turn}, at ${c.place || 'an unknown place'}.`),
@@ -48,7 +85,9 @@ export function famePage(api: GameApi) {
       h('p', {}, ...c.skills.map((s) => h('span', { class: 'hs-tg' }, `${s.name} ${s.value}`)))) : '',
     list('Perks', c.perks), list('Achievements', c.achievements), list('Scars', c.scars)));
   function draw() {
-    el.replaceChildren(
+    if (sheet) { if (el.firstChild !== sheet.el) el.replaceChildren(sheet.el); return; }
+    if (el.firstChild !== board) el.replaceChildren(board);
+    board.replaceChildren(
       h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Hall of fame'))),
       rows === null ? h('p', { class: 'empty', role: 'status' }, failed ? 'The hall of fame couldn’t be read from the save.' : 'Reading the save…')
         : rows.length ? h('div', { class: 'fame-grid' }, rows.map(card)) : h('p', { class: 'empty' }, 'Nobody has fallen yet.'));

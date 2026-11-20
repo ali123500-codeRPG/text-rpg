@@ -267,6 +267,20 @@ describe('migration and reconcile', () => {
     delete MIGRATIONS[V];
   });
 
+  it('YB5: a look (a fallen character\'s sheet) migrates in memory and writes nothing: no backup, no new head', async () => {
+    const s = makeVillage();
+    const st = memoryStore();
+    await play(st, s, 1, 2);
+    const V = CONFIG.SCHEMA_VERSION, before = await head(st);
+    CONFIG.SCHEMA_VERSION = V + 1;
+    MIGRATIONS[V] = (pages) => { (pages.engine as { clocks: Record<string, unknown> }).clocks.migrated = 1; };
+    const { state } = await loadStory(st, 'test', lib(), true);
+    expect(state.clocks.migrated).toBe(1);
+    expect(await head(st)).toEqual(before);
+    expect(await listBackups(st, 'test')).toEqual([]);
+    delete MIGRATIONS[V];
+  });
+
   it('refuses when a step is missing and leaves the save untouched', async () => {
     const s = makeVillage();
     const st = memoryStore();

@@ -203,8 +203,10 @@ export async function amendHead(store: Store, storyId: string, library: Library,
 }
 
 // ---------- load ----------
-/** Load: checksums, migrations, library reconcile, invariants, references; then build GameState. Throws LoadRefusedError. */
-export async function loadStory(store: Store, storyId: string, library: Library): Promise<{ state: GameState; report: string[] }> {
+/** Load: checksums, migrations, library reconcile, invariants, references; then build GameState. Throws LoadRefusedError.
+ * `look`: YB5, read a story only to show it (a fallen character's sheet): it is brought up to date in memory, and
+ * nothing is written back, no backup, no migrated pages, no world-check log */
+export async function loadStory(store: Store, storyId: string, library: Library, look = false): Promise<{ state: GameState; report: string[] }> {
   return guard(async () => {
     const r = newReport();
     const [head, meta] = await Promise.all([store.get<Head>(headPath(storyId)), store.get<StoryMeta>(story(storyId))]);
@@ -212,11 +214,12 @@ export async function loadStory(store: Store, storyId: string, library: Library)
     const pages = await readPages(store, storyId, head, r);
     if (r.errors.length) return refuse(r, head);
     const migrating = head.schemaVersion < CONFIG.SCHEMA_VERSION;
-    if (migrating) await writeBackup(store, storyId, head); // on load before any migration (§11)
+    if (migrating && !look) await writeBackup(store, storyId, head); // on load before any migration (§11)
     prepare(pages, storyId, head.schemaVersion, library, r);
     if (r.errors.length) return refuse(r, head);
     let next = head;
-    if (r.changed.size || head.libraryVersion !== library.version || migrating) {
+    if (look) next = { ...head, schemaVersion: CONFIG.SCHEMA_VERSION, libraryVersion: library.version };
+    else if (r.changed.size || head.libraryVersion !== library.version || migrating) {
       const refs = await commitPages(store, storyId, pages, head.turn, liveOf(head), head.pages);
       // after a migration the undo bookmark holds old-schema pages: the backup just written stands in for it
       next = { ...head, pages: refs, schemaVersion: CONFIG.SCHEMA_VERSION, libraryVersion: library.version, undo: migrating ? null : head.undo };
@@ -225,7 +228,7 @@ export async function loadStory(store: Store, storyId: string, library: Library)
     const state = fromPages(meta, next, pages);
     // MR2: a layout stored before the map rules (MAP-10/11/12) is placed again once; the next save keeps the new one
     // WI9 a: a land rule the save still breaks is filed as a bug (once per rule broken), and the game loads anyway
-    for (const m of worldCheck(state)) {
+    for (const m of look ? [] : worldCheck(state)) {
       r.warnings.push(`world check: ${m}`);
       if (!state.log.some((l) => l.code === 'world_check' && l.detail?.broken === m)) state.log.push({ turn: state.turn, code: 'world_check', detail: { broken: m } });
     }

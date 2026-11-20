@@ -15,7 +15,7 @@ import { charLevel, freeLevelsOwed, keepCapstone, levelTarget, swapCapstone, xpF
 import { essenceSlots } from '../engine/essence';
 import { treeBlock } from '../ruleset/access';
 import { augmentWindow, burdenOf, burdenParts, groupRollBonus, learningWindow } from '../ruleset/improve';
-import { h, safe } from './kit';
+import { ended, h, safe } from './kit';
 import { classIcon } from './itemIcons';
 import { openPop } from './pop';
 import { powerFigure } from './power';
@@ -255,7 +255,7 @@ function essenceRow(p: Actor): HTMLElement | null {
 /** alternate capstones on offer: the default is inactive until the player keeps it or picks an alternate (final) */
 function capstoneChoice(s: GameState, p: Actor): HTMLElement | null {
   const offers = Object.entries(p.progression?.capstoneOptions ?? {}).filter(([, ids]) => ids.length);
-  if (!offers.length) return null;
+  if (!offers.length || ended(s)) return null;
   const lib = getLibrary();
   const perk = (id: string) => lib.perks[id];
   const el: HTMLElement = h('div', { class: 'cs-gear' }, h('p', { class: 'hs-label' }, 'Capstone choice'),

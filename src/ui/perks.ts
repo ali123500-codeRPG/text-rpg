@@ -6,7 +6,7 @@ import { termAttrs } from '../words';
 import type { Actor, GameApi, GameState, OwnedPerk, PerkDef } from '../types';
 import { getLibrary } from '../library';
 import { allStepsUpTo, canUndo, milestonesUpTo, milestonePerk, milestoneState, trueSkill, type MilestoneState } from '../ruleset';
-import { boxOf, h, pointOf, viewSize } from './kit';
+import { boxOf, ended, h, pointOf, viewSize } from './kit';
 import { CONFIG } from '../config';
 import { skillName, TREE_VIEW } from './creation';
 import { PK } from '../library/perkIds';
@@ -86,7 +86,7 @@ function card(s: GameState, p: Actor, api: GameApi) {
   const st = milestoneState(p, skill, milestone);
   if (st === 'sealed') return null;
   const d = milestonePerk(skill, milestone);
-  const pts = p.progression?.unspentPerkPoints ?? 0;
+  const pts = p.progression?.unspentPerkPoints ?? 0, acts = !ended(s); // YB5: a fallen character's board only reads
   // a floating card like the details pop-ups: dragged by its head, closed with ✕ or Esc, and it stays where it was put
   const head = h('div', { class: 'pk-card-head' }, h('p', { class: 'k' }, `${skillName(skill)} · ${milestone}`), d?.rules ? textToggle() : null,
     h('button', { type: 'button', class: 'hs-icon-btn', 'aria-label': 'Close', title: 'Close (Esc)', onclick: () => { ui.sel = null; redraw(); } }, '✕'));
@@ -95,13 +95,13 @@ function card(s: GameState, p: Actor, api: GameApi) {
     d ? [h('h4', {}, d.name), ...writeup(d)] : h('p', {}, 'No perk is written for this milestone yet.'),
     st === 'own' && d && linkNote(p, d.id) ? h('p', { class: 'pk-link-note' }, linkNote(p, d.id)) : null,
     st === 'open' && d?.built === false ? h('p', { class: 'tiny' }, 'Not in the game yet.') : null,
-    st === 'open' && d?.built !== false ? h('button', { type: 'button', class: 'hs-btn-main pk-take', disabled: pts < 1 || api.busy(), onclick: () => api.takePerk(d!.id) }, pts < 1 ? `Needs ${1 - pts} more point` : 'Take · 1 point') : null,
+    acts && st === 'open' && d?.built !== false ? h('button', { type: 'button', class: 'hs-btn-main pk-take', disabled: pts < 1 || api.busy(), onclick: () => api.takePerk(d!.id) }, pts < 1 ? `Needs ${1 - pts} more point` : 'Take · 1 point') : null,
     // A11: a perk the owner can switch off, on by default
-    st === 'own' && d && SWITCHABLE.has(d.id) ? h('button', { type: 'button', class: 'hs-btn-text', 'aria-pressed': String(!p.core.perksOff?.includes(d.id)),
+    acts && st === 'own' && d && SWITCHABLE.has(d.id) ? h('button', { type: 'button', class: 'hs-btn-text', 'aria-pressed': String(!p.core.perksOff?.includes(d.id)),
       onclick: () => { const off = new Set(p.core.perksOff ?? []); if (off.has(d.id)) off.delete(d.id); else off.add(d.id); p.core.perksOff = [...off]; redraw(); } },
       p.core.perksOff?.includes(d.id) ? 'Off · switch on' : 'On · switch off') : null,
-    st === 'own' && d && canUndo(s, p, d.id) ? h('button', { type: 'button', class: 'hs-btn-text', onclick: () => api.undoPerk(d.id) }, 'Undo') : null,
-    st === 'open' && pts > 0 ? h('p', { class: 'tiny' }, 'You can undo until you play the next turn.') : null);
+    acts && st === 'own' && d && canUndo(s, p, d.id) ? h('button', { type: 'button', class: 'hs-btn-text', onclick: () => api.undoPerk(d.id) }, 'Undo') : null,
+    acts && st === 'open' && pts > 0 ? h('p', { class: 'tiny' }, 'You can undo until you play the next turn.') : null);
 }
 
 /** Story / Effect: which write-up the perks show, beside where they are written */

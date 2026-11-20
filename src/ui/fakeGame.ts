@@ -398,6 +398,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
         place: 'The back yard · The Lantern & Ladle', downedBy: { by: 'a lanky youth', weapon: 'dagger', part: 'neck', outcome: 'crushing hit' }, card: { combat: 'rank_2', achievements: 'rank_1', reputation: 'rank_1' }, fellAt: '2026-11-10T21:00:00.000Z' }];
     },
     async sendHero(storyId: string) { return { id: `unique_${storyId}` }; },
+    async fallenSheet() { return state ? { ...structuredClone(state), meta: { ...state.meta, archivedAt: '2026-11-10T21:00:00.000Z' } } : null; },
     async sendBlueprint(id: string) { return { id: `item_story_fake_${id}` }; },
     async librarySends() { return []; },
     async worlds() { return [{ worldId: 'story_fake', name: 'Aldric’s world', lastStoryId: 'story_fake', day: 3, past: [{ name: 'Aldric', fell: true }], threadbound: [IT.varos_loop] }]; },
