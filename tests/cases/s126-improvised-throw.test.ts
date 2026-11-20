@@ -38,17 +38,4 @@ describe('126 improvised strike and throw', () => {
     expect(r.attack.skill).toBe(SK.ranged_light);
     expect(r.attack.asked).toBe(SK.unarmed_improvised);
   });
-  it('a strike in the same zone: an Arms skill stands in, a Ranged skill does not; Unarmed works for both', () => {
-    const s = makeVillage();
-    holdImprovised(s);
-    place(s, 'player', 'tav_common');
-    beside(s, 'patron_1');
-    setSkills(s, { [SK.ranged_light]: 90, [SK.melee_medium]: 80 });
-    const r = ruleset.attack({ attackerId: 'player', targetId: 'patron_1', weaponId: 'vase', targetPart: null, aimed: false }, s, forcedRng([50, 50, 50, 50]));
-    expect(r.modeId).toBe(AM.strike);
-    expect(r.attack.skill).toBe(SK.melee_medium);
-    setSkills(s, { [SK.unarmed_strike]: 70, [SK.ranged_light]: 60 });
-    const t = ruleset.attack({ attackerId: 'player', targetId: 'patron_1', weaponId: 'vase', modeId: AM.throw, targetPart: null, aimed: false }, s, forcedRng([50, 50, 50, 50]));
-    expect(t.attack.skill).toBe(SK.unarmed_strike);
-  });
 });

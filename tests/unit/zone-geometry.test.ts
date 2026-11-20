@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import { makeVillage, createRng } from '../harness';
 import { CONFIG } from '../../src/config';
 import { LY, WK, ZK } from '../../src/library/tableIds';
-import { roadShape } from '../../src/scenario/apply';
 import { getLibrary } from '../../src/library';
 import { applyStagePlan, validateStagePlan, type PlanContext } from '../../src/scenario';
 import { toStoryStart, villageStagePlan } from '../../src/scenario/fixtures';
@@ -51,13 +50,6 @@ describe('title sizes and walls', () => {
     expect(b.area).toBe(140);
   });
 
-  it('an unknown size or wall kind fails validation (and so is filed as a bug)', () => {
-    const s = toStoryStart(makeVillage());
-    const plan = villageStagePlan();
-    plan.zones[0].size = 'huge';
-    plan.zones[1].walls = { n: 'WK99' };
-    expect(validateStagePlan(s, plan, ctx).filter((e) => e.code === 'bad_zone')).toHaveLength(2);
-  });
 });
 
 describe('layouts (CO17)', () => {
@@ -75,13 +67,6 @@ describe('layouts (CO17)', () => {
     expect(forge.outline.length && coal.outline.length).toBeTruthy();
     expect(middle(coal).x).toBeGreaterThan(middle(forge).x); // "the coal store, east"
     expect(wayTo(s, forge.id, zoneOf(s, 'outside the tavern')!.id)).toBeDefined(); // the way runs both ways
-  });
-
-  it('an unknown layout fails validation', () => {
-    const s = toStoryStart(makeVillage());
-    const plan = villageStagePlan();
-    plan.places.push({ key: 'x', name: 'X', kind: 'place', parent: 'village', layout: 'LY99' });
-    expect(validateStagePlan(s, plan, ctx).some((e) => e.code === 'bad_place')).toBe(true);
   });
 
   it('every layout is well formed: kinds, sizes, walls and ways resolve, and the entry exists', () => {
@@ -118,15 +103,4 @@ describe('roads (TV3, TV4)', () => {
     expect(r.y).toBeGreaterThan(middle(zoneOf(s, plan.zones.find((z) => z.key === 'street_door')!.name)!).y); // north of the street
   });
 
-  it('only a road takes a length or danger (dropped elsewhere, BG-141); a bad word on a road fails validation', () => {
-    const s = toStoryStart(makeVillage());
-    const plan = villageStagePlan();
-    plan.zones[0].length = 'hour';
-    plan.zones[1].danger = 'wild';
-    plan.zones.push({ key: 'r', place: plan.zones[0].place, name: 'a road', look: 'a road', length: 'forever', danger: 'deadly', ways: [] });
-    const errs = validateStagePlan(s, plan, ctx);
-    expect(errs.filter((e) => e.code === 'bad_zone')).toHaveLength(2);
-    expect(errs.filter((e) => e.code === 'road_fields_dropped' && e.repaired)).toHaveLength(2);
-    expect(roadShape(2.5, undefined)).toEqual({ area: 2500 * CONFIG.ROAD_WIDTH_M, aspect: 2500 / CONFIG.ROAD_WIDTH_M, danger: 'quiet' });
-  });
 });

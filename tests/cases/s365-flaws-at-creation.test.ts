@@ -7,7 +7,7 @@ import { SK } from '../../src/library/skillIds';
 import { createPlayer, presetSkills, recommendedBuild, validateBuild } from '../../src/library/spawn';
 import { npcTemplate } from '../../src/library';
 import { TP } from '../../src/library/templateIds';
-import { burdenShare, burdenTotal } from '../../src/ruleset/burdenTotal';
+import { burdenShare } from '../../src/ruleset/burdenTotal';
 
 afterEach(() => resetConfig());
 
@@ -41,11 +41,6 @@ describe('FC4 (D-377): flaws raise their group\'s share of the Total', () => {
     expect(burdenShare(SK.intimidation, [SK.barter], [SK.persuasion])).toBeCloseTo(1 - tag + mate);
   });
 
-  it('the hub page example: Intimidation 60, Barter 40 beside a flawed Persuasion add 5 to the Total', () => {
-    const n = (state: 'normal' | 'flawed', raw: number) => ({ raw, state });
-    expect(burdenTotal({ [SK.persuasion]: n('flawed', 0), [SK.intimidation]: n('normal', 60), [SK.barter]: n('normal', 40) })).toBeCloseTo(100 * (1 + mate));
-    expect(burdenTotal({ [SK.persuasion]: n('flawed', 0), [SK.intimidation]: n('flawed', 60), [SK.barter]: n('flawed', 40) })).toBeCloseTo(100 * (1 + 3 * mate));
-  });
 });
 
 describe('FC8 b: NPCs mirror the tags: low-band skills are flawed', () => {

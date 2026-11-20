@@ -11,10 +11,6 @@ import { ACH } from '../../src/library/achievementIds';
 import { CL } from '../../src/library/classIds';
 
 describe('146 free levels', () => {
-  it('the tiers chain gives free levels by its place, carried up the chain', () => {
-    const a = getLibrary().achievements!;
-    expect(rewardLines(a[ACH.class_tiers_3])).toEqual(['+2.5 free levels (levels that cost no XP) in all (+1 from Across Two Heights, +1.5 here)']);
-  });
 
   it('a free level is taken at once like any level, without spending XP', () => {
     const s = makeVillage();

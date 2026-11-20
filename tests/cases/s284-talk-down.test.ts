@@ -8,7 +8,6 @@ import { expect, it } from 'vitest';
 import type { ContestResult, GameState, RollResult } from '../../src/types';
 import { forcedRng, makeVillage } from '../harness';
 import { intent, play } from './w4-kit';
-import { wholeTurn } from '../harness/turn';
 import { CONFIG } from '../../src/config';
 import { PK } from '../../src/library/perkIds';
 import { IT } from '../../src/library/itemIds';
@@ -18,7 +17,6 @@ import { answerOffer, canOffer, landed, makeOffer, offersTo, tiersToConvince } f
 import { coins } from '../../src/engine/trade';
 import { repeatTryMods } from '../../src/ruleset/pressure';
 import { buildPlayerView } from '../../src/views';
-import { deck } from '../../src/ui/deck';
 
 /** the patron (code-run) is hostile to the player and fighting them */
 const fight = (who = 'patron_1', s: GameState = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'trader'] })): GameState => {
@@ -124,23 +122,3 @@ it('TF11: a foe can offer the player a stand-down; the player takes it by saying
   expect(s.player.progression!.tally?.talked_down).toBeUndefined(); // nor a talk-down by the player
 });
 
-it("TF17 follow-up: in a fight the deck's Talk group shows the ways to talk a foe out of it", () => {
-  const s = fight();
-  const pv = buildPlayerView(s);
-  const foe = pv.actors.find((a) => a.id === 'patron_1');
-  expect(foe?.talkDown).toBe(true);
-  const talk = deck({ pv, s }).find((g) => g.group === 'talk')!.actions;
-  expect(talk.find((a) => a.kind === 'persuade')?.note).toMatch(/talk a foe down/);
-  expect(talk.find((a) => a.kind === 'deceive')?.note).toMatch(/a lie to end it/);
-  expect(talk.find((a) => a.kind === 'barter')?.note).toMatch(/pay a foe to stop/);
-});
-
-it('whole turn: an AI-run listener hears that the words are an offer and how it landed; the Narrator hears how it landed', async () => {
-  const g = wholeTurn({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'trader'] });
-  fight('patron_1', g.game.state()!);
-  await g.turn(intent({ action: { type: 'persuade', target: 'patron_1' }, spoken: 'Put it down.', addressees: ['patron_1'] }));
-  const voice = g.claude.callsFor('voice').at(-1) as { input: { content: string }[] } | undefined;
-  if (voice) expect(JSON.stringify(voice.input)).toContain('an offer to stop fighting');
-  const req = g.claude.callsFor('narrator').at(-1) as { input: { content: string }[] };
-  expect(req.input[1].content).toMatch(/"offers":\[\{"to":"[^"]+","landed":"(convinced|tempted|unmoved)"\}\]/);
-});

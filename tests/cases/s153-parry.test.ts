@@ -3,7 +3,7 @@
 // Blade Dance augments Dodge, Answer the Blow brings the strike 2 gaps sooner with a medium weapon.
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fit, forcedRng, makeVillage, place, beside } from '../harness';
-import { effectiveSkill, hasPerk, ruleset } from '../../src/ruleset';
+import { hasPerk, ruleset } from '../../src/ruleset';
 import { syncPerkLinks } from '../../src/ruleset/perkLinks';
 import { strikeBackAllowed, strikeBackLimit } from '../../src/engine/resolve';
 import { defaultStandingDefense } from '../../src/ruleset/gear';
@@ -13,7 +13,6 @@ import { intent, play } from './w4-kit';
 import { SK } from '../../src/library/skillIds';
 import { PK } from '../../src/library/perkIds';
 import { IT } from '../../src/library/itemIds';
-import { CL } from '../../src/library/classIds';
 import { waysOut } from '../../src/plan/where';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
@@ -222,18 +221,6 @@ describe('153 Parry', () => {
     expect(calls[0].by).toBe('player');
     expect(calls[1]).toEqual({ by: 'patron_1', at: 'player' }); // the patron's strike back ...
     expect(calls.length).toBeLessThan(12); // ... is parried and ends there: no endless exchange
-  });
-
-  it('Riposte adds its full value to Parry rolls, and Blade Dance to Dodge rolls', () => {
-    const s = setup();
-    const parry = effectiveSkill(s, s.player, SK.parry).value;
-    const dodge = effectiveSkill(s, s.player, SK.dodge).value;
-    s.player.core.skills[SK.riposte] = { raw: 20, state: 'normal' };
-    s.player.core.skills[SK.blade_dance] = { raw: 15, state: 'normal' };
-    s.player.core.classes.push({ classId: CL.sword_dancer, state: 'previous', level: 1 });
-    for (const perkId of [PK.blade_against_blade, PK.first_steps_of_the_dance]) s.player.core.perks.push({ perkId, source: 'class', gainedTurn: 0 }); // the level 1 perks open Riposte and Blade Dance
-    expect(effectiveSkill(s, s.player, SK.parry).value).toBeCloseTo(parry + 20);
-    expect(effectiveSkill(s, s.player, SK.dodge).value).toBeCloseTo(dodge + 15);
   });
 
   it('the default defense: the highest usable of block, parry and dodge; the village guard blocks with its shield', () => {

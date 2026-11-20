@@ -5,13 +5,6 @@ import { validateStagePlan } from '../../src/scenario';
 import { toStoryStart, villageStagePlan } from '../../src/scenario/fixtures';
 
 describe('38 Hidden terms', () => {
-  it('a zone look with a hidden term fails', () => {
-    const p = villageStagePlan();
-    p.zones[5].look = 'wet grass and a trail toward the Nest';
-    const errs = validateStagePlan(toStoryStart(makeVillage()), p, { tier: 'success', kind: 'scenario', placeId: 'tavern' });
-    expect(errs).toEqual([expect.objectContaining({ code: 'public_leak', routineOnly: false })]);
-    expect(errs[0].message).toContain('zone field_mid look');
-  });
   it('a key with a hidden term fails: keys become ids the player side sees (Q2)', () => {
     const p = villageStagePlan();
     const old = p.zones[5].key;

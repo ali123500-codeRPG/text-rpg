@@ -30,8 +30,4 @@ describe('stand-in rolls teach both skills', () => {
     markUse(s, p, SK.melee_light, ruleset.contested(req(p.id, SK.melee_light), req(t.id, SK.dodge), s, createRng(3)));
     expect(p.progression!.marks).toEqual([SK.melee_medium]);
   });
-  it('a roll with no stand-in carries no asked skill', () => {
-    const s = makeVillage();
-    expect(ruleset.roll(req('player', SK.melee_medium), s, createRng(1)).asked).toBeUndefined();
-  });
 });

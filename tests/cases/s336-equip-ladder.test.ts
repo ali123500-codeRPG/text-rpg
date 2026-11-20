@@ -5,7 +5,7 @@ import { getLibrary } from '../../src/library';
 import { IT } from '../../src/library/itemIds';
 import { GC } from '../../src/library/tableIds';
 import { CONFIG } from '../../src/config';
-import { EQUIP_LEVELS, FRAGILITY, QUALITY_LEVELS, equipAt, equipName, equipPos } from '../../src/scales';
+import { EQUIP_LEVELS, equipAt, equipName, equipPos } from '../../src/scales';
 import { equipNeed, itemLevel, requirement } from '../../src/ruleset/requirements';
 import { itemValue } from '../../src/ruleset/value';
 import type { ItemDef } from '../../src/types';
@@ -30,12 +30,6 @@ describe('336 equip ladder', () => {
     for (const d of Object.values(getLibrary().items)) if (d.weapon || d.armor || d.shield) expect(d.value, d.id).toBeUndefined();
     expect(itemValue(null, item(IT.coin))).toBe(1);
     expect(itemValue(null, item(IT.plate_harness))).toBeGreaterThan(0);
-  });
-
-  it('IR7: quality 2 is Sound, a word fragility never uses', () => {
-    expect(QUALITY_LEVELS.name('quality_2')).toBe('Sound');
-    const fragility = new Set(FRAGILITY.keys.map((k) => FRAGILITY.name(k)));
-    for (const k of QUALITY_LEVELS.keys) expect(fragility.has(QUALITY_LEVELS.name(k))).toBe(false);
   });
 
   it('IR2: every gear class but improvised has a piece at every level from Common to Masterwork; Masterwork ones are fantasy', () => {

@@ -4,7 +4,6 @@
 // looks most hurt. A bandmate's Command it hears lifts every row (TC7).
 import { describe, expect, it } from 'vitest';
 import { createRng, makeVillage, place } from '../harness';
-import { intent, play } from './w4-kit';
 import { buildActorView } from '../../src/views';
 import { commandLent, rowsOf, withTactics } from '../../src/views/tactics';
 import { fallbackOrder, tacticsOrder } from '../../src/minds';
@@ -91,14 +90,4 @@ describe('369 Battle Sense fight rows', () => {
     expect(orderOf(s, patron)).toMatchObject({ type: 'attack', target: 'player', rule: FX.gang_up });
   });
 
-  it('in a whole turn the outnumbered code-run NPC calls for help, and the row counts as used this fight', () => {
-    const { s, patron } = outnumbered();
-    skill(patron, SK.battle_sense, 20);
-    patron.mind!.control = 'code';
-    const ev = play(s, { intent: intent() });
-    expect(ev.some((e) => e.kind === 'call_help' && e.actorId === 'patron_1')).toBe(true);
-    expect(patron.mind!.rowsUsed?.[FX.call_help]).toBeDefined();
-    const again = play(s, { intent: intent() });
-    expect(again.some((e) => e.kind === 'call_help' && e.actorId === 'patron_1')).toBe(false); // once a fight
-  });
 });

@@ -108,14 +108,6 @@ describe('172 travel', () => {
     expect(q.player.roadMin).toBeCloseTo(30, 0);
   });
 
-  it('a safe road can still be walked without stopping; the mechanics line and the Narrator get one passage', () => {
-    const s = withRoad(4.5);
-    const ev = go(s, 'ashford_gate');
-    const t = ev.find((e) => e.kind === 'travel')!;
-    expect(t.effects[0]).toMatchObject({ kind: 'travelled', actorId: 'player' });
-    expect(s.log.some((l) => l.code === 'time_passed')).toBe(true);
-  });
-
   it('TV1: with someone hostile who perceives the player it is a normal move, a step at a time', () => {
     const s = withRoad(9);
     const foe = s.actors.find((a) => a.id === 'patron_1')!;

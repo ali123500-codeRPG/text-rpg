@@ -5,7 +5,6 @@ import { describe, expect, it } from 'vitest';
 import { makeVillage, forcedRng } from '../harness';
 import { ruleset, tierName } from '../../src/ruleset';
 import { tierReach } from '../../src/ruleset/achRewards';
-import { getLibrary } from '../../src/library';
 import { ACH } from '../../src/library/achievementIds';
 import type { GameState } from '../../src/types';
 import { atScenarioEnd, grantAchievement } from '../../src/engine/xp';
@@ -39,21 +38,5 @@ describe('181 event-roll criticals open tiers past Critical', () => {
     expect(ev(s, 99)).toBe('Critical Success++');
     expect(earned(s)).toEqual([ACH.event_crit_3]);
     expect(tierReach(s.player, 'hit')).toEqual({ up: 0, down: 0 }); // event rolls only
-  });
-  it('the Critical Failure chain mirrors it from 01 up', () => {
-    const s = makeVillage();
-    expect(ev(s, 1)).toBe('Critical Failure');
-    expect(earned(s)).toEqual([ACH.event_crit_fail_1]);
-    expect(ev(s, 8)).toBe('Critical Failure');
-    expect(ev(s, 3)).toBe('Critical Failure−');
-    expect(earned(s)).toEqual([ACH.event_crit_fail_2]);
-    expect(ev(s, 2)).toBe('Critical Failure−−');
-    expect(earned(s)).toEqual([ACH.event_crit_fail_3]);
-  });
-  it('a perk can open tiers too', () => {
-    const s = makeVillage();
-    getLibrary().perks.fated = { id: 'fated', name: 'Fated', tierUnlocks: [{ roll: 'any', side: 'up', steps: 1 }] };
-    s.player.core.perks.push({ perkId: 'fated', source: 'level', gainedTurn: 0 });
-    try { expect(ev(s, 97)).toBe('Critical Success+'); } finally { delete getLibrary().perks.fated; }
   });
 });

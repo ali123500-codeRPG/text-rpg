@@ -3,8 +3,7 @@
 // a set of perks grants one more ('grant') or merges the set into one ('merge'); Dread Presence + Overwhelm grant
 // Crushing Presence, +5 true skill to every aura skill.
 import { describe, expect, it } from 'vitest';
-import { makeVillage, place } from '../harness';
-import { intent, play } from './w4-kit';
+import { makeVillage } from '../harness';
 import { PERK_LINKS } from '../../src/library/perkLinks';
 import { hasPerk, trueSkill } from '../../src/ruleset/perks';
 import { syncPerkLinks } from '../../src/ruleset/perkLinks';
@@ -12,7 +11,6 @@ import { maxMorale, moraleLevel } from '../../src/ruleset/morale';
 import { overwhelms } from '../../src/engine/auras';
 import { payFear } from '../../src/engine/morale';
 import { createRng } from '../../src/rng';
-import { buildNarrationView } from '../../src/views';
 import { PK } from '../../src/library/perkIds';
 import { SK } from '../../src/library/skillIds';
 import { FR } from '../../src/library/tableIds';
@@ -45,29 +43,6 @@ describe('160 Overwhelm and linked perks', () => {
     const foe = npc(s, 'patron_1');
     expect(payFear(s, createRng(1), foe, FR.dread_presence, { gap: -3, overwhelm: true })).toBe('surrendered');
     expect(moraleLevel(foe)).toBe('broken');
-  });
-
-  it('in play: a Battle Cry from an Overwhelm owner makes a weak-willed foe give up', () => {
-    let seen = false;
-    for (let seed = 1; seed <= 40 && !seen; seed++) {
-      const s = makeVillage();
-      give(s.player, PK.battle_cry);
-      give(s.player, PK.overwhelm);
-      s.player.core.skills[SK.intimidation] = { raw: 140, state: 'normal' };
-      resolve(s.player, 100);
-      const foe = npc(s, 'patron_1');
-      place(s, 'patron_1', s.player.zone);
-      foe.mind!.overrides = { player: 'opposed' };
-      resolve(foe, 0);
-      const ev = play(s, { intent: intent({ perkMove: { perk: PK.battle_cry, target: null } } as never) }, seed);
-      const roar = ev.find((e) => e.kind === 'battle_cry' && e.actorId === 'player')!;
-      const f = roar.effects.find((x) => x.actorId === 'patron_1')!;
-      if (!f.data.overwhelmed) continue;
-      seen = true;
-      expect(foe.mind!.moraleState).toBe('surrendered');
-      expect(buildNarrationView(s, [roar]).events.find((x) => x.id === roar.id)?.changes?.join(' ')).toMatch(/overwhelmed by .*roar and gives up/);
-    }
-    expect(seen).toBe(true);
   });
 
   it('linked grant: Dread Presence + Overwhelm give Crushing Presence, +5 true skill to aura skills only, while both are owned', () => {

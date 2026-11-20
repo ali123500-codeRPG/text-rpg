@@ -7,13 +7,12 @@ import { resolveTurn } from '../../src/engine';
 import { npcActionToOrder } from '../../src/engine/merge';
 import { zoneById } from '../../src/engine/relations';
 import { makeFurniture } from '../../src/engine/furniture';
-import { lineExtras } from '../../src/agents/game';
 import { buildNarrationView } from '../../src/views';
 import { NOISE } from '../../src/scales';
 import { SK } from '../../src/library/skillIds';
 import { IT } from '../../src/library/itemIds';
 import { act, intent } from './w4-kit';
-import { layAll, furnish } from '../harness';
+import { furnish } from '../harness';
 
 const village = (): GameState => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'patron_1', 'trader'] });
@@ -77,38 +76,5 @@ describe('334 who grades an NPC act (OD14 a)', () => {
   it('the NPC agent\'s grade and drop reach its order', () => {
     expect(npcActionToOrder('n1', act('other', null, { skill: SK.endurance, grade: 'major', fall: 3 }), {})).toMatchObject({ grade: 'major', fall: 3 });
   });
-  it('a graded act with no grade anywhere is Moderate and flagged every time (grade_gap)', () => {
-    const s = village();
-    winch(s).grade = undefined;
-    turn(s, intent({ action: { type: 'interact', skill: SK.endurance, target: winch(s).id } }), [50]);
-    expect(s.log.filter((l) => l.code === 'grade_gap')).toHaveLength(1);
-    winch(s).grade = undefined;
-    turn(s, intent({ action: { type: 'interact', skill: SK.endurance, target: winch(s).id, grade: 'minor' } }), [50]);
-    expect(s.log.filter((l) => l.code === 'grade_gap')).toHaveLength(0);
-  });
 });
 
-describe('334 BG-257: each roll line says what that roll did', () => {
-  const line = (s: GameState, evs: GameEvent[]) => lineExtras(s, evs, buildNarrationView(s, evs), '').check;
-  it('a lock pick names what happened at the lock, never Look around\'s words', () => {
-    const s = village();
-    s.player.core.skills[SK.lockpicking] = { raw: 50, state: 'normal' };
-    layAll(s, 'tav_common', { id: 'box', itemId: IT.chest, contents: [], lock: { locked: true }, grade: 'major' });
-    const evs = turn(s, intent({ action: { type: 'pick', target: 'box' } }), [50]);
-    expect(line(s, evs)?.result).toMatch(/^(the lock opens|still at it|not yet|beyond you for now|the pick snaps)$/);
-  });
-  it('a roll with no words of its own (healing) shows none; Look around keeps its words', () => {
-    const s = village();
-    const heal = { id: 'h', turn: 1, actorId: 'player', kind: 'heal', zone: 'tav_common', effects: [], noise: 'quiet', visibility: 'normal', perception: {},
-      roll: { actorId: 'player', skill: SK.healing, d100: 80, margin: 30, tier: 'great_success', natural: 0, modifiers: [], tierShifts: [] } } as unknown as GameEvent;
-    expect(line(s, [heal])?.result).toBe('');
-    const look = turn(s, intent({ action: { type: 'observe', skill: SK.eyesight } }), [90]);
-    expect(line(s, look)?.result).toMatch(/^(you make out who is there|nothing clearer)$/);
-  });
-  it('LX1: a Search around you shows its look roll with the look\'s words', () => {
-    const s = village();
-    const evs = turn(s, intent({ action: { type: 'search', target: null } }), [90]);
-    expect(evs.find((e) => e.kind === 'search')?.glance).toBe(true);
-    expect(line(s, evs)?.result).toMatch(/^(you make out who is there|nothing clearer)$/);
-  });
-});

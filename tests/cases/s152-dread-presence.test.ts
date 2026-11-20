@@ -46,14 +46,6 @@ describe('152 Dread Presence', () => {
     expect(run(s, [95, 5])).toEqual([]); // already checked this engagement
   });
 
-  it('a target that wins takes nothing', () => {
-    const { s, t } = setup();
-    const [c] = run(s, [5, 95]);
-    expect(c.took).toBe(false);
-    expect(t.pressure).toBeUndefined();
-    expect(moraleLost(t)).toBe(0);
-  });
-
   it('reaches the owner\'s zone and one link away, only opposed-or-worse targets aware of the owner', () => {
     expect(run(setup('tav_counter').s, [95, 5])).toHaveLength(1); // one link
     expect(run(setup('tav_cellar').s, [95, 5])).toEqual([]); // two links

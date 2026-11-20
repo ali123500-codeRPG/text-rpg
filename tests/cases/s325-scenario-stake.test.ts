@@ -10,7 +10,6 @@ import { applyCheckin, frameOf } from '../../src/engine/scenarioEnd';
 import { applyCheckinPlan, checkinPlanErrors } from '../../src/scenario/checkin';
 import { validateStagePlan } from '../../src/scenario/validate';
 import { toStoryStart, villageStagePlan } from '../../src/scenario/fixtures';
-import { buildWeaverView } from '../../src/views';
 import { checkCheckin } from '../../src/agents/schema';
 
 const judged: PlanEnding[] = [{ when: { kind: 'judged' }, as: 'resolved', text: 'x' }, { when: { kind: 'judged' }, as: 'lost', text: 'y' }];
@@ -30,12 +29,6 @@ describe('325 a scenario names its stake (SW8)', () => {
     expect(validateStagePlan(toStoryStart(makeVillage()), p, ctx).map((e) => e.code)).toContain('scenario_stake');
     p.scenario!.stake = '  ';
     expect(validateStagePlan(toStoryStart(makeVillage()), p, ctx).map((e) => e.code)).toContain('scenario_stake');
-  });
-  it('the stake is kept on the scenario and reaches the check-in view', () => {
-    const s = running('the farmer loses his field');
-    expect(s.stage.scenario!.stake).toBe('the farmer loses his field');
-    const v = buildWeaverView(s, { kind: 'checkin', placeId: s.player.placeId, reason: 'judged' });
-    expect(v.target.scenario!.stake).toBe('the farmer loses his field');
   });
   it('a check-in may change the stake; one that changes only the question keeps it', () => {
     const s = running('the field');

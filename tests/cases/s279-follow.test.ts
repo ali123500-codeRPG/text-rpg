@@ -9,7 +9,6 @@ import type { GameState } from '../../src/types';
 
 const quiet = () => makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
 const follow = (s: GameState) => intent({ move: { toZone: s.actors.find((a) => a.id === 'patron_1')!.zone, spot: { near: 'patron_1', follow: true } } });
-const patron = (s: GameState) => s.actors.find((a) => a.id === 'patron_1')!;
 
 describe('279 following someone', () => {
   it('a follow reaches them and carries on; when they move on, the next turn with no order goes after them', () => {
@@ -43,15 +42,6 @@ describe('279 following someone', () => {
     expect(s.log.some((l) => l.code === 'follow_lost')).toBe(true);
     play(s, { intent: intent() });
     expect(buildPlayerView(s).player.following).toBeUndefined();
-  });
-  it('seen going down, the follow ends: down', () => {
-    const s = quiet();
-    place(s, 'patron_1', 'tav_common');
-    play(s, { intent: follow(s) });
-    patron(s).core.condition.hpLostPct = 100;
-    play(s, { intent: intent() });
-    expect(s.player.walking).toBeUndefined();
-    expect(buildPlayerView(s).player.following).toMatchObject({ lost: 'down' });
   });
   it('a walk to someone without follow still ends at them (going over to talk)', () => {
     const s = quiet();

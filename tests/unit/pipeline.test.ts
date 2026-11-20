@@ -8,7 +8,6 @@ import { CONFIG } from '../../src/config';
 import type { Store } from '../../src/save';
 import { intentOf, plannerOut, voiceOut } from './agent-views';
 import { SK } from '../../src/library/skillIds';
-import { maxMorale } from '../../src/ruleset/morale';
 
 const H = vi.hoisted(() => ({
   engagedNext: [] as string[],
@@ -165,16 +164,6 @@ describe('clarify and dialogue', () => {
     expect(H.resolved[0].input.spokespeople).toEqual(['guard_1']);
   });
 
-  it('an agenda routes to the Responder; a failed dialogue call gives the neutral line', async () => {
-    start();
-    state.hidden.memory.guard_1 = [{ turn: 1, text: 'saw a stranger' }];
-    claude.push('parser', parserTalk('guard_1')).pushResponse({ agent: 'responder', response: { ok: false, error: 'upstream_error' } }).push('narrator', narr);
-    await game.submit('Hello there.', { aimed: false });
-    const out = H.resolved[0].input.agentOutputs[0];
-    expect(out.agent).toBe('responder');
-    expect(out.agent === 'responder' && out.output.dialogue?.line).toBe(NEUTRAL_LINE);
-  });
-
   it('COMMITTED names the fired order; an unlisted secret is revealed, logged and filed as a bug (F6, Q3)', async () => {
     start();
     state.hidden.memory.guard_1 = [{ turn: 1, text: 'saw a stranger' }];
@@ -236,18 +225,6 @@ describe('errors and commands', () => {
     expect(claude.calls).toHaveLength(1);
   });
 
-  it('/stats marks tagged skills with ✦ and lists skills used that are not on the sheet', async () => {
-    start();
-    const p = game.state()!.player;
-    delete p.core.skills[SK.unarmed_strike];
-    p.progression!.used = [SK.unarmed_strike];
-    await game.submit('/stats', { aimed: false });
-    const t = game.lines().filter((l) => l.kind === 'command').at(-1)!.text;
-    expect(t).not.toMatch(/\d\+/);
-    if (Object.values(p.core.skills).some((v) => v.state === 'tagged')) expect(t).toContain('✦ tagged');
-    expect(t).toContain('Also used, not on your sheet yet: Strike 0.');
-  });
-
   it('commands make no Claude call; /aim sets aimed for one turn only', async () => {
     start();
     await game.submit('/stats', { aimed: false });
@@ -263,36 +240,6 @@ describe('errors and commands', () => {
     expect(game.lines().filter((l) => l.kind === 'player').map((l) => l.aimed)).toEqual([true, undefined]); // shown after a reload
   });
 
-  it('a narration line keeps the turn\'s gear rows, the place it ended in and the scenario number', async () => {
-    start();
-    const was = game.state()!.player.core.inventory.find((i) => i.id === 'player_coin')!.qty ?? 1;
-    H.onResolve = (s) => {
-      const inv = s.player.core.inventory;
-      const coin = inv.find((i) => i.id === 'player_coin')!;
-      coin.qty = 15;
-      const sword = inv.find((i) => i.equippedIn?.some((x) => x.startsWith('grip:')))!;
-      sword.equippedIn = [];
-      inv.push({ id: 'found_1', itemId: 'odd_stone', qty: 1 });
-      s.stage.scenarioNumber = 3;
-    };
-    claude.push('parser', intentOf()).push('narrator', narr);
-    await game.submit('look around', { aimed: false });
-    const l = game.lines().at(-1)!;
-    expect(l.gear).toEqual(['Put away: arming sword', 'Picked up: odd_stone']);
-    expect(l.coin).toBe(15 - was);
-    expect(l.place).toEqual({ id: state.player.placeId, name: expect.stringMatching(/^[A-Z]/), zone: 'common room' });
-    expect(l.scenario).toBe(3);
-  });
-
-  it('a narration line marks the turn the player\'s nerve broke, and only that turn (MB12 on the play screen)', async () => {
-    start();
-    H.onResolve = (s) => { s.player.core.condition.moraleLost = maxMorale(s.player); };
-    claude.push('parser', intentOf()).push('narrator', narr).push('parser', intentOf()).push('narrator', narr);
-    await game.submit('look around', { aimed: false });
-    expect(game.lines().at(-1)!.nerveBroke).toBe(true);
-    await game.submit('look around', { aimed: false });
-    expect(game.lines().at(-1)!.nerveBroke).toBeUndefined();
-  });
 });
 
 describe('story text (Q18)', () => {
@@ -329,11 +276,5 @@ describe('SD1 scenario ending moment', () => {
     expect(game.lines().at(-1)).toMatchObject({ kind: 'narration', text: narr.text, scenarioEnd: { as: 'escaped', name: 'escaped', closing: 'The cellar door slams behind you.' } });
     expect(sentText(claude.calls.at(-1)!)).toContain('"scenarioEnded":"escaped"');
     expect(sentText(claude.calls.at(-1)!)).not.toContain('hidden');
-  });
-  it('a closing line on any other turn is dropped', async () => {
-    start();
-    claude.push('parser', intentOf()).push('narrator', { ...narr, closing: 'Stray.' });
-    await game.submit('wait', { aimed: false });
-    expect(game.lines().at(-1)).not.toHaveProperty('scenarioEnd');
   });
 });

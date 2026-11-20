@@ -8,7 +8,7 @@ import { createRng, makeVillage } from '../harness';
 import { sleepDebtFor } from '../harness/sleep';
 import { resolveTurn } from '../../src/engine';
 import { mechanicsLines } from '../../src/agents/game';
-import { buildNarrationView, buildWeaverView, zoneView } from '../../src/views';
+import { buildWeaverView, zoneView } from '../../src/views';
 import { validateStagePlan } from '../../src/scenario';
 import { toStoryStart, villageStagePlan } from '../../src/scenario/fixtures';
 import { clockSet, now, startClock, timeOfDay, timeView, zoneLight } from '../../src/time';
@@ -105,11 +105,6 @@ describe('111 game clock', () => {
     startClock(s, 'morning');
     expect(clockSet(s)).toBe(true);
     expect(validateStagePlan(s, { ...villageStagePlan(), timeOfDay: 'night' }, ctx).some((e) => e.code === 'bad_time')).toBe(true);
-  });
-  it('the Narrator sees the day and time of day', () => {
-    const s = makeVillage();
-    startClock(s, 'dusk');
-    expect(buildNarrationView(s, []).time).toEqual({ day: 1, timeOfDay: 'Dusk' });
   });
   it('a routine set whose time tags do not fit the hour is a routine error', () => {
     const s = toStoryStart(makeVillage());

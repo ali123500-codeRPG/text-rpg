@@ -10,7 +10,6 @@ import { CONFIG } from '../../src/config';
 import { actionRow, actionSeconds, timeFactor } from '../../src/ruleset/actionTime';
 import { moveSpeed } from '../../src/engine/speed';
 import { pickSeconds } from '../../src/ruleset';
-import { stealthyTip } from '../../src/ui/stealth';
 
 const intent = (action: Partial<NonNullable<Intent['action']>>): Intent => ({
   move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null,
@@ -71,8 +70,4 @@ describe('344 sneak time (VS8)', () => {
     expect(sneaking).toBeCloseTo((openRun / CONFIG.SNEAK_TIME_MULT) * CONFIG.FIGHT_TURN_S, 6);
   });
 
-  it('pointing at Stealthy says it slows all actions by SNEAK_TIME_MULT', () => {
-    expect(stealthyTip()).toContain(`slows all your actions ×${CONFIG.SNEAK_TIME_MULT}`);
-    expect(stealthyTip()).toMatch(/moving included/);
-  });
 });

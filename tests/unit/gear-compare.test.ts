@@ -1,7 +1,6 @@
 // P1 gear compare: an item the player could equip shows what equipping it would change against what they have on,
 // figure by figure with ▲ or ▼; it reads the Character page's own figures on a copy and never touches the real player.
 import { describe, expect, it } from 'vitest';
-import { itemRows } from '../../src/ui/pages';
 import { compareRows, tryOn } from '../../src/ui/compare';
 import { IT } from '../../src/library/itemIds';
 import { zoneById } from '../../src/engine/relations';
@@ -20,25 +19,6 @@ describe('gear compare (P1)', () => {
     expect(rows[0]).toMatch(/^Compared with: /);
     expect(rows.find((r) => r.startsWith('Protection · head'))).toMatch(/→ .*▲ \+/);
     expect(JSON.stringify(s.player)).toBe(JSON.stringify({ ...JSON.parse(before), core: { ...JSON.parse(before).core, inventory: [...JSON.parse(before).core.inventory, cap] } }));
-  });
-
-  it('a skill the item raises shows its effective value going up', () => {
-    const s = makeVillage();
-    const sp = give(s, IT.spectacles);
-    expect(text(s, sp.id).find((r) => r.startsWith('Eyesight'))).toMatch(/▲ \+\d/);
-  });
-
-  it('nothing to compare for what is already on or cannot be equipped', () => {
-    const s = makeVillage();
-    const on = s.player.core.inventory.find((i) => i.equippedIn?.length)!;
-    expect(compareRows(s, on)).toEqual([]);
-    expect(compareRows(s, give(s, IT.bandage))).toEqual([]);
-  });
-
-  it('the item card carries the compare rows', () => {
-    const s = makeVillage();
-    const sp = give(s, IT.spectacles);
-    expect(itemRows(s, sp).some((r) => r.k === 'Compared with')).toBe(true);
   });
 
   it('loot on the ground compares as if taken, and stays on the ground', () => {

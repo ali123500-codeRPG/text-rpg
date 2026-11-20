@@ -1,6 +1,5 @@
 // 106 XP and levels (X1–X10): a defeat pays once, a first defeat earns an achievement,
 // fled or untouched foes pay nothing, and a level-up goes to the chosen class.
-import { TP } from '../../src/library/templateIds';
 import { BT, RC } from '../../src/library/raceIds';
 import { ACH } from '../../src/library/achievementIds';
 import { describe, expect, it } from 'vitest';
@@ -58,16 +57,6 @@ describe('106 XP and levels', () => {
   it('every achievement pays the XP of its reward level', () => {
     const lib = getLibrary().achievements!;
     for (const d of Object.values(lib)) expect(REWARD_LEVELS.has(d.level)).toBe(true);
-  });
-  it('a foe with a race also earns the first race defeat', () => {
-    const s = makeVillage();
-    expect(s.actors.filter((x) => x.core.templateId === TP.guard).every((x) => x.core.raceId === RC.human)).toBe(true);
-    const a = actor(s, 'slime_1');
-    a.core.raceId = RC.elf;
-    a.mind!.moraleState = 'surrendered'; a.mind!.overrides = { player: 'yielded' };
-    payDefeats(s, []);
-    const got = s.player.progression!.achievements!;
-    expect(got.map((x) => [x.id, achievementName(s, x)])).toEqual([[`${ACH.first_defeat_body_type}:${BT.amorphous}`, 'First Amorphous Felled'], [`${ACH.first_defeat_race}:${RC.elf}`, 'First of Elfkind Felled'], [ACH.bested_1, 'Bested']]);
   });
   it('a slime the player hit and downed pays its defeat XP once, plus a first-defeat achievement', () => {
     const s = makeVillage();

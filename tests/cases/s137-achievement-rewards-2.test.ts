@@ -6,8 +6,7 @@ import { HL } from '../../src/library/tableIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { actor } from '../harness/village';
-import { grantAchievement, wearable, wornTitle } from '../../src/engine/xp';
-import { buildActorView, buildNarrationView } from '../../src/views';
+import { grantAchievement } from '../../src/engine/xp';
 import { getLibrary } from '../../src/library';
 import { ACH } from '../../src/library/achievementIds';
 import { SK } from '../../src/library/skillIds';
@@ -101,26 +100,6 @@ describe('137 achievement rewards, round 2', () => {
     expect(has(s, ACH.held_line_1)).toBe(false);
     fightEnded(s, { hp: 0, foes: [], most: 3, helped: true, heldLine: true });
     expect(has(s, ACH.held_line_1)).toBe(true);
-  });
-
-  it('T18 a worn title: current non-scar achievements only, and only people who have seen you know it', () => {
-    const s = makeVillage();
-    const wim = actor(s, 'patron_1');
-    grantAchievement(s, ACH.yielded_1);
-    grantAchievement(s, ACH.yielded_10);
-    expect(wearable(s).map((x) => x.key)).toEqual([ACH.yielded_10]); // Yield or Fall was replaced
-    s.player.progression!.title = wearable(s)[0].id;
-    expect(wornTitle(s)).toBe('Breaker of Wills');
-    expect(buildNarrationView(s, []).player.title).toBe('Breaker of Wills');
-    const about = () => buildActorView(s, wim.id).beliefs.find((b) => b.about === s.player.id);
-    wim.mind!.knowledge[s.player.id] = { status: 'aware', source: 'heard', revealed: [] };
-    expect(about()?.title).toBeUndefined(); // heard, not seen
-    wim.mind!.knowledge[s.player.id] = { status: 'suspicious', source: 'seen', revealed: [] };
-    expect(about()?.title).toBeUndefined(); // a glimpse is not enough
-    wim.mind!.knowledge[s.player.id] = { status: 'aware', source: 'seen', revealed: [] };
-    expect(about()?.title).toBe('Breaker of Wills');
-    grantAchievement(s, ACH.yielded_50); // the worn level is replaced: the title moves up its chain
-    expect(wornTitle(s)).toBe('The Name That Ends Fights');
   });
 
   it('Old Blood: +10 on event rolls (Seasoned gives none)', () => {

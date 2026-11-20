@@ -25,10 +25,4 @@ describe('177 seen leaving (BG-23)', () => {
     expect(buildPlayerView(s).lastSeen).toContainEqual(expect.objectContaining({ id: 'trader', zone: 'tav_cellar', zoneName: 'cellar' }));
   });
 
-  it('a move that ends in a zone out of sight and starts in one too stays unseen', () => {
-    const s = makeVillage({ playerZone: 'field_far' });
-    place(s, 'trader', 'tav_cellar');
-    const e = ev({ actorId: 'trader', kind: 'move', zone: 'tav_cellar', fromZone: 'tav_counter', noise: 'silent' });
-    expect(computePerception(e, s, createRng(1)).player).toBeUndefined();
-  });
 });

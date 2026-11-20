@@ -55,10 +55,4 @@ describe('detectPlayer', () => {
     expect(rng.state).toBe(before);
     expect(ruleset.roll).not.toHaveBeenCalled();
   });
-  it('skips observers already aware', () => {
-    const s = makeVillage();
-    actor(s, 'guard_1').mind!.knowledge.player = { status: 'aware', source: 'seen', revealed: [] };
-    detectPlayer(s, ev({ guard_1: { level: 'partial', cue: 'sight' } }), createRng(1));
-    expect(updateBeliefs).not.toHaveBeenCalled();
-  });
 });

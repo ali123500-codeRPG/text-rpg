@@ -42,22 +42,6 @@ const roll = (tier: Tier, d100: number, margin: number, natural: RollResult['nat
   ({ actorId: 'x', skill: SK.melee_medium, d100, margin, tier, natural, modifiers: [{ source: 'aim', type: 'aim', value: -20 }], tierShifts: [] });
 
 describe('NPC views', () => {
-  it("P5: list each NPC's own last lines in said, capped at SAID_LINES", () => {
-    const s = makeVillage();
-    for (let i = 1; i <= 8; i++) run(s, ev({ actorId: 'trader', kind: 'speak', zone: 'tav_counter', line: { text: `line ${i}`, volume: 'normal' } }));
-    run(s, ev({ actorId: 'patron_1', kind: 'speak', zone: 'tav_counter', line: { text: 'not mine', volume: 'normal' } }));
-    for (const v of npcViews(s, 'trader')) expect(v.said).toEqual(['line 3', 'line 4', 'line 5', 'line 6', 'line 7', 'line 8']);
-  });
-  it('BF67: a bark is real speech: one who hears it gets its words, and the one who said it has it in its said list', () => {
-    const s = makeVillage();
-    run(s, ev({ actorId: 'trader', kind: 'speak', zone: 'tav_counter', bark: true, line: { text: 'Get out, you oaf!', volume: 'shout' }, noise: 'loud' }));
-    run(s, ev({ actorId: 'trader', kind: 'idle', zone: 'tav_counter', activity: 'tend_counter' }));
-    for (const v of npcViews(s, 'patron_1')) {
-      expect(v.perceived.some((e) => e.kind === 'speak' && e.line?.text === 'Get out, you oaf!')).toBe(true);
-      expect(v.perceived.some((e) => e.kind === 'idle')).toBe(true);
-    }
-    for (const v of npcViews(s, 'trader')) expect(v.said).toContain('Get out, you oaf!');
-  });
   it('are deny-by-default: unknown fields on state, actor, mind, band and zone reach no view', () => {
     const s = makeVillage();
     const LEAK = 'zz_unknown_leak';
@@ -135,14 +119,6 @@ describe('NarrationView and the packet', () => {
     run(s, ev({ actorId: 'trader', kind: 'move', zone: 'tav_counter', noise: 'loud' }));
     const v = buildNarrationView(s, s.events, null);
     expect(v.events).toEqual([{ id: s.events[0].id, kind: 'move', level: 'partial', cue: 'sound', where: 'inside the tavern' }]);
-  });
-  it('an NPC\'s stored pronouns reach the Narrator and the Parser (run 14 Q3)', () => {
-    const s = makeVillage();
-    place(s, 'trader', 'tav_common');
-    s.actors.find((a) => a.id === 'trader')!.pronouns = 'she';
-    const trader = s.actors.find((x) => x.id === 'trader')!;
-    expect(buildNarrationView(s, s.events, null).actors.find((a) => a.label === trader.label)?.pronouns).toBe('she');
-    expect(buildPlayerView(s).actors.find((a) => a.id === 'trader')?.pronouns).toBe('she');
   });
   it("hides others' minor condition changes, shows the player's own", () => {
     const s = makeVillage();

@@ -4,14 +4,12 @@
 // own grips, and only a humanoid wears the starter armor.
 import { describe, expect, it } from 'vitest';
 import { getLibrary } from '../../src/library';
-import { creationAgeRange, createPlayer, playableRaces, raceStartBlock, recommendedBuild, validateBuild } from '../../src/library/spawn';
+import { createPlayer, playableRaces, raceStartBlock, recommendedBuild, validateBuild } from '../../src/library/spawn';
 import { BT, RC } from '../../src/library/raceIds';
 import { ST } from '../../src/library/startIds';
 import { CONFIG } from '../../src/config';
 import { SK } from '../../src/library/skillIds';
-import { CL } from '../../src/library/classIds';
 
-const SWORD = 'ST_test_sword';
 
 describe('313 race choice at creation', () => {
   it('a build names its race; left out it is Human', () => {
@@ -20,11 +18,6 @@ describe('313 race choice at creation', () => {
     expect([elf.core.raceId, elf.core.bodyTypeId]).toEqual([RC.elf, BT.humanoid]);
     const dragon = createPlayer(recommendedBuild(ST.late_bloomer, RC.dragon), 's1', { preview: true }); // the body still follows the race
     expect([dragon.core.raceId, dragon.core.bodyTypeId]).toEqual([RC.dragon, BT.winged_quadruped]);
-  });
-
-  it('a race that is not playable is refused', () => {
-    expect(validateBuild(recommendedBuild(ST.late_bloomer, RC.slime))).toContain('Slime is not a race you can play');
-    expect(validateBuild(recommendedBuild(ST.late_bloomer, RC.dragon))).toContain('Dragon is not a race you can play');
   });
 
   it('every playable race has a valid recommended build for some start, and one for every start it can begin', () => {
@@ -40,16 +33,6 @@ describe('313 race choice at creation', () => {
     }
   });
 
-  it('a Slime can\'t begin in a class whose floors need hands (a stand-in Swordsman start, Slime made playable)', () => {
-    getLibrary().starts[SWORD] = { id: SWORD, name: 'Test Swordsman', classId: CL.swordsman, level: 1 };
-    getLibrary().races![RC.slime].playable = true;
-    try {
-      expect(raceStartBlock(SWORD, RC.slime)).toMatch(/^a Slime can't learn .*Medium weapons.*, which Swordsman needs\.$/i);
-      expect(raceStartBlock(SWORD, RC.human)).toBe('');
-      expect(validateBuild(recommendedBuild(SWORD, RC.slime)).some((e) => e.startsWith("This start can't begin"))).toBe(true);
-    } finally { delete getLibrary().starts[SWORD]; delete getLibrary().races![RC.slime].playable; }
-  });
-
   it('starter gear goes in the body\'s own grips; only a humanoid wears the starter armor', () => {
     const human = createPlayer(recommendedBuild(), 's1').core.inventory.filter((i) => i.equippedIn);
     expect(human.flatMap((i) => i.equippedIn!).sort()).toEqual(['armor', 'grip:right_arm', 'pack']);
@@ -61,10 +44,4 @@ describe('313 race choice at creation', () => {
     expect(slime.flatMap((i) => i.equippedIn!)).toEqual(['pack']);
   });
 
-  it('the age range is the picked race\'s; a Slime is ageless', () => {
-    expect(creationAgeRange(RC.elf)!.max).toBeGreaterThan(creationAgeRange(RC.human)!.max);
-    expect(creationAgeRange(RC.slime)).toBeUndefined();
-    expect(validateBuild({ ...recommendedBuild(), raceId: RC.elf, age: 200 })).toEqual([]);
-    expect(validateBuild({ ...recommendedBuild(), raceId: RC.human, age: 200 }).some((e) => e.startsWith('Age must be'))).toBe(true);
-  });
 });

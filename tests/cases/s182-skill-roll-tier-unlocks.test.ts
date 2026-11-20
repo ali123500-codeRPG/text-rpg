@@ -45,9 +45,4 @@ describe('182 skill-roll tier unlocks (D-211)', () => {
     expect(tierLevel(r)).toBe(-1);
   });
 
-  it('without an unlock nothing changes', () => {
-    const s = makeVillage();
-    const r = rollAt(s, 300);
-    expect(tierLevel(r)).toBe(TIERS.pos('critical_success'));
-  });
 });

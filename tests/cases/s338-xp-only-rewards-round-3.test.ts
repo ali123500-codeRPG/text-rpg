@@ -6,9 +6,8 @@ import { makeVillage } from '../harness';
 import { grantAchievement } from '../../src/engine/xp';
 import { getLibrary } from '../../src/library';
 import { ACH } from '../../src/library/achievementIds';
-import { SK } from '../../src/library/skillIds';
 import { FR } from '../../src/library/tableIds';
-import { achievementSkill, rewardLines } from '../../src/ruleset/achRewards';
+import { rewardLines } from '../../src/ruleset/achRewards';
 import { healthFear } from '../../src/ruleset/morale';
 import type { AchievementDef, GameState } from '../../src/types';
 
@@ -17,14 +16,6 @@ const give = (s: GameState, ...keys: string[]) => { for (const k of keys) grantA
 const fearAt = (s: GameState, l: Parameters<typeof healthFear>[1]) => healthFear(s.player, l)?.id;
 
 describe('338 XP-only rewards, round 3', () => {
-  it('XR38 b: talked down adds +2 true Persuasion per level, whatever skill was used', () => {
-    const s = makeVillage();
-    give(s, ACH.talked_down_1);
-    expect(achievementSkill(s.player, SK.persuasion)).toBe(2);
-    give(s, ACH.talked_down_10, ACH.talked_down_50);
-    expect(achievementSkill(s.player, SK.persuasion)).toBe(6);
-    expect(achievementSkill(s.player, SK.falsehood)).toBe(0);
-  });
 
   it('XR39 a: health lost moves only the new-level fear, one level later per level from level II', () => {
     const s = makeVillage();

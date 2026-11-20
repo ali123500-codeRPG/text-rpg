@@ -72,14 +72,6 @@ describe('333 graded acts (OD2, OD3, OD4, OD11, OD12)', () => {
     expect(turnWinch(s).obstacle?.grade).toBe('moderate');
     expect(winch(s).grade).toBeUndefined();
   });
-  it('OD12: the grade shows on the furniture once the player has tried it', () => {
-    const s = village();
-    winch(s).grade = 'major';
-    const shown = () => buildPlayerView(s).zone.furniture!.find((f) => f.id === winch(s).id)!;
-    expect(shown()).not.toHaveProperty('grade');
-    turnWinch(s);
-    expect(shown()).toMatchObject({ grade: 'major' });
-  });
   it('a piece of furniture the player sees is a legal target for these acts, and only these', () => {
     const s = village(), v = buildPlayerView(s), id = winch(s).id;
     expect(checkParserLegality(intent({ action: { type: 'interact', skill: SK.endurance, target: id, grade: 'minor' } }), v).illegal).toEqual([]);

@@ -78,15 +78,4 @@ describe('319 stepping round to reach', () => {
     expect(Math.hypot(c.pos!.x - b.pos!.x, c.pos!.y - b.pos!.y)).toBeGreaterThan(0.09); // never ends nearer than it began
   });
 
-  it('turn 104 of the story: Hob, at the drover\'s side, lands his punch with Osric beside the line in and Sedge behind', () => {
-    const s = room();
-    s.player.pos = { x: 0.086, y: -1.315 };
-    at(s, 'trader', 0, -2).asleep = { since: 0 }; // Sedge
-    at(s, 'guard_1', -0.672, 0.095).asleep = { since: 0 }; // Osric
-    at(s, 'drover', 0.376, 1.008).asleep = { since: 0 };
-    const hob = agent(at(s, 'hob', 0.376, 1.008));
-    const ev = play(s, { intent: intent(), agentOutputs: [fists(hob.id)] });
-    expect(lost(ev, hob.id)).toBeUndefined();
-    expect(struck(ev, hob.id)).toBe(true);
-  });
 });

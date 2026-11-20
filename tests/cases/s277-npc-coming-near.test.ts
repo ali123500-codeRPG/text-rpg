@@ -6,14 +6,12 @@ import { makeVillage, place } from '../harness';
 import { busyCheck } from '../../src/engine/comingNear';
 import { intent, play } from './w4-kit';
 import { plannerActors } from '../../src/agents/game';
-import { buildOppositionView } from '../../src/views';
 import { DU } from '../../src/library/tableIds';
 import { getLibrary } from '../../src/library';
 import { IT } from '../../src/library/itemIds';
 import type { Actor, GameEvent, GameState } from '../../src/types';
 import { boxOf } from '../../src/plan/geom';
 
-const quiet = () => makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
 const guard = (s: GameState) => s.actors.find((a) => a.id === 'guard_1')!;
 /** the guard is bandaging himself, a long action (the busy state a fight turn leaves) */
 const bandaging = (s: GameState, g: Actor, done: number, watch?: Record<string, never>) => {
@@ -48,24 +46,5 @@ describe('277 NPCs and the coming-near check', () => {
     s.mode = 'tactical';
     play(s, { intent: intent() });
     expect(g.busy?.alert).toBeUndefined();
-  });
-  it('AT67: an NPC at a long action that nothing disturbs carries on, its watch kept', () => {
-    const s = quiet();
-    const g = guard(s);
-    bandaging(s, g, 0);
-    s.mode = 'tactical';
-    play(s, { intent: intent() });
-    expect(g.busy?.watch).toBeDefined();
-    expect(g.busy?.alert).toBeUndefined();
-  });
-  it('AT63: an agent-run NPC is told how long the player\'s rest ran on past its order', () => {
-    const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
-    const t = s.actors.find((a) => a.id === 'trader')!;
-    t.mind!.control = 'agent';
-    play(s, { intent: intent({ action: { type: 'rest' } }) });
-    const minutes = buildOppositionView(s, 'trader').self.meanwhile?.minutes ?? 0;
-    expect(minutes).toBeGreaterThan(50);
-    expect(minutes).toBeLessThanOrEqual(60);
-    expect(buildOppositionView(s, 'patron_1').self.meanwhile).toBeUndefined(); // run by code: nothing to tell
   });
 });

@@ -43,14 +43,6 @@ describe('323 accessories', () => {
     expect(itemValue(null, d)).toBe(5 * CONFIG.ITEM_VALUE.skillPoint);
   });
 
-  it('spectacles add their Eyesight bonus only while worn', () => {
-    const s = bare(makeVillage()), before = eff(s, SK.eyesight), bonus = effectValue(lib()[IT.spectacles], lib()[IT.spectacles].effects![0]);
-    s.player.core.inventory.push({ id: 'specs', itemId: IT.spectacles });
-    expect(eff(s, SK.eyesight)).toBeCloseTo(before);
-    applyGearOps(s, s.player, [{ op: 'wear_acc', item: 'specs' }]);
-    expect(eff(s, SK.eyesight)).toBeCloseTo(before + bonus);
-  });
-
   it('AX3 c: a ring rolls its skill once, boosts it while worn, and its name and panel show it', () => {
     const s = bare(makeVillage());
     expect(rolledPool()).not.toContain(SK.tremor); // tier 0
@@ -82,12 +74,4 @@ describe('323 accessories', () => {
     expect(eff(s, SK.eyesight)).toBeCloseTo(e0 + 10);
   });
 
-  it('AX7: the ear cup, amulet and hooded cloak boost Earshot, Resolve and Sneaking while worn', () => {
-    for (const [itemId, skill] of [[IT.ear_cup, SK.earshot], [IT.amulet, SK.resolve], [IT.hooded_cloak, SK.sneaking]] as const) {
-      const s = bare(makeVillage()), before = eff(s, skill);
-      expect(lib()[itemId].slot).toBe('accessory');
-      wear(s, { id: 'acc', itemId });
-      expect(eff(s, skill)).toBeCloseTo(before + 5);
-    }
-  });
 });

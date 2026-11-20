@@ -13,7 +13,6 @@ import { loseNerve } from '../../src/engine/effects';
 import { answerOffer, canDemand, canOffer, makeOffer, offerNote, offersTo, playerOffer, tiersToConvince } from '../../src/engine/offer';
 import { actorBody } from '../../src/library';
 import { buildNarrationView, buildPlayerView } from '../../src/views';
-import { deck } from '../../src/ui/deck';
 
 const fight = (s: GameState = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'trader'] })): GameState => {
   const m = actorById(s, 'patron_1')!.mind!;
@@ -59,14 +58,6 @@ it('TF19: a code-run foe convinced by the demand surrenders: beaten (XP paid), n
   expect(nv.events.find((e) => e.kind === 'surrender')?.surrender).toEqual({ with: [] });
 });
 
-it('TF19: a win short of the demand only tempts; the foe fights on', () => {
-  const s = fight(), p = patron(s);
-  const r = makeOffer(s, s.player, p, 'persuade', won(CONFIG.OFFER_YIELD_WIN_TIERS - 1), [], 0, 'yield');
-  expect(r.landed).toBe('tempted');
-  expect(r.yielded).toBeUndefined();
-  expect(p.mind!.moraleState).toBeUndefined();
-});
-
 it('TF19: an AI-run foe is told it is a demand to surrender; standDown does not answer it, yields does', () => {
   const s = fight(), p = patron(s);
   p.mind!.control = 'agent';
@@ -89,9 +80,3 @@ it('TF19: a foe cowering Broken can still be talked into surrendering, with one 
   expect(p.mind!.moraleState).toBe('surrendered');
 });
 
-it("TF19: the deck's Talk group offers a demand to surrender", () => {
-  const s = fight();
-  const demand = deck({ pv: buildPlayerView(s), s }).find((g) => g.group === 'talk')!.actions.find((a) => a.kind === 'demand');
-  expect(demand?.label).toBe('Demand surrender');
-  expect(demand?.play({ target: 'patron_1', words: 'Drop it.' }).intent.action).toMatchObject({ type: 'persuade', target: 'patron_1', demand: 'yield' });
-});

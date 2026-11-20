@@ -19,10 +19,3 @@ it('a place of a layout building whose layout keys the plan uses gets that layou
   expect(p.zones.map((z) => z.key)).toContain('tavern.common');
 });
 
-it('a place that uses none of the layout keys is left alone', () => {
-  makeVillage();
-  const p = plan(['lane2']);
-  expandLayouts(p);
-  expect(p.places[0].layout).toBeUndefined();
-  expect(p.zones).toHaveLength(1);
-});

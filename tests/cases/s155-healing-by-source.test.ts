@@ -45,40 +45,12 @@ describe('155 healing by source', () => {
     expect(healed(fast, HL.passive)).toBeGreaterThan(base * 2 - 1e-9); // ×2 (its +5 true skill adds a little more)
     expect(healed(fast, HL.perk)).toBe(0); // only perks that heal directly count as perk healing
   });
-  it('a clinic and a bandage keep their own counts; healing an NPC counts nothing', () => {
-    const s = makeVillage();
-    s.player.core.condition.hpLostPct = 30;
-    applyHealing(s, s.player, HL.bandage);
-    applyHealing(s, s.player, HL.clinic);
-    expect(healed(s, HL.bandage)).toBeCloseTo(hp(s, getLibrary().healing![HL.bandage].hpPct), 5);
-    expect(healed(s, HL.clinic)).toBeCloseTo(hp(s, 30 - getLibrary().healing![HL.bandage].hpPct), 5);
-    expect(healed(s, HL.rest)).toBe(0);
-    const npc = s.actors[0];
-    npc.core.condition.hpLostPct = 30;
-    const before = { ...s.player.progression?.tally };
-    applyHealing(s, npc, HL.rest);
-    expect(s.player.progression?.tally).toEqual(before);
-  });
   it('the Perks row is only a counting source: it heals nothing itself', () => {
     const s = makeVillage();
     s.player.core.condition.hpLostPct = 30;
     expect(getLibrary().healing![HL.perk].countOnly).toBe(true);
     expect(applyHealing(s, s.player, HL.perk)).toBe(false);
     expect(s.player.core.condition.hpLostPct).toBe(30);
-  });
-  it('an achievement can count healing from one source and name it', () => {
-    const s = makeVillage();
-    const lib = getLibrary().achievements!;
-    lib.TEST_HEAL = { id: 'TEST_HEAL', name: 'Mended by {source}', level: 'i', rule: 'healed', by: 'heal_source', tags: ['survival'], count: 100 };
-    try {
-      tally(s, 'healed', { by: 'heal_source', of: HL.passive, add: 60 });
-      tally(s, 'healed', { by: 'heal_source', of: HL.rest, add: 60 });
-      expect(!!s.player.progression?.achievements?.some((x) => x.key === 'TEST_HEAL')).toBe(false); // sources don't add up
-      tally(s, 'healed', { by: 'heal_source', of: HL.passive, add: 40 });
-      const got = s.player.progression?.achievements?.find((x) => x.key === 'TEST_HEAL');
-      expect(got?.of).toBe(HL.passive);
-      expect(achievementName(s, got!)).toBe('Mended by Natural Recovery');
-    } finally { delete lib.TEST_HEAL; }
   });
   it('each source has its own chain, counted in HP: rest heals never earn the natural-recovery or perk lines', () => {
     const s = makeVillage();

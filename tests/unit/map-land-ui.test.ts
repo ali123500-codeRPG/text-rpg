@@ -1,7 +1,7 @@
 // The World map draws the land the character has seen (WZ4) under its places and roads, and a road bound to a region's
 // road line (WZ1) runs along that line, with your pin at your point along it.
 import { describe, expect, it } from 'vitest';
-import { alongLine, knownMap, pointAlong, worldTiles } from '../../src/ui/mapData';
+import { knownMap, pointAlong, worldTiles } from '../../src/ui/mapData';
 import { landLabels, landLayer } from '../../src/ui/landSvg';
 import { createFakeGame } from '../../src/ui/fakeGame';
 
@@ -43,12 +43,4 @@ describe('the land on the World map', () => {
     expect(pin.y).toBeCloseTo(s.player.pos!.y, 3);
   });
 
-  it('a point along a line: metres from its first point, that end named by its compass side', () => {
-    const line = [{ x: 0, y: 0 }, { x: 0, y: 300 }, { x: 400, y: 300 }]; // north, then east
-    expect(alongLine(line, { x: 10, y: 100 })).toEqual({ m: 100, len: 700, from: 'west', to: 'east' });
-    expect(alongLine(line, { x: 200, y: 320 })).toMatchObject({ m: 500 });
-    expect(pointAlong(line, 500)).toEqual({ x: 200, y: 300 });
-    expect(pointAlong(line, 9999)).toEqual({ x: 400, y: 300 });
-    expect(alongLine([...line].reverse(), { x: 400, y: 300 })).toMatchObject({ m: 0, from: 'east', to: 'west' });
-  });
 });

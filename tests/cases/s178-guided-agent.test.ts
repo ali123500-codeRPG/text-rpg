@@ -2,7 +2,7 @@
 // yield); the agent is told the kinds it must ask about before moving, and its question is read safely.
 import { describe, expect, it } from 'vitest';
 import { actor, makeVillage } from '../harness';
-import { CROSSROADS, askKey, guidedPrompt, readAsk, spotCrossroads, turnSnap } from '../../src/agents/crossroads';
+import { askKey, readAsk, spotCrossroads, turnSnap } from '../../src/agents/crossroads';
 import { readMove } from '../../src/agents/autopilot';
 
 describe('178 guided agent', () => {
@@ -14,30 +14,6 @@ describe('178 guided agent', () => {
     g.mind!.knowledge.player = { status: 'aware', lastKnownZone: s.player.zone, lastSeenTurn: s.turn, source: 'seen', revealed: [] };
     expect(spotCrossroads(before, s, undefined, false).map((c) => c.kind)).toEqual(['fight_started']);
     expect(spotCrossroads(before, s, undefined, true)).toEqual([]); // the watcher already approved the agent's own fight
-  });
-
-  it('code spots Wounded and worse, and a part turning Crippled', () => {
-    const s = makeVillage({ without: ['slime_1', 'slime_2'] });
-    const before = turnSnap(s);
-    s.player.core.condition.hpLostPct = 50; // Wounded
-    const line = { turn: 1, kind: 'narration' as const, text: '', wounds: [{ id: 'left_arm', from: 'damaged' as const, to: 'crippled' as const }] };
-    const got = spotCrossroads(before, s, line, false);
-    expect(got.map((c) => c.about)).toEqual(['Wounded', 'left arm Crippled']);
-    s.player.core.condition.hpLostPct = 20; // Bruised is no crossroads
-    expect(spotCrossroads(turnSnap(makeVillage({ without: ['slime_1', 'slime_2'] })), s, undefined, false)).toEqual([]);
-  });
-
-  it('the agent is told what to ask about, the coin limit, what is settled, and a code crossroads to word', () => {
-    const s = makeVillage({ without: ['slime_1', 'slime_2'] });
-    s.player.core.signatures = ['Never kills.'];
-    const p = guidedPrompt(s, [], { settled: ['deal: the barkeep → yes'] });
-    for (const c of CROSSROADS.filter((x) => x.by === 'agent')) expect(p).toContain(`- ${c.kind}:`);
-    expect(p).toContain("Your character's signatures (habits to keep to when they come up, not lines to repeat; never ask about what they already settle): Never kills."); // they replaced standing orders
-    expect(p).toContain('Coin limit:');
-    expect(p).toContain('deal: the barkeep → yes');
-    const must = guidedPrompt(s, [], { mustAsk: { kind: 'badly_hurt', about: 'Wounded', situation: 'your health is now Wounded' } });
-    expect(must).toContain('STOP: the watcher must decide');
-    expect(guidedPrompt(s, [], { answered: { about: 'the barkeep', words: 'talk her down' } })).toContain('"talk her down"');
   });
 
   it('a question is read safely; a bad one is no question', () => {

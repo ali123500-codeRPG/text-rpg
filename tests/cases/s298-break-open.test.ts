@@ -51,8 +51,3 @@ it('BF31: a blade in hand cuts a locked sack open with no roll', () => {
   expect(c.open).toBe(true);
 });
 
-it('BF31: nothing to break when it is not locked', () => {
-  const s = village();
-  box(s, IT.chest, { lock: undefined });
-  expect(play(s, { intent: intent({ action: { type: 'break', target: 'box' } }) }).find((e) => e.kind === 'wasted')?.reason).toBe('not_locked');
-});

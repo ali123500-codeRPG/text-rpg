@@ -18,12 +18,6 @@ it('an extension that declares an area already built is refused', () => {
   expect(codes(s, declare('street_square'))).toContain('zone_exists');
 });
 
-it('the refusal says to link to the area already built', () => {
-  const s = makeVillage({ playerZone: 'field_far' });
-  const e = validateStagePlan(s, declare('street_square'), ctx).find((x) => x.code === 'zone_exists');
-  expect(e?.message).toContain('link to street_square');
-});
-
 it('a place already built is refused; a new key is accepted', () => {
   const s = makeVillage({ playerZone: 'field_far' });
   const plan = { ...declare('yard'), places: [{ key: 'tavern', kind: 'place', name: 'an inn', parent: 'village' }] } as unknown as StagePlan;

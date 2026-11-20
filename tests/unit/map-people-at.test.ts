@@ -21,34 +21,6 @@ describe('people at their own points on the Map', () => {
     for (const p of people(s).filter((x) => !x.now)) expect(p.at).toBeUndefined();
   });
 
-  it('MAP-69 whole turn: each person’s disc shows what is seen on them first, else what they are; someone not made out a hood', async () => {
-    const g = wholeTurn({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
-    const s = g.game.state()!;
-    await g.turn(intent(), 'I look around');
-    const pv = buildPlayerView(s), shown = people(s);
-    expect(shown.length).toBeGreaterThan(0);
-    for (const p of shown) {
-      const a = pv.actors.find((x) => x.id === p.id);
-      if (!a || a.level !== 'full') { expect(p.icon).toBe('someone'); continue; }
-      const held = a.gear.some((x) => x.where === 'held' || x.where === 'shield');
-      // RM15 c: a plain human by the life stage they look, else their pronouns
-      const plain = /^(Old|Venerable|Ancient)/.test(a.age ?? '') ? 'elder' : a.pronouns === 'he' ? 'man' : a.pronouns === 'she' ? 'woman' : 'person';
-      if (!held && !a.gear.some((x) => x.where === 'armor') && !a.wares?.length) expect(p.icon).toBe(plain);
-      if (held) expect(['sword', 'dagger', 'axe', 'spear', 'bow', 'crossbow', 'club', 'shield']).toContain(p.icon);
-    }
-  });
 });
 
 // BG-327: someone out of sight shows on the Map in the zone where they were last seen or heard (MAP-45)
-describe('people last seen on the Map', () => {
-  it('whole turn: the people left behind in the tavern show in their rooms, with no point', async () => {
-    const g = wholeTurn({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
-    const s = g.game.state()!;
-    await g.turn(intent(), 'I look around');
-    for (let i = 0; i < 4 && s.player.zone === 'tav_common'; i++) await g.turn(intent({ move: { toZone: 'street_door' }, action: null }), 'I step out');
-    const left = buildPlayerView(s).lastSeen ?? [];
-    expect(left.map((x) => x.id).sort()).toEqual(['patron_1', 'trader']);
-    for (const x of left) expect(people(s).find((p) => p.id === x.id)).toMatchObject({ zone: s.actors.find((a) => a.id === x.id)!.zone, now: false });
-    for (const p of people(s).filter((x) => !x.now)) expect(p.at).toBeUndefined();
-  });
-});

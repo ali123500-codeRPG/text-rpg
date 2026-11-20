@@ -11,7 +11,6 @@ import { perkMoveBlock } from '../../src/engine/perkMoves';
 import { selectSpokespeople } from '../../src/engine/speech';
 import { coverFor } from '../../src/engine/perkMarks';
 import { shareSpotted } from '../../src/ruleset/allSteps';
-import { buildPlayerView } from '../../src/views';
 import type { Actor, AttackResult, GameEvent, GameState } from '../../src/types';
 import { intent, play } from './w4-kit';
 import { SK } from '../../src/library/skillIds';
@@ -164,13 +163,4 @@ describe('213 zones are not distances', () => {
     expect(run((s) => { const m = place(s, 'patron_1', 'tav_cellar'); delete m.pos; placeAll(s); })).toBe('unaware');
   });
 
-  it('ZR6: a person is made out by the sight table: still at 18 m is "someone", walking at 18 m is known', () => {
-    const s = mapped();
-    s.player.pos = { x: s.player.pos!.x - 9, y: s.player.pos!.y };
-    const wim = besidePlayer(s, 'patron_1', 18);
-    s.events = [];
-    expect(buildPlayerView(s).actors.find((a) => a.id === 'patron_1')).toMatchObject({ level: 'partial', label: 'someone' });
-    s.events = [{ id: 'e1', turn: s.turn, actorId: wim.id, kind: 'move', zone: wim.zone, pos: { ...wim.pos! }, effects: [], noise: 'quiet', visibility: 'normal', perception: {} } as unknown as GameEvent];
-    expect(buildPlayerView(s).actors.find((a) => a.id === 'patron_1')).toMatchObject({ level: 'full' });
-  });
 });

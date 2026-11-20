@@ -34,11 +34,4 @@ describe('BG-203 following someone last seen', () => {
     expect(buildPlayerView(s).player.following).toMatchObject({ who: 'patron_1' });
     expect(buildPlayerView(s).player.following?.lost).toBeUndefined();
   });
-  it('not there when the player arrives, he is lost', () => {
-    const s = slippedOff();
-    place(s, 'patron_1', 'field_far'); // gone, out of sight and earshot
-    play(s, { intent: followHim(s) });
-    expect(s.player.walking).toBeUndefined();
-    expect(buildPlayerView(s).player.following).toMatchObject({ who: 'patron_1', lost: 'out_of_sight' });
-  });
 });

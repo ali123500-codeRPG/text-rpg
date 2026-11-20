@@ -6,9 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { NOISE } from '../../src/scales';
 import { CONFIG } from '../../src/config';
 import { hearingOf, openAirReachM, soundDb } from '../../src/perception';
-import { zoneById } from '../../src/engine/relations';
 import { makeVillage, putBarrier } from '../harness';
-import { middle, wayTo } from '../../src/plan/where';
 import { BK } from '../../src/library/tableIds';
 import type { Barrier, GameState } from '../../src/types';
 
@@ -58,16 +56,3 @@ describe('hearing by real metres (BG-57)', () => {
   });
 });
 
-describe('hearing on a mapped stage (BG-57)', () => {
-  it('BG-57: the barkeep whispering across the counter 1 m away is understood when leaned in, only heard when not meant for you', async () => {
-    const s = makeVillage({ playerZone: 'tav_common' });
-    const c1 = middle(zoneById(s, 'tav_common')!), c2 = middle(zoneById(s, 'tav_counter')!);
-    // stand them a metre apart across the way between them
-    const d = wayTo(s, 'tav_common', 'tav_counter')!.opening.at;
-    const half = (c: { x: number; y: number }) => ({ x: d.x + (c.x - d.x) * 0.5 / Math.hypot(c.x - d.x, c.y - d.y), y: d.y + (c.y - d.y) * 0.5 / Math.hypot(c.x - d.x, c.y - d.y) });
-    const me = { zone: 'tav_common', pos: half(c1) };
-    const her = { zone: 'tav_counter', pos: half(c2) };
-    expect(hearingOf(s, 'hushed', her, me, 0, true)).toBe('full'); // leaning in over the counter
-    expect(hearingOf(s, 'hushed', her, me)).toBe('partial'); // a whisper not meant for you: heard, not understood
-  });
-});

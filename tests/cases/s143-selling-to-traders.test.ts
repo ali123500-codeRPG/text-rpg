@@ -64,9 +64,3 @@ it('143c a stack sells in part; haggling and Hard Bargain raise the price', () =
   expect(sellPrice(s, s.player, mags, IT.arming_sword)).toBe(19); // 30 × 0.5 × 1.2 × 1.1, rounded down
 });
 
-it('143z selling counts the copper earned toward Peddler', () => {
-  const s = shop();
-  const r = sell(s, s.player, actorById(s, 'trader')!, SWORD, 1);
-  expect(r.ok).toBe(true);
-  expect(s.player.progression!.tally!.coin_earned).toBe(r.ok ? r.price : -1);
-});

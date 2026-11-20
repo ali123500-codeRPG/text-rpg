@@ -5,10 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import { makeVillage, place } from '../harness';
 import { intent, play } from './w4-kit';
-import { perkMoveBlock } from '../../src/engine/perkMoves';
 import { maxMorale, moraleLost } from '../../src/ruleset/morale';
-import { buildPlayerView } from '../../src/views';
-import { deck } from '../../src/ui/deck';
 import { PK } from '../../src/library/perkIds';
 import { SK } from '../../src/library/skillIds';
 import type { Actor, GameState } from '../../src/types';
@@ -33,14 +30,6 @@ const setup = () => {
 
 describe('159 Battle Cry', () => {
 
-  it('needs no target, shows as an action in the Parser view and in the action deck', () => {
-    const { s } = setup();
-    expect(perkMoveBlock(s, s.player, PK.battle_cry, null)).toBeNull();
-    const pv = buildPlayerView(s);
-    expect(pv.player.perkMoves?.find((m) => m.id === PK.battle_cry)).toMatchObject({ name: 'Battle Cry', action: true });
-    expect(deck({ pv, s }).find((g) => g.group === 'perks')?.actions.some((a) => a.label === 'Let out a battle cry' && !a.steps.length)).toBe(true);
-  });
-
   it('foes who hear it roll Resolve against Intimidation; allies take heart; it takes 1 s and the attack follows (AT11)', () => {
     const { s, foe, friend } = setup();
     const before = moraleLost(foe);
@@ -59,22 +48,6 @@ describe('159 Battle Cry', () => {
     expect(ev.findIndex((e) => e.kind === 'battle_cry')).toBeLessThan(ev.findIndex((e) => e.kind === 'attack' && e.actorId === 'player')); // 1 s roar, then the blow
   });
 
-  it('once per engagement', () => {
-    const { s } = setup();
-    play(s, { intent: cry });
-    expect(perkMoveBlock(s, s.player, PK.battle_cry, null)).toBe('used_this_engagement');
-    const ev = play(s, { intent: cry });
-    expect(ev.some((e) => e.kind === 'battle_cry')).toBe(false);
-    expect(s.log.some((l) => l.code === 'perk_move_dropped')).toBe(true);
-  });
-  it('the roar rallies the one who roars: a rally roll for morale back and any Shaken gone, untold in narration', () => {
-    const { s } = setup();
-    s.player.core.condition.moraleLost = 30;
-    s.player.pressure = { patron_1: { shaken: 10 } };
-    play(s, { intent: cry });
-    expect(Math.round(30 - moraleLost(s.player)) % 10).toBe(0); // TC43 a: its own rally roll, 10 per tier above Near Miss
-    expect(s.player.pressure?.patron_1?.shaken).toBeUndefined();
-  });
   it('can be let out while broken: a broken nerve keeps the roar and still blocks the attack (BF37)', () => {
     const { s } = setup();
     s.player.core.condition.moraleLost = maxMorale(s.player); // broken

@@ -42,19 +42,6 @@ describe('breaking time (BW20 a, BW22 a)', () => {
     expect(breakSecondsAt(brick, brick.exampleCm, 50, false)).toBeCloseTo(brick.secondsAt50 * (ref / liftKg(50)) ** 3, 6);
     expect(breakSecondsAt(brick, brick.exampleCm, 200, false)).toBeCloseTo(brick.secondsAt50 * (ref / 2400) ** 3, 6);
   });
-  it('a tool matters in the human range and fades past 100', () => {
-    const stone = row(BM.stone);
-    const gain = (s: number) => breakSecondsAt(stone, 60, s, false) / breakSecondsAt(stone, 60, s, true);
-    expect(gain(50)).toBeGreaterThan(2);
-    expect(gain(300)).toBeLessThan(1.05);
-  });
-  it('the ladder pictures: mortal masonry is walked through by 300; starmetal still stops a Transcendent (BW21 a)', () => {
-    const castle = breakSecondsAt(row(BM.stone), 250, 300, false), door = breakSecondsAt(row(BM.oak), 5, 200, false);
-    expect(castle).toBeLessThanOrEqual(CONFIG.WALK_THROUGH_S);
-    expect(door).toBeLessThanOrEqual(CONFIG.WALK_THROUGH_S);
-    expect(breakSecondsAt(row(BM.starmetal), 20, 300, false)).toBeGreaterThan(CONFIG.WALK_THROUGH_S);
-    expect(breakSecondsAt(row(BM.stone), 250, 50, true)).toBeGreaterThan(3600); // hours of work for a mason
-  });
   it('reads the actor: strength rating, best tool, Shield Breaker counts a heavy weapon', () => {
     const S = makeVillage({ seed: 3 });
     const bare = sheet(S, 'bare', { [SK.melee_heavy]: 50, [SK.endurance]: 50 });

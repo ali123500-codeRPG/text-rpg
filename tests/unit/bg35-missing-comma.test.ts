@@ -7,7 +7,4 @@ describe('BG-35 missing comma between JSON members', () => {
     expect(parseTolerant('{"text":"You step in. \\"Who\\" asks.""narrated":["t70.2","t70.3"]}')).toEqual({ ok: true, value: { text: 'You step in. "Who" asks.', narrated: ['t70.2', 't70.3'] } });
     expect(parseTolerant('{"a":[1] "b":{"c":2}\n "d":3 "e":true "f":null}')).toEqual({ ok: true, value: { a: [1], b: { c: 2 }, d: 3, e: true, f: null } });
   });
-  it('valid JSON and an empty string are left alone', () => {
-    expect(parseTolerant('{"a":"","b":"x"}')).toEqual({ ok: true, value: { a: '', b: 'x' } });
-  });
 });

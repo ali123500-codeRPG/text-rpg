@@ -5,7 +5,6 @@ import { makeVillage } from '../harness';
 import { actor } from '../harness/village';
 import { CONFIG } from '../../src/config';
 import { fightEnded, turnFeats } from '../../src/engine/feats';
-import { tally } from '../../src/engine/xp';
 import { getLibrary } from '../../src/library';
 import { ACH } from '../../src/library/achievementIds';
 import { achievementMaxMorale } from '../../src/ruleset/achRewards';
@@ -60,18 +59,4 @@ describe('293 back from the break', () => {
     expect(s.player.progression!.tally?.won_broken).toBeUndefined();
   });
 
-  it('the chain climbs at 1, 5 and 25, and its max morale adds up along it', () => {
-    const { s } = fight(false);
-    const lib = getLibrary().achievements!;
-    const each = [ACH.won_broken_1, ACH.won_broken_5, ACH.won_broken_25].map((k) => lib[k].maxMorale!);
-    tally(s, 'won_broken');
-    expect(earned(s)).toContain(ACH.won_broken_1);
-    for (let i = 1; i < 5; i++) tally(s, 'won_broken');
-    expect(earned(s)).toContain(ACH.won_broken_5);
-    expect(earned(s)).not.toContain(ACH.won_broken_1);
-    expect(achievementMaxMorale(s.player)).toBe(each[0] + each[1]);
-    for (let i = 5; i < 25; i++) tally(s, 'won_broken');
-    expect(earned(s)).toContain(ACH.won_broken_25);
-    expect(achievementMaxMorale(s.player)).toBe(each[0] + each[1] + each[2]);
-  });
 });

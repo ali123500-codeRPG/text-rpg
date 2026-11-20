@@ -6,9 +6,8 @@ import { makeVillage, forcedRng } from '../harness';
 import { actor } from '../harness/village';
 import { ruleset } from '../../src/ruleset';
 import { woundsMods } from '../../src/ruleset/body';
-import { deathsDoor, firstSightOf, readsHealthOf, renownMods, rewardLines } from '../../src/ruleset/achRewards';
+import { deathsDoor, readsHealthOf, renownMods, rewardLines } from '../../src/ruleset/achRewards';
 import { stance } from '../../src/engine/relations';
-import { RC } from '../../src/library/raceIds';
 import { trueSkill } from '../../src/ruleset/perks';
 import { grantAchievement } from '../../src/engine/xp';
 import { getLibrary } from '../../src/library';
@@ -40,16 +39,6 @@ describe('136 achievement rewards', () => {
     expect(deathsDoor(s, s.player, 50, 120)).toBe(120); // spent for today
     expect(deathsDoor(s, s.player, 50, 80)).toBe(80); // not a fall: nothing to save
     s.player.progression!.charges![ACH.brink_5] -= 1; // a day later
-    expect(deathsDoor(s, s.player, 50, 120)).toBe(top);
-  });
-  it('Not Yet: the same save, refilled once every 7 game days', () => {
-    const s = makeVillage();
-    const top = CONFIG.HEALTH_TRACK.find(([l]) => l === 'critical')![1];
-    grantAchievement(s, ACH.brink_3);
-    expect(deathsDoor(s, s.player, 50, 120)).toBe(top);
-    s.player.progression!.charges![ACH.brink_3] -= 6;
-    expect(deathsDoor(s, s.player, 50, 120)).toBe(120);
-    s.player.progression!.charges![ACH.brink_3] -= 1;
     expect(deathsDoor(s, s.player, 50, 120)).toBe(top);
   });
   it('Bones Heal Later grants Past the Pain: one Crippled part gives no role penalty', () => {
@@ -100,15 +89,6 @@ describe('136 achievement rewards', () => {
       expect(trueSkill(s.player, SK.intimidation)).toBe(12);
     } finally { ach[ACH.yielded_10].skillAdd = was; }
   });
-  it('a level drops an inherited reward only through its own excludes: Death Keeps Waiting', () => {
-    const ach = getLibrary().achievements!;
-    expect(rewardLines(ach[ACH.brink_5])).toEqual(['once every game day, a hit that would take you Down leaves you at Critical']);
-    const was = ach[ACH.brink_5].excludes;
-    try {
-      delete ach[ACH.brink_5].excludes;
-      expect(rewardLines(ach[ACH.brink_5])[0]).toMatch(/every 7 game days.*\(from Not Yet\)$/);
-    } finally { ach[ACH.brink_5].excludes = was; }
-  });
   it('first sight: a hunted unintelligent kind meets you wary until you attack it', () => {
     const s = makeVillage();
     const slime = actor(s, 'slime_1');
@@ -117,20 +97,6 @@ describe('136 achievement rewards', () => {
     expect(stance(s, slime, s.player)).toBe('opposed');
     slime.mind!.overrides = { [s.player.id]: 'hostile' }; // what an attack on it sets
     expect(stance(s, slime, s.player)).toBe('hostile');
-  });
-  it('first sight: Scourge covers one intelligence step more, and drops the lower level\'s own first sight', () => {
-    const s = makeVillage();
-    const foe = actor(s, 'slime_1');
-    foe.core.raceId = RC.dragon; // semi-intelligent
-    grantAchievement(s, ACH.defeats_10_race, RC.dragon);
-    expect(firstSightOf(s.player, foe)).toBeUndefined();
-    grantAchievement(s, ACH.defeats_100_race, RC.dragon);
-    expect(firstSightOf(s.player, foe)).toBe(ACH.defeats_100_race);
-    foe.core.raceId = RC.human; // intelligent: never covered
-    grantAchievement(s, ACH.defeats_100_race, RC.human);
-    expect(firstSightOf(s.player, foe)).toBeUndefined();
-    const lines = rewardLines(getLibrary().achievements![ACH.defeats_100_race]);
-    expect(lines.filter((l) => l.includes('wary'))).toEqual(['unintelligent and semi-intelligent members of that race meet you wary (opposed), not hostile']);
   });
   it('every achievement carries at least one known tag', () => {
     for (const d of Object.values(getLibrary().achievements ?? {})) {

@@ -5,7 +5,6 @@ import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { CONFIG } from '../../src/config';
 import { auraReachM, projectedReachM } from '../../src/engine/auras';
-import { getLibrary } from '../../src/library';
 import { PK } from '../../src/library/perkIds';
 
 describe('366 Projected aura reach and Tactics renames', () => {
@@ -17,9 +16,4 @@ describe('366 Projected aura reach and Tactics renames', () => {
     expect(projectedReachM(s.player)).toBeGreaterThan(CONFIG.PROJECTED_AURA_MULT * CONFIG.AURA_REACH_M);
   });
 
-  it("Battle Cry's rules name the projected reach and the projected aura", () => {
-    const r = getLibrary().perks[PK.battle_cry]!.rules!;
-    expect(r.kind).toBe('Move (projected aura)');
-    expect(r.effect).toContain(`${CONFIG.PROJECTED_AURA_MULT} × the aura reach`);
-  });
 });

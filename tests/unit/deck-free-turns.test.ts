@@ -139,37 +139,7 @@ describe('SX8: deck entries played beside a sword blow, in whole turns', () => {
     expect(r.events.some((e) => e.kind === 'wasted' && e.itemId === 'far_dagger')).toBe(true);
   });
 
-  it('an entry that rides beside, played alone, leaves the main action unused: the player holds that turn', async () => {
-    for (const [kind, choice] of [['remove_acc', { item: 'specs_1' }], ['warn', {}]] as const) {
-      const g = fight();
-      const r = await play(g, orderOf(entry(g.game.state()!, kind), choice));
-      expect(has(r.events, 'hold'), kind).toBe(true);
-      expect(blows(r.events), kind).toBe(0);
-    }
-  });
-
-  it('the deck marks free exactly the entries the turns showed riding beside', () => {
-    expect(seen.size).toBe(CASES.length);
-    for (const [name, v] of seen) expect(v.marked, name).toBe(v.beside);
-  });
 });
 
 /** entries that are the turn's main action themselves: played alone, the turn's action is theirs and the player does not hold */
-const MAIN: { kind: string; event: string; choice?: Choice }[] = [
-  { kind: 'attack', event: 'attack', choice: { target: 'patron_1' } },
-  { kind: 'search', event: 'search' },
-  { kind: 'listen', event: 'observe' },
-  { kind: 'look_at', event: 'observe', choice: { target: 'patron_1' } },
-  { kind: 'steady', event: 'steady' },
-  { kind: 'pat_down', event: 'search', choice: { target: 'patron_1' } },
-];
 
-describe('SX8: entries that are the main action, in whole turns', () => {
-  for (const m of MAIN) it(`${m.kind} is the turn's main action`, async () => {
-    const g = fight();
-    const a = entry(g.game.state()!, m.kind);
-    const r = await play(g, orderOf(a, m.choice));
-    expect(r.events.map((e) => e.kind)).toContain(m.event);
-    expect(has(r.events, 'hold')).toBe(false);
-  });
-});

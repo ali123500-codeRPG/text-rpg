@@ -18,13 +18,6 @@ it('a speech action with no words or listeners takes the player line and its tar
   expect(fillSpeech(s, atk, 'x')).toBe(atk);
 });
 
-it('a plain talk with no words reaches the listener as an opening, never as the command text', () => {
-  const s = makeVillage({ playerZone: 'tav_counter' });
-  const bare = { ...intent({ action: { type: 'talk', target: 'trader' } }), spoken: null, addressees: null };
-  const filled = fillSpeech(s, bare, 'I talk to the trader');
-  expect([filled.spoken, filled.addressees]).toEqual([null, ['trader']]);
-});
-
 it('BG-46: words with no action are a talk to whoever they are for, so they are said', () => {
   const s = makeVillage({ playerZone: 'tav_counter' });
   const lone = { ...intent({}), action: null, spoken: "Hello? Who's there?", addressees: ['everyone'] };

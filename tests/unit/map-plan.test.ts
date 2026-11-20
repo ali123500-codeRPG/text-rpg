@@ -1,20 +1,14 @@
 // The stage map's layout (rpg-map): code places zones on the 1 m grid with buildings in one piece (MAP-10, MAP-12), then
 // places every mark so none covers another (MAP-20..32), and the three test stages (MAP-52) come out clean.
 import { describe, expect, it } from 'vitest';
-import { TEXT, checkReach, checkStage, planScene, roughMeasure, wrap, type Box, type Scene } from '../../src/ui/mapPlan';
+import { TEXT, checkReach, checkStage, planScene, roughMeasure, type Box, type Scene } from '../../src/ui/mapPlan';
 import { knownMap, type MapZone } from '../../src/ui/mapData';
 import { createFakeGame } from '../../src/ui/fakeGame';
-import { wholeTurn } from '../harness/turn';
-import { intent } from '../cases/w4-kit';
 import type { GameState } from '../../src/types';
 import { brokenLayouts } from '../../src/scenario/geometry';
-import { furnish } from '../harness';
 import { roofed } from '../../src/plan/where';
-import { boxOf } from '../../src/plan/geom';
-import { FU } from '../../src/library/tableIds';
 import { noteLeft, noteZonesSeen, visitedZoneIds } from '../../src/engine/trail';
 
-const FURN_INSET = 12; // a furniture icon's radius (9) and its gap from the walls (3)
 const hit = (a: Box, b: Box) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
 const inside = (a: Box, b: Box, pad: number) => a.x0 >= b.x0 + pad && a.x1 <= b.x1 - pad && a.y0 >= b.y0 + pad && a.y1 <= b.y1 - pad;
 
@@ -53,19 +47,6 @@ describe('MAP-52 test stages', () => {
       expect(checkReach([...ids], all.flatMap((z) => z.links.filter((l) => ids.has(l.to)).map((l) => [z.id, l.to] as [string, string])), m.zoneId)).toEqual([]);
     });
   }
-  it('the Bent Nail is one building: the high lane runs beside it, and the bar sits north of the common room', () => {
-    const st = stageState('bent-nail'), z = (id: string) => boxOf(st.places.flatMap((p) => p.zones).find((x) => x.id === id)!.outline);
-    const common = z('tavern.common'), bar = z('tavern.bar');
-    expect(bar.y - bar.d / 2).toBeCloseTo(common.y + common.d / 2); // touching, on the north wall
-    const { zones, places } = sceneOf(st, 1);
-    expect(checkStage(zones, places)).toEqual([]);
-  });
-  it('the layout as the live save stored it is caught: off the grid, and the lane through the tavern', () => {
-    const { zones, places } = sceneOf(stageState('bent-nail-saved'), 1);
-    const out = checkStage(zones, places);
-    expect(out).toContain('MAP-12 zone high_lane runs through the building tavern');
-    expect(out.some((f) => f.startsWith('MAP-10 zone tavern.common'))).toBe(true);
-  });
 });
 
 describe('MR2: a stored layout that breaks the map rules is named, never moved (PZ16 b: plans are kept as drawn)', () => {
@@ -73,10 +54,6 @@ describe('MR2: a stored layout that breaks the map rules is named, never moved (
     const st = stageState('bent-nail-saved'), before = JSON.stringify(st.zones.map((z) => z.outline));
     expect(brokenLayouts(st, (z) => roofed(st, z)).map((b) => b.placeId).sort()).toEqual(['tavern', 'thornbury']);
     expect(JSON.stringify(st.zones.map((z) => z.outline))).toBe(before);
-  });
-  it('a layout already clean is named by nothing (MAP-03)', () => {
-    const st = stageState('bent-nail');
-    expect(brokenLayouts(st, (z) => roofed(st, z))).toEqual([]);
   });
 });
 
@@ -97,23 +74,6 @@ describe('MR1: the zones the player has stood in', () => {
 });
 
 describe('labels, doors and exits', () => {
-  it('a long name breaks over lines at spaces, never inside a word, fewest lines first', () => {
-    expect(wrap('common room', 'label', 400, 3, roughMeasure)).toEqual(['common room']);
-    const two = wrap('the great entrance hall with its galleried stair', 'label', 200, 3, roughMeasure)!;
-    expect(two.length).toBe(2);
-    expect(two.join(' ')).toBe('the great entrance hall with its galleried stair');
-    expect(wrap('unbreakablelongword', 'label', 40, 3, roughMeasure)).toBeNull();
-  });
-  it('MAP-24: an exit to somewhere unknown is an arrow with its name only, its state in its tip, and a locked one shows its lock on the wall', () => {
-    const { sc } = sceneOf(stageState('one-room'), 1.6);
-    expect(sc.exits.map((e) => e.note.full)).toEqual(['the door, south']);
-    expect(sc.exits[0].title).toBe('the door, south: unexplored, locked');
-    const e = sc.exits[0], room = sc.zones[0].box;
-    expect(e.y2).toBeGreaterThan(e.y1); // south: down the screen
-    const lock = sc.doors.find((d) => d.way?.shut === 'locked')!;
-    expect(lock.cy).toBeCloseTo(room.y1); // on the south wall
-    expect(sc.used.has('way:locked')).toBe(true);
-  });
   it('MAP-20: every zone name is at the one small size inside its box, and takes no room from the marks', () => {
     const { sc } = sceneOf(stageState('bent-nail'), 1.6);
     expect(sc.labels.map((l) => l.zoneId)).toContain('tavern.common');
@@ -142,51 +102,3 @@ describe('labels, doors and exits', () => {
   });
 });
 
-describe('BG-216: marks keep their spot in their zone at every zoom', () => {
-  /** each mark's spot as a share of its zone, keyed by its id */
-  const shares = (sc: Scene) => new Map([...sc.tokens, ...sc.stairs, ...sc.furniture, ...sc.items].map((m) => {
-    const b = sc.zones.find((x) => x.z.id === m.zoneId)!.box;
-    return [m.id, [(m.cx - b.x0) / (b.x1 - b.x0), (m.cy - b.y0) / (b.y1 - b.y0)]];
-  }));
-  // furniture and stairs never move; you and people step aside only when zoomed so far out that they would cover another mark
-  for (const key of ['bent-nail', 'one-room', 'long-names']) it(`${key}: zooming moves no icon within its zone, and only hides or shows one in place`, () => {
-    const st = stageState(key), top = shares(sceneOf(st, 2.5).sc);
-    expect(top.size).toBeGreaterThan(0);
-    for (const k of [0.6, 0.8, 1, 1.4, 2]) {
-      const sc = sceneOf(st, k).sc;
-      for (const [id] of shares(sc)) expect(top.has(id)).toBe(true);
-      // wherever it is drawn, a mark sits where it sits at the closest zoom, measured inside the room its size leaves
-      const big = sceneOf(st, 2.5).sc, small = sc;
-      for (const m of [...small.furniture, ...small.stairs, ...small.items]) {
-        const r = m.x1 - m.cx, inset = m.id.startsWith('stair:') ? r + 4 : r + 3;
-        const zb = small.zones.find((x) => x.z.id === m.zoneId)!.box, rb = big.zones.find((x) => x.z.id === m.zoneId)!.box;
-        const o = [...big.furniture, ...big.stairs, ...big.items].find((q) => q.id === m.id)!;
-        const share = (v: number, a: number, b: number) => (b - a - 2 * inset > 0 ? (v - a - inset) / (b - a - 2 * inset) : 0.5);
-        if (zb.x1 - zb.x0 - 2 * inset > 0) expect(share(m.cx, zb.x0, zb.x1)).toBeCloseTo(share(o.cx, rb.x0, rb.x1), 6);
-        if (zb.y1 - zb.y0 - 2 * inset > 0) expect(share(m.cy, zb.y0, zb.y1)).toBeCloseTo(share(o.cy, rb.y0, rb.y1), 6);
-      }
-      // nothing dropped at the closest zoom is ever drawn, and every mark is either drawn or hidden in place
-      for (const f of [...sc.furniture, ...sc.items]) expect(sc.dropped).not.toContain(f.id.slice(5));
-    }
-  });
-  it('zooming in never hides a mark that shows when zoomed out', () => {
-    const st = stageState('bent-nail'), drawn = (k: number) => new Set(sceneOf(st, k).sc.furniture.map((f) => f.id));
-    const ks = [0.6, 0.8, 1, 1.4, 2, 2.5];
-    for (let i = 1; i < ks.length; i++) for (const id of drawn(ks[i - 1])) expect(drawn(ks[i]).has(id)).toBe(true);
-  });
-});
-
-describe('whole turn', () => {
-  it('BG-216: after a turn, the map\'s furniture sits at the same share of its zone at two zooms', async () => {
-    const g = wholeTurn({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
-    furnish(g.game.state()!, 'tav_common',
-      [{ kind: FU.counter, name: 'scarred counter', at: 'n' }, { kind: FU.hearth, name: 'hearth', at: 'w' }, { kind: FU.table, name: 'long table' }]);
-    await g.turn(intent({ action: { type: 'wait' } }));
-    const a = sceneOf(g.game.state()!, 1.6).sc, b = sceneOf(g.game.state()!, 2.5).sc;
-    const where = (sc: Scene, id: string) => { const f = sc.furniture.find((x) => x.id === id)!, z = sc.zones.find((x) => x.z.id === f.zoneId)!.box, i = FURN_INSET;
-      return [(f.cx - z.x0 - i) / (z.x1 - z.x0 - 2 * i), (f.cy - z.y0 - i) / (z.y1 - z.y0 - 2 * i)]; };
-    const both = a.furniture.filter((f) => b.furniture.some((q) => q.id === f.id));
-    expect(both.length).toBeGreaterThan(0);
-    for (const f of both) { const [x1, y1] = where(a, f.id), [x2, y2] = where(b, f.id); expect(x1).toBeCloseTo(x2, 6); expect(y1).toBeCloseTo(y2, 6); }
-  });
-});

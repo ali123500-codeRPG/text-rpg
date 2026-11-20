@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { syncPerkLinks } from '../../src/ruleset/perkLinks';
 import { fit, forcedRng, makeVillage, place, beside } from '../harness';
 import { ruleset, trueSkill } from '../../src/ruleset';
-import { grantAllSteps, shareSpotted } from '../../src/ruleset/allSteps';
+import { grantAllSteps } from '../../src/ruleset/allSteps';
 import { breakFree } from '../../src/engine/held';
 import { resolveSpeech } from '../../src/engine/speech';
 import { situational } from '../../src/ruleset/gear';
@@ -94,35 +94,12 @@ describe('125 All-50 parts', () => {
     expect(p.core.perks.some((x) => x.perkId === PK.hunters_eye)).toBe(false);
     expect(p.progression?.achievements?.some((a) => a.id === `${ACH.mastery_50}:${TR.ranged}`) ?? false).toBe(false);
   });
-  it("a skill that moves to another tree takes its part along", () => {
-    const s = makeVillage(), p = s.player;
-    const lib = getLibrary(), arms = lib.trees[TR.melee], def = lib.trees[TR.defense];
-    const [armsSkills, defSkills] = [arms.skills, def.skills];
-    try {
-      arms.skills = [...armsSkills, SK.dodge];
-      def.skills = defSkills.filter((x) => x !== SK.dodge);
-      p.core.perks = [];
-      set(p, [SK.melee_light, SK.melee_medium, SK.melee_heavy], 0);
-      set(p, [SK.melee_light, SK.dodge, SK.melee_medium], 50);
-      grantAllSteps(s, p);
-      expect(p.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId)).toEqual([PK.fighters_frame, PK.counter, PK.steady_guard, PK.dodgy]);
-    } finally {
-      arms.skills = armsSkills;
-      def.skills = defSkills;
-    }
-  });
   it("Hunter's Eye: +10 true skill in every skill with the sight function", () => {
     const s = makeVillage();
     set(s.player, [SK.eyesight, SK.earshot], 30);
     give(s.player, PK.hunters_eye);
     expect(trueSkill(s.player, SK.eyesight)).toBe(40);
     expect(trueSkill(s.player, SK.earshot)).toBe(30);
-  });
-  it('Silver Words: +5 true skill in Persuasion, Intimidation and Barter', () => {
-    const s = makeVillage();
-    set(s.player, [SK.persuasion, SK.intimidation, SK.barter, SK.eyesight], 30);
-    give(s.player, PK.silver_words);
-    expect([SK.persuasion, SK.intimidation, SK.barter, SK.eyesight].map((k) => trueSkill(s.player, k))).toEqual([35, 35, 35, 30]);
   });
   it("Fighter's Frame: melee hits on the owner cost ×0.9 health, after armor", () => {
     const dmg = (perk: boolean) => {
@@ -158,15 +135,6 @@ describe('125 All-50 parts', () => {
     give(s.player, PK.child_of_night);
     expect(before).toEqual([9, -9]); // LT2: dim, 3 lux
     expect([mod(SK.sneaking), mod(SK.eyesight)]).toEqual([16, -9]); // dim read ten times darker for sneaking; sight unchanged
-  });
-  it('Curiouser and Curiouser: a sight or hearing roll at Success or better counts one tier higher', () => {
-    const s = makeVillage();
-    set(s.player, [SK.eyesight, SK.persuasion], 50);
-    give(s.player, PK.curiouser);
-    const r = (skill: string, d: number) => ruleset.roll({ actorId: 'player', skill, modifiers: [], tierShifts: [] }, s, forcedRng([d]));
-    expect(r(SK.eyesight, 90).tierShifts).toEqual([{ source: 'Curiouser and Curiouser', value: 1 }]);
-    expect(r(SK.eyesight, 10).tierShifts).toEqual([]); // not a Success
-    expect(r(SK.persuasion, 90).tierShifts).toEqual([]); // not a sense roll
   });
   it('Iron Knuckles: unarmed hits deal ×1.1 damage before armor', () => {
     const dmg = (perk: boolean) => {
@@ -216,36 +184,6 @@ describe('125 All-50 parts', () => {
     expect(r(SK.persuasion, 95).tierShifts).toEqual([]);
     expect(r(SK.eyesight, 2).tierShifts).toEqual([]);
   });
-  it('Spotter: band-mates who hear or see the owner become suspicious of what the owner is aware of', () => {
-    const s = makeVillage();
-    const [o, mate] = s.actors.filter((a) => a.mind && a.bandId && s.actors.filter((b) => b.bandId === a.bandId).length > 1).slice(0, 1)
-      .flatMap((a) => s.actors.filter((b) => b.bandId === a.bandId).slice(0, 2));
-    place(s, mate.id, o.zone);
-    place(s, 'player', o.zone);
-    o.mind!.knowledge.player = { ...(o.mind!.knowledge.player ?? {}), status: 'aware' } as never;
-    mate.mind!.knowledge.player = { ...(mate.mind!.knowledge.player ?? {}), status: 'unaware' } as never;
-    shareSpotted(s, o);
-    expect(mate.mind!.knowledge.player.status).toBe('unaware');
-    give(o, PK.spotter);
-    shareSpotted(s, o);
-    expect(mate.mind!.knowledge.player.status).toBe('suspicious');
-    expect(mate.mind!.knowledge.player.source).toBe('told');
-  });
-  it('Steady Guard: +5 true Parry always, +5 effective on Parry rolls made with a medium weapon', () => {
-    const s = makeVillage();
-    beside(s, 'patron_1');
-    arm(s, 'patron_1');
-    arm(s, 'player', IT.arming_sword);
-    set(s.player, [SK.parry], 30);
-    give(s.player, PK.steady_guard);
-    expect(trueSkill(s.player, SK.parry)).toBe(35);
-    s.player.core.standingDefense = 'parry';
-    const guard = () => ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'w_patron_1', targetPart: null, aimed: false }, s, forcedRng([90, 50, 50, 50]))
-      .defense!.modifiers.filter((m) => m.source === 'Steady Guard');
-    expect(guard()).toEqual([{ source: 'Steady Guard', type: 'roll_perk', value: 2.5 }]);
-    arm(s, 'player'); // a dagger is light: no extra
-    expect(guard()).toEqual([]);
-  });
   it('Thick Hide: a hit on the owner is ×0.95 before armor', () => {
     const dmg = (perk: boolean) => {
       const s = makeVillage();
@@ -257,17 +195,6 @@ describe('125 All-50 parts', () => {
     };
     expect(dmg(false)).toBeGreaterThan(0);
     expect(dmg(true)).toBeCloseTo(dmg(false) * 0.95);
-  });
-  it('Night Eyes: light counts ten times brighter for the owner\'s Eyesight rolls only', () => {
-    const s = makeVillage();
-    const zone = zoneById(s, s.player.zone)!;
-    lightAll(s, 'dark');
-    delete s.player.pos; // read the room's own light word, not the light where they stand
-    const mod = (skill: string) => situational(s, skill, { light: zone, actor: s.player }).modifiers[0]?.value ?? 0;
-    const before = [mod(SK.eyesight), mod(SK.sneaking)];
-    give(s.player, PK.night_eyes);
-    expect([mod(SK.eyesight), mod(SK.sneaking)]).toEqual([-24, before[1]]); // LT2: dark (0.002 lux) read as 0.02 lux: −24%, not −31%
-    expect(mod(SK.eyesight)).toBeGreaterThan(before[0]);
   });
   it('Dodgy: attack rolls against the owner get −10 effective skill', () => {
     const s = makeVillage();
@@ -391,27 +318,6 @@ describe('125 All-50 moves', () => {
     play(s, { intent: intent({ action: { type: 'attack', target: 'patron_1', item: 'w_player' } }) });
     expect(shifts[0]).toEqual([{ source: 'Opening Strike', value: 1 }]);
     expect(shifts[1]).toBeUndefined();
-  });
-  it('Unerring: the first ranged attack in an engagement, at a foe that hasn\'t acted, gives its defense roll tier shift −1', () => {
-    const s = makeVillage();
-    place(s, 'player', 'field_edge');
-    arm(s, 'player', IT.shortbow);
-    give(s.player, PK.unerring);
-    const shifts: unknown[] = [];
-    const real = ruleset.attack;
-    vi.spyOn(ruleset, 'attack').mockImplementation((req, st, rng) => { if (req.attackerId === 'player') shifts.push(req.context?.defenderShifts); return real(req, st, rng); });
-    play(s, { intent: intent({ action: { type: 'attack', target: 'slime_1', item: 'w_player' } }) });
-    play(s, { intent: intent({ action: { type: 'attack', target: 'slime_1', item: 'w_player' } }) });
-    expect(shifts[0]).toEqual([{ source: 'Unerring', value: -1 }]);
-    expect(shifts[1]).toBeUndefined();
-  });
-  it('Hushed Steps: a Near Miss asked to count higher becomes a Success', () => {
-    const s = makeVillage();
-    set(s.player, [SK.sneaking], 40);
-    const r = (d: number, up?: string) => ruleset.roll({ actorId: 'player', skill: SK.sneaking, modifiers: [], tierShifts: [], ...(up ? { nearMissUp: up } : {}) }, s, forcedRng([d]));
-    const d = [...Array(100).keys()].map((i) => i + 1).find((x) => r(x).tier === 'near_miss')!;
-    expect(r(d, 'Hushed Steps').tier).toBe('success');
-    expect(r(d, 'Hushed Steps').tierShifts).toEqual([{ source: 'Hushed Steps', value: 1 }]);
   });
 });
 

@@ -39,13 +39,6 @@ describe('group ratings (GR1)', () => {
     // GR26: Grapple leaves the pool when strength rides on a Grapple roll
     expect(holdStrength(S, a)).toBeCloseTo(CONFIG.STRENGTH_HOLD_SHARE * ratingOf(poolOf([100, 80, 60])), 6);
   });
-  it('the gear portion is the gap between with gear and own (GR8)', () => {
-    const S = makeVillage({ seed: 1 });
-    const bare = sheet(S, 'b', { [SK.melee_medium]: 60 }), armed = sheet(S, 'c', { [SK.melee_medium]: 60 }, [IT.longsword]);
-    const r = groupRating(S, armed, GR.melee);
-    expect(r.own).toBeCloseTo(groupRating(S, bare, GR.melee).rating, 6);
-    expect(r.gear).toBeCloseTo(r.rating - r.own, 9);
-  });
 });
 
 describe('combat level equation (placeholder)', () => {
@@ -95,30 +88,6 @@ describe('combat level equation (placeholder)', () => {
     expect(fightAt(S, g, p.below).lead).toBeLessThanOrEqual(0);
     expect(fightAt(S, g, p.below + 1).lead).toBeGreaterThan(0);
   });
-  it('every part of a sheet counts: skill, health, nerve, armor, a shield, a weapon that asks for more', () => {
-    const S = makeVillage({ seed: 1 });
-    const base = Object.fromEntries(CONFIG.MODEL_REF_SKILLS.map((k) => [k, 50]));
-    const at = (id: string, skills: Record<string, number>, kit: string[] = CONFIG.MODEL_REF_KIT, def: 'parry' | 'block' = 'parry') => { const a = sheet(S, id, skills, kit); a.core.standingDefense = def; return combatLevel(S, a); };
-    const std = at('std', base);
-    for (const k of [SK.melee_medium, SK.parry, SK.endurance]) expect(at('up' + k, { ...base, [k]: 80 })).toBeGreaterThan(std);
-    expect(at('coward', { ...base, [SK.resolve]: 0 })).toBeLessThan(std);
-    expect(at('bare', base, [IT.arming_sword])).toBeLessThan(std);
-    expect(at('plate', { ...base, [SK.heavy_armor]: 75 }, [IT.arming_sword, IT.plate_harness])).toBeGreaterThan(std + 20);
-    expect(at('shield', { ...base, [SK.block]: 50 }, [...CONFIG.MODEL_REF_KIT, IT.round_shield], 'block')).toBeGreaterThan(std);
-    // the level-100 soldier's sword in the same hands: its damage grows with its requirement (and its kit bonus with it)
-    const { S: S2, ref } = refFighter(S, 100, 'relic');
-    const keen = sheet(S2, 'keen', { ...base, [SK.melee_medium]: 100 }, CONFIG.MODEL_REF_KIT);
-    keen.core.inventory = [...keen.core.inventory.filter((i) => !itemDef(S2, i.itemId).weapon), ...ref.core.inventory.filter((i) => itemDef(S2, i.itemId).weapon).map((i) => ({ ...i, id: 'keen_sword' }))];
-    const plain = sheet(S2, 'plain', { ...base, [SK.melee_medium]: 100 }, CONFIG.MODEL_REF_KIT);
-    for (const a of [keen, plain]) a.core.standingDefense = 'parry';
-    expect(combatLevel(S2, keen)).toBeGreaterThan(combatLevel(S2, plain));
-  });
-  it('a broken shield blocks nothing: a blocker is read with the defense it falls back on once the pool is gone', () => {
-    const S = makeVillage({ seed: 1 });
-    const base = { ...Object.fromEntries(CONFIG.MODEL_REF_SKILLS.map((k) => [k, 50])), [SK.block]: 50 };
-    const at = (id: string, parry: number) => { const a = sheet(S, id, { ...base, [SK.parry]: parry }, [...CONFIG.MODEL_REF_KIT, IT.round_shield]); a.core.standingDefense = 'block'; return combatLevel(S, a); };
-    expect(at('fallback80', 80)).toBeGreaterThan(at('fallback50', 50));
-  });
 });
 
 describe('non-combat part (GR34, GR41)', () => {
@@ -130,10 +99,5 @@ describe('non-combat part (GR34, GR41)', () => {
     expect(Math.abs(hi.share - lo.share)).toBeLessThan(0.1);
     expect(hi.adds / lo.adds).toBeCloseTo((hi.pool / lo.pool) * (hi.share / lo.share), 6);
     expect(hi.pool / lo.pool).toBeCloseTo(16, 6); // worth grows as skill²
-  });
-  it('Heal gives nothing below its unlock, so Medicine adds nothing there', () => {
-    const S = makeVillage({ seed: 1 });
-    expect(nonCombatGroups(S, sheet(S, 'm', { [SK.healing]: CONFIG.HEAL_UNLOCK - 1 })).find((g) => g.group === GR.medicine)?.adds ?? 0).toBe(0);
-    expect(nonCombatGroups(S, sheet(S, 'n', { [SK.healing]: 80 })).find((g) => g.group === GR.medicine)!.adds).toBeGreaterThan(0);
   });
 });

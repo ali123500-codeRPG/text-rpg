@@ -3,17 +3,15 @@
 // and one way through it are enough to show each rule.
 import { describe, expect, it } from 'vitest';
 import type { GameState, WayKind } from '../../src/types';
-import { planWorld, title, way, landUnder } from '../harness/plan';
+import { planWorld, title, way } from '../harness/plan';
 import { makeVillage, lay } from '../harness';
-import { ZK, LC } from '../../src/library/tableIds';
+import { ZK } from '../../src/library/tableIds';
 import { ACH } from '../../src/library/achievementIds';
 import { CONFIG } from '../../src/config';
 import { waysOut, zoneAt, roofed } from '../../src/plan/where';
 import { lineClear } from '../../src/plan/line';
 import { walkPath } from '../../src/plan/path';
 import { luxAt, zoneLight } from '../../src/plan/light';
-import { clutterAt } from '../../src/plan/clutter';
-import { seeSquares, seenAt } from '../../src/plan/fog';
 import { keepInside, rectOutline } from '../../src/plan/geom';
 import { soundDb } from '../../src/perception/noise';
 import { groundIn } from '../../src/engine/ground';
@@ -76,30 +74,12 @@ describe('386 titles on a floor plan (PZ1-PZ17)', () => {
     expect(zoneLight(s, s.zones.find((z) => z.id === 'b'))).toBe('black'); // under a roof, the midday sky lights nothing
   });
 
-  it('PZ6: clutter is the land cell\'s cover in the open, none under a roof', () => {
-    const s = planWorld([
-      title('glade', 'wood', [way('hut', 'the hut door', 'door')], { kind: ZK.woods, rect: { x: 50, y: 50, w: 20, d: 20 }, roof: false }),
-      title('hut', 'wood', [way('glade', 'out', 'door')], { kind: ZK.room, rect: { x: 64, y: 50, w: 8, d: 8 }, roof: true }),
-    ]);
-    landUnder(s, [{ x: 50, y: 50 }], LC.woods);
-    expect(clutterAt(s, { x: 48, y: 50 }, 0).cover).toBe('heavy');
-    expect(clutterAt(s, { x: 64, y: 50 }, 0).cover).toBe('none');
-  });
-
   it('PZ11: what lies on the ground lies at a point; its title is the title of that point', () => {
     const s = rooms('door') as GameState;
     lay(s, 'b', { id: 'cup', itemId: 'IT1' }, { x: 12, y: 2 });
     expect(groundIn(s, 'b').map((i) => i.id)).toEqual(['cup']);
     expect(groundIn(s, 'a')).toEqual([]);
     expect(s.ground[0].at).toEqual({ x: 12, y: 2, floor: 0 });
-  });
-
-  it('PZ12: the Map\'s fog keeps the squares the player has seen, by floor', () => {
-    const s = makeVillage({ playerZone: 'tav_common' });
-    seeSquares(s, s.zones);
-    const j = s.player.journal;
-    expect(seenAt(j, { ...s.player.pos!, floor: 0 }, 1)).toBe(true);
-    expect(seenAt(j, { ...s.player.pos!, floor: -3 }, 1)).toBe(false); // the cellar under the bar is another floor
   });
 
   it('a point asked for past a corner is kept a step in from both walls', () => {

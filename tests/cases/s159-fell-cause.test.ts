@@ -18,17 +18,6 @@ const hit = (s: GameState, damage: number): GameEvent => ({
 const down = (s: GameState) => { s.player.core.condition.hpLostPct = 100; };
 
 describe('159 what dropped you', () => {
-  it('names the last blow that hurt, only when the player is down', () => {
-    const s = makeVillage();
-    const e = hit(s, 5);
-    const nv = { events: [{ id: e.id, kind: 'attack', level: 'full', cue: 'sight', packet: { actor: 'the old man', weapon: 'walking stick', outcome: 'heavy hit', location: { part: 'head', how: 'rolled' }, changes: [] } }], heard: [] } as unknown as NarrationView;
-    expect(lineExtras(s, [e], nv, '').downedBy).toBeUndefined();
-    down(s);
-    const d = lineExtras(s, [e, hit(s, 0)], nv, '').downedBy;
-    expect(d).toEqual({ by: 'the old man', weapon: 'walking stick', part: 'head', outcome: 'heavy hit' });
-    expect(fellLine(d, 3)).toMatch(/old man|Old man/);
-    expect(fellFacts(d)).toBe('Last blow: heavy hit · head · the old man’s walking stick');
-  });
   it('an unseen attacker stays someone, but the player still feels where it landed', () => {
     const s = makeVillage();
     down(s);

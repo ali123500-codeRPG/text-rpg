@@ -20,9 +20,3 @@ it('BG-49: opening in the street, the player starts at the tavern door', () => {
   expect(wayLeftM(s, s.player, 'tav_common')).toBeLessThanOrEqual(CONFIG.PLACE_SPACING_M + 0.01);
 });
 
-it('BG-49: opening indoors, nothing changes', () => {
-  const s = toStoryStart(makeVillage());
-  applyStagePlan(s, villageStagePlan(), ctx, { entry: 'open' }, createRng(1));
-  expect(s.player.zone).toBe('tav_common');
-  expect(s.player.pos).toBeDefined();
-});

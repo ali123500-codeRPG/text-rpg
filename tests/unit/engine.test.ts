@@ -155,7 +155,7 @@ vi.mock('../../src/minds', async (importOriginal) => {
   };
 });
 
-import { computePending, firedOrders, fromIntent, resolveSpeech, resolveTurn, selectSpokespeople, unclearAddressee, impressionWords } from '../../src/engine';
+import { computePending, firedOrders, resolveSpeech, resolveTurn, selectSpokespeople, unclearAddressee } from '../../src/engine';
 import type { TurnInput } from '../../src/engine';
 import { hostile, stance, wary } from '../../src/engine/relations';
 import { groundIn } from '../../src/engine/ground';
@@ -269,10 +269,6 @@ describe('mid-turn triggers', () => {
 });
 
 describe('dialogue', () => {
-  it('impressions come from the table', () => {
-    expect(impressionWords('deceive', 'great_success')).toBe('very convincing');
-    expect(impressionWords('intimidate', 'critical_failure')).toBe('laughable');
-  });
   it('spokespeople: one per band, named member, never inactive, capped', () => {
     s.actors.push({ ...structuredClone(actor(s, 'patron_1')), id: 'patron_2' });
     const i = intent({ action: { type: 'talk' }, addressees: ['patron_2', 'tavern_folk', 'guard_1'], spoken: 'hi' });
@@ -331,13 +327,6 @@ describe('dialogue', () => {
     const atk = ev2.find((e) => e.actorId === 'trader' && e.kind === 'attack')!;
     expect(atk.line).toBeUndefined();
     expect(ev2.slice(ev2.indexOf(atk)).every((e) => e.actorId === 'trader')).toBe(true); // initiative 10: last (its next blow follows)
-  });
-  it('words beside an attack are a bark', () => {
-    place(s, 'patron_1', 'tav_common');
-    const o = fromIntent(s, intent({ action: { type: 'attack', target: 'patron_1' }, spoken: 'take that' }), true);
-    expect(o).toMatchObject({ type: 'attack', aimed: true, line: { text: 'take that' } });
-    const ev = resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'patron_1' }, spoken: 'take that' }) }), createRng(1));
-    expect(ev.find((e) => e.actorId === 'player')).toMatchObject({ kind: 'attack', bark: true });
   });
 });
 

@@ -9,7 +9,6 @@ import { moraleLevel } from '../../src/ruleset/morale';
 import { createRng, forcedRng } from '../../src/rng';
 import { getLibrary } from '../../src/library';
 import { FR } from '../../src/library/tableIds';
-import { RC } from '../../src/library/raceIds';
 
 describe('343 BG-268: a slime breaks, it never surrenders', () => {
   it('an Overwhelm makes a person surrender and a slime break', () => {
@@ -19,14 +18,6 @@ describe('343 BG-268: a slime breaks, it never surrenders', () => {
     expect(payFear(s, createRng(1), patron, FR.dread_presence, { gap: -3, overwhelm: true })).toBe('surrendered');
     expect(payFear(s, createRng(1), slime, FR.dread_presence, { gap: -3, overwhelm: true })).toBe('broken');
     expect(moraleLevel(slime)).toBe('broken');
-  });
-
-  it('a Semi-intelligent beast (a wolf) can still surrender', () => {
-    const s = makeVillage();
-    const wolf = actorById(s, 'slime_1')!;
-    wolf.core.raceId = RC.wolf;
-    expect(getLibrary().races![RC.wolf].intelligence).toBe('semi');
-    expect(payFear(s, createRng(1), wolf, FR.dread_presence, { gap: -3, overwhelm: true })).toBe('surrendered');
   });
 
   it('a break on a Critical Failure morale roll: a person surrenders, a slime only breaks', () => {

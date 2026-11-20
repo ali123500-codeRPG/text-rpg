@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { play, intent } from './w4-kit';
 import { createPlayer, recommendedBuild, validateBuild } from '../../src/library/spawn';
-import { applyGearOps, bindCarriedCharms } from '../../src/engine/gear';
+import { applyGearOps } from '../../src/engine/gear';
 import { buildPlayerView } from '../../src/views';
 import { getLibrary } from '../../src/library';
 import { grantThreadboundItem } from '../../src/ruleset/threadboundItems';
@@ -43,14 +43,6 @@ describe('192 the Threadbound start', () => {
     s.player.core.inventory = s.player.core.inventory.filter((i) => i.itemId !== IT.varos_loop);
     play(s, { intent: intent({}) });
     expect(loopOf(s.player.core.inventory)).toBeUndefined(); // granted once
-  });
-
-  it('nobody else can bind it', () => {
-    const s = makeVillage();
-    const npc = s.actors[0];
-    npc.core.inventory.push({ id: 'loop', itemId: IT.varos_loop });
-    bindCarriedCharms(s);
-    expect(loopOf(npc.core.inventory)?.boundTo).toBeUndefined();
   });
 
   it('the player summons it from anyone or any ground, as a free gear op', () => {

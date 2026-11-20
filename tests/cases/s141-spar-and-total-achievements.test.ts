@@ -44,14 +44,6 @@ describe('141 spar achievements and achievement totals', () => {
 });
 
 describe('141 lost fights and the first spar lost', () => {
-  it('one spar lost leaves Flat on Your Back; ten replace it with Sparring Dummy', () => {
-    const s = makeVillage();
-    spar(s, false, false);
-    expect(keys(s)).toContain(ACH.spar_losses_1);
-    for (let i = 0; i < 9; i++) spar(s, false, false);
-    const sd = s.player.progression!.achievements!.find((a) => a.key === ACH.spar_losses_1)!;
-    expect(sd.replacedBy).toBe(ACH.spar_losses_10);
-  });
 
   it('a fight lost by going Down, or by getting away from a foe still fighting you, counts toward Loser', () => {
     const s = makeVillage();

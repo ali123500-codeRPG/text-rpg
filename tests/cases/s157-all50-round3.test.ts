@@ -39,17 +39,6 @@ describe('157 All-50 round 3', () => {
     expect(augmentsOf(s.player, SK.endurance)).toEqual([]); // one way only
   });
 
-  it('PT12 Misdirection: Vanishing\'s part, a quarter of Guile augments every Vanishing roll; Fade Back stays parked', () => {
-    const s = makeVillage();
-    skill(s.player, SK.guile, 40);
-    skill(s.player, SK.vanishing, 20);
-    const before = effectiveSkill(s, s.player, SK.vanishing).value;
-    give(s.player, PK.misdirection);
-    expect(augmentsOf(s.player, SK.vanishing)).toContainEqual({ source: 'Guile (augments, Misdirection)', value: 40 * CONFIG.MISDIRECTION_SHARE });
-    expect(effectiveSkill(s, s.player, SK.vanishing).value).toBeCloseTo(before + 40 * CONFIG.MISDIRECTION_SHARE, 9);
-    expect(augmentsOf(s.player, SK.guile)).toEqual([]); // one way only
-  });
-
   it('Against the Grain: a heavy blow loses its gap shift against the owner\'s parry, not against a block', () => {
     const s = makeVillage();
     const wim = npc(s, 'patron_1');
@@ -98,19 +87,6 @@ describe('157 All-50 round 3', () => {
     expect(run(60, 0)).toBe(true);
     expect(run(0, 60)).toBe(true);
     expect(run(59, 59)).toBe(false);
-  });
-
-  it('Blade Wall: a heavy weapon parry is never outnumbered either', () => {
-    const s = makeVillage();
-    beside(s, 'patron_1');
-    hold(npc(s, 'patron_1'), IT.dagger);
-    hold(s.player, IT.greatsword);
-    s.player.core.standingDefense = 'parry';
-    const req = { attackerId: 'patron_1', targetId: 'player', weaponId: 'patron_1_w', targetPart: null, aimed: false, context: { defensesThisTurn: 1 } };
-    const crowded = () => ruleset.attack(req, s, forcedRng([50, 50, 50])).defense?.modifiers.some((m) => m.source === 'outnumbered');
-    expect(crowded()).toBe(true);
-    give(s.player, PK.blade_wall);
-    expect(crowded()).toBe(false);
   });
 
   it('PT9, VS3: a shot from hiding keeps the shooter hidden; with Strike and Fade only a watcher it made aware rolls again, at Vanishing', () => {

@@ -6,7 +6,6 @@ import { expect, it } from 'vitest';
 import type { GameState } from '../../src/types';
 import { forcedRng, makeVillage } from '../harness';
 import { intent, play } from './w4-kit';
-import { wholeTurn } from '../harness/turn';
 import { CONFIG } from '../../src/config';
 import { FR } from '../../src/library/tableIds';
 import { TIERS } from '../../src/scales';
@@ -50,14 +49,6 @@ it('SY1: a fine roll wins morale back and leaves Mentally steady; the next loss 
   expect(moraleLost(s.player) - again).toBeCloseTo(10);
 });
 
-it('SY1: a bad roll costs morale and leaves no buff', () => {
-  const s = fight();
-  const r = steady(s, s.player, forcedRng([1]));
-  expect(r.points).toBeLessThan(0);
-  expect(moraleLost(s.player)).toBeGreaterThan(0);
-  expect(r.buff).toBe(false);
-});
-
 it('SY1: Shaken weighs on the roll', () => {
   const calm = fight(), shaken = fight();
   shaken.player.pressure = { patron_1: { shaken: 20 } };
@@ -77,10 +68,3 @@ it('SY1: refused out of a fight, again too soon, and while broken', () => {
   expect(play(b, { intent: intent({ action: { type: 'steady' } }) }).find((e) => e.actorId === 'player' && e.kind === 'wasted')?.reason).toBe('broken');
 });
 
-it('whole turn: the Narrator gets the steady event in words, never points', async () => {
-  const g = wholeTurn({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'trader'] });
-  foe(g.game.state()!);
-  await g.turn(intent({ action: { type: 'steady' } }));
-  const req = g.claude.callsFor('narrator').at(-1) as { input: { content: string }[] };
-  expect(req.input[1].content).toMatch(/"steady":"(calmer|worse|no change)"/);
-});

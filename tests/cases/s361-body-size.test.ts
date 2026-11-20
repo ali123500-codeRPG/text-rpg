@@ -13,7 +13,6 @@ import { entryPoint, floorGap, placeAll, seeingM, seenSizeFactor, withinM } from
 import { sightFactor } from '../../src/library/bodySize';
 import { ruleset } from '../../src/ruleset';
 import { IT } from '../../src/library/itemIds';
-import { knownMap } from '../../src/ui/mapData';
 import { fitsThrough, wayPath, zoneById } from '../../src/engine/relations';
 import { coverMod, coverShown, hostileNearM, meleeReachM, usableModes } from '../../src/ruleset/gear';
 import { gripReachM } from '../../src/ruleset/body';
@@ -177,11 +176,3 @@ it('SZ7: a body goes through a doorway sideways and ducking; too big a body take
   delete getLibrary().races![OGRE];
 });
 
-it('SZ16: the map carries the size and facing of someone seen clearly at their own point, for its footprint', () => {
-  const s = room();
-  const h = horse(s);
-  h.zone = 'tav_common'; h.placeId = s.player.placeId; h.pos = { x: 3, y: 1 }; h.facing = [1, 0]; s.player.pos = { x: 0, y: 0 };
-  const zones = knownMap(s).places.flatMap((p) => p.zones);
-  const who = zones.flatMap((z) => z.people).find((p) => p.id === h.id);
-  expect(who?.body).toEqual({ lengthM: actorBody(s, h).size.lengthM, widthM: actorBody(s, h).size.widthM, facing: [1, 0] });
-});

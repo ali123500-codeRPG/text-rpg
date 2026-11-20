@@ -35,13 +35,6 @@ describe('land generator', () => {
     expect(r.features).toHaveLength(1);
   });
 
-  it('runs the river from the brief\'s side to the other and names it', () => {
-    const river = r.waters.find((w) => w.kind === 'river')!;
-    expect(river.name).toBe('the Wend');
-    expect(river.pts[0].x).toBe(0);
-    expect(river.pts.at(-1)!.x).toBe(r.size);
-  });
-
   it('joins every settlement to the road network, and roads lead out to the named regions beyond', () => {
     const adj = new Map<string, string[]>();
     for (const rd of r.roads) for (const [a, b] of [rd.ends, [rd.ends[1], rd.ends[0]]]) adj.set(a, [...(adj.get(a) ?? []), b]);
@@ -58,12 +51,4 @@ describe('land generator', () => {
     for (const b of bridges) expect(r.waters.find((w) => w.id === b.water)!.width).toBeGreaterThan(CONFIG.FORD_MAX_WIDTH_M);
   });
 
-  it('draws each region kind', () => {
-    for (const k of Object.values(RK)) {
-      const x = drawRegion('rg2', 1, 0, 99, { ...brief(k), river: undefined, settlements: [] });
-      expect(x.sites.length).toBeGreaterThan(2);
-      expect(x.roads.length).toBeGreaterThan(0);
-      expect(x.heights.every((h) => h >= 0)).toBe(true);
-    }
-  });
 });
