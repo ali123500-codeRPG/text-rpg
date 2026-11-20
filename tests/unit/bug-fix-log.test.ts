@@ -16,7 +16,7 @@ describe('bug fix log', () => {
     expect(fixed.length).toBeGreaterThan(100);
     expect(fixed.filter((id) => !entries.some((e) => e.split('\n')[0].trim() === id))).toEqual([]);
   });
-  it('each entry says what was wrong, what was done and which PR fixed it', () => {
+  it('each entry says what was wrong, what was done and which issue or PR fixed it', () => {
     expect(entries.filter((e) => !/\*\*What was wrong:\*\* \S/.test(e) || !/\*\*What was done:\*\* \S/.test(e) || !/\*\*Fixed by:\*\*.*#\d+/.test(e))
       .map((e) => e.split('\n')[0])).toEqual([]);
   });

@@ -2,6 +2,9 @@
 
 Every fixed bug (BG-n): what was wrong, and what was done to fix it. Newest first.
 
+This is the one home of each bug's story: the Bug log row is one line and the PR links here. **Fixed by** names the
+claim issue (`#n`); entries up to BG-326 name the PR.
+
 Every thread that fixes a bug adds its entry here in the fixing PR, newest at the top (tests/unit/bug-fix-log.test.ts checks that every
 fixed row in the spec's bug log, docs/spec/bug-log.md, has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.

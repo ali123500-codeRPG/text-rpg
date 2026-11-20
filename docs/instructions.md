@@ -29,8 +29,8 @@ edge cases. Where a section repeats a rule from `AGENTS.md`, it is there to add 
 - **Parked items.** Anything the owner parks (a perk, a question, a feature, tuning) gets its own D-n the same turn,
   in the spec's "Deferred items" table with its options written out, plus banked rows in the library where it is
   content (perks, achievements, table rows).
-- **Bugs.** Every bug found or reported gets a BG-n and a row in the spec's "Bug log" with its status and the PR that
-  fixes it.
+- **Bugs.** Every bug found or reported gets a BG-n and a row in the spec's "Bug log": its ID, one line on what was
+  wrong (at most 160 characters), its status and its claim issue (`#n`, section 4).
   - Taking a number: use the next free number in the Bug log on the latest `main`, in the PR that adds the row. A
     clash then shows up as a merge conflict. This holds for every agent.
   - Investigate with the `root-cause-first` skill. Before choosing a fix, list every plausible cause (engine rule,
@@ -39,15 +39,15 @@ edge cases. Where a section repeats a rule from `AGENTS.md`, it is there to add 
   - Then find every action, actor kind (player and NPC) and code path that shares the cause, and fix them with one
     shared rule or table. Say in the PR which siblings you checked. Reason: fixing only the symptom a playtest showed
     left its siblings for the next run.
-  - A bug fix needs no OK from the owner. Write the cause and the fix in the PR, laid out as a fix plan (section 6),
-    and merge it when every check is green. The owner reads it there.
-  - Order: push, open the PR, then write the PR's number into the Bug log row and the bug-fix-log
-    entry in a second commit. A test fails on "this PR" and on a fixed row without a PR number
-    (`tests/unit/bug-log.test.ts`).
+  - A bug fix needs no OK from the owner. Write the cause and the fix once, in its `docs/bug-fix-log.md` entry; the
+    PR links that entry instead of repeating it, says `Closes #n`, and merges when every check is green.
+  - The claim issue exists before the first commit, so one commit carries the row, the entry and the fix: never a
+    second commit to write a PR number in. A test fails on "this PR", on a fixed row without a number, and on a new
+    row longer than one line (`tests/unit/bug-log.test.ts`). Rows up to BG-326 keep the form of their day.
   - When a fix needs a design choice, still call it a bug: file the BG-n and ask the fix question with a
     recommendation. Never describe a broken game state as a pending design question.
   - Every bug-fix PR adds an entry to `docs/bug-fix-log.md`, newest at the top: a `## BG-n` heading, then
-    `**What was wrong:**`, `**What was done:**` and `**Fixed by:**` with the PR number
+    `**What was wrong:**`, `**What was done:**` and `**Fixed by:**` with the claim issue (older entries name the PR)
     (`tests/unit/bug-fix-log.test.ts` checks the form). Copy the shape of the entry above yours.
 - When a function behaves differently for the player than for NPCs, check all its callers and report them. The
   player holds no stances or beliefs, so a one-direction check can silently skip the player.
