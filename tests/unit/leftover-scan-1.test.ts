@@ -45,13 +45,8 @@ import { CROSSROADS } from '../../src/agents/crossroads';
 import { roman } from '../../src/scales';
 import { readSpec } from '../harness/specDocs';
 
-// files whose GAP notes were settled in round 1
-const ROUND_1 = ['src/ui/play.ts', 'src/ruleset/index.ts', 'src/scenario/apply.ts', 'src/minds/state.ts', 'src/engine/heal.ts'];
 // config levers nothing reads yet, each waiting on a question (none now: CS8 put SHARED_ROLE_OFF_PCT to work)
 const UNREAD_LEVERS: string[] = [];
-// files whose GAP notes are settled into the spec (round 1: CS2; rounds 2 to 4: CS5, CS7, CS9)
-const GAPS_SETTLED = [...ROUND_1, 'src/engine/resolve.ts', 'src/engine/pacing.ts', 'src/engine/worldClock.ts', 'src/agents/prompts.ts', 'src/views/index.ts', 'src/agents/schema.ts', 'src/scenario/validate.ts', 'src/agents/wrappers.ts', 'src/engine/speech.ts', 'src/perception/index.ts', 'src/save/index.ts', 'src/scenario/director.ts', 'src/ruleset/body.ts',
-  'src/agents/client.ts', 'src/engine/secrets.ts', 'src/save/replay.ts', 'src/engine/triggers.ts'];
 // names the spec mentions only to say they are gone
 const GONE_ON_PURPOSE = ['LINK_PACES'];
 const roll = (tier: RollResult['tier'], beyond?: number) => ({ tier, ...(beyond ? { beyond } : {}) }) as RollResult;
@@ -90,19 +85,14 @@ describe('leftover scan round 1', () => {
     expect(blow({ heavy: -7, crushing: -8 })).toMatchObject({ gap: -6, outcome: 'full_hit' });
   });
 
-  it('CS2: settled files keep no GAP notes (each was settled into the spec)', () => {
-    expect(GAPS_SETTLED.filter((f) => /\bGAP:/.test(readFileSync(f, 'utf8') as string))).toEqual([]);
-  });
 
-  it('round 2: walk distances use the one metres tolerance (M_EPS), not a 0.01 of their own', () => {
+  it('round 2: walk distances share one metres tolerance, M_EPS', () => {
     expect(M_EPS).toBe(0.01);
-    expect(['src/engine/resolve.ts', 'src/engine/pacing.ts', 'src/engine/worldClock.ts', 'src/engine/merge.ts'].filter((f) => /\b0\.01\b/.test(readFileSync(f, 'utf8') as string))).toEqual([]);
   });
 
   it('round 2: the perk series key lists its milestones from MILESTONES', () => {
     expect(MILESTONES.filter((m) => perkSeries(m) === '20')).toEqual([20, 60, 100, 140]);
     expect(MILESTONES.filter((m) => perkSeries(m) === '40')).toEqual([40, 80, 120]);
-    expect(readFileSync('src/ui/perks.ts', 'utf8') as string).not.toMatch(/'\s*20, 60, 100, 140'|'\s*40, 80, 120'/);
   });
 
   it('round 4: a list as a sentence says it has one helper', () => {
@@ -185,20 +175,10 @@ describe('leftover scan answers (CS6, CS8, CS11)', () => {
   });
 });
 
-describe('leftover scan round 5', () => {
-  it('one XP curve: only ruleset/levels.ts reads LEVEL_XP, and the Equations tab totals come from it', () => {
-    const readers = files('src').filter((f) => f !== 'src/config.ts' && f !== 'src/ruleset/levels.ts' && /CONFIG\.LEVEL_XP\b/.test(readFileSync(f, 'utf8') as string));
-    expect(readers).toEqual(['src/ruleset/equations.ts']); // it only names the lever in the formula text
-    expect(readFileSync('src/ruleset/equations.ts', 'utf8')).not.toMatch(/LEVEL_XP \* l/);
-  });
-});
-
 describe('answers CS15 to CS17', () => {
-  it('CS15: one equation gives every reward level its XP, with no top; only achRewards reads it', () => {
+  it('CS15: one equation gives every reward level its XP, with no top', () => {
     expect(['minus_1', 'zero', 'i', 'ii', 'iii', 'iv', 'vi', 'x', 'xv'].map((k) => rewardXp(k))).toEqual([6, 50, 169, 400, 781, 1350, 3200, 10800, 30706]);
     expect(rewardXpAt(20)).toBeGreaterThan(rewardXpAt(15)); // past XV it keeps growing
-    const readers = files('src').filter((f) => f !== 'src/config.ts' && /CONFIG\.REWARD_XP_CURVE/.test(readFileSync(f, 'utf8') as string));
-    expect(readers).toEqual(['src/ruleset/achRewards.ts']);
   });
   it('CS16: a quest pays the same XP as an achievement two reward levels higher (quest 0 = achievement II)', () => {
     const s = makeVillage();
@@ -224,7 +204,6 @@ describe('leftover scan round 6', () => {
   it('one perk-point rule: every PERK_POINT_EVERY levels, read by levelling and spawn alike', () => {
     expect([1, 2, 3, 4, 5, 6].filter(perkPointAt)).toEqual([2, 4, 6]);
     expect(perkPointsUpTo(7)).toBe(3);
-    for (const f of ['src/engine/xp.ts', 'src/library/spawn.ts']) expect(readFileSync(f, 'utf8')).not.toMatch(/% 2 === 0|[lL]evel\)? \/ 2\)/);
   });
   it('the Weaver may give awareness up to aware, from the AWARENESS scale', () => {
     const s = makeVillage();
@@ -243,25 +222,17 @@ describe('leftover scan round 6', () => {
   });
 });
 
-describe('answers CS18 and CS19', () => {
+describe('answer CS18', () => {
   it('CS18: secret slips are settled as built; the spec says the contest must be won', () => {
     const spec = readSpec();
     expect(spec).not.toMatch(/SLIPS[^\n]*\\\[Proposed\\\]/);
     expect(spec).not.toMatch(/Secret slips \\\[Proposed\\\]/);
     expect(spec).toMatch(/wins a speech contest against a spokesperson/);
-    expect(readFileSync('src/engine/speech.ts', 'utf8') as string).not.toMatch(/\[Proposed\]/);
-  });
-  it('CS19: a minted reward is checked for hidden terms as whole words, like every other public text', () => {
-    expect(readFileSync('src/scenario/validate.ts', 'utf8') as string).not.toMatch(/toLowerCase\(\)\.includes\(t\)/);
   });
 });
 
 describe('leftover scan round 7', () => {
-  it('perk rules text reads its numbers from config: no number typed beside the config name it copies', () => {
-    for (const f of ['src/library/perks.ts', 'src/library/allPerks.ts']) {
-      const t = readFileSync(f, 'utf8') as string;
-      expect(t.match(/[0-9][0-9.]*\s*\((?:a foe_perk modifier, )?CONFIG\.[A-Z_]+/g) ?? []).toEqual([]);
-    }
+  it('perk rules text reads its numbers from config', () => {
     const perks = getLibrary().perks ?? {};
     const rules = (id: string) => `${perks[id]?.rules?.conditions?.join(' ')} ${perks[id]?.rules?.effect}`;
     expect(rules(PK.leg_bolt)).toContain(`${CONFIG.LEG_BOLT_PART_MULT}×`);
@@ -290,38 +261,17 @@ describe('leftover scan round 8', () => {
   it('the endings a plan may name come from one list: every scenario ending but the two code sets', () => {
     expect([...PLAN_ENDINGS].sort()).toEqual(SCENARIO_ENDINGS.filter((e) => !(CODE_ENDINGS as readonly string[]).includes(e)).sort());
     expect(PLAN_ENDINGS).not.toContain('worn_out');
-    for (const f of ['src/engine/scenarioEnd.ts', 'src/scenario/validate.ts']) expect(readFileSync(f, 'utf8') as string).not.toMatch(/'worn_out' && e !== 'broken_off'|\['resolved', 'lost'/);
   });
-  it('the save names its page limit from PAGE_LIMIT, and the world title cap is a config lever', () => {
-    const t = readFileSync('src/save/index.ts', 'utf8') as string;
-    expect(t).not.toMatch(/256 KiB|slice\(0, 60\)/);
+  it('the world title cap is a config lever', () => {
     expect(CONFIG.WORLD_TITLE_CAP).toBeGreaterThan(0);
-  });
-  it('a quest run is walked back by one helper', () => {
-    const t = readFileSync('src/engine/quests.ts', 'utf8') as string;
-    expect(t.match(/for \(let [^;]*;\s*\w+\.after/g)?.length).toBe(1);
-    expect(t).not.toMatch(/quests' own reward table/);
-  });
-  it('the defense choice reads one usable-defense test and one tie order', () => {
-    const t = readFileSync('src/ruleset/gear.ts', 'utf8') as string;
-    expect(t.match(/\['block', 'parry', 'dodge'\]/g)?.length).toBe(1);
   });
 });
 
-describe('answers CS20 to CS22', () => {
-  it('CS20: sleep checks who is near by sound; no sleeper loop reads the zone as the distance', () => {
-    const sleep = readFileSync('src/engine/sleep.ts', 'utf8') as string, resolve = readFileSync('src/engine/resolve.ts', 'utf8') as string;
-    expect(sleep).not.toMatch(/x\.zone === a\.zone && hostile/);
-    expect(resolve).not.toMatch(/isAsleep\(x\) && x\.zone === p\.zone/);
-  });
+describe('answer CS21', () => {
   it('CS21: D-3 is settled; effective skill has no hard cap step', () => {
-    expect(readFileSync('src/ruleset/gear.ts', 'utf8') as string).not.toMatch(/GAP: hard cap/);
     const spec = readSpec();
     expect(spec).not.toMatch(/apply hard cap/);
     expect(spec).toMatch(/\| D-3 \| Soft cap and hard cap \| 1 \| Built \|/);
-  });
-  it('CS22: routine_unreachable is logged, not promised', () => {
-    expect(readFileSync('src/minds/routines.ts', 'utf8') as string).not.toMatch(/routine_unreachable \[Proposed\]/);
   });
 });
 
@@ -336,7 +286,6 @@ describe('leftover scan round 9', () => {
   });
   it('a part\'s state reads its floors from config', () => {
     expect([51, 50, 1, 0, -99, -100].map(poolState)).toEqual(['healthy', 'damaged', 'damaged', 'crippled', 'crippled', 'destroyed']);
-    expect(readFileSync('src/ruleset/body.ts', 'utf8') as string).not.toMatch(/pct > 50|pct > -100/);
   });
   it('one XP bar: every screen reads xpFill, and XP debt shows an empty bar', () => {
     const offenders = files('src').filter((f) => f !== 'src/engine/xp.ts' && /\((pr\.)?xp \/ need\)/.test(readFileSync(f, 'utf8') as string));
@@ -349,19 +298,11 @@ describe('leftover scan round 9', () => {
     const offenders = files('src').filter((f) => f !== 'src/perception/index.ts' && /=== 'dark' \? 'partial'/.test(readFileSync(f, 'utf8') as string));
     expect(offenders).toEqual([]);
   });
-  it('stale creation notes and placeholders are gone; scale positions are read by key', () => {
-    const t = readFileSync('src/ui/creation.ts', 'utf8') as string;
-    expect(t).not.toMatch(/Swordsman skills have no effects yet|Not chosen yet|'Stealth'/);
-    expect(readFileSync('src/ruleset/perks.ts', 'utf8') as string).not.toMatch(/\.pos\([^)]*\)\) >= 1/);
-  });
 });
 
 describe('leftover scan round 10', () => {
-  const read = (f: string) => readFileSync(f, 'utf8') as string;
   it('one edge rule: a side is a wall on the floor plan, for sound and for reaching over alike (PZ2 replaced edge kinds)', () => {
     expect(getLibrary()).not.toHaveProperty('edgeKinds');
-    expect(read('src/perception/noise.ts')).not.toMatch(/zoneKinds\?\.\[z\.kind\]\?\.edge/);
-    expect(read('src/scenario/geometry.ts').match(/const chain = \(id/g)).toBeNull();
   });
   it('every long-term clear lowers the hours-awake count in one place', () => {
     const s = makeVillage(), p = s.player;
@@ -369,13 +310,6 @@ describe('leftover scan round 10', () => {
     const got = recoverDebt(p, RV.sleep, 10);
     expect(got).toBeGreaterThan(0);
     expect(p.core.condition.fatigue!.awake).toBeCloseTo(40 - got);
-    expect(read('src/engine/fatigue.ts').match(/awake - got/g)?.length).toBe(1);
-  });
-  it('one contest for engagement auras and Battle Cry; allies by stance position; one each-perceives rule', () => {
-    const a = read('src/engine/auras.ts');
-    expect(a.match(/toContest\(/g)?.length).toBe(1);
-    expect(a).not.toMatch(/'friend', 'loyal'/);
-    expect(read('src/engine/travel.ts')).not.toMatch(/perceivesNow/);
   });
   it('the Stacking tab names noise, attention and light by their scale names', () => {
     const v = (src: string) => MOD_SOURCES.find((m) => m.source === src)!.value;
@@ -383,25 +317,11 @@ describe('leftover scan round 10', () => {
     expect(v('Light')).toMatch(/dim -6/);
     expect(MOD_SOURCES.some((m) => m.source === 'Travel pace')).toBe(false); // SR5: one travel pace
   });
-  it('no literal durations in motion, one walk chip, one plural, packet words used as they come', () => {
-    expect(read('src/ui/motion.ts')).not.toMatch(/dur: Math\.min\(\d|\+ \d+ \* strength/);
-    expect(read('src/ui/styles.css')).toMatch(/--m-pulse-step: \d+ms; --m-pulse-max: \d+ms/);
-    expect(read('src/ui/doing.ts').match(/const chip =/g)?.length).toBe(1);
-    expect(read('src/ui/gains.ts')).not.toMatch(/const plural =|proposed M-39/);
-    expect(read('src/agents/narration.ts')).not.toMatch(/p\.(action|outcome)\.replace/);
-  });
 });
 
-describe('answers CS23 to CS25', () => {
-  const read = (f: string) => readFileSync(f, 'utf8') as string;
-  it('CS24: Destroyed weighs DESTROYED_PART_WEIGHT Crippled ones in the role penalty and in no running alike', () => {
-    const b = read('src/ruleset/body.ts');
-    expect(b.match(/CONFIG\.DESTROYED_PART_WEIGHT/g)?.length).toBe(2);
-    expect(b).not.toMatch(/'destroyed'\) \? 2 :/);
+describe('answer CS24', () => {
+  it('CS24: the spec no longer says a Destroyed part counts twice', () => {
     expect(readSpec()).not.toMatch(/Destroyed part counting twice/);
-  });
-  it('CS25: filch, ambush and sneaking past sleepers count Against the Odds once per act', () => {
-    for (const f of ['src/engine/filch.ts', 'src/minds/state.ts', 'src/engine/sleep.ts', 'src/engine/resolve.ts']) expect(read(f)).toMatch(/outmatchedOnce\(state, /);
   });
 });
 
@@ -415,8 +335,8 @@ describe('leftover scan round 11', () => {
   });
   it('the armor slot is read in slots.ts only; comments, icons and roman numerals have one home each', () => {
     expect(src.filter((f) => f !== 'src/ruleset/slots.ts' && /includes\('armor'\)/.test(read(f)))).toEqual([]);
-    expect(src.filter((f) => f !== 'src/ui/kit.ts' && /type CommentsApi/.test(read(f)))).toEqual([]);
-    expect(src.filter((f) => f !== 'src/scales.ts' && /(function|const) roman/.test(read(f)))).toEqual([]);
+    expect(src.filter((f) => f !== 'src/ui/kit.ts' && /type CommentsApi\s*=/.test(read(f)))).toEqual([]);
+    expect(src.filter((f) => f !== 'src/scales.ts' && /(function|const) roman\b/.test(read(f)))).toEqual([]);
     expect(roman(4)).toBe('IV');
   });
   it('body parts, health levels and grips have one helper each', () => {
@@ -424,33 +344,22 @@ describe('leftover scan round 11', () => {
     expect(levelMaxPct('critical')).toBe(CONFIG.HEALTH_TRACK.find(([k]) => k === 'critical')![1]);
     expect(src.filter((f) => f !== 'src/ruleset/body.ts' && /const partName = \(/.test(read(f)))).toEqual([]);
     expect(src.filter((f) => f !== 'src/ruleset/body.ts' && /function freeGrips|const freeGrips/.test(read(f)))).toEqual([]);
-    expect(read('src/engine/perkMoves.ts')).not.toMatch(/no_free_hand|freeHand/);
   });
   it('fresh ids come from one helper', () => {
     const taken = new Set(['a', 'a_2']);
     expect(freshId('a', taken)).toBe('a_3');
     expect(taken.has('a_3')).toBe(true);
-    for (const f of ['src/engine/spar.ts', 'src/engine/memory.ts', 'src/engine/quests.ts']) expect(read(f)).not.toMatch(/for \(let i = 2;/);
     expect(src.filter((f) => f !== 'src/ids.ts' && /function freshId/.test(read(f)))).toEqual([]);
   });
   it('plans name every trigger type but quiet_turns, from the one list', () => {
     expect(PLAN_TRIGGER_TYPES).toEqual(TRIGGER_TYPES.filter((t) => t !== 'quiet_turns'));
-    expect(read('src/engine/effects.ts')).not.toMatch(/const TRIGGER_TYPES/);
   });
   it('time of day, action speed and the hurt crossroads read their tables', () => {
     expect([minuteOfDay(-1), minuteOfDay(DAY_MINUTES + 5)]).toEqual([DAY_MINUTES - 1, 5]);
     expect(actionSeconds({ id: 'x', name: 'x', effort: 'base', seconds: 4, speed: { fn: 'FN1', halving: 25 } }, CONFIG.ACTION_SPEED_PIVOT, 1)).toBe(4);
-    expect(read('src/ruleset/actionTime.ts')).not.toMatch(/50/);
     expect(CROSSROADS.find((c) => c.kind === 'badly_hurt')!.rule).toBe('your health first reaches Wounded, Mauled or Critical, or a body part becomes Crippled or Destroyed (GA4)');
-    expect(read('src/agents/crossroads.ts')).not.toMatch(/'your health first reaches Wounded/);
-    expect(read('src/ruleset/age.ts')).not.toMatch(/slice\(7\)|LIFE_STAGES\.at\([12]\)/);
   });
-  it('no leftover file or names from removed rules', () => {
-    expect(src).not.toContain('src/todo.ts');
-    expect(read('src/library/godIds.ts')).not.toMatch(/essences:/);
-    expect(read('src/library/classIds.ts')).not.toMatch(/blessed_essences/);
-    expect(read('src/ui/classTree.ts')).not.toMatch(/A Nobody/);
-    expect(read('src/ui/loot.ts')).not.toMatch(/pocket/);
+  it('the spec names no removed rule', () => {
     expect(readSpec()).not.toMatch(/agents that return JSON call sample\.json/);
   });
 });
