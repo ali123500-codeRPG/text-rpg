@@ -95,9 +95,9 @@ The source of truth for every design decision.
   task, no extras, and every part the change touches is finished (callers, tests, fixtures). Where it says "no
   config", the balancing rule below wins.
 - **Stay in scope.** Out-of-scope work becomes its own task. Do not widen the current one.
-- **Balancing levers.** Every balancing number lives in one easy-to-edit place (`src/config.ts` or a library table),
-  with a clear name, placeholders marked, and the lever named in the spec. Use names tables for ordered scales, so a
-  level can be inserted. Reason: the owner balances by playing and tunes numbers without touching logic.
+- **Balancing levers.** Every balancing number lives in one easy-to-edit place (`src/config.ts`, whose parts are in
+  `src/config/`, or a library table), with a clear name, placeholders marked, and the lever named in the spec. Use names
+  tables for ordered scales, so a level can be inserted. Reason: the owner balances by playing and tunes numbers without touching logic.
 - **One equation per concept.** Before writing a formula, search for an existing one that measures the same thing and
   reuse it. Two features that measure the same quantity call one shared function.
 - **Reuse existing concepts.** Before naming a new need, role or table, search for one that exists (body-part roles,

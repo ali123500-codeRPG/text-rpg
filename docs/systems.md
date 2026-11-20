@@ -31,6 +31,19 @@ one big data file, word helpers.
 - History: [process-decisions.md](memory/process-decisions.md), [working-notes-code.md](memory/working-notes-code.md)
 - Code:
   - `src/config.ts`
+  - `src/config/actors.ts`
+  - `src/config/body.ts`
+  - `src/config/clock.ts`
+  - `src/config/engine.ts`
+  - `src/config/fatigue.ts`
+  - `src/config/gear.ts`
+  - `src/config/land.ts`
+  - `src/config/morale.ts`
+  - `src/config/past100.ts`
+  - `src/config/perception.ts`
+  - `src/config/progression.ts`
+  - `src/config/rules.ts`
+  - `src/config/world.ts`
   - `src/ids.ts`
   - `src/library/data.ts`
   - `src/library/index.ts`
@@ -64,6 +77,7 @@ turn checker, and what happened in a scenario.
   [working-notes-testing.md](memory/working-notes-testing.md)
 - Code:
   - `src/agents/game.ts`
+  - `src/config/engine.ts`
   - `src/engine/effects.ts`
   - `src/engine/happened.ts`
   - `src/engine/index.ts`
@@ -82,6 +96,7 @@ The game clock, how long each action takes, waiting and busy actors, sleep timin
 - Spec: [action-time.md](spec/part-2-turn-engine/action-time.md), [game-clock.md](spec/part-2-turn-engine/game-clock.md)
 - History: [history-clock-and-action-time.md](memory/history-clock-and-action-time.md)
 - Code:
+  - `src/config/clock.ts`
   - `src/engine/busy.ts`
   - `src/engine/comingNear.ts`
   - `src/engine/sleep.ts`
@@ -122,6 +137,7 @@ HP, the health track, body parts and wounds, healing, body types, races, size an
 - Spec: [part-3-health/](spec/part-3-health/), [body-type-database.md](spec/part-3-health/body-type-database.md)
 - History: [history-bodies-size-and-age.md](memory/history-bodies-size-and-age.md)
 - Code:
+  - `src/config/body.ts`
   - `src/engine/heal.ts`
   - `src/library/bodySize.ts`
   - `src/library/figureModels.ts`
@@ -142,6 +158,7 @@ breaking things, Threadbound items.
 - History: [history-defense-and-gear.md](memory/history-defense-and-gear.md),
   [history-items-and-loot.md](memory/history-items-and-loot.md)
 - Code:
+  - `src/config/gear.ts`
   - `src/engine/breakThrough.ts`
   - `src/engine/breakage.ts`
   - `src/engine/containers.ts`
@@ -175,6 +192,8 @@ character creation rules.
   [history-skill-trees.md](memory/history-skill-trees.md),
   [history-classes-and-starts.md](memory/history-classes-and-starts.md), [class-unlocks.md](memory/class-unlocks.md)
 - Code:
+  - `src/config/progression.ts`
+  - `src/config/rules.ts`
   - `src/engine/growth.ts`
   - `src/engine/nonCombat.ts`
   - `src/engine/tacticsMarks.ts`
@@ -261,6 +280,8 @@ The morale bar, nerve, fear and yielding, auras and Battle Cry, steadying, fatig
 - History: [history-morale-and-yield.md](memory/history-morale-and-yield.md),
   [history-fatigue-and-stamina.md](memory/history-fatigue-and-stamina.md)
 - Code:
+  - `src/config/fatigue.ts`
+  - `src/config/morale.ts`
   - `src/engine/auras.ts`
   - `src/engine/fatigue.ts`
   - `src/engine/morale.ts`
@@ -281,6 +302,7 @@ filching.
 - History: [history-senses-and-search.md](memory/history-senses-and-search.md),
   [history-stealth-and-theft.md](memory/history-stealth-and-theft.md)
 - Code:
+  - `src/config/perception.ts`
   - `src/engine/filch.ts`
   - `src/engine/hunches.ts`
   - `src/engine/makeOut.ts`
@@ -326,6 +348,7 @@ furniture, ground items; the Map and minimap screens (see the `rpg-map` skill).
 - History: [history-positions-land-titles.md](memory/history-positions-land-titles.md),
   [history-doors-cover-walls-map.md](memory/history-doors-cover-walls-map.md)
 - Code:
+  - `src/config/world.ts`
   - `src/engine/barriers.ts`
   - `src/engine/breakThrough.ts`
   - `src/engine/follow.ts`
@@ -366,6 +389,7 @@ Land generation, regions and ways, roads and travel, the people of the world, wo
   [lore-canon.md](memory/lore-canon.md)
 - Code:
   - `src/agents/worldLore.ts`
+  - `src/config/land.ts`
   - `src/engine/travel.ts`
   - `src/land/brief.ts`
   - `src/land/edge.ts`
@@ -410,6 +434,7 @@ NPC minds, routines and goals, memory, templates and spawning, uniques and echoe
 - History: [history-npc-generation-and-roles.md](memory/history-npc-generation-and-roles.md),
   [history-personality-and-uniques.md](memory/history-personality-and-uniques.md)
 - Code:
+  - `src/config/actors.ts`
   - `src/engine/goals.ts`
   - `src/engine/memory.ts`
   - `src/engine/npcPerkMoves.ts`
