@@ -683,9 +683,9 @@ export function validateBuild(build: CreationBuild): string[] {
 /**
  * The player's sheet from a build: the one builder for the game and the creation preview. zone and placeId stay empty
  * until the story-start setup places the player. `preview` skips the build check (the creation screen previews
- * unfinished builds).
+ * unfinished builds). `world`: the world a new character carries on in (HF28: their Threadbound item is one not already
+ * there).
  */
-/** `world`: the world a new character carries on in (HF28: their Threadbound item is one not already there) */
 export function createPlayer(build: CreationBuild, storyId: string, opts: { preview?: boolean; world?: GameState } = {}): Actor {
   const errs = opts.preview ? [] : validateBuild(build);
   if (errs.length) throw new Error(`invalid build: ${errs.join('; ')}`);

@@ -201,7 +201,6 @@ const ARMOR_TIME = { locksMove: true, focus: 'careful', output: 'steps', onBreak
 /** HB1: how far a sound carries in the open */
 const inOpen = (m: number | undefined) => (m === undefined ? 'nowhere' : m === 0 ? 'only right beside you' : `${m} m in the open`);
 
-/** aimed hits per part size: smaller parts are harder to hit, so their levels pay this many reward levels more */
 /** AG3–AG6: life stage start ages per race (placeholders but the human row) */
 const ages = (y: number[]) => Object.fromEntries(LIFE_STAGES.keys.map((k, i) => [k, y[i]])) as Record<LifeStageKey, number>;
 const AGES = { human: ages([0, 13, 18, 40, 60, 80, 100]), elf: ages([0, 13, 20, 150, 250, 350, 450]), dragon: ages([0, 5, 100, 200, 300, 400, 500]),
@@ -242,6 +241,7 @@ const VALUE_HINTS: Record<keyof typeof VL, string> = {
   gratitude: 'repays kindness in kind or better, and offers to at once',
   desire: 'drawn to attractive people; notices them, flirts and chases romance',
 };
+/** aimed hits per part size: smaller parts are harder to hit, so their levels pay this many reward levels more */
 const SMALLER_PAYS_MORE = { small: 1, extra_small: 1, tiny: 2 };
 
 const sk = (id: string, treeId: string, functions: SkillDef['functions'], roles: SkillDef['roles'], cue?: 'sight' | 'sound', tier: SkillDef['tier'] = 'tier_2'): SkillDef =>

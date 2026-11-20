@@ -101,10 +101,6 @@ export const GROUPS: Record<string, GroupDef> = Object.fromEntries(([
 ] as GroupDef[]).map((d) => [d.id, d]));
 export const meet = (group: string, weight: number, when?: 'day' | 'night'): MeetRow => ({ group, weight, ...(when ? { when } : {}) });
 
-/** NG1, NG21: today's five templates as presets (same TP IDs): race, role, theme and rank, at the ranks they played at.
- * minimums are hand-set floors the story needs; class floors are added in code. Rank floors, Keen Ear for patrols (NG13),
- * milestone perks (NG11), rank traits (NG12) and personality from the layers (NG14) are the generator's; personality here
- * only pins what differs from the layers. */
 /** named presets from race, role, theme and rank, with the composed defaults for the role's kind (as composeTemplate);
  * people are rolled (each one its own person), beasts are copies */
 function presets(rows: [string, string, string, string, RankKey, string, Partial<NpcTemplate>?][]): Record<string, NpcTemplate> {
@@ -113,6 +109,10 @@ function presets(rows: [string, string, string, string, RankKey, string, Partial
     return [id, { id, raceId, generation: NPC_ROLES[roleId].kind === 'beast' ? 'copy' : 'rolled', minimums: {}, roleId, themeId, rank, resolve: d.resolve, control: d.control, chase: d.chase, label, ...extra }];
   }));
 }
+/** NG1, NG21: today's five templates as presets (same TP IDs): race, role, theme and rank, at the ranks they played at.
+ * minimums are hand-set floors the story needs; class floors are added in code. Rank floors, Keen Ear for patrols (NG13),
+ * milestone perks (NG11), rank traits (NG12) and personality from the layers (NG14) are the generator's; personality here
+ * only pins what differs from the layers. */
 export const TEMPLATES: Record<string, NpcTemplate> = {
   [TP.slime]: {
     id: TP.slime, raceId: RC.slime, generation: 'copy', minimums: { [SK.slam]: 30, [SK.scent]: 50 }, // AB19 a: slimes smell, not feel
