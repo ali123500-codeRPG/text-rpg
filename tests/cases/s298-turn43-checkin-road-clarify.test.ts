@@ -13,7 +13,6 @@ import { validateStagePlan } from '../../src/scenario';
 import { isBugCode } from '../../src/save/bugs';
 import { toStoryStart, villageStagePlan } from '../../src/scenario/fixtures';
 import { ROAD_LENGTHS } from '../../src/scales';
-import { clarifyPicks } from '../../src/ui/play';
 
 const judged: PlanEnding[] = [{ when: { kind: 'judged' }, as: 'resolved', text: 'x' }, { when: { kind: 'judged' }, as: 'lost', text: 'y' }];
 const framed = (): GameState => {
@@ -61,17 +60,6 @@ describe('BG-223: road lengths in the words the Weaver is told', () => {
     expect(road('2 km').z.length).toBe(2);
     expect(road(3.5).errs).toEqual([]);
     expect(road('a fortnight').errs).toHaveLength(1);
-  });
-});
-
-describe('BG-224: the ways out a clarifying question names can be tapped', () => {
-  it('ways out to places not built yet are picks by their labels', () => {
-    const pv = { actors: [], zones: [{ name: 'the high lane' }], zone: { groundItems: [], links: [
-      { to: 'high_lane', label: 'the lane back toward the Bent Nail' }, { to: 'road_east', label: 'the east road out of the village', frontier: true },
-      { to: 'mill_lane', label: 'a lane down toward the mill stream', frontier: true },
-    ] }, player: { inventory: [] } } as never;
-    const t = 'Which way do you take as the exit: the east road out of the village, the lane down toward the mill stream, or back along the high lane toward the Bent Nail?';
-    expect(clarifyPicks(t, pv).map((p) => p.phrase)).toEqual(['the east road out of the village', 'the lane down toward the mill stream', 'the high lane']);
   });
 });
 

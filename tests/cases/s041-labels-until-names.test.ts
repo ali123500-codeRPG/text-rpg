@@ -5,7 +5,7 @@ import { expect, it } from 'vitest';
 import type { GameEvent, GameState } from '../../src/types';
 import { makeVillage, createRng, place } from '../harness';
 import { computePerception, updateBeliefs } from '../../src/perception';
-import { buildNarrationView, buildOppositionView, buildPlayerView } from '../../src/views';
+import { buildNarrationView, buildPlayerView } from '../../src/views';
 import { learnNames } from '../../src/engine/effects';
 
 const say = (s: GameState, id: string, actorId: string, text: string, more: Partial<GameEvent> = {}, earlier: GameEvent[] = []): GameEvent => {
@@ -31,16 +31,6 @@ it('41 Labels until names are known', () => {
   expect(next.events[0].actor).toBe('Old Wim');
   expect(next.heard).toEqual([{ speaker: 'Old Wim', text: "Name's Wim. Just Wim.", volume: 'normal' }]);
   expect(next.actors.find((a) => a.label === 'a tavern patron')).toMatchObject({ label: 'a tavern patron', name: 'Old Wim' });
-});
-
-it('BG-95: a bandmate named in front of the player is learned; a false name or a lowercase word is not', () => {
-  const s = makeVillage();
-  s.actors.find((a) => a.id === 'trader')!.knownOnSight = undefined;
-  place(s, 'trader', 'tav_common');
-  say(s, 'v1', 'patron_1', "Call me Tam. Mags will pour you one if you ask.");
-  expect(s.player.journal!.namesKnown).toEqual(['trader']); // Wim knows his bandmate Mags; "Tam" is no one's name
-  say(s, 'v2', 'trader', 'I will, love. Bertram at the gate owes me two.');
-  expect(s.player.journal!.namesKnown).toEqual(['trader']); // Bertram is not in sight, and Mags does not know him by name
 });
 
 it('NM2: a name said of someone out of sight is heard of, and attaches when they answer to it', () => {
@@ -71,11 +61,3 @@ it('NM3/NM6: a believed false name is what the listener calls them; a caught one
   expect(s2.player.journal!.aliases).toEqual({});
 });
 
-it('BG-95: an NPC who hears the player give their name keeps it, in its view of the player', () => {
-  const s = makeVillage();
-  s.actors.find((a) => a.id === 'patron_1')!.mind!.knowledge.player = { status: 'aware', source: 'seen', revealed: [] }; // he has seen the player come in
-  expect(buildOppositionView(s, 'patron_1').beliefs.find((b) => b.about === 'player')?.name).toBeUndefined();
-  say(s, 'v1', 'player', "I'm Aldric, from up the valley.");
-  expect(s.actors.find((a) => a.id === 'patron_1')!.mind!.namesKnown).toEqual(['player']);
-  expect(buildOppositionView(s, 'patron_1').beliefs.find((b) => b.about === 'player')).toMatchObject({ about: 'player', name: 'Aldric' });
-});

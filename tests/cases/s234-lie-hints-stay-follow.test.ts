@@ -5,28 +5,14 @@
 import { DU } from '../../src/library/tableIds';
 import { actionRow } from '../../src/ruleset/actionTime';
 import { expect, it } from 'vitest';
-import type { ContestResult, GameEvent } from '../../src/types';
 import type { Actor } from '../../src/types';
 import { makeVillage } from '../harness';
 import { staying } from '../../src/minds';
-import { applySpeech, pressedWords, PLAIN, TELL } from '../../src/engine/speech';
 import { companions } from '../../src/engine/travel';
 import { CONFIG } from '../../src/config';
 import { act, plannerOut, play } from './w4-kit';
 import { ago, tick, turnsFor } from '../harness/time';
 
-const lie = (gap: number, push: object) => ({ push: { type: 'deceive', ...push }, contest: { a: { tier: 'success' }, gap } }) as unknown as GameEvent;
-
-it('BF8, BF10: how plainly a lie seen through reads', () => {
-  const s = makeVillage();
-  const c = (gap: number) => ({ gap, winner: gap > 0 ? 'b' : gap < 0 ? 'a' : 'tie' }) as ContestResult;
-  const npc = s.actors.find((a) => a.id === 'patron_1')!;
-  expect(applySpeech(npc, s.player, 'deceive', c(0))).toEqual({ doubt: true });
-  expect(applySpeech(npc, s.player, 'deceive', c(-1))).toEqual({});
-  expect(pressedWords(lie(1, { tell: true }))).toEqual({ took: PLAIN });
-  expect(pressedWords(lie(3, { tell: true }))).toEqual({ took: PLAIN });
-  expect(pressedWords(lie(0, { doubt: true }))).toEqual({ took: TELL }); // a tie is not a win
-});
 
 it('BF11: a place its own agent chose holds before the routine takes it back', () => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'trader'] });

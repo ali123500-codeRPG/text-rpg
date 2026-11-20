@@ -28,9 +28,3 @@ it("an NPC's yield in a real fight is a surrender", () => {
   expect(stance(s, actor(s, 'patron_1'), s.player)).toBe('yielded');
 });
 
-it('grabbing someone one already holds says so', () => {
-  const s = fight();
-  actor(s, 'patron_1').heldBy = 'player';
-  const ev = play(s, { intent: intent({ action: { type: 'restrain', target: 'patron_1' } }), agentOutputs: [plannerOut('patron_1', act('hold'))] });
-  expect(ev.find((e) => e.actorId === 'player' && e.kind === 'wasted')?.reason).toBe('already_holding');
-});

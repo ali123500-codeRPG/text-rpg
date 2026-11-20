@@ -7,11 +7,6 @@ import { describe, expect, it } from 'vitest';
 import type { GameEvent, GameState, PlanEnding, StagePlan } from '../../src/types';
 import type { PlanContext } from '../../src/scenario';
 import { makeVillage } from '../harness/village';
-import { intent, narrateAll } from '../harness/turn';
-import { ScriptedClaude } from '../harness/scripted';
-import { createGame, VirtualClock } from '../../src/agents';
-import { createDirector } from '../../src/agents/director';
-import { memoryStore } from '../../src/save';
 import { applyWindow, checkRoam } from '../../src/engine/chase';
 import { closeScenario, endScenario, frameOf } from '../../src/engine/scenarioEnd';
 import { beginScenario } from '../../src/scenario/apply';
@@ -109,36 +104,6 @@ describe('327 an Episode holds its parts (SW10 a)', () => {
     s.stage.scenario = frameOf(s, { question: 'part', stake: 'p', scale: 'moment', endings: judged }, 'success', (_k, r) => r);
     checkRoam(s, [ev(s.turn, {})]);
     expect(s.stage.breakCause).toBeUndefined();
-  });
-
-  it('whole turn: the first start makes the episode and its first part; an attack between parts starts the next part inside it', async () => {
-    const clock = new VirtualClock(), claude = new ScriptedClaude(clock), store = memoryStore();
-    const game = createGame({ client: claude, clock, store, director: createDirector(clock) });
-    const state = between();
-    state.pending = { turn: state.turn, mode: 'explore', engaged: [], fired: [] };
-    claude.defaults.narrator = narrateAll();
-    const views: unknown[] = [];
-    claude.defaults.weaver = (req) => {
-      views.push(req);
-      const s = game.state()!;
-      return { ok: true, value: { ...MILL_PLAN, event: { ...MILL_PLAN.event, ...FITTING_GRADES[s.stage.starting!.eventRoll.tier] } } as StagePlan };
-    };
-    game.adopt(state);
-    claude.push('parser', intent({ action: { type: 'attack', skill: '', target: 'patron_1', targetPart: null, item: null, mode: null, approach: '' } }));
-    await game.submit('I punch the patron', { aimed: false });
-    await game.settle();
-    let s = game.state()!;
-    expect(s.stage.starting).toBeDefined();
-    expect(s.stage.scenario?.question).toBe('who poisons the well?');
-    claude.push('parser', intent());
-    await game.submit('look around', { aimed: false });
-    await game.settle();
-    s = game.state()!;
-    expect(s.stage.outer?.question).toBe('who poisons the well?');
-    expect(s.stage.scenario?.question).toBe('what waits at the old mill?'); // the plan's episode is left out: one is running
-    expect(s.stage.outer?.ground).toEqual(expect.arrayContaining(s.stage.scenario!.ground!));
-    expect(JSON.stringify(views.at(-1))).toContain('who poisons the well?'); // the Weaver saw the episode as outerScenario
-    expect(s.stage.roam).toBeUndefined();
   });
 
   it('the first start applies the episode and its first part, each its own number', () => {

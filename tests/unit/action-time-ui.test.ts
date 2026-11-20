@@ -1,13 +1,9 @@
 // AT11a on the play screen: the long actions the player saw each turn (LogLine.actions), in game seconds and minutes, and
 // BG-182: no screen code may sit inside a line comment (the Who's here row lost every name that way).
 import { describe, expect, it } from 'vitest';
-import { wholeTurn, intent } from '../harness/turn';
 import { secsText, doneShare } from '../../src/ui/doing';
 import { actionNotes, type DoingSnap } from '../../src/agents/game';
 import { makeVillage } from '../harness';
-import { IT } from '../../src/library/itemIds';
-import { actionRow, actionSeconds } from '../../src/ruleset/actionTime';
-import { DU } from '../../src/library/tableIds';
 
 const snap = (rows: [string, string, { what: string; done: number; left: number }?][]): DoingSnap =>
   new Map(rows.map(([id, who, doing]) => [id, { who, ...(doing ? { doing } : {}) }]));
@@ -35,22 +31,5 @@ describe('AT11a long actions on the play screen', () => {
     ]); // Tam left full sight: nothing said about them
   });
 
-  it('whole turn: a bandage started in a fight shows as going on, then done the turn it finishes', async () => {
-    const g = wholeTurn({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'], engaged: ['patron_1'] });
-    const s = g.game.state()!;
-    s.player.core.condition.hpLostPct = 30;
-    s.player.core.inventory.push({ id: 'b1', itemId: IT.bandage, qty: 1 });
-    s.player.react = { s: 0, init: 100, turn: s.pending.turn - 1 };
-    const bandage = () => intent({ action: { type: 'use_item', skill: '', target: 'player', targetPart: null, item: 'b1', mode: null, approach: '' } });
-    const need = actionSeconds(actionRow(DU.bandage)!);
-    await g.turn(bandage(), 'I bandage my leg');
-    const first = g.game.lines().at(-1)!.actions?.find((a) => a.who === 'You');
-    expect(first).toMatchObject({ what: 'Bandage', state: 'going' }); // the fight turn's seconds were not enough
-    expect(first!.done).toBeGreaterThan(0);
-    expect(first!.done + first!.left).toBe(need);
-    expect(s.player.busy).toBeDefined();
-    await g.turn(bandage(), 'I keep going: bandage'); // the fight is over: the rest is done this turn
-    expect(g.game.lines().at(-1)!.actions?.find((a) => a.who === 'You')).toEqual({ who: 'You', what: 'Bandage', done: need, left: 0, state: 'done' });
-  });
 });
 

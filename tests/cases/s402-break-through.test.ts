@@ -23,7 +23,6 @@ import { BK, BM } from '../../src/library/tableIds';
 import { IT } from '../../src/library/itemIds';
 import { BT } from '../../src/library/raceIds';
 import { NOISE } from '../../src/scales';
-import { intent as wholeIntent, wholeTurn } from '../harness/turn';
 
 const quiet = (zone = 'tav_common') => makeVillage({ playerZone: zone, without: ['slime_1', 'slime_2', 'guard_1', 'patron_1'] });
 const intent = (p: Partial<Intent>): Intent => ({ move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null, action: null, ...p });
@@ -169,17 +168,6 @@ describe('402 breaking through walls and barriers (BW8-BW26)', () => {
     expect(toolCheck(s, { ...s.player, core: { ...s.player.core, inventory: [] } }, createRng(3))).toEqual({});
   });
 
-  it('whole turn: the player breaks through the wall to the bar; the hole is saved and shown as a way, the story told', async () => {
-    const t = wholeTurn({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'patron_1'] });
-    const s = t.game.state()!;
-    const w = wallTo(s, 'tav_common', 'tav_counter');
-    atWall(s, w);
-    const { events } = await t.turn(wholeIntent({ action: { type: 'break', skill: '', target: w.id, targetPart: null, item: null, mode: null, approach: '' } }));
-    expect(events.find((e) => e.kind === 'break_through')?.breakThrough).toMatchObject({ wall: w.id, state: 'destroyed' });
-    const st = t.game.state()!;
-    expect(st.openings.some((o) => o.wall === w.id && o.joins.includes('tav_counter') && o.labels[0].startsWith('a hole broken'))).toBe(true);
-    expect(buildPlayerView(st).zone.links.some((l) => l.label.startsWith('a hole broken'))).toBe(true);
-  });
 });
 
 

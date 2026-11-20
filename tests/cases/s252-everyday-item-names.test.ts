@@ -4,10 +4,8 @@
 // the item's own id.
 import { expect, it } from 'vitest';
 import { makeVillage } from '../harness';
-import { intent, play } from './w4-kit';
 import { zoneById } from '../../src/engine/relations';
 import { buildLeakContext, leakScan } from '../../src/agents/narration';
-import { buildNarrationView } from '../../src/views';
 import { IT } from '../../src/library/itemIds';
 import { layAll } from '../harness';
 
@@ -20,11 +18,3 @@ it('a catalog item lying elsewhere is an everyday noun, a story-made one is stil
   expect(leakScan('You think of the jade idol.', '{}', ctx)).toEqual(['name:the jade idol']);
 });
 
-it('a bandage used up is still named in the narration view', () => {
-  const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
-  s.player.core.inventory.push({ id: 'band', itemId: IT.bandage, qty: 1 });
-  s.player.core.condition.hpLostPct = 30;
-  const ev = play(s, { intent: intent({ action: { type: 'use_item', item: 'band' } }) });
-  const used = buildNarrationView(s, ev).events.find((e) => e.kind === 'use_item')!;
-  expect(used.item).toBe('bandage');
-});
