@@ -208,7 +208,10 @@ The source of truth for every design decision.
   start on an old branch.
 - Every change is a PR into `main` that follows `.github/pull_request_template.md`. The full CI runs on it: type
   check, unit and scenario tests, build, browser smoke, and the PR rule. The template's terms (completeness rows,
-  guard test, whole-turn test) are in `docs/glossary.md`.
+  whole-turn test) are in `docs/glossary.md`.
+- A test earns its place: add one only for behaviour that could break again unnoticed, run it through the game (a
+  whole turn or a browser smoke test), and never match source text. "Tests: none needed" with the reason is a fine
+  answer. A change of meaning gets a search of the whole repo for the old pattern, not a guard test (spec, TQ5).
 - The agent that opened a PR reviews it and squash-merges it once every check is green, without asking the
   owner. That includes bug fixes and rule-file changes; a rule-file PR quotes the owner's words it acts on
   (`AGENTS.md` rule 6). The owner does not merge PRs. The same rule holds for agents of every provider.

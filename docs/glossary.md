@@ -93,9 +93,9 @@ Which model each uses is in `CONFIG.AGENT_MODELS`. None of them decides a number
   game until its parked item is decided (for a perk, `bankedAs` on its write-up).
 - **Sibling**: another action, actor kind or code path that follows the same rule as the one being changed.
 - **Completeness rows**: rows in the test tables that list every action and actor kind; a new one must add its row
-  or the checks fail. **Guard test**: a test that bans an old pattern after a change of meaning. **Whole-turn
-  test**: one full turn through the game with stand-in agents, for a change to a view, an agent call or narration.
-  All three are asked for by the PR template; spec, "TQ5".
+  or the checks fail. **Guard test**: a test that bans an old pattern
+  (tests/harness/guard.ts); a change of meaning gets a whole-repo search instead of a new one. **Whole-turn test**:
+  one full turn through the game with stand-in agents. Spec, "TQ5".
 - **Soak**: long random runs on the test village (`tests/soak`). **Parser test set**: real-model checks of the Parser
   (`tests/parser-eval`).
 - **The hub**: the owner's Questions hub. `tools/questions-hub/README.md`.

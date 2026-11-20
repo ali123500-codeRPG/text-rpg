@@ -3,6 +3,9 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bug-fix-log.md`.
 
+- 20/11/2026: `docs/instructions.md` section 8, `.agents/skills/root-cause-first` and the PR template: a test earns its
+  place (behaviour that could break again, run through the game, never source text; "none needed" is a fine answer);
+  a change of meaning gets a whole-repo search, not a guard test; a bug fix no longer must start with a failing test.
 - 20/11/2026: `AGENTS.md` rule 9 and map, `docs/instructions.md` section 8 (TE1 a, TE2 a): the replay set and the saved
   soak worlds are retired; the soak run plays the test village.
 - 20/11/2026: `docs/instructions.md` section 8 and `AGENTS.md` "Finding your way" (CU2 b): `test:near` has no `--deep`;

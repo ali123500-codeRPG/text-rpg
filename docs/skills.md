@@ -10,8 +10,8 @@ Each is in `.agents/skills/<name>/SKILL.md`, in full. Change one only through a 
 (`AGENTS.md` rule 6). Copies elsewhere, such as in the owner's Claude account, follow the repo.
 
 - **root-cause-first**: for any bug, error, failing test or "it is not working" report, before proposing a fix. Find
-  the earliest point where things go wrong, list every plausible cause before settling on one, write the failing
-  test first, and search for siblings of the cause. Its method draws on `systematic-debugging` from
+  the earliest point where things go wrong, list every plausible cause before settling on one, and search for
+  siblings of the cause. Its method draws on `systematic-debugging` from
   obra/superpowers (MIT); no text is copied.
 - **show-dont-tell-ui**: for any UI change. Mark only the exception with an icon, put words in tooltips and
   aria-labels, and cut hints the styling already gives. Based on `minimal-ui-design` from castle-x/skills-x (MIT);

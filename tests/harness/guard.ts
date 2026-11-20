@@ -1,5 +1,5 @@
-// TQ5 guard tests: when a meaning changes (zone links to metres, numbers to keys), a guard test bans the old pattern,
-// with a short list of allowed places and why. bannedLines does the file walk, so a guard is one line.
+// Guard tests ban an old pattern, with a short list of allowed places and why. bannedLines does the file walk, so a
+// guard is one line. A new change of meaning gets a whole-repo search instead (TQ5).
 // @ts-expect-error Node types are not installed; vitest runs in Node
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 // @ts-expect-error Node types are not installed; vitest runs in Node

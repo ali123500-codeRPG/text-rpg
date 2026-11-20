@@ -4,8 +4,8 @@
 
 ## Siblings checked
 
-<!-- the other actions, actor kinds, views and paths that follow the same rule, and what you found in each (or "none: why") -->
+<!-- the other actions, actor kinds, views and paths that follow the same rule, and what you found in each; for a change of meaning, the whole-repo search for the old pattern -->
 
 ## Tests
 
-<!-- completeness rows added, guard test for a change of meaning, whole-turn test (tests/harness/turn.ts) for a view, agent or narration change -->
+<!-- the test that checks this change through the game (whole turn or browser smoke, never source text), completeness rows added, or "none needed: why" -->
