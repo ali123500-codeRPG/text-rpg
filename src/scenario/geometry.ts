@@ -7,6 +7,7 @@
 import { SIDE_STEP, type GameState, type Rect, type Side, type Zone } from '../types';
 import { CONFIG } from '../config';
 import { boxOf, rectOutline } from '../plan/geom';
+import { buildingCheck, pxBox } from '../plan/footprint';
 
 /** the compass direction an exit's words name, as a unit [east, north], or null when they name none */
 export function compassOf(label: string): [number, number] | null {
@@ -47,14 +48,6 @@ function dims(t: PlaceInput, axis: 'ew' | 'ns'): [number, number] {
 /** MAP-10: a rectangle moved so its sides sit on whole metres (its size is whole metres already) */
 const snap = (r: Rect): Rect => ({ ...r, x: Math.round(r.x - r.w / 2) + r.w / 2, y: Math.round(r.y - r.d / 2) + r.d / 2 });
 
-/** the box around rectangles (null for none) */
-function boxAll(rs: Rect[]): Rect | null {
-  if (!rs.length) return null;
-  const x0 = Math.min(...rs.map((r) => r.x - r.w / 2)), x1 = Math.max(...rs.map((r) => r.x + r.w / 2));
-  const y0 = Math.min(...rs.map((r) => r.y - r.d / 2)), y1 = Math.max(...rs.map((r) => r.y + r.d / 2));
-  return { x: (x0 + x1) / 2, y: (y0 + y1) / 2, w: x1 - x0, d: y1 - y0 };
-}
-
 /** how far along a wall placement steps a zone, in whole metres each way, and how many free spots it weighs before it
  *  takes the best so far (a 30 km road has 15 000 metres of side) */
 const STEPS_ALONG = 60, SPOTS_TRIED = 80;
@@ -88,9 +81,10 @@ export type PlaceInput = { z: Zone; area: number; aspect: number; roof: boolean 
 /** gives each title in `todo` a footprint (a rectangle, as its outline), next to a placed title it joins (CO1 B). Titles
  * already placed never move (MAP-03), so a stage that grows only adds titles at its edges. A title touches a title it
  * joins, on the side the way's compass words name when that side is free, and in whole metres (MAP-10). A building stays
- * one piece (MAP-12): no title lands inside another place's footprint (the box round its roofed titles on that floor),
- * and a place never grows its footprint over a title that isn't its own, so a street runs beside a tavern and never
- * through it. `roofed` says which placed titles are under a roof. */
+ * one piece (MAP-12): no title of somewhere else lands over its rooms or cuts its footprint in two, and a new room never
+ * leaves its own building in pieces, so a street runs beside a tavern and never through it, but may fill its notches and
+ * courtyards. The footprint is the checker's shape (MAP-13, buildingCheck): the whole ground of the building's roofed
+ * titles, seen or not (RM19 b, RM21 a). `roofed` says which placed titles are under a roof. */
 export function placeZones(state: GameState, todo: PlaceInput[], joins: PlaceJoin[], roofed: (z: Zone) => boolean): void {
   const all = state.places.flatMap((p) => p.zones);
   const byId = new Map(all.map((z) => [z.id, z]));
@@ -112,18 +106,23 @@ export function placeZones(state: GameState, todo: PlaceInput[], joins: PlaceJoi
     const fwd = out ? compassOf(out.label) : null, rev = back ? compassOf(back.label) : null;
     return fwd ?? (rev ? [-rev[0], -rev[1]] : null);
   };
-  /** a building's footprint on z's floor (MAP-12): the box round the roofed titles placed in it or in places inside it;
-   *  streets and yards make no footprint, so a lane may wind between houses */
-  const footprint = (placeId: string, z: Zone, extra?: Rect) => boxAll([...placed().filter((o) => o !== z && roof(o) && sameFloor(o, z) && chain(o.placeId).has(placeId)).map(R), ...(extra ? [extra] : [])]);
+  const depth = (pid: string) => chain(pid).size - 1;
+  /** MAP-12 on the building `pid` on z's floor, with z at r: what runs through it and how many pieces it is in
+   *  (buildingCheck); streets and yards make no footprint, so a lane may wind between houses */
+  const building = (pid: string, z: Zone, r: Rect) => {
+    const floor = [...placed().filter((o) => o !== z && sameFloor(o, z)).map((o) => ({ o, r: R(o) })), { o: z, r }];
+    const inner = floor.filter((x) => roof(x.o) && chain(x.o.placeId).has(pid)).map((x) => pxBox(x.r));
+    return inner.length ? buildingCheck(inner, floor.filter((x) => !chain(x.o.placeId).has(pid)).map((x) => ({ id: x.o.id, b: pxBox(x.r) })), depth(pid)) : undefined;
+  };
   const free = (z: Zone, r: Rect) => {
     const floor = placed().filter((o) => o !== z && sameFloor(o, z));
     if (floor.some((o) => overlaps(R(o), r))) return false;
     const mine = chain(z.placeId);
     const others = new Set(floor.flatMap((o) => [...chain(o.placeId)]).filter((pid) => !mine.has(pid)));
-    for (const pid of others) { const fp = footprint(pid, z); if (fp && overlaps(fp, r)) return false; }
+    for (const pid of others) if (building(pid, z, r)?.through.has(z.id)) return false;
     if (roof(z) && parentOf.get(z.placeId)) {
-      const fp = footprint(z.placeId, z, r)!;
-      if (floor.some((o) => !chain(o.placeId).has(z.placeId) && overlaps(R(o), fp))) return false;
+      const own = building(z.placeId, z, r)!;
+      if (own.through.size || own.pieces > 1) return false;
     }
     return true;
   };
@@ -163,7 +162,15 @@ export function placeZones(state: GameState, todo: PlaceInput[], joins: PlaceJoi
           return u && open.has(u.id) && d && sameFloor(u, z) && !j.vertical ? [{ u, side: sideOf(d), w: roof(u) ? 2 : 1 }] : [];
         });
         const most = wants.reduce((n, x) => n + x.w, 0);
-        const room = (c: Rect) => { rects.set(z.id, c); const n = wants.reduce((t, x) => t + (along(x.u, c, x.side).some((q) => free(x.u, q)) ? x.w : 0), 0); rects.delete(z.id); return n; };
+        // a side is clear when no title of somewhere else lies along it: a lane may fill a building's notch (RM19 b), but
+        // not the side the counter's way names
+        const clear = (c: Rect, side: Side) => {
+          const [sx, sy] = SIDE_STEP[side];
+          // how far o's near side stands out from c's side `side` (0: on it)
+          const gap = (o: Rect) => (sx ? sx * (o.x - c.x) - (c.w + o.w) / 2 : sy * (o.y - c.y) - (c.d + o.d) / 2);
+          return !placed().some((o) => sameFloor(o, z) && !chain(o.placeId).has(z.placeId) && touches(c, R(o)) && Math.abs(gap(R(o))) < 1e-6);
+        };
+        const room = (c: Rect) => { rects.set(z.id, c); const n = wants.reduce((t, x) => t + (clear(c, x.side) && along(x.u, c, x.side).some((q) => free(x.u, q)) ? x.w : 0), 0); rects.delete(z.id); return n; };
         // a spot that touches more of the placed titles it joins wins first (a yard between the lane and the back yard
         // touches both, so neither way needs a long connector); then the room it leaves
         const mates = linked.filter((o) => sameFloor(o, z));
@@ -209,8 +216,8 @@ export function placeZones(state: GameState, todo: PlaceInput[], joins: PlaceJoi
 }
 
 /** MAP-10/11/12 on placed footprints: the places whose own rectangular titles are off the 1 m grid, partly over another
- *  title on their floor, or whose building (the box round its roofed titles) has a title of somewhere else running
- *  through it. Land roads (bands along their lines) take no part. */
+ *  title on their floor, or whose building (the checker's shape of its roofed titles, buildingCheck) has a title of
+ *  somewhere else running through it. Land roads (bands along their lines) take no part. */
 export function brokenLayouts(state: GameState, roofed: (z: Zone) => boolean): { placeId: string; why: string }[] {
   const all = state.places.flatMap((p) => p.zones).filter((z) => z.outline?.length && !z.road);
   const box = new Map(all.map((z) => [z.id, boxOf(z.outline)]));
@@ -229,11 +236,11 @@ export function brokenLayouts(state: GameState, roofed: (z: Zone) => boolean): {
     if (sameFloor(a, b) && overlaps(B(a), B(b))) flag(a.placeId, `MAP-11 ${a.id} and ${b.id} overlap`);
   }
   for (const pl of state.places) for (const z of all.filter((x) => roofed(x) && chain(x.placeId).has(pl.id))) {
-    const fp = boxAll(all.filter((o) => roofed(o) && sameFloor(o, z) && chain(o.placeId).has(pl.id)).map(B))!;
-    const inner: Rect = { ...fp, w: fp.w - 1, d: fp.d - 1 };
-    const through = all.find((o) => sameFloor(o, z) && !chain(o.placeId).has(pl.id) && !chain(pl.id).has(o.placeId) && overlaps(B(o), inner))
-      ?? all.find((o) => sameFloor(o, z) && !roofed(o) && chain(pl.id).has(o.placeId) && o.placeId !== pl.id && overlaps(B(o), inner));
-    if (through) { flag(pl.id, `MAP-12 ${through.id} runs through ${pl.id}`); break; }
+    const floor = all.filter((o) => sameFloor(o, z));
+    if (floor.some((o) => o !== z && roofed(o) && chain(o.placeId).has(pl.id) && all.indexOf(o) < all.indexOf(z))) continue; // this floor read already
+    const { through } = buildingCheck(floor.filter((o) => roofed(o) && chain(o.placeId).has(pl.id)).map((o) => pxBox(B(o))),
+      floor.filter((o) => !chain(o.placeId).has(pl.id)).map((o) => ({ id: o.id, b: pxBox(B(o)) })), chain(pl.id).size - 1);
+    if (through.size) { flag(pl.id, `MAP-12 ${[...through][0]} runs through ${pl.id}`); break; }
   }
   return [...out].map(([placeId, why]) => ({ placeId, why }));
 }

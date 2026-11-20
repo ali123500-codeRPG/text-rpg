@@ -9,9 +9,10 @@ import { type MapLink, type MapPerson, type MapThingMark, type MapWay, type MapZ
 import { seenIn, type SeenRun } from '../plan/fog';
 import { verticalOf } from '../scenario/heights';
 import { CONFIG } from '../config';
+import { PX_PER_M, buildingCheck, cellsOf, footprint, placePad, type Box, type Footprint } from '../plan/footprint';
 
-/** screen pixels per metre before zoom; the scale bar is drawn from it too (MAP-10) */
-export const PX_PER_M = 12;
+export { PX_PER_M, type Box };
+
 /** the gap between an exit arrow's tip and its note, in screen pixels */
 const NOTE_GAP = 9;
 /** the closest the map zooms (screen pixels per map pixel) */
@@ -23,7 +24,6 @@ export const PLACE_KS = [1, 1.6, MAX_K];
 export const NAME_PX = { max: 32, min: 4 };
 /** the dark edge drawn round a name's letters (its stroke width in .map-name), which adds to the room it needs */
 const NAME_EDGE = 3;
-export type Box = { x0: number; y0: number; x1: number; y1: number };
 /** the text styles the map measures: a zone's name, a place's title, an exit's note */
 export type TextKind = 'label' | 'title' | 'note';
 /** font size, box height and side padding of each text style, in screen pixels */
@@ -435,25 +435,6 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
   return { zones, places, labels, doors, exits, stairs, furniture, items, tokens, dropped, lost, used, bounds };
 }
 
-/** a place's padding round its own ground, in screen pixels: wider for an outer place, so an inner one sits inside it */
-const placePad = (depth: number) => 6 + 4 * Math.max(0, 3 - depth);
-/** MAP-13: a place's footprint, its own ground: each box of `own` padded by `pad`, joined, less any part over `others` (the
- *  zones of somewhere else), as the cells of the grid their sides make; on[j][i] is the cell in row j, column i */
-export type Footprint = { xs: number[]; ys: number[]; on: boolean[][] };
-export function footprint(own: Box[], others: Box[], pad: number): Footprint {
-  const grown = own.map((b) => ({ x0: b.x0 - pad, y0: b.y0 - pad, x1: b.x1 + pad, y1: b.y1 + pad }));
-  const near = others.filter((o) => grown.some((g) => hit(g, o)));
-  const lines = (a: 'x0' | 'y0', b: 'x1' | 'y1') => [...new Set([...grown, ...near].flatMap((q) => [q[a], q[b]]))].sort((u, v) => u - v);
-  const xs = lines('x0', 'x1'), ys = lines('y0', 'y1');
-  const pt = (x: number, y: number, q: Box) => x > q.x0 && x < q.x1 && y > q.y0 && y < q.y1;
-  const on = ys.slice(1).map((_, j) => xs.slice(1).map((__, i) => {
-    const x = (xs[i] + xs[i + 1]) / 2, y = (ys[j] + ys[j + 1]) / 2;
-    return grown.some((q) => pt(x, y, q)) && !near.some((q) => pt(x, y, q));
-  }));
-  return { xs, ys, on };
-}
-const cellBox = (f: Footprint, i: number, j: number): Box => ({ x0: f.xs[i], y0: f.ys[j], x1: f.xs[i + 1], y1: f.ys[j + 1] });
-const cellsOf = (f: Footprint): Box[] => f.on.flatMap((row, j) => row.flatMap((c, i) => (c ? [cellBox(f, i, j)] : [])));
 /** the footprint's top side: the left end of its topmost run is the outline's top-left corner, where its title sits */
 function topEdge(f: Footprint): { x0: number; x1: number; y: number } | undefined {
   const j = f.on.findIndex((row) => row.includes(true));
@@ -485,23 +466,6 @@ export function footprintPath(f: Footprint): string {
   }
   return d;
 }
-/** the footprint's cells numbered by the piece each belongs to (cells that touch along a side are one piece; -1: off) */
-function piecesOf(f: Footprint): { n: number; of: number[][] } {
-  const of = f.on.map((row) => row.map(() => -1));
-  let n = 0;
-  f.on.forEach((row, j) => row.forEach((c, i) => {
-    if (!c || of[j][i] >= 0) return;
-    const todo = [[i, j]];
-    of[j][i] = n;
-    while (todo.length) {
-      const [a, b] = todo.pop()!;
-      for (const [x, y] of [[a + 1, b], [a - 1, b], [a, b + 1], [a, b - 1]]) if (f.on[y]?.[x] && of[y][x] < 0) { of[y][x] = n; todo.push([x, y]); }
-    }
-    n++;
-  }));
-  return { n, of };
-}
-
 /** checks the drawn checker can't make from boxes alone, run beside it in dev views: MAP-10 every zone on the 1 m grid, and
  *  MAP-12 a building in one piece: no zone of somewhere else over its rooms, and its footprint (MAP-13, of its indoor zones'
  *  whole ground, as drawn at zoom 1) never cut in two by one */
@@ -515,17 +479,9 @@ export function checkStage(zones: MapZone[], places: PlanPlace[]): string[] {
   for (const p of places) {
     const inner = p.zones.filter((z) => !z.outdoor && z.rect).map((z) => zoneBox(z, 1));
     if (!inner.length) continue;
-    const others = zones.filter((z) => z.rect && !p.zones.includes(z)), fp = footprint(inner, others.map((z) => zoneBox(z, 1)), placePad(p.depth)), parts = piecesOf(fp);
-    const through = new Set<string>();
-    for (const z of others) {
-      const b = zoneBox(z, 1);
-      if (inner.some((q) => hit(b, { x0: q.x0 + 0.5, y0: q.y0 + 0.5, x1: q.x1 - 0.5, y1: q.y1 - 0.5 }))) through.add(z.id);
-      // a zone that touches two pieces of the footprint cuts the building in two
-      const touched = new Set(fp.on.flatMap((row, j) => row.flatMap((c, i) => (c && hit(b, cellBox(fp, i, j), 1) ? [parts.of[j][i]] : []))));
-      if (touched.size > 1) through.add(z.id);
-    }
+    const { through, pieces } = buildingCheck(inner, zones.filter((z) => z.rect && !p.zones.includes(z)).map((z) => ({ id: z.id, b: zoneBox(z, 1) })), p.depth);
     for (const id of through) out.push(`MAP-12 zone ${id} runs through the building ${p.id}`);
-    if (!through.size && parts.n > 1) out.push(`MAP-12 the building ${p.id} is in ${parts.n} pieces`);
+    if (!through.size && pieces > 1) out.push(`MAP-12 the building ${p.id} is in ${pieces} pieces`);
   }
   return out;
 }
