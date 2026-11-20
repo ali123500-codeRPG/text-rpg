@@ -18,7 +18,10 @@ Links to `claude.ai/artifact/...` open only for the owner and for Claude session
 - Out-of-scope work gets its own thread, asked for through the coordinator.
 - Browsing the web, or looking at a page together with the owner, uses the Chrome extension by default. Local
   renders, screenshots and test runs use the pre-installed Playwright.
+- The desk label (`docs/instructions.md` section 4, "Claim the work first") is `desk:main` for threads of this
+  project. A Claude project on another account takes its own name and records it here in its first PR.
 - **Other agents:** none of this applies. Work from a branch and a PR, as `docs/instructions.md` section 8 says.
+  Your desk label is `desk:<your provider>`, for example `desk:codex`.
 
 ## Questions: decision cards and the Questions hub
 
@@ -90,9 +93,7 @@ its database, and cannot publish the game page or the library viewer. That is ex
 - **Its own Questions hub:** https://claude.ai/artifact/Ldhfi7SenB4mkRHXyiwCYu, published 19/11/2026 as
   `tools/questions-hub/README.md` "Publishing a new hub" says. On that account it takes the place of the hub link in
   "Questions" above; everything else there applies. Never pass the other account's hub link to a publish.
-- The publish refuses a page that does not begin with `<!DOCTYPE html>`, and `hub.html` does not. This hub was
-  published with that one line added in front. It puts the page in standards mode: about 5 px more space around
-  each question's kind pill, nothing else.
+- **Desk label:** `desk:rpg-game` (`docs/instructions.md` section 4, "Claim the work first").
 - **Merges from that account:** say in the PR and the report which pages need a republish; the owner presses the
   game's Republish button.
 

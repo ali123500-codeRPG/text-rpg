@@ -76,7 +76,7 @@ numbers are never here: a file names the setting and where it lives.
   which model each agent uses, the rule reviews, open parked items.
 - [working-notes-code.md](working-notes-code.md): working note. Traps in the code that tests do not catch.
 - [working-notes-git.md](working-notes-git.md): working note. Branching, merges and pushes in this repo.
-- [working-notes-testing.md](working-notes-testing.md): working note. Checking behaviour, motion and playtests.
+- [working-notes-testing.md](working-notes-testing.md): working note. How `npm test` runs; checking behaviour, motion and playtests.
 
 The `history-` files are topic histories: which questions each design topic answered, what replaced what, and
 which PR built it. They moved here from the Claude project's in-app memory in twelve slices. What stays in

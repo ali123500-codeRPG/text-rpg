@@ -78,6 +78,17 @@ The source of truth for every design decision.
 
 ## 4. Every task
 
+- **Claim the work first.** Every piece of work has one GitHub issue in this repo, and the open issues are the board
+  of who is working on what. Before you start:
+  - List the open issues. If one covers your task and carries another desk's label, stop and tell the owner. Do not
+    start a second copy of the work.
+  - If one covers it and has no desk label, add yours. If none does, open one: a title that names the goal in the
+    owner's words, and two or three lines on what will change.
+  - A desk is one place agents work from: one Claude project, or one provider's agent. Its label is `desk:<name>`,
+    and the name is in that desk's provider file. Use only your own.
+  - The PR says `Closes #<issue>`, so the issue closes with the merge. If you stop without finishing, remove your
+    label and say in the issue where the work stands.
+  - A question, a review or a one-line docs fix that leads to no PR needs no issue.
 - **Smallest complete change.** Use the `ponytail` skill (`docs/skills.md`): the least new code that solves the whole
   task, no extras, and every part the change touches is finished (callers, tests, fixtures). Where it says "no
   config", the balancing rule below wins.
