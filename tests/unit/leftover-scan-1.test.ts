@@ -47,7 +47,7 @@ import { readSpec } from '../harness/specDocs';
 
 // files the leftover scan has covered (add each round's files)
 const ROUND_1 = ['src/ui/play.ts', 'src/ruleset/index.ts', 'src/scenario/apply.ts', 'src/minds/state.ts', 'src/engine/heal.ts'];
-const ROUND_2 = ['src/engine/resolve.ts', 'src/agents/prompts.ts', 'src/engine/merge.ts', 'src/ui/perks.ts'];
+const ROUND_2 = ['src/engine/resolve.ts', 'src/engine/pacing.ts', 'src/engine/worldClock.ts', 'src/agents/prompts.ts', 'src/engine/merge.ts', 'src/ui/perks.ts'];
 const ROUND_3 = ['src/views/index.ts', 'src/agents/game.ts', 'src/engine/effects.ts'];
 const ROUND_4 = ['src/config.ts', 'src/config/actors.ts', 'src/config/body.ts', 'src/config/clock.ts', 'src/config/engine.ts', 'src/config/fatigue.ts', 'src/config/gear.ts', 'src/config/land.ts', 'src/config/morale.ts', 'src/config/past100.ts', 'src/config/perception.ts', 'src/config/progression.ts', 'src/config/rules.ts', 'src/config/world.ts', 'src/types/views.ts', 'src/types/actor.ts', 'src/ui/fakeGame.ts', 'src/types/agents.ts', 'src/agents/schema.ts',
   'src/agents/legality.ts', 'src/engine/engagement.ts'];
@@ -95,7 +95,7 @@ const SCANNED = [...ROUND_1, ...ROUND_2, ...ROUND_3, ...ROUND_4, ...ROUND_5, ...
 // config levers nothing reads yet, each waiting on a question (none now: CS8 put SHARED_ROLE_OFF_PCT to work)
 const UNREAD_LEVERS: string[] = [];
 // files whose GAP notes are settled into the spec (round 1: CS2; rounds 2 to 4: CS5, CS7, CS9)
-const GAPS_SETTLED = [...ROUND_1, 'src/engine/resolve.ts', 'src/agents/prompts.ts', 'src/views/index.ts', 'src/agents/schema.ts', 'src/scenario/validate.ts', 'src/agents/wrappers.ts', 'src/engine/speech.ts', 'src/perception/index.ts', 'src/save/index.ts', 'src/scenario/director.ts', 'src/ruleset/body.ts',
+const GAPS_SETTLED = [...ROUND_1, 'src/engine/resolve.ts', 'src/engine/pacing.ts', 'src/engine/worldClock.ts', 'src/agents/prompts.ts', 'src/views/index.ts', 'src/agents/schema.ts', 'src/scenario/validate.ts', 'src/agents/wrappers.ts', 'src/engine/speech.ts', 'src/perception/index.ts', 'src/save/index.ts', 'src/scenario/director.ts', 'src/ruleset/body.ts',
   'src/agents/client.ts', 'src/engine/secrets.ts', 'src/save/replay.ts', 'src/engine/triggers.ts'];
 // names the spec mentions only to say they are gone
 const GONE_ON_PURPOSE = ['LINK_PACES'];
@@ -141,7 +141,7 @@ describe('leftover scan round 1', () => {
 
   it('round 2: walk distances use the one metres tolerance (M_EPS), not a 0.01 of their own', () => {
     expect(M_EPS).toBe(0.01);
-    expect(['src/engine/resolve.ts', 'src/engine/merge.ts'].filter((f) => /\b0\.01\b/.test(readFileSync(f, 'utf8') as string))).toEqual([]);
+    expect(['src/engine/resolve.ts', 'src/engine/pacing.ts', 'src/engine/worldClock.ts', 'src/engine/merge.ts'].filter((f) => /\b0\.01\b/.test(readFileSync(f, 'utf8') as string))).toEqual([]);
   });
 
   it('round 2: the perk series key lists its milestones from MILESTONES', () => {

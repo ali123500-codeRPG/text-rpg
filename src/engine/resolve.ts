@@ -35,7 +35,6 @@ import {
   RL,
 } from '../library/tableIds';
 import {
-  passiveFatigue,
   payMove,
   payRow,
   payStrain,
@@ -138,7 +137,6 @@ import {
 import {
   companions,
   travel,
-  travelSpeed,
   tripGoal,
   type TripWorld,
 } from './travel';
@@ -154,7 +152,6 @@ import {
   placeAll,
   reachesM,
   roomAround,
-  seeingM,
   sightDistM,
   spotOnTheWay,
   spotPoint,
@@ -167,7 +164,6 @@ import {
   applyHealing,
   calm,
   healFromPerk,
-  passiveHealing,
   wouldHeal,
 } from './heal';
 import {
@@ -274,7 +270,6 @@ import {
   searchItems,
   searchPerson,
   searchSecrets,
-  staying,
   stealthDetect,
   updateAlarms,
 } from '../minds';
@@ -520,9 +515,6 @@ import {
   timeOfDay,
 } from '../time';
 import {
-  advanceAging,
-} from '../ruleset/age';
-import {
   NOISE,
   type NoiseKey,
   TIME_OF_DAY,
@@ -591,6 +583,14 @@ import {
   cutHole,
   holeSpot,
 } from '../plan/holes';
+import {
+  catchUp,
+  passTime,
+} from './worldClock';
+import {
+  learned,
+  updatePacing,
+} from './pacing';
 
 /** CS5: how loud and how visible each engine-made event is (the spec's event noise and sight table); a kind not listed is quiet
  * and normal. Placeholders to tune. */
@@ -1821,13 +1821,6 @@ function noteUnreachable(state: GameState, orders: Map<string, Order>): void {
   }
 }
 
-/** the clock moves on; natural recovery runs for that time (H12–H15) */
-function passTime(state: GameState, minutes: number): void {
-  advanceAging(state, minutes, (c, d) => logCode(state, c, d)); // AG16
-  passiveHealing(state, minutes);
-  passiveFatigue(state, minutes); // FT4/FT7/FT28
-}
-
 /** NW12/NW15/NW18: the player's night runs on. The clock steps SLEEP_STEP_MIN at a time (to the next change of watch
  * at most): everyone moves on toward their routines (catchUp), sleeps or keeps watch by the plan, and NPCs sleep by
  * their routines. It stops when someone hostile to the player comes near (CS20: their steps reach the player): the clock
@@ -3046,53 +3039,8 @@ function noteWalked(state: GameState, a: Actor, m: number): void {
   w[a.id] = (w[a.id] ?? 0) + m;
 }
 
-/** BG-316 (BF102 a): the player sees what happens at a way: a clear line to its point, within the glimpse range of someone
- * walking (SIGHT_M normal) */
-function doorSeen(state: GameState, o: Opening, zone: string): boolean {
-  const d = seeingM(state, state.player, { zone, pos: { x: o.at.x, y: o.at.y } });
-  return d !== null && withinM(d, CONFIG.SIGHT_M.normal![1]);
-}
-
-/** NW11: the time a turn took moves everyone on. Each NPC not in a fight goes toward where its routine puts it at the new
- * time, as far as it could walk in that time at the travel pace (travelSpeed), less what its own move already walked:
- * one jump, no Claude calls. It stops at a shut way or an unbuilt frontier, and a road is walked by its length. Healing
- * already counts minutes. CS11: a way it can open (its key, the bolt's side) it opens and walks through when it is
- * out of the player's sight (BG-316), and leaves it as it was where it can: the key locks it again from either side; a bar slid back from
- * its own side can't be drawn again from the far side, so it stays open. */
-export function catchUp(state: GameState, minutes: number, deductWalked = true, onLeg?: (a: Actor, from: Located, metres: number, toward: string) => void): void {
-  if (minutes <= 0) return;
-  const walked = (deductWalked ? state.scratch?.walked ?? {} : {}) as Record<string, number>;
-  const agentRun = new Set((state.scratch?.agentRun as string[] | undefined) ?? []);
-  for (const a of [...state.actors].sort((x, y) => x.id.localeCompare(y.id))) {
-    const m = a.mind;
-    // an NPC whose agent chose its move this turn keeps it: the catch-up is for routine time
-    if (!m?.routine || agentRun.has(a.id) || !isActive(a) || isAsleep(a) || isEngaged(state, a) || a.heldBy || m.moraleState || staying(state, a)) continue;
-    const d = desiredState(buildActorView(state, a.id));
-    if (!d || d.zone === a.zone) continue;
-    let left = travelSpeed(state, a) * minutes * 60 - (walked[a.id] ?? 0);
-    const start = a.zone;
-    for (let i = 0; i < 100 && left > M_EPS && a.zone !== d.zone; i++) {
-      const gate = gateAhead(state, a, d.zone);
-      const unseen = !!gate && !doorSeen(state, gate.opening, a.zone); // BG-316 (BF102 a): by the player's line of sight, not titles
-      if (gate && (gate.pass !== 'opens' || !unseen)) break; // a way that is not simply open, or opened in view
-      const was = gate && { locked: !!gate.b.lock?.locked, drawn: !!gate.b.bar?.drawn };
-      if (gate) openWay(gate.b, a, a.zone);
-      const from = a.zone, at: Located = { zone: a.zone, ...(a.pos ? { pos: { ...a.pos } } : {}) };
-      const r = walkLeg(state, a, { zone: d.zone }, left, 0, a);
-      const crossed = r !== null && (r > 0 || a.zone !== from); // BG-151: a doorway underfoot is crossed in 0 m
-      if (crossed && onLeg) onLeg(a, at, r, d.zone); // BF2: a leg anyone could see or hear is a walk like any other
-      if (gate && was) {
-        const through = a.zone === gate.to;
-        if (gate.b.lock && was.locked) gate.b.lock.locked = true; // the key turns again on either side
-        if (gate.b.bar && was.drawn && !through) gate.b.bar.drawn = true; // still on the bolt's side: slid back again
-        if (through) logCode(state, 'catch_up_way', { actorId: a.id, barrier: gate.b.id, from, to: gate.to, ...(was.drawn ? { leftUnbarred: true } : {}) });
-      }
-      if (!crossed) break;
-      left -= r;
-    }
-    if (a.zone !== start) logCode(state, 'caught_up', { actorId: a.id, from: start, to: a.zone }); // a silent jump (BF2)
-  }
-}
+/** NW11 (the catch-up lives in worldClock.ts) */
+export { catchUp };
 
 /** NW3/NW8: an NPC that walked into a frontier this turn and waits at its edge (scratch.frontierWaits, reset each turn) */
 export type FrontierWait = { actorId: string; frontier: string };
@@ -3383,33 +3331,3 @@ function wakeUp(state: GameState, code?: string): void {
   state.player.core.condition.hpLostPct = levelMaxPct('critical');
   state.stage.breakCause = 'knocked_out';
 }
-
-// ---------- pacing (P7) ----------
-
-/** how much the player knows: secrets, witnessed facts, names */
-function learned(state: GameState): number {
-  const j = state.player.journal;
-  return j ? j.secretsKnown.length + j.factsWitnessed.length + j.namesKnown.length : 0;
-}
-
-/**
- * A quiet turn: no attack, nothing new learned, no beat fired (the beat's own reset), never one in a fight (AT76). A stall (STALL_TURNS quiet turns
- * with no beat left) marks the scenario to end as worn out, and free roam starts (SD2 a). Rest, sleep and time skips
- * never end a scenario (SC4, SC9).
- */
-function updatePacing(state: GameState, events: GameEvent[], learnedBefore: number): void {
-  const quiet = !events.some((e) => e.kind === 'attack') && learned(state) === learnedBefore;
-  // AT76: a quiet turn in a fight (a standoff) is not the story stalling: it neither counts nor resets
-  state.stage.quiet = !quiet ? 0 : (state.stage.quiet ?? 0) + (state.mode === 'tactical' ? 0 : 1);
-  if (state.stage.breakCause || state.stage.roam || state.stage.between) return; // SD2 a: no stall in free roam, since no scenario runs; SW10 a: nor between Situations, where windows serve
-  if (state.stage.quiet >= CONFIG.STALL_TURNS && !beatsLeft(state)) {
-    state.stage.breakCause = 'story_beat';
-    logCode(state, 'scenario_stalled', { number: state.stage.scenarioNumber, quiet: state.stage.quiet }); // SC12: code ended it, not the Weaver: a bug
-  }
-}
-
-function beatsLeft(state: GameState): boolean {
-  // a beat whose owner is down never fires, so it doesn't count
-  return Object.entries(state.hidden.plans).some(([id, p]) => p.triggers.some((t) => t.when.type === 'quiet_turns' && isActive(actorById(state, t.ownerId ?? id)!)));
-}
-
