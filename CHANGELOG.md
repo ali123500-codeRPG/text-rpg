@@ -3,6 +3,9 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bug-fix-log.md`.
 
+- 20/11/2026: task tests are temporary (the owner: "I approve your addition to the rules"). `docs/instructions.md`
+  section 8: a test written to check one task is deleted with its fixtures before merge; a new permanent test needs the
+  owner's OK. Section 4: read by ID, not by file; never a file over 50 KB whole. The PR template's Tests line follows.
 - 20/11/2026: tests by risk (the owner, testing review: "I am fine with both recommendations"; "go ahead with the
   rest"). `docs/instructions.md` section 8: look for a covering test first, add one only for a silent break nothing
   covers, in its cheapest form (a whole turn only when the turn is the risk), none for docs, rules, config, tooling

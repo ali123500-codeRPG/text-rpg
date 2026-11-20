@@ -8,8 +8,7 @@ import { makeVillage, place, beside, westEdge } from '../harness';
 import { intent, play, act, plannerOut } from './w4-kit';
 import { ruleset } from '../../src/ruleset';
 import { spawnNpc } from '../../src/library/spawn';
-import { installRoutines, searchAreaM2, searchReach } from '../../src/minds';
-import { createRng } from '../harness';
+import { searchAreaM2, searchReach } from '../../src/minds';
 import { getLibrary } from '../../src/library';
 import { CONFIG, resetConfig } from '../../src/config';
 import { SK } from '../../src/library/skillIds';
@@ -167,26 +166,6 @@ describe('221 search', () => {
     play(s, { agentOutputs: [plannerOut('guard_x', act('search'))] });
     expect(searches(s)).toContainEqual({ actorId: 'guard_x', hiderId: 'player', gap: 1, sense: FN.sight });
     expect(g.mind!.knowledge.player?.status).toBe('aware');
-  });
-
-  it('SE16: a calm careful patrol searches its stop and finds the player lying in wait; a plain patrol only walks', () => {
-    const run = (setId: string) => {
-      const s = makeVillage({ playerZone: 'street_square' });
-      const g = spawnNpc(null, TP.guard, { id: 'guard_x', zone: 'street_square', placeId: 'street', bandId: 'village_watch', name: 'Bors', storyId: 'test' });
-      s.actors.push(g);
-      installRoutines(g, setId, { route: ['street_square', 'gate_inner'] }, 'route', s.turn, createRng(1));
-      beside(s, 'guard_x', 'player', 2);
-      s.player.posture = 'stealthy';
-      rig(1);
-      play(s);
-      vi.restoreAllMocks();
-      return { s, g };
-    };
-    const careful = run('careful_patrol_guard');
-    expect(searches(careful.s)).toContainEqual({ actorId: 'guard_x', hiderId: 'player', gap: 1, sense: FN.sight });
-    expect(careful.g.mind!.knowledge.player?.status).toBe('aware');
-    const plain = run('patrol_guard');
-    expect(searches(plain.s).filter((d) => d.actorId === 'guard_x')).toEqual([]);
   });
 
   /** LX5 b: the village with every search radius at the 2 m floor, so ring one reaches SEARCH_RING1_RADII × 2 m and ring
