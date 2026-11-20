@@ -35,11 +35,12 @@ describe('player creation', () => {
   it('builds the sheet: StartingTotal, tags, starting gear, coin', () => {
     const p = createPlayer(recommendedBuild(), 's1');
     expect(p.progression!.startingTotal).toBeCloseTo(100 - 40 - 25 - 15 - 10 * CONFIG.TAG_BURDEN_GROUP_PCT / 100); // D-374: dodge shares Defense with tagged parry
-    expect(p.core.skills[SK.parry]).toEqual({ raw: 25, state: 'tagged' });
+    expect(p.core.skills[SK.parry]).toEqual({ raw: 25 + CONFIG.CREATION_TAG_BONUS, state: 'tagged' }); // YB1: a tag starts 10 above its points
     expect(p.core.inventory.map((i) => [i.itemId, i.equippedIn?.[0], i.qty])).toEqual([
-      // the starter kit: per gear class the highest 'starter' item met (Medium Weapons 40: the Common hand axe; no Light Armor: the
-      // crude clothes; the recommended build parries, so with Block 0 it gets no shield)
-      [IT.crude_clothes, 'armor', undefined], [IT.hand_axe, 'grip:right_arm', undefined], [IT.pack, 'pack', undefined], // CT7: a worn pack
+      // the starter kit: per gear class the highest 'starter' item met (Medium Weapons 40 points, tagged: 50 (YB1), the Fine arming
+      // sword held, its stand-ins the dagger and woodsman's axe; no Light Armor: the crude clothes; with Block 0 no shield)
+      [IT.dagger, undefined, undefined], [IT.arming_sword, 'grip:right_arm', undefined], [IT.crude_clothes, 'armor', undefined],
+      [IT.woodsman_axe, undefined, undefined], [IT.pack, 'pack', undefined], // CT7: a worn pack
       [IT.coin, undefined, CONFIG.STARTING_COIN], [IT.bandage, undefined, CONFIG.STARTING_BANDAGES],
     ]);
     expect(p.core.classes).toEqual([{ classId: CL.late_bloomer, state: 'current', level: 1 }, { classId: CL.commoner, state: 'unlocked', level: 0 }]); // the first Start; Commoner open from the start

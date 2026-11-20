@@ -105,7 +105,8 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
 - **SHEET-72** At creation an untagged skill is at most 30 (CREATION\_MAX\_UNTAGGED) and a tagged one at most 40
   (CREATION\_MAX\_TAGGED); untagging a skill above 30 lowers it to 30 (creationCap). A tagged skill starts
   CREATION\_TAG\_BONUS (10) above the points spent on it, so one bought to 40 starts at 50; the cap, the points spent
-  and the class floors count points (startRaw; YB1 a, Ali 20/11/2026).
+  and the class floors count points; everything else, the starter kit included, reads the starting skill like any point
+  added, and the creation row shows it (startRaw; YB1 a, Ali 20/11/2026).
 - **SHEET-73** The class floors are minimums.
 - **SHEET-74** The build has exactly 3 Tagged skills and exactly 3 Flawed skills: one flaw per tag (CREATION\_FLAWS; FC1
   on the Questions hub page "Flaws at character creation", Ali 18/11/2026).

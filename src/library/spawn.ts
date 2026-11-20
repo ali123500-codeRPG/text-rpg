@@ -478,10 +478,10 @@ export const creationPoints = (startId = PLAYER_START) => startDef(startId)?.poi
 export const creationCap = (tagged: boolean, flawed = false): number =>
   (tagged ? CONFIG.CREATION_MAX_TAGGED : flawed ? CONFIG.CREATION_MAX_FLAWED : CONFIG.CREATION_MAX_UNTAGGED);
 
-/** a build's state for one skill: tagged, flawed or normal */
 /** YB1: a skill's starting raw: the points spent on it, plus CREATION_TAG_BONUS when tagged */
 export const startRaw = (b: Pick<CreationBuild, 'skills' | 'tagged'>, k: string): number =>
   (b.skills[k] ?? 0) + (b.tagged.includes(k) ? CONFIG.CREATION_TAG_BONUS : 0);
+/** a build's state for one skill: tagged, flawed or normal */
 export const buildState = (b: Pick<CreationBuild, 'tagged' | 'flawed'>, k: string): SkillState =>
   b.tagged.includes(k) ? 'tagged' : b.flawed.includes(k) ? 'flawed' : 'normal';
 /** AG15: the age picker: from the race's youngest age (no children) to its Venerable start; the start's default, else CREATION_AGE_DEFAULT */

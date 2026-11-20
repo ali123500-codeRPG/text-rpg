@@ -129,7 +129,7 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
       } }, tg('tag'), tg('flaw'));
       const nm = h('div', { class: 'nm' }, h('span', { class: 'nm-l' }, h('b', SKILL_SUB[k] ? { title: SKILL_SUB[k][0].toUpperCase() + SKILL_SUB[k].slice(1) } : {}, skillName(k)), marks),
         floors[k] ? h('small', {}, `class floor ${floors[k]}`) : null);
-      const range = h('input', { type: 'range', min: '0', max: '100', 'aria-label': skillName(k), oninput: (e: Event) => setVal(k, +(e.target as HTMLInputElement).value) });
+      const range = h('input', { type: 'range', min: '0', max: '100', 'aria-label': skillName(k), oninput: (e: Event) => setVal(k, +(e.target as HTMLInputElement).value - (st.tags.has(k) ? CONFIG.CREATION_TAG_BONUS : 0)) });
       const row = h('div', { class: 'row', 'data-k': k }, nm,
         h('div', { class: 'bar' }, h('div', { class: 'tr' }, h('i', { class: 's' }), h('i', { class: 'f' })),
           h('span', { class: 'tk', style: 'left:50%' }), h('span', { class: 'tk cap', style: `left:${cap(k)}%` }), range),
@@ -180,14 +180,15 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
       h('button', { class: 'hs-btn-text swings', type: 'button', onclick: editSwings }, 'Change the estimate'));
     for (const k of open) {
       const row = rows.get(k)!, v = st.v[k], f = floors[k] ?? 0, on = st.tags.has(k), bad = st.flaws.has(k);
-      const sv = row.querySelector<HTMLElement>('.val')!; // YB1: a tagged skill shows where it starts, its points in the tip
-      sv.textContent = String(on ? v + CONFIG.CREATION_TAG_BONUS : v); sv.title = on ? `${v} points + ${CONFIG.CREATION_TAG_BONUS} for the tag` : '';
-      (row.querySelector('input') as HTMLInputElement).value = String(v);
-      (row.querySelector('.s') as HTMLElement).style.width = v + '%';
-      (row.querySelector('.f') as HTMLElement).style.width = f + '%';
+      const add = on ? CONFIG.CREATION_TAG_BONUS : 0; // YB1: a tag's +10 shows like any point added; its points are in the tip
+      const sv = row.querySelector<HTMLElement>('.val')!;
+      sv.textContent = String(v + add); sv.title = add ? `${v} points + ${add} for the tag` : '';
+      (row.querySelector('input') as HTMLInputElement).value = String(v + add);
+      (row.querySelector('.s') as HTMLElement).style.width = v + add + '%';
+      (row.querySelector('.f') as HTMLElement).style.width = f + add + '%';
       (row.querySelector('.mi') as HTMLButtonElement).disabled = v <= f;
       (row.querySelector('.pl') as HTMLButtonElement).disabled = v >= cap(k) || L <= 0;
-      (row.querySelector('.tk.cap') as HTMLElement).style.left = cap(k) + '%'; // a tagged skill's cap is higher, a flawed one's lower
+      (row.querySelector('.tk.cap') as HTMLElement).style.left = cap(k) + add + '%'; // a tagged skill's cap is higher, a flawed one's lower
       row.classList.toggle('flawed', bad);
       const noTag = bad ? 'A flawed skill can’t be tagged' : st.tags.size >= maxTags() ? `${maxTags()} skills are tagged already` : '';
       const noFlaw = on ? 'A tagged skill can’t be flawed' : st.flaws.size >= maxFlaws() ? `${maxFlaws()} skills are flawed already` : f > CONFIG.CREATION_MAX_FLAWED ? `Its class floor is above ${CONFIG.CREATION_MAX_FLAWED}` : '';
