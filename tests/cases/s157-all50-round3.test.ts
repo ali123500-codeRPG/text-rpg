@@ -138,11 +138,13 @@ describe('157 All-50 round 3', () => {
       play(s, { intent: intent({ action: { type: 'attack', target: 'patron_1', item: 'bow' } }) }, seed * 31);
       expect(s.player.posture).toBe('stealthy');
       for (const id of ['patron_1', 'guard_1']) {
-        const rolls = s.log.filter((l) => l.code === 'stealth_contest' && (l.detail as { observerId: string }).observerId === id).map((l) => l.detail as { kind: string; skill: string; gap: number });
+        const rolls = s.log.filter((l) => l.code === 'stealth_contest' && (l.detail as { observerId: string }).observerId === id).map((l) => l.detail as { kind: string; skill: string; sense: string; gap: number });
+        const shot = rolls.filter((r) => r.kind === 'attack'), fade = rolls.filter((r) => r.kind !== 'attack');
         expect(rolls[0].kind).toBe('attack');
-        // a second roll only for a watcher the shot spotted (and that perceives the fade, like any stealth roll)
-        expect(rolls.length).toBeLessThanOrEqual(perk && rolls[0].gap > 0 ? 2 : 1);
-        if (rolls.length === 2) { expect(rolls[1]).toMatchObject({ kind: 'vanish', skill: SK.vanishing }); faded++; }
+        expect(new Set(shot.map((r) => r.sense)).size).toBe(shot.length); // D-40: one shot contest per sense
+        // a second round only for a watcher the shot spotted (and that perceives the fade, like any stealth roll)
+        if (!perk || !shot.some((r) => r.gap > 0)) expect(fade).toEqual([]);
+        if (fade.length) { expect(fade.every((r) => r.kind === 'vanish' && r.skill === SK.vanishing)).toBe(true); faded++; }
       }
       expect(npc(s, 'patron_1').mind!.knowledge.player?.status).not.toBe('unaware'); // the target at least suspects the shooter's zone
     }
