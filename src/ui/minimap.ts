@@ -8,20 +8,16 @@
 import { areaOf, inOutline } from '../plan/geom';
 import { seenIn } from '../plan/fog';
 import type { GameApi, GameState } from '../types';
-import { boxOf, h, tipOff, tipOn } from './kit';
 import { CONFIG } from '../config';
 import { knownMap, rootPlace, type KnownMap, type MapZone } from './mapData';
-import { NAME_PX, PX_PER_M, TEXT, checkReach, planScene, wrap, type Box, type Measure } from './mapPlan';
-import { checkMap } from './mapCheck';
-import { fogClip, floorMarks, doorGlyph, floorName, footprintMark, pin, wayGlyph, wayWords, whoInitial } from './map';
-import { furnIcon } from './furnitureIcons';
+import { wayWords } from './map';
+import { planView } from './planView';
 import { carriedS, moveSpeed, slotMetres, turnMetres } from '../engine/speed';
 import { M_EPS, spotPoint, walkRoute, type Pos } from '../engine/position';
 import { shortestPath } from '../engine/relations';
 import { distText } from '../views';
-import { cap, r1, theName } from '../words';
+import { r1, theName } from '../words';
 
-let fogIds = 0;
 export type MinimapPoint = { zone: string; x: number; y: number; metres: number; seconds: number; turns: number; label: string };
 /** a point's plan: the walk there (its points, in metres) and how it reads on the path; or why there is no way there */
 export type MinimapPlan = (MinimapPoint & { pts: Pos[]; words: string; where: string }) | { why: string };
@@ -82,301 +78,37 @@ export function zoneAt(zones: MapZone[], q: Pos): MapZone | undefined {
   return hits.sort((a, b) => size(a) - size(b))[0];
 }
 
-const SVGNS = 'http://www.w3.org/2000/svg';
-const s = (tag: string, attrs: Record<string, string | number> = {}, ...kids: (Node | string)[]) => {
-  const e = document.createElementNS(SVGNS, tag);
-  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, String(v));
-  e.append(...kids);
-  return e;
-};
-/** a zone name's largest letters on the minimap (MAP-20 lets them grow to NAME_PX.max; the mock-up keeps them small) */
-const NAME_MAX = 15;
-/** room a name keeps from its zone's walls (MAP-20: 6 px, plus the hair the floor sits inside), and its letters' dark edge */
-const PAD = 7, NAME_EDGE = 3;
-/** CSS class of each edge kind's line, as the full Map draws it */
-const HINT = 'Point anywhere you know to see the way and how long it takes. Click to plan a move; double-click to walk there now.';
-const clip = (a: Box, b: Box): Box | null => {
-  const c = { x0: Math.max(a.x0, b.x0), y0: Math.max(a.y0, b.y0), x1: Math.min(a.x1, b.x1), y1: Math.min(a.y1, b.y1) };
-  return c.x1 - c.x0 > 1 && c.y1 - c.y0 > 1 ? c : null;
-};
-const within = (a: Box, b: Box) => a.x0 >= b.x0 && a.y0 >= b.y0 && a.x1 <= b.x1 && a.y1 <= b.y1;
-
+/** the minimap (AD8–AD16): the shared map view (planView, MAP-84) at its small size, centred on you, on the floor you
+ *  stand on. A right-click or long press on a zone, an exit or a way to another map opens the full Map there (MQ3). */
 export function minimapPanel(api: GameApi, opts: {
   onPlan(p: MinimapPoint | null): void;
   onWalk(p: MinimapPoint): void;
   onPerson(actorId: string, anchor: DOMRect): void;
-  onOpenMap(): void;
+  onOpenMap(at?: MapPick): void;
 }): { el: HTMLElement; update(): void; clear(): void; planned(): MinimapPoint | null } {
-  const steps = CONFIG.MINIMAP_ZOOM_M, widest = steps[steps.length - 1];
-  let viewM = CONFIG.MINIMAP_VIEW_M, pan = { x: 0, y: 0 }; // pan: svg pixels the view is dragged off you
-  // M-06: what the minimap shows is taken at update() and kept while a turn runs; the live state is read only between turns
-  type Snap = { km: KnownMap; floor: MapZone[]; every: MapZone[]; height: number; you: Pos; facing?: [number, number]; ring: number | null; dash: number | null; carried: number };
-  let snap: Snap | null = null, lastAt = '', lastRing: number | null = null, face = '';
-  let hover: MinimapPlan | null = null, plan: Extract<MinimapPlan, { pts: Pos[] }> | null = null;
-
-  // SD4: how to use it is the map's tip and name, not a line under it
-  const svg = s('svg', { class: 'mm-svg', tabindex: 0, role: 'group', 'aria-label': `Minimap. ${HINT}` }) as SVGSVGElement;
-  const fogId = `mm-fog-${++fogIds}`, gFog = s('defs');
-  const world = s('g'), gZones = s('g', { 'clip-path': `url(#${fogId})` }), gNames = s('g', { 'aria-hidden': 'true' }), gRing = s('g'), gMarks = s('g'), gPath = s('g'), gTokens = s('g');
-  world.append(gFog, gZones, gNames, gRing, gMarks, gPath, gTokens);
-  svg.append(s('title', {}, HINT), world);
-  const floorEl = h('span', { class: 'mm-floor' });
-  const tool = (label: string, title: string, on: () => void, open?: string) => h('button', { type: 'button', 'data-tip': title, 'aria-label': title, 'data-open': open, onclick: on }, label);
-  const say = h('span', { class: 'mm-say' }), carried = h('span', { class: 'mm-carry' });
-  const go = h('button', { type: 'button', class: 'mm-go', hidden: true, onclick: () => plan && !api.busy() && opts.onWalk(point(plan)) }, 'Just go');
-  const el = h('section', { class: 'mm', 'aria-label': 'Minimap' },
-    h('div', { class: 'mm-head' }, floorEl,
-      h('span', { class: 'mm-tools' }, tool('+', 'Zoom in', () => zoom(-1)), tool('−', 'Zoom out', () => zoom(1)), tool('◎', 'Back to you', recentre), tool('⤢', 'Open the full map', () => opts.onOpenMap(), 'map'))),
-    svg, h('div', { class: 'mm-foot' }, say, go, carried));
-
-  // the minimap's hover text is the game's tip (A7): a browser title tip can't be timed, so each
-  // <title> becomes its parent's data-tip (and its name, if it has none)
-  const untitle = () => svg.querySelectorAll('title').forEach((t) => {
-    const p = t.parentElement!;
-    p.setAttribute('data-tip', t.textContent ?? '');
-    if (!p.hasAttribute('aria-label')) p.setAttribute('aria-label', t.textContent ?? '');
-    t.remove();
+  const v = planView(api, {
+    size: 'mini',
+    data: () => {
+      const st = api.state(), km = st ? knownMap(st) : null;
+      const root = km ? rootPlace(km, km.placeId) : '';
+      const every = km ? km.places.filter((p) => rootPlace(km, p.id) === root).flatMap((p) => p.zones).filter((z) => z.rect) : [];
+      const here = every.find((z) => z.here);
+      if (!st || !km || !here?.you) return null;
+      const floor = every.filter((z) => z.height === here.height);
+      const inside = (id: string, anc: string) => { for (let p = km.places.find((x) => x.id === id), n = 0; p && n < 20; p = km.places.find((x) => x.id === p!.parentId), n++) if (p.id === anc) return true; return false; };
+      const places = km.places.filter((p) => rootPlace(km, p.id) === root && p.id !== root).sort((a, b) => a.depth - b.depth)
+        .map((p) => ({ id: p.id, name: p.name, depth: p.depth, zones: floor.filter((z) => inside(z.placeId, p.id)) })).filter((p) => p.zones.length);
+      const awayName = (id: string) => { const z = km.places.flatMap((p) => p.zones).find((x) => x.id === id); return z ? km.places.find((p) => p.id === rootPlace(km, z.placeId))?.name : undefined; };
+      return { km, every, floor, height: here.height, places, you: { ...here.you }, ...(st.player.facing ? { facing: [...st.player.facing] as [number, number] } : {}),
+        ring: ringMetres(st), dash: dashMetres(st), carried: carriedS(st, st.player, 'move'), awayName };
+    },
+    onPlan: opts.onPlan, onWalk: opts.onWalk, onPerson: opts.onPerson,
+    onCard: (zone) => opts.onOpenMap({ zone }),
+    onExit: (zone, exit) => opts.onOpenMap({ zone, exit }),
+    onGoto: (go) => opts.onOpenMap({ go }),
+    onExpand: () => opts.onOpenMap(),
   });
-  const tipEl = h('div', { class: 'rail-tip', role: 'tooltip', hidden: true });
-  el.append(tipEl);
-  let at = { x: 0, y: 0 };
-  const tipped = (e: Event) => { const t = (e.target as Element).closest?.('[data-tip]'); return t && el.contains(t) ? t : null; };
-  const showTip = (t: Element, x: number, y: number) => { tipEl.textContent = t.getAttribute('data-tip'); tipEl.style.left = `${x + 14}px`; tipEl.style.top = `${y}px`; tipEl.hidden = false; };
-  const hideTip = () => tipOff(() => { tipEl.hidden = true; });
-  el.addEventListener('pointermove', (e) => { at = { x: e.clientX, y: e.clientY }; });
-  el.addEventListener('pointerover', (e) => {
-    const t = tipped(e);
-    at = { x: e.clientX, y: e.clientY };
-    if (t) tipOn(() => showTip(t, at.x, at.y)); else hideTip();
-  });
-  el.addEventListener('focusin', (e) => { const t = tipped(e); if (t) tipOn(() => { const r = boxOf(t); showTip(t, r.right, r.top + r.height / 2); }, true); });
-  for (const ev of ['pointerleave', 'pointerdown', 'focusout', 'wheel']) el.addEventListener(ev, hideTip);
-  untitle();
-
-  const point = (p: MinimapPoint): MinimapPoint => ({ zone: p.zone, x: p.x, y: p.y, metres: p.metres, seconds: p.seconds, turns: p.turns, label: p.label });
-  const size = () => ({ w: svg.clientWidth || 420, h: svg.clientHeight || 360 });
-  /** screen pixels per metre, and where metre (0, 0) sits in the svg (y up in metres, down on screen) */
-  const frame = () => {
-    const { w, h: hh } = size(), K = w / viewM, you = snap!.you;
-    return { K, k: K / PX_PER_M, o: { x: w / 2 - you.x * K + pan.x, y: hh / 2 + you.y * K + pan.y }, w, h: hh };
-  };
-  const px = (q: Pos, K: number) => ({ x: q.x * K, y: -q.y * K });
-
-  // a name's letters measured in the browser (MAP-51: the checker measures the real text too)
-  const ctx = typeof document !== 'undefined' ? document.createElement('canvas').getContext('2d') : null;
-  const measure: Measure = (t, kind, px = TEXT[kind].size) => {
-    if (!ctx) return t.length * px * 0.6;
-    ctx.font = `${TEXT[kind].weight} ${px}px ${face || 'sans-serif'}`;
-    return ctx.measureText(t).width;
-  };
-  /** MAP-20/MAP-22: a zone's name, centred in the part of it in view, as large as fits up to NAME_MAX; null when even the
-   *  smallest letters don't fit (the name is then in its tooltip only) */
-  function nameIn(text: string, b: Box): { lines: string[]; size: number; line: number } | null {
-    const rw = b.x1 - b.x0 - 2 * PAD - NAME_EDGE, rh = b.y1 - b.y0 - 2 * PAD - NAME_EDGE;
-    if (rw <= 0 || rh <= 0) return null;
-    for (let size = NAME_MAX; size >= NAME_PX.min; size -= 0.5) {
-      const m: Measure = (t, kd) => measure(t, kd, size), line = size * 1.2;
-      const lines = wrap(text, 'label', rw + 2 * TEXT.label.pad, 3, m);
-      if (lines && lines.length * line - line + size * 1.3 <= rh) return { lines, size, line };
-    }
-    return null;
-  }
-
-  function render() {
-    for (const g of [gZones, gNames, gRing, gMarks, gTokens]) g.replaceChildren();
-    gFog.replaceChildren();
-    if (!snap) { gPath.replaceChildren(); foot(); return; }
-    const { K, k, o, w, h: hh } = frame();
-    svg.setAttribute('viewBox', `0 0 ${w} ${hh}`);
-    world.setAttribute('transform', `translate(${o.x} ${o.y})`);
-    const vb: Box = { x0: -o.x, y0: -o.y, x1: w - o.x, y1: hh - o.y }, inView: Box = { x0: vb.x0 + 1, y0: vb.y0 + 1, x1: vb.x1 - 1, y1: vb.y1 - 1 };
-    face = getComputedStyle(svg).getPropertyValue('--font-round').trim();
-    const scene = planScene({ zones: snap.floor, every: snap.every, places: [], k, measure, visits: new Set(snap.km.visited), awayName: () => undefined });
-    gFog.append(fogClip(fogId, scene.zones.map((x) => x.z), PX_PER_M * k)); // BG-313: only ground the character has seen
-    // zones (MAP-33/34): the floor in view is the tagged zone (MAP-50: nothing tagged past the edge); its walls run on
-    // past the edge, each side drawn as its edge kind
-    for (const x of scene.zones) {
-      const b = x.box, c = clip(b, vb), z = x.z;
-      if (!c) continue;
-      const g = s('g', { class: `mm-zone ${x.state} ${z.outdoor ? 'outdoor' : 'indoor'}${z.inView ? '' : ' remembered'}` },
-        s('rect', { class: 'mm-ground', x: c.x0 + 0.5, y: c.y0 + 0.5, width: c.x1 - c.x0 - 1, height: c.y1 - c.y0 - 1, 'data-role': 'zone', 'data-id': z.id, 'data-parent': z.placeId }));
-      // PZ1, PZ2: a title of another shape shows its own floor over its box; its walls run along its outline
-      const fm = floorMarks(z, z.rect!.w ? (b.x1 - b.x0) / z.rect!.w : PX_PER_M, 0, 0);
-      if (fm.floor) { g.firstElementChild!.setAttribute('class', 'mm-ground mm-box'); g.append(s('polygon', { class: 'mm-ground', points: fm.floor })); }
-      g.append(...fm.walls);
-      if (x.state === 'current') g.append(s('rect', { class: 'mm-here', x: b.x0 + 0.5, y: b.y0 + 0.5, width: b.x1 - b.x0 - 1, height: b.y1 - b.y0 - 1 })); // MAP-33: where you are
-      g.append(s('title', {}, `${cap(z.name)}: ${Math.round(z.rect!.w)} × ${Math.round(z.rect!.d)} m`));
-      gZones.append(g);
-      const n = z.seen && !z.seen.length ? null : nameIn(z.name, c); // BG-313: no name on a title never seen
-      if (!n) continue;
-      const cx = (c.x0 + c.x1) / 2, first = (c.y0 + c.y1) / 2 - ((n.lines.length - 1) * n.line) / 2 + n.size * 0.36;
-      gNames.append(s('text', { class: `mm-name${z.here ? ' here' : ''}`, x: cx, y: first, 'text-anchor': 'middle', 'font-size': n.size,
-        'data-role': 'label', 'data-layer': 'back', 'data-id': `label:${z.id}`, 'data-for': z.id, 'data-placement': 'inside' },
-      ...n.lines.map((line, i) => s('tspan', { x: cx, y: first + i * n.line }, line))));
-    }
-    // AD9: how far one move slot walks this turn; past the widest zoom it is a note under the map instead
-    // BF91: and how far a dash runs, a second, wider ring
-    const y = px(snap.you, K);
-    if (snap.dash !== null && 2 * snap.dash <= widest) gRing.append(s('circle', { class: 'mm-ring dash', cx: y.x, cy: y.y, r: snap.dash * K }, s('title', {}, `A dash this turn: ${metresText(snap.dash)}`)));
-    if (snap.ring !== null && 2 * snap.ring <= widest) gRing.append(s('circle', { class: 'mm-ring', cx: y.x, cy: y.y, r: snap.ring * K }, s('title', {}, `A walk this turn: ${metresText(snap.ring)}`)));
-    // marks: the full Map's (doors, stairs, furniture, people), each only when it is whole in view (MAP-50)
-    for (const d of scene.doors) {
-      if (!within(d, inView)) continue;
-      const r = d.x1 - d.cx, tag = { 'data-role': 'icon', 'data-id': d.id, role: 'img', 'aria-label': d.title };
-      gMarks.append(d.way?.shut ? s('g', { class: `map-way ${d.way.shut}${d.way.key ? ' key' : ''}`, ...tag }, s('circle', { cx: d.cx, cy: d.cy, r }), ...wayGlyph(d.cx, d.cy, d.way.shut), s('title', {}, d.title))
-        : s('g', { class: `map-door ${d.kind}`, ...tag }, ...doorGlyph(d.cx, d.cy, d.kind, d.dir), s('title', {}, d.title)));
-    }
-    for (const st of scene.stairs) if (within(st, inView)) gMarks.append(s('g', { class: `map-stair${st.goto ? '' : ' unknown'}`, 'data-role': 'icon', 'data-id': st.id, role: 'img', 'aria-label': st.title },
-      s('circle', { cx: st.cx, cy: st.cy, r: st.x1 - st.cx }), s('text', { x: st.cx, y: st.cy + 4, 'text-anchor': 'middle' }, st.up ? '▲' : '▼'), s('title', {}, st.title)));
-    for (const f of scene.furniture) if (within(f, inView)) { const g = furnIcon(f.kind, cap(f.name), f.cx, f.cy); g.setAttribute('data-role', 'icon'); g.setAttribute('data-id', f.id); gMarks.append(g); }
-    for (const t of scene.tokens) {
-      if (!within(t, inView)) continue;
-      if (t.you) { const g = pin(t.cx, t.cy, 'You are here', snap.facing); g.setAttribute('data-role', 'token'); g.setAttribute('data-id', 'you'); gTokens.append(g); continue; } // the Map's own pin
-      const who = t.who!, foot = footprintMark(t.cx, t.cy, t.r, who, PX_PER_M * k);
-      // BG-324: the disc alone is the token the checker measures; the initial's text box is taller than the disc, its letter is not
-      const g = s('g', { class: `map-who plan-who${who.now ? '' : ' last'}${who.at ? ' at' : ''}`, tabindex: 0, role: 'button', 'aria-label': `${t.title}: what to do` }, ...(foot ? [foot] : []),
-        s('g', {}, s('circle', { cx: t.cx, cy: t.cy, r: t.r, 'data-role': 'token', 'data-id': t.id }), s('text', { x: t.cx, y: t.cy + 3, 'text-anchor': 'middle' }, whoInitial(who.name))),
-        s('text', { x: t.cx + t.r + 4, y: t.cy + 4, class: 'map-who-label' }, who.name), s('title', {}, t.title));
-      const open = (e: Event) => { e.stopPropagation(); if (!api.busy()) opts.onPerson(who.id, (g as Element).getBoundingClientRect()); };
-      g.addEventListener('click', open);
-      g.addEventListener('dblclick', (e) => e.stopPropagation());
-      g.addEventListener('keydown', (e) => { if ((e as KeyboardEvent).key === 'Enter' || (e as KeyboardEvent).key === ' ') { e.preventDefault(); open(e); } });
-      gTokens.append(g);
-    }
-    drawPath();
-    foot();
-    untitle();
-    scheduleCheck();
-  }
-
-  /** the hovered walk (dotted, amber past what this turn walks) and the planned one (solid), each with its end */
-  function drawPath() {
-    gPath.replaceChildren();
-    if (!snap) return;
-    const { K } = frame(), ring = snap.ring;
-    const line = (pts: Pos[], cls: string) => s('polyline', { class: cls, points: pts.map((q) => { const p = px(q, K); return `${p.x},${p.y}`; }).join(' ') });
-    for (const [p, set] of [[plan, true], [hover && 'pts' in hover ? hover : null, false]] as const) {
-      if (!p) continue;
-      const [now, later] = ring === null ? [p.pts, []] : splitAt(p.pts, ring), end = px(p.pts[p.pts.length - 1], K), cls = `mm-path${set ? ' set' : ''}`;
-      gPath.append(line(now, cls), ...(later.length > 1 ? [line(later, `${cls} far`)] : []),
-        s('circle', { class: `mm-goal${set ? ' set' : ''}${later.length > 1 ? ' far' : ''}`, cx: end.x, cy: end.y, r: 7 }));
-    }
-  }
-
-  /** the footer: what the pointed spot takes, or why there is no way there; the plan; the hint. Small on the right, the
-   *  turn time carried over (AD9), and a ring too big to draw */
-  function foot() {
-    const shown = hover ?? plan;
-    const parts = (p: Extract<MinimapPlan, { pts: Pos[] }>) => {
-      const [m, ...rest] = p.words.split(' · '), last = rest.length > 1 && snap?.ring !== null ? rest.pop()! : null;
-      return [h('b', {}, m), ...rest.map((x) => ` · ${x}`), ...(last ? [' · ', h('b', { class: p.turns === 1 ? 'now' : 'far' }, last)] : []), ` · ${p.where}`];
-    };
-    say.replaceChildren(...(!snap ? ['No map of where you are yet.'] : !shown ? [] : 'why' in shown ? [shown.why] : [...(shown === plan && !hover ? ['Planned: '] : []), ...parts(shown)]));
-    go.hidden = !plan;
-    const notes = [snap && snap.carried > 0 ? `+${r1(snap.carried)} s carried over` : '', snap?.ring && 2 * snap.ring > widest ? `this turn reaches ${metresText(snap.ring)}` : '', snap?.dash && 2 * snap.dash > widest ? `a dash reaches ${metresText(snap.dash)}` : ''].filter(Boolean);
-    carried.textContent = notes.join(' · ');
-    floorEl.textContent = snap ? floorName(snap.height) : '';
-  }
-
-  function zoom(dir: number) {
-    if (api.busy()) return; // M-06
-    const at = steps.reduce((b, x, i) => (Math.abs(x - viewM) < Math.abs(steps[b] - viewM) ? i : b), 0);
-    const next = steps[Math.max(0, Math.min(steps.length - 1, at + dir))];
-    if (next === viewM) return;
-    pan = { x: (pan.x * viewM) / next, y: (pan.y * viewM) / next }; // the same metres off you
-    viewM = next;
-    render();
-  }
-  function recentre() { if (!api.busy()) { pan = { x: 0, y: 0 }; render(); } }
-  function setPlan(p: Extract<MinimapPlan, { pts: Pos[] }>) {
-    const same = plan && plan.zone === p.zone && plan.x === p.x && plan.y === p.y;
-    plan = p;
-    if (!same) opts.onPlan(point(p));
-    drawPath(); foot();
-  }
-  function clear() { if (!plan) return; plan = null; opts.onPlan(null); drawPath(); foot(); }
-
-  // pointing, clicking, dragging the view, the wheel and keys; none of it while a turn runs (M-06)
-  const svgAt = (e: MouseEvent) => { const r = svg.getBoundingClientRect(), { w, h: hh } = size(); return { x: ((e.clientX - r.left) * w) / (r.width || w), y: ((e.clientY - r.top) * hh) / (r.height || hh) }; };
-  function pointAt(e: MouseEvent): MinimapPlan | null {
-    const st = api.state();
-    if (!snap || !st || api.busy()) return null;
-    const { K, o } = frame(), at = svgAt(e), q = { x: (at.x - o.x) / K, y: -(at.y - o.y) / K }, z = zoneAt(snap.floor, q);
-    return z ? planTo(st, snap.km, z.id, q) : { why: 'You don’t know what is there.' };
-  }
-  let drag: { x: number; y: number; pan: Pos; moved: boolean } | null = null;
-  svg.addEventListener('pointerdown', (e) => { if (e.button === 0 && !api.busy()) drag = { x: e.clientX, y: e.clientY, pan: { ...pan }, moved: false }; });
-  svg.addEventListener('pointermove', (e) => {
-    if (api.busy()) return;
-    if (drag && e.buttons & 1 && (drag.moved || Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 4)) {
-      const r = svg.getBoundingClientRect(), f = size().w / (r.width || size().w);
-      drag.moved = true;
-      pan = { x: drag.pan.x + (e.clientX - drag.x) * f, y: drag.pan.y + (e.clientY - drag.y) * f };
-      render();
-      return;
-    }
-    hover = pointAt(e);
-    svg.classList.toggle('no-way', !!hover && 'why' in hover);
-    drawPath(); foot();
-  });
-  svg.addEventListener('pointerleave', () => { if (api.busy()) return; hover = null; svg.classList.remove('no-way'); drawPath(); foot(); });
-  svg.addEventListener('click', (e) => {
-    const dragged = drag?.moved; drag = null;
-    if (dragged) return;
-    const p = pointAt(e);
-    if (p && 'pts' in p) setPlan(p);
-  });
-  svg.addEventListener('dblclick', (e) => { const p = pointAt(e); if (p && 'pts' in p) { setPlan(p); opts.onWalk(point(p)); } });
-  svg.addEventListener('wheel', (e) => { e.preventDefault(); zoom(Math.sign(e.deltaY)); }, { passive: false });
-  svg.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && plan && !api.busy()) { e.preventDefault(); opts.onWalk(point(plan)); }
-    else if (e.key === 'Escape' && plan) { e.preventDefault(); clear(); }
-  });
-  if (typeof ResizeObserver !== 'undefined') new ResizeObserver(() => snap && render()).observe(svg);
-
-  // MAP-51: in dev views (?fake= or ?mapcheck) the checker runs on every render, once the browser has laid it out
-  const devCheck = typeof location !== 'undefined' && /[?&](fake|mapcheck)\b/.test(location.search);
-  let checkTimer = 0;
-  function scheduleCheck() {
-    if (!devCheck) return;
-    clearTimeout(checkTimer);
-    checkTimer = window.setTimeout(() => requestAnimationFrame(() => {
-      if (!snap || !svg.isConnected) return;
-      const ids = snap.every.map((z) => z.id), have = new Set(ids), here = snap.every.find((z) => z.here)?.id ?? ids[0];
-      const findings = [...checkMap(svg), ...checkReach(ids, snap.every.flatMap((z) => z.links.filter((l) => have.has(l.to)).map((l) => [z.id, l.to] as [string, string])), here)];
-      (window as unknown as { __minimapFindings?: unknown }).__minimapFindings = { viewM, findings };
-      if (findings.length) for (const f of findings) console.warn('[minimap-check]', f);
-      else console.info('[minimap-check] 0 findings');
-    }), 120);
-  }
-
-  function update() {
-    if (api.busy()) return; // M-06: nothing changes while a turn runs
-    const st = api.state(), km = st ? knownMap(st) : null;
-    const root = km ? rootPlace(km, km.placeId) : '';
-    const every = km ? km.places.filter((p) => rootPlace(km, p.id) === root).flatMap((p) => p.zones).filter((z) => z.rect) : [];
-    const here = every.find((z) => z.here);
-    if (!st || !km || !here?.you) { snap = null; hover = null; if (plan) { plan = null; opts.onPlan(null); } render(); return; }
-    const ring = ringMetres(st);
-    snap = { km, every, floor: every.filter((z) => z.height === here.height), height: here.height, you: { ...here.you }, ...(st.player.facing ? { facing: [...st.player.facing] as [number, number] } : {}), ring, dash: dashMetres(st), carried: carriedS(st, st.player, 'move') };
-    const at = `${here.id}:${here.you.x}:${here.you.y}`;
-    if (at !== lastAt) { lastAt = at; pan = { x: 0, y: 0 }; hover = null; }
-    // AD9: a ring wider than the view zooms out to fit it (across the view's short side), up to the widest zoom; past it
-    // the footer says how far. BF91: the dash ring, the wider, is the one fitted, so both show
-    if (ring !== lastRing) {
-      const { w, h: hh } = size(), need = (2.1 * (snap.dash ?? ring ?? 0) * w) / Math.min(w, hh);
-      lastRing = ring;
-      if (need > viewM) viewM = steps.find((x) => x >= need) ?? widest;
-    }
-    if (plan) {
-      const again = planTo(st, km, plan.zone, plan);
-      if (!('pts' in again)) { plan = null; opts.onPlan(null); }
-      else if (again.metres !== plan.metres || again.turns !== plan.turns) { plan = again; opts.onPlan(point(again)); }
-      else plan = again;
-    }
-    render();
-  }
-
-  update();
-  return { el, update, clear, planned: () => (plan ? point(plan) : null) };
+  return { el: v.el, update: () => v.update(), clear: v.clear, planned: v.planned };
 }
+/** where the full Map opens from the minimap: a zone's card, an exit's card, or another map */
+export type MapPick = { zone?: string; exit?: string; go?: string };

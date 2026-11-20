@@ -36,7 +36,8 @@ import { coinWords } from '../engine/trade';
 import { actionsRow, doingChip, doingNow, followingNow, walkingNow } from './doing';
 import { closePop, openPop } from './pop';
 import { deckView, walkOrder, type SayMode } from './deckView';
-import { minimapPanel } from './minimap';
+import { minimapPanel, type MinimapPoint } from './minimap';
+import { mapPick } from './map';
 import { ICONS, instanceIcon } from './itemIcons';
 import { maybeOfferPop } from './essences';
 import { anyGains, gainsPanel, gainsSummary, honor, playGains } from './gains';
@@ -212,7 +213,7 @@ function questLine(s: GameState, open: (id: string) => void): HTMLElement | null
     ...bits.filter((b): b is HTMLElement => !!b).flatMap((b) => [sep(), b]));
 }
 
-export type PlayUi = { el: HTMLElement; update: () => void; focus: () => void };
+export type PlayUi = { el: HTMLElement; update: () => void; focus: () => void; walk: (p: MinimapPoint) => void };
 
 /** /stats, /inv, /quests and /achievements open their rail page; everything else goes to the game. */
 export const NAV_COMMANDS: Record<string, string> = { '/stats': 'stats', '/inv': 'inv', '/quests': 'quests', '/achievements': 'achievements' };
@@ -254,11 +255,13 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   // AD12/AD15: the minimap; a click plans a move that the next action takes along, Enter, Just go or a double-click walks there
   const mm = minimapPanel(api, {
     onPlan: () => update(),
-    onWalk: (p) => { if (api.busy() || inputOff()) return; closeGains(true); finishAll(); mm.clear(); void api.act(walkOrder(p), { aimed: false }); },
+    onWalk: (p) => walkTo(p),
     onPerson: (id, r) => dk.personMenu(id, r),
-    onOpenMap: () => nav('map'),
+    onOpenMap: (at) => { mapPick(at); nav('map'); },
   });
   const inputOff = () => input.disabled;
+  /** a walk planned on either map (MAP-84): the move turn, sent at once */
+  function walkTo(p: MinimapPoint) { if (api.busy() || inputOff()) return; closeGains(true); finishAll(); mm.clear(); void api.act(walkOrder(p), { aimed: false }); }
   const doingSlot = h('div', { class: 'doing-slot' }); // AT11a: the player's own long action, above the deck
   let doingHtml = '';
   const bar = h('form', { class: 'inbar', onsubmit: (e: Event) => { e.preventDefault(); submit(); } }, doingSlot, h('div', { class: 'inrow' }, sayChip, input, send), hint, dk.el);
@@ -1146,5 +1149,5 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     if (slow) slow.hidden = n < SLOW_AFTER_S;
   }, 1000);
   // BG-191: coming back to Play (the page was off the screen, so the story lost its place) opens at the latest lines
-  return { el, update, focus: () => { story.scrollTop = story.scrollHeight; input.focus(); } };
+  return { el, update, walk: walkTo, focus: () => { story.scrollTop = story.scrollHeight; input.focus(); } };
 }
