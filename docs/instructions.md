@@ -31,8 +31,7 @@ edge cases. Where a section repeats a rule from `AGENTS.md`, it is there to add 
 - **Bugs.** Every bug found or reported gets a BG-n and a row in the spec's "Bug log" with its status and the PR that
   fixes it.
   - Taking a number: use the next free number in the Bug log on the latest `main`, in the PR that adds the row. A
-    clash then shows up as a merge conflict. (Claude threads use a shared counter and keep it ahead of the log: see
-    the Claude file.)
+    clash then shows up as a merge conflict. This holds for every agent.
   - Investigate with the `root-cause-first` skill. Before choosing a fix, list every plausible cause (engine rule,
     agent prompt, view or narration data, numbers), check each against the logs, and keep only what the evidence
     shows.
