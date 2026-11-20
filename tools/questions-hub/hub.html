@@ -661,7 +661,39 @@ function supaDb(mcp) {
   const prefetch = (id) => { getDoc('pages/' + id).catch(() => {}); for (const c of ['rounds', 'qs', 'answers']) getColl(`${c}/${id}/items`).catch(() => {}); };
   const has = (p) => { const r = recent.get(p); return r && Date.now() - r.at < 3000 ? r.p.then((d) => d.exists) : read('has', p).then((x) => !!x); };
   return { doc, collection, insertNew, prefetch, has,
+    exec: async (s) => { const r = await sqlOnce(s); return typeof r === 'string' ? r : r?.result ?? JSON.stringify(r); }, // the raw answer, for error text
     ids: async (c) => (await read('ids', c)).map((r) => r.path.slice(c.length + 1)) };
+}
+
+// The outbox: SQL that hubdb.outbox() published beside this page, so a thread never pastes it (README "Writing to the
+// hub"). Each file runs once, in index order. Its first insert, outbox/<id>, is the proof it ran; a file that did not
+// get one is recorded with its error and never run again. Returns how many files were written.
+async function runOutbox(sdb, get = (f) => fetch(f)) {
+  const ids = await get('outbox/index.json').then((r) => (r.ok ? r.json() : []), () => []);
+  const ok = Array.isArray(ids) ? ids.filter((id) => /^[\w-]+$/.test(id)) : []; // names only: no other paths
+  const seen = await Promise.all(ok.map((id) => sdb.has('outbox/' + id)));
+  let n = 0; const bad = [];
+  for (const id of ok.filter((_, i) => !seen[i])) {
+    const path = 'outbox/' + id;
+    let err = '';
+    try {
+      const r = await get(path + '.sql'); if (!r.ok) throw new Error(`no file ${path}.sql (${r.status})`);
+      const lines = (await r.text()).trimEnd().split('\n'), body = lines.slice(2, -1);
+      // only what hubdb.outbox() writes: hub_docs upserts, inside one transaction, behind the once-only marker
+      if (lines[0] !== 'begin;' || lines.at(-1) !== 'commit;'
+        || lines[1] !== `insert into hub_docs (path, data) values ('${path}', jsonb_build_object('at', now()));`
+        || !body.length || !body.every((l) => l.startsWith('insert into hub_docs (path, data) values (')))
+        throw new Error('not a file from hubdb.outbox()');
+      const said = await sdb.exec(lines.join('\n'));
+      if (await sdb.has(path)) { n++; continue; }
+      err = said;
+    } catch (e) { err = e?.message || String(e); }
+    err = String(err).slice(0, 500);
+    await sdb.insertNew([[path, { at: new Date().toISOString(), error: err }]]).catch(() => {}); // never over a written marker
+    bad.push(`${id}: ${err}`);
+  }
+  if (bad.length) { const p = document.createElement('p'); p.className = 'supa-off'; p.textContent = `Outbox not written: ${bad.join('; ')}`; document.body.append(p); }
+  return n;
 }
 
 // Questionnaires that are still only in this page's own db go to Supabase when the owner presses the button on the
@@ -733,6 +765,7 @@ function bothDb(a, b) {
     const shared = sdb ? await sdb.doc(last ? 'pages/' + last : 'hub/index').get().then(() => sdb, why) : mcp ? null : why('connectors not offered here');
     db = shared ? bothDb(shared, own) : own;
     if (shared && own) offerOnHome = () => offerCopy(own, shared).catch(() => {}); // a home-list button: checked when the list shows
+    if (shared) runOutbox(shared).then((n) => { if (n) { rowsById = null; if (!PAGE) showHome(); } }, () => {}); // an open questionnaire catches up at its next poll
   } catch (e) { db = null; }
   const last = db ? await recall('qhub:last') : null;
   if (db && last) openPage(last); else showHome();

@@ -1,4 +1,4 @@
-// node tools/questions-hub/checks/stores.mjs (from the repo root): bothDb shows both stores and writes each questionnaire to its own
+// node tools/questions-hub/checks/stores.mjs (from the repo root): bothDb shows both stores and writes each questionnaire to its own; runOutbox runs hubdb.outbox() files once
 import fs from 'fs'; import assert from 'assert';
 const h = fs.readFileSync('tools/questions-hub/hub.html', 'utf8');
 const src = h.slice(h.indexOf('function bothDb('), h.indexOf('\n}\n', h.indexOf('function bothDb(')) + 2);
@@ -42,3 +42,34 @@ assert.deepStrictEqual(seen, [1, 2]);
 assert.strictEqual(S['pages/kept'].from, 'S'); assert.ok(!('answers/kept/items/K1' in S) && !('hub/index' in S)); // already there: untouched; caches: not copied
 assert.strictEqual(S['pages/p1'].spec, "it's"); assert.strictEqual(Object.keys(O).length, 9);    // the own copies stay
 console.log('copyOlder: all checks pass');
+
+// runOutbox: a file from hubdb.outbox() runs once; a missing, foreign or failed one is recorded with its error, never rerun
+import { execFileSync } from 'child_process';
+const runOutbox = new Function(cut('async function runOutbox(') + '; return runOutbox;')();
+const made = JSON.parse(execFileSync('python3', ['-I', '-c', `
+import sys, json, tempfile; sys.path.insert(0, 'tools/questions-hub'); from hubdb import *
+out = tempfile.mkdtemp(); old = ['outbox/20200101T000000Z-aaaaaa.sql', 'outbox/20200102T000000Z-bbbbbb.sql', 'kit/x.woff2']
+a = outbox(mark('pg', 1, {'Q1': (1, {'done': "a. it's done", 'reask': None})}, out), out, old)
+b = outbox(mark('pg', 1, {'Q2': (1, {'done': 'boom'})}, out), out, old + [a[1][0]['as']])
+print(json.dumps([a, b]))`]).toString());
+const [[idA, filesA], [idB, filesB]] = made, served = Object.fromEntries([...filesA, ...filesB].map((f) => [f.as, fs.readFileSync(f.path, 'utf8')]));
+served['outbox/20200102T000000Z-bbbbbb.sql'] = 'begin;\ndrop table hub_docs;\ncommit;';
+const get = async (f) => (f in served ? { ok: true, status: 200, json: async () => JSON.parse(served[f]), text: async () => served[f] } : { ok: false, status: 404 });
+const T = {}, sent = [];
+const sdb = { has: async (p) => p in T, insertNew: async (rows) => { for (const [p, v] of rows) if (!(p in T)) T[p] = v; },
+  exec: async (s) => { sent.push(s); const next = { ...T }; // one transaction: all of it or none
+    for (const l of s.split('\n').slice(1, -1)) { const p = /values \('([^']*)'/.exec(l)[1];
+      if (l.includes('boom')) return 'ERROR: 22P02: boom';
+      if (p.startsWith('outbox/') && p in next) return 'ERROR: 23505: duplicate key value violates unique constraint "hub_docs_pkey"';
+      next[p] = l; }
+    Object.assign(T, next); return '[]'; } };
+globalThis.document = { createElement: () => ({}), body: { append() {} } };
+assert.deepStrictEqual(JSON.parse(served['outbox/index.json']), ['20200101T000000Z-aaaaaa', '20200102T000000Z-bbbbbb', idA, idB]); // in time order
+assert.strictEqual(await runOutbox(sdb, get), 1);
+assert.ok(T['outbox/' + idA] && /'qs\/pg\/items\/Q1'.*it''s done.*- array\['reask'\]/.test(T['qs/pg/items/Q1']) && T['pages/pg']); // A written, marker included
+assert.match(T['outbox/20200101T000000Z-aaaaaa'].error, /no file outbox\/20200101T000000Z-aaaaaa\.sql \(404\)/);
+assert.strictEqual(T['outbox/20200102T000000Z-bbbbbb'].error, 'not a file from hubdb.outbox()');           // never sent
+assert.strictEqual(T['outbox/' + idB].error, 'ERROR: 22P02: boom'); assert.ok(!('qs/pg/items/Q2' in T));  // rolled back, reason kept
+assert.strictEqual(sent.length, 2);
+assert.strictEqual(await runOutbox(sdb, get), 0); assert.strictEqual(sent.length, 2);                    // nothing runs twice or retries
+console.log('runOutbox: all checks pass');
