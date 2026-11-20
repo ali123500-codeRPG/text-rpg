@@ -15,7 +15,7 @@ Every actor gets exactly one order per turn, from the first controller in this o
 | Not engaged | Its routine's desired state | Even during a Tactical turn; companions default to follow |
 | No valid order | Engaged: its type's combat list. Not engaged: its routine's desired state | Failed or late calls, dropped orders |
 
-Every code mind, combat lists included, reads only its actor's ActorView, never GameState.
+Every code mind, combat lists included, reads only its actor's ActorView, never GameState. `desiredState` takes only the part of it that it reads (`RoutineInput`: the routine, zone, slots, the belief about the player and the map), so the world clock can ask it for every NPC on every step without building the whole view.
 
 **Creatures that can't speak (NV5).** An actor whose race is below `intelligent` (slimes, beasts) is never a spokesperson and gets no Responder or Voice call; code runs it. Words the player says to it give a `not_understood` effect: the story says it does not understand words.
 

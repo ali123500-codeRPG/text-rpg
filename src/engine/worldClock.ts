@@ -2,7 +2,7 @@
 // walked on toward where its routine puts it at the new time (catchUp). Called by the turn (resolve.ts) after each turn,
 // each step of a stretch or a night, and each leg of a trip.
 import { CONFIG } from '../config';
-import { buildActorView } from '../views';
+import { routineView } from '../views';
 import { desiredState, staying } from '../minds';
 import { advanceAging } from '../ruleset/age';
 import type { Actor, GameState, Opening } from '../types';
@@ -43,7 +43,7 @@ export function catchUp(state: GameState, minutes: number, deductWalked = true, 
     const m = a.mind;
     // an NPC whose agent chose its move this turn keeps it: the catch-up is for routine time
     if (!m?.routine || agentRun.has(a.id) || !isActive(a) || isAsleep(a) || isEngaged(state, a) || a.heldBy || m.moraleState || staying(state, a)) continue;
-    const d = desiredState(buildActorView(state, a.id));
+    const d = desiredState(routineView(state, a));
     if (!d || d.zone === a.zone) continue;
     let left = travelSpeed(state, a) * minutes * 60 - (walked[a.id] ?? 0);
     const start = a.zone;

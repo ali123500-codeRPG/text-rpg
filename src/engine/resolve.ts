@@ -231,6 +231,7 @@ import {
 } from '../perception';
 import {
   buildActorView,
+  routineView,
   seesClearlyNow,
 } from '../views';
 import {
@@ -1825,7 +1826,7 @@ function noteUnreachable(state: GameState, orders: Map<string, Order>): void {
       if (m.unreachable && (o.type === 'move' || a.zone === m.unreachable.to)) delete m.unreachable;
       continue;
     }
-    const to = desiredState(buildActorView(state, id))?.zone;
+    const to = desiredState(routineView(state, a))?.zone;
     if (!to || (m.unreachable?.from === a.zone && m.unreachable.to === to)) continue;
     m.unreachable = { from: a.zone, to };
     logCode(state, UNREACHABLE, { actorId: id, from: a.zone, to });

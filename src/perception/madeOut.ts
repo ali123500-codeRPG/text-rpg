@@ -15,9 +15,12 @@ function doneThisTurn(state: GameState): Record<string, boolean> {
   sc.madeOut = { turn: state.turn, done: {} };
   return (sc.madeOut as { done: Record<string, boolean> }).done;
 }
-/** the result of this turn's make-out roll by `observerId` on `actorId` with `fn`, if one was made */
-export const madeOutResult = (state: GameState, observerId: string, actorId: string, fn: MadeOutSense): boolean | undefined =>
-  doneThisTurn(state)[key(observerId, actorId, fn)];
+/** the result of this turn's make-out roll by `observerId` on `actorId` with `fn`, if one was made. A read writes nothing:
+ * views are built often, and an empty memo means the same as none */
+export function madeOutResult(state: GameState, observerId: string, actorId: string, fn: MadeOutSense): boolean | undefined {
+  const cur = state.scratch?.madeOut as { turn: number; done: Record<string, boolean> } | undefined;
+  return cur?.turn === state.turn ? cur.done[key(observerId, actorId, fn)] : undefined;
+}
 export function recordMadeOut(state: GameState, observerId: string, actorId: string, fn: MadeOutSense, passed: boolean): boolean {
   return (doneThisTurn(state)[key(observerId, actorId, fn)] = passed);
 }
