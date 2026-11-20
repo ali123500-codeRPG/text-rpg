@@ -450,10 +450,12 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
   and its whole number; the name, exact value and gear portion are the tip and accessible name (src/ui/power.ts
   ratingIcons; icons in scripts/icons.mjs).
 - **PS-277** Every skill row starts with the skill's icon in place of its name, tinted its tree's colour (SKILL\_ICON in
-  src/ui/itemIcons.ts; a skill shares an item or class icon where one fits). The tree bands are at least 190 px wide,
-  so more trees sit in one row (five at 1600 px); a band's heading shows its tree's icon, drawn large, in place of its
-  name, which is the icon's tip and accessible name (TREE\_ICON in src/ui/itemIcons.ts), and shows its tree total as a bare number, with
-  "points in this tree" as its tip, so it stays on one line.
+  src/ui/itemIcons.ts; a skill shares an item or class icon where one fits). Each band is laid out like Bannerlord's
+  attribute groups: no heading row, the tree's colour down its left side, and an emblem column beside its skills with
+  the tree's icon, drawn large, in place of its name, which is the icon's tip and accessible name (TREE\_ICON in
+  src/ui/itemIcons.ts), any TA10 padlock, and the total. Bands are at least 255 px wide (three in a row at 1366 and 1600 px, four at
+  1920 px). The total is a
+  bare number, with "points in this tree" as its tip.
 - **PS-278** Each section tile under the Character page (Essences, Perks, Gear, Personality) shows its icon in place of its
   label, which is the icon's tip and accessible name (the tile_ picks in scripts/icons.mjs).
 - **PS-279** The card's Power, Standing attack and Standing defense figures show an icon in place of their words; the
