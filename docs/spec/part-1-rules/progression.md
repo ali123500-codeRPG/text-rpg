@@ -68,8 +68,9 @@ question IDs, BG/D numbers) sits in one trailing parenthesis.
   included (Ali). With LEVEL\_XP 100 and LEVEL\_XP\_EARLY 4.75: level 4 adds 41, level 10 adds 138, level 20 adds 444.
 - **PROG-53** Defeat XP = foe power × min(1, DEFEAT\_XP\_TAPER (2) × foe power ÷ player power) × DEFEAT\_XP\_MULT (1,
   X20), each power taken as its side joined the fight (GR44).
-- **PROG-54** All numbers are *placeholders*, to be tuned later (X19). Example against the test village's player (rating
-  63, 81 with gear): a slime (rating 34) gives 29 XP, a guard (rating 126, 139 with gear) 139.
+- **PROG-54** All numbers are *placeholders*, to be tuned later (X19). Example against the test village's player (power
+  104): a slime (power 38) gives 28 XP, a guard (power 292) 292; worked out from the code, so they move with every
+  placeholder.
 
 #### Skill groups as ratings
 
@@ -146,7 +147,7 @@ question IDs, BG/D numbers) sits in one trailing parenthesis.
 #### Achievements
 
 - **PROG-100** Achievements are a major XP source alongside defeats: the first slime felled pays 169 XP (reward level I)
-  where the slime itself pays 7.7, and Blooded Fighter (10 defeats) pays another 169 (Ali, 11/11/2026).
+  where the slime itself pays about 28 (PROG-54), and Blooded Fighter (10 defeats) pays another 169 (Ali, 11/11/2026).
 - **PROG-101** Each has an id and a name and is earned once (the every-10-levels achievement repeats, one reward level
   higher each time, D-179).
 - **PROG-102** Library achievements are a data table that only code awards.
@@ -321,10 +322,10 @@ question IDs, BG/D numbers) sits in one trailing parenthesis.
 
 - **PROG-220** Docs call each perk by its milestone: "20 perk", "40 perk" and so on. The 20, 60, 100 and 140 perks add
   an ability; the 40, 80 and 120 perks raise numbers (Ali, 08/11/2026, F1–F5).
-- **PROG-221** A 40/80/120 perk has no conditions and gives +5 true skill in its skill, +1 true skill in its skill and
-  in every other skill sharing a group with it (docs/skill-tags.md; Ali, 12/11/2026, LF1: the group, not the function),
-  so +6 in its own skill, and one more number: one of the skill's own numbers, or +10 true skill on skills that work
-  well with it (+10 to one, or +5 to two).
+- **PROG-221** A 40/80/120 perk has no conditions. A 40 or 80 perk gives +5 true skill in its skill, +1 true skill in
+  its skill and in every other skill sharing a group with it (docs/skill-tags.md; Ali, 12/11/2026, LF1: the group, not
+  the function), so +6 in its own skill; a 120 perk gives shares in their place (PROG-212). Each also gives one more
+  number: one of the skill's own numbers, or +10 true skill on skills that work well with it (+10 to one, or +5 to two).
 - **PROG-222** Numbers stay on theme (light weapons get hit and aim, heavy weapons get damage), and a 40/80/120 perk
   never repeats what a 20/60/100/140 perk gives.
 - **PROG-223** A perk's numbers may work with more skills than its own (PerkDef.numbersFor), or with every attack of one
@@ -334,9 +335,10 @@ question IDs, BG/D numbers) sits in one trailing parenthesis.
   melee weapon skill.
 - **PROG-225** Keen Edge (+10 hit) and Heavy Hand (×1.2 damage) work with every melee attack; Steady Draw (+5 hit, ×1.1
   damage) and Armor Piercer (armor stops 2 less) with every ranged attack.
-- **PROG-226** The 40 perks are in src/library/boostPerks.ts. The 80 and 120 perks are not written yet: they keep the 40
-  perk's +5 own skill and +1 group true skill, but their one more number can differ from the 40 perk's. They stay empty
-  until each skill's own perk round (LF14) (LF2, Ali, 12/11/2026).
+- **PROG-226** The 40, 80 and 120 perks are in src/library/boostPerks.ts. Most 80 and 120 perks are not written yet
+  (written: Deep Lungs at 80; Bottomless and Chorus at 120). An 80 perk keeps the 40 perk's +5 own skill and +1 group
+  true skill, a 120 perk its shares (PROG-212), and the one more number of either can differ from the 40 perk's. The
+  rest stay empty until each skill's own perk round (LF14) (LF2, Ali, 12/11/2026; D-258; SH1–SH4).
 - **PROG-227** Ladder perks are level perks (OwnedPerk source 'level'). Content is chosen milestone by milestone; the
   chosen perks and the bank of perks kept for later are in docs/perks.md.
 
@@ -395,17 +397,3 @@ question IDs, BG/D numbers) sits in one trailing parenthesis.
 - **PROG-267** That line leaves out its own achievement, unlock and level-up notes, since the summary shows them.
 - **PROG-268** With 100 as the mortal limit, the All-150 tier is unreachable through training alone until workaround
   mechanics are designed.
-
-#### Open discrepancies
-
-Where passages of the old rules disagree with each other or with the code, both are kept as written above and the point
-is marked here. Until the owner rules, the code decides what the game does (`AGENTS.md`, Order of authority).
-
-- **PROG-212 and PROG-221/226, the 120 perk:** PROG-212 gives a 120 perk shares (HIGH\_PERK\_SHARE, HIGH\_PERK\_SPREAD)
-  with no +1 (D-258); PROG-221 and PROG-226 give every 40/80/120 perk +5 own skill and +1 group. The code sides with
-  PROG-212 (`src/library/boostPerks.ts`, SH1–SH4).
-- **PROG-226, "the 80 and 120 perks are not written yet":** some are (`src/library/boostPerks.ts`: Deep Lungs at 80,
-  Bottomless and Chorus at 120).
-- **PROG-54 and PROG-100, what a slime pays:** 29 XP (PROG-54) against 7.7 (PROG-100). Today's code gives the test
-  village's player power 104, a slime power 38 and 28 XP, a guard power 292 and 292 XP; both examples, and PROG-54's
-  ratings with gear, predate power (GR45).
