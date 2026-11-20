@@ -94,10 +94,30 @@ re-saves the whole page:
 - `qs/<name>/items/<ID>` = one question: `k` (kind), `g` (round), `title`, `body` (or a short `ctx`), `o` (options),
   `rec`, `f` (the one-line form used in the answers summary), `i` (order), and later `done`, `reask` or `withdrawn`.
 - `answers/<name>/items/<ID>` = `{text, at, auto}`: written by the page when the owner types.
+- `imgs/<name>/items/<key>` = `{src}`: one picture, `src` a `data:` URL (section "Pictures"). The page reads a
+  questionnaire's pictures once when it is opened, never on the home list.
 - `hub/index`: the home list's cache. The page writes it; agents never do.
 
 Older questionnaires keep their rounds and questions inside `spec`. A `qs` document with the same ID is laid over
 that entry. Never move a questionnaire back into one large `spec`.
+
+## Pictures
+
+A picture goes beside the words when it shows the point faster than they do: what a screen looks like today, two
+options side by side, a layout or a flow.
+
+- **What to show.** A crop of the locally built game (`npm run build`, the test page with `?fake=1`, Playwright's
+  Chromium), never the live game or the owner's saves (`AGENTS.md` rule 1). Or a small diagram drawn as SVG. Crop to
+  the point the question is about, and mark what to look at if it is small. Never a picture taken from the web.
+- **One finding per picture**, inside the block it illustrates (usually Today or Proposal), with alt text that says in
+  words what it shows, and an optional one-line caption:
+  `blk('today', 'Today', p('...'), fig('wf8-outline', 'The outline clears the rooms on three sides', 'Zoom 2'))`.
+- **Size.** At most 400 KB per file (`hubdb.IMG_MAX`); WebP or JPEG for screenshots, PNG only for small flat images.
+  `image()` refuses a bigger file.
+- **Writing it.** `image(name, key, file, OUT)` gives the write for `imgs/<name>/items/<key>`; run `sql()` of it on its
+  own, before or with the round that shows it. Keys are short and stable (`wf8-outline`), and unique within the
+  questionnaire. `lint()` refuses a picture with no alt text, or one loaded from the web.
+- The owner clicks a picture to see it at full size, so a wide crop is fine.
 
 ## Writing to the hub (Claude threads)
 

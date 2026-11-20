@@ -46,6 +46,11 @@ def head(q, kname):
 def opts(q):
     """Not needed since hub v16 (BG-260 fixed: the hub shows `o` under the recommendation for body questions too)."""
     return ('<ul class="opts">' + ''.join(f'<li><b>{esc(l)}</b>{esc(t)}</li>' for l, t in q['o']) + '</ul>') if q.get('o') else ''
+def fig(key, alt, cap=''):
+    """A picture (README "Pictures"): `key` names a doc written with hubdb.image() for the same questionnaire. `alt` says
+    what it shows in words; `cap` is an optional one-line caption under it. Put it inside the block it illustrates."""
+    return (f'<figure class="fig"><img data-img="{esc(key)}" alt="{esc(alt)}" loading="lazy">'
+            + (f'<figcaption>{cap}</figcaption>' if cap else '') + '</figure>')
 def scl(kind, t): return f'<div class="scale {kind}"><span class="lbl">{"How it scales · flagged" if kind == "flag" else "How it scales"}</span>{t}</div>'
 
 def sentences(t): return len(re.findall(r'[.!?](?:\s|$)', re.sub(r'<[^>]+>', ' ', t or '')))
@@ -59,5 +64,8 @@ def lint(spec):
         if b is None and sentences(q.get('ctx')) > 2: bad.append(f"{q['id']}: ctx has {sentences(q.get('ctx'))} sentences, use body + blk()")
         if b is not None and 'class="blk' not in b and sentences(b) > 2: bad.append(f"{q['id']}: body has no blk() blocks")
         if b is not None and 'class="ckey' not in b and 'class="blk' in b: bad.append(f"{q['id']}: body lacks the colour key (head())")
+        for img in re.findall(r'<img\b[^>]*>', b or ''):
+            if not re.search(r'\balt="[^"]+"', img): bad.append(f"{q['id']}: a picture without alt text (fig(key, alt))")
+            if re.search(r'\bsrc="https?:', img): bad.append(f"{q['id']}: a picture from the web cannot load in the hub; store it with hubdb.image()")
     if bad: raise SystemExit('Hub layout lint failed (README "Question layout"):\n  ' + '\n  '.join(bad))
     return True

@@ -180,6 +180,12 @@ section { margin-top: 30px; }
 .blk.today{--b:var(--c3)}.blk.prob{--b:var(--danger)}.blk.prop{--b:var(--accent)}.blk.form{--b:var(--gold)}.blk.ex{--b:var(--c5)}
 .blk.wrong{--b:var(--danger)}.blk.cause{--b:var(--warn)}.blk.fix{--b:var(--ok)}.blk.tests{--b:var(--c5)}
 .blk b{color:var(--text)}
+/* a picture (README "Pictures"): framed like a pinned print; a click shows it at full size */
+.fig{margin:8px 0 0;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px}
+.fig img{display:block;max-width:100%;height:auto;margin:0 auto;border-radius:5px;cursor:zoom-in;min-height:24px}
+.fig figcaption{font-size:12.5px;color:var(--muted);margin-top:5px}
+#figBig{max-width:96vw;max-height:94vh;padding:0;border:0;border-radius:8px;background:var(--surface)}
+#figBig::backdrop{background:rgb(0 0 0/.75)}#figBig img{display:block;max-width:96vw;max-height:94vh;cursor:zoom-out}
 .eq{display:block;font:13px/1.5 ui-monospace,Consolas,monospace;color:var(--gold);background:#050a1d;border-radius:4px;padding:4px 8px;margin:4px 0;white-space:pre-wrap;word-break:break-word}
 .exr{margin-top:7px}.exr>b{display:block;color:var(--text);font-size:13px}
 .exr .cells{display:flex;flex-wrap:wrap;gap:5px;margin-top:3px}
@@ -246,6 +252,7 @@ section { margin-top: 30px; }
     </div>
   </section>
 </main>
+<dialog id="figBig" aria-label="Picture at full size"><img alt=""></dialog>
 
 <style id="pageCss"></style>
 <script>
@@ -334,12 +341,13 @@ async function loadRows() {
     doneChecked = true; left.clear(); return { rows, changed: null };
   }
   Object.assign(rows, idx.rows); savedIdx = JSON.stringify({ rows: idx.rows, seen: idx.seen });
-  const idsP = db.ids ? db.ids('pages').catch(() => []) : Promise.resolve([]); // asked now, so it travels with the next read
+  const idsP = db.ids ? db.ids('pages').catch(() => null) : Promise.resolve(null); // asked now, so it travels with the next read
   const snap = await db.collection('pages').where('updated', '>', idx.seen || '').get();
   (await Promise.all(snap.docs.map((d) => rowOf(d.id, d.data())))).forEach((r) => { rows[r.id] = r; });
   const changed = new Set(snap.docs.map((d) => d.id));
   // a questionnaire copied in keeps its older `updated`, so the time check above misses it: read every id with no row
-  const missing = (await idsP).filter((id) => !rows[id] && !changed.has(id));
+  const all = await idsP, missing = (all || []).filter((id) => !rows[id] && !changed.has(id));
+  if (all) { const live = new Set(all); for (const id in rows) if (!live.has(id)) delete rows[id]; } // deleted since the index was saved
   apply(rows, missing, await Promise.all(missing.map(reread))); missing.forEach((id) => changed.add(id));
   for (const [id, r] of left) if (rows[id] && !changed.has(id)) rows[id] = r;
   return { rows, changed };
@@ -399,6 +407,21 @@ $('nextBtn').addEventListener('click', () => { const ids = new Set(unanswered().
   (arts.find((a) => a.getBoundingClientRect().top > 140) || arts[0]).scrollIntoView({ block: 'start' }); });
 for (const ev of ['mousedown', 'mouseup', 'auxclick']) addEventListener(ev, (e) => { if (e.button !== 3 || !PAGE) return; e.preventDefault(); if (ev === 'mouseup') goHome(); }, true);
 addEventListener('popstate', (e) => { const q = e.state?.q; if (q && db) { if (q !== PAGE) openPage(q, true); } else if (PAGE) showHome(); });
+
+// ---- pictures: imgs/<page>/items/<key> = {src: a data: URL}, read once per questionnaire (never polled: they do not change)
+const imgs = new Map(); // page -> promise of {key: src}
+function fillImgs(id) {
+  const els = [...$('qList').querySelectorAll('img[data-img]')]; if (!els.length) return;
+  if (!imgs.has(id)) imgs.set(id, db.collection(`imgs/${id}/items`).get().then((s) => Object.fromEntries(s.docs.map((d) => [d.id, d.data()?.src])), () => { imgs.delete(id); return {}; }));
+  imgs.get(id).then((m) => { if (PAGE !== id) return; let gap = false;
+    for (const el of els) if (m[el.dataset.img]) el.src = m[el.dataset.img]; else gap = true;
+    if (gap) imgs.delete(id); }); // a picture written after the read: fetched again at the next redraw
+}
+document.addEventListener('click', (e) => {
+  const img = e.target.closest?.('.fig img'), big = $('figBig');
+  if (img?.src) { big.querySelector('img').src = img.src; big.querySelector('img').alt = img.alt; big.showModal(); }
+  else if (e.target.closest?.('#figBig')) big.close();
+});
 
 // ---- one questionnaire
 function openPage(id, noPush) {
@@ -471,7 +494,7 @@ function render(sp) {
     </article>`;
     }
   }
-  $('qList').innerHTML = html;
+  $('qList').innerHTML = html; fillImgs(PAGE);
   // move each question's options out of the question column to under its recommendation
   for (const a of $('qList').querySelectorAll('article.q')) { const rec = a.querySelector(':scope > .rec'); if (rec) a.querySelectorAll(':scope > div:first-child .opts').forEach((o) => rec.append(o)); }
   // extra sections: notes (coloured by NOTE kind) or Claude-written html (levels, flow)
@@ -655,7 +678,7 @@ async function offerCopy(own, shared) {
 // written in the store that holds its page, so a thread that wrote one still finds the answers where it looks.
 function bothDb(a, b) {
   if (!b) return a;
-  const home = new Map(), idOf = (p) => /^(?:pages|rounds|qs|answers)\/([^/]+)/.exec(p)?.[1];
+  const home = new Map(), idOf = (p) => /^(?:pages|rounds|qs|answers|imgs)\/([^/]+)/.exec(p)?.[1];
   const where = (p) => { const id = idOf(p); if (!id) return Promise.resolve(a);
     if (!home.has(id)) home.set(id, a.has('pages/' + id).then((x) => x ? a
       : b.doc('pages/' + id).get().then((e) => e.exists ? b : a, () => a)));
@@ -672,7 +695,8 @@ function bothDb(a, b) {
   const collection = (c) => c === 'pages'
     ? { get: () => pages((s) => s.collection(c).get()), where: (...w) => ({ get: () => pages((s) => s.collection(c).where(...w).get()) }) }
     : { get: async () => (await where(c)).collection(c).get(), onSnapshot: (cb, err) => lazy(c, (s) => s.collection(c).onSnapshot(cb, err)) };
-  const ids = async (c) => [...new Set([...await a.ids(c), ...(await b.collection(c).get().catch(() => ({ docs: [] }))).docs.map((d) => d.id)])];
+  // all or nothing: a partial list would make the home list drop the other store's questionnaires
+  const ids = async (c) => [...new Set([...await a.ids(c), ...(await b.collection(c).get()).docs.map((d) => d.id)])];
   return { doc, collection, ids };
 }
 

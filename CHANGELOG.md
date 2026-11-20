@@ -3,6 +3,8 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bug-fix-log.md`.
 
+- 20/11/2026: Pictures in questions. `docs/instructions.md` section 6: a picture goes beside the words when it shows
+  the point faster. The Questions hub shows them (`tools/questions-hub/README.md` "Pictures": `fig()`, `image()`).
 - 20/11/2026: `docs/providers/claude.md` is split: an "Every thread" part (how the project runs, desk labels, how to
   ask, never open the live game page, the owner's saves, bug numbers, in-app memory, the REST commands GitHub needs
   from a Claude session) and parts read only when the task needs them, each with a "Read when" line. No rule

@@ -157,6 +157,8 @@ The source of truth for every design decision.
 - A fix plan shows its parts as separate labelled colour blocks: What went wrong (red), Cause (amber), Planned fix
   (green), Tests (violet), Good to know (blue).
 - Nothing scrolls sideways. No wide tables: show items as stacked cards or rows that wrap.
+- A picture goes beside the words when it shows the point faster: a crop of the locally built game (never the live
+  game) or a small diagram, with alt text. In the Questions hub, `tools/questions-hub/README.md` "Pictures" says how.
 - Code, spec text and anything to copy stay plain text beside it. Short answers stay plain text.
 - One-line content (counter lines, option texts, tags) is the headline only. Supporting detail goes in its own field.
 - Name outcome tiers by name, never by number. Call perks by milestone ("20 perk", "40 perk").
