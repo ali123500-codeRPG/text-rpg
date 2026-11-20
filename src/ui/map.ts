@@ -9,7 +9,8 @@ import { CONFIG } from '../config';
 import { buildPlayerView, distText } from '../views';
 import { walkLeft } from './doing';
 import { landLayer, landLabels, type LandLabel } from './landSvg';
-import { lineLength } from '../land/generate';
+import { lineLength, SITE_SIZES, type SiteSize } from '../land/generate';
+import { ICON_ART } from './iconArt';
 import { worldTiles, knownMap, pointAlong, rootPlace, type KnownMap, type MapLink, type MapPerson, type MapPlace, type MapWay, type MapZone } from './mapData';
 import { cap, theName } from '../words';
 import { MAX_K, PIN_R, PIN_TIP, PX_PER_M, TEXT, checkReach, checkStage, planScene, roughMeasure, type Measure, type Scene } from './mapPlan';
@@ -32,6 +33,16 @@ const s = (tag: string, attrs: Record<string, string | number> = {}, ...kids: (N
   for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, String(v));
   e.append(...kids);
   return e;
+};
+/** a settlement's icon in the key (MAP-71) */
+const kSite = (size: SiteSize, faint = '') => { const i = h('i', { class: `k-site${faint}` }); i.innerHTML = ICON_ART[size]; return i; };
+/** a settlement's icon by its size, px wide, centred on x, y (MAP-71) */
+const siteIcon = (size: SiteSize, x: number, y: number, px: number) => {
+  const g = s('g', { class: 'map-site-icon' });
+  g.innerHTML = ICON_ART[size];
+  const box = { x: x - px / 2, y: y - px / 2, width: px, height: px };
+  for (const [k, v] of Object.entries(box)) g.firstElementChild!.setAttribute(k, String(v));
+  return g;
 };
 
 /** PZ12 a, BG-313: the fog as a clip path: the squares the character has seen of each title, in the map's screen pixels at
@@ -149,7 +160,7 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
   // to scale, the World's place names sit on their own layer at a fixed size, at each place's north-west corner, so they
   // stay readable when kilometres of road zoom the map far out
   const nameLayer = s('g', { class: 'map-world-names' }) as SVGGElement;
-  let worldNames: { x: number; y: number; y1?: number; name: string; sub: string; here: boolean; mid?: true; alt?: (Pt & { steep: boolean })[] }[] = [];
+  let worldNames: { x: number; y: number; y1?: number; name: string; sub: string; here: boolean; mid?: true; alt?: (Pt & { steep: boolean })[]; icon?: SiteSize }[] = [];
   // WZ4, to scale: the land you have made out lies under the World's places and roads, in metres like them. Each region's
   // markup is large, so it is built once per region and cells seen, and panning or zooming only moves it
   const landNodes = new Map<string, SVGGElement>();
@@ -222,7 +233,7 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
     const r = svg.getBoundingClientRect(), hits = (b: (typeof taken)[number]) => taken.some((o) => o.x0 < b.x1 && b.x0 < o.x1 && o.y0 < b.y1 && b.y0 < o.y1);
     const names = [...worldNames.filter((n) => !n.mid), ...worldNames.filter((n) => n.mid)].flatMap((n) => {
       // a place too small on screen to hold its name (a village kilometres from the next) has it just under its south side
-      const tall = ((n.y1 ?? n.y) - n.y) * v.k, under = !n.mid && tall < 40, wd = Math.max(n.name.length * 8, n.sub.length * 7.5);
+      const tall = ((n.y1 ?? n.y) - n.y) * v.k, under = !n.mid && tall < 40, ic = n.icon ? 28 : 0, wd = Math.max(n.name.length * 8, n.sub.length * 7.5) + ic;
       // a road's name sits above a stretch that runs east-west, and beside one that runs north-south
       const spot = (n.alt ?? [{ ...n, steep: false }]).map((q) => {
         const x = v.x + q.x * v.k + (q.steep ? 14 : n.mid || under ? 0 : 8), y = v.y + q.y * v.k + (q.steep ? -4 : n.mid ? -34 : under ? tall + 18 : 18), c = n.mid && !q.steep;
@@ -232,7 +243,8 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
       taken.push(spot.box);
       const { x, y } = spot, anchor: Record<string, string> = spot.c ? { 'text-anchor': 'middle' } : {};
       return [s('g', { class: `map-world-name${n.here ? ' here' : ''}${n.mid ? ' road' : ''}`, 'data-role': 'label', 'data-id': `world:${n.name}` },
-        s('text', { x, y, class: 'map-tile-name', ...anchor }, n.name), s('text', { x, y: y + 16, class: 'map-tile-sub', ...anchor }, n.sub))];
+        ...(n.icon ? [siteIcon(n.icon, x + 11, y + 2, 24)] : []),
+        s('text', { x: x + ic, y, class: 'map-tile-name', ...anchor }, n.name), s('text', { x: x + ic, y: y + 16, class: 'map-tile-sub', ...anchor }, n.sub))];
     });
     nameLayer.replaceChildren(...names, ...landMarksAt(v, taken));
     youLayer.replaceChildren(...(youAt && !planMap() ? [pin(v.x + youAt.x * v.k, v.y + youAt.y * v.k, youAt.title, facing)] : []));
@@ -242,10 +254,10 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
     } else { planLayer.replaceChildren(); scene = null; }
   };
   const setView = (v: { x: number; y: number; k: number }) => { views.set(world, v); apply(); };
-  /** the land's settlements and landmarks on screen: a dot (a diamond for a landmark) with its name above; one that would
+  /** the land's settlements and landmarks on screen: its size's icon (a diamond for a landmark) with its name above; one that would
    *  cover a place's name, your pin or a bigger settlement's name, or lies off the map, is left out (MAP-23) */
   function landMarksAt(v: { x: number; y: number; k: number }, taken: { x0: number; y0: number; x1: number; y1: number }[]) {
-    const r = svg.getBoundingClientRect(), R = { town: 5.5, village: 4.5, hamlet: 3.5, feature: 4 };
+    const r = svg.getBoundingClientRect(), R = { town: 10, village: 9, hamlet: 7.5, feature: 4 };
     const out: SVGElement[] = [];
     for (const l of landNames) {
       const x = v.x + l.at.x * PX_PER_M * v.k, y = v.y - l.at.y * PX_PER_M * v.k, w = l.name.length * 6.6, rr = R[l.kind];
@@ -254,7 +266,7 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
       taken.push(box);
       const said = `${l.name}${l.kind === 'feature' ? '' : `, a ${l.kind}`}${l.faint ? ': known by word, not seen' : ''}`;
       out.push(s('g', { class: `map-land-mark ${l.kind}${l.faint ? ' faint' : ''}`, 'data-role': 'label', 'data-id': `land:${l.id}`, role: 'img', 'aria-label': said },
-        l.kind === 'feature' ? s('rect', { x: x - rr, y: y - rr, width: 2 * rr, height: 2 * rr, transform: `rotate(45 ${x} ${y})` }) : s('circle', { cx: x, cy: y, r: rr }),
+        l.kind === 'feature' ? s('rect', { x: x - rr, y: y - rr, width: 2 * rr, height: 2 * rr, transform: `rotate(45 ${x} ${y})` }) : siteIcon(l.kind, x, y, 2 * rr),
         s('text', { x, y: y - rr - 5, 'text-anchor': 'middle' }, l.name), s('title', {}, said)));
     }
     return out;
@@ -583,7 +595,10 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
       const q = pointAlong(z.line!, lineLen * t), a = pointAlong(z.line!, lineLen * t - 50), b = pointAlong(z.line!, lineLen * t + 50);
       return { x: q.x * PX_PER_M, y: -q.y * PX_PER_M, steep: Math.abs(b.y - a.y) > Math.abs(b.x - a.x) };
     }) : undefined;
-    worldNames.push(road ? { x: mid ? mid.x * PX_PER_M : p.x, y: mid ? -mid.y * PX_PER_M : y, name: z.name, sub: z.line ? distText(lineLen) : z.rect ? distText(Math.max(z.rect.w, z.rect.d)) : sub, here: z.here, mid: true, ...(alt ? { alt } : {}) } : { x, y, y1: y + hh, name: z.name, sub, here: z.here });
+    // MAP-71: a settlement's size from the land's site it stands on, else from its place kind when that names a size
+    const kind = placeOf(z.id)?.kind, size = cur?.land?.flatMap((l) => l.region.sites).find((x) => x.placeId && rootOf(x.placeId) === z.id)?.size
+      ?? SITE_SIZES.find((x) => x === kind), a = size ? `, a ${size}` : '';
+    worldNames.push(road ? { x: mid ? mid.x * PX_PER_M : p.x, y: mid ? -mid.y * PX_PER_M : y, name: z.name, sub: z.line ? distText(lineLen) : z.rect ? distText(Math.max(z.rect.w, z.rect.d)) : sub, here: z.here, mid: true, ...(alt ? { alt } : {}) } : { x, y, y1: y + hh, name: z.name, sub, here: z.here, ...(size ? { icon: size } : {}) });
     if (road) {
       // RD2: a road is one line along its length, with a wider invisible line under it so it is easy to click
       const ew = z.rect!.w >= z.rect!.d, len = distText(z.line ? lineLen : Math.max(z.rect!.w, z.rect!.d));
@@ -593,8 +608,8 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
       return s('g', { class: cls, 'data-zone': z.id, tabindex: 0, role: 'button', 'aria-label': `${z.name}, a road about ${len} long` },
         way('map-road-hit'), way('map-tile-box'), s('title', {}, `${z.name}: a road about ${len} long · click for where it goes`));
     }
-    return s('g', { class: cls, 'data-zone': z.id, tabindex: 0, role: 'button', 'aria-label': `${z.name}, ${sub}, about ${distText(z.rect!.w)} by ${distText(z.rect!.d)}` },
-      s('rect', { x, y, width: w, height: hh, class: 'map-tile-box', 'vector-effect': 'non-scaling-stroke' }), s('title', {}, `${z.name}: about ${distText(z.rect!.w)} × ${distText(z.rect!.d)}`));
+    return s('g', { class: cls, 'data-zone': z.id, tabindex: 0, role: 'button', 'aria-label': `${z.name}${a}, ${sub}, about ${distText(z.rect!.w)} by ${distText(z.rect!.d)}` },
+      s('rect', { x, y, width: w, height: hh, class: 'map-tile-box', 'vector-effect': 'non-scaling-stroke' }), s('title', {}, `${z.name}${a}: about ${distText(z.rect!.w)} × ${distText(z.rect!.d)}`));
   }
 
 
@@ -696,8 +711,8 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
         h('li', {}, h('i', { class: 'k-area' }), 'A place you know: click to open its map'), h('li', {}, h('i', { class: 'k-line away' }), 'Road: click for where it goes'),
         // WZ4: the land once you have made some out
         ...(cur?.land?.length ? [h('li', {}, h('i', { class: 'k-land' }), 'Land you have seen: fields, woods…'), h('li', {}, h('i', { class: 'k-land-water' }), 'River or stream'),
-          h('li', {}, h('i', { class: 'k-land-road' }), 'Road or track on the land'), h('li', {}, h('i', { class: 'k-site' }), 'Village or hamlet'),
-          h('li', {}, h('i', { class: 'k-site faint' }), 'Known by word, not seen'), h('li', {}, h('i', { class: 'k-mark' }), 'Landmark')] : [])));
+          h('li', {}, h('i', { class: 'k-land-road' }), 'Road or track on the land'), ...(['town', 'village', 'hamlet'] as const).map((n) => h('li', {}, kSite(n), cap(n))),
+          h('li', {}, kSite('village', ' faint'), 'Known by word, not seen'), h('li', {}, h('i', { class: 'k-mark' }), 'Landmark')] : [])));
     side.replaceChildren(card, planMap() ? legendSlot : legend, facts, placeList);
   }
 
