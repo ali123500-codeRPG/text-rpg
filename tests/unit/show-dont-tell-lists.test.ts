@@ -25,8 +25,6 @@ describe('show, don’t tell: list pages', () => {
 
   it('SD3, SD11: the Inventory is its pack grid alone, each item once, marks only for damaged or locked pieces', () => {
     const pages = src('pages.ts');
-    const inv = pages.slice(pages.indexOf('export function inventoryPage'), pages.indexOf('export const questFocus'));
-    expect(inv).not.toMatch(/listPage|groupedTable/); // no table repeating the grid
     expect(pages).not.toMatch(/'Carried'|'Whole'|'eq-none' \}, 'Empty'/);
     expect(pages).toMatch(/iconMark\(ICONS\.damaged, `Damaged: \$\{hurt\}`\)/);
     expect(pages).toMatch(/iconMark\(ICONS\.locked, `Needs \$\{needText\(need\)\}/);

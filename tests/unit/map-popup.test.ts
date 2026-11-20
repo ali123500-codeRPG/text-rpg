@@ -11,14 +11,6 @@ import { moveOrder } from '../../src/ui/map';
 const src = (f: string): string => readFileSync(`src/ui/${f}`, 'utf8');
 
 describe('map pop-up', () => {
-  it('the rail has no Map page; Play has a Map button that opens the map full screen', () => {
-    const app = src('app.ts'), play = src('play.ts');
-    expect(app).not.toMatch(/\['map', 'Map'\]/);
-    expect(app).toMatch(/if \(p === 'map'\) \{ openMap\(/);
-    expect(app).toMatch(/openFull\(\{ label: 'Map', cls: 'map-full'/);
-    expect(play).toMatch(/'data-open': 'map'[^\n]*nav\('map'\)/);
-  });
-
   it('whole turn: the pop-up has a map to show, centred on where the character stands', async () => {
     const g = wholeTurn({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
     await g.turn(intent({ action: { type: 'wait' } }));

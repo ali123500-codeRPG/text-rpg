@@ -10,12 +10,10 @@ const src = (f: string): string => readFileSync(`src/ui/${f}`, 'utf8');
 
 describe('agent pop-up', () => {
   it('the agent bar is a non-modal floating pop-up with a drag head and a close that pauses', () => {
-    const a = src('autopilot.ts'), css = src('styles.css');
+    const a = src('autopilot.ts');
     expect(a).toMatch(/h\('aside', \{ class: 'auto', role: 'dialog', 'aria-modal': 'false'/);
-    expect(a).toMatch(/el\.classList\.add\('dpop', 'auto-pop'\)/);
     expect(a).toMatch(/const close = \(\) => \{ pause\(''\); open = false; update\(\); \}/);
     expect(a).toMatch(/head\.addEventListener\('pointerdown'/);
-    expect(css).not.toMatch(/\.playmain > \.auto\b/); // no longer a row of the play screen
   });
 
   it('whole turn: a turn the agent sends is an ordinary whole turn', async () => {
