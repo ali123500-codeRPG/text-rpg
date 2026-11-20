@@ -219,14 +219,22 @@ The source of truth for every design decision.
 - Tests manage risk; they are not a deliverable. Before adding one, search `tests/` for a test or smoke flow that
   already covers the behaviour; if one does, extend it or name it. Add a permanent test only for a credible
   regression nothing else would catch (numbers, saves, RNG, ordering, a sibling path), never just because a bug was
-  fixed, logic was added or a PR was opened, and say in the PR why existing coverage falls short. Use the cheapest
-  form that catches it: a pure function gets a unit test, a whole turn only when the turn itself is the risk, and a
-  loop over seeds stops once it has seen what it asserts. A temporary test may check a task; delete it and its
-  fixtures before the PR merges. Ask the owner only about a test that would be costly to keep or run, or that changes
-  how the suite is built. Never match source text.
-  Docs, spec, rule, config and tooling changes, and wiring a smoke flow already covers, get none. A test that
-  duplicates another, guards nothing or matches source text may be deleted in a PR that touches it, naming what
-  covers it. A change of meaning gets a search of the whole repo for the old pattern, not a guard test (spec, TQ5).
+  fixed, logic was added or a PR was opened, and say in the PR why existing coverage falls short. Weigh how bad and
+  how likely the break is, what else would catch it, whether it ever caught a real bug, and its run time and upkeep;
+  covering something nothing else does is a reason, not a pass. Use the cheapest form that catches it: a pure
+  function gets a unit test, a whole turn only when the turn itself is the risk, a browser test only for a break that
+  would stop play and nothing cheaper reaches, and a loop over seeds stops once it has seen what it asserts. A
+  temporary test may check a task; delete it and its fixtures before the PR merges unless it meets this rule on its
+  own. Never match source text.
+  Docs, spec, rule, config and tooling changes, and wiring a smoke flow already covers, get none. A change of meaning
+  gets a search of the whole repo for the old pattern, not a guard test (spec, TQ5).
+- Keeping a test takes the same rule as adding one; age earns it nothing. A test that would not be added today (a
+  duplicate, one that guards nothing or matches source text, or one whose break is not credible or not worth its
+  cost) may be deleted in a PR that touches it or its area; the PR says what protection is lost. It needs no
+  replacement, and a replacement meets the rule on its own. Never delete or weaken a test to turn a failing check
+  green. Agents decide adding, keeping and removing; ask the owner only about a test that would be costly to keep or
+  run, deleting protection for saves, RNG, turn ordering or the structural guards, or a change to how the suite is
+  built.
 - The agent that opened a PR reviews it and squash-merges it once every check is green, without asking the
   owner. That includes bug fixes and rule-file changes; a rule-file PR quotes the owner's words it acts on
   (`AGENTS.md` rule 6). The owner does not merge PRs. The same rule holds for agents of every provider.

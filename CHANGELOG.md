@@ -3,6 +3,13 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bug-fix-log.md`.
 
+- 20/11/2026: keeping a test takes the same rule as adding one (the owner: "A permanent test must continue to earn its
+  place in the suite. Existing tests should not receive automatic protection merely because they were added in the
+  past"; RM23: "looks like temporary tests, we can't have everything run every test."). `docs/instructions.md`
+  section 8: what to weigh (severity, likelihood, other coverage, real catches, cost), unique coverage is a reason and
+  not a pass, a browser test only for a break that would stop play; a test that would not be added today may be
+  deleted in a PR that touches it, naming the protection lost, with no replacement owed. `AGENTS.md` rule 5, TQ5 and
+  the PR template follow.
 - 20/11/2026: agents choose tests by risk (the owner: "Replace the owner-approval requirement with an autonomous,
   risk-based policy"; "No individual owner approval should be required for ordinary permanent tests").
   `docs/instructions.md` section 8: a permanent test only for a credible regression nothing else catches, its reason in
