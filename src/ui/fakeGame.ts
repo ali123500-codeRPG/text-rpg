@@ -293,7 +293,7 @@ function useStage(st: GameState, stage: FakeStage): void {
   }
 }
 
-export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; notices?: Notice[]; banner?: boolean; stage?: string; achievements?: boolean } = {}): GameApi {
+export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; notices?: Notice[]; banner?: boolean; stage?: string; achievements?: boolean; band?: boolean } = {}): GameApi {
   let state: GameState | null = null;
   let lines: LogLine[] = [];
   const KETTLE = { id: 'tavern', name: 'The Crooked Kettle' };
@@ -330,6 +330,15 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     drawFake(state);
     fakeBarriers(state);
     if (opts.achievements) seedAchievements(state);
+    // ?fake=band: two band-mates, one beside you (hurt and uneasy) and one last seen in the yard (YB2 to YB4)
+    if (opts.band) {
+      const mira = spawnNpc(null, TP.patron, { id: 'mate_1', zone: 'tav_common', placeId: 'tavern', bandId: player.bandId, storyId: 'fake', name: 'Mira' });
+      const kael = spawnNpc(null, TP.patron, { id: 'mate_2', zone: 'tav_yard', placeId: 'tavern', bandId: player.bandId, storyId: 'fake', name: 'Kael' });
+      mira.core.condition.hpLostPct = 45; mira.core.condition.moraleLost = 12;
+      state.actors.push(mira, kael);
+      player.journal!.clearSight = { ...player.journal!.clearSight, mate_1: 'tav_common', mate_2: 'tav_yard' };
+      player.journal!.namesKnown = [...(player.journal!.namesKnown ?? []), 'mate_1', 'mate_2'];
+    }
     const stage = opts.stage ? FAKE_STAGES[opts.stage] : undefined;
     if (stage) useStage(state, stage());
     else fakeLand(state);

@@ -1634,7 +1634,11 @@ button.eq-name:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .cs-side > .mm > .mm-svg { flex: 0 1 360px; height: auto; min-height: 0; }
 .here { display: flex; flex-direction: column; min-height: 120px; flex: 1 1 0; }
 .here > .hs-label { margin: 0 0 var(--space-2); }
-.who { display: grid; gap: 2px; overflow-y: auto; min-height: 0; align-content: start; }
+.here > .hs-label .solo { float: right; text-transform: none; letter-spacing: normal; color: var(--muted); }
+.here.band { flex: none; min-height: 0; } /* the band takes only the room it needs; Who's here fills and scrolls */
+/* YB4: people sit several to a row, each a compact cell; how far they are lives in the cell's tip (PS-172) */
+.who { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 2px var(--space-2); overflow-y: auto; min-height: 0; align-content: start; }
+.who > .hs-note { grid-column: 1 / -1; }
 .who .pp { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; gap: 0 var(--space-2); align-items: center; padding: 5px var(--space-2); border-radius: var(--r-md);
   cursor: pointer; font-size: 13px; transition: background-color var(--m-feedback) var(--m-ease); }
 .who .pp:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
@@ -1642,11 +1646,14 @@ button.eq-name:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .who .pp .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
 .who .pp.foe .dot { background: var(--danger); }
 .who .pp b { font: 700 14px var(--font-round); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.who .pp .ds { grid-column: 2 / -1; grid-row: 2; font-size: 13px; color: var(--muted); }
-.who .pp .ds:empty { display: none; }
 .who .pp .pin { background: none; border: 0; color: var(--faint); cursor: pointer; font-size: 14px; padding: 0 2px; }
 .who .pp .pin[aria-pressed="true"] { color: var(--scenario-mark); }
-.who .pp .sts { grid-column: 2 / -1; grid-row: 3; display: flex; flex-wrap: wrap; gap: 0 var(--space-2); font-size: 13px; }
+.who .pp .mate-bars { grid-column: 2 / -1; display: grid; gap: 3px; padding: 3px 0 1px; }
+.who .pp .mate-bars .cs-hptrack { height: 5px; }
+.who .pp.away { cursor: default; }
+.who .pp.away:hover { background: none; }
+.who .pp.away b { color: var(--muted); }
+.who .pp .sts { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: 0 var(--space-2); font-size: 13px; }
 .who .pp .sts:empty { display: none; }
 .short-wrap { flex: none; display: grid; gap: var(--space-2); border-top: 1px solid var(--border); padding-top: var(--space-3); font-size: 13px; }
 .short { display: grid; gap: var(--space-1); }

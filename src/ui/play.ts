@@ -278,9 +278,10 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   // AD4/AD14: Who's here in the right column, one row each, hostile first; pinned ones stay on top; a click lists what you
   // can do to or with them. Pins are this browser's convenience only.
   const who = h('div', { class: 'who', role: 'list', 'aria-label': 'Who’s here' });
+  const band = h('div', { class: 'who', role: 'list', 'aria-label': 'Your band' }); // YB4: band-mates, in Who's here's cells
   const PINS = 'whoPins';
   const pins = new Set<string>(((): string[] => { try { return JSON.parse(localStorage.getItem(PINS) ?? '[]'); } catch { return []; } })());
-  who.addEventListener('click', (e) => {
+  for (const list of [who, band]) list.addEventListener('click', (e) => {
     const t = e.target as Element, row = t.closest<HTMLElement>('.pp[data-id]');
     if (!row) return;
     if (t.closest('.pin')) {
@@ -292,7 +293,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     }
     dk.personMenu(row.dataset.id!, row);
   });
-  who.addEventListener('keydown', (e) => { const row = (e.target as Element).closest<HTMLElement>('.pp[data-id]'); if (row && (e.key === 'Enter' || e.key === ' ') && e.target === row) { e.preventDefault(); dk.personMenu(row.dataset.id!, row); } });
+  for (const list of [who, band]) list.addEventListener('keydown', (e) => { const row = (e.target as Element).closest<HTMLElement>('.pp[data-id]'); if (row && (e.key === 'Enter' || e.key === ' ') && e.target === row) { e.preventDefault(); dk.personMenu(row.dataset.id!, row); } });
   let dealsOpen = false;
   document.addEventListener('click', () => { if (dealsOpen && el.isConnected) { dealsOpen = false; update(); } });
   // AD2: the health strip, folded; a click opens the whole condition (bars, body figure) in a pop-up
@@ -310,7 +311,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const shortEl = h('div', { class: 'short' });
   const sheetLink = h('button', { type: 'button', class: 'hs-btn-text', onclick: () => nav('stats') }, 'Skills and full sheet ›');
   const whoBox = h('section', { class: 'here', 'aria-label': 'Who’s here' }, h('p', { class: 'hs-label' }, 'Who’s here'), who);
-  const sheet = h('aside', { class: 'cs-side', 'aria-label': 'Your character and surroundings' }, vitals, mm.el, whoBox, h('div', { class: 'short-wrap' }, shortEl, sheetLink));
+  const solo = h('span', { class: 'solo', role: 'status' }, 'Solo');
+  const bandBox = h('section', { class: 'here band', 'aria-label': 'Your band' }, h('p', { class: 'hs-label' }, 'Your band', solo), band);
+  const sheet = h('aside', { class: 'cs-side', 'aria-label': 'Your character and surroundings' }, vitals, mm.el, bandBox, whoBox, h('div', { class: 'short-wrap' }, shortEl, sheetLink));
   const wrap = h('div', { class: 'play-wrap sheet-open' }, body, sheet);
   // Watch an agent play: it types each command into the box, then sends it like Send
   const auto = autopilotBar(api, async (text) => {
@@ -417,7 +420,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   let changedParts = new Set<string>(); // parts whose state the last turn changed: the body figure opens once
   // motion: the values the screen showed after the last turn landed, and a narration line that just arrived live
   let shownBefore: ShownValues | null = null, fresh: LogLine | null = null, firstLine: LogLine | undefined;
-  let sheetHtml = '', whoHtml = '', titleHtml = '';
+  let sheetHtml = '', whoHtml = '', bandHtml = '', titleHtml = '';
   // what Who's here, the header and the quick slot showed after the last turn, for their beats (M-36)
   let shownAround: Around | null = null;
   let limit = TURNS_SHOWN;
@@ -645,25 +648,42 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     // AD4: pinned first, then those fighting you, then the rest; the list scrolls when it is long
     const foe = (a: PlayerView['actors'][number]) => !!(a.foe || pv?.player.spar?.opponents.includes(a.name ?? a.label)); // BG-265: beasts too
     const rank = (a: PlayerView['actors'][number]) => (pins.has(a.id) ? 0 : foe(a) ? 1 : a.health && isDownLevel(a.health) ? 3 : 2);
-    const seen = (pv?.actors.filter((a) => a.level === 'full') ?? []).map((a, i) => ({ a, i })).sort((x, y) => rank(x.a) - rank(y.a) || x.i - y.i).map((x) => x.a);
+    const seen = (pv?.actors.filter((a) => a.level === 'full' && !a.band) ?? []).map((a, i) => ({ a, i })).sort((x, y) => rank(x.a) - rank(y.a) || x.i - y.i).map((x) => x.a);
     // C7: a giver with a quest ready to hand in carries a gold check (the words only in its tip)
     const handIn = new Set(s?.quests.filter((q) => q.state === 'ready').map((q) => q.giver) ?? []);
-    const whoKids = seen.length ? seen.map((a) => h('div', { class: 'pp' + (foe(a) ? ' foe' : '') + (pins.has(a.id) ? ' pinned' : ''), role: 'listitem button', 'data-who': cap(a.name ?? a.label), 'data-id': a.id, tabindex: '0', title: 'What you can do to or with them' },
+    // PS-172: how far, if your weapon reaches, and the life stage they look unless adult (AG16, SD3) live in the cell's tip
+    const tipOf = (a: PlayerView['actors'][number]) => [whoDistance(a, pv!), a.age && a.age !== LIFE_STAGES.name('stage_2') ? `looks ${a.age.toLowerCase()}` : ''].filter(Boolean).join(' · ') || 'What you can do to or with them';
+    const statuses = (a: PlayerView['actors'][number], bars: boolean) => h('span', { class: 'sts' },
+      a.health && !bars ? h('span', { class: isDownLevel(a.health) ? 'st down' : 'st warn' }, othersHealthWord(a.health, a.level === 'full'))
+        : a.activityLook ? h('span', { class: 'st' }, a.activityLook) : null,
+      // AT11a: a long action they are at, and how long is left
+      a.doing ? doingChip(a.doing) : null,
+      // MB16: others' morale, only from Afraid down (a band-mate's shows on its bar)
+      a.morale && !bars ? h('span', { class: 'st fear' }, a.morale) : null,
+      // FT17: others' fatigue, only from Exhausted down, as the level word (never points or the breath line)
+      a.fatigue ? h('span', { class: 'st tired', 'data-st': 'fatigue', title: 'How worn out they look' }, a.fatigue) : null,
+      // A13 Read Wounds: their Damaged parts
+      ...(a.damaged ?? []).map((pt) => h('span', { class: 'st warn', title: perkName(PK.read_wounds) }, `${partName(pt).toLowerCase()} damaged`)));
+    // YB3 c: a band-mate in sight shows its health and morale as two thin bars, the level words in their tips
+    const fill = (pos: number, end: number) => Math.max(0, Math.round(100 * (1 - pos / end)));
+    const mateBars = (a: PlayerView['actors'][number]) => h('span', { class: 'mate-bars' },
+      a.health ? h('span', { class: 'cs-hptrack', role: 'img', title: `Health: ${HEALTH_LEVELS.name(a.health)}`, 'aria-label': `Health: ${HEALTH_LEVELS.name(a.health)}` }, h('b', { style: `width:${fill(HEALTH_LEVELS.pos(a.health), HEALTH_LEVELS.pos('incapacitated'))}%` })) : null,
+      a.morale ? h('span', { class: 'cs-hptrack cs-morale', role: 'img', title: `Morale: ${a.morale}`, 'aria-label': `Morale: ${a.morale}` }, h('b', { style: `width:${fill(MORALE_LEVELS.pos(MORALE_LEVELS.keyOf(a.morale) ?? 'calm'), MORALE_LEVELS.pos('broken'))}%` })) : null);
+    const cell = (a: PlayerView['actors'][number]) => h('div', { class: 'pp' + (foe(a) ? ' foe' : '') + (pins.has(a.id) ? ' pinned' : ''), role: 'listitem button', 'data-who': cap(a.name ?? a.label), 'data-id': a.id, tabindex: '0', title: tipOf(a) },
       h('span', { class: 'dot', 'aria-hidden': 'true' }),
       h('b', {}, cap(a.name ?? a.label), handIn.has(a.id) ? h('span', { class: 'q-ready', title: 'A quest for them is ready to hand in', 'aria-label': ', a quest for them is ready to hand in' }, ' ✓') : null), // the name (BG-30's edit had put it inside the comment, so the row lost every name)
-      h('span', { class: 'ds' }, [whoDistance(a, pv!), a.age && a.age !== LIFE_STAGES.name('stage_2') ? `looks ${a.age.toLowerCase()}` : ''].filter(Boolean).join(' · ')), // how far, if your weapon reaches; AG16: the life stage they look, unless adult (SD3)
-      h('button', { type: 'button', class: 'pin', 'aria-pressed': String(pins.has(a.id)), title: pins.has(a.id) ? 'Unpin' : 'Pin to the top', 'aria-label': `${pins.has(a.id) ? 'Unpin' : 'Pin'} ${cap(a.name ?? a.label)}` }, pins.has(a.id) ? '★' : '☆'),
-      h('span', { class: 'sts' },
-        a.health ? h('span', { class: isDownLevel(a.health) ? 'st down' : 'st warn' }, othersHealthWord(a.health, a.level === 'full'))
-          : a.activityLook ? h('span', { class: 'st' }, a.activityLook) : null,
-        // AT11a: a long action they are at, and how long is left
-        a.doing ? doingChip(a.doing) : null,
-        // MB16: others' morale, only from Afraid down
-        a.morale ? h('span', { class: 'st fear' }, a.morale) : null,
-        // FT17: others' fatigue, only from Exhausted down, as the level word (never points or the breath line)
-        a.fatigue ? h('span', { class: 'st tired', 'data-st': 'fatigue', title: 'How worn out they look' }, a.fatigue) : null,
-        // A13 Read Wounds: their Damaged parts
-        ...(a.damaged ?? []).map((pt) => h('span', { class: 'st warn', title: perkName(PK.read_wounds) }, `${partName(pt).toLowerCase()} damaged`))))) : [h('p', { class: 'hs-note' }, 'Nobody in view')];
+      a.band ? null : h('button', { type: 'button', class: 'pin', 'aria-pressed': String(pins.has(a.id)), title: pins.has(a.id) ? 'Unpin' : 'Pin to the top', 'aria-label': `${pins.has(a.id) ? 'Unpin' : 'Pin'} ${cap(a.name ?? a.label)}` }, pins.has(a.id) ? '★' : '☆'),
+      a.band ? mateBars(a) : null,
+      statuses(a, !!a.band));
+    const whoKids = seen.length ? seen.map(cell) : [h('p', { class: 'hs-note' }, 'Nobody in view')];
+    // YB2: band-mates in sight first, then those out of sight, dimmed, with where they were last seen (YB3 c)
+    const mates = pv?.actors.filter((a) => a.level === 'full' && a.band) ?? [];
+    const away = (pv?.lastSeen ?? []).filter((x) => x.band && !mates.some((m) => m.id === x.id));
+    const bandKids = [...mates.map(cell), ...away.map((x) => h('div', { class: 'pp away', role: 'listitem', title: `Last seen in ${x.zoneName}` },
+      h('span', { class: 'dot', 'aria-hidden': 'true' }), h('b', {}, cap(x.name)), h('span', { class: 'sts' }, h('span', { class: 'st' }, x.zoneName))))];
+    solo.hidden = bandKids.length > 0;
+    const bandNow = bandKids.map((k) => k.outerHTML).join('');
+    if (!frozen && bandNow !== bandHtml) { band.replaceChildren(...bandKids); bandHtml = bandNow; }
     // a redraw that changes nothing keeps the old elements, so nothing restarts (M-74)
     const whoNow = whoKids.map((k) => k.outerHTML).join('');
     if (!frozen && whoNow !== whoHtml) { who.replaceChildren(...whoKids); whoHtml = whoNow; }
