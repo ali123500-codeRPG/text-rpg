@@ -10,6 +10,8 @@ numbers are never here: a file names the setting and where it lives.
 - [lore-canon.md](lore-canon.md): decision. What gods, the Thread and essences may and may not be written as.
 - [perk-design.md](perk-design.md): decision. What a 40 perk's extra must change; how perks are named.
 - [playtest-known-intended.md](playtest-known-intended.md): decision. Playtest outcomes confirmed as intended.
+- [save-system-review.md](save-system-review.md): working note. What the save measures and costs, its size
+  ceilings, and what was checked in its failure paths.
 - [process-decisions.md](process-decisions.md): decision. How changes land, where long runs go, why the repo is
   public.
 - [ui-decisions.md](ui-decisions.md): decision. Details panels, viewer search, the look, the map rules.

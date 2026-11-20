@@ -345,3 +345,6 @@ The game files a report at `bugs/new-<time>` (status new) for every bug code it 
 | BG-331 | The Perks tile counted class and other granted perks, but the Perks board drew only ladder, Innate and Linked perks | Thread | Fixed | #1208 |
 | BG-332 | On a carried-on world the floor plans (walls, doorways, roofs, lights, furniture) and ground items were lost | Thread | Fixed | #1206 |
 | BG-333 | The GM page's turn number ran one ahead of the play page's (it showed the next turn) | Thread | Fixed | #1206 |
+| BG-334 | A failed first save in a carried-on world left a story with no save that kept the world taken, so reopening said it was no longer free | Thread | Fixed | #1218 |
+| BG-335 | After a turn failed to save, its story text was saved anyway, so a reload showed a turn the save did not hold (and the Universe day moved on) | Thread | Fixed | #1218 |
+| BG-336 | A failed delete after /undo's head write said there was nothing to undo and kept the pre-undo state on screen | Thread | Open | #1225 |
