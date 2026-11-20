@@ -9,6 +9,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the spec's bug log, docs/spec/bug-log.md, has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-338
+
+**What was wrong:** `/undo` could say "there is no turn to undo" and keep the undone turn on screen while the save had already gone back a turn. `undoTurn` (`src/save/index.ts`) writes the head first (that is the commit), then deletes the undone turn's record and cleans up. All three steps ran in one `guard` marked not committed, so a failed delete after the head write came back as an uncommitted `SaveError`. The `/undo` command (`src/agents/game.ts`) read every uncommitted error as "nothing to undo" and returned without reloading. Reproduced with the whole-turn harness: two turns, then `/undo` with the delete of turn 2's record failing. The head was on turn 1 while the screen stayed on turn 2 with the "no turn to undo" line.
+
+**What was done:** `undoTurn` runs the steps after the head write in their own `guard(..., true)`, as `saveTurn` already does. `/undo` reloads on a committed error, since the turn is undone, and says "no turn to undo" only for `nothing_to_undo` and `no_save`. Any other failure before the commit says the undo could not be saved and that nothing changed. The test store's `failNext` now covers deletes too. Case 407 fails that delete and checks that the head and the screen both go back; it failed before the fix. Siblings checked: `saveTurn` already marks its after-head steps committed. `amendHead` and `loadStory` write the head last. `restoreBackup` and `useBookmark` only reload after their head write, which is reworked with the refused-load recovery (YS1).
+
+**Fixed by:** #1225
+
 ## BG-327
 
 **What was wrong:** Someone the player saw earlier but cannot see now was never drawn on the Map or listed in a zone card, against MAP-45; on the default fake page the slime last seen in the field was missing. PlayerView's `lastSeen` gave each person's zone as the zone's name (`src/views/index.ts`), while every other `zone` in PlayerView, and every reader of it, is the zone's id. The Map filed people under that value and looked them up by id, so no last-seen person was ever found. The same mix-up showed in the action deck: a seller last seen elsewhere was compared by id against a name, and a "last seen in" note fell back on whatever string it got.

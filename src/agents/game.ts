@@ -675,9 +675,13 @@ export function createGame(deps: GameDeps): Game {
           try {
             await save.undoTurn(store, s.storyId);
           } catch (e) {
-            if (!(e instanceof save.SaveError) || e.committed) throw e;
-            lines.push({ turn: s.turn, kind: 'command', text: 'Undo goes back one turn only, and there is no turn to undo.' });
-            return;
+            // committed: the head went back and only the tidy-up failed, so the turn is undone (BG-338)
+            if (!(e instanceof save.SaveError)) throw e;
+            if (!e.committed) {
+              const none = e.code === 'nothing_to_undo' || e.code === 'no_save';
+              lines.push({ turn: s.turn, kind: 'command', text: none ? 'Undo goes back one turn only, and there is no turn to undo.' : `The undo could not be saved (${e.message}); nothing changed.` });
+              return;
+            }
           }
           abortBackground();
           state = (await save.loadStory(store, s.storyId, getLibrary())).state;
