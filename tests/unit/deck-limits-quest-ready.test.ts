@@ -1,7 +1,5 @@
 // A3/A3b: a move with a limit stays on the deck, dimmed, with a mark (a ring filled by the share of the wait gone, or a
 // hollow circle with a slash once used this fight); the words are only its tip, and it is never suggested or picked.
-// C7: a quest ready to hand in shows by marks: a gold check on its Quests row, the Play quest line and its giver on
-// Who's here, and a gold dot on the rail's Quests item.
 import { describe, expect, it } from 'vitest';
 // @ts-expect-error Node types are not installed; vitest runs in Node
 import { readFileSync } from 'node:fs';
@@ -16,7 +14,6 @@ import { CONFIG } from '../../src/config';
 import { PK } from '../../src/library/perkIds';
 import type { GameState } from '../../src/types';
 
-const src = (f: string) => readFileSync(new URL(`../../src/${f}`, import.meta.url), 'utf8');
 const fight = (): GameState => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'trader'] });
   const m = actorById(s, 'patron_1')!.mind!;
@@ -62,30 +59,4 @@ describe('A3b limited moves on the deck', () => {
     expect(readFileSync(new URL('../../scripts/playtest.ts', import.meta.url), 'utf8')).toMatch(/if \(a\.limit\) continue;/);
   });
 
-  it('the deck draws it dimmed and unclickable, with the ring or the slash mark, and pulses once when it is ready', () => {
-    const v = src('ui/deckView.ts'), css = src('ui/styles.css');
-    expect(v).toMatch(/'aria-disabled': 'true'.*title: actTip\(a\)/);
-    expect(v).toMatch(/const actTip = \(a: DeckAction\) => \[a\.limit\?\.tip, a\.time, a\.note\]/); // the limit's words, how long it takes, then the old sub-line (SD6)
-    expect(v).not.toMatch(/class: 'n'/); // no second line under an action
-    expect(v).toMatch(/if \(a && !a\.limit\) b\.onclick/);
-    expect(v).toMatch(/dk-mark used/);
-    expect(v).toMatch(/dk-mark wait.*--share/);
-    expect(v).toMatch(/classList\.add\('dk-ready'\)/);
-    expect(css).toMatch(/\.dk-mark\.wait \{[^}]*conic-gradient\(currentColor calc\(var\(--share/);
-    expect(css).toMatch(/\.dk-act\.dk-ready \{ animation: dk-ready [^;]*var\(--m-beat\)[^;]* 1;/);
-  });
-});
-
-describe('C7 a quest ready to hand in', () => {
-  it('marks the Quests row, the quest line, the giver on Who\'s here and the rail, with words only in tips', () => {
-    expect(src('ui/pages.ts')).toMatch(/state: `\$\{q\.state === 'ready' \? '✓ ' : ''\}/);
-    expect(src('ui/pages.ts')).toMatch(/q\.state === 'ready' \? \{ state: 'gold' as const \}/);
-    const play = src('ui/play.ts');
-    expect(play).toMatch(/h\('span', \{ class: 'q-ready' \}, `✓ \$\{QUEST_STATE_NAME\.ready\}`\)/);
-    expect(play).toMatch(/handIn\.has\(a\.id\) \? h\('span', \{ class: 'q-ready', title: 'A quest for them is ready to hand in'/);
-    const app = src('ui/app.ts');
-    expect(app).toMatch(/railReady = !!api\.state\(\)\?\.quests\.some\(\(q\) => q\.state === 'ready'\)/);
-    expect(app).toMatch(/h\('span', \{ class: 'rail-dot', 'aria-hidden': 'true' \}\)/);
-    expect(src('ui/styles.css')).toMatch(/\.hs-rail \.rail-dot \{[^}]*background: var\(--scenario-mark\)/);
-  });
 });

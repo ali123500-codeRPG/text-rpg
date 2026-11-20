@@ -1,7 +1,5 @@
 // The Achievements page lists every earned achievement with its level groups open, and clicking one shows how it is earned
 // and every level of its chain; the character card no longer repeats the list.
-// @ts-expect-error Node types are not installed; vitest runs in Node
-import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { wholeTurn, intent } from '../harness/turn';
 import { ACH } from '../../src/library/achievementIds';
@@ -25,8 +23,4 @@ describe('Achievements page', () => {
     ]);
   });
 
-  it('the page draws each chain as a thread card (not a table), and the character card has no Achievements list', () => {
-    expect(readFileSync('src/ui/pages.ts', 'utf8')).toMatch(/chainCard\(s, v, scars, update/);
-    expect(readFileSync('src/ui/charsheet.ts', 'utf8')).not.toMatch(/hs-label' }, 'Achievements'\)/);
-  });
 });

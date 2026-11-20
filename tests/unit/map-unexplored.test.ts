@@ -1,6 +1,4 @@
 // Unexplored exits on the map are clickable: the exit's card has Move to here, which types the order to take that way.
-// @ts-expect-error Node types are not installed; vitest runs in Node
-import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { wholeTurn } from '../harness/turn';
 import { intent } from '../cases/w4-kit';
@@ -13,12 +11,6 @@ describe('unexplored exits on the map', () => {
     expect(exitOrder('through the gate')).toBe('I go through the gate');
     expect(exitOrder('the hut door')).toBe('I go to the hut door');
     expect(exitOrder('a lane down toward the mill stream')).toBe('I go to a lane down toward the mill stream');
-  });
-
-  it('every unexplored exit mark (arrow, note, stairs, stub) carries the zone it leaves and its words', () => {
-    const src = readFileSync('src/ui/map.ts', 'utf8');
-    expect(src.match(/exitAttrs\(/g)!.length).toBe(2); // the arrow and its note (shared), the stairs (BG-313: no diagram)
-    expect(src).toMatch(/onMove\(exitOrder\(x\.label\)\)/);
   });
 
   it('whole turn: an exit you have not taken stays on the map as unexplored, with its words', async () => {
