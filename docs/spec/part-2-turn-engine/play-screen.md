@@ -442,7 +442,9 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 - **PS-273** Below the total a closed Ratings list shows every compound row and skill group with anything in it, in
   skill points, with its gear portion (GR7).
 - **PS-274** Skill rows: each skill is one line: its icon (and any tag, flaw, used or marked sign), its true value, the
-  bar, then its learning window. The skill's name, with its SKILL\_SUB note ("sets HP"), is the row's tip and accessible
+  bar, then its learning window as a bare range (a skill learned through another, Riposte via Parry, names it in the
+  range's tip). The columns are fixed, with room kept for two marks whether a skill has them or not, so every bar in a
+  band is the same length. The skill's name, with its SKILL\_SUB note ("sets HP"), is the row's tip and accessible
   name, never a line of its own.
 - **PS-275** When the true value differs from raw, the value gets a dotted underline and the raw value shows in a small
   card beside it only on hover or keyboard focus.
@@ -450,8 +452,9 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
   and its whole number; the name, exact value and gear portion are the tip and accessible name (src/ui/power.ts
   ratingIcons; icons in scripts/icons.mjs).
 - **PS-277** Every skill row starts with the skill's icon in place of its name, tinted its tree's colour (SKILL\_ICON in
-  src/ui/itemIcons.ts; a skill shares an item or class icon where one fits). The tree bands are at least 160 px wide,
-  so more trees sit in one row (six at 1600 px), and a band's heading shows its tree total as a bare number, with
+  src/ui/itemIcons.ts; a skill shares an item or class icon where one fits). The tree bands are at least 190 px wide,
+  so more trees sit in one row (five at 1600 px); a band's heading starts with its tree's icon, drawn large (TREE\_ICON
+  in src/ui/itemIcons.ts), and shows its tree total as a bare number, with
   "points in this tree" as its tip, so it stays on one line.
 - **PS-278** Each section tile under the Character page (Essences, Perks, Gear, Personality) shows its icon before its
   label (the tile_ picks in scripts/icons.mjs).

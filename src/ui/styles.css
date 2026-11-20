@@ -490,15 +490,19 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .cs-gear { border-top: 1px solid var(--border); padding-top: 14px; display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
 .cs-gear .cs-item { color: var(--text); font-weight: 600; text-decoration: underline; text-decoration-color: var(--border); text-underline-offset: 3px; }
 .cs-gear .cs-item:hover { color: var(--accent); }
-.cs-trees { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--space-4) var(--space-4); }
+.cs-trees { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: var(--space-4) var(--space-4); }
 .cs-tree { display: grid; gap: 10px; padding-top: var(--space-3); border-top: 2px solid var(--t); align-content: start; }
-.cs-tree-h { display: flex; justify-content: space-between; align-items: baseline; }
-.cs-tree-h b { font-size: 15px; }
+.cs-tree-h { display: flex; align-items: center; gap: var(--space-2); }
+.cs-tree-h .trico { flex: none; width: 32px; height: 32px; color: var(--t); cursor: default; }
+.cs-tree-h .trico svg { width: 100%; height: 100%; display: block; }
+.cs-tree-h b { flex: 1; min-width: 0; font-size: 15px; }
 .cs-tree-h span { color: var(--muted); font-size: 13px; white-space: nowrap; cursor: help; }
 .cs-tree-h .lock { margin-left: 6px; cursor: help; }
 /* two lines per skill so the bar always gets the tree's full width: name and value, then the bar and its learning window */
-.cs-sk { display: grid; grid-template-columns: auto 2.5ch minmax(0, 1fr) auto; grid-template-areas: "n num bar lwn"; gap: var(--space-2); align-items: center; }
-.cs-sk .n { grid-area: n; display: flex; align-items: center; gap: 2px; } .cs-sk .num { grid-area: num; } .cs-sk .cs-bar { grid-area: bar; } .cs-sk .lwn { grid-area: lwn; }
+/* fixed columns, so every bar in a band has the same length: room for the icon and two marks, a 3-digit value, and a range up to "100–120" */
+.cs-sk { display: grid; grid-template-columns: 50px 3ch minmax(0, 1fr) 7ch; grid-template-areas: "n num bar lwn"; gap: 6px; align-items: center; }
+.cs-sk .n { grid-area: n; display: flex; align-items: center; gap: 2px; }
+.cs-sk .n .mk-i { width: 14px; height: 14px; } .cs-sk .num { grid-area: num; } .cs-sk .cs-bar { grid-area: bar; } .cs-sk .lwn { grid-area: lwn; }
 .cs-sk .skico { display: block; width: 20px; height: 20px; color: var(--t); }
 .cs-sk .skico svg { width: 100%; height: 100%; display: block; }
 .cs-sk .n small { display: block; font-weight: 400; font-size: 13px; color: var(--faint); }
