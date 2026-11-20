@@ -19,7 +19,7 @@ Every turn happens at one node of a location tree (the place of the player's zon
 | History facts | What happened ("the brawl broke the north wall") | Append-only, past tense, never edited |
 | Player memory | The last value the player saw per slot, and when | Lets narration avoid "knowing" about a change the character never saw |
 
-Whether every slot tracks player memory, or only narrated slots, is deferred.
+State slots and the player memory of them are not built yet: the fields exist and nothing writes them (D-68, parked with the living world, D-67). Whether every slot tracks player memory, or only narrated slots, is decided then. A wall broken through is kept as an opening in the floor plan instead (BW11 a).
 
 **Facts and promotion.** A fact is saved once, at the node where it happened, linked to the entities it involves. Location facts are things the player witnessed or was told; world truth the player doesn't know stays in the hidden store. Promotion copies a short headline to an ancestor node:
 
