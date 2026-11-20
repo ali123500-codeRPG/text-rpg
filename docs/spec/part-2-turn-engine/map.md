@@ -22,7 +22,9 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   is one connected footprint.
 - **MAP-13** A place's footprint is its own ground: the seen ground of its own zones, each padded, joined into one
   outline with square corners. It never tells how far unseen ground runs and never covers another place's zone. The
-  drawn outline and the checker (`checkStage`, MAP-18) use this one shape. Its title sits outside the footprint, above
+  drawn outline and the checker (`checkStage`, MAP-18) use this one shape: the outline is drawn from the ground seen, and the
+  checker reads the whole ground of a building's indoor zones, where a zone of somewhere else that cuts the shape in two
+  runs through it (MAP-12) (`footprint`, src/ui/mapPlan.ts). Its title sits outside the footprint, above
   the top-left corner (a title wider than the place may run out past that corner) (CO9; WF8 a; RM5 a, RM7 a; Ali, 20/11/2026, Questions hub page "Map rules revision").
 - **MAP-14** Each doorway, gap, window or stair is drawn once, at its own point on its wall, never at the middle of a
   shared edge and never by a compass word: one mark per opening, with a barrier's padlock, bolt or cross in its place.

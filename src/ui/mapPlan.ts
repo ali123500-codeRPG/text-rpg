@@ -40,7 +40,8 @@ export const roughMeasure: Measure = (t, k, px) => t.length * (px ?? TEXT[k].siz
 /** what a zone is to the character (MAP-33): where it is, been in, or only seen across an exit */
 export type ZoneState = 'current' | 'explored' | 'seen';
 export type SZone = { z: MapZone; box: Box; state: ZoneState };
-export type SPlace = { id: string; name: string; box: Box; title: SText };
+/** box: the box round its outline; outline: its footprint as an SVG path (MAP-13) */
+export type SPlace = { id: string; name: string; box: Box; outline: string; title: SText };
 export type SText = Box & { text: string; full: string; cut: boolean; lines: string[] };
 /** a zone's name, drawn behind every mark inside its zone at `size` px (MZ2) */
 export type SLabel = SText & { zoneId: string; placement: 'inside'; size: number; line: number };
@@ -280,25 +281,21 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean): Scene {
     }
   }
 
-  // ---- place outlines and titles (MAP-13): the box around the place's zones plus padding, its title above the top-left corner
+  // ---- place outlines and titles (MAP-13): the place's own ground, padded and joined, its title above the top-left corner
   const places: SPlace[] = [];
   for (const p of inp.places) {
     const zs = zones.filter((x) => p.zones.some((z) => z.id === x.z.id));
-    // BG-313: a place's box goes round only the ground seen in it, so it never tells how far an unseen yard runs
+    // BG-313: a place's outline goes round only the ground seen in it, so it never tells how far an unseen yard runs
     const seenBoxes = zs.flatMap((x) => (x.z.seen ? x.z.seen.map((r) => ({ x0: r2(r.x0 * PX_PER_M * k), x1: r2(r.x1 * PX_PER_M * k), y0: r2(-r.y1 * PX_PER_M * k), y1: r2(-r.y0 * PX_PER_M * k) })) : [x.box]));
-    if (!zs.length || !seenBoxes.length) continue;
-    // padded on each side only as far as it stays off zones of somewhere else (MAP-12: a street is never drawn inside a building)
-    const pad = 6 + 4 * Math.max(0, 3 - p.depth), fb = union(seenBoxes), others = zones.filter((x) => !zs.includes(x));
-    const box = { ...fb };
-    for (const [key, sign] of [['x0', -1], ['y0', -1], ['x1', 1], ['y1', 1]] as const) {
-      for (const q of [pad, pad / 2, 0]) { const t = { ...box, [key]: fb[key] + sign * q }; if (q === 0 || !others.some((o) => hit(o.box, t))) { box[key] = t[key]; break; } }
-    }
+    const fp = footprint(seenBoxes, zones.filter((x) => !zs.includes(x)).map((x) => x.box), placePad(p.depth)), top = topEdge(fp);
+    if (!top) continue;
+    const box = union(cellsOf(fp));
     const full = p.name.toUpperCase(), { w, h } = textBox(full, 'title');
     const spots: Box[] = [];
-    for (let dx = 0; dx <= Math.max(0, box.x1 - box.x0 - w); dx += 12) spots.push({ x0: box.x0 + dx, y0: box.y0 - h - 3, x1: box.x0 + dx + w, y1: box.y0 - 3 });
-    // a title wider than its place may run out past its left corner, up to ending at the right one
-    for (let dx = 12; dx < w - (box.x1 - box.x0) + 12; dx += 12) { const x0 = Math.max(box.x1 - w, box.x0 - dx); spots.push({ x0, y0: box.y0 - h - 3, x1: x0 + w, y1: box.y0 - 3 }); }
-    for (const dy of [h + 3, 2 * (h + 3)]) spots.push({ x0: box.x0, y0: box.y0 - h - 3 - dy, x1: box.x0 + w, y1: box.y0 - 3 - dy });
+    for (let dx = 0; dx <= Math.max(0, top.x1 - top.x0 - w); dx += 12) spots.push({ x0: top.x0 + dx, y0: top.y - h - 3, x1: top.x0 + dx + w, y1: top.y - 3 });
+    // a title wider than its outline's top edge may run out past its left corner, up to ending at the right one
+    for (let dx = 12; dx < w - (top.x1 - top.x0) + 12; dx += 12) { const x0 = Math.max(top.x1 - w, top.x0 - dx); spots.push({ x0, y0: top.y - h - 3, x1: x0 + w, y1: top.y - 3 }); }
+    for (const dy of [h + 3, 2 * (h + 3)]) spots.push({ x0: top.x0, y0: top.y - h - 3 - dy, x1: top.x0 + w, y1: top.y - 3 - dy });
     spots.push({ x0: box.x0, y0: box.y1 + 3, x1: box.x0 + w, y1: box.y1 + 3 + h });
     const pick = spots.find((b) => free(b) && !overZone(b));
     let title: SText;
@@ -308,7 +305,7 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean): Scene {
       const alt = spots.map((b) => ({ ...b, x1: b.x0 + tw })).find((b) => free(b)) ?? { ...spots[0], x1: spots[0].x0 + tw };
       title = { ...alt, text, full, cut: text !== full, lines: [text] };
     }
-    places.push({ id: p.id, name: p.name, box, title });
+    places.push({ id: p.id, name: p.name, box, outline: footprintPath(fp), title });
     take(title, 'title');
     used.add('place');
   }
@@ -405,8 +402,76 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean): Scene {
   return { zones, places, labels, doors, exits, stairs, furniture, tokens, dropped, lost, used, bounds };
 }
 
+/** a place's padding round its own ground, in screen pixels: wider for an outer place, so an inner one sits inside it */
+const placePad = (depth: number) => 6 + 4 * Math.max(0, 3 - depth);
+/** MAP-13: a place's footprint, its own ground: each box of `own` padded by `pad`, joined, less any part over `others` (the
+ *  zones of somewhere else), as the cells of the grid their sides make; on[j][i] is the cell in row j, column i */
+export type Footprint = { xs: number[]; ys: number[]; on: boolean[][] };
+export function footprint(own: Box[], others: Box[], pad: number): Footprint {
+  const grown = own.map((b) => ({ x0: b.x0 - pad, y0: b.y0 - pad, x1: b.x1 + pad, y1: b.y1 + pad }));
+  const near = others.filter((o) => grown.some((g) => hit(g, o)));
+  const lines = (a: 'x0' | 'y0', b: 'x1' | 'y1') => [...new Set([...grown, ...near].flatMap((q) => [q[a], q[b]]))].sort((u, v) => u - v);
+  const xs = lines('x0', 'x1'), ys = lines('y0', 'y1');
+  const pt = (x: number, y: number, q: Box) => x > q.x0 && x < q.x1 && y > q.y0 && y < q.y1;
+  const on = ys.slice(1).map((_, j) => xs.slice(1).map((__, i) => {
+    const x = (xs[i] + xs[i + 1]) / 2, y = (ys[j] + ys[j + 1]) / 2;
+    return grown.some((q) => pt(x, y, q)) && !near.some((q) => pt(x, y, q));
+  }));
+  return { xs, ys, on };
+}
+const cellBox = (f: Footprint, i: number, j: number): Box => ({ x0: f.xs[i], y0: f.ys[j], x1: f.xs[i + 1], y1: f.ys[j + 1] });
+const cellsOf = (f: Footprint): Box[] => f.on.flatMap((row, j) => row.flatMap((c, i) => (c ? [cellBox(f, i, j)] : [])));
+/** the footprint's top side: the left end of its topmost run is the outline's top-left corner, where its title sits */
+function topEdge(f: Footprint): { x0: number; x1: number; y: number } | undefined {
+  const j = f.on.findIndex((row) => row.includes(true));
+  if (j < 0) return undefined;
+  const i0 = f.on[j].indexOf(true);
+  let i1 = i0;
+  while (f.on[j][i1 + 1]) i1++;
+  return { x0: f.xs[i0], x1: f.xs[i1 + 1], y: f.ys[j] };
+}
+/** the footprint's outline as an SVG path: one closed ring of square corners round each piece (and each hole) */
+export function footprintPath(f: Footprint): string {
+  const at = (i: number, j: number) => !!f.on[j]?.[i];
+  const next = new Map<string, [number, number][]>();
+  const edge = (a: [number, number], b: [number, number]) => { const key = a.join(); if (!next.has(key)) next.set(key, []); next.get(key)!.push(b); };
+  f.on.forEach((row, j) => row.forEach((c, i) => {
+    if (!c) return;
+    if (!at(i, j - 1)) edge([i, j], [i + 1, j]);
+    if (!at(i + 1, j)) edge([i + 1, j], [i + 1, j + 1]);
+    if (!at(i, j + 1)) edge([i + 1, j + 1], [i, j + 1]);
+    if (!at(i - 1, j)) edge([i, j + 1], [i, j]);
+  }));
+  let d = '';
+  for (const [start, out] of next) while (out.length) {
+    const ring: [number, number][] = [];
+    for (let cur = out.pop()!; ; cur = next.get(cur.join())!.pop()!) { ring.push([f.xs[cur[0]], f.ys[cur[1]]]); if (cur.join() === start) break; }
+    // only the corners: a point in line with both its neighbours is dropped
+    const corners = ring.filter((p, n) => { const a = ring[(n + ring.length - 1) % ring.length], b = ring[(n + 1) % ring.length]; return !((a[0] === p[0] && p[0] === b[0]) || (a[1] === p[1] && p[1] === b[1])); });
+    d += `M${corners.map((p) => p.join(' ')).join('L')}Z`;
+  }
+  return d;
+}
+/** the footprint's cells numbered by the piece each belongs to (cells that touch along a side are one piece; -1: off) */
+function piecesOf(f: Footprint): { n: number; of: number[][] } {
+  const of = f.on.map((row) => row.map(() => -1));
+  let n = 0;
+  f.on.forEach((row, j) => row.forEach((c, i) => {
+    if (!c || of[j][i] >= 0) return;
+    const todo = [[i, j]];
+    of[j][i] = n;
+    while (todo.length) {
+      const [a, b] = todo.pop()!;
+      for (const [x, y] of [[a + 1, b], [a - 1, b], [a, b + 1], [a, b - 1]]) if (f.on[y]?.[x] && of[y][x] < 0) { of[y][x] = n; todo.push([x, y]); }
+    }
+    n++;
+  }));
+  return { n, of };
+}
+
 /** checks the drawn checker can't make from boxes alone, run beside it in dev views: MAP-10 every zone on the 1 m grid, and
- *  MAP-12 no zone of somewhere else inside a building's footprint (the box around its indoor zones on this floor) */
+ *  MAP-12 a building in one piece: no zone of somewhere else over its rooms, and its footprint (MAP-13, of its indoor zones'
+ *  whole ground, as drawn at zoom 1) never cut in two by one */
 export function checkStage(zones: MapZone[], places: PlanPlace[]): string[] {
   const out: string[] = [];
   const whole = (v: number) => Math.abs(v - Math.round(v)) < 1e-6;
@@ -415,14 +480,22 @@ export function checkStage(zones: MapZone[], places: PlanPlace[]): string[] {
     if (r && !(whole(r.w) && whole(r.d) && whole(r.x - r.w / 2) && whole(r.y - r.d / 2))) out.push(`MAP-10 zone ${z.id} is off the 1 m grid (${r.w} × ${r.d} m at ${r.x}, ${r.y})`);
   }
   for (const p of places) {
-    const inner = p.zones.filter((z) => !z.outdoor && z.rect);
+    const inner = p.zones.filter((z) => !z.outdoor && z.rect).map((z) => zoneBox(z, 1));
     if (!inner.length) continue;
-    const fp = union(inner.map((z) => zoneBox(z, 1)));
-    for (const z of zones) if (z.rect && !p.zones.includes(z) && hit(zoneBox(z, 1), { x0: fp.x0 + 0.5, y0: fp.y0 + 0.5, x1: fp.x1 - 0.5, y1: fp.y1 - 0.5 })) out.push(`MAP-12 zone ${z.id} runs through the building ${p.id}`);
+    const others = zones.filter((z) => z.rect && !p.zones.includes(z)), fp = footprint(inner, others.map((z) => zoneBox(z, 1)), placePad(p.depth)), parts = piecesOf(fp);
+    const through = new Set<string>();
+    for (const z of others) {
+      const b = zoneBox(z, 1);
+      if (inner.some((q) => hit(b, { x0: q.x0 + 0.5, y0: q.y0 + 0.5, x1: q.x1 - 0.5, y1: q.y1 - 0.5 }))) through.add(z.id);
+      // a zone that touches two pieces of the footprint cuts the building in two
+      const touched = new Set(fp.on.flatMap((row, j) => row.flatMap((c, i) => (c && hit(b, cellBox(fp, i, j), 1) ? [parts.of[j][i]] : []))));
+      if (touched.size > 1) through.add(z.id);
+    }
+    for (const id of through) out.push(`MAP-12 zone ${id} runs through the building ${p.id}`);
+    if (!through.size && parts.n > 1) out.push(`MAP-12 the building ${p.id} is in ${parts.n} pieces`);
   }
   return out;
 }
-
 /** MAP-15: the known zones of a map that can't be reached from `start` through the links between them (rpg-map checkReach) */
 export function checkReach(zoneIds: string[], links: [string, string][], startId: string): string[] {
   const adj = new Map(zoneIds.map((id) => [id, [] as string[]]));
