@@ -84,7 +84,8 @@ is fixed in your PR and named there; if you cannot tell which side is right, it 
   `docs/spec/part-2-turn-engine/play-screen.md` and `play-screen-motion.md`.
 - `docs/systems.md`: start a task here. Each game system's spec topics, decision history, source files and nearest
   tests.
-- `docs/bug-fix-log.md`: what each fixed bug was and what was done. Newest first.
+- `docs/bug-fix-log.md`: what each fixed bug was and what was done. Newest first; entries up to BG-326 are in
+  `docs/bug-fix-log-archive.md`.
 - `docs/memory/README.md`: index of topic files with the owner's decisions and agents' checked working notes.
 - `docs/glossary.md`: IDs, names and abbreviations.
 - `docs/skills.md`: every skill the project uses and where its master copy lives.
