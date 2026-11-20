@@ -14,6 +14,13 @@ describe('tip delay (A7)', () => {
     expect(src('app.ts')).toMatch(/rail\.addEventListener\('focusin', \(e\) => tipOn\(\(\) => showTip\(e\), true\)\)/);
   });
 
+  it("the minimap's hover text is the game's tip, not the browser's title tip", () => {
+    const mm = src('minimap.ts');
+    expect(mm).toMatch(/tipOn\(\(\) => showTip\(t, at\.x, at\.y\)\)/);
+    expect(mm).toMatch(/svg\.querySelectorAll\('title'\)/);
+    expect(mm).not.toMatch(/type: 'button', title,/);
+  });
+
   it('the CSS tips wait on hover and not on focus', () => {
     const css = src('styles.css');
     expect(css).toMatch(/\.cs-tipped:hover \.cs-tip, \.cs-sk:hover \.raw-tip \{ transition-delay: var\(--m-tip-delay\); \}/);

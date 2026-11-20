@@ -166,6 +166,22 @@ describe('play page smoke (TQ7)', () => {
     expect(errors).toEqual([]);
   });
 
+  it("BG-326: the minimap's hover text is the game's tip, after --m-tip-delay (150 ms), not the browser's title tip", async () => {
+    const mm = page.locator('.cs-side .mm');
+    expect(await mm.locator('title, [title]').count()).toBe(0);
+    const tip = mm.locator('[role="tooltip"]');
+    await mm.locator('.mm-svg').hover(); // the middle: your token lets the pointer through to the room you stand in
+    await page.waitForTimeout(80);
+    expect(await tip.isVisible()).toBe(false); // the minified build writes 150ms as .15s: read without its unit, it showed at once
+    await expect.poll(() => tip.isVisible(), { timeout: 1000 }).toBe(true);
+    expect(await tip.innerText()).toMatch(/^.+: \d+ × \d+ m$/);
+    await page.getByRole('button', { name: 'Zoom in' }).hover(); // the next tip after one shows at once
+    expect(await tip.innerText()).toBe('Zoom in');
+    await page.mouse.move(5, 5);
+    expect(await tip.isVisible()).toBe(false);
+    expect(errors).toEqual([]);
+  });
+
   it('SD4–SD7: Play shows, it does not tell: icon switches, no state words beside the bars, no sub-lines or help lines', async () => {
     const tools = page.locator('.title-tools');
     for (const name of ['Watch an agent play', 'Show rolls', 'Narration: Normal', 'Sound']) expect(await tools.getByRole('button', { name, exact: true }).locator('svg').count()).toBe(1);

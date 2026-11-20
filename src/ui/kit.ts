@@ -1,3 +1,4 @@
+import { ms } from './motion';
 // Small DOM helpers and the shared HISAB pieces: readout tiles, visibility tiles, grouped tables, side panel.
 type Attrs = Record<string, unknown>;
 /** the parts of the artifact runtime's comments capability the pages use: a comment sent to Claude wakes a thread */
@@ -165,7 +166,7 @@ function dataRow(r: TRow, cols: Col[], onField: (row: TRow, key: string) => void
 /** A7: a hover tip waits --m-tip-delay (150 ms); keyboard focus (`now`) shows it at once, and so does hovering while
  *  another tip is open or has just closed, so moving along a row of items doesn't wait each time. Leaving hides at once */
 let tipUp = false, tipDown = -1e9, tipWait = 0;
-const tipDelay = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--m-tip-delay')) || 150;
+const tipDelay = () => ms('--m-tip-delay'); // BG-326: ms() reads the unit; the minified build writes 150ms as .15s
 export function tipOn(show: () => void, now = false): void {
   clearTimeout(tipWait);
   const go = () => { tipUp = true; show(); };
