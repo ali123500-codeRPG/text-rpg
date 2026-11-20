@@ -150,7 +150,7 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 - **PS-102** Cards and pop-ups: tiles and the Character page's character card sit flat on the sky with no box and no
   lines. Space alone parts them, a hover tints the tile under the pointer, and a lit tile shows its figure in its colour
   (HS7; Ali: "I hate your stupid tile boxes", then "stupid lines").
-- **PS-103** Pop-ups stay as built and movable, and so do the game-moment cards (gains, perk unlocked, strike card)
+- **PS-103** Pop-ups stay as built and movable, and so do the game-moment cards (gains, perk unlocked, hit cards)
   (HS7; Ali: "the pop-up is nice").
 - **PS-104** The Play column has no extra veil of its own (HS7; Ali: not transparent "for no reason at all").
 - **PS-105** Design changes use the design skills in proportion to the change, as `docs/instructions.md` section 7
@@ -314,20 +314,27 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 - **PS-197** An NPC's own gear in its view says when the gear is beyond its skill and by how many outcome steps, so it
   can choose its fists or another weapon (OwnGearView.beyondYou).
 
-#### Strike card
+#### Hit cards
 
-- **PS-200** When the player's own blow lands (grazed or better), a card rises over the story as the turn lands, before
-  the prose (after the gains moment when one opens) (Ali, 13/11/2026: "hitting someone is not satisfying"; BF66).
-- **PS-201** It shows the outcome in large letters, "Your arming sword · the slime's body", and what the player saw it
-  change ("The slime is Wounded") (LineCheck.strike: the combat packet's target, weapon and visible changes).
+- **PS-200** Every blow that lands (grazed or better) with the player in it, the player's own and every one on the
+  player, gets a card over the story as the turn lands, before the prose (after the gains moment when one opens), one at
+  a time in the order the blows fell (Ali, 13/11/2026: "hitting someone is not satisfying"; BF66. Ali, 20/11/2026: "I want
+  them to show in sequence for each hit", "show every hit I'm involved in, whether I'm hitting or being hit"; #1209).
+- **PS-201** A card shows the outcome in large letters, who struck with what and where ("Your arming sword · the slime's
+  body", "The slime's slam · your right arm"), and what the player saw it change ("The slime is Wounded")
+  (LogLine.hits: the combat packet's actor, target, weapon, location and visible changes, all as words).
 - **PS-202** Tiers by outcome: a graze only arrives; a full hit draws a slash across the card and pulses the word; a
   heavy hit (warning colour) or crushing hit (danger colour) adds the hit-stop on the word and a short shake of the card
-  only.
-- **PS-203** It lives a fixed --m-strike (1600 ms) whatever the turn held, takes no pointer events, and is hidden from
-  screen readers (the results row carries the same words).
-- **PS-204** It runs on its own clock: a skip (M-12) only lands its motion and never removes it (BF66; src/ui/play.ts
-  strikeCard).
-- **PS-205** The fake page's "attack", "attack light" and "attack hard" show the heavy, full and crushing cards.
+  only. A blow on the player is in the danger colour (M-20).
+- **PS-203** The cards come --m-trail apart, and past --m-results-cap the rest land together, so only how many blows
+  landed sets the length (M-03). Each new card takes the stage and the ones before it fold to one line above it, every
+  word kept. They sit over the foot of the story, where the results rows they repeat are, take no pointer events, and
+  are hidden from screen readers (the results rows carry the same words, M-34).
+- **PS-204** They stay until the player clicks the story once nothing moves (Ali, 20/11/2026: "they should only disappear
+  when I click, so I still see them if I left the game on"); a click while anything moves only skips (M-12), which lands
+  every card at once. Sending the next turn puts them away (src/ui/play.ts hitCards).
+- **PS-205** The fake page's "attack", "attack light" and "attack hard" show a crushing hit on the player and then the
+  player's heavy, full or crushing hit.
 
 #### Undo, story list and out-of-character notices
 
@@ -338,6 +345,8 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 - **PS-212** It draws the last 50 turns with a "Show earlier turns" button, and a redraw never closes an opened fold.
 - **PS-213** Out-of-character notices: the scenario-planning failure marker (Agent Weaver), the rate-limit notice and
   the stop-play message (Leak prevention, validation and failure handling).
+- **PS-214** A turn that lands opens at its start, the player's order and then the prose, so it can be read from the top
+  while it reveals (M-10); the story stays at its foot only while a turn runs (BG-335).
 
 #### Character page as one screen
 

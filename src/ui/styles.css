@@ -31,7 +31,7 @@
   /* motion (Motion Rules Review M-50): every duration and easing on the play screen comes from these */
   --m-feedback: 120ms; --m-state: 200ms; --m-beat: 220ms; --m-sentence: 180ms; --m-reveal-cap: 1500ms; --m-stagger: 350ms;
   --m-results-cap: 3500ms; --m-count: 600ms; --m-trail: 700ms; --m-scenario: 650ms; --m-fall: 1400ms; --m-honor: 900ms;
-  --m-hold: 80ms; --m-strike: 1600ms; --m-shake: 280ms; --m-pulse-step: 20ms; --m-pulse-max: 290ms; --m-ghost-hold: 250ms; --m-gain-gap: 300ms; --m-gains-pace: 2; /* the gains moment runs at this multiple of every duration */ --m-gains-min: 10000ms; /* and lasts at least this long, unless skipped */
+  --m-hold: 80ms; --m-shake: 280ms; --m-pulse-step: 20ms; --m-pulse-max: 290ms; --m-ghost-hold: 250ms; --m-gain-gap: 300ms; --m-gains-pace: 2; /* the gains moment runs at this multiple of every duration */ --m-gains-min: 10000ms; /* and lasts at least this long, unless skipped */
   --m-tip-delay: 150ms; /* A7: a hover tip waits this; focus shows it at once */
   --m-ease: cubic-bezier(0.16, 1, 0.3, 1); --m-ease-exit: cubic-bezier(0.4, 0, 1, 1);
   color-scheme: dark;
@@ -1410,12 +1410,19 @@ button.eq-name:focus-visible { outline: 2px solid var(--accent); outline-offset:
 /* SY1: Mentally steady beside Morale, in the morale violet; it lasts until the next morale loss */
 .cs-steady { margin-left: var(--space-2); padding: 0 8px; border: 1px solid color-mix(in srgb, var(--c5) 60%, transparent); border-radius: var(--r-pill); font-size: 13px; font-weight: 600; color: var(--c6); white-space: nowrap; }
 
-/* the strike card: the player's own blow that landed, over the story for --m-strike, never in the way (no pointer events) */
-.strike { grid-area: 1 / 1; align-self: start; justify-self: center; z-index: 6; position: relative; overflow: hidden; pointer-events: none; margin-top: clamp(24px, 10vh, 120px);
-  min-width: min(360px, 90%); max-width: min(560px, 92%); padding: var(--space-3) var(--space-6) var(--space-4); text-align: center;
+/* PS-200: the hit cards, every blow that landed with the player in it, over the foot of the story (where its results rows are,
+   which they repeat) until a click on the story; never in the way of a click (no pointer events) */
+.strikes { grid-area: 1 / 1; align-self: end; justify-self: center; z-index: 6; display: flex; flex-direction: column; gap: var(--space-2);
+  min-width: min(360px, 90%); max-width: min(560px, 92%); margin-bottom: var(--space-4); pointer-events: none; }
+.strike { position: relative; overflow: hidden; padding: var(--space-3) var(--space-6) var(--space-4); text-align: center;
   border-radius: var(--r-lg); background: color-mix(in srgb, var(--surface) 92%, transparent); border: 1px solid color-mix(in srgb, var(--sk) 60%, var(--border));
   box-shadow: var(--shadow-toast); font-family: var(--font-round); --sk: var(--accent); }
-.strike.t3 { --sk: var(--warn); } .strike.t4 { --sk: var(--danger); }
+.strike.t3 { --sk: var(--warn); } .strike.t4, .strike.in { --sk: var(--danger); }
+/* a card the next one took the stage from: one line, every word kept */
+.strike.past { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 0 var(--space-2); padding: var(--space-1) var(--space-4); }
+.strike.past .sk-out { font-size: 15px; }
+.strike.past .sk-where, .strike.past .sk-chg { margin: 0; font-size: 13px; }
+.strike.past .sk-slash { display: none; }
 .strike .sk-out { margin: 0; font: 800 clamp(26px, 1.4vw + 14px, 36px)/1.1 var(--font-round); letter-spacing: .02em; color: var(--sk); text-transform: uppercase; display: inline-block; }
 .strike .sk-where { margin: 6px 0 0; font-size: 15px; color: var(--text); }
 .strike .sk-chg { margin: 4px 0 0; font-size: 14px; font-weight: 700; color: var(--warn); }

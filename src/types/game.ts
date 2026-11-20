@@ -32,6 +32,7 @@ export type LogLine = {
    * reward level (REWARD_LEVELS key and name), XP, what it asks for (earnedAt), why it was earned, and its rewards (engine achievementInfo) */
   achievements?: AchievementNote[];
   incomingChecks?: (LineCheck & { by: string })[]; // rolls others made against the player this turn; by = how the player knows them
+  hits?: HitNote[]; // PS-200: the blows that landed this turn with the player in them, in the order they fell (the hit cards on Play)
   downedBy?: DownedBy; // the turn left the player down: the last blow that hurt them, as they knew it ("You fell" screen)
   wounds?: { id: string; from: PartStateKey; to: PartStateKey }[]; // M-30: the player's body parts whose state got worse this turn
   gear?: string[]; // what the turn changed in the player's gear, ready to show: "Picked up: …", "Now held: right hand · …", "Gone: …"
@@ -93,9 +94,10 @@ export type LineCheck = {
   against?: { what: string; tier: Tier; beyond?: number }; // the defense or the other side of a contest, e.g. "its dodge"
   shifts?: string[]; // BG-200: what moved the gap besides the two tiers, e.g. "cover: 1 tier his way"
   result: string; // "full hit, body", "you win the exchange"; empty: the roll has no words of its own (the story tells it, BG-257)
-  /** the player's own attack: whom, with what, and what the player saw it change (the strike card on Play) */
-  strike?: { target: string; weapon: string | null; changes: string[] };
 };
+/** PS-200: a blow that landed this turn with the player in it, as the player knew it: who struck (the player's own: mine),
+ * whom, with what, the result ("full hit, right arm") and what the player saw it change ("The slime is Wounded") */
+export type HitNote = { mine: boolean; by: string; target: string; weapon: string | null; result: string; changes: string[] };
 
 export type Notice =
   | { kind: 'scenario_fallback'; text: string } // "Scenario planning failed: placeholder area"
