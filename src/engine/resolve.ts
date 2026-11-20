@@ -617,7 +617,7 @@ const BODY_MOVING = new Set(['move', 'travel', 'attack', 'perk_move', 'play_dead
 /** first build: checks only change beliefs (OQ-22). */
 const CHECK_TYPES = new Set<string>(GRADED_ACTS);
 
-/** D-34 stub: every player action is major. */
+/** D-34 a: every player action is major; quiet acting is the Stealthy posture's job. */
 export function isMajorAction(_event: GameEvent): boolean {
   return true;
 }

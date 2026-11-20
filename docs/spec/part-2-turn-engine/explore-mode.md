@@ -39,7 +39,7 @@ Ali, 08/11/2026, ST1–ST10.
 
 #### Detecting the player
 
-- Detection happens only on the player's major actions. isMajorAction() is a stub that counts every player action as major until the term is defined (D-34).
+- Detection happens only on the player's major actions. isMajorAction() counts every player action as major (D-34 a); acting quietly is the Stealthy posture's job.
 - Each observer who could perceive the action (the existing perception range) and is unaware or suspicious of the player gets one test:
   - Sneaking player: the observer's perception roll against the player's stealth roll (ruleset.contested).
   - Open player: no detection roll. The observer's perception level of the event (computePerception, after any make-out roll below) decides: full makes it aware, partial makes it suspicious, none leaves it unaware.
@@ -85,7 +85,7 @@ When the player attacks an actor that is unaware of them, code resolves the ambu
 
 1. The player makes one ambush roll, contested separately against the perception roll of the target and of every other observer who could perceive the attack. Which skill makes the ambush roll is a ruleset matter (stub). The perception is the attack event's own if it was already worked out, otherwise it is worked out then, before the blow (CS2).
 2. **Player beats the target: surprise.** The target keeps its routine order this turn. The target's defense roll takes the unaware situational modifier (value placeholder). The ruleset may also apply an unaware tag to its initiative.
-3. **Target wins: failed ambush.** The target becomes aware before the blow and defends normally. Its onAlert fires: this turn if it hasn't acted, otherwise next turn unless it then has an agent order. It is engaged from the next turn, and a significant target's Planner order outranks onAlert. Running a Planner for failed ambushes in the same turn is deferred (D-36).
+3. **Target wins: failed ambush.** The target becomes aware before the blow and defends normally. Its onAlert fires: this turn if it hasn't acted, otherwise next turn unless it then has an agent order. It is engaged from the next turn, and a significant target's Planner order outranks onAlert. No Planner runs for it in the same turn (D-36 a): its Planner picks it up from the next turn.
 4. **A witness wins.** It becomes aware and its onAlert fires the same way. If it is hostile to the player it is engaged from the next turn; otherwise it is alarmed.
 5. **Nobody wins, or nobody perceives the attack.** Observers stay unaware. A kill nobody perceives leaves the game in Explore.
 
