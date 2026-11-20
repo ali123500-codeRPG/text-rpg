@@ -392,6 +392,26 @@ describe('play page smoke (TQ7)', () => {
     expect(errors).toEqual([]);
   });
 
+  it('the minimap marks you with the Map\'s own pin, whose point turns the way you walked on both (BG-18)', async () => {
+    await nav('Play');
+    const pin = page.locator('.mm-svg .map-pin[data-id="you"]');
+    expect(await pin.getAttribute('aria-label')).toBe('You are here');
+    expect(await pin.locator('.face').count()).toBe(0); // not walked yet: no way to face
+    const c = (await pin.locator('circle').first().boundingBox())!;
+    let walked = false;
+    for (const [dx, dy] of [[40, 0], [-40, 0], [0, 40], [0, -40]]) {
+      await page.mouse.dblclick(c.x + c.width / 2 + dx, c.y + c.height / 2 + dy);
+      walked = await expect.poll(() => pin.locator('.face').count(), { timeout: 5000 }).toBe(1).then(() => true, () => false);
+      if (walked) break;
+    }
+    expect(walked).toBe(true);
+    await page.locator('[data-open="map"]').click();
+    const pop = page.locator('.fpop.map-full');
+    await pop.locator('.map-svg').waitFor();
+    await expect.poll(() => pop.locator('.map-pin .face').count()).toBe(1);
+    expect(errors).toEqual([]);
+  });
+
   it('the map card of the zone you stand in has no Move to here', async () => {
     await nav('Play');
     await page.locator('[data-open="map"]').click();
