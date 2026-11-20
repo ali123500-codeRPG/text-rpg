@@ -15,7 +15,7 @@ import { NAME_PX, PX_PER_M, TEXT, checkReach, planScene, wrap, type Box, type Me
 import { checkMap } from './mapCheck';
 import { fogClip, floorMarks, doorGlyph, floorName, footprintMark, pin, wayGlyph, wayWords, whoInitial } from './map';
 import { furnIcon } from './furnitureIcons';
-import { moveSpeed, slotMetres } from '../engine/speed';
+import { carriedS, moveSpeed, slotMetres, turnMetres } from '../engine/speed';
 import { M_EPS, spotPoint, walkRoute, type Pos } from '../engine/position';
 import { shortestPath } from '../engine/relations';
 import { distText } from '../views';
@@ -26,17 +26,14 @@ export type MinimapPoint = { zone: string; x: number; y: number; metres: number;
 /** a point's plan: the walk there (its points, in metres) and how it reads on the path; or why there is no way there */
 export type MinimapPlan = (MinimapPoint & { pts: Pos[]; words: string; where: string }) | { why: string };
 
-/** TP4: the move seconds carried into this turn (noteCarry keeps only what is still good) */
-export const carriedMoveS = (s: GameState): number => (s.player.carry ?? []).reduce((n, c) => n + c.move, 0);
-/** AD9: metres one move slot walks this turn, carried time included; null outside a fight (no ring) */
-export const ringMetres = (s: GameState): number | null => (s.mode === 'tactical' ? slotMetres(s, s.player, 'move', CONFIG.FIGHT_TURN_S + carriedMoveS(s)) : null);
-/** the main seconds carried into this turn (as carriedMoveS) */
-export const carriedMainS = (s: GameState): number => (s.player.carry ?? []).reduce((n, c) => n + c.main, 0);
-/** BF91: metres a dash covers this turn (a move slot walked, then the main slot run: slotMetres), carried time included;
- *  null outside a fight */
+/** AD9: metres one move slot walks this turn, carried time included (turnMetres, as the engine walks it); null outside a
+ *  fight (no ring) */
+export const ringMetres = (s: GameState): number | null => (s.mode === 'tactical' ? turnMetres(s, s.player, 'move') : null);
+/** BF91: metres a dash covers this turn (a move slot walked, then the main slot run), carried time included; null outside
+ *  a fight */
 export const dashMetres = (s: GameState): number | null => {
   const walk = ringMetres(s);
-  return walk === null ? null : walk + slotMetres(s, s.player, 'main', CONFIG.FIGHT_TURN_S + carriedMainS(s));
+  return walk === null ? null : walk + turnMetres(s, s.player, 'main');
 };
 /** metres as the minimap says them: to a tenth under 10 m ("6.4 m"), whole above ("22 m") */
 export const metresText = (m: number): string => (m < 9.95 ? `${r1(m)} m` : distText(m));
@@ -361,7 +358,7 @@ export function minimapPanel(api: GameApi, opts: {
     const here = every.find((z) => z.here);
     if (!st || !km || !here?.you) { snap = null; hover = null; if (plan) { plan = null; opts.onPlan(null); } render(); return; }
     const ring = ringMetres(st);
-    snap = { km, every, floor: every.filter((z) => z.height === here.height), height: here.height, you: { ...here.you }, ...(st.player.facing ? { facing: [...st.player.facing] as [number, number] } : {}), ring, dash: dashMetres(st), carried: carriedMoveS(st) };
+    snap = { km, every, floor: every.filter((z) => z.height === here.height), height: here.height, you: { ...here.you }, ...(st.player.facing ? { facing: [...st.player.facing] as [number, number] } : {}), ring, dash: dashMetres(st), carried: carriedS(st, st.player, 'move') };
     const at = `${here.id}:${here.you.x}:${here.you.y}`;
     if (at !== lastAt) { lastAt = at; pan = { x: 0, y: 0 }; hover = null; }
     // AD9: a ring wider than the view zooms out to fit it (across the view's short side), up to the widest zoom; past it

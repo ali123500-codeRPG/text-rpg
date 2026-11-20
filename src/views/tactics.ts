@@ -15,7 +15,7 @@ import { inOutline, nearestEdge } from '../plan/geom';
 import { itemDef } from '../library';
 import { sightLevel } from '../perception/sight';
 import { isDark, zoneLight } from '../time';
-import { slotMetres } from '../engine/speed';
+import { turnMetres } from '../engine/speed';
 import { hearsClearly } from '../perception';
 import { VOLUME_NOISE } from '../perception/noise';
 import { COVER, HEALTH_LEVELS, LIGHT, TACTICS } from '../scales';
@@ -61,7 +61,7 @@ type Near = TacticsWalk & { pos: Pos; m: number };
 /** TC18 a: the zones `a` can step into within one move (its move slot in metres, by its own walk through the ways it
  * knows), nearest first; each with the point a step inside the doorway it comes in by */
 export function oneMoveZones(state: GameState, a: Actor): Near[] {
-  const oneMove = slotMetres(state, a, 'move'), from: Located = { zone: a.zone, ...(a.pos ? { pos: a.pos } : {}) };
+  const oneMove = turnMetres(state, a, 'move'), from: Located = { zone: a.zone, ...(a.pos ? { pos: a.pos } : {}) };
   const out: Near[] = [];
   // BG-304: every title whose outline lies within one move in a straight line (the walk is never shorter), then by the walk
   const here = zoneById(state, a.zone), p = a.pos ?? (here?.outline?.length ? middle(here) : undefined);
@@ -132,7 +132,7 @@ function shieldToReady(state: GameState, a: Actor, foes: Actor[]): string | unde
 /** S3 (TC50 a): while a feint is on, the believer that came within one move with no other foe within one move of it is
  * turned on, else it keeps running; with none on, it may start one once a fight when outnumbered and not Wounded */
 function feintFacts(state: GameState, a: Actor, foes: Actor[], out: TacticsView): void {
-  const oneMove = slotMetres(state, a, 'move');
+  const oneMove = turnMetres(state, a, 'move');
   if (feinting(state, a)) {
     const lone = foes.filter((f) => a.feint!.believers.includes(f.id) && distM(state, f, a) <= oneMove && !foes.some((g) => g !== f && distM(state, g, f) <= oneMove))
       .sort((x, y) => distM(state, x, a) - distM(state, y, a) || x.id.localeCompare(y.id))[0];
@@ -158,7 +158,7 @@ export function tacticsView(state: GameState, a: Actor, view: ActorView): Tactic
   if (rows.includes(FX.ready_shield)) { const sh = shieldToReady(state, a, foes); if (sh) out.readyShield = sh; }
   const at = (x: Actor) => distM(state, { zone: a.zone, ...(a.pos ? { pos: a.pos } : {}) }, { zone: x.zone, ...(x.pos ? { pos: x.pos } : {}) });
   if (rows.includes(FX.gang_up)) {
-    const oneMove = slotMetres(state, a, 'move');
+    const oneMove = turnMetres(state, a, 'move');
     const ganged = foes.filter((f) => allies.some((y) => fights(y, f)) && at(f) <= oneMove).sort((x, y) => at(x) - at(y) || x.id.localeCompare(y.id))[0];
     if (ganged) out.allyFoe = ganged.id;
   }

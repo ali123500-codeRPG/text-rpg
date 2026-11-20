@@ -26,3 +26,15 @@ export function slotMetres(state: GameState, a: Actor, paid: 'move' | 'main', se
   const s = moveSpeed(state, a);
   return (paid === 'move' ? s.walk : s.run - s.walk) * seconds;
 }
+
+/** AT20/TP4: the time an actor carries into this turn, one entry per turn it was left over in, oldest first: only entries
+ *  still within CARRY_TURNS count (noteCarry keeps carry only in a fight, so out of one this is empty) */
+export const carriedIn = (state: GameState, a: Actor): NonNullable<Actor['carry']> =>
+  (a.carry ?? []).filter((c) => state.turn - c.turn <= CONFIG.CARRY_TURNS);
+
+/** the seconds of one pool carried into this turn */
+export const carriedS = (state: GameState, a: Actor, pool: 'move' | 'main'): number => carriedIn(state, a).reduce((n, c) => n + c[pool], 0);
+
+/** CU3 a: the metres a pool covers this fight turn, carried time included, as the engine walks it (slotsOf) */
+export const turnMetres = (state: GameState, a: Actor, paid: 'move' | 'main'): number =>
+  slotMetres(state, a, paid, CONFIG.FIGHT_TURN_S + carriedS(state, a, paid));

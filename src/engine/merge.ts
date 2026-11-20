@@ -13,7 +13,7 @@ import { fooledBy } from './playDead';
 import { codePerkMove } from './npcPerkMoves';
 import { codeWarn } from './warnings';
 import type { AcceptedAgentOutput, TurnInput } from './types';
-import { slotMetres } from './speed';
+import { turnMetres } from './speed';
 import { M_EPS, distM, gateAhead, seeingM, spotPoint, walkLeg, withinM, type Located } from './position';
 import { canSpeak } from '../ruleset/body';
 import { withTactics } from '../views/tactics';
@@ -75,7 +75,7 @@ export function speakingSpot(state: GameState, intent: Intent): Located {
   const sp = o.moveSpot ? spotPoint(state, o.move, o.moveSpot, p) : null;
   const goal: Located = sp ? { zone: o.move, pos: sp.pos } : { zone: o.move };
   const stop = sp?.stopShort ?? 0;
-  let left = slotMetres(state, p, 'move');
+  let left = turnMetres(state, p, 'move');
   for (let legs = 0; legs < 100 && left > M_EPS; legs++) {
     if (goal.pos ? withinM(distM(state, at, goal), stop) : at.zone === goal.zone) break;
     const zone = at.zone;

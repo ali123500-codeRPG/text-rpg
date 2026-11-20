@@ -23,7 +23,7 @@ import { moraleLevel } from '../ruleset/morale';
 import { hostileNearM } from '../ruleset/gear';
 import { actorById, allActors, countsInFight, foe, isActive } from './relations';
 import { distM } from './position';
-import { slotMetres } from './speed';
+import { turnMetres } from './speed';
 import { perkMoveBlock } from './perkMoves';
 import { rallyWouldReach } from './auras';
 import { fleeOrder } from '../minds';
@@ -61,7 +61,7 @@ function asMainAction(state: GameState, o: Order, perk: string, intent: string):
 /** TC59 a: lying still, or sneaking away once no one who saw through it is in sight and no believer is within one move */
 function getUp(state: GameState, a: Actor, view: ActorView, o: Order): Order {
   const lie: Order = { actorId: a.id, type: 'hold', target: null, skill: null, intent: 'lies still', source: o.source };
-  const believers = a.playingDead!.believers, oneMove = slotMetres(state, a, 'move');
+  const believers = a.playingDead!.believers, oneMove = turnMetres(state, a, 'move');
   const foes = seenFoes(state, a, view);
   if (foes.some((f) => !believers.includes(f.id) || distM(state, f, a) <= oneMove)) return lie;
   const away = fleeOrder(view, o.source);
@@ -74,7 +74,7 @@ export function codePerkMove(state: GameState, a: Actor, view: ActorView, o: Ord
   if (a.playingDead) return getUp(state, a, view, o);
   if (o.perkMove) return o;
   const foes = seenFoes(state, a, view);
-  const oneMove = slotMetres(state, a, 'move');
+  const oneMove = turnMetres(state, a, 'move');
   if (can(state, a, PK.play_dead) && (atOrWorse(a, CONFIG.PLAY_DEAD_AT) || foes.filter((f) => distM(state, f, a) <= oneMove).length >= CONFIG.PLAY_DEAD_FOES))
     return { actorId: a.id, type: 'hold', target: null, skill: null, intent: 'play dead', source: o.source, perkMove: { perk: PK.play_dead, target: null } };
   if (view.self.broken) return o; // only Play Dead (and Battle Cry, never chosen here once the fight is on) survives a broken nerve

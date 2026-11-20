@@ -26,7 +26,7 @@ import { charLevel, power, wornTitle } from '../engine/xp';
 import { presetAgeFloor, presetTalent, rankName, rankRow, spawnNpc } from '../library/spawn';
 import { uniqueInWorld } from '../library/echo';
 import { distOrNull, seeingM, sideFrom, sightDistM, spotPoint } from '../engine/position';
-import { moveSpeed, slotMetres } from '../engine/speed';
+import { moveSpeed, turnMetres } from '../engine/speed';
 import { hiddenFrom } from '../engine/gear';
 import { revealedTo } from '../minds/state';
 import { sightLevel } from '../perception/sight';
@@ -289,7 +289,7 @@ const seemingHealth = (viewer: Actor, a: Actor): HealthLevel => (fooledBy(viewer
 /** BG-306: the people `a` is aware of and perceived this turn or last (seen or heard) whom one move and its melee reach
  * would bring a blow to this turn: metres by the walking path, in any zone */
 function withinStrike(state: GameState, a: Actor): { withinStrike?: string[] } {
-  const reach = slotMetres(state, a, 'move') + meleeReachM(state, a), k = a.mind?.knowledge ?? {};
+  const reach = turnMetres(state, a, 'move') + meleeReachM(state, a), k = a.mind?.knowledge ?? {};
   const ids = allActors(state).filter((x) => x !== a && atLeast(k[x.id]?.status, 'aware') && (k[x.id]?.lastSeenTurn ?? -Infinity) >= state.turn - 1
     && (distOrNull(state, a, x) ?? Infinity) <= reach).map((x) => x.id).sort();
   return ids.length ? { withinStrike: ids } : {};
