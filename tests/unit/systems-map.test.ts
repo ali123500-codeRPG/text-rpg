@@ -5,7 +5,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 // @ts-expect-error Node types are not installed; vitest runs in Node
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { changedWords, near, nearPrefixes, pick, selects, systemFiles, testFiles } from '../../scripts/test-near';
+import { WHOLE_SUITE, changedWords, importGraph, near, nearPrefixes, ownExports, pick, selects, systemFiles, testFiles } from '../../scripts/test-near';
 
 const map = readFileSync('docs/systems.md', 'utf8');
 const systems = systemFiles(map);
@@ -47,6 +47,38 @@ describe('test:near', () => {
     expect(selects('page.locator(\'[data-kind="search"]\')', words)).toBe(true);
     expect(selects("el.querySelector(\"[data-kind='look']\")", words)).toBe(true);
     expect(selects('const look = 1;', words)).toBe(false);
+  });
+
+  it('follows a change through its folder and through barrels, name by name', () => {
+    const text: Record<string, string> = {
+      'src/save/checks.ts': 'export function checkInvariants() {}',
+      'src/save/index.ts': "import { checkInvariants } from './checks';\nexport function loadStory() { checkInvariants(); }",
+      'src/engine/resolve.ts': 'export function resolveTurn() {}',
+      'src/engine/xp.ts': 'export const awardXp = () => 0;',
+      'src/engine/index.ts': "export { resolveTurn } from './resolve';\nexport * from './xp';",
+      'tests/unit/save.test.ts': "import { loadStory } from '../../src/save';",
+      'tests/unit/turn.test.ts': "import { resolveTurn } from '../../src/engine';",
+      'tests/unit/xp.test.ts': "import { awardXp } from '../../src/engine';",
+    };
+    const read = (f: string) => text[f];
+    const graph = importGraph(Object.keys(text), read, (f) => f in text);
+    const tests = Object.keys(text).filter((f) => f.endsWith('.test.ts'));
+    // the miss found on #1176: save.test.ts reaches checks.ts only through src/save/index.ts
+    expect(pick(['src/save/checks.ts'], tests, read, [], graph)).toEqual(['tests/unit/save.test.ts']);
+    expect(pick(['src/engine/resolve.ts'], tests, read, [], graph)).toEqual(['tests/unit/turn.test.ts']);
+    expect(pick(['src/engine/xp.ts'], tests, read, [], graph)).toEqual(['tests/unit/xp.test.ts']);
+    expect(ownExports("export const a = 1;\nexport async function b() {}\nexport type C = 1;\nexport { d, e as f };")).toEqual(['a', 'b', 'C', 'd', 'f']);
+  });
+
+  it('on the real repo, a change to the save checks reaches the save test it once missed', () => {
+    const read = (f: string) => readFileSync(f, 'utf8');
+    const graph = importGraph([...testFiles('src', '.ts'), ...testFiles('tests', '.ts')], read, existsSync);
+    expect(pick(['src/save/checks.ts'], testFiles(), read, [], graph)).toContain('tests/unit/save.test.ts');
+  });
+
+  it('a change to how tests are built or run runs the whole suite', () => {
+    for (const f of ['package.json', 'package-lock.json', 'tsconfig.json', 'vitest.config.ts', 'vitest.shared.config.ts', 'vitest.mocked.config.ts', 'tests/harness/turnCheckSetup.ts']) expect(WHOLE_SUITE.test(f), f).toBe(true);
+    for (const f of ['src/config.ts', 'tests/unit/save.test.ts', 'scripts/test-near.ts']) expect(WHOLE_SUITE.test(f), f).toBe(false);
   });
 
   it('every browser test names what it reaches, and each prefix matches a real file', () => {
