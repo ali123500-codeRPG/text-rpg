@@ -21,10 +21,11 @@ import { openPop } from './pop';
 import { powerFigure } from './power';
 import { ageText } from '../ruleset/age';
 import { callName, staminaOf } from '../views';
-import { fatigueLevel } from '../ruleset/fatigue';
+import { fatigueMods } from '../ruleset/fatigue';
+import { skillCap } from '../ruleset/skillCap';
 import { markIcon, skillName, SKILL_SUB, TREE_VIEW } from './creation';
 import { DEFENSE_SKILL } from '../library/skillIds';
-import { CLASS_TIERS, FATIGUE_LEVELS, HEALTH_LEVELS, MORALE_LEVELS, PART_STATES, type MoraleLevel } from '../scales';
+import { CLASS_TIERS, HEALTH_LEVELS, MORALE_LEVELS, PART_STATES, type MoraleLevel } from '../scales';
 import { isBrokenLevel, isCoweringLevel, maxMorale, moraleLevel, moraleLostPct, moralePenalty } from '../ruleset/morale';
 import { coins, coinWords } from '../engine/trade';
 import { engagementEndS } from '../ruleset/actionTime';
@@ -43,6 +44,9 @@ export function hpLeft(s: GameState, p: Actor): { hp: number | null; total: numb
   const total = safe(() => totalHp(s, p));
   return { total, hp: total === null ? null : total * (1 - p.core.condition.hpLostPct / 100) };
 }
+
+/** a part's share of the HP pool (null: no total HP, or no such part) */
+const partPool = (total: number | null, d: { size: string } | undefined): number | null => (total === null || !d ? null : total * (CONFIG.PART_SHARE[d.size] ?? 0));
 
 /** the effective-skill call behind standing defense and standing attack: the card's figure and its pop-up both use it.
  * The defense actually used against a melee blow: the chosen one, or the fallback when it can't be used now */
@@ -207,7 +211,7 @@ export function openBodyPop(s: GameState, p: Actor, opener?: HTMLElement | null,
       row('general', cap(ct.general.name), 100 - p.core.condition.hpLostPct, `${whole(hp)} of ${whole(total)} HP`),
       ...ct.parts.map((d) => {
         const pct = p.core.condition.parts[d.id] ?? 100;
-        const pool = total === null ? null : total * (CONFIG.PART_SHARE[d.size] ?? 0);
+        const pool = partPool(total, d);
         return row(d.id, partName(d.id), pct, pool === null ? '' : `${whole(Math.max(0, pool * pct / 100))} of ${whole(pool)}`);
       })),
     h('p', { class: 'bf-key' }, PART_STATES.keys.map((st) => h('span', {}, h('i', { class: `bf-${st}` }), PART_STATES.name(st)))),
@@ -318,7 +322,7 @@ export function openSkillPop(p: Actor, id: string, opener?: HTMLElement | null):
     f.gives.length ? h('p', {}, `Adds to ${f.gives.join(' and ')} rolls.`) : null,
     h('div', { class: 'sk-list' },
       line('Learns from', winText(f.window)),
-      flawed ? line('Flawed', `learns slower, stops at ${CONFIG.SKILL_CAP - CONFIG.FLAW_CAP_PENALTY}`, 'sk-bad') : null,
+      flawed ? line('Flawed', `learns slower, stops at ${skillCap({ state: 'flawed' })}`, 'sk-bad') : null,
       // BU3 b: shown only once Burden is above 0, and only here
       f.burden.by > 0 ? line('Burden', `−${f.burden.by} to improve`, 'sk-bad', termAttrs('Burden')) : null,
       f.burden.by > 0 ? h('p', { class: 'hs-note' }, `Your skills add up to ${whole(f.burden.total)} (a tag counts 0, each tag in a group takes ${CONFIG.TAG_BURDEN_GROUP_PCT}% off every skill in it and each flaw adds ${CONFIG.FLAW_BURDEN_GROUP_PCT}%), past your Potential of ${f.burden.potential}. Every ${CONFIG.K} points past it makes each untagged skill 1 harder to improve. Tagged skills carry no Burden.`) : null,
@@ -353,7 +357,7 @@ export function bodyFigure(s: GameState, p: Actor, healed: Set<string> = new Set
     if (id === 'general') return { name: cap(ct.general.name), state: poolState(100 - p.core.condition.hpLostPct), amount: `${whole(hp)} of ${whole(total)} HP` };
     const d = ct.parts.find((x) => x.id === id);
     const pct = p.core.condition.parts[id] ?? 100;
-    const pool = total === null || !d ? null : total * (CONFIG.PART_SHARE[d.size] ?? 0);
+    const pool = partPool(total, d);
     return { name: partName(id), state: poolState(pct), amount: pool === null ? '' : `${whole(Math.max(0, pool * pct / 100))} of ${whole(pool)}` };
   };
   const out = h('p', { class: 'bf-out', 'aria-live': 'polite' });
@@ -396,7 +400,7 @@ function healthBar(s: GameState, p: Actor, healed: Set<string>, turn: number, ch
     h('p', { class: 'hs-label' }, 'Body parts'),
     bodyFigure(s, p, healed) ?? safe(() => actorBody(s, p).parts.map((d) => {
       const pct = p.core.condition.parts[d.id] ?? 100;
-      const pool = total === null ? null : total * (CONFIG.PART_SHARE[d.size] ?? 0);
+      const pool = partPool(total, d);
       const st = poolState(pct);
       return h('div', { class: 'cs-part', title: pool === null ? '' : `${whole(pool * pct / 100)} of ${whole(pool)}` },
         h('span', {}, partName(d.id)), h('div', { class: 'cs-bar' }, h('b', { style: `width:${Math.max(0, Math.min(100, pct))}%` })),
@@ -469,13 +473,12 @@ export function moraleBar(p: Actor, full: boolean): HTMLElement[] {
  * short line under it, as wide as the level's band of the bar and filled by what is left of it (breath). Spent: the bar is
  * full and nothing above Light can be done (FT10). Tired and worse name their roll penalty. */
 export function staminaBar(p: Actor, full: boolean): HTMLElement[] {
-  const v = staminaOf(p), key = FATIGUE_LEVELS.has(fatigueLevel(p)) ? fatigueLevel(p) : 'rested';
+  const v = staminaOf(p), pen = fatigueMods(p)[0]?.value ?? 0;
   const pct = (n: number, of: number) => (of > 0 ? Math.max(0, Math.min(100, (100 * n) / of)) : 0);
-  const row = CONFIG.FATIGUE_TRACK.find(([k]) => k === key);
   const ticks = full ? CONFIG.FATIGUE_TRACK.slice(1, -1).map(([, at]) => h('i', { style: `left:${100 - Math.min(100, at)}%` })) : [];
   const breath = `Breath ${fmt1(v.lineLeft)} / ${fmt1(v.lineMax)}: strain spends it first, then eats into sleep debt; it comes back once you stop for a while`;
   return [
-    h('span', { class: 'cs-row' }, h('span', {}, row && row[2] < 0 ? tipped('Stamina', `${v.level}: −${Math.abs(row[2])}% to rolls`, 'stamina-label', 'stamina-hint') : 'Stamina',
+    h('span', { class: 'cs-row' }, h('span', {}, pen < 0 ? tipped('Stamina', `${v.level}: −${Math.abs(pen)}% to rolls`, 'stamina-label', 'stamina-hint') : 'Stamina',
       v.spent ? h('span', { class: 'cs-spent', 'data-m': 'spent', title: 'Spent: nothing harder than a Light effort until you sleep' }, 'Spent') : null),
       h('b', {}, full ? [h('span', { 'data-m': 'stamina-left' }, fmt1(v.left)), ` / ${fmt1(v.max)}`] : null)),
     h('span', { class: 'cs-hptrack cs-stam', title: `Stamina: ${v.level}. Sleep debt; only sleep clears it`, role: 'img', 'aria-label': `Stamina: ${v.level}`, 'data-m': 'stamina-track' },

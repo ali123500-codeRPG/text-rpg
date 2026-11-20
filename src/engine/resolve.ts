@@ -66,6 +66,7 @@ import {
   rollFnSkills,
 } from '../ruleset/gear';
 import {
+  canHeal,
   freeGrips,
   healShare,
   levelMaxPct,
@@ -1940,7 +1941,7 @@ function doHealItem(ctx: Ctx, a: Actor, o: Order): boolean {
 function doHeal(ctx: Ctx, a: Actor, o: Order): void {
   const { state, rng } = ctx;
   const t = (o.target && actorById(state, o.target)) || a;
-  if (trueSkill(a, SK.healing) < CONFIG.HEAL_UNLOCK) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: t.id, reason: 'no_power' }), o));
+  if (!canHeal(a)) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: t.id, reason: 'no_power' }), o));
   if (healthLevel(t) === 'dead') return emit(ctx, bark(mk(ctx, a, 'wasted', { target: t.id, reason: 'no_target' }), o));
   if (t !== a && !withinGrip(state, a, t)) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: t.id, reason: 'out_of_reach' }), o));
   const ev = bark(mk(ctx, a, 'heal', t !== a ? { target: t.id } : {}), o);

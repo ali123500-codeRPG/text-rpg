@@ -11,7 +11,7 @@ import { questLevelXp, rewardName } from '../ruleset/achRewards';
 import { branchLabel, chainRows, chainTag, endInSight, heldChains, isBareHead, type HeldChain } from '../ruleset/achChains';
 import { ACH_HEAD_NAMES, ACH_TAGS } from '../library/achievementIds';
 import { CONFIG } from '../config';
-import { requirement, shortBy } from '../ruleset/requirements';
+import { requirement, shortBy, shortSteps } from '../ruleset/requirements';
 import { accSlot, effectValue, gripSlot, gripWord, isHeld, kitBonus, modeName, pieceName, rolledSkill } from '../ruleset/gear';
 import { ROLLED_SKILL } from '../library/skillIds';
 import { skillName } from '../library/skillNames';
@@ -187,7 +187,7 @@ export function itemRows(s: GameState, it: { id?: string; itemId: string; boundT
   // EQ7: the requirement, red while the player is short, grey once met
   const need = requirement(d);
   if (need) {
-    const short = shortBy(s.player, d), steps = Math.ceil(short / CONFIG.EQUIP_SHORT_STEP);
+    const short = shortBy(s.player, d), steps = shortSteps(short);
     const rolls = d.armor ? 'Dodge and stealth rolls while worn' : 'rolls with it';
     rows.push({ k: 'Needs', v: h('span', { class: short > 0 ? 'tone-bad' : 'tone-muted' }, short > 0
       ? `${needText(need)} (you have ${r1(need.need - short)}: ${plural(steps, 'outcome step')} worse on ${rolls})`

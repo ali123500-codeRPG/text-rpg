@@ -9,7 +9,8 @@ import { skillName } from '../library/skillNames';
 import { CONFIG } from '../config';
 import type { GameState, Intent, Personality, PlayerView } from '../types';
 import { HEALTH_LEVELS } from '../scales';
-import { isDownLevel, othersHealthWord, trueSkill } from '../ruleset';
+import { isDownLevel, othersHealthWord } from '../ruleset';
+import { canHeal } from '../ruleset/body';
 import { isHeld } from '../ruleset/slots';
 import { actorBody, perkName } from '../library';
 import { cantSteady } from '../engine/steady';
@@ -258,7 +259,7 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
   const healIds = new Set(s ? healItems(s, s.player).map((x) => x.itemId) : []);
   const heal = inv.filter((i) => healIds.has(i.itemId));
   // NR34: Heal opens at true Healing 50; on yourself or anyone you see in full
-  if (s && trueSkill(s.player, SK.healing) >= CONFIG.HEAL_UNLOCK) add('heal', 'use', 'Heal', [{ key: 'target', title: 'Heal whom?', picks: () => [{ id: '', label: 'Yourself' }, ...full.map(person)] }],
+  if (s && canHeal(s.player)) add('heal', 'use', 'Heal', [{ key: 'target', title: 'Heal whom?', picks: () => [{ id: '', label: 'Yourself' }, ...full.map(person)] }],
     (c) => order(`Heal ${c.target ? them(c) : 'myself'}`, { action: act('heal', { target: c.target || null }) }), { note: 'a Healing roll' });
   if (heal.length) add('use_item', 'use', 'Treat wounds', [{ key: 'item', title: 'With what?', picks: () => heal.map(invPick) }, { key: 'target', title: 'Treat whom?', picks: () => [{ id: '', label: 'Yourself' }, ...full.map(person)] }],
     (c) => order(`Use ${theItem(item(c.item!)?.name ?? '')} on ${c.target ? them(c) : 'myself'}`, { action: act('use_item', { item: c.item!, target: c.target || null }) }));
