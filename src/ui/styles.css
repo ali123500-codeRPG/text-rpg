@@ -505,7 +505,6 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .cs-tree-h b { min-width: 0; font-size: 13px; text-align: center; overflow-wrap: anywhere; }
 .cs-tree-h .trsum { font-size: 15px; font-weight: 700; color: var(--text); }
 .cs-tree-h span { color: var(--muted); font-size: 13px; white-space: nowrap; cursor: help; }
-.cs-tree-h .lock { cursor: help; }
 /* two lines per skill so the bar always gets the tree's full width: name and value, then the bar and its learning window */
 /* fixed columns, so every bar in a band has the same length: room for the icon and two marks, a 3-digit value, and a range up to "100–120" */
 .cs-sk { display: grid; grid-template-columns: 50px 3ch minmax(0, 1fr) 7ch; grid-template-areas: "n num bar lwn"; gap: 6px; align-items: center; }
@@ -1263,6 +1262,14 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .iico.blank { --ic: var(--faint); opacity: .45; border-style: dashed; background: none; }
 /* IC3: small icons beside a name: a class or Start (no kind, so the accent), and a thing in the loot pop-up (kind-tinted) */
 .cico { display: inline-grid; width: 20px; height: 20px; flex: none; align-self: center; vertical-align: -4px; color: var(--accent); }
+/* a class icon's colour says its tier, in the class tree's tier hues (.ct-band): accent for tiers 0-2, perk purple for
+   3-4, the scenario gold for 5, each deeper as the tier rises */
+.cico[data-tier="tier_0"] { color: color-mix(in oklch, var(--accent) 35%, var(--muted)); }
+.cico[data-tier="tier_1"] { color: color-mix(in oklch, var(--accent) 70%, var(--muted)); }
+.cico[data-tier="tier_2"] { color: var(--accent); }
+.cico[data-tier="tier_3"] { color: color-mix(in oklch, var(--perk-40) 65%, var(--muted)); }
+.cico[data-tier="tier_4"] { color: var(--perk-40); }
+.cico[data-tier="tier_5"] { color: var(--scenario-mark); }
 .hs-btn-main .cico, [aria-pressed="true"] .cico { color: currentColor; } /* on a light accent fill the icon takes the button's dark text */
 .cico svg { width: 100%; height: 100%; display: block; }
 .iico.lico { width: 26px; height: 26px; padding: 3px; border-radius: var(--r-sm); }

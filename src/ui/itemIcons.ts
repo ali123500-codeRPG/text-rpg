@@ -109,6 +109,7 @@ export function instanceIcon(s: GameState, instanceId: string, cls?: string): HT
 /** a class's icon, small: beside its name (class tree, the Starts on the creation screen), or in place of it (Character page) */
 export const classIcon = (classId: string, label?: string): HTMLElement => {
   const el = itemIcon(classIconName(classId), undefined, 'cico');
+  el.dataset.tier = getLibrary().classes[classId]?.tier ?? 'tier_0'; // its colour says its tier (styles.css .cico[data-tier])
   // with a label the icon stands in place of the class's name, which is its tip and accessible name
   if (label) { el.setAttribute('role', 'img'); el.title = label; el.setAttribute('aria-label', label); }
   return el;

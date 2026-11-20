@@ -230,10 +230,11 @@ function xpTrack(s: GameState, p: Actor, openClasses?: (opener: HTMLElement) => 
   const cur = p.core.classes.find((c) => c.state === 'current');
   const target = levelTarget(p);
   const name = (id: string) => lib.classes[id]?.name ?? id;
-  // each class shows as its icon in place of its name (the name is the icon's tip); the tier stays in words
+  // each class shows as its icon in place of its name, coloured by its tier; name and tier are the icon's tip
   const next = target && target.classId !== cur?.classId ? target.classId : null;
-  const line: (Node | string)[] = cur ? [classIcon(cur.classId, name(cur.classId)), ` ${CLASS_TIERS.name(lib.classes[cur.classId]?.tier ?? 'tier_0')}`] : ['No class'];
-  if (next) line.push(' · next level to ', classIcon(next, name(next)));
+  const label = (id: string) => `${name(id)} · ${CLASS_TIERS.name(lib.classes[id]?.tier ?? 'tier_0')}`;
+  const line: (Node | string)[] = cur ? [classIcon(cur.classId, label(cur.classId))] : ['No class'];
+  if (next) line.push(' next level to ', classIcon(next, label(next)));
   const cls: HTMLElement = openClasses
     ? h('button', { type: 'button', class: 'cs-class', 'aria-haspopup': 'dialog', title: 'Open the class tree: how classes link, and where your next level goes',
       onclick: () => openClasses(cls) }, h('b', {}, ...line), h('span', { class: 'cs-class-go', 'aria-hidden': 'true' }, '›'))
@@ -277,8 +278,10 @@ function capstoneChoice(s: GameState, p: Actor): HTMLElement | null {
 export function treeBars(p: Actor): HTMLElement {
   return h('div', { class: 'cs-trees' }, trees(p, true).map((t) =>
     h('div', { class: 'cs-tree', style: `--t:var(--${t.c})` },
-      // the tree's emblem beside its skills: its icon, a padlock where TA10 applies (why, in its tip), and its total
-      h('div', { class: 'cs-tree-h' }, treeIcon(t.id, t.name) ?? h('b', {}, t.name), t.block ? markIcon('locked', t.block, 'mk-i lock') : null, h('span', { class: 'trsum', title: `${t.sum} points in this tree` }, String(t.sum))),
+      // the tree's emblem beside its skills: its icon (a TA10 block, why the tree can't be used yet, is in its tip) and,
+      // with more than one skill, its total; a lone skill already shows the number
+      h('div', { class: 'cs-tree-h' }, treeIcon(t.id, t.block ? `${t.name} · ${t.block}` : t.name) ?? h('b', {}, t.name),
+        t.rows.length > 1 ? h('span', { class: 'trsum', title: `${t.sum} points in this tree` }, String(t.sum)) : null),
       // the icon stands for the name, which (with its SKILL_SUB note) is the row's tip and accessible name
       h('div', { class: 'cs-tree-rows' }, t.rows.map((r) => { const tip = skillName(r.id) + (SKILL_SUB[r.id] ? ` · ${SKILL_SUB[r.id]}` : ''); return h('div', { class: 'cs-sk' + (r.raw ? '' : ' zero'), role: 'button', tabindex: '0', 'aria-haspopup': 'dialog', 'data-skill': r.id,
         title: tip, 'aria-label': `${tip}: ${trueSkill(p, r.id)}`, onclick: (e: Event) => openSkillPop(p, r.id, e.currentTarget as HTMLElement),

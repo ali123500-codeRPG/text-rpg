@@ -472,7 +472,8 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
   attribute groups and is only as tall as its skills: the bands flow down columns (CSS columns), so a short tree packs
   under another instead of taking a row as tall as its tallest; no heading row, the tree's colour down its left side, and an emblem column beside its skills with
   the tree's icon, drawn large, in place of its name, which is the icon's tip and accessible name (TREE\_ICON in
-  src/ui/itemIcons.ts), any TA10 padlock, and the total. Columns are at least 255 px wide (three at 1366 and 1600 px, four at 1920
+  src/ui/itemIcons.ts; a TA10 block is added to that tip, with no padlock), and the total, left out for a tree with one
+  skill since its one row shows the number. Columns are at least 255 px wide (three at 1366 and 1600 px, four at 1920
   px). The total is a
   bare number, with "points in this tree" as its tip.
 - **PS-278** Each section tile under the Character page (Essences, Perks, Gear, Personality) shows its icon in place of its
@@ -525,8 +526,9 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
   kind; the loot pop-up shows each thing's icon.
 - **PS-304** Each class has one of its own (Unwritten Legend, Knight Trainee and Knight have placeholders), shown on
   the class tree, the Character page's Class line and the creation screen's Starts (a Start shows its class's; The
-  Blessed shows a holy symbol). On the Class line the icon stands in place of the class's name, which is its tip and
-  accessible name; the tier stays in words, and a next-level class shows as its icon too.
+  Blessed shows a holy symbol). On the Class line the icon stands in place of the class's name, and its colour says its
+  tier (the class tree's tier hues: accent for tiers 0-2, perk purple for 3-4, gold for 5); name and tier are its tip
+  and accessible name, and a next-level class shows as its icon too. Class icons are tier-coloured wherever they show.
 - **PS-305** The map keeps its own glyphs (silhouettes blur at 12 px).
 - **PS-306** The credit line sits at the foot of the GM page and the licences in `src/ui/assets/icons-LICENSE.txt`.
 - **PS-307** Scales past 100: game-icons.net has supernatural subjects (rune blades, auras, creatures) for gear and
