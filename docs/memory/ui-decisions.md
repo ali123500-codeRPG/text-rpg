@@ -24,6 +24,7 @@ are in `docs/build-spec.md` ("### Play screen", "### Play screen motion").
 - **An icon replaces its name, never sits beside it** (20/11/2026). Once a thing has an icon (a skill, a skill tree, a
   rating, a Character page section, a card figure), the icon stands in place of its name, and the name moves to the
   icon's tip and accessible name. Reason: the owner asked why they had to read the same thing twice; `show-dont-tell-ui`
-  already says so. An icon shared by several things (a class falls back to the Commoner's) keeps its name shown.
+  already says so. An icon shared by several things keeps its name shown; classes got placeholder icons of their own so the Class
+  line could drop its name (20/11/2026).
 - Dates for rules stated in `docs/instructions.md` section 7: play and creation are PC only (12/11/2026); the
   library viewer also works on phones (15/11/2026); screens fill the window (10/11/2026).
