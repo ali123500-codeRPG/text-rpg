@@ -4,7 +4,7 @@ import { makeVillage, actor, lay } from '../harness';
 import { CONFIG, resetConfig } from '../../src/config';
 import { getLibrary } from '../../src/library';
 import {
-  LoadRefusedError, MIGRATIONS, acquireTurnLock, artifactDbStore, listBackups, listStories, loadStory, memoryStore,
+  LoadRefusedError, MIGRATIONS, acquireTurnLock, archiveStory, artifactDbStore, listBackups, listStories, listWorlds, loadStory, memoryStore,
   loadHistory, readTurnRecord, releaseTurnLock, restoreBackup, saveHistory, saveTurn, undoTurn, useBookmark, type DB,
 } from '../../src/save';
 import type { GameState, Head, LogLine, StoryFact, TurnRecord } from '../../src/types';
@@ -64,6 +64,20 @@ describe('save and load', () => {
     await expect(saveTurn(st, s, rec(s, 1))).rejects.toMatchObject({ code: 'quota_exceeded', committed: false });
     expect((await head(st)).turn).toBe(0);
     expect((await loadStory(st, 'test', lib())).state.clocks.x).toBeUndefined();
+  });
+
+  it('BG-336: a story whose first head write failed is no story yet, so the world it was carrying on stays free', async () => {
+    const st = memoryStore();
+    const old = makeVillage();
+    await saveTurn(st, old, rec(old, 0));
+    await archiveStory(st, 'test', '2026-11-10T10:00:00Z', undefined, { name: 'Aldric', day: 1, threadbound: [] });
+    const s: GameState = JSON.parse(JSON.stringify(makeVillage()).replaceAll('"storyId":"test"', '"storyId":"next"'));
+    s.meta = { ...s.meta, storyId: 'next', worldId: 'test' };
+    st.failNext = { match: /control\/head/, code: 'store_error' };
+    await expect(saveTurn(st, s, rec(s, 0))).rejects.toMatchObject({ committed: false });
+    expect(await st.get('stories/next')).not.toBeNull(); // the meta went out with the pages; only the head failed
+    expect(await listStories(st)).toEqual([]);
+    expect((await listWorlds(st)).map((w) => w.worldId)).toEqual(['test']);
   });
 
   it('refuses a tampered page and leaves the save untouched', async () => {

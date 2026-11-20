@@ -9,6 +9,22 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the spec's bug log, docs/spec/bug-log.md, has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-337
+
+**What was wrong:** A save counts once its head is written (save flow, step 5), but `finishTurn` (`src/agents/game.ts`) did two things after a failed head write as if the turn had been saved. It saved the turn's story text, and it raised the Universe day. Play goes on from memory after a failed save, so nothing showed until a reload: the save was a turn back while the story column still held the turn that was never saved. Replaying it then put two different narrations of the same turn in the column, with no "Undone" fold between them. The Universe day could also move past every saved world. Reproduced with the whole-turn harness: with the head write failing on turn 3, the head stayed on turn 2 and the saved story text held turns 1 to 3.
+
+**What was done:** `finishTurn` notes whether the save committed. The story text and the Universe day follow the commit. A turn the save does not hold keeps its lines in memory, so the next good turn saves them along with its own (that turn's pages carry the unsaved turn's changes too). A reload finds the story text and the save on the same turn. Case 406 fails a head write and checks both. Siblings checked: everything else `finishTurn` writes after the save. Bug filing and the background planning run from memory, and their results are saved with the next turn. Restore already cuts story text (BG-161). Undo keeps the undone turn's text on purpose (PS-210).
+
+**Fixed by:** #1218
+
+## BG-336
+
+**What was wrong:** `saveTurn` writes the story meta (`stories/<id>`) together with the pages, before the head. It has to, because a load needs both. But the story lists (`listStories`, the free-world list and the Hall of fame, all through `allMetas` in `src/save/index.ts`) took any meta as a story. So when the first head write of a new story failed, a story with no save existed. In a carried-on world that meant someone still lived there: on every reopen the kept build tried to start the opening again and was refused with "that world is no longer free". The world could never be carried on again. Reproduced through `createGame` with the opening's head write failing.
+
+**What was done:** `allMetas` skips an unarchived meta whose story has no head, because a story exists once its head is written. Only unarchived stories need the extra read: one or two per list in play. A reopen now starts the interrupted opening again in the same world. The unit test fails the first head write of a story carrying a world on and checks that the story is not listed and the world is still free. Siblings checked: `storySaved` already reads the head; the Hall of fame lists only archived stories.
+
+**Fixed by:** #1218
+
 ## BG-335
 
 **What was wrong:** When a turn landed, the story jumped to the very bottom of the new turn, past its prose to the last results row (the wound card, coin, skills), so the narration was already off the top of the pane while it was still revealing sentence by sentence. The cause was the play screen's stick-to-the-foot scroll (`src/ui/play.ts`, `update`): while a turn runs it keeps the waiting line in view, and the same line ran again when the turn landed, setting the scroll to the whole story's height. The turn is drawn in its final state at once (M-74), results included, so "the foot" was the end of the results. The story pane is short beside the action deck, so most combat turns are taller than it.

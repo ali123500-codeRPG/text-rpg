@@ -25,7 +25,7 @@ stories/<storyId>/history/<n>         story text for turns n×HISTORY_CHUNK_TURN
 ops/republish                         the Republish button's saved task id (Play screen, Republish button)
 ```
 
-Page keys: engine, hidden, actor.\<id>, place.\<id>, facts.\<placeId>.\<n>, blueprint.\<id>.
+Page keys: engine, hidden, actor.\<id>, place.\<id>, region.\<id>, facts.\<placeId>.\<n>, blueprint.\<id>, plan.\<placeId>, ground.
 
 **Platform limits** (artifact runtime contract 0.2.96):
 

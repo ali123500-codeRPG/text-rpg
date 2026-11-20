@@ -304,7 +304,12 @@ export const acquireTurnLock = (store: Store, storyId: string, owner: string) =>
 export const releaseTurnLock = (store: Store, storyId: string, owner: string) => store.releaseLease(lockPath(storyId), owner);
 
 // ---------- stories ----------
-const allMetas = async (store: Store) => (await Promise.all((await store.list('stories')).map((p) => store.get<StoryMeta>(p)))).filter((m): m is StoryMeta => !!m);
+/** BG-336: the meta is written with the pages, before the head, so a story whose first head write failed has a meta and no
+ * save: it does not exist yet (a save counts once the head is written). Only unarchived stories need the look. */
+const allMetas = async (store: Store) => (await Promise.all((await store.list('stories')).map(async (p) => {
+  const m = await store.get<StoryMeta>(p);
+  return m && (m.archivedAt || (await store.get(headPath(m.storyId)))) ? m : null;
+}))).filter((m): m is StoryMeta => !!m);
 /** Every story's meta, newest first. A confirmed reset starts a new story id and archives the old story's pages under its own id (D-73). */
 export async function listStories(store: Store): Promise<StoryMeta[]> {
   // no "current story" pointer: the newest createdAt is the one that runs

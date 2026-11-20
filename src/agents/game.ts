@@ -493,6 +493,7 @@ export function createGame(deps: GameDeps): Game {
       stopped = true;
       return;
     }
+    let committed = true;
     try {
       await save.saveTurn(store, s, record);
     } catch (e) {
@@ -505,10 +506,10 @@ export function createGame(deps: GameDeps): Game {
         return;
       }
       // committed: the head was written and only cleanup or backups failed, so the turn is saved
-      if (!err.committed) notice({ kind: 'save_failed', text: `The turn could not be saved (${err.message}); the last good save is kept.` });
+      if (!err.committed) { committed = false; notice({ kind: 'save_failed', text: `The turn could not be saved (${err.message}); the last good save is kept.` }); }
     }
     // HF22: the Universe date follows the furthest day any world has reached
-    if (dayOf(now(s)) > reachedDay) { reachedDay = dayOf(now(s)); save.reachDay(store, reachedDay).catch(() => {}); }
+    if (committed && dayOf(now(s)) > reachedDay) { reachedDay = dayOf(now(s)); save.reachDay(store, reachedDay).catch(() => {}); }
     refreshBackups(s.storyId);
     reportFallbacks(s, turnLog);
     // every bug code logged this turn (an "other" quest goal, QT27, among them) is filed for the build threads
@@ -555,7 +556,8 @@ export function createGame(deps: GameDeps): Game {
       length: { band, words: wordCount(narr.output.text), top: views.lengthTop(s, band) } }); // LN7: measured, never re-asked
     lastLog = narrLog;
     lastDisplayAt = clock.now();
-    await storeHistory(s.storyId);
+    // BG-337: the story text follows the commit; a turn the save does not hold keeps its lines in memory for the next good turn
+    if (committed) await storeHistory(s.storyId);
   }
 
   /** Q18: save the story column after each turn; a failure keeps play going and only costs text. */

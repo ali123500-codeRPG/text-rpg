@@ -10,6 +10,7 @@ describe('118 start a new save', () => {
     const store = memoryStore();
     await store.set('stories/old', meta('old', '2026-11-08T10:00:00Z'));
     await store.set('stories/new', meta('new', '2026-11-08T12:00:00Z'));
+    for (const id of ['old', 'new']) await store.set(`stories/${id}/control/head`, { turn: 0 }); // a saved story has a head (BG-336)
     await store.set('stories/new/pages/p', { kept: true });
     await savePendingStart(store, { storyId: 'new', build: {} as never, at: '2026-11-08T12:00:00Z' });
     await archiveStory(store, 'new', '2026-11-08T16:40:00Z');
