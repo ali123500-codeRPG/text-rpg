@@ -48,7 +48,7 @@ it('238c walking in to ask someone last seen there is legal; calling out to them
   const s = makeVillage({ playerZone: 'street_door' });
   const view = buildPlayerView(s);
   const wim = actorById(s, 'patron_1')!;
-  view.lastSeen = [{ id: wim.id, name: 'Old Wim', zone: wim.zone }];
+  view.lastSeen = [{ id: wim.id, name: 'Old Wim', zone: wim.zone, zoneName: 'the common room' }];
   view.actors = view.actors.filter((a) => a.id !== wim.id);
   const ask = (move: { toZone: string } | null) => checkParserLegality(intent({ move, action: { type: 'talk', target: wim.id }, spoken: 'Did you see the ring taken?', addressees: [wim.id] }), view).illegal;
   expect(ask({ toZone: wim.zone })).toEqual([]);

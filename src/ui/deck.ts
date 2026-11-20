@@ -164,7 +164,7 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
   // ---- Talk: a plain talk opens a conversation at once; the rest need your words (typed in the Say box) ----
   const listeners = [...talkers, ...(pv.lastSeen ?? []).filter((x) => !x.gone && !x.mute).map((x) => ({ id: x.id, label: x.name, zone: x.zone, level: 'partial' } as unknown as PlayerView['actors'][number]))];
   if (listeners.length) {
-    add('talk', 'talk', 'Talk to', [{ key: 'target', title: 'Talk to whom?', picks: () => listeners.map((a) => talkers.includes(a) ? person(a) : { id: a.id, label: cap(nameOf(a.id)), note: `last seen in ${zoneName(a.zone)}` }) }],
+    add('talk', 'talk', 'Talk to', [{ key: 'target', title: 'Talk to whom?', picks: () => listeners.map((a) => talkers.includes(a) ? person(a) : { id: a.id, label: cap(nameOf(a.id)), note: `last seen in ${pv.lastSeen?.find((x) => x.id === a.id)?.zoneName ?? zoneName(a.zone)}` }) }],
       (c) => order(`Talk to ${them(c)}`, { action: act('talk', { target: c.target! }), addressees: [c.target!] }));
     const speech = (kind: DeckKind, type: Act['type'], label: string, note: string, list = talkers, demand = false) => add(kind, 'talk', label, [who(`${label} whom?`, list), { key: 'words', title: 'What do you say?' }],
       (c) => order(c.words!, { action: act(type, { target: c.target!, ...(demand ? { demand: 'yield' as const } : {}) }), spoken: c.words!, addressees: [c.target!] }), { note });

@@ -164,7 +164,7 @@ describe('Parser legality', () => {
     const { claude, ctx } = setup();
     const pv = playerView();
     pv.player.inventory.push({ id: 'charm_1', itemId: 'IT17', name: 'lucky charm', look: 'a charm', kind: 'trinket', equippedIn: [], modes: [] });
-    pv.lastSeen = [{ id: 'drover', name: 'Corwin', zone: pv.zone.links[0].to }];
+    pv.lastSeen = [{ id: 'drover', name: 'Corwin', zone: pv.zone.links[0].to, zoneName: pv.zone.links[0].label }];
     const to = pv.zone.links[0].to;
     claude.push('parser', intentOf({ move: { toZone: to, spot: { near: 'drover' } }, action: { ...intentOf().action!, type: 'give', target: 'drover', item: 'charm_1', skill: '' } }));
     const r = await callParser('give Corwin the lucky charm', pv, ctx);

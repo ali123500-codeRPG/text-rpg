@@ -9,6 +9,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the spec's bug log, docs/spec/bug-log.md, has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-327
+
+**What was wrong:** Someone the player saw earlier but cannot see now was never drawn on the Map or listed in a zone card, against MAP-45; on the default fake page the slime last seen in the field was missing. PlayerView's `lastSeen` gave each person's zone as the zone's name (`src/views/index.ts`), while every other `zone` in PlayerView, and every reader of it, is the zone's id. The Map filed people under that value and looked them up by id, so no last-seen person was ever found. The same mix-up showed in the action deck: a seller last seen elsewhere was compared by id against a name, and a "last seen in" note fell back on whatever string it got.
+
+**What was done:** `lastSeen[].zone` is now the zone's id, as everywhere in PlayerView, with its name beside it as `zoneName` (the shape `cameFrom` already has), so the Parser still reads where someone was last seen. The deck's "last seen in" note reads `zoneName`; the Parser's rule names both fields. A whole-turn test has the player look round the tavern and step out, and checks that the barkeep and the patron left behind show in their rooms on the Map, with no point; it failed before the fix. The BG-28 scenario test now checks the id and the name. Siblings checked: every reader of `lastSeen[].zone` (the Map, the deck's talk and buy lists, the Parser's legality check, the agents' wrappers, the save check).
+
+**Fixed by:** #1156
+
 ## BG-337
 
 **What was wrong:** A save counts once its head is written (save flow, step 5), but `finishTurn` (`src/agents/game.ts`) did two things after a failed head write as if the turn had been saved. It saved the turn's story text, and it raised the Universe day. Play goes on from memory after a failed save, so nothing showed until a reload: the save was a turn back while the story column still held the turn that was never saved. Replaying it then put two different narrations of the same turn in the column, with no "Undone" fold between them. The Universe day could also move past every saved world. Reproduced with the whole-turn harness: with the head write failing on turn 3, the head stayed on turn 2 and the saved story text held turns 1 to 3.
