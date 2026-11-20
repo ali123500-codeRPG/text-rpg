@@ -334,9 +334,13 @@ async function loadRows() {
     doneChecked = true; left.clear(); return { rows, changed: null };
   }
   Object.assign(rows, idx.rows); savedIdx = JSON.stringify({ rows: idx.rows, seen: idx.seen });
+  const idsP = db.ids ? db.ids('pages').catch(() => []) : Promise.resolve([]); // asked now, so it travels with the next read
   const snap = await db.collection('pages').where('updated', '>', idx.seen || '').get();
   (await Promise.all(snap.docs.map((d) => rowOf(d.id, d.data())))).forEach((r) => { rows[r.id] = r; });
   const changed = new Set(snap.docs.map((d) => d.id));
+  // a questionnaire copied in keeps its older `updated`, so the time check above misses it: read every id with no row
+  const missing = (await idsP).filter((id) => !rows[id] && !changed.has(id));
+  apply(rows, missing, await Promise.all(missing.map(reread))); missing.forEach((id) => changed.add(id));
   for (const [id, r] of left) if (rows[id] && !changed.has(id)) rows[id] = r;
   return { rows, changed };
 }
@@ -550,20 +554,44 @@ addEventListener('scroll', () => { if (Date.now() < skipUntil || !PAGE) return; 
 const POLL = 20000;
 function supaDb(mcp) {
   const q = (s) => "'" + String(s).replace(/'/g, "''") + "'";
-  let refP = null;
+  // the project id is looked up once and kept in this browser, which saves a round trip on every later visit
+  const KEY = 'qhub:supaRef', kept = (() => { try { return localStorage.getItem(KEY); } catch (e) { return null; } })();
+  let refP = kept ? Promise.resolve(kept) : null, trustKept = !!kept;
   const ref = () => refP ??= mcp.callTool('Supabase', 'list_projects', {}, { cache: false }).then((r) => {
     const id = (r.payload?.projects || []).find((x) => x.name === 'questions-hub')?.id;
-    if (!id) { refP = null; throw new Error('no Supabase project named questions-hub'); } return id; }, (e) => { refP = null; throw e; });
+    if (!id) { refP = null; throw new Error('no Supabase project named questions-hub'); }
+    try { localStorage.setItem(KEY, id); } catch (e) {} return id; }, (e) => { refP = null; throw e; });
+  const sqlOnce = async (sql) => (await mcp.callTool('Supabase', 'execute_sql', { project_id: await ref(), query: sql }, { cache: false })).payload;
   const run = async (sql) => {
-    const r = (await mcp.callTool('Supabase', 'execute_sql', { project_id: await ref(), query: sql }, { cache: false })).payload;
+    let r; try { r = await sqlOnce(sql); trustKept = false; } // one answer proves the kept id
+    catch (e) { if (!trustKept) throw e; trustKept = false; refP = null; try { localStorage.removeItem(KEY); } catch (x) {} r = await sqlOnce(sql); } // a kept id gone stale: look it up once more
     // the rows sit between a tag pair on lines of their own; the same tag name also appears inside the notice's sentence
     const m = /<(untrusted-data-[\w-]+)>\n([\s\S]*?)\n<\/\1>/.exec(typeof r === 'string' ? r : r?.result ?? '');
     return m ? JSON.parse(m[2]) : [];
   };
   const snapDoc = (p, row) => ({ id: p.split('/').pop(), exists: !!row, data: () => row?.data });
-  const getDoc = async (p) => snapDoc(p, (await run(`select data from hub_docs where path = ${q(p)}`))[0]);
-  const getColl = async (c, and = '') => ({ docs: (await run(`select path, data from hub_docs where starts_with(path, ${q(c + '/')})
-    and strpos(substr(path, ${c.length + 2}), '/') = 0${and} order by path`)).map((r) => snapDoc(r.path, r)) });
+  // every connector call is a slow round trip, so the reads asked for in the same moment go out as one query;
+  // 'has' and 'ids' read paths only, never the documents
+  const parent = (p) => p.slice(0, p.lastIndexOf('/')), arr = (xs) => `array[${xs.map(q).join(', ')}]::text[]`;
+  let pend = [], timer = null;
+  const read = (kind, key) => new Promise((res, rej) => { pend.push({ kind, key, res, rej }); timer ??= setTimeout(flush, 0); });
+  async function flush() {
+    timer = null; const b = pend; pend = [];
+    const of = (k) => [...new Set(b.filter((x) => x.kind === k).map((x) => x.key))];
+    const inColl = (cs) => `regexp_replace(path, '/[^/]+$', '') = any(${arr(cs)})`;
+    const full = [of('doc').length && `path = any(${arr(of('doc'))})`, of('coll').length && inColl(of('coll'))].filter(Boolean);
+    const bare = [of('has').length && `path = any(${arr(of('has'))})`, of('ids').length && inColl(of('ids'))].filter(Boolean);
+    try {
+      const rows = await run(`select path, ${full.length ? `case when ${full.join(' or ')} then data end` : 'null'} as data
+        from hub_docs where ${[...full, ...bare].join(' or ')} order by path`);
+      for (const x of b) x.res(x.kind === 'coll' || x.kind === 'ids' ? rows.filter((r) => parent(r.path) === x.key) : rows.find((r) => r.path === x.key));
+    } catch (e) { b.forEach((x) => x.rej(e)); }
+  }
+  const recent = new Map(); // a doc read in the last 3 s is reused: the startup check reads hub/index, and so does the home list
+  const getDoc = (p) => { const r = recent.get(p); if (r && Date.now() - r.at < 3000) return r.p;
+    const pr = read('doc', p).then((row) => snapDoc(p, row)); recent.set(p, { at: Date.now(), p: pr }); pr.catch(() => recent.delete(p)); return pr; };
+  const getColl = async (c, and = '') => ({ docs: (and ? await run(`select path, data from hub_docs where starts_with(path, ${q(c + '/')})
+    and strpos(substr(path, ${c.length + 2}), '/') = 0${and} order by path`) : await read('coll', c)).map((r) => snapDoc(r.path, r)) });
   const subs = new Set();
   const watch = (key, read, cb, err) => {
     const s = { key, last: null, tick: () => read().then((snap) => {
@@ -576,9 +604,9 @@ function supaDb(mcp) {
   const poke = (p) => subs.forEach((s) => { if (s.key === p || s.key === p.slice(0, p.lastIndexOf('/'))) s.tick(); });
   const doc = (p) => ({
     get: () => getDoc(p),
-    set: async (v) => { await run(`insert into hub_docs (path, data) values (${q(p)}, ${q(JSON.stringify(v))}::jsonb)
+    set: async (v) => { recent.delete(p); await run(`insert into hub_docs (path, data) values (${q(p)}, ${q(JSON.stringify(v))}::jsonb)
       on conflict (path) do update set data = excluded.data, updated_at = now()`); poke(p); },
-    delete: async () => { await run(`delete from hub_docs where path = ${q(p)}`); poke(p); },
+    delete: async () => { recent.delete(p); await run(`delete from hub_docs where path = ${q(p)}`); poke(p); },
     onSnapshot: (cb, err) => watch(p, () => getDoc(p), cb, err),
   });
   // many rows in one transaction, and never over a row that is already there
@@ -589,7 +617,8 @@ function supaDb(mcp) {
     where: (f, op, v) => { if (op !== '>') throw new Error('only > is supported'); return { get: () => getColl(c, ` and data->>${q(f)} > ${q(v)}`) }; },
     onSnapshot: (cb, err) => watch(c, () => getColl(c), cb, err),
   });
-  return { doc, collection, insertNew };
+  return { doc, collection, insertNew, has: async (p) => !!(await read('has', p)),
+    ids: async (c) => (await read('ids', c)).map((r) => r.path.slice(c.length + 1)) };
 }
 
 // Questionnaires that are still only in this page's own db go to Supabase when the owner presses the button on the
@@ -608,8 +637,8 @@ async function copyOlder(own, shared, todo, say = () => {}) {
   }
   await flush(); return done;
 }
-async function offerCopy(own, shared, sharedPages) {
-  const have = new Set(sharedPages.docs.map((d) => d.id));
+async function offerCopy(own, shared) {
+  const have = new Set(await shared.ids('pages'));
   const todo = (await own.collection('pages').get().catch(() => ({ docs: [] }))).docs.filter((d) => !have.has(d.id));
   if (!todo.length) return;
   const btn = $('copyBtn'), msg = $('copyMsg'); btn.textContent = `Move ${todo.length} older questionnaire${todo.length > 1 ? 's' : ''} to the shared table`; $('older').hidden = false;
@@ -628,7 +657,7 @@ function bothDb(a, b) {
   if (!b) return a;
   const home = new Map(), idOf = (p) => /^(?:pages|rounds|qs|answers)\/([^/]+)/.exec(p)?.[1];
   const where = (p) => { const id = idOf(p); if (!id) return Promise.resolve(a);
-    if (!home.has(id)) home.set(id, a.doc('pages/' + id).get().then((d) => d.exists ? a
+    if (!home.has(id)) home.set(id, a.has('pages/' + id).then((x) => x ? a
       : b.doc('pages/' + id).get().then((e) => e.exists ? b : a, () => a)));
     return home.get(id); };
   const lazy = (p, f) => { let un = null, off = false; where(p).then((s) => { if (!off) un = f(s); }); return () => { off = true; un?.(); }; };
@@ -643,7 +672,8 @@ function bothDb(a, b) {
   const collection = (c) => c === 'pages'
     ? { get: () => pages((s) => s.collection(c).get()), where: (...w) => ({ get: () => pages((s) => s.collection(c).where(...w).get()) }) }
     : { get: async () => (await where(c)).collection(c).get(), onSnapshot: (cb, err) => lazy(c, (s) => s.collection(c).onSnapshot(cb, err)) };
-  return { doc, collection };
+  const ids = async (c) => [...new Set([...await a.ids(c), ...(await b.collection(c).get().catch(() => ({ docs: [] }))).docs.map((d) => d.id)])];
+  return { doc, collection, ids };
 }
 
 (async () => {
@@ -652,10 +682,9 @@ function bothDb(a, b) {
     // the built-in db stays the fallback: a viewer without the Supabase connector still sees this page's own data
     const why = (e) => { const n = document.createElement('p'); n.className = 'supa-off'; n.textContent = `Supabase unavailable (${e?.code || e?.message || e}): showing this page's own data only.`; document.body.append(n); return null; };
     const own = window.claude?.use ? await window.claude.use('db') : null;
-    let sharedPages = null;
-    const shared = sdb ? await sdb.collection('pages').get().then((s) => { sharedPages = s; return sdb; }, why) : mcp ? null : why('connectors not offered here');
+    const shared = sdb ? await sdb.doc('hub/index').get().then(() => sdb, why) : mcp ? null : why('connectors not offered here');
     db = shared ? bothDb(shared, own) : own;
-    if (shared && own) offerCopy(own, shared, sharedPages).catch(() => {});
+    if (shared && own) offerCopy(own, shared).catch(() => {});
   } catch (e) { db = null; }
   const last = db ? await recall('qhub:last') : null;
   if (db && last) openPage(last); else showHome();

@@ -39,6 +39,8 @@ project's id, `execute_sql` reads and writes. Supabase's public roles have no ac
   reads and writes those questionnaires in Supabase, so the thread that pressed for the move checks the counts and
   then deletes the own copies. The button exists because a thread can only send SQL by writing it out, which does not
   work for megabytes of old questionnaires; the page reads both stores directly.
+- Each connector call is a slow round trip, so the page sends the reads it needs at the same moment as one query, and
+  the home list also checks the names of all questionnaires, so one copied in with an older `updated` still shows.
 - New questionnaires go to Supabase only. Supabase cannot push changes, so an open page reads what it watches again
   every 20 seconds.
 - A red line at the bottom left means Supabase could not be reached, for example because the free project paused after
