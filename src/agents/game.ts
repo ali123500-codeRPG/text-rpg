@@ -1287,9 +1287,9 @@ export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView,
       // OD1 b: an act on a graded thing; the story tells what the tier meant (OD5)
       check = { kind: 'roll', skill: e.roll.skill, ...tierPart(e.roll), result: tierAtLeast(e.roll.tier, 'success') ? 'done' : e.roll.tier === 'near_miss' ? 'not yet' : 'not done' };
     } else if (e.roll && e.roll.actorId === 'player') {
-      // BG-257: each roll says only what it did: Look around who it made out, a pick what happened at the lock, a break
+      // BG-257: each roll says only what it did: a look (a Search's, LX1) who it made out, a pick what happened at the lock, a break
       // whether it gave way; any other roll has no words of its own (the story tells it)
-      const said = e.kind === 'observe' ? (tierAtLeast(e.roll.tier, 'success') ? 'you make out who is there' : 'nothing clearer')
+      const said = e.kind === 'observe' || e.glance ? (tierAtLeast(e.roll.tier, 'success') ? 'you make out who is there' : 'nothing clearer')
         : e.kind === 'pick' && e.way ? PICK_WORDS[e.way.did] ?? '' : e.kind === 'break_open' && e.breakOpen ? (e.breakOpen.opened ? 'it breaks open' : 'it holds') : '';
       check = { kind: 'roll', skill: e.roll.skill, ...tierPart(e.roll), result: said };
     }

@@ -37,7 +37,7 @@ describe('222 hidden items', () => {
     rigRolls('success');
     let ev = play(s, search()).find((e) => e.kind === 'search')!;
     expect(ev.effects).toContainEqual({ kind: 'disturbed', actorId: 'player', data: {} }); // a tie only hints
-    expect(ev.roll).toBeUndefined(); // SE6: no dice without a find
+    expect(ev.glance).toBe(true); // SE6: no item-search dice without a find; the dice shown are the look's (LX1)
     expect(ground(s)).not.toContain('ring_1');
     vi.restoreAllMocks();
     rigRolls('great_success');

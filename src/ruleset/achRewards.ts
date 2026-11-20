@@ -202,8 +202,8 @@ function linesOf(d: AchievementDef, f: AchievementReward): string[] {
     case 'tierUnlocks': return (d.tierUnlocks ?? []).map((u) => tierUnlockLine(u));
     case 'freeLevels': return [`+${steps(d.freeLevels!, 'free level')} (levels that cost no XP)`];
     case 'bonusLevels': return [`+${steps(d.bonusLevels!, 'bonus level')} (character levels no class gets: perk points, no class perks)`];
-    case 'searchArea': return [`+${d.searchArea}% on your search area and fight-turn search reach`];
-    case 'searchReach': return [`+${d.searchReach} m of fight-turn search reach (+${d.searchReach! * CONFIG.SEARCH_M2_PER_FIGHT_M} m² of search area)`];
+    case 'searchArea': return [`+${d.searchArea}% on your search area`];
+    case 'searchReach': return [`+${d.searchReach! * CONFIG.SEARCH_M2_PER_REACH_M} m² of search area`];
     case 'perk': return [`grants the perk ${getLibrary().perks?.[d.perk!]?.name ?? d.perk}`];
     case 'personality': return personalityLines(d.personality);
     case 'personalityByKind': return Object.entries(d.personalityByKind ?? {}).flatMap(([kind, add]) => personalityLines(add).map((l) => `${l} when earned with ${kindLabel(d, kind)}`));

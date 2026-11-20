@@ -49,7 +49,7 @@ export type DeckCtx = { pv: PlayerView; s?: GameState; aim?: boolean; broken?: b
  * way op the game knows (DECK_LEFT_OUT says why the rest are not listed) */
 export const DECK_KINDS = ['attack', 'finish', 'restrain', 'steady', 'yield', 'stand_down', 'extract', 'heal', 'talk', 'persuade', 'deceive', 'intimidate',
   'barter', 'demand', 'give', 'take', 'buy', 'sell', 'show', 'lets_search', 'go', 'walk_up', 'back_away', 'follow', 'jump', 'stop',
-  'keep_walking', 'way', 'sneak', 'filch', 'stash', 'look', 'look_at', 'listen', 'search', 'use_item', 'equip', 'draw',
+  'keep_walking', 'way', 'sneak', 'filch', 'stash', 'look_at', 'listen', 'search', 'pat_down', 'use_item', 'equip', 'draw',
   'stow', 'swap', 'wear_acc', 'remove_acc', 'pick_up', 'set_down', 'summon', 'loot', 'open', 'break', 'pick', 'wait', 'rest',
   'sleep', 'perk', 'warn'] as const;
 export type DeckKind = (typeof DECK_KINDS)[number];
@@ -61,7 +61,7 @@ export const DECK_LEFT_OUT: Record<string, string> = {
 /** how each deck kind leans with the character's personality (ideaLeans) */
 const LEAN: Partial<Record<DeckKind, IdeaKind>> = {
   attack: 'attack', steady: 'steady', yield: 'yield', talk: 'talk', persuade: 'talk', deceive: 'talk', go: 'go', sneak: 'sneak',
-  stow: 'stow', draw: 'draw', pick_up: 'pick_up', summon: 'summon', look: 'look', search: 'search', perk: 'perk',
+  stow: 'stow', draw: 'draw', pick_up: 'pick_up', summon: 'summon', search: 'look', pat_down: 'search', perk: 'perk',
 };
 
 /** housekeeping on your own gear: always at the bottom of its group, whatever the character leans to */
@@ -244,12 +244,13 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
 
   // ---- Use: looking, searching, your gear, things here, time ----
   const has = (sk: string) => pv.player.skills.some((x) => x.id === sk);
-  add('look', 'use', 'Look around', [], () => order('Look around', { action: act('observe', { skill: has(SK.eyesight) ? SK.eyesight : '' }) }), { free: true, note: 'a glance at all in sight' });
   const sights = [...strikable.map(person), ...pv.zones.filter((z) => z.id !== pv.zone.id).map((z) => ({ id: z.id, label: cap(z.name) }))];
   if (sights.length) add('look_at', 'use', 'Look at', [{ key: 'target', title: 'Look at whom or where?', picks: () => sights }], (c) => order(`Look at ${names.has(c.target!) ? them(c) : zoneName(c.target!)}`, { action: act('observe', { skill: has(SK.eyesight) ? SK.eyesight : '', target: c.target! }) }));
   add('listen', 'use', 'Listen', [], () => order('Listen', { action: act('observe', { skill: has(SK.earshot) ? SK.earshot : '' }) }));
-  add('search', 'use', 'Search', [{ key: 'target', title: 'Search where?', picks: () => [{ id: '', label: 'Around you' }, ...full.map(person)] }],
-    (c) => order(c.target ? `Search ${them(c)}` : 'Search', { action: act('search', { target: c.target || null }) }));
+  // LX1: Search is everything around you (the look over all in sight, hidden people and things); LX4: Pat down is a person
+  add('search', 'use', 'Search', [], () => order('Search', { action: act('search', { target: null }) }), { note: 'all in sight, and what is hidden near' });
+  if (full.length) add('pat_down', 'use', 'Pat down', [{ key: 'target', title: 'Pat down whom?', picks: () => full.map(person) }],
+    (c) => order(`Pat down ${them(c)}`, { action: act('search', { target: c.target! }) }));
   if (s && lootSources(pv).length) add('loot', 'use', 'Take things here', [], () => order('', {}), { note: 'pick what to pocket', hot: true });
   const healIds = new Set(s ? healItems(s, s.player).map((x) => x.itemId) : []);
   const heal = inv.filter((i) => healIds.has(i.itemId));

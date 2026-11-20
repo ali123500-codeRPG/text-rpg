@@ -56,10 +56,10 @@ export function suggestions(groups: ReturnType<typeof deck>, ctx: DeckCtx): Sugg
     const ready = s?.quests.find((q) => q.state === 'ready');
     if (ready && up.length) put('talk', { target: up[0].id }, W.quest, `Your job "${ready.text}" is done: tell whoever gave it.`);
   }
-  put('look', {}, W.look, fight ? 'No one here is fighting you: take in the fight around you.' : 'Nothing presses: take in what is around you.');
+  put('search', {}, W.look, fight ? 'No one here is fighting you: take in the fight around you.' : 'Nothing presses: take in what is around you.');
   // the character's leanings tip close calls
   const p = ctx.self;
-  const LEAN: Partial<Record<DeckAction['kind'], IdeaKind>> = { attack: 'attack', steady: 'steady', yield: 'yield', go: 'go_new', look: 'look', talk: 'talk', take: 'pick_up', loot: 'pick_up' };
+  const LEAN: Partial<Record<DeckAction['kind'], IdeaKind>> = { attack: 'attack', steady: 'steady', yield: 'yield', go: 'go_new', search: 'look', talk: 'talk', take: 'pick_up', loot: 'pick_up' };
   for (const x of out) if (p && LEAN[x.action.kind]) x.score += pullOf(LEAN[x.action.kind]!, p) * W.leanShare;
   return out.sort((a, b) => b.score - a.score);
 }

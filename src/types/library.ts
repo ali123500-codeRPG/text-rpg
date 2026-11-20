@@ -378,7 +378,7 @@ export type PerkDef = {
   bonusLevels?: number; // bonus levels: this many character levels outside every class, given while the perk is owned and active
   perkPoints?: number; // perk points: this many added once to the owner's unspent perk points when the perk is owned and active (Nobody Special)
   searchArea?: number; // SE24: + this % on the owner's search area (and so its fight-turn reach), while owned and active
-  searchReach?: number; // SE24: + this many metres of fight-turn search reach (and SEARCH_M2_PER_FIGHT_M m² of search area per metre)
+  searchReach?: number; // SE24: + SEARCH_M2_PER_REACH_M m² of search area per metre
   /** while owned, skill `from` augments `skill` as a SkillDef.augments entry would (true skill × share × tier; its tree open; kind as AugmentKind).
    * No skill: every skill's rolls of the listed kinds. when: only on rolls made in that situation (AugmentWhen). payoff (CN4, D-260):
    * the share is payoffShare of the owned pieces it counts instead of a fixed number. */
@@ -567,7 +567,7 @@ export type AchievementDef = { id: string; name: string; level: string; rule: Ac
   freeLevels?: number; // free levels: this many level-ups that cost no XP (taken like any level, src/engine/xp.ts spendXp)
   bonusLevels?: number; // bonus levels: this many character levels that no class gets (perk points on even levels; no class perks)
   searchArea?: number; // SE24: + this % on the owner's search area (and so its fight-turn reach)
-  searchReach?: number; // SE24: + this many metres of fight-turn search reach (and SEARCH_M2_PER_FIGHT_M m² of search area per metre)
+  searchReach?: number; // SE24: + SEARCH_M2_PER_REACH_M m² of search area per metre
   firstSight?: IntelligenceKey; // members of the achievement's race or body type, up to this intelligence, meet the owner opposed instead of hostile
   /** reward levels added for some kinds of `by` (a part size: smaller parts pay more), e.g. { small: 1 } */
   levelUp?: Partial<Record<string, number>>;

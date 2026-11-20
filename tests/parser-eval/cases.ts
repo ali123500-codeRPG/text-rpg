@@ -48,7 +48,7 @@ export const CASES: { line: string; bug?: string; check: Check }[] = [
   { line: 'Hide behind the bar.', check: all(act('sneak'), moves(['tav_counter'])) },
   { line: 'Sneak out the front door.', check: moves(['street_door']) },
   { line: 'Search the room.', check: act('search') },
-  { line: 'Look around.', check: all(act('observe'), noMove) },
+  { line: 'Look around.', check: all(act('search'), noMove) },
   { line: 'I wait and watch the room.', check: all(act(['wait', 'observe']), noMove) },
   { line: 'I await the outcome.', bug: 'BG-3', check: all(noClarify, noMove) },
   { line: 'I sit down and rest for a while.', check: act(['rest', 'wait']) },

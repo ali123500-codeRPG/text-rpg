@@ -157,12 +157,12 @@ describe('play page smoke (TQ7)', () => {
     expect(errors).toEqual([]);
   });
 
-  it('AD6/AD7: a click on Look around in the action deck plays the turn at once, with no typing', async () => {
+  it('AD6/AD7, LX1: a click on Search in the action deck plays the turn at once, with no typing', async () => {
     const before = await page.locator('.ln-player').count();
-    await page.locator('.dk-act[data-kind="look"]').click();
+    await page.locator('.dk-act[data-kind="search"]').click();
     await expect.poll(() => page.locator('.ln-player').count()).toBe(before + 1);
-    expect(await page.locator('.ln-player').last().innerText()).toBe('Look around');
-    await page.locator('.dk-act[data-kind="look"]:not([disabled])').waitFor(); // the deck comes back once the turn lands
+    expect(await page.locator('.ln-player').last().innerText()).toBe('Search');
+    await page.locator('.dk-act[data-kind="search"]:not([disabled])').waitFor(); // the deck comes back once the turn lands
     expect(errors).toEqual([]);
   });
 
@@ -173,7 +173,7 @@ describe('play page smoke (TQ7)', () => {
     expect(await page.locator('.cs-strip').innerText()).not.toMatch(/Unhurt|Calm|Rested/);
     expect(await page.locator('.cs-strip [role="img"][aria-label^="Health: "]').count()).toBe(1);
     expect(await page.locator('.dk-act .n').count()).toBe(0);
-    expect(await page.locator('.dk-act[data-kind="look"]').getAttribute('title')).toMatch(/ · a glance at all in sight$/);
+    expect(await page.locator('.dk-act[data-kind="search"]').getAttribute('title')).toMatch(/ · all in sight, and what is hidden near$/);
     expect(await page.locator('.dk-free').first().getAttribute('title')).toBe('Free');
     expect(await page.locator('[data-def="block"]').getByRole('img', { name: 'Needs a shield in hand' }).count()).toBe(1); // the opening build holds no shield
     expect(await page.locator('.inbar .hs-input').getAttribute('placeholder')).toBe('What do you do or say?');

@@ -37,7 +37,8 @@ describe('play screen extras (Voyage UI check)', async () => {
     const seen = pv.actors.filter((a) => a.level === 'full').map((a) => (a.name ?? a.label).toLowerCase());
     expect(targets('talk').map((x) => x.toLowerCase())).toEqual(expect.arrayContaining(seen));
     expect(targets('go').map((x) => x.toLowerCase())).toEqual(expect.arrayContaining(pv.zone.links.filter((l) => !l.drop).map((l) => l.label.toLowerCase())));
-    expect(all.map((a) => a.label)).toEqual(expect.arrayContaining(['Look around', 'Search'])); // SE19
+    expect(all.map((a) => a.label)).toContain('Search'); // SE19, LX1: Search is the look around too
+    expect(all.map((a) => a.label)).not.toContain('Look around');
     // nobody outside the view: slimes in the field are not in the tavern
     expect(JSON.stringify(all.flatMap((a) => a.steps.map((st) => (st.key === 'words' ? [] : st.picks({})))))).not.toMatch(/slime/i);
   });

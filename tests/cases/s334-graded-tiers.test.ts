@@ -109,4 +109,10 @@ describe('334 BG-257: each roll line says what that roll did', () => {
     const look = turn(s, intent({ action: { type: 'observe', skill: SK.eyesight } }), [90]);
     expect(line(s, look)?.result).toMatch(/^(you make out who is there|nothing clearer)$/);
   });
+  it('LX1: a Search around you shows its look roll with the look\'s words', () => {
+    const s = village();
+    const evs = turn(s, intent({ action: { type: 'search', target: null } }), [90]);
+    expect(evs.find((e) => e.kind === 'search')?.glance).toBe(true);
+    expect(line(s, evs)?.result).toMatch(/^(you make out who is there|nothing clearer)$/);
+  });
 });

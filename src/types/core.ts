@@ -294,6 +294,7 @@ export type GameEvent = {
   filch?: 'taken' | 'fumbled' | 'caught'; // FL4: how a filch went (src/engine/filch.ts)
   attack?: import('./ruleset').AttackResult; // attacks only; code only, never copied to a view
   contest?: import('./ruleset').ContestResult;
+  glance?: true; // LX1: a Search whose roll is its look around (Success or better made out everyone in sight)
   /** BF97 a: an Insight look at a person (observe) the looker won: what they made out */
   read?: PersonRead;
   /** OD1 b/OD3: an act on a graded thing (use, interact, other): the skill, the grade, and whether it was sure, out of reach or rolled */
