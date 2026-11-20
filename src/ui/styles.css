@@ -1091,6 +1091,7 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-who.last text { fill: var(--c4); }
 /* MAP-69: the icon for what is seen on someone first, inside their disc */
 .map-who-icon { color: var(--on-pill); pointer-events: none; }
+.map-who-hit { visibility: hidden; pointer-events: all; } /* RM17 b: where a narrow capsule is clicked, never drawn */
 .map-who.last .map-who-icon { color: var(--c4); }
 .map-who.plan-who :is(circle, rect) { stroke-width: 1.5; }
 /* MAP-68: the faint "somewhere here" circle round someone out of full sight */

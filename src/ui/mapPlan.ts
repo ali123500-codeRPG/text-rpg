@@ -50,7 +50,8 @@ export type SExit = { id: string; zoneId: string; target: string; state: string;
 export type SStair = Box & { id: string; zoneId: string; cx: number; cy: number; up: boolean; goto?: string; title: string; label: string };
 export type SFurn = Box & { id: string; zoneId: string; kind: string; name: string; cx: number; cy: number };
 /** `cap` (GSM-193): a body bigger than its disc is drawn as a capsule of its own size, `len` px along the way it faces
- *  (`deg`, screen degrees) and `wide` px across, never narrower than the disc; the box is the turned capsule's */
+ *  (`deg`, screen degrees) and `wide` px across, its true width even when narrower than the disc (RM17 b); the box is the
+ *  turned capsule's */
 export type SToken = Box & { id: string; zoneId: string; cx: number; cy: number; r: number; you?: true; who?: MapPerson; title: string; cap?: { len: number; wide: number; deg: number };
   /** MAP-68: the faint "somewhere here" circle round the point someone out of full sight was last perceived at */
   ring?: { cx: number; cy: number; r: number } };
@@ -95,8 +96,10 @@ const union = (bs: Box[]): Box => bs.reduce((a, b) => ({ x0: Math.min(a.x0, b.x0
 function capsule(who: MapPerson, k: number): SToken['cap'] {
   const b = who.body, s = PX_PER_M * k;
   if (!b || Math.max(b.lengthM, b.widthM) * s <= 2 * WHO_R) return undefined;
-  return { len: Math.max(b.lengthM * s, 2 * WHO_R), wide: Math.max(b.widthM * s, 2 * WHO_R), deg: (Math.atan2(-b.facing[1], b.facing[0]) * 180) / Math.PI };
+  return { len: Math.max(b.lengthM * s, 2 * WHO_R), wide: b.widthM * s, deg: (Math.atan2(-b.facing[1], b.facing[0]) * 180) / Math.PI };
 }
+/** RM17 b: the capsule a click lands on, never narrower than the disc; the layout keeps it clear so hit areas never overlap */
+export const hitCap = (c: NonNullable<SToken['cap']>) => ({ ...c, wide: Math.max(c.wide, 2 * WHO_R) });
 /** half the width and height of the box around a turned capsule (its rectangle's corners, as the browser measures it) */
 const half = (c: NonNullable<SToken['cap']>) => {
   const a = (c.deg * Math.PI) / 180, co = Math.abs(Math.cos(a)), si = Math.abs(Math.sin(a));
@@ -322,9 +325,9 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
   for (const x of zones) {
     const zb = x.box, row = x.z.people.filter((p) => !p.at), at = x.z.people.filter((p) => p.at);
     for (const who of at) {
-      const cap = capsule(who, k), [hx, hy] = cap ? half(cap) : [WHO_R, WHO_R];
+      const cap = capsule(who, k), [hx, hy] = cap ? half(hitCap(cap)) : [WHO_R, WHO_R], [dx, dy] = cap ? half(cap) : [WHO_R, WHO_R];
       const p = keep(spotOf(`who:${who.id}`, zb, hx + 2), hx, zb, hy) ?? nearFree(who.at!.x * PX_PER_M * k, -who.at!.y * PX_PER_M * k, hx, zb, hx + 2, hy);
-      if (p) { tokens.push({ id: `who:${who.id}`, zoneId: x.z.id, ...p, r: WHO_R, ...disc(p.cx, p.cy, hx, hy), who, title: who.name, ...(cap ? { cap } : {}) }); take(disc(p.cx, p.cy, hx, hy), 'token'); }
+      if (p) { tokens.push({ id: `who:${who.id}`, zoneId: x.z.id, ...p, r: WHO_R, ...disc(p.cx, p.cy, dx, dy), who, title: who.name, ...(cap ? { cap } : {}) }); take(disc(p.cx, p.cy, hx, hy), 'token'); }
       else row.push(who);
     }
     const band = row.filter((p) => !p.lastAt);
