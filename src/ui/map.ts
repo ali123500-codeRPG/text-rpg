@@ -4,7 +4,6 @@
 // joined by the roads you know. Drag to pan, wheel or the buttons to zoom. Clicking a zone shows it in the side column.
 import type { GameApi, WalkingView } from '../types';
 import { h } from './kit';
-import { furnKey } from './furnitureIcons';
 import { CONFIG } from '../config';
 import { buildPlayerView, distText } from '../views';
 import { walkLeft } from './doing';
@@ -101,6 +100,30 @@ export function doorGlyph(x: number, y: number, kind: 'door' | 'opening', dir: '
 const wayKey = (cls: string) => s('svg', { class: `k-way map-way ${cls}`, width: 20, height: 20, viewBox: '-10 -10 20 20', 'aria-hidden': 'true' },
   s('circle', { cx: 0, cy: 0, r: 9 }), ...wayGlyph(0, 0, cls.split(' ')[0] as NonNullable<MapWay['shut']>));
 
+/** MAP-30: the Key button beside a map's zoom buttons, and the short list it opens; hidden when the map shows nothing
+ *  unusual */
+export function keyTool(cls: string) {
+  const list = h('ul', { class: 'map-key', hidden: true, 'aria-label': 'Key' });
+  const btn = h('button', { type: 'button', class: cls, 'aria-expanded': 'false', hidden: true, onclick: () => open(list.hidden) }, 'Key');
+  const open = (on: boolean) => { list.hidden = !on; btn.setAttribute('aria-expanded', String(on)); };
+  const set = (rows: [Node, string][]) => { list.replaceChildren(...rows.map(([mark, text]) => h('li', {}, mark, text))); btn.hidden = !rows.length; if (!rows.length) open(false); };
+  return { btn, list, set };
+}
+/** MAP-30: a place map's key rows: only the unusual marks it shows (`used`, from the layout), in short words; the usual
+ *  ones name themselves when pointed at */
+export function planKeyRows(u: Set<string>): [Node, string][] {
+  const row = (key: string | boolean, mark: () => Node, text: string): [Node, string][] => ((typeof key === 'string' ? u.has(key) : key) ? [[mark(), text]] : []);
+  const stairs = (['stairs-up', 'stairs-down'] as const).filter((x) => u.has(x));
+  return [
+    ...row('remembered', () => h('i', { class: 'k-tile faded' }), 'Out of sight now'),
+    ...row('edge:low', () => h('i', { class: 'k-edge low' }), 'Low wall or counter'),
+    ...row('way:locked', () => wayKey('locked'), 'Locked'), ...row('way:locked-key', () => wayKey('locked key'), 'Locked, your key'),
+    ...row('way:barred', () => wayKey('barred'), 'Barred'), ...row('way:blocked', () => wayKey('blocked'), 'Blocked'),
+    ...row('exit', () => h('i', { class: 'k-line stub' }), 'Not been through yet'), ...row('exit-away', () => h('i', { class: 'k-line away' }), 'Opens another map'),
+    ...row(stairs.length > 0, () => h('span', {}, ...stairs.map((x) => h('i', { class: 'k-stair' }, x === 'stairs-up' ? '▲' : '▼'))), 'Stairs'),
+    ...row('who-last', () => h('i', { class: 'k-who last' }), 'Last seen here'),
+  ];
+}
 /** where the segment from a box's centre toward `to` leaves the box */
 function edgeOf(c: Pt, w: number, hh: number, to: Pt): Pt {
   const dx = to.x - c.x, dy = to.y - c.y;
@@ -169,7 +192,8 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void, onWalk?:
   const crumbs = h('nav', { class: 'map-crumbs', 'aria-label': 'Place' });
   const empty = h('p', { class: 'map-empty' });
   const zoomBtn = (label: string, title: string, f: () => void) => h('button', { type: 'button', class: 'map-btn', title, 'aria-label': title, onclick: f }, label);
-  const tools = h('div', { class: 'map-tools' },
+  const worldKey = keyTool('map-btn map-key-btn');
+  const tools = h('div', { class: 'map-tools' }, worldKey.list, worldKey.btn,
     zoomBtn('+', 'Zoom in', () => zoomBy(1.25)), zoomBtn('−', 'Zoom out', () => zoomBy(0.8)),
     zoomBtn('◎', 'Find me', () => findMe()), zoomBtn('⤢', 'Show the whole map', () => fit(world)));
   const floorBar = h('nav', { class: 'map-floors', 'aria-label': 'Floor' });
@@ -179,7 +203,7 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void, onWalk?:
     onPlan: () => {}, onWalk: (p) => onWalk?.(p), onPerson: () => {},
     onCard: (zone) => { exitSel = null; selected = zone; focus = worldZones().find((x) => x.id === zone)?.placeId ?? focus; draw(); },
     onExit: (zone, label) => { selected = zone; exitSel = { zoneId: zone, label }; draw(); },
-    onGoto: (target) => goTo(target), onArea: (id) => { focus = id; draw(); }, onExpand: () => fit(world), onRender: () => drawLegend(),
+    onGoto: (target) => goTo(target), onArea: (id) => { focus = id; draw(); }, onExpand: () => fit(world),
   });
   /** what the shared view draws: this map's zones at the height shown, the places inside it, and you when you stand here */
   function planData(): PlanData | null {
@@ -422,29 +446,6 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void, onWalk?:
   }
   const innerPlaces = (zones: MapZone[]) => (cur?.places ?? []).filter((p) => rootOf(p.id) === world && p.id !== world).sort((a, b) => a.depth - b.depth)
     .map((p) => ({ id: p.id, name: p.name, depth: p.depth, zones: zones.filter((z) => inside(z.placeId, p.id)) })).filter((p) => p.zones.length);
-  /** the key (MAP-30): every mark the map shows now, and nothing it doesn't */
-  const legendSlot = h('section', { class: 'map-legend' });
-  function drawLegend() {
-    const u = pv.scene()?.used ?? new Set<string>();
-    const sw = (cls: string) => h('i', { class: `k-tile ${cls}` });
-    const item = (key: string, mark: Node, text: string) => (u.has(key) ? [h('li', {}, mark, text)] : []);
-    const svgKey = (...kids: SVGElement[]) => s('svg', { class: 'k-svg', width: 20, height: 20, viewBox: '-10 -10 20 20', 'aria-hidden': 'true' }, ...kids);
-    const edge = (id: string, cls: string, text: string) => item(`edge:${id}`, h('i', { class: `k-edge ${cls}` }), text);
-    legendSlot.replaceChildren(h('p', { class: 'hs-label' }, 'Key'), h('ul', {},
-      ...item('state:explored', sw('explored'), 'Been there'), ...item('state:seen', sw('seen'), 'Seen, not been in'),
-      ...item('remembered', sw('faded'), 'Out of sight now'),
-      ...item('outdoor', sw('outdoor'), 'Outdoors'), ...item('indoor', sw('indoor'), 'Indoors'),
-      ...edge('wall', 'wall', 'Wall'), ...edge('low', 'low', 'Counter, low wall or fence'), ...edge('window', 'window', 'Wall of windows'), ...edge('open', 'open', 'Open side'),
-      ...item('place', h('i', { class: 'k-area' }), 'A building or place inside this one'),
-      ...item('door', svgKey(s('line', { x1: -10, y1: 0, x2: 10, y2: 0, class: 'map-edge wall' }), s('g', { class: 'map-door door' }, ...doorGlyph(0, 0, 'door'))), 'Door in a wall'),
-      ...item('opening', svgKey(s('g', { class: 'map-door opening' }, ...doorGlyph(0, 0, 'opening'))), 'Way through, no door'),
-      ...item('way:locked', wayKey('locked'), 'Locked'), ...item('way:locked-key', wayKey('locked key'), 'Locked, you hold its key'),
-      ...item('way:barred', wayKey('barred'), 'Barred'), ...item('way:blocked', wayKey('blocked'), 'Blocked'),
-      ...item('exit', h('i', { class: 'k-line stub' }), 'Exit you have not taken, and where it goes'), ...item('exit-away', h('i', { class: 'k-line away' }), 'Way to another map: click to open it'),
-      ...item('stairs-up', h('i', { class: 'k-stair' }, '▲'), 'Stairs up: click to change floor'), ...item('stairs-down', h('i', { class: 'k-stair' }, '▼'), 'Stairs down: click to change floor'),
-      ...item('furniture', furnKey(), 'Furniture: point at one for its name'),
-      ...item('who', h('i', { class: 'k-who' }), 'Someone there now: point for who'), ...item('who-last', h('i', { class: 'k-who last' }), 'Last seen there')));
-  }
   /** To scale: a 10 m bar under the plan, with the same length in paces */
   function scaleBar(zs: MapZone[], sp: Map<string, Pt>) {
     let x0 = Infinity, y1 = -Infinity;
@@ -582,15 +583,11 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void, onWalk?:
         h('span', { class: 'n' }, p.name),
         h('span', { class: 'c' }, count(p) ? `${count(p)} zone${count(p) === 1 ? '' : 's'}` : 'no zones known'))))));
     const facts = pl?.facts.length ? h('section', {}, h('p', { class: 'hs-label' }, `What you know about ${pl.name}`), h('ul', { class: 'map-facts' }, pl.facts.map((f) => h('li', {}, f)))) : '';
-    // the World's key: places, roads, and the land once some is made out
-    const legend = h('section', { class: 'map-legend' }, h('p', { class: 'hs-label' }, 'Key'),
-      h('ul', {},
-        h('li', {}, h('i', { class: 'k-area' }), 'A place you know: click to open its map'), h('li', {}, h('i', { class: 'k-line away' }), 'Road: click for where it goes'),
-        // WZ4: the land once you have made some out
-        ...(cur?.land?.length ? [h('li', {}, h('i', { class: 'k-land' }), 'Land you have seen: fields, woods…'), h('li', {}, h('i', { class: 'k-land-water' }), 'River or stream'),
-          h('li', {}, h('i', { class: 'k-land-road' }), 'Road or track on the land'), ...SITE_SIZES.filter((n) => worldNames.some((w) => w.icon === n) || landNames.some((l) => l.kind === n)).map((n) => h('li', {}, kSite(n), cap(n))),
-          ...(landNames.some((l) => l.faint) ? [h('li', {}, kSite('village', ' faint'), 'Known by word, not seen')] : []), h('li', {}, h('i', { class: 'k-mark' }), 'Landmark')] : [])));
-    side.replaceChildren(card, planMap() ? legendSlot : legend, facts, placeList);
+    // MAP-30: the World's key lists only what its look does not say: a settlement's size, one known by word, a landmark
+    worldKey.set([...SITE_SIZES.filter((n) => worldNames.some((w) => w.icon === n) || landNames.some((l) => l.kind === n)).map((n) => [kSite(n), cap(n)] as [Node, string]),
+      ...(landNames.some((l) => l.faint) ? [[kSite('village', ' faint'), 'Known by word, not seen'] as [Node, string]] : []),
+      ...(landNames.some((l) => l.kind === 'feature') ? [[h('i', { class: 'k-mark' }), 'Landmark'] as [Node, string]] : [])]);
+    side.replaceChildren(card, facts, placeList);
   }
 
   /** the places a road runs between: the ones it joins that are not along it (a waystation inside the road place) */

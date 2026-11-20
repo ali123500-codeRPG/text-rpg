@@ -50,6 +50,3 @@ export function furnIcon(kind: string, name: string, x: number, y: number, scale
     s('circle', { class: 'disc', cx: 0, cy: 0, r: 9 }), ...parts.map(([tag, a]) => s(tag, a)), s('title', {}, name));
 }
 
-/** the map key's furniture mark */
-export const furnKey = (): SVGElement =>
-  s('svg', { class: 'k-furn', width: 20, height: 20, viewBox: '-10 -10 20 20', 'aria-hidden': 'true' }, furnIcon(FU.table, 'Furniture', 0, 0));

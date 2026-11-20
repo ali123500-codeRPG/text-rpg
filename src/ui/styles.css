@@ -1072,8 +1072,6 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-scale text { fill: var(--muted); font-size: 13px; }
 .k-edge { display: inline-block; width: 22px; height: 0; border-top: 3px solid var(--text); vertical-align: middle; }
 .k-edge.low { border-top-style: dashed; border-top-width: 2px; }
-.k-edge.window { border-top: 1px double var(--text); border-bottom: 1px solid var(--text); height: 3px; }
-.k-edge.open { border-top: 1px dotted var(--muted); }
 .map-who text { fill: var(--on-pill); font-size: 13px; font-weight: 800; }
 .map-who.last :is(circle, rect) { fill: var(--bg); stroke: var(--c4); stroke-dasharray: 3 2; }
 .map-who.last text { fill: var(--c4); }
@@ -1131,7 +1129,7 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-card-h h2 { margin: 0; font-size: 20px; }
 .map-move { width: 100%; margin: var(--space-3) 0 var(--space-2); }
 .map-look { font: 15px/1.55 var(--font-story); }
-.map-exits, .map-places ul, .map-facts, .map-legend ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.map-exits, .map-places ul, .map-facts { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
 .map-exits li { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: var(--space-3); row-gap: 2px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--border); }
 .map-exits li > :first-child, .map-exits .to { grid-column: 1; overflow-wrap: anywhere; }
 .map-exits li > .map-go { grid-column: 2; grid-row: 1 / span 2; }
@@ -1146,25 +1144,22 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-place .c { color: var(--muted); font-size: 13px; white-space: nowrap; }
 .map-place .you { color: var(--scenario-mark); font-weight: 700; }
 .map-facts li { font: 14px/1.5 var(--font-story); color: var(--muted); }
-.map-legend ul { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); font-size: 13px; color: var(--muted); }
-.map-legend li { display: flex; align-items: center; gap: 8px; }
-.map-legend i { flex: none; display: inline-block; }
+/* MAP-30: the key, a short list over the map beside its zoom buttons, opened by its Key button */
+.map-key { position: absolute; right: 0; bottom: calc(100% + var(--space-2)); margin: 0; padding: var(--space-2) var(--space-3); list-style: none; display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 6px 10px;
+  min-width: 180px; font-size: 13px; color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); z-index: 3; }
+.map-key[hidden] { display: none; }
+.map-key li { display: contents; white-space: nowrap; }
+.map-key li > :first-child { justify-self: center; display: inline-flex; gap: 3px; }
+.map-key-btn, .mm-tools .mm-key-btn { width: auto; padding: 0 10px; font-size: 13px; font-weight: 700; }
+.map-key-btn[aria-expanded="true"], .mm-key-btn[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
+.map-key-btn[hidden], .mm-key-btn[hidden] { display: none; }
 .k-tile { width: 18px; height: 12px; border-radius: 3px; border: 1.5px solid var(--border); background: var(--surface); }
-.k-tile.outdoor { background: color-mix(in srgb, var(--c9) 22%, var(--surface)); border-color: color-mix(in srgb, var(--c9) 55%, var(--border)); }
-.k-tile.indoor { background: color-mix(in srgb, var(--c15) 12%, var(--surface)); border-color: color-mix(in srgb, var(--c15) 45%, var(--border)); }
-.k-tile.remembered { opacity: .62; border-style: dashed; }
 .k-line { width: 20px; height: 0; border-top: 2.5px solid color-mix(in srgb, var(--faint) 70%, transparent); }
-.k-line.dashed { border-top-style: dashed; }
 .k-line.stub { border-top: 2px dotted color-mix(in srgb, var(--faint) 60%, transparent); }
 .k-stair { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--accent); color: var(--accent); font-size: 13px; font-style: normal; display: grid; place-items: center; box-sizing: border-box; }
 .k-line.away { border-top: 2px dashed var(--accent); }
 .k-pin { width: 14px; height: 14px; box-sizing: border-box; border-radius: 50%; background: var(--bg); border: 4px solid var(--scenario-mark); }
-.k-area { width: 20px; height: 12px; border-radius: 4px; border: 1.5px dashed color-mix(in srgb, var(--c15) 60%, transparent); }
-.k-who { width: 12px; height: 12px; border-radius: 50%; background: var(--c4); }
-.k-who.last { background: none; border: 1.5px dashed var(--c4); }
-.k-land { width: 18px; height: 12px; border-radius: 3px; background: linear-gradient(90deg, var(--land-farmland) 50%, var(--land-woods) 50%); }
-.k-land-water { width: 20px; height: 0; border-top: 3px solid var(--land-water); }
-.k-land-road { width: 20px; height: 0; border-top: 2px solid var(--land-road); }
+.k-who.last { width: 12px; height: 12px; border-radius: 50%; box-sizing: border-box; border: 1.5px dashed var(--c4); }
 .k-site { width: 16px; height: 16px; color: var(--c15); }
 .k-site svg { display: block; width: 100%; height: 100%; }
 .k-site.faint { opacity: .55; }
@@ -1206,10 +1201,6 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-door.group text { fill: var(--text); font: 800 13px var(--font-round); }
 .map-who.plan-who .map-who-label { display: none; }
 .map-who.plan-who:hover .map-who-label { display: inline; opacity: 1; }
-.k-svg { flex: none; overflow: visible; }
-.k-tile.here { border: 3px solid var(--accent); }
-.k-tile.explored { background: var(--surface); }
-.k-tile.seen { background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--text) 20%, transparent) 0 1.2px, var(--surface) 1.2px 5px); }
 .k-tile.faded { opacity: .62; }
 @media (max-width: 1000px) { main.map-page { height: auto; } .map-body { grid-template-columns: minmax(0, 1fr); } .map-stage { height: 70vh; } .map-crumbs { pointer-events: auto; } }
 
@@ -1414,7 +1405,6 @@ button.eq-name:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .map-furn .disc { fill: var(--bg); stroke: color-mix(in srgb, var(--c3) 55%, transparent); stroke-width: 1; }
 .map-furn rect, .map-furn path, .map-furn circle:not(.disc) { fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; }
 .map-tile.remembered .map-furn { opacity: .6; }
-.k-furn { flex: none; overflow: visible; }
 /* SY1: Mentally steady beside Morale, in the morale violet; it lasts until the next morale loss */
 .cs-steady { margin-left: var(--space-2); padding: 0 8px; border: 1px solid color-mix(in srgb, var(--c5) 60%, transparent); border-radius: var(--r-pill); font-size: 13px; font-weight: 600; color: var(--c6); white-space: nowrap; }
 
