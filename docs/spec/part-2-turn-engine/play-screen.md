@@ -396,6 +396,9 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
   (K4).
 - **PS-255** Tapping a taken or open milestone shows a small card beside it with the perk's text and, when open, "Take ·
   1 point". Mock-ups: https://claude.ai/artifact/TVfF7qs3WnDdDZzzM6Yjf5
+- **PS-256** Every perk the Perks tile counts shows on the board. Perks on no ladder of the character's skills (a
+  class perk, a Start's blessing, an achievement's, a Threadbound item's, an All-step's, Hollowed) are listed under
+  Granted, beside Innate, each tagged with where it came from (BG-331; heldPerks and grantedPerks in src/ui/perks.ts).
 
 #### Journal page
 

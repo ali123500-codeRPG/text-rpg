@@ -25,7 +25,7 @@ import { closePop, fullOpen, openFull, openPop } from './pop';
 import { personalityBlock, signaturesBox } from './personality';
 import { classTreeView } from './classTree';
 import { archetypeOf, nerveLine, nerveTier, personalityOf } from '../ruleset/personality';
-import { perksSection, refreshPerks } from './perks';
+import { heldPerks, perksSection, refreshPerks } from './perks';
 import { healItems, quickHeal } from './healing';
 import { IT } from '../library/itemIds';
 import { wornPack } from '../engine/containers';
@@ -154,7 +154,7 @@ function charTiles(s: GameState, open: { essences: (b: HTMLElement) => void; per
   const p = s.player;
   const ess = essencesSummary(p);
   const pts = p.progression?.unspentPerkPoints ?? 0;
-  const owned = p.core.perks.filter((x) => !x.dormant && x.source !== 'race' && x.source !== 'essence').length;
+  const owned = heldPerks(p).length;
   const gear = p.core.inventory.filter((i) => i.equippedIn?.length);
   const pe = personalityOf(p);
   const tile = (key: string, label: string, value: Node | string, sub: Node | string, onclick: (b: HTMLElement) => void, full = false, lit = false) => {
