@@ -14,7 +14,12 @@ redistribution is ever committed to this public repo.
 - **Fonts**, `src/ui/assets/*.woff2`. Literata (SIL OFL, `src/ui/assets/Literata-OFL.txt`) for story text, and the UI
   face named in the spec's "### Play screen". No licence note for the UI face is recorded in the repo: ask the
   owner before reusing it anywhere else.
-- **Background image**, `src/ui/assets/night-sky.webp`. No licence note is recorded for it either.
+- **Background image**, `src/ui/assets/abbey-oakwood.webp`: Caspar David Friedrich, *The Abbey in the Oakwood*
+  (1809–10), Alte Nationalgalerie, Berlin. Public domain (the painter died in 1840), from the Google Art Project
+  scan on Wikimedia Commons:
+  https://commons.wikimedia.org/wiki/File:Caspar_David_Friedrich_-_Abtei_im_Eichwald_-_Google_Art_Project.jpg
+- **Questions hub background**, `src/ui/assets/night-sky.webp`, used only by the hub page now. No licence note is
+  recorded for it either.
 - **Licences of adapted skills**, beside each skill in `.agents/skills/`.
 
 The Questions hub page uses the same font and image files, published with the page under `kit/`.
