@@ -12,6 +12,7 @@ import { searchAreaM2 } from '../../src/minds';
 import { getLibrary } from '../../src/library';
 import { CONFIG } from '../../src/config';
 import { SK } from '../../src/library/skillIds';
+import { FN } from '../../src/library/functionIds';
 import type { Actor, ContestResult, GameState, RollRequest } from '../../src/types';
 import { boxOf } from '../../src/plan/geom';
 
@@ -49,7 +50,7 @@ describe('221 search', () => {
     beside(s, 'thief_1', 'player', 2);
     rig(1);
     const ev = play(s, search()).find((e) => e.kind === 'search')!;
-    expect(searches(s)).toEqual([{ actorId: 'player', hiderId: 'thief_1', gap: 1 }]);
+    expect(searches(s)).toEqual([{ actorId: 'player', hiderId: 'thief_1', gap: 1, sense: FN.sight }]);
     expect(seen(s)).toBe('aware');
     expect(ev.contest?.gap).toBe(1);
     expect(ev.effects).toContainEqual({ kind: 'found', actorId: 'thief_1', data: { by: 'player' } });
@@ -100,17 +101,17 @@ describe('221 search', () => {
     t.pos = { x: r.x + r.w / 2 - 0.5, y: r.y }; // across a 400 m² square: beyond the 60 m² around a skill-50 searcher
     const calls = rig(-1);
     play(s, search());
-    expect(searches(s)).toEqual([{ actorId: 'player', hiderId: 'thief_1', gap: -1, look: true }]); // LX1: only the look's weak check
-    expect(calls[0].tierShifts.some((x) => x.source === 'look around')).toBe(true);
+    expect(searches(s)).toEqual([{ actorId: 'player', hiderId: 'thief_1', gap: -1, sense: FN.sight }]); // past two radii: ring two
+    expect(calls[0].tierShifts).toContainEqual({ source: 'searching', value: CONFIG.SEARCH_RING_SHIFTS[1] });
     beside(s, 'thief_1', 'player', 2);
     rig(1);
     play(s, search());
-    expect(searches(s)).toEqual([{ actorId: 'player', hiderId: 'thief_1', gap: 1 }]); // inside the area: the full contest, once
+    expect(searches(s)).toEqual([{ actorId: 'player', hiderId: 'thief_1', gap: 1, sense: FN.sight }]); // inside the area, once
     // LX3: a fight turn searches the same circle
     delete s.player.journal!.stealthSeen;
     s.mode = 'tactical';
     play(s, search());
-    expect(searches(s)).toEqual([{ actorId: 'player', hiderId: 'thief_1', gap: 1 }]);
+    expect(searches(s)).toEqual([{ actorId: 'player', hiderId: 'thief_1', gap: 1, sense: FN.sight }]);
   });
 
   it('LX2: the search circle never has a radius under SEARCH_MIN_RADIUS_M, however small its area', () => {
@@ -120,9 +121,9 @@ describe('221 search', () => {
     const area = CONFIG.SEARCH_AREA_M2;
     (CONFIG as { SEARCH_AREA_M2: number }).SEARCH_AREA_M2 = 0.01; // a few cm of radius
     try {
-      rig(1);
+      const calls = rig(1);
       play(s, search());
-      expect(searches(s)).toEqual([{ actorId: 'player', hiderId: 'thief_1', gap: 1 }]);
+      expect(calls[0].tierShifts).toContainEqual({ source: 'searching', value: CONFIG.SEARCH_AREA_SHIFT }); // inside the 2 m floor
     } finally {
       (CONFIG as { SEARCH_AREA_M2: number }).SEARCH_AREA_M2 = area;
     }
@@ -150,7 +151,7 @@ describe('221 search', () => {
     beside(s, 'thief_1', 'player', 10);
     const calls = rig(1);
     play(s, { intent: intent({ action: { type: 'observe', skill: SK.eyesight, target: null } }) });
-    expect(searches(s)).toEqual([{ actorId: 'player', hiderId: 'thief_1', gap: 1, look: true }]);
+    expect(searches(s)).toEqual([{ actorId: 'player', hiderId: 'thief_1', gap: 1, sense: FN.sight, look: true }]);
     expect(calls.some((b) => b.tierShifts.some((t) => t.source === 'look around' && t.value === CONFIG.LOOK_SEARCH_SHIFT))).toBe(true);
     expect(seen(s)).toBe('aware');
   });
@@ -163,7 +164,7 @@ describe('221 search', () => {
     s.player.posture = 'stealthy';
     rig(1);
     play(s, { agentOutputs: [plannerOut('guard_x', act('search'))] });
-    expect(searches(s)).toContainEqual({ actorId: 'guard_x', hiderId: 'player', gap: 1 });
+    expect(searches(s)).toContainEqual({ actorId: 'guard_x', hiderId: 'player', gap: 1, sense: FN.sight });
     expect(g.mind!.knowledge.player?.status).toBe('aware');
   });
 
@@ -173,9 +174,9 @@ describe('221 search', () => {
     (CONFIG as { SEARCH_AREA_M2: number }).SEARCH_AREA_M2 = 0.01;
     try { return f(); } finally { (CONFIG as { SEARCH_AREA_M2: number }).SEARCH_AREA_M2 = area; }
   }
-  const lookShift = (calls: RollRequest[]) => calls.flatMap((b) => b.tierShifts).find((x) => x.source === 'look around')?.value ?? 0; // a ±0 ring adds no shift
+  const lookShift = (calls: RollRequest[]) => calls.flatMap((b) => b.tierShifts).find((x) => x.source === 'searching')?.value ?? 0; // a ±0 ring adds no shift
 
-  it('LX5 b: past the search area a Search takes ring one\'s shift, past SEARCH_RING1_RADII radii ring two\'s', () => tinyArea(() => {
+  it('LX5 b, LX8 a: past the search area a Search takes ring one\'s shift, past SEARCH_RING1_RADII radii ring two\'s', () => tinyArea(() => {
     const s = makeVillage({ playerZone: 'street_square' });
     const t = thief(s, 'street_square');
     beside(s, 'thief_1', 'player', 3.2); // past 2 m, inside 4 m
@@ -199,7 +200,8 @@ describe('221 search', () => {
     s.player.posture = 'stealthy';
     rig(1);
     play(s, { agentOutputs: [plannerOut('guard_x', act('search'))] });
-    expect(searches(s)).toContainEqual({ actorId: 'guard_x', hiderId: 'player', gap: 1, look: true });
+    expect(searches(s)).toContainEqual({ actorId: 'guard_x', hiderId: 'player', gap: 1, sense: FN.sight });
+    expect(searches(s).length).toBe(1);
     expect(g.mind!.knowledge.player?.status).toBe('aware');
   }));
 });

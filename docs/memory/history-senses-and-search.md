@@ -25,8 +25,9 @@ Kind: context. What was asked, what was decided and which PR built it, oldest fi
   never looks or listens still grows Eyesight and Earshot. A trial showed almost never. So what is half seen or
   half heard gets a make-out roll, a passed check teaches, and someone made out is named in Who's here (#836,
   #840, #854). Parked: senses past 100 widen ranges (D-321).
-- **Search by sound (19/11/2026; LS1-LS6).** LS1 to LS6 are answered and recorded as D-411 (decided, not built;
-  LS6: each sense its own test). Another thread builds it. It builds on the BG-314 fix (#1089).
+- **Search by sound (19-20/11/2026; LS1-LS8).** Recorded as D-411 and built (#1224): each sense (sight, hearing,
+  smell) reaches a hider by its own rule and makes its own test, the best counts, with the same rings by distance.
+  It builds on the BG-314 fix (#1089).
 - **Search and Look around merged; Pat down (20/11/2026; LX1-LX4, Questions hub page "Merge Search and Look
   around" on the second account's hub).** Search is one action around the player: the look and the search together,
   3 s, the same circle in a fight and out of one, never under a 2 m radius. Searching a person became Pat down (#1129).
