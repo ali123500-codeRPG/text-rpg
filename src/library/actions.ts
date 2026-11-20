@@ -40,7 +40,7 @@ const MAIN: Record<string, Omit<ActionRow, 'id' | 'who'>> = {
   steady: { roll: fn(FN.morale), against: null, at: 'steady, src/engine/steady.ts' },
   heal: { roll: fn(FN.healing), against: null, at: 'doHeal, src/engine/resolve.ts' },
   extract: { roll: { text: 'Essence quality' }, against: null, at: 'extractEssence, src/engine/extract.ts' },
-  ...Object.fromEntries(['move', 'flee', 'hold', 'call_help', 'give', 'take', 'buy', 'sell', 'equip', 'rest', 'wait', 'sleep', 'open']
+  ...Object.fromEntries(['move', 'flee', 'hold', 'call_help', 'give', 'take', 'buy', 'sell', 'rest', 'wait', 'sleep', 'open']
     .map((t) => [t, { roll: null, against: null, at: 'doMain, src/engine/resolve.ts' }])),
 };
 const whoOf = (t: string): ActionRow['who'] => {

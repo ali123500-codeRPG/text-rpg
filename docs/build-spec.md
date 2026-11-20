@@ -357,7 +357,7 @@ Settled by Ali 07/11/2026 ("Action economy: options", AE1–AE12; settles D-19, 
 - **Perk moves (AE8)** (Plead, Battle Cry, Buy Them Off) are main actions of their own type: the Parser picks an owned one by name (its perkMove), and Commands and Ideas list the ones the player has. A free perk move (Dirt in the Eyes) rides beside the move and the main action and resolves just before the main action; one that fails its conditions is dropped (perk\_move\_dropped).
 - **NPCs (AE9)** use the same slots and perks. The Planner still returns one move and one action; an extra slot with no choice in it (Flurry's second attack) is filled by code, and one with a choice gets a Planner field the NPC fills only when it owns the perk.
 - **Restrain (BF5, Ali 13/11/2026; run 82b).** A grab that holds someone back unhurt is the main action restrain, within the grabber's grip reach (NEEDS restrain: grip; out of reach it closes in on the move slot). The grabber's grapple against the target's better of grapple and dodge; the target wins ties. Held, the target is held as by A8 Hold (heldBy, src/engine/held.ts restrain): its next move is its break-free try, and failing it loses that move. No damage and no hostility: it is never an attack, and the target feels it (touch). **Strength on a hold** (GR26, Ali 18/11/2026, placeholder): every Grapple roll to break free, and the holder's roll against it, adds STRENGTH\_HOLD\_SHARE (0.5) × the roller's Melee strength rating with Grapple left out of its pool (a `rating` modifier, src/engine/held.ts), so technique still leads between equals but a giant tears loose.
-- **Armor (AE10):** putting armor on or off is a free gear op (armor: it puts the piece on, or takes it off when worn), beside the turn's action like drawing or stowing (Ali, 20/11/2026; it was one main action). Only an NPC's order still names it as its equip action. **Criticals (AE11):** "lose your next action" means the next main action.
+- **Armor (AE10):** putting armor on or off is a free gear op (armor: it puts the piece on, or takes it off when worn), beside the turn's action like drawing or stowing (Ali, 20/11/2026; it was one main action). NPCs follow the same rule: the equip action is gone for everyone. **Criticals (AE11):** "lose your next action" means the next main action.
 
 ### Action time
 
@@ -886,7 +886,7 @@ Output shape (notation, not literal JSON):
 {
   move:    { toZone: zone_id, after?: true } | null,
   action:  {
-    type:     attack | hide | sneak | talk | persuade | deceive | barter | intimidate | use_item | equip | give | observe | interact | other | rest,
+    type:     attack | hide | sneak | talk | persuade | deceive | barter | intimidate | use_item | give | observe | interact | other | rest,
     skill:    skill_id,
     target:   actor_id | zone_id | item_id | furniture_id | null,   // furniture only for use_item, interact, observe, other
     targetPart: part_id | null,     // a body part of the target the player named; never implies aiming
@@ -932,7 +932,7 @@ Output shape:
 {
   action:   { type: attack | move | search | hide | hold | call_help | flee |
               talk | persuade | deceive | intimidate | barter |
-              use_item | equip | give | other,
+              use_item | give | other,
               target: actor_id | zone_id | null, skill: skill_id | null,
               targetPart: part_id | null,      // preferred part; takes effect only through the gap
               aimed: boolean,                  // pays the aim penalty for a sure location
@@ -2043,7 +2043,7 @@ One hundred and three tests: the original eight, updated, eight for the rev. 2 c
 | 88 | Tool auto-pick | A lockpick action with two lockpick kits carried uses the better one; with both hands full, the off-hand item is stowed and no action is spent on it |
 | 89 | Crippled arm holds | A shield arm goes Crippled: the shield stays held, no block is offered, the hit table gains no change |
 | 90 | Destroyed arm drops | A Destroyed sword arm puts the sword on the zone's ground; an observer perceives an item\_dropped event; pick up returns it |
-| 91 | Free gear ops | A turn with draw, swap and pick up plus an attack resolves one main action; armor on or off beside an attack still lets the blow come |
+| 91 | Free gear ops | A turn with draw, swap and pick up plus an attack resolves one main action; armor on or off beside an attack still lets the blow come, for the player and an NPC alike |
 | 92 | Reach | A spear (2.8 m) can't reach the next zone; a shortbow (50 m) hits a target one linked zone away with sight; the same shot through a link without sight becomes a wasted action |
 | 93 | Thrown | A thrown dagger ends on the ground of the target's zone, hit or miss |
 | 94 | Uncovered part | A hauberk covering general area and arms: an aimed head hit takes no armor, a torso hit does |
@@ -3142,7 +3142,6 @@ Every gear modifier enters the check or roll request as its own entry, naming it
 - **Accessories (Ali, 14/11/2026, hub page accessories AX1-AX7).** Every body has 5 accessory slots (AX6 a). An accessory gives a flat skill bonus while worn, sized by its equipment level: ACCESSORY\_FACTOR (0.2) × EQUIP\_NEED, so Common 5, Fine 10, Superior 15, Masterwork 20, and on (AX1 d, AX2 c; ItemEffect.byLevel, ruleset/gear effectValue, which also prices it). Every accessory worn adds in full, copies included: two spectacles or two rings on the same skill both count (AX5 c; other gear still counts one copy). Rows (all Common, placeholders): spectacles (IT48, Eyesight, fragile), charmed ring (IT49), ear cup (IT50, Earshot), amulet (IT51, Resolve), dark hooded cloak (IT52, Sneaking) (AX7). A charmed ring's skill (ROLLED\_SKILL `$rolled`) is rolled once for each ring, from the ring's id and the story, so it keeps its skill for good (AX3); its name shows it, "charmed ring (Dodge)" (pieceName, in views and the Inventory). The pool is every tier 2 skill, weighted by tree (AX4 c, ItemEffect.weights): fighting and senses (melee, ranged, unarmed, defense, perception) 3, fortitude, armor, stealth, speech, trickery and tools 2, the rest 1 (placeholders).
 - **Crippled Grip arm.** It keeps holding its item but can't use it: no attack, block or tool use with that arm, and no two-handed actions. A Destroyed arm drops what it held to the ground of the actor's zone; an item\_dropped event is perceived like any other.
 - **Gear ops (free).** draw, stow, swap, wear or remove an accessory, pick up (from the ground or from a downed actor in the zone). Code applies them at the actor's initiative, before its action. They cost no action.
-- **equip (NPC main action).** An NPC putting armor on or taking it off. The player does the same with the free gear op armor (AE10).
 - **give and take (main action; BF34, Ali 14/11/2026; src/engine/handover.ts).** Trades at no price, open with anyone, NPCs with each other too. A **give** holds the item out (from a grip, the pack or the giver's own unlocked bag; Actor.offer): it changes hands only when the other side takes it, and an offer not taken by the end of the next turn is withdrawn. An NPC the item is held out to takes it at the end of that turn when its stance toward the giver is at least TAKE\_FROM\_STANCE (neutral), it has not yielded to them and it has a free grip; otherwise its mind may take it next turn. The player takes by saying so (Ideas offers "Take the X from Y"; PlayerView shows the offer as holdsOut). A **take** is the taker's at once when the item is held out to them, or its owner yielded or surrendered to them, is down or asleep; anyone else refuses (take\_refused), and taking it unseen is filching. Both need the two to reach each other's grips; out of reach, the taker or giver steps up first.
 - **Ground items (PZ11 a).** Everything lying on the ground is one list, GameState.ground, each item at a point and floor (ItemInstance.at); the title it lies in is the title of that point (groundIn, src/engine/ground.ts). A dropped item falls where its holder stands (dropOnGround keeps the same item object, so a stash marking it hidden changes what lies there). A take out of grip reach waits for the walk over to it. Saved with the floor plan on the place pages.
 

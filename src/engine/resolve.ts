@@ -187,7 +187,7 @@ function useWayTime(ctx: Ctx, a: Actor, op: WayOp, mainToo: boolean): boolean {
   payRow(ctx.state, a, row, secs);
   return true;
 }
-/** the Action times row for putting on an armor piece, by its weight (the armor gear op and an NPC's equip action) */
+/** the Action times row for putting on an armor piece, by its weight (the armor gear op) */
 function armorRowId(state: GameState, a: Actor, ref: string | null | undefined): string | undefined {
   const w = ref ? itemDef(state, a.core.inventory.find((i) => i.id === ref || i.itemId === ref)?.itemId ?? ref).armor?.weight : undefined;
   return w === 'heavy' ? DU.armor_heavy_on : w === 'medium' ? DU.armor_medium_on : w === 'light' ? DU.armor_light_on : undefined;
@@ -221,7 +221,6 @@ export function orderCost(state: GameState, a: Actor, o: Order): { row: Duration
     case 'search': case 'observe': return of(DU.look);
     case 'give': case 'take': return of(DU.hand_over); // BF34: taking is a hand-over too
     case 'barter': case 'buy': case 'sell': return of(DU.trade);
-    case 'equip': return of(armorRowId(state, a, o.item));
     default:
       // TP6 c, TK6: plain talk in a fight takes no time (its time stays and carries); TK1 c: words that use a skill (persuade,
       // lie, threaten) take the Speech row's fixed time however long they are, and so does a turn of plain talk outside a
@@ -1945,10 +1944,6 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
       }
       return emit(ctx, bark(mk(ctx, a, 'sell', { target: o.target ?? undefined, qty: r.qty, price: r.price, itemId: r.itemInst }), o));
     }
-    case 'equip': {
-      if (!equipArmor(state, a, o.item)) return emit(ctx, bark(mk(ctx, a, 'wasted', { reason: 'cannot_put_that_on' }), o)); // BG-149
-      return emit(ctx, bark(mk(ctx, a, 'equip', { itemId: o.item ?? undefined }), o));
-    }
     case 'heal':
       return doHeal(ctx, a, o);
     case 'use_item':
@@ -2141,13 +2136,12 @@ function longAction(ctx: Ctx, a: Actor, o: Order, cost: { row: DurationDef; seco
   emit(ctx, bark(mk(ctx, a, 'busy', { target: o.target ?? undefined, ...(o.item ? { itemId: o.item } : {}), busy: { row: cost.row.id, done: a.busy.done, need } }), o));
   return 'busy';
 }
-/** AT45: a long action that would be refused (no coin, nothing to sell, armour it can't put on) is refused at once, not
+/** AT45: a long action that would be refused (no coin, nothing to sell) is refused at once, not
  * after its time; whether it still goes through is asked again when its time is done */
 function wouldGo(state: GameState, a: Actor, o: Order): boolean {
   const t = o.target ? actorById(state, o.target) : undefined;
   if (o.type === 'buy') return buy(state, a, t, o.item, o.qty, (o.for ? actorById(state, o.for) : a) ?? a, true).ok;
   if (o.type === 'sell') return sell(state, a, t, o.item, o.qty, true).ok;
-  if (o.type === 'equip') return equipArmor(state, a, o.item, true);
   return true;
 }
 /** AT6/AT28: an actor turns to something else: a long action's work stays only when its row keeps it at this progress */
