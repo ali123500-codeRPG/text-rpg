@@ -121,6 +121,7 @@ export const ACTORS = {
   GM_AGENT_CALLS_SHOWN: 5,
   BACKUP_EVERY: 10, // Q2
   BACKUPS_KEPT: 3, // Q2
+  HEAD_WARN_SHARE: 0.75, // placeholder: share of the 256 KiB document limit at which a save's head files head_large
   TURN_ENDS_KEPT: 500, // AT15/AT43: turn end times kept for timers (more than the longest timer needs at the shortest turn)
   HISTORY_CHUNK_TURNS: 20, // Q18: story text saved in documents of this many turns each
   LOCK_LEASE_MS: 60_000, // Q2

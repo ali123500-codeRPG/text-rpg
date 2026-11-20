@@ -16,8 +16,8 @@ roadmap, is linked from #1218.
 - Every ordinary save takes the same 5 round trips at any size. Cleanup (a list and some deletes) is 2 of them, and the
   narrator waits on all 5.
 - The head holds the page map twice (head and undo), and three times while a safety bookmark is kept. It passes
-  256 KiB at about 1,950 pages, or about 1,300 with a safety bookmark. Nothing checks its size, so every save would
-  then fail.
+  256 KiB at about 1,950 pages, or about 1,300 with a safety bookmark. Since #1251 the save checks its size first:
+  past HEAD_WARN_SHARE of the limit it files head_large once, and past the limit the save is refused with a clear error.
 - `artifactDbStore.list` reads one page of 1,000 documents. Past about 1,000 page documents, cleanup misses some stale
   versions: they stay forever (no loss, only growth toward the 25,000-document cap).
 - Backups write the whole state every BACKUP_EVERY turns, the largest write cost when amortised.
