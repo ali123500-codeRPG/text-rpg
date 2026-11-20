@@ -349,3 +349,4 @@ Closed rows of the "Bug log" (`bug-log.md`): fixed, won't fix or duplicate. A ro
 | BG-341 | Test fixtures ran at another distance than asked: `beside()` fell back silently, and `tinyArea()` was undone by `makeVillage()` | Thread | Fixed | #1275 |
 | BG-343 | The ambush rolled the attacker's weapon skill against one sense, not Combat Stealth (against ST2); now the attack's own stealth contests | Thread | Fixed | #1304 |
 | BG-345 | The sleep bonus (FT8) went to anyone asleep in a room with a bed, on it or not: nearness by room, not metres | Thread | Fixed | #1377 |
+| BG-346 | A zone name does not fit its zone at an intermediate zoom on the Bent Nail Map (MAP-20, tavern.common) | Thread | Fixed | #1378 |

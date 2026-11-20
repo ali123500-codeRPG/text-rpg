@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { createFakeGame } from '../../src/ui/fakeGame';
 import { knownMap, type MapZone } from '../../src/ui/mapData';
-import { PX_PER_M, planScene, roughMeasure } from '../../src/ui/mapPlan';
+import { MAX_K, PX_PER_M, planScene, roughMeasure } from '../../src/ui/mapPlan';
 import { zoneAt } from '../../src/ui/minimap';
 import { noteZonesSeen } from '../../src/engine/trail';
 import { boxOf } from '../../src/plan/geom';
@@ -48,7 +48,8 @@ describe('the Map draws the floor plan (BG-313)', () => {
     const mid = (id: string) => { const b = boxOf(s.zones.find((z) => z.id === id)!.outline); return { x: b.x, y: b.y }; };
     expect(zoneAt(zones, mid('tavern.common'))).toBeUndefined();
     expect(zoneAt(zones, mid('midden_yard'))?.id).toBe('midden_yard');
-    expect(sc.labels.some((l) => l.zoneId === 'midden_yard')).toBe(true);
+    // MAP-20: at the one name size the 5 m yard holds its name zoomed in
+    expect(planScene({ zones, every: zones, places: [], k: MAX_K, measure: roughMeasure, awayName: () => undefined }).labels.some((l) => l.zoneId === 'midden_yard')).toBe(true);
   });
 
   it('MAP-33: seen ground is in sight now or faded square by square, and what the latest look sees alone is in sight', () => {

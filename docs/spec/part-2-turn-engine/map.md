@@ -53,11 +53,12 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
 
 #### Labels
 
-- **MAP-20** A zone's name is drawn in bold letters inside its zone, centred, on up to three lines, as large as fit its
-  box with at least 6 px padding (4 to 32 px). In a small zone the letters shrink to stay inside. A zone too small even
-  for 4 px letters shows its name in its tooltip and accessible label only. The name never moves outside its zone
-  (MZ2-MZ4).
-- **MAP-21** A name is never cut with an ellipsis. It shrinks instead (MAP-20).
+- **MAP-20** Every zone's name is drawn at one small size, the exit notes' 13 px (TEXT in src/ui/mapPlan.ts), in bold
+  letters in a quiet colour (`--faint`), inside its zone, centred, with at least 6 px padding; a long name wraps at spaces
+  to up to three lines. A zone too small for it at that size shows its name on hover and in its accessible name only. The
+  name never moves outside its zone, and its box is the letters' as the font sets them (BG-346) (MZ2-MZ4; RM24 a; Ali,
+  20/11/2026, Questions hub page "Map rules revision").
+- **MAP-21** A name is never cut with an ellipsis. It wraps instead, or shows on hover only (MAP-20).
 - **MAP-22** A zone's name is a background layer behind every mark. Tokens and stairs may sit on it, and it takes no
   room from them, so it never pushes a mark aside; furniture never covers it (MAP-25), and things on the ground may sit on
   it as stairs do (MAP-86) (MZ2-MZ4; RM6 a).
@@ -72,8 +73,9 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   leaves). A stair is placed once at its own end, nudged then only if another mark already sits there. After that,
   furniture and stairs never move at any zoom: zoomed out, where one would cover another mark, or a piece of furniture
   the zone's name, it is left off in its own spot (listed in the zone's card) and comes back there when you zoom in.
-  A piece of furniture is placed clear of the names at its zoom and at every closer set zoom, so zooming in never covers
-  it (src/ui/mapPlan.ts). Furniture is also left off when its zone has no free spot, so in a very small zone it shows only in the card (RM20 a). The player and people are never hidden; they step aside
+  A piece of furniture is placed clear of the names at its zoom and of the name each closer set zoom shows, at its own
+  size, so zooming in never covers it (src/ui/mapPlan.ts). Zoomed out past where a piece or a thing on the ground was
+  placed, it shows only where it covers nothing, after the ones placed at that zoom or wider. Furniture is also left off when its zone has no free spot, so in a very small zone it shows only in the card (RM20 a). The player and people are never hidden; they step aside
   only then (BG-216; WF10 a; RM6 a, RM7 a; Ali, 20/11/2026, Questions hub page "Map rules revision").
 - **MAP-26** To scale, a place's map is laid out by code at the zoom shown and drawn on one screen-pixel layer. No mark
   covers another at any zoom, and the first view fits the whole map with everything inside it (src/ui/mapPlan.ts).

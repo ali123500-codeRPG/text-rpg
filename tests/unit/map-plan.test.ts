@@ -1,7 +1,7 @@
 // The stage map's layout (rpg-map): code places zones on the 1 m grid with buildings in one piece (MAP-10, MAP-12), then
 // places every mark so none covers another (MAP-20..32), and the three test stages (MAP-52) come out clean.
 import { describe, expect, it } from 'vitest';
-import { checkReach, checkStage, planScene, roughMeasure, wrap, type Box, type Scene } from '../../src/ui/mapPlan';
+import { TEXT, checkReach, checkStage, planScene, roughMeasure, wrap, type Box, type Scene } from '../../src/ui/mapPlan';
 import { knownMap, type MapZone } from '../../src/ui/mapData';
 import { createFakeGame } from '../../src/ui/fakeGame';
 import { wholeTurn } from '../harness/turn';
@@ -114,29 +114,31 @@ describe('labels, doors and exits', () => {
     expect(lock.cy).toBeCloseTo(room.y1); // on the south wall
     expect(sc.used.has('way:locked')).toBe(true);
   });
-  it('MZ2: a zone name is bold letters inside its box, as large as fit between 4 and 32 px, and takes no room from the marks', () => {
+  it('MAP-20: every zone name is at the one small size inside its box, and takes no room from the marks', () => {
     const { sc } = sceneOf(stageState('bent-nail'), 1.6);
-    expect(sc.labels.length).toBe(sc.zones.length);
+    expect(sc.labels.map((l) => l.zoneId)).toContain('tavern.common');
+    const { ascent, descent } = roughMeasure.line('label');
     for (const l of sc.labels) {
       const z = sc.zones.find((x) => x.z.id === l.zoneId)!;
       expect(l.placement).toBe('inside');
       expect(l.x0).toBeGreaterThanOrEqual(z.box.x0 + 6);
       expect(l.x1).toBeLessThanOrEqual(z.box.x1 - 6);
-      expect(l.size).toBeGreaterThanOrEqual(4);
-      expect(l.size).toBeLessThanOrEqual(32);
+      expect(l.y0).toBeGreaterThanOrEqual(z.box.y0 + 6);
+      expect(l.y1).toBeLessThanOrEqual(z.box.y1 - 6);
+      // BG-346: the box holds the letters as the font sets them, ascent to descent
+      expect(l.base - ascent).toBeGreaterThanOrEqual(l.y0);
+      expect(l.base + (l.lines.length - 1) * TEXT.label.line + descent).toBeLessThanOrEqual(l.y1);
       expect(l.lines.join(' ')).toBe(l.full);
     }
-    // a big room gets bigger letters than the 12 px tag it replaces
-    expect(sc.labels.find((l) => l.zoneId === 'tavern.common')!.size).toBeGreaterThan(12);
   });
-  it('MZ3: a zone too small for 11 px letters shrinks them to stay inside; one too small for any shows its name in its tooltip only', () => {
+  it('MAP-20, MAP-21: a long name wraps to up to three lines at that size; a zone too small for it shows its name on hover only', () => {
     const z: MapZone = { id: 'z', placeId: 'p', name: 'a very long name for a tiny cupboard under the stairs', look: '', outdoor: false, here: false, inView: true, height: 0,
       rect: { x: 1.5, y: 1.5, w: 3, d: 3 }, links: [], people: [], items: [] };
-    const at = (k: number) => planScene({ zones: [z], every: [z], places: [], k, measure: roughMeasure, awayName: () => undefined }).labels;
-    const l = at(2.5)[0];
-    expect(l.size).toBeLessThan(11);
+    const at = (k: number, w = 3) => planScene({ zones: [{ ...z, rect: { ...z.rect!, w } }], every: [z], places: [], k, measure: roughMeasure, awayName: () => undefined }).labels;
+    expect(at(2.5)).toEqual([]);
+    const l = at(2.5, 12)[0];
+    expect(l.lines.length).toBeLessThanOrEqual(3);
     expect(l.lines.join(' ')).toBe(z.name);
-    expect(at(0.3)).toEqual([]);
   });
 });
 

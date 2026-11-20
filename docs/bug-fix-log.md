@@ -10,6 +10,16 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the spec's bug log, docs/spec/bug-log.md, has one. Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-346
+
+**What was wrong:** Zooming the Map in once or twice on `?fake=1&stage=bent-nail` (60 m across, zoom 1.56) logged "MAP-20 label label:tavern.common does not fit zone tavern.common": the common room's name, drawn at 31.5 px in the part of the room in view, stood 5.8 px from that part's top edge, short of the 6 px MAP-20 asks. The smoke test checks only the first view, so it passed.
+
+**Root cause:** The layout guessed how tall a name's letters are (1.3 times their size, the first baseline 0.36 times their size below the middle) and never measured it (`zoneNames` in `src/ui/mapPlan.ts` and its copy `nameIn` in `src/ui/planView.ts`), while the checker measures the drawn text's box, which the browser makes from the font's own ascent and descent: 34 + 10 px at 31.5 px for HISAB Round, 1.4 times the size. The widths were measured in the browser; the heights were not. So a name sized against its room's height stood up to 3 px taller than planned and sat about 0.7 px high. The 1 px of spare padding and the letters' 3 px edge hid it, except where the room's height bound the size at large letters, here at the in-view part of the common room. RM24's one 13 px size shrinks the gap to about 1 px, inside the spare room, so it would have hidden the fault, not removed it.
+
+**What was done:** The map's measure gives a style's line height too, the font's ascent and descent from the canvas (`fontBoundingBoxAscent` and `fontBoundingBoxDescent`, which match the SVG text box to 0.02 px), and one function, `nameFit` in `src/ui/mapPlan.ts`, sizes and places every zone name from it for both the layout and the in-view part of a zone, the copy in planView gone. A name's first baseline is its box's top plus the ascent. Checked with the names forced to 31.5 px: no MAP-20 finding at any zoom on the three stages; at the 13 px of RM24 none either, zooming each stage in and out on both maps.
+
+**Fixed by:** #1378
+
 ## BG-345
 
 **What was wrong:** The sleep bonus (FT8, SLEEP_SPOT_MULT: bed 1, elsewhere 0.75) went to anyone asleep in a title with any bed in it, wherever in it they lay, so sleeping on the floor beside a bed and on the bed were the same: nearness by room, which `AGENTS.md` rule 8 rules out. Nothing held a bed, so two sleepers could share one, NPCs slept wherever they stood in their bed slot's title, and the player's Sleep on a bed (MAP-85) stopped short of the bed.
