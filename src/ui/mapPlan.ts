@@ -1,11 +1,11 @@
 // The stage map's layout (rpg-map MAP-10..42): from the zones the character knows on one floor, code works out where every
 // mark goes, in screen pixels at the map's zoom, before anything is drawn. Zones keep their stored rectangles (metres,
-// MAP-03); tokens, doors, stairs, furniture and exit notes are placed here so none covers another (MAP-31), yielding in the
+// MAP-03); tokens, doors, stairs, furniture, things on the ground and exit notes are placed here so none covers another (MAP-31), yielding in the
 // order MAP-23 sets. A zone's name is a background layer inside it, sized to the box, that marks may sit on (MZ2, MZ4).
 // Marks inside a zone keep one spot at every zoom (BG-216): each is placed once, at the widest of a few set zooms with room
 // for it, and every zoom reuses that spot as a share of the zone. No DOM: map.ts draws the scene, and a measure function gives text widths (the browser's
 // own in the page, an estimate in tests).
-import { type MapLink, type MapPerson, type MapWay, type MapZone } from './mapData';
+import { type MapLink, type MapPerson, type MapThingMark, type MapWay, type MapZone } from './mapData';
 import { seenIn, type SeenRun } from '../plan/fog';
 import { verticalOf } from '../scenario/heights';
 import { CONFIG } from '../config';
@@ -49,6 +49,8 @@ export type SDoor = Box & { id: string; cx: number; cy: number; dir: 'h' | 'v'; 
 export type SExit = { id: string; zoneId: string; target: string; state: string; x1: number; y1: number; x2: number; y2: number; note: SText; goto?: string; way?: MapWay; title: string };
 export type SStair = Box & { id: string; zoneId: string; cx: number; cy: number; up: boolean; goto?: string; title: string; label: string };
 export type SFurn = Box & { id: string; zoneId: string; kind: string; name: string; cx: number; cy: number };
+/** MAP-86: a thing on the ground; of: its item instance id (MAP-85's deck target), icon and kind as in MapThingMark */
+export type SItem = Box & { id: string; of: string; zoneId: string; name: string; icon: MapThingMark['icon']; kind?: string; cx: number; cy: number };
 /** `cap` (GSM-193): a body bigger than its disc is drawn as a capsule of its own size, `len` px along the way it faces
  *  (`deg`, screen degrees) and `wide` px across, its true width even when narrower than the disc (RM17 b); the box is the
  *  turned capsule's */
@@ -57,8 +59,8 @@ export type SToken = Box & { id: string; zoneId: string; cx: number; cy: number;
   ring?: { cx: number; cy: number; r: number } };
 export type Scene = {
   zones: SZone[]; places: SPlace[]; labels: SLabel[]; doors: SDoor[]; exits: SExit[];
-  stairs: SStair[]; furniture: SFurn[]; tokens: SToken[];
-  /** furniture and stairs with no free spot at this zoom: hidden in place, listed in the zone's card */
+  stairs: SStair[]; furniture: SFurn[]; items: SItem[]; tokens: SToken[];
+  /** furniture, things on the ground and stairs with no free spot at this zoom: hidden in place, listed in the zone's card */
   dropped: string[];
   /** exits with no spot for their arrow and note: a finding, never silent (MAP-32) */
   lost: string[];
@@ -81,7 +83,7 @@ export type PlanInput = {
   awayName: (zoneId: string) => string | undefined;
 };
 
-const WAY_R = 8, STAIR_R = 10, FURN_R = 9, WHO_R = 7;
+const WAY_R = 8, STAIR_R = 10, FURN_R = 9, ITEM_R = 8, WHO_R = 7;
 /** your pin's disc, and how far its facing point reaches from its centre: other marks keep clear of the point too */
 export const PIN_R = 9, PIN_TIP = 15;
 /** gap between a mark and anything near it, a label and its zone's walls (MAP-20) */
@@ -219,7 +221,7 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
 
   const tokens: SToken[] = [];
   /** the first spot near (cx, cy) inside `zb` where a disc of radius r is free, searching outward */
-  const nearFree = (cx: number, cy: number, r: number, zb: Box, inset = r + 2, ry = r): { cx: number; cy: number } | null => {
+  const nearFree = (cx: number, cy: number, r: number, zb: Box, inset = r + 2, ry = r, ok = free): { cx: number; cy: number } | null => {
     const lo = { x: zb.x0 + inset, y: zb.y0 + inset + ry - r }, hi = { x: zb.x1 - inset, y: zb.y1 - inset - ry + r };
     if (lo.x > hi.x || lo.y > hi.y) return null;
     const cl = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
@@ -229,13 +231,13 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
       const pts = ring === 0 ? [[0, 0]] : Array.from({ length: 8 * ring }, (_, i) => { const a = (i / (8 * ring)) * Math.PI * 2; return [Math.cos(a) * ring * step, Math.sin(a) * ring * step]; });
       for (const [dx, dy] of pts) {
         const x = cl(x0 + dx, lo.x, hi.x), y = cl(y0 + dy, lo.y, hi.y);
-        if (free(disc(x, y, r, ry))) return { cx: x, cy: y };
+        if (ok(disc(x, y, r, ry))) return { cx: x, cy: y };
       }
     }
     return null;
   };
   /** BG-216: where a mark sat at the closest zoom, carried to this zoom by its share of the zone; undefined with no reference */
-  const refSpots = new Map<string, { cx: number; cy: number; zoneId: string }>(ref ? [...ref.tokens, ...ref.stairs, ...ref.furniture].map((m) => [m.id, m]) : []);
+  const refSpots = new Map<string, { cx: number; cy: number; zoneId: string }>(ref ? [...ref.tokens, ...ref.stairs, ...ref.furniture, ...ref.items].map((m) => [m.id, m]) : []);
   const refZones = new Map((ref?.zones ?? []).map((x) => [x.z.id, x.box]));
   const spotOf = (id: string, zb: Box, inset: number): { cx: number; cy: number } | undefined => {
     const m = refSpots.get(id), rb = m && refZones.get(m.zoneId);
@@ -417,9 +419,20 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
     take(disc(p.cx, p.cy, FURN_R), 'icon');
     used.add('furniture');
   }
+  // ---- MAP-86: things on the ground (icons, after the furniture, so one dropped never moves a piece): placed as furniture
+  // is, except that like stairs they may sit on a zone's name (MAP-22)
+  const items: SItem[] = [], clear = (b: Box) => !taken.some((t) => t.role !== 'label' && hit(t.box, b, GAP));
+  for (const x of zones) for (const t of x.z.things ?? []) {
+    if (x.z.seen && !seenIn(x.z.seen, t)) continue;
+    const id = `item:${t.id}`, kept = spotOf(id, x.box, ITEM_R + 3);
+    const p = final ? (kept && clear(disc(kept.cx, kept.cy, ITEM_R)) ? kept : null) : kept ?? nearFree(t.x * PX_PER_M * k, -t.y * PX_PER_M * k, ITEM_R, x.box, ITEM_R + 3, ITEM_R, clear);
+    if (!p) { dropped.push(t.id); continue; }
+    items.push({ id, of: t.id, zoneId: x.z.id, name: t.name, icon: t.icon, ...(t.kind ? { kind: t.kind } : {}), ...p, ...disc(p.cx, p.cy, ITEM_R) });
+    take(disc(p.cx, p.cy, ITEM_R), 'icon');
+  }
 
   const bounds = union([...zones.map((x) => x.box), ...places.flatMap((p) => [p.box, p.title]), ...taken.map((t) => t.box)]);
-  return { zones, places, labels, doors, exits, stairs, furniture, tokens, dropped, lost, used, bounds };
+  return { zones, places, labels, doors, exits, stairs, furniture, items, tokens, dropped, lost, used, bounds };
 }
 
 /** a place's padding round its own ground, in screen pixels: wider for an outer place, so an inner one sits inside it */

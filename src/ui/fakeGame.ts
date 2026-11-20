@@ -290,6 +290,10 @@ function useStage(st: GameState, stage: FakeStage): void {
     return a;
   });
   st.hidden.plans = {}; st.hidden.agreements = []; st.quests = [];
+  for (const t of stage.things ?? []) {
+    const pos = at(t.zone, t.at), z = st.zones.find((q) => q.id === t.zone);
+    if (pos && z) st.ground.push({ id: t.id, itemId: t.itemId, at: { ...pos, floor: z.floor }, ...(t.locked ? { lock: { locked: true } } : {}) });
+  }
   st.barriers = {};
   for (const b of stage.barriers) {
     st.barriers[b.id] = { id: b.id, ...b.rec, ...(b.rec.tried ? { tried: [p.id] } : {}) };

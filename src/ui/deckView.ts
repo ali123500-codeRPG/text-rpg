@@ -66,6 +66,11 @@ export function deckView(api: GameApi, o: {
     const st = a.steps.find((x) => x.key === 'target');
     return st && st.key !== 'words' && c.target !== undefined ? st.picks(c).find((p) => p.id === c.target)?.label : undefined;
   };
+  /** how the thing already chosen in its first step reads (a person, a door, a thing on the ground) */
+  const chosenLabel = (a: DeckAction, c: Choice) => {
+    const st = a.steps[0];
+    return st && st.key !== 'words' && c[st.key] !== undefined ? st.picks(c).find((p) => p.id === c[st.key])?.label : undefined;
+  };
   function setSay(m: SayMode | null) { sayMode = m; o.sayMode(m); }
 
   /** asks the action's next missing step; with nothing missing, plays it */
@@ -91,7 +96,7 @@ export function deckView(api: GameApi, o: {
     const list = thingActions(groups, ctx, t);
     if (!list.length) return false;
     const opener = anchor instanceof HTMLElement ? anchor : null, first = list.find((e) => 'a' in e);
-    const title = (first && 'a' in first ? pickLabel(first.a, first.c) : undefined) ?? (t.kind === 'person' ? 'Them' : 'There');
+    const title = (first && 'a' in first ? chosenLabel(first.a, first.c) : undefined) ?? (t.kind === 'person' ? 'Them' : 'There');
     const pop = openPop({ title, opener, cls: 'deck-pick', body: [h('div', { class: 'dk-picks', role: 'list' }, list.map((e) => 'a' in e
       ? h('button', { type: 'button', class: 'dk-pick' + (e.a.hot ? ' hot' : ''), role: 'listitem', title: actTip(e.a), onclick: () => run(e.a, e.c, opener) }, h('b', {}, e.label))
       : h('button', { type: 'button', class: 'dk-pick dk-lim', role: 'listitem', 'aria-disabled': 'true', title: `Needs ${e.needs}`, 'aria-label': `${e.label}, needs ${e.needs}` }, h('b', {}, e.label, lockMark(e.needs)))))] });

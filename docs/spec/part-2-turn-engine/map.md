@@ -53,7 +53,8 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   (MZ2-MZ4).
 - **MAP-21** A name is never cut with an ellipsis. It shrinks instead (MAP-20).
 - **MAP-22** A zone's name is a background layer behind every mark. Tokens and stairs may sit on it, and it takes no
-  room from them, so it never pushes a mark aside; furniture never covers it (MAP-25) (MZ2-MZ4; RM6 a).
+  room from them, so it never pushes a mark aside; furniture never covers it (MAP-25), and things on the ground may sit on
+  it as stairs do (MAP-86) (MZ2-MZ4; RM6 a).
 - **MAP-23** When marks collide, yield in this order (first wins): player token, place titles, other tokens, exit notes,
   icons.
 - **MAP-24** An exit's note is its target's name only, attached to its exit ("the gate to the lane"). Its state (not
@@ -207,6 +208,12 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   person their id (src/ui/planView.ts `data-thing`, src/ui/deck.ts `thingActions`). A thing the deck has nothing for
   opens no list, and the click plans a walk as on bare ground. Over the Map the list opens on top, and an action picked
   there plays from Play with the Map closed, as the Map's walk does (MAP-84).
+- **MAP-86** The things on the ground the character sees now, containers too, are drawn on both maps at their own spot
+  (MAP-40: PlayerView only), each its item's icon (src/ui/itemIcons.ts) on a disc in its kind's tint. They are placed
+  after the furniture and as furniture is (MAP-25): one spot at every zoom, left off where there is no free spot and
+  listed in the zone's card under "On the ground"; like stairs they may sit on a zone's name (MAP-22). A click on one
+  opens its MAP-85 list: Pick up, Open, Pick a lock, Force open and Filch, as the deck has them for it (src/ui/mapPlan.ts,
+  src/ui/planView.ts, src/ui/deck.ts `thingActions`) (MQ9 a; Ali, 20/11/2026, Questions hub page "Map and minimap: one map, doors").
 
 #### Checks and test stages
 
@@ -219,7 +226,7 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   browser lays out the text. Run `checkReach` on the stage data. Any finding fails the change (checkMap,
   src/ui/mapCheck.ts; checkReach, src/ui/mapPlan.ts).
 - **MAP-52** Test stages: (a) the Bent Nail (kitchen, common room, behind the counter) beside the high lane with the
-  midden yard and its locked plank gate, and a cart horse in the lane, drawn as its capsule (GSM-193); (b) a single room; (c) a 12-zone stage with long zone names. Render each, take
+  midden yard and its locked plank gate, and a cart horse in the lane, drawn as its capsule (GSM-193), and a locked chest and a rusty knife on the ground of the midden yard (MAP-86); (b) a single room; (c) a 12-zone stage with long zone names. Render each, take
   a screenshot, and look at it before reporting (bent-nail, one-room, long-names in src/ui/fakeStages.ts).
 - **MAP-53** Report every finding verbatim. Never say all checks passed if any check reported something.
 - **MAP-54** `bent-nail-saved` is not a MAP-52 stage. It is a negative fixture holding the live save's stored layout,
@@ -251,7 +258,7 @@ the code decides what the game does (`AGENTS.md`, Order of authority).
 
 - **MAP-85 in part (D-423):** only one greyed entry is built: the deck's door entry on a lock you hold no key to, "needs
   its key" (the engine's way op answers no_key). A door or wall outside the title you stand in opens no list: the deck
-  lists only what can be done from there, and nothing in code yet says what "too far" is. Items are not drawn on either
-  map, and the deck has no action on furniture, so neither opens a list yet.
+  lists only what can be done from there, and nothing in code yet says what "too far" is. The same holds for a thing on
+  the ground (MAP-86) outside the title you stand in. The deck has no action on furniture, so it opens no list yet.
 - **MAP-44 and MAP-45:** someone heard going into a zone the character has never seen is last seen there (MAP-45), but
   the map shows only zones seen or stood in (MAP-44), so they are not drawn anywhere.

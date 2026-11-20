@@ -25,7 +25,7 @@ function findings(sc: Scene): string[] {
   // zone names are a background layer the marks may sit on (MZ4): only the marks themselves may not overlap
   const marks: [string, Box][] = [...sc.places.map((p) => [`title ${p.id}`, p.title] as [string, Box]),
     ...sc.exits.map((e) => [`note ${e.id}`, e.note] as [string, Box]), ...sc.tokens.map((t) => [`token ${t.id}`, t] as [string, Box]),
-    ...sc.doors.map((d) => [`icon ${d.id}`, d] as [string, Box]), ...sc.stairs.map((s) => [`icon ${s.id}`, s] as [string, Box]), ...sc.furniture.map((f) => [`icon ${f.id}`, f] as [string, Box])];
+    ...sc.doors.map((d) => [`icon ${d.id}`, d] as [string, Box]), ...sc.stairs.map((s) => [`icon ${s.id}`, s] as [string, Box]), ...sc.furniture.map((f) => [`icon ${f.id}`, f] as [string, Box]), ...sc.items.map((t) => [`icon ${t.id}`, t] as [string, Box])];
   for (let i = 0; i < marks.length; i++) for (let j = i + 1; j < marks.length; j++) if (hit(marks[i][1], marks[j][1])) out.push(`MAP-22/31 ${marks[i][0]} overlaps ${marks[j][0]}`);
   for (const l of sc.labels) { const z = sc.zones.find((x) => x.z.id === l.zoneId)!; if (l.placement === 'inside' && !inside(l, z.box, 6)) out.push(`MAP-20 label ${l.zoneId} does not fit`); }
   for (const a of sc.zones) for (const b of sc.zones) if (a !== b && hit(a.box, b.box) && !inside(a.box, b.box, 0) && !inside(b.box, a.box, 0)) out.push(`MAP-11 ${a.z.id} ${b.z.id}`);
@@ -144,7 +144,7 @@ describe('labels, doors and exits', () => {
 
 describe('BG-216: marks keep their spot in their zone at every zoom', () => {
   /** each mark's spot as a share of its zone, keyed by its id */
-  const shares = (sc: Scene) => new Map([...sc.tokens, ...sc.stairs, ...sc.furniture].map((m) => {
+  const shares = (sc: Scene) => new Map([...sc.tokens, ...sc.stairs, ...sc.furniture, ...sc.items].map((m) => {
     const b = sc.zones.find((x) => x.z.id === m.zoneId)!.box;
     return [m.id, [(m.cx - b.x0) / (b.x1 - b.x0), (m.cy - b.y0) / (b.y1 - b.y0)]];
   }));
@@ -157,16 +157,16 @@ describe('BG-216: marks keep their spot in their zone at every zoom', () => {
       for (const [id] of shares(sc)) expect(top.has(id)).toBe(true);
       // wherever it is drawn, a mark sits where it sits at the closest zoom, measured inside the room its size leaves
       const big = sceneOf(st, 2.5).sc, small = sc;
-      for (const m of [...small.furniture, ...small.stairs]) {
-        const r = m.x1 - m.cx, inset = m.id.startsWith('furn:') ? r + 3 : r + 4;
+      for (const m of [...small.furniture, ...small.stairs, ...small.items]) {
+        const r = m.x1 - m.cx, inset = m.id.startsWith('stair:') ? r + 4 : r + 3;
         const zb = small.zones.find((x) => x.z.id === m.zoneId)!.box, rb = big.zones.find((x) => x.z.id === m.zoneId)!.box;
-        const o = [...big.furniture, ...big.stairs].find((q) => q.id === m.id)!;
+        const o = [...big.furniture, ...big.stairs, ...big.items].find((q) => q.id === m.id)!;
         const share = (v: number, a: number, b: number) => (b - a - 2 * inset > 0 ? (v - a - inset) / (b - a - 2 * inset) : 0.5);
         if (zb.x1 - zb.x0 - 2 * inset > 0) expect(share(m.cx, zb.x0, zb.x1)).toBeCloseTo(share(o.cx, rb.x0, rb.x1), 6);
         if (zb.y1 - zb.y0 - 2 * inset > 0) expect(share(m.cy, zb.y0, zb.y1)).toBeCloseTo(share(o.cy, rb.y0, rb.y1), 6);
       }
       // nothing dropped at the closest zoom is ever drawn, and every mark is either drawn or hidden in place
-      for (const f of sc.furniture) expect(sc.dropped).not.toContain(f.id.slice(5));
+      for (const f of [...sc.furniture, ...sc.items]) expect(sc.dropped).not.toContain(f.id.slice(5));
     }
   });
   it('zooming in never hides a mark that shows when zoomed out', () => {

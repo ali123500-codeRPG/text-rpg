@@ -5,6 +5,7 @@ import type { Barrier, GameState, TitleSpec, WayKind } from '../types';
 import { drawTitles } from '../plan/draw';
 import { BK, FU, WK, ZK } from '../library/tableIds';
 import { RC } from '../library/raceIds';
+import { IT } from '../library/itemIds';
 
 type Place = GameState['places'][number];
 /** a stage's titles and floor plan, drawn by the game's own code */
@@ -18,6 +19,8 @@ export type FakeStage = {
    *  last seen there (MAP-68), at metres from its centre (the journal's last spot, BG-125) or at no point */
   people: { id: string; label: string; zone: string; at?: [number, number]; race?: string; facing?: [number, number]; last?: [number, number] | 'zone' }[];
   barriers: { id: string; a: string; b: string; rec: Omit<Barrier, 'id'> }[];
+  /** MAP-86: what lies on the ground: an item, its zone and metres from its centre; locked: a container with its lock shut */
+  things?: { id: string; itemId: string; zone: string; at: [number, number]; locked?: true }[];
 };
 
 /** a way as the fake stages list it: where to, its words, seen through (an open way; else a door), and its kind where it
@@ -69,6 +72,7 @@ function bentNail(saved = false): FakeStage {
       { id: 'fb_front', a: 'high_lane', b: 'tavern.common', rec: { kind: BK.door, grade: 'minor' } },
       { id: 'fb_plank', a: 'midden_yard', b: 'tavern.yard', rec: { kind: BK.gate, grade: 'moderate', lock: { locked: true }, tried: ['player'] } },
     ],
+    things: [{ id: 'f_chest', itemId: IT.chest, zone: 'midden_yard', at: [1.5, -1.5], locked: true }, { id: 'f_knife', itemId: IT.rusty_knife, zone: 'midden_yard', at: [-1, 1.5] }],
   };
 }
 
