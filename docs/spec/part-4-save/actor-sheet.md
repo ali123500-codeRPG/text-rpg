@@ -498,8 +498,9 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
   (`composeTemplate`; Resolve, control and chase from COMPOSED\_NPC by the role's kind).
 - **SHEET-318** When no template or composition gives who it wants, the Weaver uses the closest and says who in
   `templateGap`.
-- **SHEET-319** Every such gap is kept in hidden.templateWants and listed in the GM view (Templates wanted), so a
-  template can be made.
+- **SHEET-319** Every such gap is kept in hidden.templateWants and listed in the GM view (Wanted), so a
+  template can be made. A routineGap (no routine set fits) joins the same list, marked Routine, with the set used
+  instead, so the routine bank can grow (D-53 a).
 - **SHEET-320** This settles the NPC half of D-11.
 - **SHEET-321** **Theme role kinds**: each theme lists the role kinds that fit its world (`roleKinds`): Road bandits and
   Town watch take fighting roles only, Wild beasts and Monsters beast roles only, the folk themes (village, town,

@@ -75,6 +75,13 @@ describe('306 NPC gear, compositions and the cast check', () => {
     const orla = s.actors.find((a) => a.names.current === 'Orla')!;
     expect(s.hidden.templateWants).toEqual([expect.objectContaining({ actorId: orla.id, label: 'a watch captain', wanted: 'a mounted courier with a fast horse', template: composedId(watchman) })]);
     expect(s.hidden.castNotes![orla.id].templateGap).toBe('a mounted courier with a fast horse');
+    // D-53 a: a routineGap joins the same list, with the routine set used instead
+    const s2 = toStoryStart(makeVillage());
+    const r = withCompose({ routineGap: 'rides between the two gates at dusk' });
+    expect(validateStagePlan(s2, r, ctx)).toEqual([]);
+    applyStagePlan(s2, r, ctx, { entry: 'open' }, createRng(1));
+    const orla2 = s2.actors.find((a) => a.names.current === 'Orla')!;
+    expect(s2.hidden.templateWants).toEqual([expect.objectContaining({ actorId: orla2.id, label: 'a watch captain', wanted: 'rides between the two gates at dusk', of: 'routine', template: r.cast.find((c) => c.label === 'a watch captain')!.routineSetId })]);
     const v = buildWeaverView(s, { kind: 'scenario', placeId: 'tavern' });
     expect(v.catalogs.compose.roles.map((r) => r.id)).toContain(RO.soldier);
     expect(v.catalogs.compose.ranks[3]).toEqual({ key: 'rank_3', name: 'Veteran', level: 12 });
