@@ -3,7 +3,7 @@
 // item's; anything not listed falls back on its kind, so a new item shows a sensible icon before it gets its own entry.
 // Items sharing a type share an icon. A class picks its icon through CLASS_ICON; a Start shows its class's.
 import type { GameState } from '../types';
-import { itemDef } from '../library';
+import { getLibrary, itemDef } from '../library';
 import { IT } from '../library/itemIds';
 import { CL } from '../library/classIds';
 import { SK } from '../library/skillIds';
@@ -45,8 +45,8 @@ const RACE_ICON: Record<string, IconName> = {
   [RC.hyena]: 'hyena', [RC.lizard]: 'lizard', [RC.crocodile]: 'lizard', [RC.python]: 'snake', [RC.spider]: 'spider',
 };
 const BODY_ICON: Record<string, IconName> = { [BT.amorphous]: 'slime', [BT.quadruped]: 'beast', [BT.winged_quadruped]: 'dragon', [BT.serpent]: 'snake', [BT.eight_legged]: 'spider' };
-/** MAP-69: the icon of what someone is, from the race and body seen */
-export const kindIconName = (raceId: string | undefined, bodyTypeId: string | undefined): IconName => (raceId && RACE_ICON[raceId]) || (bodyTypeId && BODY_ICON[bodyTypeId]) || 'person';
+/** MAP-69: the icon of what someone is, from the race seen, else its body type (BR5: the race's) */
+export const kindIconName = (raceId: string | undefined): IconName => (raceId && (RACE_ICON[raceId] || BODY_ICON[getLibrary().races?.[raceId]?.bodyTypeId ?? ''])) || 'person';
 /** a class's icon; a class not listed yet shows the Commoner's */
 export const classIconName = (classId: string): IconName => CLASS_ICON[classId] ?? 'commoner';
 /** a skill tree's icon, large in its band's heading; Sword Dancer and Merchant share their class's */

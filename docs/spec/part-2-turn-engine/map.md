@@ -109,7 +109,9 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
 
 - **MAP-40** The map shows only what the player character knows: zones, exits and actors the player has perceived.
   The map is built from PlayerView and the Journal only, never the hidden store, so hidden Weaver fields never reach it
-  (RM7 a).
+  (RM7 a). What it draws of someone in full sight comes from the player's view of them: the race they are
+  (SeenActor.race, for MAP-69's icon) and, at their own point, where they stand, their size and facing
+  (SeenActor.body, for MAP-68 and GSM-193).
 - **MAP-41** Unperceived NPCs are not drawn. Perceived but unnamed NPCs use their stranger label.
 - **MAP-42** Background stage extensions are invisible until the player perceives the new zone (matches the spec's
   motion rule M-04). No layout shift, no new outline, no indicator.

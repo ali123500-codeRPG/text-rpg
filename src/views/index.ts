@@ -362,9 +362,18 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
       ...(viewer === state.player && level === 'full' && foeOf(state, viewer, a) ? { foe: foeOf(state, viewer, a)! } : {}), // BG-265
       ...(viewer === state.player && level === 'full' && canOffer(state, viewer, a) && fightingWith(state, a, viewer) ? { talkDown: true as const } : {}), // TF13
       ...(viewer === state.player && level === 'full' && canDemand(state, viewer, a) && (fightingWith(state, a, viewer) || a.mind?.moraleState === 'broken') ? { demandYield: true as const } : {}), // TF19
+      ...(viewer === state.player ? seenBody(state, a) : {}), // MAP-40: what the player's map draws of them
     });
   }
   return out;
+}
+
+/** MAP-40, MAP-69, GSM-193: someone the player sees clearly: the race it is and, standing at its own point, where, how big
+ *  and which way it faces (SZ16) */
+function seenBody(state: GameState, a: Actor): Pick<SeenActor, 'race' | 'body'> {
+  const size = actorBody(state, a).size;
+  return { ...(a.core.raceId ? { race: a.core.raceId } : {}),
+    ...(a.pos ? { body: { x: a.pos.x, y: a.pos.y, lengthM: size.lengthM, widthM: size.widthM, facing: a.facing ?? [0, 1] } } : {}) };
 }
 
 const outcomeLabel = (o: AttackOutcome) => outcomeText(o);
