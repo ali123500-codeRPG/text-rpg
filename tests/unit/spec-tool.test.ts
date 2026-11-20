@@ -2,7 +2,7 @@
 // @ts-expect-error Node types are not installed; vitest runs in Node
 import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { idRows, mentions, run, sections, specFiles } from '../../scripts/spec';
+import { cites, idRows, mentions, run, sections, specFiles } from '../../scripts/spec';
 
 const doc = [
   '# Top', 'intro', '## Part A', '### One', 'one text cites src/engine/gear.ts', '#### Deep', 'deep text', '### Two',
@@ -25,6 +25,16 @@ describe('spec tool', () => {
     expect(idRows(doc, 'BG-7')).toEqual(['## BG-7\n**What was wrong:** x']);
     expect(idRows(doc, 'D-3')).toEqual([]);
     expect(idRows(['- **MAP-4** One rule', '  wrapped on.', '- **MAP-5** next'], 'MAP-4')).toEqual(['- **MAP-4** One rule\n  wrapped on.']);
+  });
+
+  it('a question ID is cited alone or inside a range, never by a longer ID or another prefix', () => {
+    expect(cites('settled by LS3 (Ali)', 'LS3')).toBe(true);
+    expect(cites('LS1 to LS5 are answered', 'LS3')).toBe(true);
+    expect(cites('hearing by LS1-LS5, NPCs', 'LS4')).toBe(true);
+    expect(cites('ST1–ST19', 'ST7')).toBe(true);
+    expect(cites('LS1-LS5', 'LS6')).toBe(false);
+    expect(cites('LS30 and XLS3', 'LS3')).toBe(false);
+    expect(cites('BG-31 fixed', 'BG-3')).toBe(false);
   });
 
   it('a mention is counted in the innermost section that holds it', () => {

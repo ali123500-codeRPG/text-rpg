@@ -7,7 +7,7 @@
 //   --file <path>      read one other markdown file the same way (docs/bug-fix-log.md, docs/systems.md)
 // Plain-syntax TypeScript so Node 22 runs it as is; tests/unit/spec-tool.test.ts checks it on the real spec.
 // @ts-expect-error Node types are not installed; Node runs this file
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 // @ts-expect-error Node types are not installed; Node runs this file
 import { pathToFileURL } from 'node:url';
 
@@ -45,6 +45,16 @@ export function idRows(lines: string[], id: string): string[] {
   };
   const rows = lines.flatMap((l, i) => (row.test(l) ? [rule(i)] : []));
   return [...rows, ...own.map((s) => lines.slice(s.start, s.end).join('\n'))];
+}
+
+/** does the line cite the ID, alone or inside a range ("LS1-LS5", "LS1 to LS5", "ST1–ST19")? */
+export function cites(line: string, id: string): boolean {
+  const m = /^([A-Z]+-?)(\d+)/.exec(id);
+  if (!m) return false;
+  const [, prefix, num] = m;
+  if (new RegExp(`\\b${id}\\b(?!-\\d)`).test(line)) return true;
+  const range = new RegExp(`\\b${prefix}(\\d+)\\s*(?:-|–|to)\\s*(?:${prefix})?(\\d+)\\b`, 'g');
+  return [...line.matchAll(range)].some((r) => +r[1] <= +num && +num <= +r[2]);
 }
 
 /** the innermost section holding each line that mentions the text, with how many lines do */
@@ -86,7 +96,14 @@ export function run(args: string[]): string {
   const query = rest.join(' ');
   if (/^[A-Z]+-\d+[a-z]?$/i.test(query)) {
     const rows = each((_, lines) => idRows(lines, query.toUpperCase()));
-    return rows.length ? rows.join('\n') : `${query}: no row`;
+    if (rows.length) return rows.join('\n');
+  }
+  // a question ID (LS3) or an ID with no row: every line that cites it, in the spec and the decision history
+  if (/^[A-Z]+-?\d+[a-z]?$/i.test(query)) {
+    const memory = at >= 0 ? [] : readdirSync('docs/memory').filter((f: string) => f.endsWith('.md')).map((f: string) => `docs/memory/${f}`);
+    const cited = [...docs, ...memory.map((file: string) => ({ file, lines: readFileSync(file, 'utf8').split('\n') as string[] }))]
+      .flatMap(({ file, lines }) => lines.flatMap((l: string, i: number) => (cites(l, query.toUpperCase()) ? [`${file}:${i + 1}  ${l.trim().slice(0, 200)}`] : [])));
+    return cited.length ? cited.join('\n') : `${query}: not cited in the spec or docs/memory`;
   }
   const hits = each((file, lines) => sections(lines)
     .filter((s) => s.title.toLowerCase().includes(query.toLowerCase()))
