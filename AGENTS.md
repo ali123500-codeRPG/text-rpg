@@ -85,7 +85,7 @@ is fixed in your PR and named there; if you cannot tell which side is right, it 
   scenario-end growth, kept as history; what was built is in the spec.
 - `docs/workstreams.md`: rules from the first build, kept as history.
 - `.github/workflows/`: `ci.yml` (every PR), `pr-rule.yml` (the PR body), `nightly.yml` (a nightly soak run of
-  `tests/soak`).
+  `tests/soak`, and every test file run isolated).
 - `CHANGELOG.md`: dated changes to rules and skills only.
 - `src/config.ts`: every balancing setting. `src/library/`: game data. `tests/harness/`: test helpers.
 - `tests/`: `unit` and `cases` (scenario tests), `smoke` (browser), `replay` (recorded playtest answers played
