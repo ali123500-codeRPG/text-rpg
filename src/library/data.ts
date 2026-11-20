@@ -1,44 +1,166 @@
 // The prototype library: skills (Part 1 §3), body types (Part 3), classes and templates (Part 4 §4),
 // items and the routine bank (the library viewer shows every row). All numbers are placeholders.
-import { AM, BK, BM, CP, DU, RV, WK, OP, LS, FR, FU, GC, GT, IF, HL, PA, PY, RL, TN, VL, ZK, RK, LC, LM } from './tableIds';
+import {
+  AM,
+  BK,
+  BM,
+  CP,
+  DU,
+  FR,
+  FU,
+  GC,
+  GT,
+  HL,
+  IF,
+  LC,
+  LM,
+  LS,
+  OP,
+  PA,
+  PY,
+  RK,
+  RL,
+  RV,
+  TN,
+  VL,
+  WK,
+  ZK,
+} from './tableIds';
+import {
+  TP,
+} from './templateIds';
+import {
+  GP,
+  HK,
+  PF,
+  RO,
+  TH,
+} from './npcLayerIds';
+import {
+  BT,
+  RC,
+} from './raceIds';
+import {
+  TR,
+} from './treeIds';
+import {
+  CONFIG,
+} from '../config';
+import {
+  LAYOUTS,
+} from './layouts';
+import {
+  UNIQUES,
+} from './uniques';
+import type {
+  ArmorWeightKey,
+  GrandeurKey,
+  LifeStageKey,
+  RankKey,
+} from '../scales';
+import {
+  CLASS_TIERS,
+  LIFE_STAGES,
+  NOISE,
+  ROAD_DANGERS,
+  ROAD_LENGTHS,
+  VISIBILITY,
+  ZONE_SIZES,
+} from '../scales';
+import {
+  openAirReachM,
+} from '../perception/noise';
+import {
+  armReachM,
+  HUMANOID_SIZE,
+} from './bodySize';
+import type {
+  AccessCond,
+  ActivityDef,
+  AttackMode,
+  BodyType,
+  GroupDef,
+  HookKindDef,
+  ItemDef,
+  ItemEffect,
+  Library,
+  MeetRow,
+  NpcRoleDef,
+  NpcTemplate,
+  PartDef,
+  PerkDef,
+  Personality,
+  RoleId,
+  Routine,
+  RoutineSet,
+  SituationTag,
+  SkillDef,
+  ThemeDef,
+} from '../types';
+import {
+  FUNCTION_GROUP,
+} from './functionNames';
+import {
+  PERK_WRITEUPS,
+} from './perks';
+import {
+  BOOST_PERKS,
+} from './boostPerks';
+import {
+  ALL_PARTS,
+} from './allPerks';
+import {
+  BUILT_PERKS,
+} from './builtPerks';
+import {
+  ROLLED_SKILL,
+  SK,
+} from './skillIds';
+import {
+  ACH,
+  ACH_HEADS,
+} from './achievementIds';
+import {
+  FN,
+  GR,
+} from './functionIds';
+import {
+  CL,
+} from './classIds';
+import {
+  SV,
+} from './serviceIds';
+import {
+  GD,
+} from './godIds';
+import {
+  ST,
+} from './startIds';
+import {
+  ES,
+} from './essenceIds';
+import {
+  PK,
+} from './perkIds';
+import {
+  BREAK_TOOL_TAG,
+  IT,
+} from './itemIds';
+import {
+  armorMultiplier,
+  armorStop,
+  shieldPool,
+} from './gearScale';
 /** BW26 a: what a wall of each kind is made of when it names no material (placeholders) */
 const WALL_MATERIAL: Record<string, string> = { [WK.wall]: BM.brick, [WK.glazed]: BM.glass, [WK.arcade]: BM.stone, [WK.low]: BM.brick, [WK.fence]: BM.planks };
 /** BW24: what each barrier kind is made of when it names no material (placeholders) */
 const BARRIER_MATERIAL: Record<string, string> = { [BK.door]: BM.oak, [BK.gate]: BM.oak, [BK.grate]: BM.iron, [BK.hatch]: BM.oak, [BK.rubble]: BM.rubble,
   [BK.window]: BM.planks, [BK.arrow_slit]: BM.stone, [BK.barred_window]: BM.iron, [BK.large_window]: BM.planks };
-import { TP } from './templateIds';
-import { GP, HK, PF, RO, TH } from './npcLayerIds';
-import { BT, RC } from './raceIds';
-import { TR } from './treeIds';
-import { CONFIG } from '../config';
-import { LAYOUTS } from './layouts';
-import { UNIQUES } from './uniques';
-import type { ArmorWeightKey, GrandeurKey, LifeStageKey, RankKey } from '../scales';
-import { CLASS_TIERS, LIFE_STAGES, NOISE, VISIBILITY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS } from '../scales';
-import { openAirReachM } from '../perception/noise';
-import { HUMANOID_SIZE, armReachM } from './bodySize';
 
 /** AT12: armour on or off locks movement, is careful work in steps, and keeps what is done when broken off */
 const ARMOR_TIME = { locksMove: true, focus: 'careful', output: 'steps', onBreak: [{ upTo: 1, then: 'kept' }] } as const;
 /** HB1: how far a sound carries in the open */
 const inOpen = (m: number | undefined) => (m === undefined ? 'nowhere' : m === 0 ? 'only right beside you' : `${m} m in the open`);
-import type { AccessCond, PartDef, RoleId, ActivityDef, AttackMode, BodyType, ItemDef, ItemEffect, Library, NpcRoleDef, NpcTemplate, ThemeDef, HookKindDef, GroupDef, MeetRow, PerkDef, Personality, Routine, RoutineSet, SituationTag, SkillDef } from '../types';
-import { FUNCTION_GROUP } from './functionNames';
-import { PERK_WRITEUPS } from './perks';
-import { BOOST_PERKS } from './boostPerks';
-import { ALL_PARTS } from './allPerks';
-import { BUILT_PERKS } from './builtPerks';
-import { SK, ROLLED_SKILL } from './skillIds';
-import { ACH, ACH_HEADS } from './achievementIds';
-import { FN, GR } from './functionIds';
-import { CL } from './classIds';
-import { SV } from './serviceIds';
-import { GD } from './godIds';
-import { ST } from './startIds';
-import { ES } from './essenceIds';
-import { PK } from './perkIds';
-import { BREAK_TOOL_TAG, IT } from './itemIds';
-import { armorMultiplier, armorStop, shieldPool } from './gearScale';
 
 /** aimed hits per part size: smaller parts are harder to hit, so their levels pay this many reward levels more */
 /** AG3–AG6: life stage start ages per race (placeholders but the human row) */

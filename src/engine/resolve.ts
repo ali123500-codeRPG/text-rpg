@@ -1,95 +1,596 @@
 // The Resolution engine: one turn of pure resolution. Same state + same input + same rng = same events.
-import { roofed, wayTo } from '../plan/where';
-import { checkScenarioEnd, closeScenario, noteIdle } from './scenarioEnd';
-import { checkRoam, updateChase } from './chase';
-import { noticeGoals, runSteps } from './goals';
-import { noteHappened } from './happened';
-import { noteLeft, noteZonesSeen } from './trail';
-import { heightOf } from '../scenario/heights';
-import { CP, DU, FR, FX, HL, RL } from '../library/tableIds';
-import { passiveFatigue, payMove, payRow, payStrain, restRecover, sleepMinutes, tooSpent } from './fatigue';
-import { payFear } from './morale';
-import { nerveCowers, nerveLetsWalk } from './nerve';
-import { healthFear, isBrokenLevel, isCoweringLevel, moraleLevel, partFearCost, partFears } from '../ruleset/morale';
-import { bestReward } from '../ruleset/achRewards';
-import { isHeld, parryItem, rollFnSkills } from '../ruleset/gear';
-import { freeGrips, healShare, levelMaxPct } from '../ruleset/body';
-import { FN } from '../library/functionIds';
-import type { Actor, ActorView, AttackResult, Barrier, CheckResult, Grade, RollResult, ContestResult, Effect, DurationDef, GameEvent, GameState, GearOp, Intent, ItemInstance, Mod, Opening, Order, Rng, TierShift, WayDid } from '../types';
-import { GRADED_ACTS } from '../types';
-import { barrierOn, broken, noteTried, openWay, passage, shutBy, wayOp, type WayOp } from './barriers';
-import { actionRow, actionSeconds, attackRowIds, reactSeconds, timeFactor } from '../ruleset/actionTime';
-import { busyNow } from './busy';
-import { CONFIG } from '../config';
-import { activity, actorBody, getLibrary, itemDef, perkName, routine } from '../library';
-import { moveSpeed, slotMetres } from './speed';
-import { companions, travel, travelSpeed, tripGoal, type TripWorld } from './travel';
-import { M_EPS, closeInM, distM, faceToward, floorGap, distOrNull, gateAhead, placeAll, reachesM, roomAround, seeingM, sightDistM, spotOnTheWay, spotPoint, walkLeg, wayLeftM, wayPoint, withinM, type Located } from './position';
-import { applyHealing, calm, healFromPerk, passiveHealing, wouldHeal } from './heal';
-import { FOCUS, HEALTH_LEVELS, MORALE_LEVELS, TIERS, type BodyPoseKey } from '../scales';
-import { defaultMode, effectiveSkill, gradeMod, gradeMods, obstacleGate, trueSkill, pickSeconds, pickTool, hasPerk, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markUse, markEndurance, modeSkill, partStates, roleOff, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
-import { VOLUME_NOISE } from '../perception/noise';
-import { makeOut } from './makeOut';
-import { applyBeliefDecay, beliefStatus, carryingNoise, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, perceptionOf, stealthEnd, stealthStart, updateBeliefs } from '../perception';
-import { buildActorView, seesClearlyNow } from '../views';
-import { neverFlatFooted, noteSeen } from './flatFooted';
-import { endPlayDead, fooledBy, openPlayDead, playDeadChecks, startPlayDead } from './playDead';
-import { expireFeint, fooledByFeint, startFeint } from './feint';
-import { withTactics } from '../views/tactics';
-import { markReaction } from './tacticsMarks';
-import { UNREACHABLE } from '../minds/routines';
-import { alertOrders, brokenHolds, brokenOrder, nerveHolds, desiredState, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, searchFor, searchItems, searchPerson, searchSecrets, markAgainst, gripOn, openToGrip, revealItems, letSearch, staying, stealthDetect, updateAlarms } from '../minds';
-import { noteFighting, updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
-import { afterAttack, bluffed, coverFor, drawIn, spendBluff, expireMarks, slowed } from './perkMarks';
-import { battleCry, engagementAuras, rallyCall, sightDread } from './auras';
-import { grantAllSteps, shareSpotted } from '../ruleset/allSteps';
-import { syncPerkLinks } from '../ruleset/perkLinks';
-import { grantThreadboundItem, syncThreadboundItemPerks } from '../ruleset/threadboundItems';
-import { applyHold, breakFree, releaseHolds, restrain } from './held';
-import { countPerkMove, hasFreeGrip, perkMoveBlock, resolvePerkMove } from './perkMoves';
-import { TRICK, sawThrough, warnedShift } from './ruses';
-import { giveWarning, warnEvent, warnedChecks } from './warnings';
-import { actorById, allActors, atLeast, countsInFight, fitsThrough, foe, isActive, isAsleep, isEngaged, hostile, knowsShut, reachesAcross, shortestPath, sparBetween, stance, wary, wayPath, zoneById } from './relations';
-import { checkOut, endSparsOf, heldBack, sparOf, updateSpars, yieldSpar } from './spar';
-import { needOf, fromIntent, mergeOrders, usableAgentOutputs } from './merge';
-import { fireMidTurnTrigger, firedOrders } from './triggers';
-import { checkSecrets } from './secrets';
-import { applyGearOps, bindCarriedCharms, dropToGround, equipArmor, fadeSoulbound, gripReachM, improvise, pickUpAt, withinGrip } from './gear';
-import { contentsOf, findContainer, guarded, inContainer, openContainer, ownerOf, theft, wornPack } from './containers';
-import { carriedItem, gripsReach, holdOut, offerBlock, takeBlock, transfer, wantsOffer } from './handover';
-import { cantSteady, steady } from './steady';
-import { breakInside, breakLine, brokenVersion } from './breakage';
-import { furnitureRecord } from './furniture';
-import { isGuard, lockedBoxes, shownInside, suspect } from './suspicion';
-import { filchAftermath, filchContest, filchSize, filchable, takeFilched, type Filched } from './filch';
-import { buy, sell } from './trade';
-import { applyAgentEffects, learnNames, logCode, loseNerve } from './effects';
-import { falseName, r1 } from '../words';
-import { gutFeelings } from './hunches';
-import { PUSH_TYPES, SPEECH_SKILL, applySpeech, isSpeech, overhearLie, pushContest, quickReads, sizeUp, speechSkill as speechSkillOf } from './speech';
-import { bested, growthWaits, notePower, payDefeats, tally, unlockClasses } from './xp';
-import { noteGains } from './growth';
-import { expireOffers, offersFromDefeats } from './essence';
-import { cantExtract, extractEssence } from './extract';
-import { handInQuests, unpaidQuests, updateQuests } from './quests';
-import { contestFeat, fightEnded, gaveUpFeats, outmatchedOnce, turnFeats, type ActContest } from './feats';
-import { answerMercy, answerYield, askMercy, finishers, perceivesNow, playerYields, settleMercy, yieldBars } from './yield';
-import { answerOffer, answerOffers, canOffer, feelsThreats, makeOffer, OFFER_TYPES, playerOffer, speaks, truceBars, type StoodDown, type TalkedYield } from './offer';
-import { minutesUntil, nextTimeOfDay, noteTurnEnd, now, timeOfDay } from '../time';
-import { advanceAging } from '../ruleset/age';
-import { NOISE, TIME_OF_DAY, WAIT_SOMEONE, type NoiseKey } from '../scales';
-import type { ExchangeSpeech, TurnInput } from './types';
-import { SK } from '../library/skillIds';
-import { CONTEST } from '../library/contests';
-import { PK } from '../library/perkIds';
-import { met, struck } from '../ruleset/hits';
-import { busyCheck, checkNear, contact, inSenses, startWatch, stepS, type NearStop } from './comingNear';
-import { fightInSenses } from './mode';
-import { applyNightPhase, hostilesNear, nextChange, planNight, settleSleepers, wakeByEvent, wakeCalls, wakeCheck, wakeChecksNear, wake } from './sleep';
-import { pieceOn, stackCost, wornPieces } from '../ruleset/worn';
-import { addWear, breakJob, jobAt, regrow, secondsLeft, toolCheck, walkBreaks } from './breakThrough';
-import { barrierStuff, wallStuff } from '../ruleset/breaking';
-import { cutHole, holeSpot } from '../plan/holes';
+import {
+  roofed,
+  wayTo,
+} from '../plan/where';
+import {
+  checkScenarioEnd,
+  closeScenario,
+  noteIdle,
+} from './scenarioEnd';
+import {
+  checkRoam,
+  updateChase,
+} from './chase';
+import {
+  noticeGoals,
+  runSteps,
+} from './goals';
+import {
+  noteHappened,
+} from './happened';
+import {
+  noteLeft,
+  noteZonesSeen,
+} from './trail';
+import {
+  heightOf,
+} from '../scenario/heights';
+import {
+  CP,
+  DU,
+  FR,
+  FX,
+  HL,
+  RL,
+} from '../library/tableIds';
+import {
+  passiveFatigue,
+  payMove,
+  payRow,
+  payStrain,
+  restRecover,
+  sleepMinutes,
+  tooSpent,
+} from './fatigue';
+import {
+  payFear,
+} from './morale';
+import {
+  nerveCowers,
+  nerveLetsWalk,
+} from './nerve';
+import {
+  healthFear,
+  isBrokenLevel,
+  isCoweringLevel,
+  moraleLevel,
+  partFearCost,
+  partFears,
+} from '../ruleset/morale';
+import {
+  bestReward,
+} from '../ruleset/achRewards';
+import {
+  isHeld,
+  parryItem,
+  rollFnSkills,
+} from '../ruleset/gear';
+import {
+  freeGrips,
+  healShare,
+  levelMaxPct,
+} from '../ruleset/body';
+import {
+  FN,
+} from '../library/functionIds';
+import type {
+  Actor,
+  ActorView,
+  AttackResult,
+  Barrier,
+  CheckResult,
+  ContestResult,
+  DurationDef,
+  Effect,
+  GameEvent,
+  GameState,
+  GearOp,
+  Grade,
+  Intent,
+  ItemInstance,
+  Mod,
+  Opening,
+  Order,
+  Rng,
+  RollResult,
+  TierShift,
+  WayDid,
+} from '../types';
+import {
+  GRADED_ACTS,
+} from '../types';
+import {
+  barrierOn,
+  broken,
+  noteTried,
+  openWay,
+  passage,
+  shutBy,
+  type WayOp,
+  wayOp,
+} from './barriers';
+import {
+  actionRow,
+  actionSeconds,
+  attackRowIds,
+  reactSeconds,
+  timeFactor,
+} from '../ruleset/actionTime';
+import {
+  busyNow,
+} from './busy';
+import {
+  CONFIG,
+} from '../config';
+import {
+  activity,
+  actorBody,
+  getLibrary,
+  itemDef,
+  perkName,
+  routine,
+} from '../library';
+import {
+  moveSpeed,
+  slotMetres,
+} from './speed';
+import {
+  companions,
+  travel,
+  travelSpeed,
+  tripGoal,
+  type TripWorld,
+} from './travel';
+import {
+  closeInM,
+  distM,
+  distOrNull,
+  faceToward,
+  floorGap,
+  gateAhead,
+  type Located,
+  M_EPS,
+  placeAll,
+  reachesM,
+  roomAround,
+  seeingM,
+  sightDistM,
+  spotOnTheWay,
+  spotPoint,
+  walkLeg,
+  wayLeftM,
+  wayPoint,
+  withinM,
+} from './position';
+import {
+  applyHealing,
+  calm,
+  healFromPerk,
+  passiveHealing,
+  wouldHeal,
+} from './heal';
+import {
+  type BodyPoseKey,
+  FOCUS,
+  HEALTH_LEVELS,
+  MORALE_LEVELS,
+  TIERS,
+} from '../scales';
+import {
+  clearMarkCounts,
+  defaultMode,
+  effectiveSkill,
+  fnRoller,
+  gradeMod,
+  gradeMods,
+  hasPerk,
+  healthLevel,
+  improveMarked,
+  isDownLevel,
+  landFall,
+  markEndurance,
+  markUse,
+  modeSkill,
+  obstacleGate,
+  partStates,
+  pickSeconds,
+  pickTool,
+  roleOff,
+  ruleset,
+  situational,
+  survivalRoll,
+  tierAtLeast,
+  tierLevel,
+  trueSkill,
+  usableModes,
+} from '../ruleset';
+import {
+  VOLUME_NOISE,
+} from '../perception/noise';
+import {
+  makeOut,
+} from './makeOut';
+import {
+  applyBeliefDecay,
+  beliefStatus,
+  carryingNoise,
+  computePerception,
+  hears,
+  hearsWords,
+  lookAround,
+  noteSightings,
+  noticeCue,
+  perceptionOf,
+  stealthEnd,
+  stealthStart,
+  updateBeliefs,
+} from '../perception';
+import {
+  buildActorView,
+  seesClearlyNow,
+} from '../views';
+import {
+  neverFlatFooted,
+  noteSeen,
+} from './flatFooted';
+import {
+  endPlayDead,
+  fooledBy,
+  openPlayDead,
+  playDeadChecks,
+  startPlayDead,
+} from './playDead';
+import {
+  expireFeint,
+  fooledByFeint,
+  startFeint,
+} from './feint';
+import {
+  withTactics,
+} from '../views/tactics';
+import {
+  markReaction,
+} from './tacticsMarks';
+import {
+  UNREACHABLE,
+} from '../minds/routines';
+import {
+  alertOrders,
+  brokenHolds,
+  brokenOrder,
+  desiredState,
+  detectPlayer,
+  fallbackOrder,
+  gripOn,
+  headArrivals,
+  letSearch,
+  markAgainst,
+  nerveHolds,
+  openToGrip,
+  resolveAmbush,
+  revealItems,
+  searchFor,
+  searchItems,
+  searchPerson,
+  searchSecrets,
+  staying,
+  stealthDetect,
+  updateAlarms,
+} from '../minds';
+import {
+  noteFighting,
+  updateEngagements,
+  usableThisEngagement,
+  useThisEngagement,
+} from './engagement';
+import {
+  afterAttack,
+  bluffed,
+  coverFor,
+  drawIn,
+  expireMarks,
+  slowed,
+  spendBluff,
+} from './perkMarks';
+import {
+  battleCry,
+  engagementAuras,
+  rallyCall,
+  sightDread,
+} from './auras';
+import {
+  grantAllSteps,
+  shareSpotted,
+} from '../ruleset/allSteps';
+import {
+  syncPerkLinks,
+} from '../ruleset/perkLinks';
+import {
+  grantThreadboundItem,
+  syncThreadboundItemPerks,
+} from '../ruleset/threadboundItems';
+import {
+  applyHold,
+  breakFree,
+  releaseHolds,
+  restrain,
+} from './held';
+import {
+  countPerkMove,
+  hasFreeGrip,
+  perkMoveBlock,
+  resolvePerkMove,
+} from './perkMoves';
+import {
+  sawThrough,
+  TRICK,
+  warnedShift,
+} from './ruses';
+import {
+  giveWarning,
+  warnedChecks,
+  warnEvent,
+} from './warnings';
+import {
+  actorById,
+  allActors,
+  atLeast,
+  countsInFight,
+  fitsThrough,
+  foe,
+  hostile,
+  isActive,
+  isAsleep,
+  isEngaged,
+  knowsShut,
+  reachesAcross,
+  shortestPath,
+  sparBetween,
+  stance,
+  wary,
+  wayPath,
+  zoneById,
+} from './relations';
+import {
+  checkOut,
+  endSparsOf,
+  heldBack,
+  sparOf,
+  updateSpars,
+  yieldSpar,
+} from './spar';
+import {
+  fromIntent,
+  mergeOrders,
+  needOf,
+  usableAgentOutputs,
+} from './merge';
+import {
+  firedOrders,
+  fireMidTurnTrigger,
+} from './triggers';
+import {
+  checkSecrets,
+} from './secrets';
+import {
+  applyGearOps,
+  bindCarriedCharms,
+  dropToGround,
+  equipArmor,
+  fadeSoulbound,
+  gripReachM,
+  improvise,
+  pickUpAt,
+  withinGrip,
+} from './gear';
+import {
+  contentsOf,
+  findContainer,
+  guarded,
+  inContainer,
+  openContainer,
+  ownerOf,
+  theft,
+  wornPack,
+} from './containers';
+import {
+  carriedItem,
+  gripsReach,
+  holdOut,
+  offerBlock,
+  takeBlock,
+  transfer,
+  wantsOffer,
+} from './handover';
+import {
+  cantSteady,
+  steady,
+} from './steady';
+import {
+  breakInside,
+  breakLine,
+  brokenVersion,
+} from './breakage';
+import {
+  furnitureRecord,
+} from './furniture';
+import {
+  isGuard,
+  lockedBoxes,
+  shownInside,
+  suspect,
+} from './suspicion';
+import {
+  filchable,
+  filchAftermath,
+  filchContest,
+  type Filched,
+  filchSize,
+  takeFilched,
+} from './filch';
+import {
+  buy,
+  sell,
+} from './trade';
+import {
+  applyAgentEffects,
+  learnNames,
+  logCode,
+  loseNerve,
+} from './effects';
+import {
+  falseName,
+  r1,
+} from '../words';
+import {
+  gutFeelings,
+} from './hunches';
+import {
+  applySpeech,
+  isSpeech,
+  overhearLie,
+  PUSH_TYPES,
+  pushContest,
+  quickReads,
+  sizeUp,
+  SPEECH_SKILL,
+  speechSkill as speechSkillOf,
+} from './speech';
+import {
+  bested,
+  growthWaits,
+  notePower,
+  payDefeats,
+  tally,
+  unlockClasses,
+} from './xp';
+import {
+  noteGains,
+} from './growth';
+import {
+  expireOffers,
+  offersFromDefeats,
+} from './essence';
+import {
+  cantExtract,
+  extractEssence,
+} from './extract';
+import {
+  handInQuests,
+  unpaidQuests,
+  updateQuests,
+} from './quests';
+import {
+  type ActContest,
+  contestFeat,
+  fightEnded,
+  gaveUpFeats,
+  outmatchedOnce,
+  turnFeats,
+} from './feats';
+import {
+  answerMercy,
+  answerYield,
+  askMercy,
+  finishers,
+  perceivesNow,
+  playerYields,
+  settleMercy,
+  yieldBars,
+} from './yield';
+import {
+  answerOffer,
+  answerOffers,
+  canOffer,
+  feelsThreats,
+  makeOffer,
+  OFFER_TYPES,
+  playerOffer,
+  speaks,
+  type StoodDown,
+  type TalkedYield,
+  truceBars,
+} from './offer';
+import {
+  minutesUntil,
+  nextTimeOfDay,
+  noteTurnEnd,
+  now,
+  timeOfDay,
+} from '../time';
+import {
+  advanceAging,
+} from '../ruleset/age';
+import {
+  NOISE,
+  type NoiseKey,
+  TIME_OF_DAY,
+  WAIT_SOMEONE,
+} from '../scales';
+import type {
+  ExchangeSpeech,
+  TurnInput,
+} from './types';
+import {
+  SK,
+} from '../library/skillIds';
+import {
+  CONTEST,
+} from '../library/contests';
+import {
+  PK,
+} from '../library/perkIds';
+import {
+  met,
+  struck,
+} from '../ruleset/hits';
+import {
+  busyCheck,
+  checkNear,
+  contact,
+  inSenses,
+  type NearStop,
+  startWatch,
+  stepS,
+} from './comingNear';
+import {
+  fightInSenses,
+} from './mode';
+import {
+  applyNightPhase,
+  hostilesNear,
+  nextChange,
+  planNight,
+  settleSleepers,
+  wake,
+  wakeByEvent,
+  wakeCalls,
+  wakeCheck,
+  wakeChecksNear,
+} from './sleep';
+import {
+  pieceOn,
+  stackCost,
+  wornPieces,
+} from '../ruleset/worn';
+import {
+  addWear,
+  breakJob,
+  jobAt,
+  regrow,
+  secondsLeft,
+  toolCheck,
+  walkBreaks,
+} from './breakThrough';
+import {
+  barrierStuff,
+  wallStuff,
+} from '../ruleset/breaking';
+import {
+  cutHole,
+  holeSpot,
+} from '../plan/holes';
 
 /** CS5: how loud and how visible each engine-made event is (the spec's event noise and sight table); a kind not listed is quiet
  * and normal. Placeholders to tune. */
