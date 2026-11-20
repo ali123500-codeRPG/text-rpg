@@ -38,7 +38,7 @@ Output shape (notation, not literal JSON):
                     key, band: bandKey | bandId, routineSetId,
                    slots: { <slot>: zoneKey | zoneId | [zoneKey | zoneId, ...] },   // every slot the set lists
                    startAt?: <slot>,                 // where in the loop to start; code computes the anchor
-                   routineGap?: hidden text,         // what it wanted when no set fit; capped; GM view only
+                   routineGap?: hidden text,         // what it wanted when no set fit; capped; GM view only (Wanted list, D-53 a)
                    awarenessOfPlayer: unaware | suspicious | aware,      // what this actor knows of the player
                    awarenessOfBands?: [ { band: bandKey | bandId, awareness: unaware | suspicious | aware } ],
                                                                          // about every member of that band

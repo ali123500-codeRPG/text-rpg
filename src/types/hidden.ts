@@ -21,8 +21,9 @@ export type HiddenStore = {
   stage: { eventSummary: string; challenge: Grade; gain: Grade; hiddenTerms: string[] };
   /** W6: per-actor hidden Weaver text (motive, routineGap); GM view only. Not an agenda (hasAgenda ignores it). */
   castNotes?: Record<string, { motive: string; routineGap?: string; templateGap?: string }>;
-  /** NG15: every templateGap the Weaver wrote, for the GM view's "Templates wanted" list (kept across scenarios) */
-  templateWants?: { turn: number; scenario: number; actorId: string; label: string; wanted: string; template: string }[];
+  /** NG15: every templateGap the Weaver wrote, for the GM view's "Wanted" list (kept across scenarios); D-53 a: its routineGap
+   * too (of 'routine', `template` then the routine set used) */
+  templateWants?: { turn: number; scenario: number; actorId: string; label: string; wanted: string; template: string; of?: 'routine' }[];
   /** NR17: roster keys already filled by a cast entry; the World view leaves them out */
   rosterFilled?: string[];
   /** NR28: each composition whose wanted skills the closest role lacks from its High or Moderate bands (GM view "Roles wanted") */

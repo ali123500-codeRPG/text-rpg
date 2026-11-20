@@ -526,6 +526,8 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     if (missing.length) (state.hidden.roleWants ??= []).push({ turn: state.turn, scenario: state.stage.scenarioNumber, actorId: castActors[i].id, label: w!.label, skills: w!.skills, role: c.compose!.role, missing });
   });
   plan.cast.forEach((c, i) => { if (c.templateGap) (state.hidden.templateWants ??= []).push({ turn: state.turn, scenario: state.stage.scenarioNumber, actorId: castActors[i].id, label: c.label, wanted: c.templateGap, template: castActors[i].core.templateId ?? '' }); });
+  // D-53 a: a routine the Weaver wanted and no set gave, in the same GM list
+  plan.cast.forEach((c, i) => { if (c.routineGap) (state.hidden.templateWants ??= []).push({ turn: state.turn, scenario: state.stage.scenarioNumber, actorId: castActors[i].id, label: c.label, wanted: c.routineGap, template: c.routineSetId, of: 'routine' }); });
   if (ctx.kind === 'scenario') logCastPower(state, plan.event.challenge, castActors); // NG16 b
   // UG3: goal holders: the template's standing goal, then the Weaver's goals, their keys read as ids
   const aboutRef = (r: string) => castMap.get(r) ?? placeMap.get(r) ?? zoneMap.get(r) ?? r;
