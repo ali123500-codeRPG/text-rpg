@@ -14,3 +14,4 @@ The game files a report at `bugs/new-<time>` (status new) for every bug code it 
 | BG-344 | An essence offer pop-up opens over the minimap's top corner and hides the Map button there (MAP-60) until it is closed | Thread | Open | #1311 |
 | BG-345 | The sleep bonus (FT8) goes to anyone asleep in a room with a bed, on it or not: nearness by room, not metres | Thread | Open | #1377 |
 | BG-346 | A zone name does not fit its zone at an intermediate zoom on the Bent Nail Map (MAP-20, tavern.common) | Thread | Open | #1378 |
+| BG-347 | Sleep on a far bed from the map sleeps where the first move ends, then walks to the bed (waits on MQ8's walk-then-act) | Thread | Open | #1397 |
