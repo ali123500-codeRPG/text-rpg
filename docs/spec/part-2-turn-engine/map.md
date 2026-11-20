@@ -12,16 +12,18 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
 - **MAP-03** Layout is deterministic: the same stage data gives the same map. Positions are stored with the zone and
   never moved once placed, so a stage extension adds zones at the edges and never reshuffles existing ones.
 - **MAP-10** One grid, 1 cell = 1 m. Every zone size and position snaps to it. The scale bar is drawn from the same
-  constant. A zone is only a title: a name plus an outline (any shape) between a floor and a top. The map draws every
+  constant. The map is always to scale: zones and places that adjoin touch along x and y, and their shared side is the
+  exit. A zone is only a title: a name plus an outline (any shape) between a floor and a top. The map draws every
   title where it lies on the floor plan, and its walls, openings and furniture come from the floor plan (state.walls,
-  state.openings), never from zone links. There is no exit diagram and no force layout (PZ12 a; BG-313).
+  state.openings), never from zone links (PZ12 a; BG-313; RM7 a, RM8 a).
 - **MAP-11** Zones never partially overlap. Only full containment is allowed (a zone inside its parent place). Any
   partial overlap is a violation.
 - **MAP-12** Outdoor zones (streets, yards, roads) sit beside building footprints and never run through them. A building
   is one connected footprint.
-- **MAP-13** A place's footprint is the bounding box of the seen ground of its zones plus padding, so it never tells how
-  far unseen ground runs; the outline is padded only where it stays off other places' zones. Its title sits outside the
-  footprint, above the top-left corner (a title wider than the place may run out past that corner).
+- **MAP-13** A place's footprint is its own ground: the seen ground of its own zones, each padded, joined into one
+  outline with square corners. It never tells how far unseen ground runs and never covers another place's zone. The
+  drawn outline and the checker (`checkStage`, MAP-18) use this one shape. Its title sits outside the footprint, above
+  the top-left corner (a title wider than the place may run out past that corner) (CO9; WF8 a; RM5 a, RM7 a; Ali, 20/11/2026, Questions hub page "Map rules revision").
 - **MAP-14** Each doorway, gap, window or stair is drawn once, at its own point on its wall, never at the middle of a
   shared edge and never by a compass word: one mark per opening, with a barrier's padlock, bolt or cross in its place.
   An exit to somewhere not on the map is an arrow straight out of its own doorway, turned a little either way only when
@@ -32,18 +34,14 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   has seen (journal.seenSquares; over the land, the land's cells). Unseen ground stays dark. A title seen none of shows
   no name; a name sits in the biggest seen part of its title. The minimap uses the same plan and the same fog, and only
   seen ground can be pointed at (PZ12 a).
-- **MAP-17** The map is always drawn to scale: each zone at its real position and size in metres, so zones and places
-  that adjoin touch along x and y and their shared side is the exit. The exit diagram, its force layout and its compass
-  guessing are gone. Each inner place's outline is the box around the seen ground of its zones, padded as MAP-13 says,
-  with square corners and its name above its north side (Ali, 14/11/2026, CO9; BG-313; WF8 a).
+- **MAP-17** Merged into MAP-10 and MAP-13 (RM7 a).
 - **MAP-18** Code places every zone on the 1 m grid, with whole-metre sides and corners and the area's best whole-metre
   fit (MAP-10). It places a zone beside what it links to, never partly over another zone, and never inside another
-  building's footprint (the box around a place's indoor zones), so a street runs beside a building and never through it
+  building's footprint (MAP-13), so a street runs beside a building and never through it
   (MAP-11, MAP-12). Among the free spots it takes the one that leaves room for the sides its exits name: "behind the
-  counter, north" keeps the common room's north side clear.
-- **MAP-19** A stored layout that breaks MAP-10, MAP-11 or MAP-12 is named in the load report, never moved. MR2's one
-  re-placing, relayBroken, went with the zone rewrite: no save from before these rules loads (brokenLayouts,
-  src/scenario/geometry.ts; PZ16 b).
+  counter, north" keeps the common room's north side clear (RM5 a).
+- **MAP-19** A stored layout that breaks MAP-10, MAP-11 or MAP-12 is named in the load report, never moved. No save from
+  before these rules loads (brokenLayouts, src/scenario/geometry.ts; PZ16 b; RM8 a).
 
 #### Labels
 
@@ -52,50 +50,54 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   for 4 px letters shows its name in its tooltip and accessible label only. The name never moves outside its zone
   (MZ2-MZ4).
 - **MAP-21** A name is never cut with an ellipsis. It shrinks instead (MAP-20).
-- **MAP-22** A zone's name is a background layer behind every mark. Tokens and icons may sit on it, and it takes no room
-  from them, so it never pushes a mark aside (MZ2-MZ4).
+- **MAP-22** A zone's name is a background layer behind every mark. Tokens and stairs may sit on it, and it takes no
+  room from them, so it never pushes a mark aside; furniture never covers it (MAP-25) (MZ2-MZ4; RM6 a).
 - **MAP-23** When marks collide, yield in this order (first wins): player token, place titles, other tokens, exit notes,
   icons.
-- **MAP-24** Exit notes use one format, attached to their exit: `→ target · state` (for example `→ the plank gate ·
-  unexplored`). The note reads "→ its name · unexplored" (or "· to Ashford", ", locked").
-- **MAP-25** A mark inside a zone (furniture, stairs, the player, people) is placed once, at the widest of a few set
+- **MAP-24** An exit's note is its target's name only, attached to its exit ("the gate to the lane"). Its state (not
+  been through, locked, where it leads) is in its tip and the zone card: the dotted arrow already shows an exit not been
+  through, and the badge a barrier (MAP-36) (RM2 a; Ali, 20/11/2026, Questions hub page "Map rules revision").
+- **MAP-25** On a place's map your pin is placed first and furniture last. A mark inside a zone (furniture, stairs,
+  the player, people) is placed once, at the widest of a few set
   zooms that has room for it (PLACE_KS), and every zoom keeps it at the same share of its zone (inside the room its size
   leaves). A stair is placed once at its own end, nudged then only if another mark already sits there. After that,
-  furniture and stairs never move at any zoom: zoomed out, where one would cover another mark it hides in its own spot
-  (listed in the zone's card) and comes back there. The player and people are never hidden; they step aside only then
-  (BG-216; WF10 a).
+  furniture and stairs never move at any zoom: zoomed out, where one would cover another mark, or a piece of furniture
+  the zone's name, it is left off in its own spot (listed in the zone's card) and comes back there when you zoom in.
+  Furniture is also left off when its zone has no free spot. The player and people are never hidden; they step aside
+  only then (BG-216; WF10 a; RM6 a, RM7 a; Ali, 20/11/2026, Questions hub page "Map rules revision").
 - **MAP-26** To scale, a place's map is laid out by code at the zoom shown and drawn on one screen-pixel layer. No mark
   covers another at any zoom, and the first view fits the whole map with everything inside it (src/ui/mapPlan.ts).
-- **MAP-27** On a place's map your pin is placed first and furniture last. Place titles sit above their outline's
-  top-left corner; people sit in the bottom band or at their own point; a stair is placed once at its own end on this
-  floor, nudged then only if another mark already sits there, and after that never moves at any zoom (MAP-25).
-  Furniture is left off (and still listed in the zone's card) when its zone has no free spot (WF10 a).
+- **MAP-27** Merged into MAP-13, MAP-25 and MAP-68 (RM7 a).
 
 #### Symbols and states
 
-- **MAP-30** One icon has one meaning. The legend is always available and lists every icon on the current map except
-  your pin (MAP-35; WF12 a).
+- **MAP-30** One icon has one meaning. The key is a short list behind a Key button beside the Map's zoom buttons, and
+  lists only the unusual marks the current map shows, in short words: seen not been in, out of sight now, low wall or
+  counter, locked (and with your key), barred, blocked, not been through yet, opens another map, stairs, last seen here.
+  The usual marks (walls, indoors, outdoors, doors, furniture, someone there now, your pin, the current zone's outline)
+  are left out: each names itself when you point at it. The pin's tip says "You are here", and the card names where you
+  are once (SD8; WF12 a; RM1 b, RM7 a; Ali, 20/11/2026, Questions hub page "Map rules revision").
 - **MAP-31** Icons never overlap each other or a wall corner. Doors sit at their own point on their wall (MAP-14).
 - **MAP-32** Every exit arrow names its target. No arrow points at empty space without a note.
 - **MAP-33** Zone states are fixed: where you are (current, highlighted); explored (stood in: journal.zonesVisited, each
   zone once as you stand in it; a save without the list starts it from its trail); seen but never stood in (hatched);
   and exits to somewhere unknown. Locked is shown on the door, not on the zone.
 - **MAP-34** Every state is readable without colour: outline style plus an icon or text, never colour alone.
-- **MAP-35** The key lists exactly what the map shows, except your own pin and the current zone's outline. The pin's tip
-  says "You are here", and the card names where you are once (SD8).
+- **MAP-35** Merged into MAP-30 (RM7 a).
 - **MAP-36** A barrier the character knows stops them sits as a badge on its exit: a padlock for locked (green when they
   hold its key), a door with its bolt across for barred, a cross for blocked. Locked or barred shows only once they have
   tried it, hold its key or see the bolt on their side. The zone card's exits name each barrier ("door, locked", "gate,
-  standing open"), and the key lists the badges once one shows (barrierView, src/engine/barriers.ts).
+  standing open"), and the key lists the badges once one shows (MAP-30) (barrierView, src/engine/barriers.ts).
 
 #### What the map may show
 
 - **MAP-40** The map shows only what the player character knows: zones, exits and actors the player has perceived.
-  Hidden Weaver fields never reach the map.
+  The map is built from PlayerView and the Journal only, never the hidden store, so hidden Weaver fields never reach it
+  (RM7 a).
 - **MAP-41** Unperceived NPCs are not drawn. Perceived but unnamed NPCs use their stranger label.
 - **MAP-42** Background stage extensions are invisible until the player perceives the new zone (matches the spec's
   motion rule M-04). No layout shift, no new outline, no indicator.
-- **MAP-43** The map is built from PlayerView and the Journal only, never the hidden store.
+- **MAP-43** Merged into MAP-40 (RM7 a).
 - **MAP-44** The map shows every title the character stood in or saw (journal.zonesSeen), plus exits not taken.
 - **MAP-45** Light, cover, people and ground items show only for zones in view now. Remembered zones keep name, look and
   exits; people out of sight show where last seen.
@@ -105,19 +107,21 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
 
 #### The Map screen
 
-- **MAP-60** The Map is a big full-screen pop-up over the page, not a tab of its own. The Map button in the Play header
-  opens it, and ✕, Esc or leaving the page closes it. An old #map link opens Play with the map up.
+- **MAP-60** The Map is a big full-screen pop-up over the page, not a tab of its own. The minimap's expand button opens
+  it (the Play header has no Map button), and ✕, Esc or leaving the page closes it. An old #map link opens Play with the
+  map up (MQ2 a; Ali, 20/11/2026, Questions hub page "Map and minimap: one map, doors").
 - **MAP-61** A zone's card (any zone but the one you stand in) has **Move to here**: it closes the map and types "I go
   to <the zone>" in the action box, unsent, for the player to send or change. A zone in another town or building than
   the one you are in names it: "I go to the village square in Thornbury" (moveOrder, moveHere, src/ui/map.ts; Ali: the
   bare name read as a spot nearby).
-- **MAP-62** Unexplored exits are clickable too: an exit's arrow or its "· unexplored" note, or unexplored stairs. The
+- **MAP-62** Unexplored exits have a card too: an exit's arrow or its note, or unexplored stairs. The
   card names the way and the zone it leaves, with **Move to here**, which types "I go <the way>": "I go back out to the
   road", "I go to the hut door" (exitOrder, src/ui/map.ts).
 - **MAP-63** There is one map per top-level place (a village, say), with each inner place outlined as an area. A road to
   a known zone on another map is a stub naming that place, and clicking it opens that map.
-- **MAP-64** The map has pan, zoom, find me, show the whole map and place crumbs. Clicking a zone opens its card (look,
-  exits with a go button, people, items) beside the map, with the places list and the key.
+- **MAP-64** The map has pan, zoom, find me, show the whole map and place crumbs. Right-clicking a zone (or an exit,
+  MAP-62) opens its card (look, exits with a go button, people, items) beside the map, with the places list and the key;
+  a left click on the ground plans a walk, as on the minimap (MAP-81) (MQ3; Ali, 20/11/2026, Questions hub page "Map and minimap: one map, doors").
 - **MAP-65** The zone card leaves out the usual: the place line only when it differs from the zone, light and cover only
   when indoors, short of bright or above none, and no Exits heading when there are none.
 - **MAP-66** The map shows one height at a time. A vertical slider at the bottom left has one stop per height the map
@@ -125,12 +129,13 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   has one height. The slider shows heights below ground too (a cellar or dungeon, "3 m down") once one is known
   (mapHeights, src/ui/map.ts).
 - **MAP-67** On the to-scale plan each piece of furniture is a small line glyph for its kind on a disc at its point,
-  kept inside its walls, with a piece in the middle stepped below the zone's name. Hover names it, the zone card lists
-  it under Furniture, and the key shows the mark once the plan draws any (src/ui/furnitureIcons.ts, one per FU kind;
-  FR5).
+  kept inside its walls, and left off where it would cover the zone's name (MAP-25). Hover names it and the zone card
+  lists it under Furniture (src/ui/furnitureIcons.ts, one per FU kind; FR5; RM1 b, RM6 a).
 - **MAP-68** People on the plan: everyone in full sight stands at their own point, as you do. Someone only heard or
-  glimpsed, or last seen, has no point, so they sit in a row under the zone's name, with "somewhere in here" on hover
-  (Actor.pos, MapPerson.at; Ali, 13/11/2026).
+  glimpsed, or last seen, is their dashed disc at the point where the character last saw or heard them (the journal's
+  last spot, BG-125), inside a faint dashed 2 m "somewhere here" circle (a placeholder setting in config), with
+  "somewhere here" on hover. How the circle should grow or change is parked (D-424) (Actor.pos, MapPerson.at; Ali,
+  13/11/2026; RM4 a, RM7 a; Ali, 20/11/2026, Questions hub page "Map rules revision").
 - **MAP-69** Each person's disc shows the initial of what you know them by, a learned name or a description ("a lean
   man" shows L), and pointing at it shows that full name or description beside it. The discs sit above every tile, so a
   neighbouring zone never hides one (whoInitial, src/ui/map.ts).
@@ -155,20 +160,25 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   road in the places list opens the World on that road (RD1-RD3).
 - **MAP-76** To scale, the World shows your pin wherever you are, and a place too small on screen to hold its name has
   it just under its south side (RD1-RD3).
-- **MAP-77** The fake page's Ashford sits at the far end of a 30 km west road (a day's walk) from Millbrook's square
-  (RD1-RD3).
 
 #### Minimap
 
 - **MAP-80** The minimap sits in the Play screen's right column ([play-screen.md](play-screen.md), "The action deck and
-  minimap") and shows only what the character knows (src/ui/minimap.ts; AD1–AD16).
-- **MAP-81** A click on the minimap plans a move to an exact point. Enter, Just go or a double-click walks there
+  minimap") and shows only what the character knows (src/ui/minimap.ts; AD1–AD16). It starts centred on you, about
+  25 m across; the Map starts fitted to the whole place. Both use the same zoom steps, pan and recentre (MQ5 a).
+- **MAP-81** A click on the ground of either map plans a move to an exact point (MQ3). Enter, Just go or a double-click walks there
   (MoveSpot.at).
 - **MAP-82** A move planned on the minimap rides along with the next clicked action.
 - **MAP-83** The ring shows one move slot's reach with carried-over time, and a second, wider ring shows how far a dash
   runs: the move time walked, then the main time run. The view fits the dash ring (BF91 a).
-- **MAP-84** The minimap's marks are the full Map's own, your pin included. On both maps the pin's point shows the way
-  you face, from which left and right are taken (BG-18; Ali, 20/11/2026).
+- **MAP-84** The minimap and the Map are one map component in two sizes: every mark, click and rule lives once. Both
+  show everything (exits and their notes, the walk and dash rings, the planned path and its footer); only the frame
+  differs, the Map adding the crumbs, key, places list and cards. On both the pin's point shows the way you face, from
+  which left and right are taken (BG-18; Ali, 20/11/2026; MQ2 a, MQ4 a; Ali, 20/11/2026, Questions hub page "Map and minimap: one map, doors").
+- **MAP-85** A click on any thing drawn on either map (a door, a stretch of wall, furniture, an item, a person) opens a
+  small list beside it of every action the action deck has for that thing, under the deck's own names. One that cannot
+  be done now is greyed, its reason on hover ("too far", "needs its key"). Picking one plays the turn, as the deck does
+  (MQ6 a; Ali, 20/11/2026, Questions hub page "Map and minimap: one map, doors").
 
 #### Checks and test stages
 
@@ -187,6 +197,8 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
 - **MAP-54** `bent-nail-saved` is not a MAP-52 stage. It is a negative fixture holding the live save's stored layout,
   which breaks MAP-10 and MAP-12 on purpose so that the load report must name it (MAP-19). tests/unit/map-plan.test.ts
   asserts it is caught (src/ui/fakeStages.ts; MR2; PZ16 b).
+- **MAP-77** The fake page's Ashford sits at the far end of a 30 km west road (a day's walk) from Millbrook's square
+  (RD1-RD3; RM9 a).
 - **MAP-55** Dev views: `?fake=1&stage=bent-nail|bent-nail-saved|one-room|long-names` and `?mapcheck`. There, after
   every to-scale render, the Map runs `checkMap`, `checkReach` and the MAP-10/MAP-12 stage checks (`checkStage`), logs
   each finding to the console as "[map-check] …" and sets `window.__mapFindings`. After every render the minimap runs
@@ -205,18 +217,13 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
 #### Open discrepancies
 
 Where the old copies of these rules disagreed, or a rule and the code do, this file keeps the spec's wording and marks
-the point here. The owner moved these to a revision of the map's rules, recorded as D-413 (questionnaire "Workflow
-proposals", WF9, WF11, WF13, WF14), now asked on the Questions hub page "Map rules revision" (RM1 to RM10). Until then,
+the point here. The revision of the map's rules (D-413, Questions hub page "Map rules revision", RM1 to RM10) and the
+one-map answers (page "Map and minimap: one map, doors", MQ1 to MQ6) are in the rules above; until each is built (D-423)
 the code decides what the game does (`AGENTS.md`, Order of authority).
 
-- **MAP-27 and MAP-68:** people out of full sight sit "in the bottom band" (MAP-27) or "in a row under the zone's name"
-  (MAP-68). The code draws the bottom band, just above the zone's south wall (RM4).
 - **MAP-44 and MAP-45:** someone heard going into a zone the character has never seen is last seen there (MAP-45), but
   the map shows only zones seen or stood in (MAP-44), so they are not drawn anywhere.
-- **Footprint:** "one connected footprint" (MAP-12), "the bounding box of the seen ground … plus padding" (MAP-13),
-  "the box around a place's indoor zones" (MAP-18, which `checkStage` uses). On the Bent Nail the drawn outline runs
-  over the high lane; the checker's box does not (RM5).
-- **MAP-24:** one format `→ target · state`, but a locked exit's note reads ", locked".
 - **MAP-33 and MAP-84 on the minimap:** a zone seen but never entered is hatched on the Map (MAP-33), but has a dashed
   edge on the minimap (src/ui/styles.css), whose marks are meant to be the Map's own (MAP-84). Its walls then look like
-  the key's "Open side", against MAP-30 (one look, one meaning) (RM3).
+  the key's "Open side", against MAP-30 (one look, one meaning). Re-asked as RM11: the owner asked why the map still
+  shows zones as zones rather than fog alone.
