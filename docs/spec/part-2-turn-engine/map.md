@@ -190,7 +190,9 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   src/ui/minimap.ts, src/ui/mapCheck.ts, src/ui/mapPlan.ts).
 - **MAP-56** The automated check is `npm run smoke`: tests/smoke/map.smoke.ts builds the page and asserts zero findings
   on the minimap and on the Map for the three MAP-52 stages, with no page errors. Agents reuse it and do not write their
-  own Playwright scripts.
+  own Playwright scripts. The run in the PR's checks is the judge: a finding that only a local browser shows, where
+  text measures differently (BG-325), does not hold a change back (WF1 c). If a finding ever reaches `main`, D-412
+  says what follows.
 - **MAP-57** The layout's unit checks are in tests/unit/map-plan.test.ts: for each MAP-52 stage at zooms 0.6, 1 and 1.6
   the checkMap rules on the scene's own boxes, `checkStage` and `checkReach` find nothing; `bent-nail-saved` is caught
   (MAP-54); and a stored layout is named, never moved (MAP-19). tests/unit/zone-placement.test.ts checks that footprints

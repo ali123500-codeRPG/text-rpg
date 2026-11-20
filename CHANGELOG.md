@@ -3,6 +3,9 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bug-fix-log.md`.
 
+- 20/11/2026: `docs/instructions.md` section 7 (WF4 a): design skills in proportion to the change; a small change to
+  an existing element uses `interface-design` and `show-dont-tell-ui` plus the accessibility checks, everything else
+  all five. Section 1 (WF6 a): an answer not built in the same PR gets a D-n row, status Decided (D-411, D-412).
 - 20/11/2026: `docs/instructions.md` section 2 (WF3 a): a Bug log row is ID, one line on what was wrong (at most 160
   characters), status and claim issue (`#n`); the story is written once, in `docs/bug-fix-log.md`, which the PR links;
   no second commit to write a PR number in. Rows up to BG-326 keep their form.
