@@ -125,11 +125,11 @@ export const moveOrder = (name: string): string => `I go to ${/^(the|a|an)\s/i.t
 export const exitOrder = (label: string): string =>
   /^(back|out|up|down|through|into|in|toward|towards|across|over|past|along|onto|on|to|north|south|east|west|behind|under|outside|inside|around)\b/i.test(label) ? `I go ${label}` : moveOrder(label);
 
-/** onMove: "Move to here" on a zone's or an unexplored exit's card hands its order to Play's action box (typed, not sent) */
 /** MQ3: where the Map opens from the minimap (a zone's or exit's card, another map), taken at its next update */
 let pick0: MapPick | null = null;
 export const mapPick = (at?: MapPick) => { pick0 = at ?? null; };
 
+/** onMove: "Move to here" on a zone's or an unexplored exit's card hands its order to Play's action box (typed, not sent) */
 export function mapPage(api: GameApi, onMove?: (order: string) => void, onWalk?: (p: MinimapPoint) => void) {
   const el = h('main', { class: 'map-page' });
   // one map per top-level place (a "world"): the village, the tavern in it and the field beside it share one layout,
