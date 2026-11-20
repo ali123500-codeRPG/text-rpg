@@ -20,6 +20,8 @@ import { barrierOn, barrierView } from '../engine/barriers';
 import { landSeen } from '../land/sight';
 import { plural } from './kit';
 import { actorBody } from '../library';
+import { CONFIG } from '../config';
+import { LIFE_STAGES } from '../scales';
 
 /** a barrier on an exit as the character knows it: what it is, and whether it stops them (locked or barred only once they
  *  have tried it, or hold its key, or see the bolt on their side; blocked rubble shows to anyone) */
@@ -36,7 +38,8 @@ export type MapLink = { to: string; label: string; sight: boolean; frontier: boo
  * their own point */
 export type MapPerson = { id: string; name: string; now: boolean; at?: { x: number; y: number }; lastAt?: { x: number; y: number }; body?: { lengthM: number; widthM: number; facing: [number, number] }; icon: IconName };
 /** MAP-69: the icon for what the character sees on someone first: what they hold (a weapon or a tool), a shield, armour
- *  past plain clothes, wares they offer; else what they are, from the race and body seen; someone not made out (only
+ *  past plain clothes, wares they offer; else what they are, from the race and body seen, a plain person by their life
+ *  stage and pronouns (RM15 c); someone not made out (only
  *  glimpsed or heard, or out of sight now) shows a hooded figure. Only the PlayerView's seen gear is read */
 function personIcon(s: GameState, a: SeenActor, who: Actor | undefined): IconName {
   if (!who) return 'someone';
@@ -44,7 +47,12 @@ function personIcon(s: GameState, a: SeenActor, who: Actor | undefined): IconNam
     const item = g.where === where ? instanceItem(s, g.id) : undefined, icon = item && iconName(s, item);
     if (icon && icon !== 'tunic') return icon;
   }
-  return a.wares?.length ? 'trader' : kindIconName(who.core.raceId, who.core.bodyTypeId);
+  const kind = a.wares?.length ? 'trader' : kindIconName(who.core.raceId, who.core.bodyTypeId);
+  if (kind !== 'person') return kind;
+  // RM15 c: a plain person by what the view shows of them: the life stage they look ("Ancient++", AG16), else their pronouns
+  const stage = a.age && LIFE_STAGES.keyOf(a.age.split('+')[0]);
+  if (stage && LIFE_STAGES.pos(stage) >= LIFE_STAGES.pos(CONFIG.MAP_ELDER_FROM)) return 'elder';
+  return a.pronouns === 'he' ? 'man' : a.pronouns === 'she' ? 'woman' : 'person';
 }
 export type MapZone = {
   id: string; placeId: string; name: string; look: string; outdoor: boolean; here: boolean; inView: boolean;

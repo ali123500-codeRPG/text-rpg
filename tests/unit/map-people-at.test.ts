@@ -31,7 +31,9 @@ describe('people at their own points on the Map', () => {
       const a = pv.actors.find((x) => x.id === p.id);
       if (!a || a.level !== 'full') { expect(p.icon).toBe('someone'); continue; }
       const held = a.gear.some((x) => x.where === 'held' || x.where === 'shield');
-      if (!held && !a.gear.some((x) => x.where === 'armor') && !a.wares?.length) expect(p.icon).toBe('person');
+      // RM15 c: a plain human by the life stage they look, else their pronouns
+      const plain = /^(Old|Venerable|Ancient)/.test(a.age ?? '') ? 'elder' : a.pronouns === 'he' ? 'man' : a.pronouns === 'she' ? 'woman' : 'person';
+      if (!held && !a.gear.some((x) => x.where === 'armor') && !a.wares?.length) expect(p.icon).toBe(plain);
       if (held) expect(['sword', 'dagger', 'axe', 'spear', 'bow', 'crossbow', 'club', 'shield']).toContain(p.icon);
     }
   });
