@@ -10,6 +10,16 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the spec's bug log, docs/spec/bug-log.md, has one. Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-349
+
+**What was wrong:** Zooming every step in and out logged "MAP-50 exit exit:v_square:m_road extends past the map edge" on the default fake page's minimap at 60 m (1600 px window), and "MAP-50 exit exit:m.servery:m.kitchens extends past the map edge" on long-names' Map at 60 m (1100 px window): the note "the mill road" showed while its arrow ran off the bottom edge. The smoke test checks only the first views, so it passed.
+
+**Root cause:** The view draws each mark only when it is whole in view (`render` in `src/ui/planView.ts`, MAP-50: nothing tagged past the edge), but for an exit it tested only the note's box, `within(e.note, inView)`. The exit is two parts, the arrow (the `data-role="exit"` group the checker measures) and its note, and the arrow was never tested.
+
+**What was done:** An exit shows only when its arrow's box (its shaft and 3 px round it, as the layout takes it) is in view as well as its note. Every other mark is one box and was already tested whole. Checked by zooming every step in and out on the four fake pages, both maps, 1600 px and 1100 px windows: no MAP-50 finding.
+
+**Fixed by:** #1420
+
 ## BG-348
 
 **What was wrong:** On `?fake=1&stage=bent-nail` the name "back yard" stood on dark, unseen ground: on the Map at the 40 m and 60 m zoom steps, on the minimap from its first 25 m view, and on the Map's fitted view in a 1100 px window. MAP-16 puts a name in the biggest seen part of its title, never on ground not seen. It happened on `main` before #1408 too.
