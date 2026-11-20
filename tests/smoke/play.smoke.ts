@@ -405,7 +405,7 @@ describe('play page smoke (TQ7)', () => {
     }
     expect(errors).toEqual([]);
   });
-  it('the map is a big pop-up from the Play header, not a tab: Map opens it over Play, Esc closes it', async () => {
+  it('the map is a big pop-up from the minimap, not a tab: its expand button opens it over Play, Esc closes it', async () => {
     await nav('Play');
     expect(await page.locator('nav').getByText('Map', { exact: true }).count()).toBe(0);
     await page.locator('[data-open="map"]').click();
