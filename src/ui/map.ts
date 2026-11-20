@@ -12,7 +12,7 @@ import { landLayer, landLabels, type LandLabel } from './landSvg';
 import { lineLength } from '../land/generate';
 import { worldTiles, knownMap, pointAlong, rootPlace, type KnownMap, type MapLink, type MapPerson, type MapPlace, type MapWay, type MapZone } from './mapData';
 import { cap, theName } from '../words';
-import { MAX_K, PX_PER_M, TEXT, checkReach, checkStage, planScene, roughMeasure, type Measure, type Scene } from './mapPlan';
+import { MAX_K, PIN_R, PIN_TIP, PX_PER_M, TEXT, checkReach, checkStage, planScene, roughMeasure, type Measure, type Scene } from './mapPlan';
 import { checkMap } from './mapCheck';
 import { areaOf } from '../plan/geom';
 
@@ -57,8 +57,8 @@ export function footprintMark(cx: number, cy: number, r: number, who: MapPerson,
  *  orders are taken from it), none before you have walked */
 export function pin(cx: number, cy: number, title?: string, facing?: [number, number]) {
   const a = facing ? Math.atan2(-facing[1], facing[0]) : null, at = (d: number, r: number) => `${cx + Math.cos(a! + d) * r} ${cy + Math.sin(a! + d) * r}`;
-  const g = s('g', { class: 'map-pin' }, ...(a === null ? [] : [s('path', { class: 'face', d: `M${at(0, 15)} L${at(0.5, 9)} L${at(-0.5, 9)}Z` })]),
-    s('circle', { cx, cy, r: 9 }), s('circle', { cx, cy, r: 3.5, class: 'core' }));
+  const g = s('g', { class: 'map-pin' }, ...(a === null ? [] : [s('path', { class: 'face', d: `M${at(0, PIN_TIP)} L${at(0.5, PIN_R)} L${at(-0.5, PIN_R)}Z` })]),
+    s('circle', { cx, cy, r: PIN_R }), s('circle', { cx, cy, r: 3.5, class: 'core' }));
   if (title) { g.setAttribute('role', 'img'); g.setAttribute('aria-label', title); g.append(s('title', {}, title)); } // a mark with no visible words
   return g;
 }
