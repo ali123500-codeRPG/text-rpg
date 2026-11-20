@@ -16,9 +16,9 @@ import { essenceSlots } from '../engine/essence';
 import { treeBlock } from '../ruleset/access';
 import { augmentWindow, burdenOf, burdenParts, groupRollBonus, learningWindow } from '../ruleset/improve';
 import { ended, h, safe } from './kit';
-import { classIcon } from './itemIcons';
+import { classIcon, skillIcon } from './itemIcons';
 import { openPop } from './pop';
-import { powerFigure } from './power';
+import { powerFigure, ratingIcons } from './power';
 import { ageText } from '../ruleset/age';
 import { callName, staminaOf } from '../views';
 import { fatigueMods } from '../ruleset/fatigue';
@@ -175,7 +175,8 @@ export function charCard(s: GameState, p: Actor, openClasses?: (opener: HTMLElem
         powerFigure(s, p),
         atk ? figBtn('cs-fig', 'What makes up your standing attack', (el) => openAttackPop(s, p, el), h('b', {}, whole(atk.value)), h('span', {}, `Standing attack · ${atk.name}`))
           : h('div', {}, h('b', {}, '—'), h('span', {}, 'Standing attack · no weapon')),
-        figBtn('cs-fig', 'What makes up your standing defense', (el) => openDefensePop(s, p, el), h('b', {}, whole(def.value)), h('span', {}, `Standing defense · ${def.kind}`)))));
+        figBtn('cs-fig', 'What makes up your standing defense', (el) => openDefensePop(s, p, el), h('b', {}, whole(def.value)), h('span', {}, `Standing defense · ${def.kind}`)))),
+    ratingIcons(s, p));
 }
 
 /** the card's body figure as one button: a click (on a part, or anywhere on it) opens every part's state in a pop-up */
@@ -279,7 +280,7 @@ export function treeBars(p: Actor): HTMLElement {
       t.rows.map((r) => h('div', { class: 'cs-sk' + (r.raw ? '' : ' zero'), role: 'button', tabindex: '0', 'aria-haspopup': 'dialog', 'data-skill': r.id,
         title: 'What makes up this skill', onclick: (e: Event) => openSkillPop(p, r.id, e.currentTarget as HTMLElement),
         onkeydown: (e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openSkillPop(p, r.id, e.currentTarget as HTMLElement); } } },
-        h('div', { class: 'n' }, skillName(r.id), r.tagged ? [' ', tagIcon()] : null, r.flawed ? [' ', flaw()] : null, r.off ? [' ', offNote()] : null, marked(p, r.id) ? markDot() : null, SKILL_SUB[r.id] ? h('small', {}, SKILL_SUB[r.id]) : null),
+        h('div', { class: 'n' }, skillIcon(r.id), skillName(r.id), r.tagged ? [' ', tagIcon()] : null, r.flawed ? [' ', flaw()] : null, r.off ? [' ', offNote()] : null, marked(p, r.id) ? markDot() : null, SKILL_SUB[r.id] ? h('small', {}, SKILL_SUB[r.id]) : null),
         bar(r.raw, windowOf(p, r.id), BAR_TIP), ((w) => h('div', { class: 'lwn', title: winTitle(w) }, winText(w)))(windowOf(p, r.id)), skillNum(trueSkill(p, r.id), r.raw))))));
 }
 
