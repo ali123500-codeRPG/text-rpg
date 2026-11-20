@@ -3,6 +3,9 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, `docs/build-spec.md` and `docs/bug-fix-log.md`.
 
+- 19/11/2026: `docs/instructions.md` section 8: the full test suite is no longer a long run (about two minutes since
+  #1115) and may run locally; GitHub stays for runs over about ten minutes. `AGENTS.md`'s map notes the nightly
+  isolated run. Rule 5 is unchanged.
 - 19/11/2026: New rule "Claim the work first" (`docs/instructions.md` section 4): one GitHub issue per piece of
   work, labelled with the desk that took it, so agents on different accounts and providers do not do the same work
   twice. `docs/providers/claude.md` names the desk labels.
