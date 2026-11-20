@@ -174,6 +174,11 @@ section { margin-top: 30px; }
 .tabs button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--k); }
 .tabs button b { margin-left: 6px; color: var(--k); font-weight: 800; }
 .pages[aria-busy="true"] { opacity: .75; }
+/* a card whose counts are being checked again after the owner comes back from a questionnaire: a turning ring */
+.chk { display: inline-block; width: 9px; height: 9px; margin-right: 6px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; vertical-align: -1px; animation: chk .8s linear infinite; }
+@keyframes chk { to { transform: rotate(1turn); } }
+@keyframes chkPulse { to { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { .chk { animation: chkPulse 1.2s ease-in-out infinite alternate; } }
 .opts li:has(> b), .opts p:has(> b) { cursor: pointer; }
 .opts li:has(> b):hover, .opts p:has(> b):hover { border-color: var(--k); }
 /* question layout blocks (README "Question layout", helpers in blocks.py): Today grey, Problem red, Proposal blue, Formula gold, Example violet */
@@ -310,6 +315,7 @@ const recall = async (k) => { try { const v = JSON.parse(localStorage.getItem(k)
 // the index, and the questionnaires written since it was saved (`updated` later than its `seen`). Then, in the background,
 // open questionnaires recount their answers and the one just left is read again. Completed ones are read again only when
 // their tab is opened. Rows of open questionnaires keep `qs` ([id, done, reask] per question) so a recount needs no spec.
+let checking = new Set(); // questionnaires whose counts are being checked again
 let homeTab = 'open', rowsById = null, doneChecked = false, homeSeq = 0, savedIdx = '', lastList = '';
 const left = new Map(); // questionnaires left since the index was saved, with their row counted from this visit
 const isDone = (r) => !r.waiting && !r.unread;
@@ -357,7 +363,8 @@ async function loadRows() {
 // background: recount open questionnaires and the ones left (a done row has no `qs`, so it is read again)
 async function refreshRows(rows, changed) {
   const ids = Object.values(rows).filter((r) => !changed.has(r.id) && (!isDone(r) || left.has(r.id))).map((r) => r.id); left.clear();
-  apply(rows, ids, await Promise.all(ids.map((id) => recount(rows[id]))));
+  checking = new Set(ids); if (!PAGE) renderHome();
+  try { apply(rows, ids, await Promise.all(ids.map((id) => recount(rows[id])))); } finally { checking.clear(); }
 }
 // Completed tab opened: read those questionnaires again once per visit, in case one changed without a new `updated`
 async function checkDone() {
@@ -367,7 +374,7 @@ async function checkDone() {
   apply(rowsById, ids, await Promise.all(ids.map(reread)));
   $('pageList').removeAttribute('aria-busy'); saveIndex(); if (!PAGE) renderHome();
 }
-const card = (r) => `<a href="#${esc(r.id)}" data-page="${esc(r.id)}" style="--k:${r.waiting ? 'var(--warn)' : r.unread ? 'var(--accent)' : 'var(--ok)'}"><b>${esc(r.title)}${r.desk ? `<span class="desk">${esc(r.desk)}</span>` : ''}</b><i>${[r.waiting ? `${r.waiting} waiting for you` : '', r.unread ? `${r.unread} not read by Claude yet` : ''].filter(Boolean).join(' · ') || 'All answered and read'}</i><span>${r.total} question${r.total === 1 ? "" : "s"} · updated ${ddmmyyyy(r.updated)}</span></a>`;
+const card = (r) => `<a href="#${esc(r.id)}" data-page="${esc(r.id)}" style="--k:${r.waiting ? 'var(--warn)' : r.unread ? 'var(--accent)' : 'var(--ok)'}"><b>${esc(r.title)}${r.desk ? `<span class="desk">${esc(r.desk)}</span>` : ''}</b><i>${checking.has(r.id) ? '<span class="chk" role="img" aria-label="Checking your answers" title="Checking your answers"></span>' : ''}${[r.waiting ? `${r.waiting} waiting for you` : '', r.unread ? `${r.unread} not read by Claude yet` : ''].filter(Boolean).join(' · ') || 'All answered and read'}</i><span>${r.total} question${r.total === 1 ? "" : "s"} · updated ${ddmmyyyy(r.updated)}</span></a>`;
 function renderHome() {
   const all = Object.values(rowsById).sort((a, b) => (b.updated > a.updated ? 1 : -1)), open = all.filter((r) => !isDone(r)), done = all.filter(isDone);
   $('nOpen').textContent = open.length; $('nDone').textContent = done.length;
@@ -392,14 +399,15 @@ function showHome() {
   $('title').textContent = 'Questions'; $('intro').textContent = ''; $('prog').textContent = ''; document.title = 'Questions';
   remember('qhub:last', '');
   if (!db) { homeMsg('This view cannot reach the questions database. Open the page signed in to claude.ai.'); return; }
-  if (rowsById) renderHome(); else homeMsg('Loading…');
+  // until the counts come back, the cards that will be counted again show a turning ring (the one just left, and every open one)
+  if (rowsById) { checking = new Set([...left.keys(), ...Object.values(rowsById).filter((r) => !isDone(r)).map((r) => r.id)]); renderHome(); } else homeMsg('Loading…');
   const seq = ++homeSeq, timer = setTimeout(() => { if (!rowsById) homeMsg('Still loading. Check your connection.'); }, 10000);
   loadRows().then(async ({ rows, changed }) => {
     clearTimeout(timer); if (seq !== homeSeq) return;
-    rowsById = rows; if (!PAGE) { renderHome(); if (homeTab === 'done') checkDone(); }
+    rowsById = rows; if (!changed) checking.clear(); if (!PAGE) { renderHome(); if (homeTab === 'done') checkDone(); }
     if (changed) { await refreshRows(rows, changed); if (seq !== homeSeq) return; }
     saveIndex(); if (!PAGE) renderHome();
-  }, () => { clearTimeout(timer); if (seq === homeSeq && !rowsById) homeMsg('Could not load the questionnaires.'); });
+  }, () => { clearTimeout(timer); checking.clear(); if (seq !== homeSeq) return; if (rowsById) { if (!PAGE) renderHome(); } else homeMsg('Could not load the questionnaires.'); });
 }
 $('pageList').addEventListener('click', (e) => { const a = e.target.closest('a[data-page]'); if (!a) return; e.preventDefault(); openPage(a.dataset.page); });
 // back: the button, the mouse's back button and the browser's Back all return to the list of questionnaires
