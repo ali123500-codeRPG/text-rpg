@@ -15,7 +15,7 @@ project: "the owner" below is its designer and its only player.
   Chromium). `.github/workflows/ci.yml` is the reference.
 - Finding your way: `npm run spec -- "<heading>"` prints one spec topic, `-- <ID>` one row or rule, `-- --grep <text>`
   where a term or file is ruled. `npm run test:near` runs the tests nearest your change (`-- <system>` for one
-  system). `npm run sync` catches up with `main` and checks no edit of yours was lost. The page in dev views:
+  system, `-- --deep` for refactors and risky changes). `npm run sync` catches up with `main` and checks no edit of yours was lost. The page in dev views:
   `?fake=1&stage=<stage>` and `?mapcheck`; `tests/smoke/map.smoke.ts` is the Map's automated check.
 - This repo is public. See rule 9.
 

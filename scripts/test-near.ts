@@ -62,7 +62,7 @@ export function changedWords(diff: string): string[] {
 /** the library IDs on changed lines (IT.dagger, SK.parry, TP.guard): a test that names one uses that row */
 export function changedIds(diff: string): string[] {
   const lines = diff.split('\n').filter((l) => /^[+-](?![+-])/.test(l));
-  return [...new Set(lines.flatMap((l) => [...l.matchAll(/\b[A-Z]{2,4}\.[a-z][a-z0-9_]*\b/g)].map((m) => m[0])))];
+  return [...new Set(lines.flatMap((l) => [...l.matchAll(/(?<![\w.])[A-Z]{2,4}\.[a-z][a-z0-9_]*\b/g)].map((m) => m[0])))];
 }
 
 /** does the test select an element by one of these words, as an attribute value in either quote style? */

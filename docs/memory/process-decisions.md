@@ -28,3 +28,8 @@ Kind: decision. How changes land and where work runs. The rules that follow from
   agents take BG numbers from the Bug log, and merge their own PRs under the same rule as Claude.
 - **Naming the owner** (19/11/2026). New files say "the owner". Older files stay as they are, and new lines in the
   spec and the bug-fix log keep those files' form. The old in-app instructions are kept as a file in the repo.
+- **Two tiers of local tests** (20/11/2026). `test:near` had grown to a median 59% of the suite after it began
+  following indirect imports, so the owner asked for "a two-tier local testing system": quick by default (direct
+  tests plus structural guards, the rest "deferred to CI" and named) and a comprehensive `--deep` "for high-risk
+  changes, complex refactors". The full suite and browser tests on GitHub stay mandatory; "never allow a quick local
+  pass to substitute for successful CI".
