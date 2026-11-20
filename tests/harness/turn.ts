@@ -1,6 +1,6 @@
 // Whole-turn tests (TQ5): the village fixture, ScriptedClaude on a VirtualClock, the real pipeline (createGame: views,
-// agents, legality, resolve, save, narration, scenario hooks). Rule: a change that touches a view, an agent call or narration
-// adds one whole-turn test, and never sets by hand what the turn itself sets. wholeTurn is the short way to write one.
+// agents, legality, resolve, save, narration, scenario hooks). A whole-turn test never sets by hand what the turn itself
+// sets. wholeTurn is the short way to write one.
 import type { GameEvent, GameState, Intent, NarratorOutput } from '../../src/types';
 import { makeVillage, type VillageOpts } from './village';
 import { ScriptedClaude } from './scripted';

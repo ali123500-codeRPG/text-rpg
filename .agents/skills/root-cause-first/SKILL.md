@@ -26,7 +26,7 @@ A guard at a real boundary (user input, network response, external file) is fine
 - "Quick fix now, investigate later" or "just try X"
 - "It's probably X" without having traced where the value came from
 - Listing fixes before investigating
-- Several changes at once, or skipping the test
+- Several changes at once, or skipping the experiment
 - "One more try" after two failed fixes, or each fix uncovers a new problem somewhere else
 - The user says "stop guessing", "you're fixing the symptom" or "is that not happening?", or sounds frustrated
 
@@ -50,7 +50,6 @@ A guard at a real boundary (user input, network response, external file) is fine
 - If you don't know, say so and investigate more. Don't guess.
 
 ### 4. Fix
-- Where the codebase has tests, first write a test that fails because of the bug; it must pass after the fix. Otherwise add the smallest check that would have caught it.
 - Fix at the root cause. One focused change; no unrelated refactors or "while I'm here" edits.
 - Search for the same root cause elsewhere (same pattern, copied code, same data source) and list any other spots found.
 
