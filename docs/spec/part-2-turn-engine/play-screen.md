@@ -575,7 +575,8 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
   is never suggested or picked by the deck playtest.
 - **PS-383** Every entry is taken to be your action, so no note says so. Only a free one (beside your action, not
   instead of it: gear ops, a warning shout, free perk moves) carries a mark, a lightning bolt after its name
-  (`free_action` in scripts/icons.mjs).
+  (`free_action` in scripts/icons.mjs). Which entries are free is the engine's rule, asked of the order each entry plays
+  (src/engine/beside.ts ridesBeside, SX8), never set by hand.
 - **PS-384** Pointing at an entry tells how long it takes, from its Action times row: "Takes 3 s", "Each blow takes 4
   s", "Takes the turn" with no row of its own, "Takes as long as the way there" for a move (resolve orderCost, for the
   first pick of each step; deck.ts timeTip).

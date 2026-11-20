@@ -8,6 +8,7 @@ import { skillOpen } from './access';
 import { groupsOf } from '../library/functionNames';
 import { LIGHT } from '../scales';
 import { PK } from '../library/perkIds';
+import { DU } from '../library/tableIds';
 import { AURA_SKILLS } from '../library/auras';
 import { syncPerkLinks } from './perkLinks';
 import { CONFIG } from '../config';
@@ -35,19 +36,20 @@ export const hasPerk = (a: Actor | undefined, perkId: string) => !!a?.core.perks
 /** LG8 Deep Reserves (Resolve 40): how many times Endurance, Stamina and Resolve count toward health, stamina and morale */
 export const reservesMult = (a: Actor): number => (hasPerk(a, PK.deep_reserves) ? CONFIG.DEEP_RESERVES_MULT : 1);
 
-/** AE5/AE8: perk moves code can resolve (engine/perkMoves.ts): whether each is free and how often an engagement allows it.
+/** AE5/AE8: perk moves code can resolve (engine/perkMoves.ts): whether each is free (engine/beside.ts), the Action times row
+ * one that is not spends from the main time, and how often an engagement allows it.
  * `does` tells the Parser what the move looks like in the player's words, so it is found without its name */
-export const PERK_MOVES: Record<string, { free: boolean; perEngagement?: number; perFoe?: true; untargeted?: true; does: string }> = {
+export const PERK_MOVES: Record<string, { free: boolean; row?: string; perEngagement?: number; perFoe?: true; untargeted?: true; does: string }> = {
   [PK.dirt_in_the_eyes]: { free: true, perEngagement: 1, does: "throw dirt, sand, a drink or anything at hand in a foe's eyes" },
   // I9: the turn's main action, once per engagement, aimed at no one
-  [PK.battle_cry]: { free: false, perEngagement: 1, untargeted: true, does: 'a war cry or roar to shake the foes and rally your side ("Come on, then!", a wordless bellow)' },
+  [PK.battle_cry]: { free: false, row: DU.battle_cry, perEngagement: 1, untargeted: true, does: 'a war cry or roar to shake the foes and rally your side ("Come on, then!", a wordless bellow)' },
   // LI1c: once per foe per engagement
   // TC31 a: free, once per engagement, aimed at no one: every foe that sees it rolls
   // TC39 a: the turn's main action, once per engagement, aimed at no one, like Battle Cry
-  [PK.rally]: { free: false, perEngagement: 1, untargeted: true, does: 'shout to steady your side ("Hold together!", "With me!")' },
+  [PK.rally]: { free: false, row: DU.rally, perEngagement: 1, untargeted: true, does: 'shout to steady your side ("Hold together!", "With me!")' },
   [PK.draw_them_in]: { free: true, perEngagement: 1, untargeted: true, does: 'show a false opening to lure foes in (drop your guard, step into the open, turn as if to look away)' },
   // TC44 a: the turn's main action, open the turn a blow leaves you Wounded or worse (not Down) and the next
-  [PK.play_dead]: { free: false, untargeted: true, does: 'drop as if knocked out or dead after a bad blow, and lie still' },
+  [PK.play_dead]: { free: false, row: DU.play_dead, untargeted: true, does: 'drop as if knocked out or dead after a bad blow, and lie still' },
   // LG7 Grit Your Teeth (Resolve 20): steadying yourself as a free move (its cooldown and risk stay)
   [PK.grit_your_teeth]: { free: true, untargeted: true, does: 'steady yourself without stopping (a slow breath, a clenched jaw, a word to yourself)' },
   [PK.bluff]: { free: true, perEngagement: 1, perFoe: true, does: 'a quick lie or false warning at a foe, to make it look away or hesitate ("Behind you!", "Your boot\'s untied", pointing at nothing)' },

@@ -83,6 +83,7 @@ turn checker, and what happened in a scenario.
 - Code:
   - `src/agents/game.ts`
   - `src/config/engine.ts`
+  - `src/engine/beside.ts`
   - `src/engine/effects.ts`
   - `src/engine/happened.ts`
   - `src/engine/index.ts`
