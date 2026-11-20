@@ -89,12 +89,6 @@ function dealIcon(): HTMLElement {
   i.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l4-4 5 3 3-2 6 5"/><path d="M7 8l-4 4 6 6 2-2 2 2 2-2 2 2 3-3"/><path d="M11 16l2 2"/></svg>';
   return i;
 }
-/** a folded map: the mark on the Map button */
-function mapIcon(): HTMLElement {
-  const i = h('span', { class: 'dl-i', 'aria-hidden': 'true' });
-  i.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14"/></svg>';
-  return i;
-}
 /** SD7: a header switch as an icon; its words are its name and tip, and pressed shows by its accent fill (aria-pressed) */
 function toolIcon(icon: keyof typeof ICONS, label: string, title: string, pressed: boolean | null, onclick: () => void): HTMLElement {
   const b = h('button', { type: 'button', class: 'hs-icon-btn tool-ic', 'aria-label': label, title, 'aria-pressed': pressed === null ? undefined : String(pressed), onclick });
@@ -628,8 +622,6 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
         sOn, () => { setSound(!sOn); update(); }),
       sOn ? h('input', { type: 'range', min: '0', max: '1', step: '0.05', value: String(soundVolume()), 'aria-label': 'Sound volume',
         title: 'Sound volume', oninput: (e: Event) => setSoundVolume(Number((e.target as HTMLInputElement).value)) }) : null);
-    // the map opens as a big pop-up over Play (it has no page of its own)
-    const mapBtn = s ? h('button', { type: 'button', class: 'hs-btn-text play-map', 'data-open': 'map', title: 'Open the map of every place you know', onclick: () => nav('map') }, mapIcon(), 'Map') : null;
     // the header names the last turn played, the one the last results row shows
     const lastTurn = turnShown(s, lines);
     // data-mh names the header pieces that get a beat when they change (M-36); the place line changes quietly (M-41)
@@ -639,7 +631,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     // the heading is where you are now (the zone), not the story's premise; the place it sits in follows the turn below it
     const here = s ? placeHead(s, pv) : null;
     const titleKids = [h('div', {}, h('h1', {}, here?.here || 'Play', mh('tod', s ? todBadge(timeView(s).day, timeOfDay(now(s)), now(s)) : null), mh('stealth', stealthy ? stealthBadge() : null), mh('deals', dealChip)),
-      h('p', {}, s ? [`Turn ${lastTurn}`, here?.where ? ` · ${here.where}` : ''] : 'No story yet'), mh('quest', s ? questLine(s, (id) => { questFocus.id = id; nav('quests'); }) : null)), h('div', { class: 'title-tools' }, mapBtn ?? '', openerSlot ?? '', rollsBtn ?? '', lengthBtn ?? '', soundBtn)];
+      h('p', {}, s ? [`Turn ${lastTurn}`, here?.where ? ` · ${here.where}` : ''] : 'No story yet'), mh('quest', s ? questLine(s, (id) => { questFocus.id = id; nav('quests'); }) : null)), h('div', { class: 'title-tools' }, openerSlot ?? '', rollsBtn ?? '', lengthBtn ?? '', soundBtn)];
     const titleNow = titleKids.map((k) => k.outerHTML).join('');
     if (!frozen && titleNow !== titleHtml) { openerSlot?.replaceWith(auto.opener); title.replaceChildren(...titleKids); titleHtml = titleNow; }
     story.classList.toggle('no-rolls', !show);

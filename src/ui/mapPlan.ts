@@ -328,13 +328,13 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean): Scene {
 
   // ---- exits to zones not on this map (MAP-24, MAP-32, BG-313): an arrow straight out of the wall from the exit's own
   // doorway (turned a little either way only when that is taken), ending at a note that names where it goes:
-  // "→ the plank gate · unexplored"
+  // "the plank gate" (MAP-24)
   const exits: SExit[] = [], stairs: SStair[] = [], lost: string[] = [], dropped: string[] = [];
   for (const st of stubs) {
     const l = st.l, id = `exit:${st.x.z.id}:${l.to}`;
     if (!l.at || !l.out) { lost.push(id); continue; }
     const state = [st.away ? `to ${st.away}` : st.other ? 'known' : 'unexplored', shutWord(l.way)].filter(Boolean).join(', ');
-    const full = `→ ${l.label} · ${state}`;
+    const full = l.label; // RM2 a: the name only; the state is in its title and the zone card
     const c = px(l.at), foot = st.door ? Math.max(st.door.x1 - st.door.cx, st.door.y1 - st.door.cy) + 2 : 2;
     const base = Math.atan2(-l.out[1], l.out[0]); // screen y runs down
     const tryAll = (avoidZones: boolean, lines: string[]) => {

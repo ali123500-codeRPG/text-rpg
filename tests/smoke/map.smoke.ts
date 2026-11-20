@@ -39,6 +39,8 @@ describe('map checker on the test stages (MAP-52)', () => {
     page.on('pageerror', (e) => errors.push(e.message));
     await page.goto(`${url}?fake=1&stage=${stage}`);
     await expect.poll(() => page.evaluate(() => (window as unknown as { __minimapFindings?: Found }).__minimapFindings?.findings), { timeout: 15_000 }).toEqual([]);
+    // the fake page offers an essence; its pop-up sits over the minimap's top corner, where the Map opens (MAP-60)
+    await page.locator('.ess-pop .dpop-x').click();
     await page.locator('[data-open="map"]').click();
     await expect.poll(() => page.evaluate(() => (window as unknown as { __mapFindings?: Found }).__mapFindings?.findings), { timeout: 15_000 }).toEqual([]);
     expect(errors).toEqual([]);
