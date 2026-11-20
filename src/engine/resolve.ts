@@ -917,7 +917,8 @@ function afterEvent(ctx: Ctx, ev: GameEvent): void {
       ctx.orders.set(a.id, { ...t, line: t.line ?? (cur.line ? cur.line : null) });
       continue;
     }
-    if ((cur.source === 'routine' || cur.source === 'fallback') && !ctx.surprised.has(a.id)) {
+    // alertOrders reads the view only for an alert that is due, so it is built only then
+    if ((cur.source === 'routine' || cur.source === 'fallback') && !ctx.surprised.has(a.id) && a.mind?.alarm?.onAlertDue) {
       const [al] = alertOrders(state, [buildActorView(state, a.id)]);
       if (al && al.actorId === a.id) ctx.orders.set(a.id, al);
     }
