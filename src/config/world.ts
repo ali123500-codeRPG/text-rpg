@@ -40,10 +40,10 @@ export const WORLD = {
   FILCH_NOISE: 'hushed' as import('../scales').NoiseKey,
   /** TN4: added to a watcher's sight and hearing rolls by how closely they watch (their activity's attention; talking with
    * the filcher is alert) */
-  FILCH_ATTENTION: { alert: 10, normal: 0, distracted: -10, asleep: 0 } as Record<import('../scales').AttentionKey, number>,
+  FILCH_ATTENTION: { alert: 13, normal: 0, distracted: -13, asleep: 0 } as Record<import('../scales').AttentionKey, number>,
   /** TN4: added to a watcher's rolls by the item's size (its bulk: 0 pocket-sized, 1 hand-sized, 2 arm-sized, 3 bigger);
    * the penalty grows faster than the size, and sizes above FILCH_MAX_BULK can't be filched (a perk can open them) */
-  FILCH_SIZE: [0, 5, 15, 30] as number[],
+  FILCH_SIZE: [0, 7, 20, 40] as number[], // % of the average roll (D-76), like FILCH_ATTENTION
   FILCH_MAX_BULK: 2,
   /** FL2: the share of a purse's coin one try takes (at least 1) */
   FILCH_PURSE_SHARE: 0.25,

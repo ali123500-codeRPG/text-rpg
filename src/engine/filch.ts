@@ -18,6 +18,7 @@ import { activity, itemDef } from '../library';
 import { NOISE, type AttentionKey, type NoiseKey } from '../scales';
 import { markUse, ruleset, situational, fnRoller, tierLevel, toContest } from '../ruleset';
 import { perkSum } from '../ruleset/perks';
+import { pctMod } from '../ruleset/body';
 import { hearingOf } from '../perception/noise';
 import { sightAt } from '../perception';
 import type { Located } from './position';
@@ -52,7 +53,7 @@ export function filchContest(state: GameState, a: Actor, owner: Actor | undefine
   const size = filchSize(bulk) ?? 0;
   for (const w of allActors(state)) {
     if (w === a || w.bandId === a.bandId || (!w.mind && w.kind !== 'player') || !isActive(w) || isAsleep(w)) continue;
-    const mods: Mod[] = [{ source: 'attention', type: 'situational', value: CONFIG.FILCH_ATTENTION[attentionOf(state, w, a, events)] ?? 0 }, { source: 'size', type: 'situational', value: size }];
+    const mods: Mod[] = [pctMod('attention', CONFIG.FILCH_ATTENTION[attentionOf(state, w, a, events)] ?? 0), pctMod('size', size)];
     /** one sense's contest: the watcher's roll against F; made out clearly and won catches, else won or tied is suspicion */
     const contest = (sense: 'sight' | 'hearing', level: Perception): 'caught' | 'suspicious' | null => {
       const fn = sense === 'sight' ? FN.sight : FN.hearing;

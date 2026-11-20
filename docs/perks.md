@@ -558,11 +558,11 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Unseen Strike (Combat Stealth) · LG11
 
-*Story:* +5 Combat Stealth, +1 Stealth. Whoever does not see you coming barely defends: a target unaware of you defends at −20, and one only suspicious of you at −10.
+*Story:* +5 Combat Stealth, +1 Stealth. Whoever does not see you coming barely defends: a target unaware of you defends at −27%, and one only suspicious of you at −13%.
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in Combat Stealth. +1 true skill in every skill of group Stealth. A defense roll against the owner's attack takes the awareness modifier one step further on its table (AWARENESS_DEFENSE 0, -10, -20): -20 when the defender is unaware of the owner, -10 when it is only suspicious. Never Flat-Footed still cancels it.
+- **Effect:** +5 true skill in Combat Stealth. +1 true skill in every skill of group Stealth. A defense roll against the owner's attack takes the awareness modifier one step further on its table (AWARENESS_DEFENSE 0, -13, -27, % of the defender's average roll): -27% when the defender is unaware of the owner, -13% when it is only suspicious. Never Flat-Footed still cancels it.
 - **Lasts:** Always.
 
 ### Fear Bites Deeper (Intimidation) · LG12

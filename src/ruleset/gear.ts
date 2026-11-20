@@ -9,7 +9,7 @@ import { HUMANOID_SIZE } from '../library/bodySize';
 import { CONFIG } from '../config';
 import { powerStack } from './stacking';
 import { actorBody, getLibrary, itemDef, npcTemplate } from '../library';
-import { attackParts, gripReachM, partPct, poolState, usableGrips, working } from './body';
+import { attackParts, gripReachM, partPct, pctMod, poolState, usableGrips, working } from './body';
 import { hasPerk, payoffShare, perkSum, standInAdd, themeCount, trueSkill } from './perks';
 import type { PayoffCount } from '../library/perkThemes';
 import { achievementStandIn, bestReward } from './achRewards';
@@ -183,7 +183,7 @@ export function situational(state: GameState, skill: string, at: { light?: Zone;
   const who = at.body ?? at.actor, here = at.light && who?.zone === at.light.id ? who.pos : undefined;
   const light = at.light ? tagSign('light', tags) * lightMod(zoneLight(state, at.light, here), brighter) : 0;
   const cover = at.cover ? tagSign('cover', tags.filter((t) => t !== 'ranged')) * coverMod(coverShown(state, at.body, at.cover, at.from)) : 0;
-  return { modifiers: [...(light ? [{ source: 'light', type: 'situational' as const, value: light }] : []), ...(cover ? [{ source: 'cover', type: 'situational' as const, value: cover }] : [])], tierShifts: [] };
+  return { modifiers: [...(light ? [pctMod('light', light)] : []), ...(cover ? [pctMod('cover', cover)] : [])], tierShifts: [] };
 }
 
 /** a skill's final efficiency multiplier from its tier (1 for an unknown skill) */

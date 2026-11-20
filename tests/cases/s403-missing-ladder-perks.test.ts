@@ -33,14 +33,14 @@ const npc = (s: GameState, id: string) => actorById(s, id)!;
 const set = (a: Actor, sk: string, raw: number) => { a.core.skills[sk] = { raw, state: 'normal' } as never; };
 
 describe('403 missing 20 and 40 perks', () => {
-  it('LG11 Unseen Strike: awareness defense is one table; the perk moves unaware to −20 and suspicious to −10', () => {
+  it('LG11 Unseen Strike: awareness defense is one table; the perk moves unaware to −27% and suspicious to −13% (D-76: % of the average roll)', () => {
     const s = makeVillage(), a = s.player;
     expect(awarenessMod(a, undefined)).toBeUndefined();
     expect(awarenessMod(a, 'suspicious')).toBeUndefined(); // step 0: no change
-    expect(awarenessMod(a, 'unaware')?.value).toBe(-10);
+    expect(awarenessMod(a, 'unaware')?.pct).toBe(-13);
     give(a, PK.unseen_strike);
-    expect(awarenessMod(a, 'suspicious')?.value).toBe(-10);
-    expect(awarenessMod(a, 'unaware')?.value).toBe(-20);
+    expect(awarenessMod(a, 'suspicious')?.pct).toBe(-13);
+    expect(awarenessMod(a, 'unaware')?.pct).toBe(-27);
   });
 
   it('LG8 Deep Reserves: Endurance, Stamina and Resolve count ×1.2 toward health, stamina and morale', () => {
