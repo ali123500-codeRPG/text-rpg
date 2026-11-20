@@ -6,6 +6,22 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-325
+
+**What was wrong:** Zone names on the Map and the minimap were measured once at 12 px and the width scaled up or down to the size each name is drawn at. Where the system rounds glyph widths (font hinting), text does not widen evenly with size, so a big name came out wider than measured and ran into its zone's padding or past its walls. It showed in the new map smoke test on GitHub's machines: "the long gravel carriage drive" was predicted 326 px wide at 22.5 px and drawn 339 px.
+
+**What was done:** Both maps now measure each name at the size it will be drawn, which matches the drawn width exactly. Names on a machine that hints its fonts now fit their zones as they do elsewhere.
+
+**Fixed by:** [PR #1132](https://github.com/ali123500-codeRPG/text-rpg/pull/1132)
+
+## BG-324
+
+**What was wrong:** The Map's checker found a person's disc over the locked gate's padlock on the bent-nail test stage, and the map rules hold back every map change while a test stage has a finding. The layout keeps a 7 px disc for each person clear of other marks, but the element tagged as the person was the disc together with its initial's text, and a 13 px text box is taller than the disc. So the checker measured a box about 2 px taller than the one the layout kept clear, and it overlapped the padlock by 1 px, though the letter itself sits inside the disc.
+
+**What was done:** On the Map and the minimap the person's disc alone is now the tagged mark, the same box the layout reserves. Nothing moves on screen. A new smoke test builds the page and requires no checker findings on the bent-nail, one-room and long-names stages.
+
+**Fixed by:** [PR #1132](https://github.com/ali123500-codeRPG/text-rpg/pull/1132)
+
 ## BG-323
 
 **What was wrong:** Since the test files began to share one module load per worker, the suite failed or passed depending on file order. One test file empties the library's perk table for its own stand-in perks and never restores it. The shared setup put CONFIG back after each file but not the library, so the next file in the same worker could read an empty perk table.
