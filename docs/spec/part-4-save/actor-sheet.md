@@ -81,7 +81,7 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
 
 - **SHEET-51** Putting a level into an unlocked class makes it current, and the old current class becomes previous.
 - **SHEET-52** Class perks come at class levels set in the library (normally 10 and 20) and are derived.
-- **SHEET-53** Previous-class skills keep improving like any other skill. Returning to a previous class is deferred.
+- **SHEET-53** Previous-class skills keep improving like any other skill. Returning to a previous class is agreed, not built: the player picks it on the class screen before the level-up (D-65).
 
 #### First-build classes
 
