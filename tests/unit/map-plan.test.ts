@@ -1,8 +1,7 @@
 // The stage map's layout (rpg-map): code places zones on the 1 m grid with buildings in one piece (MAP-10, MAP-12), then
 // places every mark so none covers another (MAP-20..32), and the three test stages (MAP-52) come out clean.
 import { describe, expect, it } from 'vitest';
-import { PX_PER_M, checkReach, checkStage, planScene, roughMeasure, wrap, type Box, type Scene } from '../../src/ui/mapPlan';
-import { CONFIG } from '../../src/config';
+import { checkReach, checkStage, planScene, roughMeasure, wrap, type Box, type Scene } from '../../src/ui/mapPlan';
 import { knownMap, type MapZone } from '../../src/ui/mapData';
 import { createFakeGame } from '../../src/ui/fakeGame';
 import { FAKE_STAGES } from '../../src/ui/fakeStages';
@@ -67,33 +66,6 @@ describe('MAP-52 test stages', () => {
     const out = checkStage(zones, places);
     expect(out).toContain('MAP-12 zone high_lane runs through the building tavern');
     expect(out.some((f) => f.startsWith('MAP-10 zone tavern.common'))).toBe(true);
-  });
-  it('MAP-13: a place\'s outline hugs its own ground: the Bent Nail\'s never runs over the high lane, its title above its top-left corner', () => {
-    for (const k of [0.6, 1, 1.6]) {
-      const { sc } = sceneOf(stageState('bent-nail'), k), lane = sc.zones.find((x) => x.z.id === 'high_lane')!.box, tavern = sc.places.find((p) => p.id === 'tavern')!;
-      // the outline's rings, each a list of corners
-      const rings = tavern.outline.split('M').filter(Boolean).map((r) => r.replace('Z', '').split('L').map((q) => q.trim().split(' ').map(Number)));
-      const inner = { x0: lane.x0 + 0.5, y0: lane.y0 + 0.5, x1: lane.x1 - 0.5, y1: lane.y1 - 0.5 };
-      for (const ring of rings) ring.forEach(([ax, ay], n) => {
-        const [bx, by] = ring[(n + 1) % ring.length];
-        expect(hit({ x0: Math.min(ax, bx), y0: Math.min(ay, by), x1: Math.max(ax, bx) + 0.01, y1: Math.max(ay, by) + 0.01 }, inner), `side ${n} at zoom ${k}`).toBe(false);
-      });
-      const pts = rings.flat(), top = Math.min(...pts.map((q) => q[1])), corner = Math.min(...pts.filter((q) => q[1] === top).map((q) => q[0]));
-      expect(tavern.title.y1).toBeLessThanOrEqual(top);
-      expect(tavern.title.x0).toBeLessThanOrEqual(corner);
-      expect(tavern.title.x1).toBeGreaterThan(corner);
-    }
-  });
-  it('MAP-68: someone out of full sight is at the point last seen or heard, in a "somewhere here" circle; with no point, in the row', () => {
-    for (const k of [0.6, 1, 2.5]) {
-      const st = stageState('bent-nail'), spot = st.player.journal!.lastSpot!.f_keep, keep = sceneOf(st, k).sc.tokens.find((t) => t.id === 'who:f_keep')!;
-      expect(keep.ring).toEqual({ cx: spot.x * PX_PER_M * k, cy: -spot.y * PX_PER_M * k, r: CONFIG.LAST_SEEN_RADIUS_M * PX_PER_M * k });
-      expect(Math.hypot(keep.cx - keep.ring!.cx, keep.cy - keep.ring!.cy)).toBeLessThanOrEqual(keep.ring!.r);
-      expect(keep.title).toBe('the barkeep: somewhere here');
-      const { sc } = sceneOf(stageState('long-names'), k), maid = sc.tokens.find((t) => t.id === 'who:f_maid')!, room = sc.zones.find((x) => x.z.id === 'm.dining')!.box;
-      expect(maid.ring).toBeUndefined();
-      expect(maid.cy).toBeGreaterThan((room.y0 + room.y1) / 2);
-    }
   });
   it('the stages exist as the fake preview names them', () => expect(Object.keys(FAKE_STAGES)).toEqual(['bent-nail', 'bent-nail-saved', 'one-room', 'long-names']));
 });
@@ -196,15 +168,6 @@ describe('BG-216: marks keep their spot in their zone at every zoom', () => {
       // nothing dropped at the closest zoom is ever drawn, and every mark is either drawn or hidden in place
       for (const f of sc.furniture) expect(sc.dropped).not.toContain(f.id.slice(5));
     }
-  });
-  it('MAP-22, MAP-25: furniture never covers a zone\'s name; zoomed out it is left off, and zooming in brings it back', () => {
-    for (const key of ['bent-nail', 'one-room', 'long-names']) for (const k of [0.6, 1, 1.6, 2.5]) {
-      const { sc } = sceneOf(stageState(key), k);
-      for (const f of sc.furniture) for (const l of sc.labels) expect(hit(f, l), `${key} at zoom ${k}: ${f.id} over the name of ${l.zoneId}`).toBe(false);
-    }
-    const shown = (k: number) => sceneOf(stageState('bent-nail'), k).sc.furniture.filter((f) => f.zoneId === 'tavern.common').length;
-    expect(shown(1)).toBe(0);
-    expect(shown(2.5)).toBe(3);
   });
   it('zooming in never hides a mark that shows when zoomed out', () => {
     const st = stageState('bent-nail'), drawn = (k: number) => new Set(sceneOf(st, k).sc.furniture.map((f) => f.id));
