@@ -19,7 +19,7 @@ import { OP } from '../library/tableIds';
 import { barrierOn, barrierView } from '../engine/barriers';
 import { landSeen } from '../land/sight';
 import { plural } from './kit';
-import { actorBody } from '../library';
+import { actorBody, itemDef } from '../library';
 import { CONFIG } from '../config';
 import { LIFE_STAGES } from '../scales';
 
@@ -67,6 +67,9 @@ export type MapZone = {
   light?: string; cover?: string; links: MapLink[]; people: MapPerson[]; items: string[];
   /** FR5: the furniture standing there, each at its point in the frame of rect; kind is a furniture kind id (FU), for its icon */
   furniture?: { id: string; name: string; kind: string; x: number; y: number }[];
+  /** MAP-86: the things on the ground the character sees there now (PlayerView), each at its point in the frame of rect: its
+   *  icon (itemIcons) and its item kind, for the tint */
+  things?: MapThingMark[];
   /** where you stand, in the frame of rect (Actor.pos), when you are here and code has placed you */
   you?: { x: number; y: number };
   /** TV7: on a road, how far along it you are: metres from its west (or south) end, of its whole length; on a road bound
@@ -80,6 +83,7 @@ export type MapZone = {
   /** MAP-33: the parts of `seen` in sight at the latest look, drawn full; the rest of `seen` is drawn faded */
   sight?: SeenRun[];
 };
+export type MapThingMark = { id: string; name: string; icon: IconName; kind?: string; x: number; y: number };
 type Compass = 'west' | 'east' | 'south' | 'north';
 type Pt = { x: number; y: number };
 export type MapPlace = { id: string; name: string; kind: string; parentId: string | null; depth: number; zones: MapZone[]; facts: string[] };
@@ -93,6 +97,14 @@ function furnitureOn(s: GameState, zoneId: string): Pick<MapZone, 'furniture'> {
   return out.length ? { furniture: out } : {};
 }
 const safe = <T>(f: () => T): T | undefined => { try { return f(); } catch { return undefined; } };
+/** MAP-86: what lies on the ground of a zone in view, as PlayerView lists it, at its point (PZ11 a: everything on the ground has one) */
+function thingsOn(s: GameState, seen: { id: string; name: string }[]): Pick<MapZone, 'things'> {
+  const out = seen.flatMap((g) => {
+    const it = s.ground.find((i) => i.id === g.id), kind = it && safe(() => itemDef(s, it.itemId).kind);
+    return it?.at ? [{ id: g.id, name: g.name, icon: iconName(s, it.itemId), ...(kind ? { kind } : {}), x: it.at.x, y: it.at.y }] : [];
+  });
+  return out.length ? { things: out } : {};
+}
 
 /** how the map draws a wall kind (WK): a solid wall, a low one (counter, fence, rail), glass, or nothing standing */
 export type WallClass = 'wall' | 'low' | 'window' | 'open';
@@ -206,7 +218,7 @@ export function knownMap(s: GameState): KnownMap {
     const you = id === p.zone && p.pos && placed ? { x: p.pos.x, y: p.pos.y } : undefined;
     const line = z.line; // WZ1, PZ14: a road runs along its line
     const mz: MapZone = { id, placeId: z.placeId, name: z.name, look: z.look, outdoor: !roofed(s, z), here: id === p.zone, inView: !!v, height: heightOf(z),
-      ...(box ? { rect: box, outline: z.outline.map((q) => ({ x: q.x, y: q.y })), walls: wallsOn(s, z), ...furnitureOn(s, id), seen: seenRuns(s, z), sight: seenRuns(s, z, { inView: !!v }) } : {}), links,
+      ...(box ? { rect: box, outline: z.outline.map((q) => ({ x: q.x, y: q.y })), walls: wallsOn(s, z), ...furnitureOn(s, id), ...(v ? thingsOn(s, v.groundItems) : {}), seen: seenRuns(s, z), sight: seenRuns(s, z, { inView: !!v }) } : {}), links,
       ...(you ? { you } : {}), ...(line ? { line } : {}),
       ...(you && line ? { along: alongLine(line, you) } : {}),
       people: people.get(id) ?? [], items: v ? v.groundItems.map((i) => i.name) : [], ...(v ? { light: v.light, cover: v.cover } : {}) };

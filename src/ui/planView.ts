@@ -38,7 +38,7 @@ export type PlanOpts = {
   data(): PlanData | null;
   onPlan(p: MinimapPoint | null): void;
   onWalk(p: MinimapPoint): void;
-  /** MAP-85: a click on a person, door or wall: the deck's list for it beside the thing (its box in page pixels); false
+  /** MAP-85: a click on a person, door, wall or thing on the ground: the deck's list for it beside the thing (its box in page pixels); false
    *  when the deck has nothing for it, and the click plans a walk as on bare ground */
   onThing(t: MapThing, anchor: ReturnType<typeof boxOf>): boolean;
   /** right-click or long press on a zone (MAP-64) */
@@ -239,6 +239,13 @@ export function planView(api: GameApi, opts: PlanOpts) {
       s('circle', { cx: st.cx, cy: st.cy, r: st.x1 - st.cx }), s('text', { x: st.cx, y: st.cy + 4, 'text-anchor': 'middle' }, st.up ? '▲' : '▼'), s('title', {}, st.title)));
     // MAP-22, MAP-25: furniture never covers a zone's name; where it would, it is left off in its own spot
     for (const f of sc.furniture) if (within(f, inView) && !names.some((b) => b.x0 < f.x1 && f.x0 < b.x1 && b.y0 < f.y1 && f.y0 < b.y1)) { const g = furnIcon(f.kind, cap(f.name), f.cx, f.cy); g.setAttribute('data-role', 'icon'); g.setAttribute('data-id', f.id); gMarks.append(g); }
+    // MAP-86: things on the ground, each its item icon on a disc, tinted by its kind
+    for (const it of sc.items) {
+      if (!within(it, inView)) continue;
+      const r = it.x1 - it.cx;
+      gMarks.append(s('g', { class: 'map-item', ...(it.kind ? { 'data-kind': it.kind } : {}), 'data-role': 'icon', 'data-id': it.id, 'data-thing': 'item', 'data-of': it.of, tabindex: 0, role: 'button', 'aria-label': `${cap(it.name)}: what to do` },
+        s('circle', { class: 'disc', cx: it.cx, cy: it.cy, r }), iconMark(it.icon, it.cx, it.cy, r * 1.24, 'art'), s('title', {}, cap(it.name))));
+    }
     for (const t of sc.tokens) {
       if (!within(t, inView)) continue;
       if (t.you) { const g = pin(t.cx, t.cy, d.youTitle ?? 'You are here', d.facing); g.setAttribute('data-role', 'token'); g.setAttribute('data-id', 'you'); gTokens.append(g); continue; }
@@ -355,7 +362,7 @@ export function planView(api: GameApi, opts: PlanOpts) {
   /** MAP-85: the thing a mark stands for, as the deck targets it */
   const thingOf = (m: Element): MapThing => {
     const of = m.getAttribute('data-of')!, kind = m.getAttribute('data-thing');
-    return kind === 'door' ? { kind, ends: of.split('|') } : { kind: kind === 'wall' ? 'wall' : 'person', id: of };
+    return kind === 'door' ? { kind, ends: of.split('|') } : { kind: kind === 'wall' || kind === 'item' ? kind : 'person', id: of };
   };
   /** a mark that answers a click itself (MAP-62, MAP-63, MAP-85), before the ground under it plans a walk */
   function markAt(e: Event): boolean {
