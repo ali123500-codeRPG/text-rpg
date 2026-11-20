@@ -25,7 +25,7 @@ export const KIND_FURNITURE: Record<string, import('../types').PlanFurniture[]> 
 };
 export const ACTIVITIES: Record<string, ActivityDef> = Object.fromEntries([
   act('stand_watch', 'keeping watch', 'alert', 'silent', 'normal'),
-  act('search', 'searching', 'alert', 'quiet', 'normal'), // SE16: an alert sweep searches at each stop
+  act('search', 'searching', 'alert', 'quiet', 'normal'), // SE16: an alert sweep, or a careful patrol, searches at each stop
   act('walk', 'walking', 'normal', 'quiet', 'normal'),
   act('work', 'hard at work', 'normal', 'normal', 'normal'),
   act('tend_counter', 'tending the counter', 'normal', 'quiet', 'normal'),
@@ -63,6 +63,9 @@ export const ROUTINES: Record<string, Routine> = Object.fromEntries([
   timed(sched('patrol', 'Walks the beat by day; drinks in the evening, sleeps at night', true, [['route', 'short', 'walk']], 'search_route_alert', { ...CALL_HELP }), ...OFF_DUTY),
   timed(sched('night_patrol', 'Walks the beat from dusk to dawn; sleeps by day', true, [['route', 'short', 'walk']], 'search_route_alert', { ...CALL_HELP }), DAY_SLEEP),
   sched('search_route_alert', 'Sweeps the beat fast, searching at each stop, on alert', true, [['route', 'brief', 'search']], undefined, null),
+  // SE16: a careful patrol walks the same beat at the same pace, but searches each stop for anyone lying in wait while calm
+  timed(sched('careful_patrol', 'Walks the beat by day, searching each stop for anyone lying in wait; drinks in the evening, sleeps at night', true, [['route', 'short', 'search']], 'search_route_alert', { ...CALL_HELP }), ...OFF_DUTY),
+  timed(sched('night_careful_patrol', 'Walks the beat from dusk to dawn, searching each stop for anyone lying in wait; sleeps by day', true, [['route', 'short', 'search']], 'search_route_alert', { ...CALL_HELP }), DAY_SLEEP),
   // RT3: the tavern closes when the night starts
   timed(sched('tend_bar', 'Works behind the bar from morning to evening; sleeps at night', true, [['counter', 'long', 'tend_counter']], 'flee_to_refuge_alert', null),
     at(['night', 'dawn'], [['bed', 'long', 'sleep']])),
@@ -113,6 +116,8 @@ export const ROUTINE_SETS: Record<string, RoutineSet> = Object.fromEntries([
   set('night_gate_guard', 'A guard posted at one spot through the night', ['gate', 'street'], ['guard'], ['any'], { post: z('where the guard stands'), bed: BED }, ['night_guard_post', 'hold_post_alert', 'wait', 'wait_alert']),
   set('patrol_guard', 'A guard walking a beat by day', ['gate', 'street'], ['guard'], ['any'], { route: r("the beat's stops, in order"), seat: SEAT, bed: BED }, ['patrol', 'search_route_alert', 'wait', 'wait_alert']),
   set('night_patrol_guard', 'A guard walking a beat through the night', ['gate', 'street'], ['guard'], ['any'], { route: r("the beat's stops, in order"), bed: BED }, ['night_patrol', 'search_route_alert', 'wait', 'wait_alert']),
+  set('careful_patrol_guard', 'A careful guard walking a beat by day, searching each stop for an ambush', ['gate', 'street'], ['guard'], ['any'], { route: r("the beat's stops, in order"), seat: SEAT, bed: BED }, ['careful_patrol', 'search_route_alert', 'wait', 'wait_alert']),
+  set('night_careful_patrol_guard', 'A careful guard walking a beat through the night, searching each stop for an ambush', ['gate', 'street'], ['guard'], ['any'], { route: r("the beat's stops, in order"), bed: BED }, ['night_careful_patrol', 'search_route_alert', 'wait', 'wait_alert']),
   set('barkeep', 'Runs the bar', ['tavern'], ['trader'], ['any'], { counter: z('behind the bar'), refuge: z('back room or cellar'), bed: BED }, ['tend_bar', 'flee_to_refuge_alert', 'wait', 'wait_alert']),
   set('patron', 'A customer drinking', ['tavern'], ['patron'], ['any'], { seat: z('where they sit'), refuge: z('where they would hide'), exit: z('the way out'), bed: BED }, ['drink_at_seat', 'flee_to_refuge_alert', 'leave_by_exit', 'wait', 'wait_alert']),
   set('sleeper', 'A guest staying the night', ['tavern'], ['sleeper'], ['any'], { bed: z('their bed'), refuge: z('where they would hide'), seat: SEAT, exit: OUT }, ['sleep_in_bed', 'flee_to_refuge_alert', 'wait', 'wait_alert']),

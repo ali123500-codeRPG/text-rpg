@@ -422,6 +422,7 @@ type ActivityDef = {
   (RT1–RT9, NW17).
 - **GSM-231** Gate and patrol guards are on duty from dawn to dusk, drink in the evening and sleep at night; night
   gate and night patrol guards are the mirror (on duty from dusk to dawn, asleep in the morning and afternoon).
+  Careful patrol guards keep the same hours as patrol and night patrol guards (SE16).
 - **GSM-232** The barkeep tends the bar from morning to evening and sleeps at night and dawn (the tavern closes when
   the night starts).
 - **GSM-233** A patron sleeps at home from night to morning, is out in the afternoon and drinks from dusk.
