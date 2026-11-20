@@ -3,6 +3,7 @@
 //   (no query)         every heading with its file, line and size
 //   "Play screen"      the section under each heading that contains the text (case ignored)
 //   BG-12, D-218, MAP-04  that ID's row in a table or list, or its own section (any LETTERS-number ID)
+//   SEARCH_AREA_M2     the src/config/ file and line that set it, then the sections that mention it
 //   --grep <text>      which sections mention the text, and how often (a file path finds the rules it carries)
 //   --file <path>      read one other markdown file the same way (docs/bug-fix-log.md, docs/systems.md)
 // Plain-syntax TypeScript so Node 22 runs it as is; tests/unit/spec-tool.test.ts checks it on the real spec.
@@ -63,11 +64,18 @@ export function mentions(lines: string[], text: string): { section: Section; cou
   const needle = text.toLowerCase();
   const hits = new Map<Section, number>();
   lines.forEach((l, i) => {
-    if (!l.toLowerCase().includes(needle)) return;
+    // the spec escapes underscores (SEARCH\_AREA\_M2), so a setting's name is matched as written in code
+    if (!l.replace(/\\_/g, '_').toLowerCase().includes(needle)) return;
     const own = all.filter((s) => s.start <= i && i < s.end).pop();
     if (own) hits.set(own, (hits.get(own) ?? 0) + 1);
   });
   return [...hits].map(([section, count]) => ({ section, count }));
+}
+
+/** where a CONFIG setting is set: the part of src/config/ and the line (settings move between parts, so look it up) */
+export function settingAt(key: string): string[] {
+  return readdirSync('src/config').filter((f: string) => f.endsWith('.ts')).flatMap((f: string) => readFileSync(`src/config/${f}`, 'utf8')
+    .split('\n').flatMap((l: string, i: number) => (l.startsWith(`  ${key}:`) ? [`src/config/${f}:${i + 1}`] : [])));
 }
 
 export const SPEC_INDEX = 'docs/build-spec.md';
@@ -88,12 +96,15 @@ export function run(args: string[]): string {
   const docs = files.map((file) => ({ file, lines: readFileSync(file, 'utf8').split('\n') as string[] }));
   const each = (f: (file: string, lines: string[]) => string[]) => docs.flatMap(({ file, lines }) => f(file, lines));
   if (!rest.length) return each((file, lines) => sections(lines).map((s) => `${kb(s.bytes)}  ${label(file, s)}`)).join('\n');
+  const grep = (text: string) => each((file, lines) => mentions(lines, text).map(({ section, count }) => `${String(count).padStart(4)}×  ${label(file, section)}`));
   if (rest[0] === '--grep') {
-    const text = rest.slice(1).join(' ');
-    const found = each((file, lines) => mentions(lines, text).map(({ section, count }) => `${String(count).padStart(4)}×  ${label(file, section)}`));
+    const found = grep(rest.slice(1).join(' '));
     return found.length ? found.join('\n') : 'no mention';
   }
   const query = rest.join(' ');
+  // a setting's name, as the spec names every lever: where it is set, then the sections that rule it
+  const set = /^[A-Z][A-Z0-9_]+$/.test(query) ? settingAt(query) : [];
+  if (set.length) return [...set.map((s) => `${query}: ${s}`), ...grep(query)].join('\n');
   if (/^[A-Z]+-\d+[a-z]?$/i.test(query)) {
     const rows = each((_, lines) => idRows(lines, query.toUpperCase()));
     if (rows.length) return rows.join('\n');
