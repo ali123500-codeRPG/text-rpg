@@ -103,7 +103,10 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
   (https://claude.ai/artifact/HW45ivigqwZ5VDo4PWPv9u).
 - **SHEET-71** The build has 100 points over the open skills (CREATION\_POINTS, every Start; Ali 14/11/2026).
 - **SHEET-72** At creation an untagged skill is at most 30 (CREATION\_MAX\_UNTAGGED) and a tagged one at most 40
-  (CREATION\_MAX\_TAGGED); untagging a skill above 30 lowers it to 30 (creationCap).
+  (CREATION\_MAX\_TAGGED); untagging a skill above 30 lowers it to 30 (creationCap). A tagged skill starts
+  CREATION\_TAG\_BONUS (10) above the points spent on it, so one bought to 40 starts at 50; the cap, the points spent
+  and the class floors count points; everything else, the starter kit included, reads the starting skill like any point
+  added, and the creation row shows it (startRaw; YB1 a, Ali 20/11/2026).
 - **SHEET-73** The class floors are minimums.
 - **SHEET-74** The build has exactly 3 Tagged skills and exactly 3 Flawed skills: one flaw per tag (CREATION\_FLAWS; FC1
   on the Questions hub page "Flaws at character creation", Ali 18/11/2026).
@@ -120,7 +123,7 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
 - **SHEET-81** The screen opens on a recommended build and shows HP, attack, standing defense and the odds against one
   slime as points move.
 - **SHEET-82** The story starts only when every point is spent, 3 skills are tagged and 3 are flawed.
-- **SHEET-83** StartingTotal is the sum of the untagged skills at that moment.
+- **SHEET-83** StartingTotal is Burden's Total of the starting skills, tag bonuses included (burdenTotal, D-374).
 - **SHEET-84** The player starts with the starter kit their skills meet (SHEET-160) and 20 coin (placeholder), at their
   Start's level: 1 for every Start today; START\_LEVEL 4 is only the default for a Start that names none.
 

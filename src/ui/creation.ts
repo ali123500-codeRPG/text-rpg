@@ -6,7 +6,7 @@ import { threadboundStartBlocked } from '../ruleset/threadboundItems';
 import { CONFIG } from '../config';
 import { burdenTotal } from '../ruleset/burdenTotal';
 import { getLibrary } from '../library';
-import { classFloors, classlessStart, creationCap, defaultClass, createPlayer, playableRaces, raceStartBlock, randomIdentity, creationAge, creationAgeRange, creationPoints, buildState, newPlayer, recommendedBuild, startGives, startLevel } from '../library/spawn';
+import { classFloors, classlessStart, creationCap, startRaw, defaultClass, createPlayer, playableRaces, raceStartBlock, randomIdentity, creationAge, creationAgeRange, creationPoints, buildState, newPlayer, recommendedBuild, startGives, startLevel } from '../library/spawn';
 import { blessedClass, blessingGods } from '../ruleset/blessings';
 import { lifeStage, stageName } from '../ruleset/age';
 import { personalityPicker } from './personality';
@@ -129,7 +129,7 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
       } }, tg('tag'), tg('flaw'));
       const nm = h('div', { class: 'nm' }, h('span', { class: 'nm-l' }, h('b', SKILL_SUB[k] ? { title: SKILL_SUB[k][0].toUpperCase() + SKILL_SUB[k].slice(1) } : {}, skillName(k)), marks),
         floors[k] ? h('small', {}, `class floor ${floors[k]}`) : null);
-      const range = h('input', { type: 'range', min: '0', max: '100', 'aria-label': skillName(k), oninput: (e: Event) => setVal(k, +(e.target as HTMLInputElement).value) });
+      const range = h('input', { type: 'range', min: '0', max: '100', 'aria-label': skillName(k), oninput: (e: Event) => setVal(k, +(e.target as HTMLInputElement).value - (st.tags.has(k) ? CONFIG.CREATION_TAG_BONUS : 0)) });
       const row = h('div', { class: 'row', 'data-k': k }, nm,
         h('div', { class: 'bar' }, h('div', { class: 'tr' }, h('i', { class: 's' }), h('i', { class: 'f' })),
           h('span', { class: 'tk', style: 'left:50%' }), h('span', { class: 'tk cap', style: `left:${cap(k)}%` }), range),
@@ -160,7 +160,7 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
     const dash = (n: number | null, d = 0) => (n === null ? '—' : n.toFixed(d));
     const tiles: Readout[] = [
       { label: 'Points left', value: String(L), unit: `of ${total()}`, sub: L ? 'Spend them all to begin' : 'All spent', tone: L ? 'warn' : 'ok',
-        how: `Spend ${total()} points. Your class sets floors, an untagged skill starts at most ${CONFIG.CREATION_MAX_UNTAGGED}, a tagged one ${CONFIG.CREATION_MAX_TAGGED} and a flawed one ${CONFIG.CREATION_MAX_FLAWED}, and you tag ${maxTags()} skills and flaw ${maxFlaws()}.` },
+        how: `Spend ${total()} points. Your class sets floors, an untagged skill starts at most ${CONFIG.CREATION_MAX_UNTAGGED}, a tagged one ${CONFIG.CREATION_MAX_TAGGED} (its tag adds ${CONFIG.CREATION_TAG_BONUS} on top) and a flawed one ${CONFIG.CREATION_MAX_FLAWED}, and you tag ${maxTags()} skills and flaw ${maxFlaws()}.` },
       { label: 'HP', value: dash(p.hp), unit: 'HP', sub: `${CONFIG.HP_BASE} + endurance`, how: 'Total HP from the ruleset: the base plus endurance, times the body’s HP multiplier.' },
       { label: 'Attack', value: dash(p.attack), unit: 'skill', sub: p.weapon ? `${p.weapon.skill} · ${p.weapon.name}` : '—',
         how: 'Effective skill of your starting attack: the first weapon in your starting kit, or bare hands when the kit has none (raw skill plus gear).' },
@@ -171,7 +171,7 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
         sub: p.slamsToDown === null ? 'Its slams to down you: —' : `It downs you in about ${Math.round(p.slamsToDown)} slams`,
         how: `≈ an estimate from ${st.swings} practice swings each way with the game’s attack rules: the slime’s HP (${dash(p.slimeHp)}) over your average damage per swing.` },
       { label: 'Potential', value: String(CONFIG.POTENTIAL), unit: 'pts',
-        sub: `StartingTotal ${+burdenTotal(Object.fromEntries(open.map((k) => [k, { raw: st.v[k], state: buildState(b, k) }]))).toFixed(2)} · ${st.tags.size} of ${maxTags()} tagged · ${st.flaws.size} of ${maxFlaws()} flawed`,
+        sub: `StartingTotal ${+burdenTotal(Object.fromEntries(open.map((k) => [k, { raw: startRaw(b, k), state: buildState(b, k) }]))).toFixed(2)} · ${st.tags.size} of ${maxTags()} tagged · ${st.flaws.size} of ${maxFlaws()} flawed`,
         how: `Tagged: ${[...st.tags].map(skillName).join(', ') || 'none yet'}. Flawed: ${[...st.flaws].map(skillName).join(', ') || 'none yet'}. StartingTotal is the sum of your skills when the story starts, each tag taking ${CONFIG.TAG_BURDEN_GROUP_PCT}% off every skill in its group (a lone tag counts 0) and each flaw adding ${CONFIG.FLAW_BURDEN_GROUP_PCT}% to every skill in its group. Tagged skills ignore Burden. A flawed skill learns slower and stops at ${CONFIG.SKILL_CAP - CONFIG.FLAW_CAP_PENALTY}.` },
     ];
     tilesHost.replaceChildren(readouts(tiles));
@@ -180,13 +180,15 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
       h('button', { class: 'hs-btn-text swings', type: 'button', onclick: editSwings }, 'Change the estimate'));
     for (const k of open) {
       const row = rows.get(k)!, v = st.v[k], f = floors[k] ?? 0, on = st.tags.has(k), bad = st.flaws.has(k);
-      row.querySelector('.val')!.textContent = String(v);
-      (row.querySelector('input') as HTMLInputElement).value = String(v);
-      (row.querySelector('.s') as HTMLElement).style.width = v + '%';
-      (row.querySelector('.f') as HTMLElement).style.width = f + '%';
+      const add = on ? CONFIG.CREATION_TAG_BONUS : 0; // YB1: a tag's +10 shows like any point added; its points are in the tip
+      const sv = row.querySelector<HTMLElement>('.val')!;
+      sv.textContent = String(v + add); sv.title = add ? `${v} points + ${add} for the tag` : '';
+      (row.querySelector('input') as HTMLInputElement).value = String(v + add);
+      (row.querySelector('.s') as HTMLElement).style.width = v + add + '%';
+      (row.querySelector('.f') as HTMLElement).style.width = f + add + '%';
       (row.querySelector('.mi') as HTMLButtonElement).disabled = v <= f;
       (row.querySelector('.pl') as HTMLButtonElement).disabled = v >= cap(k) || L <= 0;
-      (row.querySelector('.tk.cap') as HTMLElement).style.left = cap(k) + '%'; // a tagged skill's cap is higher, a flawed one's lower
+      (row.querySelector('.tk.cap') as HTMLElement).style.left = cap(k) + add + '%'; // a tagged skill's cap is higher, a flawed one's lower
       row.classList.toggle('flawed', bad);
       const noTag = bad ? 'A flawed skill can’t be tagged' : st.tags.size >= maxTags() ? `${maxTags()} skills are tagged already` : '';
       const noFlaw = on ? 'A tagged skill can’t be flawed' : st.flaws.size >= maxFlaws() ? `${maxFlaws()} skills are flawed already` : f > CONFIG.CREATION_MAX_FLAWED ? `Its class floor is above ${CONFIG.CREATION_MAX_FLAWED}` : '';

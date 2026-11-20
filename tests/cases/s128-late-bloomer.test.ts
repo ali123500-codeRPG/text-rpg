@@ -26,7 +26,7 @@ describe('128 Late bloomer and class-level perks', () => {
     expect(p.core.perks.some((x) => x.perkId === PK.quick_study)).toBe(false); // UL2: Quick Study is A Nobody's own
     expect(p.progression!.unspentPerkPoints).toBe(0);
     expect(p.label).toBe('a young stranger');
-    expect(p.core.inventory.map((i) => [i.itemId, i.equippedIn ?? null])).toEqual([[IT.crude_clothes, ['armor']], [IT.hand_axe, ['grip:right_arm']], [IT.pack, ['pack']], [IT.coin, null], [IT.bandage, null]]); // Medium Weapons 40: the Common hand axe; no Light Armor: crude clothes; CT7: a worn pack
+    expect(p.core.inventory.map((i) => [i.itemId, i.equippedIn ?? null])).toEqual([[IT.dagger, null], [IT.arming_sword, ['grip:right_arm']], [IT.crude_clothes, ['armor']], [IT.woodsman_axe, null], [IT.pack, ['pack']], [IT.coin, null], [IT.bandage, null]]); // Medium Weapons 40 points, tagged: 50 (YB1), the Fine arming sword, and its stand-ins meet the dagger and woodsman's axe; no Light Armor: crude clothes; CT7: a worn pack
   });
 
   it('Quick Study: a marked skill below 15 gets two improvement rolls, each with its own gain', () => {
@@ -57,8 +57,8 @@ describe('128 Late bloomer and class-level perks', () => {
     const b = recommendedBuild();
     const p = createPlayer({ ...b, skills: { [SK.melee_medium]: 40, [SK.parry]: 5, [SK.endurance]: 0, [SK.eyesight]: 5, [SK.block]: 25, [SK.light_armor]: 25 } }, 's1'); // Block 25 meets the round shield, Light Armor 25 the gambeson
     const kit = p.core.inventory.filter((i) => getLibrary().items[i.itemId].tags?.includes('starter'));
-    expect(kit.map((i) => [i.itemId, i.equippedIn ?? null])).toEqual([[IT.gambeson, ['armor']], [IT.round_shield, ['grip:left_arm']], [IT.hand_axe, ['grip:right_arm']]]); // Medium Weapons 40: the Common hand axe
-    const q = createPlayer(b, 's1'); // no skill passes 40 at creation, so no Fine (50) piece is met
+    expect(kit.map((i) => [i.itemId, i.equippedIn ?? null])).toEqual([[IT.dagger, null], [IT.arming_sword, ['grip:right_arm']], [IT.gambeson, ['armor']], [IT.round_shield, ['grip:left_arm']], [IT.woodsman_axe, null]]); // Medium Weapons 40 points, tagged: 50 (YB1), the Fine arming sword
+    const q = createPlayer({ ...b, skills: { ...b.skills, [SK.melee_medium]: 35, [SK.dodge]: 15 } }, 's1'); // tagged Medium Weapons at 35 points starts at 45: no Fine (50) piece
     expect(q.core.inventory.find((i) => i.equippedIn?.includes('grip:right_arm'))?.itemId).toBe(IT.hand_axe);
   });
 
