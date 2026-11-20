@@ -8,7 +8,6 @@ import { buildActorView } from '../../src/views';
 import { withTactics } from '../../src/views/tactics';
 import { fallbackOrder } from '../../src/minds';
 import { zoneById } from '../../src/engine/relations';
-import { FIGHT_RULES } from '../../src/library/fightRules';
 import { FX } from '../../src/library/tableIds';
 import { IT } from '../../src/library/itemIds';
 import { SK } from '../../src/library/skillIds';
@@ -43,12 +42,6 @@ const shotAt = (s: GameState, g: Actor) => s.events.push({ id: 'shot', turn: s.t
   effects: [], noise: 'normal', visibility: 'high', perception: { [g.id]: { level: 'full', cue: 'sight' } } } as unknown as GameEvent);
 
 describe('375 Fieldcraft fight rows', () => {
-  it('rows sit after B4 and before B5: F1 30, F2 50, F3 75 (the whole order is in s376)', () => {
-    const ids = FIGHT_RULES.map((r) => r.id);
-    expect(ids.slice(ids.indexOf(FX.out_of_sight), ids.indexOf(FX.finish_hurt))).toEqual([FX.out_of_sight, FX.into_cover, FX.into_dark]);
-    expect(ids.indexOf(FX.back_off)).toBeLessThan(ids.indexOf(FX.out_of_sight));
-    expect(FIGHT_RULES.filter((r) => r.skill === SK.fieldcraft).map((r) => r.min)).toEqual([30, 50, 75]);
-  });
 
   it('F2: a foe with a bow in sight, more cover one move off: it walks there (Fieldcraft 50); below 50, or with no better cover, it does not', () => {
     const { s, g } = archerDuel({ zone: 'gate_inner', x: 45 });

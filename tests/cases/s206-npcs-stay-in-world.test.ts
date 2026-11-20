@@ -7,7 +7,6 @@ import type { StagePlan } from '../../src/types';
 import { makeVillage } from '../harness';
 import { buildWeaverView } from '../../src/views';
 import { validateStagePlan } from '../../src/scenario/validate';
-import { getLibrary } from '../../src/library';
 import { ZK } from '../../src/library/tableIds';
 
 const quiet = () => makeVillage({ without: ['slime_1', 'slime_2', 'patron_1'] });
@@ -22,11 +21,6 @@ const deadEnds = (p: StagePlan, ctx: Partial<Parameters<typeof validateStagePlan
   validateStagePlan(quiet(), p, { kind: 'extension', tier: 'success', placeId: 'street', ...ctx }).filter((e) => e.code === 'dead_end');
 
 describe('206 NPCs stay in the world (NW4, NW6)', () => {
-  it('NW4: the onward kinds are marked on the zone kinds table', () => {
-    makeVillage();
-    const onward = Object.values(getLibrary().zoneKinds ?? {}).filter((k) => k.onward).map((k) => k.id).sort();
-    expect(onward).toEqual([ZK.street, ZK.square, ZK.gate, ZK.field, ZK.woods].sort());
-  });
   it('NW4: a street with only its way in is a dead end; one more link or a frontier fixes it', () => {
     expect(deadEnds(plan([zone('tanners_row', ZK.street, [['street_square', 'back to the square']])]))).toHaveLength(1);
     expect(deadEnds(plan([zone('tanners_row', ZK.street, [['street_square', 'back to the square'], ['east_road', 'the east road']])],

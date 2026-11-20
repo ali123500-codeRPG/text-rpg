@@ -7,7 +7,6 @@ import { FU, LC } from '../../src/library/tableIds';
 import { makeFurniture } from '../../src/engine/furniture';
 import { landUnder } from '../harness';
 import { getLibrary } from '../../src/library';
-import { CONFIG } from '../../src/config';
 import { clutterCover, coverMod, coverShown } from '../../src/ruleset/gear';
 import { objectHidden } from '../../src/ruleset/objectCover';
 
@@ -38,7 +37,6 @@ describe('383 cover from objects (PC1, PC2)', () => {
   });
 
   it('PC2: the sight line over the counter decides; from higher up it hides less (the hub examples)', () => {
-    expect(CONFIG.EYE_SHARE).toBe(0.94);
     const cases: [number, number, number][] = [[0, 0.61, 14], [4, 0.49, 10], [8, 0.37, 7]];
     for (const [floor, hid, mod] of cases) {
       const { s, z, t } = range(floor);

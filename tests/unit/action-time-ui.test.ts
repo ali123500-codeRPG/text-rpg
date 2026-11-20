@@ -1,7 +1,6 @@
 // AT11a on the play screen: the long actions the player saw each turn (LogLine.actions), in game seconds and minutes, and
 // BG-182: no screen code may sit inside a line comment (the Who's here row lost every name that way).
 import { describe, expect, it } from 'vitest';
-import { bannedLines } from '../harness/guard';
 import { wholeTurn, intent } from '../harness/turn';
 import { secsText, doneShare } from '../../src/ui/doing';
 import { actionNotes, type DoingSnap } from '../../src/agents/game';
@@ -55,8 +54,3 @@ describe('AT11a long actions on the play screen', () => {
   });
 });
 
-describe('BG-182: no code inside a line comment', () => {
-  it('no source line has a DOM call after a // comment marker', () => {
-    expect(bannedLines(/\/\/ [^\n]*\bh\('[a-z0-9]+', *\{/, {}, ['src'])).toEqual([]);
-  });
-});

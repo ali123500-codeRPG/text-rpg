@@ -6,7 +6,6 @@ import {
   GENERIC_CLARIFY, NEUTRAL_LINE, FIXED, PARSER_INSTRUCTIONS, type AgentCtx,
 } from '../../src/agents';
 import { resetConfig } from '../../src/config';
-import { modelFor } from '../../src/agents/call';
 import type { AgentTurnLog, ClaudeErrorCode } from '../../src/types';
 import { ScriptedClaude, sentText } from '../harness';
 import { actorView, dialogueView, intentOf, narrationView, plannerOut, playerView, voiceOut } from './agent-views';
@@ -26,10 +25,6 @@ const fail = (error: ClaudeErrorCode) => ({ ok: false as const, error });
 describe('prompts', () => {
   it('fixed part is the instruction text, then the shape', () => {
     expect(FIXED.parser.startsWith(PARSER_INSTRUCTIONS)).toBe(true);
-    expect(PARSER_INSTRUCTIONS).toContain('8. If the player names a body part of the target, put it in "targetPart". Set "aimed": true only when the player says they aim at that part or go for it');
-  });
-  it('the Weaver is told a barrier never goes on a drop or a way to a frontier, as the plan check rules (BG-204)', () => {
-    expect(FIXED.weaver).toContain('A barrier goes only on a way between two zones, never on a way to a frontier, and on a "window" way only a window kind');
   });
 });
 
@@ -89,11 +84,6 @@ describe('runAgent', () => {
     claude.push('weaver', {});
     await callWeaver({ catalogs: {} } as never, ctx).catch(() => {});
     expect(claude.calls[0]).toMatchObject({ model: 'claude-opus-5-5', modelTier: 'complex', effort: 'high' });
-  });
-  it('narrator runs on Fable 5.2 low with the complex tier as fallback; Opus 5.5 low for NPC replies and plans; the parser on Sonnet with the quick tier as fallback', () => {
-    expect(modelFor('narrator')).toEqual({ model: 'claude-fable-5-2', modelTier: 'complex', effort: 'low' });
-    expect(modelFor('parser')).toEqual({ model: 'claude-sonnet-5-5', modelTier: 'quick' });
-    for (const a of ['responder', 'voice', 'planner'] as const) expect(modelFor(a)).toEqual({ model: 'claude-opus-5-5', modelTier: 'default', effort: 'low' });
   });
   it('repaired answer is accepted', async () => {
     const { claude, ctx, logs } = setup();

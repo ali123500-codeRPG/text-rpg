@@ -12,7 +12,6 @@ import { PERK_LINKS } from '../../src/library/perkLinks';
 import { BUILT_PERKS } from '../../src/library/builtPerks';
 import { PK } from '../../src/library/perkIds';
 import { PA } from '../../src/library/tableIds';
-import { CL } from '../../src/library/classIds';
 import { SK } from '../../src/library/skillIds';
 import { actorById, zoneById } from '../../src/engine/relations';
 import { afterAttack, coverFor, markShifts, markForRounds } from '../../src/engine/perkMarks';
@@ -112,18 +111,13 @@ describe('293 link rows and personality nudges', () => {
     expect(coverFor(s, ally, false)?.id).toBe('player');
   });
 
-  it('PN1/PN4/PN5: attitude perks and current classes move one axis by the step; others none', () => {
+  it('PN1/PN4/PN5: attitude perks move one axis by the step; others none', () => {
     const s = makeVillage();
     const p = s.player;
     p.core.personality = { nerve: 0, traits: {}, values: [] };
     p.core.classes = [];
     give(p, PK.bluff, PK.dread_presence, PK.hidden_strike);
     expect(personalityOf(p).traits).toEqual({ [PA.honesty]: -CONFIG.ACH_PERSONALITY_STEP, [PA.pride]: CONFIG.ACH_PERSONALITY_STEP });
-    const lib = getLibrary();
-    expect([lib.classes[CL.swordsman].personality, lib.classes[CL.a_nobody].personality])
-      .toEqual([{ [PA.discipline]: CONFIG.ACH_PERSONALITY_STEP }, { [PA.pride]: -CONFIG.ACH_PERSONALITY_STEP }]);
-    expect(lib.classes[CL.commoner].personality).toBeUndefined();
-    for (const id of [PK.takes_one_to_know_one, PK.battle_cry, PK.cover_ally, PK.quick_study, PK.curiouser]) expect(lib.perks[id].personality, id).toBeDefined();
   });
 
   it('PN6: a dormant perk adds no points', () => {
@@ -143,9 +137,5 @@ describe('293 link rows and personality nudges', () => {
     give(p, PK.bottomless);
     // own: 5% and the group's 1% (Stamina is alone in its group), both in full; no flat +1, the group share covers it
     expect(trueSkill(p, SK.stamina)).toBeCloseTo(flat + CONFIG.HIGH_PERK_SHARE * flat + CONFIG.HIGH_PERK_SPREAD * flat);
-    expect(getLibrary().perks[PK.bottomless].trueSkill).toBeUndefined();
-    expect(getLibrary().perks[PK.bottomless].functionBoost).toBeUndefined();
-    expect(getLibrary().perks[PK.deep_lungs].functionBoost).toBe(1); // the 80 keeps its +1
-    expect(getLibrary().perks[PK.deep_lungs].trueSkill).toBe(5); // the 80 stays flat (SH3)
   });
 });

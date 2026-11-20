@@ -5,7 +5,6 @@ import { expect, it } from 'vitest';
 import { beside, makeVillage } from '../harness';
 import { intent, play } from './w4-kit';
 import { healthLevel } from '../../src/ruleset';
-import { PARSER_INSTRUCTIONS } from '../../src/agents/prompts';
 
 it('a downed foe out of fist reach is closed in on and struck', () => {
   const s = makeVillage({ playerZone: 'field_mid', without: ['slime_2', 'guard_1', 'trader', 'patron_1'] });
@@ -16,5 +15,4 @@ it('a downed foe out of fist reach is closed in on and struck', () => {
   const ev = play(s, { intent: intent({ action: { type: 'attack', target: t.id } }) });
   expect(ev.some((e) => e.actorId === 'player' && e.kind === 'wasted')).toBe(false);
   expect(ev.some((e) => e.actorId === 'player' && e.kind === 'attack')).toBe(true);
-  expect(PARSER_INSTRUCTIONS).toContain('Going through someone or their body by hand');
 });

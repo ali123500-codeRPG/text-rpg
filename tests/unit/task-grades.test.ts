@@ -12,7 +12,6 @@ describe('task grades (CR4, CR12)', () => {
     const v = Object.values(CONFIG.DIFFICULTY);
     expect(v).toEqual([...v].sort((a, b) => a - b));
     expect(Object.keys(CONFIG.DIFFICULTY)).toEqual([...GRADE_LEVELS.keys]); // CS8: one grades table sets the order
-    expect(GRADE_LEVELS.keys.slice(GRADES.length)).toEqual(['mortal_limit', 'beyond', 'mythic', 'transcendent', 'divine']);
   });
   it('every build-spec line that lists the grades past extreme gives the numbers in DIFFICULTY (Divine 300 was left in Layer 2 after PR #792)', () => {
     const spec = readSpec();

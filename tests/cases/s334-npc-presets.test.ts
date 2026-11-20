@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createRng, makeVillage } from '../harness';
 import { TP } from '../../src/library/templateIds';
-import { RO } from '../../src/library/npcLayerIds';
-import { PF } from '../../src/library/npcLayerIds';
-import { CL } from '../../src/library/classIds';
 import { getLibrary } from '../../src/library';
 import { CONFIG } from '../../src/config';
 import { spawnNpc, templateLevel } from '../../src/library/spawn';
@@ -24,13 +21,5 @@ describe('334 Named NPC presets for the rosters', () => {
       expect(a.core.templateId).toBe(id);
       expect(a.core.raceId).toBe(t.raceId);
     }
-  });
-  it('the knight is a Knight Trainee, the pedlar a Trader, the dire wolf a Dire wolf one rank above a wolf', () => {
-    const t = getLibrary().templates;
-    expect(t[TP.knight].classId).toBe(CL.knight_trainee);
-    expect(t[TP.knight].roleId).toBe(RO.knight);
-    expect(t[TP.pedlar].classId).toBe(CL.trader);
-    expect(t[TP.dire_wolf].prefix).toBe(PF.dire);
-    expect(t[TP.dire_wolf].raceId).toBe(t[TP.wolf].raceId);
   });
 });

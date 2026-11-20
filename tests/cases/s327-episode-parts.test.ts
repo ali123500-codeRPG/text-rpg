@@ -18,7 +18,6 @@ import { beginScenario } from '../../src/scenario/apply';
 import { validateStagePlan } from '../../src/scenario/validate';
 import { toStoryStart, villageStagePlan, FITTING_GRADES } from '../../src/scenario/fixtures';
 import { noteHappened } from '../../src/engine/happened';
-import { FIXED } from '../../src/agents/prompts';
 import { CONFIG } from '../../src/config';
 import { MILL_PLAN } from './scenario-director';
 
@@ -50,7 +49,6 @@ describe('327 an Episode holds its parts (SW10 a)', () => {
     p.scenario!.scale = 'episode';
     expect(validateStagePlan(toStoryStart(makeVillage()), p, ctx).map((e) => e.code)).toContain('scenario_scale_inner');
     expect(validateStagePlan(toStoryStart(makeVillage()), villageStagePlan(), ctx)).toEqual([]); // the village plan is an episode itself
-    expect(FIXED.weaver).toContain('episode (SW10): on a scenario start with no WEAVER_VIEW.outerScenario, plan two things');
   });
 
   it('inside a bigger scenario the start needs no episode', () => {

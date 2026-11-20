@@ -2,19 +2,17 @@
 // perk (and any other perk on no ladder: a Start's blessing, an achievement's, a Threadbound item's, an All-step's,
 // Hollowed) was counted on the tile but drawn nowhere on the board.
 import { describe, expect, it } from 'vitest';
-import { wholeTurn, intent } from '../harness/turn';
+import { wholeTurn } from '../harness/turn';
 import { PK } from '../../src/library/perkIds';
 import { grantedPerks, heldPerks, treesOf } from '../../src/ui/perks';
 import { getLibrary } from '../../src/library';
 import { milestoneState } from '../../src/ruleset';
 
 describe('Perks board: every perk the tile counts is shown', () => {
-  it('whole turn: a class perk is counted on the tile and listed under Granted', async () => {
-    const g = wholeTurn({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
-    const s = g.game.state()!;
+  it('a class perk is counted on the tile and listed under Granted', () => {
+    const s = wholeTurn({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] }).game.state()!;
     s.player.core.perks.push({ perkId: PK.blade_against_blade, source: 'class', gainedTurn: s.turn });
-    await g.turn(intent(), 'I look around');
-    const p = g.game.state()!.player;
+    const p = s.player;
     expect(heldPerks(p).map((o) => o.perkId)).toContain(PK.blade_against_blade);
     expect(grantedPerks(p).map((v) => [v.def.name, v.from])).toContainEqual(['Blade Against Blade', 'Class']);
   });

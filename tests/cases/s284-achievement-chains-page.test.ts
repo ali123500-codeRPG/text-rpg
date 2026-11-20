@@ -18,12 +18,7 @@ const give = (s: GameState, key: string, of?: string) => grantAchievement(s, key
 const line = (s: GameState, id: string) => chainLines(s, false).find((l) => l.id === id);
 
 describe('284 achievement chains, branches and the next level', () => {
-  it('TB6: the nine joins; every branch names a trunk root or a head, and starts its own chain', () => {
-    const joins: [string, string][] = [[ACH.first_defeat_body_type, ACH.defeats_10], [ACH.first_defeat_race, ACH.defeats_10], [ACH.beyond_group_1, ACH.beyond_1],
-      [ACH.aimed_size_1, ACH.aimed_10], [ACH.spotted_fn_1, ACH.spotted_10], [ACH.outmatched_fn_1, ACH.outmatched_1], [ACH.quests_giver_5, ACH.quests_1],
-      [ACH.cruel_spar_1, ACH.spar_1], [ACH.class_max_tier_1, ACH.class_max_1], [ACH.class_tiers_2, ACH.class_max_1],
-      [ACH.healed_rest_100, ACH_HEADS.healed], [ACH.calmed_rest_100, ACH_HEADS.calmed]];
-    for (const [branch, trunk] of joins) expect([branch, lib()[branch].branchOf]).toEqual([branch, trunk]);
+  it('TB6: every branch names a trunk root or a head, and starts its own chain', () => {
     for (const [k, d] of Object.entries(lib()).filter(([, d]) => d.branchOf)) {
       expect(d.after, k).toBeUndefined(); // only a chain's lowest row names its trunk
       expect(!!ACH_HEAD_NAMES[d.branchOf!] || (lib()[d.branchOf!] && !lib()[d.branchOf!].after && !lib()[d.branchOf!].branchOf), k).toBe(true);

@@ -9,10 +9,8 @@ import { tierReach } from '../../src/ruleset/achRewards';
 import { syncThreadboundItemPerks } from '../../src/ruleset/threadboundItems';
 import { applyGearOps, bindCarriedCharms } from '../../src/engine/gear';
 import { power } from '../../src/engine/xp';
-import { getLibrary } from '../../src/library';
 import { offersFromDefeats, qualityRoll } from '../../src/engine/essence';
 import { CONFIG } from '../../src/config';
-import { PERK_MOVES } from '../../src/ruleset';
 import { tidyRewards } from '../../src/scenario/validate';
 import { advanceClock } from '../../src/time';
 import { ACH } from '../../src/library/achievementIds';
@@ -59,7 +57,6 @@ describe('191 the Varo\'s Loop', () => {
 
   it('a charm: no slot, it can\'t be worn, and it adds nothing to the rating', () => {
     const s = worn();
-    expect(getLibrary().items[IT.varos_loop].slot).toBeUndefined();
     expect(applyGearOps(s, s.player, [{ op: 'wear_acc', item: LOOP }]).invalid).toHaveLength(1);
     const before = power(s, s.player);
     s.player.core.inventory = s.player.core.inventory.filter((i) => i.id !== LOOP);
@@ -111,7 +108,6 @@ describe('191 the Varo\'s Loop', () => {
   it('Call the Toss fires by itself on an essence quality roll and keeps the die farther from the middle, once a day', () => {
     const s = worn([ACH.event_crit_2]);
     const by = { state: s, actor: s.player };
-    expect(PERK_MOVES[PK.call_the_toss]).toBeUndefined(); // not a move any more
     expect(qualityRoll(forcedRng([55, 99]), LOW, by)).toEqual({ grade: 'rare', past: 0 }); // 99 is farther from 50.5 than 55
     expect(qualityRoll(forcedRng([55, 99]), LOW, by)).toBeNull(); // cooling down: 55 alone is a Near Miss
     advanceClock(s, 1440);

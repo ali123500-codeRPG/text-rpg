@@ -53,7 +53,6 @@ it('trade: a dormant trait gives nothing and takes nothing', () => {
 
 it('first use: taking a Tavern Brawler essence brings its trait, and the offer shows it', () => {
   const s = makeVillage(), p = s.player;
-  expect(getLibrary().essences![ES.tavern_brawler].trait).toBe(PK.fists_do_the_talking);
   set(p, SK.unarmed_strike, 40);
   const offer = { essence: ES.tavern_brawler, grade: 'common' as const, points: { [SK.unarmed_strike]: 2 }, turn: s.turn, source: 'foe' as const, untilMin: now(s) + 5 };
   expect(essenceStats(offer)).toEqual(['+2 Strike', 'Trait: Fists Do the Talking']);

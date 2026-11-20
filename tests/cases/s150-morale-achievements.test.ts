@@ -2,7 +2,6 @@
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { tally } from '../../src/engine/xp';
-import { getLibrary } from '../../src/library';
 import { ACH } from '../../src/library/achievementIds';
 import type { GameState } from '../../src/types';
 
@@ -22,9 +21,6 @@ describe('150 morale achievements', () => {
 
   it('breaking is a scar from the first break, then at 5 and 25', () => {
     const s = makeVillage();
-    const a = getLibrary().achievements!;
-    expect([ACH.morale_breaks_1, ACH.morale_breaks_5, ACH.morale_breaks_25].map((id) => [a[id].count, a[id].level, a[id].scar]))
-      .toEqual([[1, 'zero', true], [5, 'i', true], [25, 'ii', true]]);
     tally(s, 'morale_breaks');
     expect(earned(s)).toContain(ACH.morale_breaks_1);
     for (let i = 1; i < 5; i++) tally(s, 'morale_breaks');

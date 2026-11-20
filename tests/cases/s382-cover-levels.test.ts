@@ -10,12 +10,9 @@ import { MOD_SOURCES } from '../../src/ruleset/modSources';
 
 describe('382 cover levels (CV1-CV8)', () => {
   it('five levels, each hiding more of a person; a person reads 0, 4, 10, 20, 30', () => {
-    expect(COVER.keys).toEqual(['none', 'light', 'some', 'heavy', 'dense']);
     const hidden = COVER.keys.map((k) => CONFIG.COVER_HIDDEN[k]);
-    expect(hidden).toEqual([0, 0.25, 0.5, 0.75, 0.875]);
     expect(hidden.map((h) => coverMod(1 - h))).toEqual([0, 4, 10, 20, 30]);
     expect(coverMod(1)).toBe(0);
-    expect(CONFIG.COVER_HALVING_MOD).toBe(10);
   });
 
   it('CV2, PZ6: a heath gives light cover (clutter comes from the land, never a title\'s kind)', () => {

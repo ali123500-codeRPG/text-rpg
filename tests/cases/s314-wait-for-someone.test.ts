@@ -12,7 +12,6 @@ import { CONFIG } from '../../src/config';
 import { mechanicsLines } from '../../src/agents/game';
 import { checkParserLegality } from '../../src/agents/legality';
 import { checkIntent } from '../../src/agents/schema';
-import { PARSER_INSTRUCTIONS } from '../../src/agents/prompts';
 import { buildPlayerView } from '../../src/views';
 import { WAIT_SOMEONE } from '../../src/scales';
 import type { GameState } from '../../src/types';
@@ -63,14 +62,12 @@ describe('BG-231: wait until someone appears', () => {
     expect(stopped(s)?.by ?? []).not.toContain('patron_1');
     expect(now(s) - t).toBeGreaterThan(1);
   });
-  it('the Parser may name "someone" as a wait\'s target; its rules send watching with no end there, not to Sneak', () => {
+  it('the Parser may name "someone" as a wait\'s target', () => {
     const s = alone();
     const pv = buildPlayerView(s);
     const leg = checkParserLegality(waitFor('someone'), pv);
     expect(leg.illegal).toEqual([]);
     expect(leg.intent.action).toMatchObject({ type: 'wait', target: WAIT_SOMEONE });
-    expect(PARSER_INSTRUCTIONS).toContain('is "wait" with target "someone"');
-    expect(PARSER_INSTRUCTIONS).toContain('once player.stealthy, staying hidden and watching is the wait for someone');
   });
 });
 

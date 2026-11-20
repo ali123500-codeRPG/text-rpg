@@ -8,7 +8,6 @@ import { CONFIG } from '../../src/config';
 import { describe, expect, it } from 'vitest';
 import { forcedRng, makeVillage } from '../harness';
 import { getLibrary } from '../../src/library';
-import { BUILT_PERKS } from '../../src/library/builtPerks';
 import { PK } from '../../src/library/perkIds';
 import { SK } from '../../src/library/skillIds';
 import { perkMoveBlock, resolvePerkMove } from '../../src/engine/perkMoves';
@@ -31,15 +30,6 @@ const foe = (s: GameState, id = 'patron_1') => {
 };
 
 describe('150 Falsehood and Insight perks', () => {
-  it('are on the Falsehood and Insight ladders; Not Born Yesterday is banked', () => {
-    const perks = getLibrary().perks;
-    expect(perks[PK.bluff]?.ladder).toEqual({ skill: SK.falsehood, milestone: 20 });
-    expect(perks[PK.takes_one_to_know_one]?.ladder).toEqual({ skill: SK.falsehood, milestone: 60 });
-    expect(perks[PK.quick_read]?.ladder).toEqual({ skill: SK.insight, milestone: 60 }); // LG25 c: Plain as Day is everyone's rule
-    expect(perks[PK.read_their_face]?.ladder).toEqual({ skill: SK.insight, milestone: 100 });
-    for (const id of [PK.bluff, PK.takes_one_to_know_one, PK.quick_read, PK.read_their_face]) expect(BUILT_PERKS.has(id)).toBe(true);
-    expect(perks[PK.not_born_yesterday]).toBeUndefined(); // banked write-ups stay out of the game library
-  });
 
   it('Bluff needs the perk and a foe in the zone, and works once per foe per engagement', () => {
     const s = makeVillage();

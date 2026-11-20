@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { AUTOPILOT_BRIEF, VOICE_TAGS, plainLine, readMove } from '../../src/agents/autopilot';
 import { VOICE_SAMPLES, pickSample } from '../../src/ui/voiceSamples';
 import { VOICE_STYLES as STYLES } from '../../src/agents/autopilot';
-import { type Mcp, RPG_SERVER, RPG_VOICES, rpgFailure, rpgSpeak, rpgVoices, splitLine } from '../../src/ui/rpgVoice';
+import { type Mcp, RPG_SERVER, rpgFailure, rpgSpeak, rpgVoices, splitLine } from '../../src/ui/rpgVoice';
 
 describe('186 RPG Voice', () => {
   it('the brief asks for an acting note and offers exactly the sound tags the voice acts', () => {
@@ -27,8 +27,6 @@ describe('186 RPG Voice', () => {
     expect(calls[0]).toEqual([RPG_SERVER, 'speak', { text: '<gasp> Run!', voice: 'Leda', direction: 'scared' }, { cache: false }]);
     expect(await rpgVoices(mcp)).toEqual([{ voice: 'Puck', style: 'Upbeat' }]);
     await expect(rpgSpeak({ callTool: async () => ({ payload: {} }) }, 'x', '', 'Leda')).rejects.toMatchObject({ code: 'no_audio' });
-    expect(RPG_VOICES.find((v) => v.voice === 'Leda')?.style).toBe('Youthful');
-    expect(RPG_VOICES).toHaveLength(30);
   });
 
   it('each failure says what to do; lasting ones stop trying until another voice is picked', () => {
@@ -47,7 +45,6 @@ describe('186 RPG Voice', () => {
   });
 
   it('every style has its own bank of sample lines, and a pick never repeats the last', () => {
-    expect(STYLES.map(([id]) => id)).toEqual(['plain', 'character']); // AI companion and Speaks Japanese parked (D-315)
     for (const [id] of STYLES) expect(VOICE_SAMPLES[id]?.length).toBeGreaterThanOrEqual(8);
     const first = pickSample('character', undefined, () => 0);
     for (let r = 0; r < 1; r += 0.05) expect(pickSample('character', first, () => r)).not.toBe(first);

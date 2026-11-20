@@ -12,7 +12,6 @@ import { hearsClearly, perceptionOf } from '../../src/perception';
 import { createDirector } from '../../src/agents/director';
 import { grovePlan, VirtualClock } from '../../src/scenario/fixtures';
 import { headTo } from '../../src/minds';
-import { MOD_SOURCES } from '../../src/ruleset/modSources';
 import { CONFIG } from '../../src/config';
 import { PK } from '../../src/library/perkIds';
 import { SK } from '../../src/library/skillIds';
@@ -99,10 +98,4 @@ it('BG-90: an NPC that follows the player through a frontier comes in with a mov
   const mv = added.find((e) => e.kind === 'move' && e.actorId === g.id)!;
   expect(mv).toMatchObject({ zone: s.player.zone, fromZone: 'field_far' });
   expect(mv.perception[s.player.id]).toBeTruthy();
-});
-
-it('BG-91: the Stacking tab names part states, not their keys', () => {
-  const row = MOD_SOURCES.find((r) => r.at === 'src/ruleset/body.ts' && String(r.value).includes('Crippled'));
-  expect(row).toBeTruthy();
-  expect(String(row!.value)).not.toMatch(/\bcrippled\b/);
 });

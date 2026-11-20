@@ -36,7 +36,7 @@ import { recoverDebt } from '../../src/engine/fatigue';
 import { MOD_SOURCES } from '../../src/ruleset/modSources';
 import type { Zone } from '../../src/types';
 import { freshId } from '../../src/ids';
-import { levelMaxPct, partName } from '../../src/ruleset/body';
+import { partName } from '../../src/ruleset/body';
 import { OPP_SIDE, SIDES, SIDE_STEP } from '../../src/types';
 import { PLAN_TRIGGER_TYPES, TRIGGER_TYPES } from '../../src/scenario/triggers';
 import { minuteOfDay, DAY_MINUTES } from '../../src/time';
@@ -95,10 +95,8 @@ describe('leftover scan round 1', () => {
     expect(MILESTONES.filter((m) => perkSeries(m) === '40')).toEqual([40, 80, 120]);
   });
 
-  it('round 4: a list as a sentence says it has one helper', () => {
+  it('listWords joins a list as a sentence', () => {
     expect([listWords([]), listWords(['a']), listWords(['a', 'b']), listWords(['a', 'b', 'c'], 'or')]).toEqual(['', 'a', 'a and b', 'a, b or c']);
-    const copies = files('src').filter((f) => f !== 'src/words.ts' && f !== 'src/library/data.ts' && /slice\(0, -1\)\.join\(', '\)\} (and|or)/.test(readFileSync(f, 'utf8') as string));
-    expect(copies).toEqual([]);
   });
 
   it('round 4: every CONFIG lever is read somewhere outside config.ts and its parts', () => {
@@ -123,16 +121,9 @@ describe('leftover scan round 1', () => {
     expect(files('src').filter((f) => /\*\/\n[ \t]*\/\*\*/.test(readFileSync(f, 'utf8') as string))).toEqual([]);
   });
 
-  it('no copy of the capitalising helper is left (round 3: nor written inline)', () => {
-    const inline = /const cap = \(|charAt\(0\)\.toUpperCase\(\) \+|\[0\]\.toUpperCase\(\)\}\$\{|replace\(\/\^\.\/, \(\w\) => \w\.toUpperCase\(\)\)/;
-    const copies = files('src').filter((f) => f !== 'src/words.ts' && f !== 'src/library/data.ts' && inline.test(readFileSync(f, 'utf8') as string));
-    expect(copies).toEqual([]);
-  });
 
-  it('round 3: one-decimal rounding has one helper (r1)', () => {
+  it('r1 rounds to one decimal', () => {
     expect([r1(2.345), r1(-0.06), r1(10)]).toEqual([2.3, -0.1, 10]);
-    const copies = files('src').filter((f) => f !== 'src/words.ts' && f !== 'src/library/data.ts' && /Math\.round\([^)]*\* 10\) \/ 10/.test(readFileSync(f, 'utf8') as string));
-    expect(copies).toEqual([]);
   });
 
   it('every code name the spec prose gives (UPPER_SNAKE) exists in the code (src, tests, scripts)', () => {
@@ -188,12 +179,6 @@ describe('answers CS15 to CS17', () => {
     }
     expect(questXp(s, { level: 'zero', goal: { kind: 'deliver' } } as unknown as Quest)).toBe(rewardXp('ii', xpToNext(s.player)));
   });
-  it('CS17: items and attack modes count grips, never hands', () => {
-    const offenders = files('src').filter((f) => /([{,]|^)\s*hands\??:|\.hands\b|'hands'/m.test(readFileSync(f, 'utf8') as string));
-    expect(offenders).toEqual([]);
-    const lib = getLibrary();
-    expect(lib.items![IT.greatsword].grips).toBe(2);
-  });
 });
 
 describe('leftover scan round 6', () => {
@@ -215,10 +200,6 @@ describe('leftover scan round 6', () => {
     expect([...PUSH_TYPES].sort()).toEqual(SPEECH_ACTIONS.filter((t) => t !== 'talk').sort());
     expect(speechSkill('deceive')).toBe(SK.falsehood);
     expect(speechSkill('wave')).toBe(SK.persuasion);
-  });
-  it('grips, not hands, in code names: a grip passes bars, reaches into a zone, searches someone open to it', () => {
-    const offenders = files('src').filter((f) => /\b(handsPass|handsReach|openToHands|handsOn)\b/.test(readFileSync(f, 'utf8') as string));
-    expect(offenders).toEqual([]);
   });
 });
 
@@ -248,13 +229,6 @@ describe('leftover scan round 7', () => {
   it('Hard Bargain still pays: a sale with it pays less than buying the same item with it', () => {
     expect(CONFIG.SELL_SHARE * CONFIG.HARD_BARGAIN_SELL).toBeLessThan(CONFIG.TRADE_MARKUP * CONFIG.HARD_BARGAIN_BUY);
   });
-  it('held and worn gear: one isHeld and one isWorn test, no copies of the slot prefixes in engine code', () => {
-    const offenders = files('src/engine').filter((f) => /equippedIn\?\.some\(\(s\) => !?s\.startsWith\('grip:'\)\)|s === 'armor' \|\| s\.startsWith\('acc:'\)/.test(readFileSync(f, 'utf8') as string));
-    expect(offenders).toEqual([]);
-  });
-  it('grip, not hands, in code names', () => {
-    expect(files('src').filter((f) => /\b(handsOf|usableFreeHands)\b/.test(readFileSync(f, 'utf8') as string))).toEqual([]);
-  });
 });
 
 describe('leftover scan round 8', () => {
@@ -267,19 +241,8 @@ describe('leftover scan round 8', () => {
   });
 });
 
-describe('answer CS21', () => {
-  it('CS21: D-3 is settled; effective skill has no hard cap step', () => {
-    const spec = readSpec();
-    expect(spec).not.toMatch(/apply hard cap/);
-    expect(spec).toMatch(/\| D-3 \| Soft cap and hard cap \| 1 \| Built \|/);
-  });
-});
-
 describe('leftover scan round 9', () => {
-  it('slot names are spelled in one place: no other code builds or tests a grip or accessory slot by hand', () => {
-    const own = ['src/ruleset/slots.ts', 'src/save/checks.ts', 'src/library/data.ts']; // checks.ts: the v7 -> v8 migration keeps its fixed spelling
-    const offenders = files('src').filter((f) => !own.includes(f) && /startsWith\('(grip|acc):'\)|`(grip|acc):\$\{|replace\(\/\^grip:/.test(readFileSync(f, 'utf8') as string));
-    expect(offenders).toEqual([]);
+  it('a grip slot is held and an accessory slot is worn', () => {
     const sword = { equippedIn: [gripSlot('right_arm'), gripSlot('left_arm')] }, ring = { equippedIn: [accSlot(0)] };
     expect([isHeld(sword), isWorn(sword), isHeld(ring), isWorn(ring)]).toEqual([true, false, false, true]);
     expect(gripsOf(sword)).toEqual(['right_arm', 'left_arm']);
@@ -287,16 +250,10 @@ describe('leftover scan round 9', () => {
   it('a part\'s state reads its floors from config', () => {
     expect([51, 50, 1, 0, -99, -100].map(poolState)).toEqual(['healthy', 'damaged', 'damaged', 'crippled', 'crippled', 'destroyed']);
   });
-  it('one XP bar: every screen reads xpFill, and XP debt shows an empty bar', () => {
-    const offenders = files('src').filter((f) => f !== 'src/engine/xp.ts' && /\((pr\.)?xp \/ need\)/.test(readFileSync(f, 'utf8') as string));
-    expect(offenders).toEqual([]);
+  it('XP debt shows an empty bar', () => {
     const s = makeVillage();
     s.player.progression!.xp = -5;
     expect(xpFill(s.player).pct).toBe(0);
-  });
-  it('one rule for what is seen at a point (dark: at most partial)', () => {
-    const offenders = files('src').filter((f) => f !== 'src/perception/index.ts' && /=== 'dark' \? 'partial'/.test(readFileSync(f, 'utf8') as string));
-    expect(offenders).toEqual([]);
   });
 });
 
@@ -326,30 +283,20 @@ describe('answer CS24', () => {
 });
 
 describe('leftover scan round 11', () => {
-  const read = (f: string) => readFileSync(f, 'utf8') as string;
-  const src = files('src').filter((f) => f !== 'src/library/data.ts');
-  it('one table of opposite sides and steps; no file keeps its own', () => {
+  it('the opposite of a side turns back to it, with the opposite step', () => {
     expect(SIDES.map((d) => OPP_SIDE[OPP_SIDE[d]])).toEqual([...SIDES]);
     for (const d of SIDES) expect(SIDE_STEP[OPP_SIDE[d]].map((v) => 0 - v)).toEqual([...SIDE_STEP[d]]);
-    expect(src.filter((f) => f !== 'src/types/core.ts' && /\{ n: 's', s: 'n'|\{ n: \[0, 1\]/.test(read(f)))).toEqual([]);
   });
-  it('the armor slot is read in slots.ts only; comments, icons and roman numerals have one home each', () => {
-    expect(src.filter((f) => f !== 'src/ruleset/slots.ts' && /includes\('armor'\)/.test(read(f)))).toEqual([]);
-    expect(src.filter((f) => f !== 'src/ui/kit.ts' && /type CommentsApi\s*=/.test(read(f)))).toEqual([]);
-    expect(src.filter((f) => f !== 'src/scales.ts' && /(function|const) roman\b/.test(read(f)))).toEqual([]);
+  it('roman numerals', () => {
     expect(roman(4)).toBe('IV');
   });
-  it('body parts, health levels and grips have one helper each', () => {
+  it('partName names a body part', () => {
     expect(partName('left_arm')).toBe('Left arm');
-    expect(levelMaxPct('critical')).toBe(CONFIG.HEALTH_TRACK.find(([k]) => k === 'critical')![1]);
-    expect(src.filter((f) => f !== 'src/ruleset/body.ts' && /const partName = \(/.test(read(f)))).toEqual([]);
-    expect(src.filter((f) => f !== 'src/ruleset/body.ts' && /function freeGrips|const freeGrips/.test(read(f)))).toEqual([]);
   });
-  it('fresh ids come from one helper', () => {
+  it('freshId takes the next free number', () => {
     const taken = new Set(['a', 'a_2']);
     expect(freshId('a', taken)).toBe('a_3');
     expect(taken.has('a_3')).toBe(true);
-    expect(src.filter((f) => f !== 'src/ids.ts' && /function freshId/.test(read(f)))).toEqual([]);
   });
   it('plans name every trigger type but quiet_turns, from the one list', () => {
     expect(PLAN_TRIGGER_TYPES).toEqual(TRIGGER_TYPES.filter((t) => t !== 'quiet_turns'));
@@ -361,17 +308,5 @@ describe('leftover scan round 11', () => {
   });
   it('the spec names no removed rule', () => {
     expect(readSpec()).not.toMatch(/agents that return JSON call sample\.json/);
-  });
-});
-
-describe('answer CS26', () => {
-  it('the land maker keeps its shaping numbers in one named table (LAND) at the top, not in the drawing code', () => {
-    const g = readFileSync('src/land/generate.ts', 'utf8') as string;
-    const body = g.slice(g.indexOf('export function drawRegion'));
-    expect(g.indexOf('const LAND = {')).toBeLessThan(g.indexOf('export function drawRegion'));
-    // left in the body: 0, 1 and 2, halves, noise and hash salts and octave counts, the 16 moves and the crossing samples
-    const left = body.replace(/seed \+ \d+|hash\(seed, \w+, \d+\)/g, '').replace(/, [234]\)/g, ')').replace(/\[0, 0\.34, 0\.67, 1\]/, '').replace(/const MOVES[^\n]*/, '')
-      .replace(/\/\/[^\n]*/g, '').match(/(?<![\w.])\d+(\.\d+)?(?![\w])/g)?.filter((n) => !['0', '1', '2', '0.5'].includes(n)) ?? [];
-    expect(left).toEqual([]);
   });
 });

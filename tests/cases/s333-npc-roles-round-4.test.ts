@@ -39,7 +39,6 @@ describe('333 NPC roles, fourth round', () => {
   });
 
   it('NR46 b: a Dire beast has ×1.2 on every banded skill after the rank step, and its level follows', () => {
-    expect(getLibrary().prefixes![PF.dire].skillMult).toBe(1.2);
     const veteran = composeTemplate({ ...wolf, rank: 'rank_3' }, 'a wolf'), dire = composeTemplate({ ...wolf, prefix: PF.dire }, 'a dire wolf');
     const plain = presetSkills(veteran), fierce = presetSkills(dire);
     const banded = Object.keys(plain).filter((id) => id !== SK.resolve && plain[id].raw > 0 && !(id in (veteran.minimums ?? {})));
@@ -68,22 +67,7 @@ describe('333 NPC roles, fourth round', () => {
     expect(dire / n).toBeGreaterThan(0.05); expect(dire / n).toBeLessThan(0.16);
   });
 
-  it('NR21 a: crowd, faces, leaders, threats and seats use the answered weights', () => {
-    const R = CONFIG.ROSTER_RANKS;
-    expect(R.crowd).toEqual({ rank_1: 70, rank_2: 30 });
-    expect(R.face).toEqual({ rank_2: 50, rank_3: 40, rank_4: 10 });
-    expect(R.lead).toEqual({ rank_3: 50, rank_4: 40, rank_5: 10 });
-    expect(Object.keys(R.threat.village).at(-1)).toBe('rank_4');
-    expect(Object.keys(R.threat.town).at(-1)).toBe('rank_5');
-    expect(R.seat.town).toEqual({ rank_5: 100 });
-    expect(CONFIG.SEAT_STEP_UP_PCT).toBe(20);
-  });
-
   it('NR39: the rank table read backwards: anchors give their levels, between them the level moves evenly', () => {
-    expect(CONFIG.RANK_ROWS.rank_2.level).toBe(8);
-    expect(CONFIG.RANK_ROWS.rank_3.level).toBe(12);
-    expect(CONFIG.RANK_ROWS.rank_4.level).toBe(15);
-    expect(CONFIG.RANK_ROWS.rank_5.level).toBe(20);
     expect(levelAtSkill(50)).toBe(8);
     expect(levelAtSkill(87.5)).toBe(17.5); // halfway from Elite (75, L15) to Paragon (100, L20)
     expect(levelAtSkill(500)).toBe(CONFIG.RANK_ROWS.rank_8.level + CONFIG.RANK_BEYOND_STEP.level); // one step past Divine

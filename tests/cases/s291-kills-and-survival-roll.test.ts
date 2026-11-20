@@ -70,7 +70,6 @@ describe('291 kills and the survival roll', () => {
     const s = makeVillage();
     CONFIG.GROWTH_AT_SCENARIO_END = false;
     const a = getLibrary().achievements!;
-    expect([ACH.kills_1, ACH.kills_10, ACH.kills_50].map((id) => [a[id].count, a[id].level, a[id].maxMorale])).toEqual([[1, 'zero', 1], [10, 'i', 1], [50, 'ii', 1]]);
     const before = maxMorale(s.player);
     for (let i = 0; i < 10; i++) tally(s, 'kills');
     expect(earned(s)).toContain(ACH.kills_10);

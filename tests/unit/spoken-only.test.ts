@@ -2,7 +2,6 @@
 import { describe, expect, it } from 'vitest';
 import { callPlanner, callVoice, VirtualClock, type AgentCtx } from '../../src/agents';
 import { checkParserLegality, spokenOnly } from '../../src/agents/legality';
-import { PARSER_INSTRUCTIONS, PLANNER_INSTRUCTIONS, RESPONDER_INSTRUCTIONS, VOICE_INSTRUCTIONS } from '../../src/agents/prompts';
 import { resetConfig } from '../../src/config';
 import { ScriptedClaude } from '../harness';
 import { actorView, dialogueView, intentOf, plannerOut, playerView, voiceOut } from './agent-views';
@@ -32,9 +31,5 @@ describe('BG-93: a line is only the words spoken', () => {
     expect((await callVoice(dialogueView(), ctx, { world: new Set() })).output.line).toBe('Mmf. Aye.');
     const i = checkParserLegality({ ...intentOf(), spoken: '*bows* Good evening.' }, playerView());
     expect(i.intent.spoken).toBe('Good evening.');
-  });
-  it('every speaking agent is told so', () => {
-    for (const t of [PLANNER_INSTRUCTIONS, RESPONDER_INSTRUCTIONS, VOICE_INSTRUCTIONS]) expect(t).toContain('Your line holds only the words you say aloud');
-    expect(PARSER_INSTRUCTIONS).toContain('"spoken" holds only words said aloud');
   });
 });

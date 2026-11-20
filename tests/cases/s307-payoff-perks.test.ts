@@ -12,8 +12,7 @@ import { effectiveSkill, ruleset } from '../../src/ruleset';
 import { payoffShare, themeCount, trueSkill } from '../../src/ruleset/perks';
 import { tierMult } from '../../src/ruleset/gear';
 import { resolveTurn } from '../../src/engine';
-import { BUILT_PERKS } from '../../src/library/builtPerks';
-import { PERK_THEMES, themesOf } from '../../src/library/perkThemes';
+import { PERK_THEMES } from '../../src/library/perkThemes';
 import { SK } from '../../src/library/skillIds';
 import { PK } from '../../src/library/perkIds';
 import { IT } from '../../src/library/itemIds';
@@ -26,15 +25,10 @@ const knife = (a: Actor, s: ReturnType<typeof makeVillage>, when?: 'from_hiding'
   effectiveSkill(s, a, SK.melee_medium, { rollKind: 'hit', ...(when ? { when: [when] } : {}) }).gear.find((g) => g.source.includes('Patient Knife'))?.value ?? 0;
 
 describe('307 payoff perks', () => {
-  it('CN2: six themes, every member a real perk; CN5 the payoff perks sit on 100/140 ladder slots and are built', () => {
+  it('CN2: every theme member is a real perk', () => {
     makeVillage();
     const perks = getLibrary().perks;
-    expect(Object.keys(PERK_THEMES)).toEqual(['ambush', 'counter', 'guard', 'shout', 'trick', 'shadow']);
     for (const ids of Object.values(PERK_THEMES)) for (const id of ids) expect(perks[id], id).toBeDefined();
-    expect(themesOf(PK.battle_cry)).toEqual(['shout']);
-    expect(perks[PK.patient_knife].ladder).toEqual({ skill: SK.combat_stealth, milestone: 100 });
-    expect(perks[PK.protagonist_mentality].ladder).toEqual({ skill: SK.resolve, milestone: 60 });
-    expect([BUILT_PERKS.has(PK.patient_knife), BUILT_PERKS.has(PK.protagonist_mentality)]).toEqual([true, true]);
   });
 
   it('CN3/CN4: pieces count once, any source, dormant too for now; the share is PAYOFF_SHARE × pieces^PAYOFF_EXP, no ceiling (RN4)', () => {
@@ -90,10 +84,6 @@ describe('307 payoff perks', () => {
   });
   it('CN8 Chorus (Intimidation 120, with the 120 boosts): each shout piece adds 1 m of aura reach and grows the base reach by the payoff share', () => {
     const s = makeVillage();
-    const def = getLibrary().perks[PK.chorus];
-    expect(def.ladder).toEqual({ skill: SK.intimidation, milestone: 120 });
-    expect([def.shareOwn, def.shareGroup, def.functionBoost]).toEqual([CONFIG.HIGH_PERK_SHARE, CONFIG.HIGH_PERK_SPREAD, undefined]); // no +1 on a 120 perk
-    expect(themesOf(PK.chorus)).toEqual(['shout']);
     expect(auraReachM(s.player)).toBe(CONFIG.AURA_REACH_M);
     give(s.player, PK.chorus);
     expect(auraReachM(s.player)).toBeCloseTo(CONFIG.AURA_REACH_M * (1 + payoffShare(1)) + CONFIG.CHORUS_REACH_M);

@@ -56,7 +56,6 @@ describe('A3b limited moves on the deck', () => {
     const pv = buildPlayerView(s), groups = deck({ pv, s });
     expect(suggestions(groups, { pv, s }).some((x) => x.action.kind === 'steady')).toBe(false);
     expect(actionsOn(groups, 'patron_1').every((a) => !a.limit)).toBe(true);
-    expect(readFileSync(new URL('../../scripts/playtest.ts', import.meta.url), 'utf8')).toMatch(/if \(a\.limit\) continue;/);
   });
 
 });

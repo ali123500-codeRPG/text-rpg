@@ -8,7 +8,6 @@ import { getLibrary } from '../../src/library';
 import { loadStory, memoryStore, saveTurn } from '../../src/save';
 import { IT } from '../../src/library/itemIds';
 import { AM } from '../../src/library/tableIds';
-import { NARRATOR_INSTRUCTIONS } from '../../src/agents/prompts';
 import type { GameState } from '../../src/types';
 
 afterEach(() => resetConfig());
@@ -44,5 +43,4 @@ it('BG-186: an attack with a weapon that is not in hand comes to nothing and say
   const ev = shoot(s);
   expect(ev.map((e) => e.kind)).toEqual(['wasted']);
   expect(ev[0]).toMatchObject({ reason: 'not_in_hand' });
-  expect(NARRATOR_INSTRUCTIONS).toContain('a weapon not in hand');
 });

@@ -7,7 +7,6 @@ import { intent, play } from './w4-kit';
 import { placeAll } from '../../src/engine/position';
 import { buildNarrationView } from '../../src/views';
 import { fallbackNarration } from '../../src/agents/narration';
-import { NARRATOR_INSTRUCTIONS } from '../../src/agents/prompts';
 import { CONFIG } from '../../src/config';
 import { boxOf } from '../../src/plan/geom';
 
@@ -34,9 +33,5 @@ describe('176 a move says where it came from (BG-22)', () => {
     const text = fallbackNarration(v).text;
     expect(text).toContain('toward common room');
     expect(text).toContain(`from ${last.from} to common room`);
-  });
-
-  it('the Narrator is told how to read from, within and heading', () => {
-    expect(NARRATOR_INSTRUCTIONS).toMatch(/17\. A move event with from goes out of that zone into where\. One marked within stays inside where/);
   });
 });

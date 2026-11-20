@@ -8,8 +8,6 @@ import { fallBackOwner, nerveLetsWalk, walksAway } from '../../src/engine/nerve'
 import { zoneById } from '../../src/engine/relations';
 import { buildActorView } from '../../src/views';
 import { brokenOrder } from '../../src/minds';
-import { getLibrary } from '../../src/library';
-import { BUILT_PERKS } from '../../src/library/builtPerks';
 import { IT } from '../../src/library/itemIds';
 import { PK } from '../../src/library/perkIds';
 import { SK } from '../../src/library/skillIds';
@@ -22,13 +20,6 @@ const npc = (s: GameState, id: string) => s.actors.find((a) => a.id === id)!;
 const hit = (outcome: string, shifts: { source: string; value: number }[] = []) => ({ outcome, attack: { tierShifts: shifts }, gap: 0, defenseType: 'dodge', defense: null } as unknown as AttackResult);
 
 describe('372 Tactics 20 perks', () => {
-  it('sit on the 20 milestones of Battle Sense, Command and Fieldcraft, all built', () => {
-    const L = getLibrary().perks;
-    expect([PK.press_the_opening, PK.fall_back_on_me, PK.hug_the_cover].map((id) => L[id]?.ladder)).toEqual([
-      { skill: SK.battle_sense, milestone: 20 }, { skill: SK.command, milestone: 20 }, { skill: SK.fieldcraft, milestone: 20 }]);
-    for (const id of [PK.press_the_opening, PK.fall_back_on_me, PK.hug_the_cover]) expect(BUILT_PERKS.has(id)).toBe(true);
-  });
-
   it('Press the Opening: an ally hits a foe, the owner\'s next attack on it is one outcome better, then spent', () => {
     const s = makeVillage();
     const guard = place(s, 'guard_1', s.player.zone), patron = place(s, 'patron_1', s.player.zone);

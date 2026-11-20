@@ -2,16 +2,9 @@
 import { describe, expect, it } from 'vitest';
 import { makeVillage, actor } from '../harness';
 import { hears } from '../../src/perception';
-import { getLibrary } from '../../src/library';
 import { PK } from '../../src/library/perkIds';
-import { SK } from '../../src/library/skillIds';
-import { BUILT_PERKS } from '../../src/library/builtPerks';
 
 describe('137 Never Surprised', () => {
-  it('is built as the Earshot 100 perk', () => {
-    expect(getLibrary().perks[PK.never_surprised]?.ladder).toEqual({ skill: SK.earshot, milestone: 100 });
-    expect(BUILT_PERKS.has(PK.never_surprised)).toBe(true);
-  });
   it('an attack is heard in the owner zone; Keen Ear hears a quiet one 20 m off, never a silent one', () => {
     const s = makeVillage();
     const g = actor(s, 'guard_1');

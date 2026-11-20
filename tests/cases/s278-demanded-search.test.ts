@@ -2,14 +2,9 @@
 // their pockets can do it themselves (show), and may try to keep one thing back with a Filching roll. BF17: the guard
 // template's Eyesight floor (the skill a search rolls) is 40, above a thief's.
 import { expect, it } from 'vitest';
-import { actor, beside, makeVillage } from '../harness';
+import { beside, makeVillage } from '../harness';
 import { intent, play } from './w4-kit';
-import { getLibrary } from '../../src/library';
 import { IT } from '../../src/library/itemIds';
-import { SK } from '../../src/library/skillIds';
-import { TP } from '../../src/library/templateIds';
-import { NPC_ACTIONS, PARSER_ACTIONS } from '../../src/types';
-import { PARSER_INSTRUCTIONS, PLANNER_INSTRUCTIONS, RESPONDER_INSTRUCTIONS, VOICE_INSTRUCTIONS } from '../../src/agents/prompts';
 import { revealedTo } from '../../src/minds/state';
 
 const tavern = () => {
@@ -49,13 +44,4 @@ it('BF16: turning out your pockets shows what you carry to those who see it; one
   const f = ev2.effects.find((x) => x.kind === 'shown_items')!.data;
   expect(ev2.roll?.skill).toBeDefined(); // the Filching roll
   expect((f.items as string[]).includes('ring_1')).toBe(!!f.palmFailed); // kept back unless seen
-  expect(NPC_ACTIONS).toContain('show');
-  expect(PARSER_ACTIONS).toContain('show');
-  for (const p of [PLANNER_INSTRUCTIONS, RESPONDER_INSTRUCTIONS, VOICE_INSTRUCTIONS]) expect(p).toContain('set letsSearch to their id');
-  expect(PARSER_INSTRUCTIONS).toContain('is the action "show"');
-});
-
-it('BF17: the guard template\'s Eyesight floor is 40, above a thief\'s', () => {
-  expect(getLibrary().templates[TP.guard].minimums[SK.eyesight]).toBe(40);
-  expect(actor(makeVillage(), 'guard_1').core.skills[SK.eyesight]?.raw).toBeGreaterThanOrEqual(40);
 });

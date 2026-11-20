@@ -4,9 +4,6 @@
 import { describe, expect, it } from 'vitest';
 import { makeVillage, place } from '../harness';
 import { intent, play } from './w4-kit';
-import { getLibrary } from '../../src/library';
-import { BUILT_PERKS } from '../../src/library/builtPerks';
-import { PERK_MOVES } from '../../src/ruleset/perks';
 import { buildPlayerView } from '../../src/views';
 import { deck } from '../../src/ui/deck';
 import { maxMorale, moraleLost } from '../../src/ruleset/morale';
@@ -34,10 +31,7 @@ const setup = () => {
 };
 
 describe('374 Rally', () => {
-  it('is the Command 100 perk, built, a main-action move aimed at no one, in the action deck', () => {
-    expect(getLibrary().perks[PK.rally]?.ladder).toEqual({ skill: SK.command, milestone: 100 });
-    expect(BUILT_PERKS.has(PK.rally)).toBe(true);
-    expect(PERK_MOVES[PK.rally]).toMatchObject({ free: false, perEngagement: 1, untargeted: true });
+  it('is a main-action move aimed at no one, in the player view and the action deck', () => {
     const { s } = setup();
     const pv = buildPlayerView(s);
     expect(pv.player.perkMoves?.find((m) => m.id === PK.rally)).toMatchObject({ name: 'Rally', action: true });

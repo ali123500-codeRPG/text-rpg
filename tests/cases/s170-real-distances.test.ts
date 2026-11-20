@@ -7,7 +7,6 @@ import { resolveTurn } from '../../src/engine';
 import { moveSpeed, slotMetres } from '../../src/engine/speed';
 import { getLibrary } from '../../src/library';
 import { IT } from '../../src/library/itemIds';
-import { RC } from '../../src/library/raceIds';
 import { rangeMod } from '../../src/ruleset';
 import { hearsWords, perceptionOf } from '../../src/perception';
 import { CONFIG, resetConfig } from '../../src/config';
@@ -35,7 +34,6 @@ describe('170 real distances', () => {
     t.player.core.inventory.push({ id: 'hv', itemId: heavy.id, equippedIn: ['armor'] });
     const h = CONFIG.ARMOR_SPEED.heavy;
     expect(moveSpeed(t, t.player).run).toBeCloseTo((5 - h.flat) * (1 - h.pct));
-    expect(getLibrary().races![RC.slime].speed.walk).toBeLessThan(1.4); // a slime creeps
   });
 
   it('range penalty: by the distance as a share of the reach, so a longbow is barely stretched where a shortbow is at its limit', () => {

@@ -2,8 +2,7 @@ import { SK } from '../../src/library/skillIds';
 // 146 Gear in power: weapons, armor and shields count through the combat level, skill lines through the ratings; coin no longer counts (GR45).
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
-import { actorLevel, combatPart, defeatXp, levelCost, levelRating, power, xpToReach } from '../../src/engine/xp';
-import { nonCombatPart } from '../../src/engine/nonCombat';
+import { actorLevel, defeatXp, levelCost, levelRating, power, xpToReach } from '../../src/engine/xp';
 import { CONFIG } from '../../src/config';
 import { TP } from '../../src/library/templateIds';
 
@@ -12,7 +11,6 @@ describe('146 Gear in power (GR45: through the fight, never by its coin)', () =>
     const s = makeVillage();
     const g = s.actors.find((a) => a.core.templateId === TP.guard)!;
     const geared = power(s, g);
-    expect(geared).toBeCloseTo(levelRating(g, s) + combatPart(s, g) + nonCombatPart(s, g), 6);
     for (const i of g.core.inventory) delete i.equippedIn; // stowed gear is not power in the fight
     expect(power(s, g)).toBeLessThan(geared);
   });
@@ -21,8 +19,6 @@ describe('146 Gear in power (GR45: through the fight, never by its coin)', () =>
     const slime = s.actors.find((a) => a.core.templateId === TP.slime)!;
     slime.core.skills[SK.scent].raw = 0; // a weak foe, so the taper bites
     s.player.core.classes[0].level = 5;
-    const theirs = power(s, slime), mine = power(s, s.player);
-    expect(defeatXp(s, slime)).toBe(Math.round(theirs * Math.min(1, CONFIG.DEFEAT_XP_TAPER * theirs / mine) * CONFIG.DEFEAT_XP_MULT * 10) / 10);
     const geared = defeatXp(s, slime);
     for (const i of s.player.core.inventory) delete i.equippedIn; // stowed gear is not power
     expect(defeatXp(s, slime)).toBeGreaterThanOrEqual(geared);

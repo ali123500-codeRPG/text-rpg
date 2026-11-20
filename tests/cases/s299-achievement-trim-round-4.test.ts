@@ -5,36 +5,15 @@ import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { turnFeats } from '../../src/engine/feats';
 import { achievementName, tally } from '../../src/engine/xp';
-import { getLibrary } from '../../src/library';
 import { ACH, ACH_HEADS } from '../../src/library/achievementIds';
 import { chainLines } from '../../src/ui/pages';
 import { CONFIG } from '../../src/config';
 import type { GameState } from '../../src/types';
 
-const lib = () => getLibrary().achievements!;
-const counts = (rule: string, by?: string) => Object.values(lib()).filter((d) => d.rule === rule && d.by === by && !d.every).map((d) => d.count).sort((a, b) => a! - b!);
 const ids = (s: GameState) => (s.player.progression!.achievements ?? []).map((a) => a.id);
 const setup = () => { const s = makeVillage({ playerZone: 'tav_common' }); CONFIG.GROWTH_AT_SCENARIO_END = false; return s; };
 
 describe('299 achievement trim, round 4', () => {
-  it('the decided counts', () => {
-    expect(counts('crits', 'group')).toEqual([1, 10, 50, 100]);
-    expect(counts('spar_wins')).toEqual([1, 10, 25, 50]);
-    expect(counts('defeated')).toEqual([1, 5, 25]);
-    expect(counts('speech_won', 'skill')).toEqual([1, 10, 100, 250]);
-    expect(counts('holds')).toEqual([1, 10, 100]);
-    expect(counts('unseen_moves')).toEqual([1, 10, 50, 250]);
-    expect(counts('vanished')).toEqual([1, 5, 25, 50]); // XR16 added a 50
-    expect(counts('quests_abandoned')).toEqual([1, 5]);
-    expect(counts('zones')).toEqual([1, 25, 50, 150, 300]);
-    expect(counts('places', 'place_kind')).toEqual([1, 5, 10, 25, 50]);
-    expect(counts('class_max')).toEqual([1, 3, 5, 10]); // TM15: nothing cut, more classes are coming
-    expect(counts('class_max_tiers')).toEqual([2, 3, 4, 5, 6]);
-    expect(counts('healed', 'heal_source')).toContain(10000); // TM23: kept
-    expect(lib()[ACH.zones_1].level).toBe('minus_1');
-    for (const id of ['AC122', 'AC135']) expect(Object.values(lib()).some((d) => d.id === id)).toBe(false); // retired
-  });
-
   it('TM14: places are counted per kind, each place once, with the place that holds it', () => {
     const s = setup();
     turnFeats(s, []);

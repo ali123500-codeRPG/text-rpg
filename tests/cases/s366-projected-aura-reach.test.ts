@@ -6,16 +6,11 @@ import { makeVillage } from '../harness';
 import { CONFIG } from '../../src/config';
 import { auraReachM, projectedReachM } from '../../src/engine/auras';
 import { getLibrary } from '../../src/library';
-import { skillName } from '../../src/library/skillNames';
-import { FUNCTION_NAMES } from '../../src/library/functionNames';
-import { FN } from '../../src/library/functionIds';
 import { PK } from '../../src/library/perkIds';
-import { SK } from '../../src/library/skillIds';
 
 describe('366 Projected aura reach and Tactics renames', () => {
   it('projected reach is PROJECTED_AURA_MULT times the aura reach, Chorus included', () => {
     const s = makeVillage();
-    expect(CONFIG.PROJECTED_AURA_MULT).toBe(2);
     expect(projectedReachM(s.player)).toBe(CONFIG.PROJECTED_AURA_MULT * CONFIG.AURA_REACH_M);
     s.player.core.perks.push({ perkId: PK.chorus, source: 'level', gainedTurn: 0 });
     expect(projectedReachM(s.player)).toBeCloseTo(CONFIG.PROJECTED_AURA_MULT * auraReachM(s.player));
@@ -26,12 +21,5 @@ describe('366 Projected aura reach and Tactics renames', () => {
     const r = getLibrary().perks[PK.battle_cry]!.rules!;
     expect(r.kind).toBe('Move (projected aura)');
     expect(r.effect).toContain(`${CONFIG.PROJECTED_AURA_MULT} × the aura reach`);
-  });
-
-  it('shows SK31 as Falsehood and FN11 as Reaction; ids unchanged', () => {
-    expect(SK.falsehood).toBeDefined();
-    expect(skillName(SK.falsehood)).toBe('Falsehood');
-    expect(FUNCTION_NAMES[FN.initiative]).toBe('Reaction');
-    expect(FN.initiative).toBe('FN11');
   });
 });

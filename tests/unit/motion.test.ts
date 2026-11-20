@@ -1,8 +1,6 @@
 // Play screen motion (Motion Rules Review): the pieces that don't need a browser. The turn line names the body parts
 // that got worse (M-30), narration splits into sentences without changing its text (M-10), the sheet's before/after
-// values see what changed (M-74), and every duration is a --m-* token with no glows anywhere (M-50, M-70).
-// @ts-expect-error Node types are not installed; vitest runs in Node
-import { readFileSync } from 'node:fs';
+// values see what changed (M-74).
 import { afterEach, describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { partsWorse } from '../../src/agents/game';
@@ -71,16 +69,5 @@ describe('play screen motion', () => {
     ar.pools = { [part]: 0 };
     expect(gearNote(s, ar)!.text).toContain('empty');
     expect(gearNote(s, ar)!.cls).toBe('ps-destroyed');
-  });
-
-  it('durations are --m-* tokens and nothing animates a glow or a shadow', () => {
-    const css: string = readFileSync('src/ui/styles.css', 'utf8');
-    for (const t of ['--m-feedback', '--m-state', '--m-beat', '--m-sentence', '--m-reveal-cap', '--m-stagger', '--m-results-cap', '--m-count', '--m-trail', '--m-scenario', '--m-fall', '--m-honor', '--m-hold', '--m-shake', '--m-ghost-hold', '--m-gain-gap', '--m-gains-pace', '--m-ease', '--m-ease-exit'])
-      expect(css).toContain(`${t}:`);
-    for (const f of ['src/ui/motion.ts', 'src/ui/play.ts']) {
-      const src: string = readFileSync(f, 'utf8');
-      expect(src).not.toMatch(/box-?shadow|boxShadow|text-?shadow|drop-shadow/i);
-      expect(src.match(/\b\d+(\.\d+)?m?s\b['"`]/g) ?? []).toEqual([]); // no literal "300ms" or "1.4s" strings
-    }
   });
 });

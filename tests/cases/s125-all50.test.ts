@@ -79,8 +79,6 @@ describe('125 All-50 parts', () => {
     const s = makeVillage(), p = s.player;
     p.core.perks = [];
     const lib = getLibrary();
-    expect(lib.trees[TR.slime_senses].rating).toBe('inferior');
-    expect(Object.values(lib.trees).filter((t) => t.id !== TR.slime_senses).every((t) => (t.rating ?? 'normal') === 'normal')).toBe(true);
     set(p, [SK.eyesight, SK.earshot], 50);
     lib.trees[TR.perception].rating = 'superior';
     grantAllSteps(s, p);

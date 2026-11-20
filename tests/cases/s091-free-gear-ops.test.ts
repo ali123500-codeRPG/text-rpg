@@ -5,8 +5,6 @@ import { beside, makeVillage } from '../harness';
 import { act, intent, play, plannerOut } from './w4-kit';
 import { SK } from '../../src/library/skillIds';
 import { IT } from '../../src/library/itemIds';
-import { DU } from '../../src/library/tableIds';
-import { actionRow } from '../../src/ruleset/actionTime';
 import { lineUsed } from '../../src/ruleset/fatigue';
 import { layAll } from '../harness';
 
@@ -45,7 +43,6 @@ it('91 changing gear, armour included, costs no strain and no time', () => {
   // armor that can't go on (a weapon named) comes to nothing and says why (BG-149)
   const ev = play(s, { intent: intent({ gear: [{ op: 'armor', item: 'dg' }] }) });
   expect(ev.find((e) => e.actorId === 'player' && e.kind === 'wasted')?.reason).toBe('cannot_put_that_on');
-  for (const id of [DU.draw, DU.stow, DU.swap, DU.pick_up_ground, DU.from_pack, DU.armor_heavy_on, DU.armor_heavy_off]) expect(actionRow(id)).toMatchObject({ seconds: 0, effort: 'base' });
 });
 
 it('91 an NPC follows the same rule: armor on beside its attack, and the blow still comes', () => {

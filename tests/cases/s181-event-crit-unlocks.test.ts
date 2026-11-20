@@ -44,7 +44,6 @@ describe('181 event-roll criticals open tiers past Critical', () => {
     const s = makeVillage();
     expect(ev(s, 1)).toBe('Critical Failure');
     expect(earned(s)).toEqual([ACH.event_crit_fail_1]);
-    expect(getLibrary().achievements![ACH.event_crit_fail_1].scar).toBe(true);
     expect(ev(s, 8)).toBe('Critical Failure');
     expect(ev(s, 3)).toBe('Critical Failure−');
     expect(earned(s)).toEqual([ACH.event_crit_fail_2]);

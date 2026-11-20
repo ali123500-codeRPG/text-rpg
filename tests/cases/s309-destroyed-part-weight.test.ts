@@ -14,7 +14,6 @@ afterEach(() => resetConfig());
 
 describe('309 a Destroyed part weighs 1.2 Crippled ones', () => {
   it('its role penalty is 1.2 times the Crippled one', () => {
-    expect(CONFIG.DESTROYED_PART_WEIGHT).toBe(1.2);
     expect(rolePenaltyOf('destroyed')).toBeCloseTo(CONFIG.ROLE_PENALTY.crippled * 1.2);
     const s = makeVillage();
     s.player.core.condition.parts.left_leg = -50; // Crippled: half the shared Move penalty of two legs

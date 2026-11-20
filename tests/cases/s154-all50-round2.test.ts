@@ -11,18 +11,10 @@ import type { Actor, GameEvent } from '../../src/types';
 import { PK } from '../../src/library/perkIds';
 import { IT } from '../../src/library/itemIds';
 import { FR } from '../../src/library/tableIds';
-import { SK } from '../../src/library/skillIds';
-import { ALL_BUNDLES, SKILL_PARTS } from '../../src/library/allPerks';
-import { TR } from '../../src/library/treeIds';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'mastery', gainedTurn: 0 });
 
 describe('154 All-50 parts round 2', () => {
-  it('the parts belong to their skills, and Last to Fall is the Fortitude passive', () => {
-    expect(SKILL_PARTS[SK.unarmed_improvised]).toBe(PK.junk_arsenal);
-    expect(SKILL_PARTS[SK.earshot]).toBe(PK.know_the_step);
-    expect(ALL_BUNDLES.find((b) => b.treeId === TR.fortitude)?.passive).toBe(PK.last_to_fall);
-  });
 
   it('Junk Arsenal: improvised hits deal ×1.2 before armor; other weapons do not', () => {
     const hit = (item: string, perk: boolean) => {

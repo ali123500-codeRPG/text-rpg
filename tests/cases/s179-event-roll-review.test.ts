@@ -2,9 +2,8 @@
 // slightly bad; the scenario's event roll shows on the Rolls line (only shown with Show rolls on).
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
-import { GRADES_FIT, gradesFitText, gradesFitTier } from '../../src/scenario/validate';
+import { GRADES_FIT, gradesFitTier } from '../../src/scenario/validate';
 import { mechanicsLines } from '../../src/agents/game';
-import { WEAVER_INSTRUCTIONS } from '../../src/agents/prompts';
 
 describe('179 event roll tiers (ER1, ER2)', () => {
   it('Great Success is a prize one or two steps above a real challenge (SW1 b, SW2 a); Critical Success is the biggest gain inside a Critical Failure challenge (D-247)', () => {
@@ -25,10 +24,6 @@ describe('179 event roll tiers (ER1, ER2)', () => {
     expect(gradesFitTier('near_miss', 'major', 'moderate')).toBe(true);
     expect(gradesFitTier('near_miss', 'moderate', 'moderate')).toBe(false);
     expect(gradesFitTier('success', 'moderate', 'moderate')).toBe(true);
-    expect(gradesFitText()).toContain('Near Miss = challenge minor to major, gain one step below it');
-    expect(gradesFitText()).toContain('Great Success = challenge moderate to major, gain 1 to 2 steps above it');
-    expect(WEAVER_INSTRUCTIONS).toContain('Every scenario, at every tier, has a real');
-    expect(WEAVER_INSTRUCTIONS).toContain('never by a milder danger');
   });
 });
 

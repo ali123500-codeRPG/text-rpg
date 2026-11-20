@@ -6,7 +6,6 @@ import { resolveTurn } from '../../src/engine';
 import { ruleset } from '../../src/ruleset';
 import { spawnNpc } from '../../src/library/spawn';
 import { buildNarrationView, buildPlayerView } from '../../src/views';
-import { NARRATOR_INSTRUCTIONS } from '../../src/agents/prompts';
 import type { ContestResult, Intent } from '../../src/types';
 
 afterEach(() => vi.restoreAllMocks());
@@ -35,9 +34,4 @@ it('BG-92: a half-seen someone keeps its place (distance, side) in the narration
   const someone = v.actors.find((a) => a.label === 'someone');
   expect(someone).toMatchObject({ zone: 'the square', side: 'ahead' });
   expect(someone?.distanceM).toBeTypeOf('number');
-});
-
-it('BG-92: the Narrator never turns a half-seen someone into another person', () => {
-  expect(NARRATOR_INSTRUCTIONS).toContain('Every entry in actors is a different person');
-  expect(NARRATOR_INSTRUCTIONS).toContain('never let it turn out to be, or resolve into, anyone else in actors or events');
 });

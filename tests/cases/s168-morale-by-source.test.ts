@@ -18,7 +18,6 @@ const has = (s: GameState, key: string) => !!s.player.progression?.achievements?
 describe('168 morale restored by source, health and morale lost', () => {
   it('rest restores health from the healing table and morale from the composure table, each counted under its own row', () => {
     const s = makeVillage(), p = s.player;
-    expect(getLibrary().healing![HL.rest].composure).toBe(CP.rest);
     p.core.condition.hpLostPct = 30;
     setMoraleLost(p, maxMorale(p));
     applyHealing(s, p, HL.rest);

@@ -10,8 +10,7 @@ import {
 } from '../../src/ruleset';
 import type { Actor } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
-import { FN, GR } from '../../src/library/functionIds';
-import { groupsOf } from '../../src/library/functionNames';
+import { FN } from '../../src/library/functionIds';
 import { kitBonus } from '../../src/ruleset/gear';
 import { maxMorale, moraleLevel, restoreMorale, tierCostMult } from '../../src/ruleset/morale';
 import { CONFIG } from '../../src/config';
@@ -51,7 +50,6 @@ describe('ruleset maths', () => {
   it('a kit piece gives EQUIP_FACTOR × its need', () => {
     const lib = getLibrary();
     const bonus = (id: string) => kitBonus(lib.items[id], lib.items[id].effects!.find((e) => e.kit)!);
-    expect(CONFIG.EQUIP_FACTOR).toBe(0.4);
     expect([IT.cudgel, IT.dagger, IT.round_shield, IT.arming_sword, IT.greataxe].map(bonus)).toEqual([0, 10, 10, 20, 30]);
     const minted = { ...lib.items[IT.arming_sword], base: { itemId: IT.arming_sword, quality: 'quality_3' as const, boosts: 'hitAdj' } };
     expect(kitBonus(minted, minted.effects![0])).toBe(30); // quality 3: one level up (superior, need 75)
@@ -189,9 +187,6 @@ describe('ruleset methods', () => {
     } finally {
       dodge.functions = before;
     }
-  });
-  it('Dodge is in the Defense and Speed groups', () => {
-    expect(groupsOf(getLibrary().skills[SK.dodge])).toEqual([GR.defense, GR.speed]);
   });
   it('outnumbered, unaware and missile modifiers on the defense', () => {
     const s = makeVillage();

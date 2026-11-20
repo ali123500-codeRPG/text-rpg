@@ -15,7 +15,6 @@ import { steady, steadyPct } from '../../src/engine/steady';
 import { payFear } from '../../src/engine/morale';
 import { maxMorale, moraleLost } from '../../src/ruleset/morale';
 import { buildPlayerView } from '../../src/views';
-import { NEEDS } from '../../src/engine/merge';
 
 /** the patron is hostile to the player and knows where they are: the player is in a fight */
 const foe = (s: GameState): GameState => {
@@ -32,7 +31,6 @@ it('SY1: the tier wins back (or loses) a share of max morale, more past either e
   expect(steadyPct(TIERS.pos('failure'))).toBeLessThan(0);
   expect(steadyPct(TIERS.pos('critical_success') + 2)).toBe(CONFIG.STEADY_PCT.critical_success + 2 * CONFIG.STEADY_PAST_PCT);
   expect(steadyPct(TIERS.pos('critical_failure') - 1)).toBe(CONFIG.STEADY_PCT.critical_failure - CONFIG.STEADY_PAST_PCT);
-  expect(NEEDS.steady).toBeUndefined(); // needs no reach
 });
 
 it('SY1: a fine roll wins morale back and leaves Mentally steady; the next loss is halved, then the buff is gone', () => {

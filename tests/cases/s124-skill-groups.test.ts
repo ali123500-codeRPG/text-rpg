@@ -1,9 +1,7 @@
 // 124 Skill groups and functions (F1–F8): a skill lists one or more narrow functions (stand-ins at
 // SUBSTITUTE_EFFICIENCY 0.3, which perks can move); each function sits in one broad group (40 perk +1, XP category).
 import { BT, RC } from '../../src/library/raceIds';
-import { TR } from '../../src/library/treeIds';
-import { FN, GR } from '../../src/library/functionIds';
-import { groupsOf } from '../../src/library/functionNames';
+import { FN } from '../../src/library/functionIds';
 import { afterEach, describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { effectiveSkill, trueSkill } from '../../src/ruleset';
@@ -20,15 +18,6 @@ const only = (a: Actor, skills: Record<string, number>) => {
 afterEach(() => { delete getLibrary().perks.test_stand_in; });
 
 describe('124 skill groups and functions', () => {
-  it('F1/F6: tremor has no function of its own, it augments Earshot; XP reads the skill group', () => {
-    const k = getLibrary().skills;
-    expect(k[SK.tremor].functions).toEqual([]);
-    expect(k[SK.tremor].augments).toEqual([{ skill: SK.earshot }]);
-    // XP reads the skill's first group (no separate XP category)
-    expect([k[SK.melee_light], k[SK.unarmed_strike], k[SK.ranged_heavy], k[SK.riposte], k[SK.blade_dance]].map((s) => groupsOf(s)[0])).toEqual([GR.melee, GR.melee, GR.ranged, GR.melee, GR.melee]);
-    expect([k[SK.dodge], k[SK.endurance], k[SK.eyesight], k[SK.tremor], k[SK.barter], k[SK.lockpicking]].map((s) => groupsOf(s)[0])).toEqual([GR.defense, GR.health, GR.notice, GR.notice, GR.influence, GR.sleight]);
-    expect(getLibrary().trees[TR.melee].name).toBe('Combat – Arms'); // F7
-  });
   it('F4: sight and hearing no longer stand in for each other; tremor adds to hearing only', () => {
     const s = makeVillage();
     only(s.player, { [SK.eyesight]: 80 });

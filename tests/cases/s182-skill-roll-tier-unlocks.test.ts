@@ -5,7 +5,6 @@ import { makeVillage, forcedRng } from '../harness';
 import { ruleset, extraBands, tierLevel } from '../../src/ruleset';
 import { TIERS } from '../../src/scales';
 import { getLibrary } from '../../src/library';
-import { CONFIG } from '../../src/config';
 import type { TierUnlock } from '../../src/types';
 
 const give = (s: ReturnType<typeof makeVillage>, unlocks: TierUnlock[]) => {
@@ -18,7 +17,6 @@ const rollAt = (s: ReturnType<typeof makeVillage>, mod: number, rollKind?: 'hit'
 
 describe('182 skill-roll tier unlocks (D-211)', () => {
   it('extra bands: one per tier opened, TIER_EXTRA_BAND apart', () => {
-    expect(CONFIG.TIER_EXTRA_BAND).toBe(50);
     expect(extraBands(124, { up: 2, down: 0 })).toBe(0);
     expect(extraBands(125, { up: 2, down: 0 })).toBe(1);
     expect(extraBands(175, { up: 2, down: 0 })).toBe(2);

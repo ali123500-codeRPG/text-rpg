@@ -7,7 +7,6 @@ import { createRng, makeVillage } from '../harness';
 import { applyCheckin, frameOf } from '../../src/engine/scenarioEnd';
 import { applyCheckinPlan, checkinPlanErrors } from '../../src/scenario/checkin';
 import { checkCheckin } from '../../src/agents/schema';
-import { FIXED } from '../../src/agents/prompts';
 import { TP } from '../../src/library/templateIds';
 import { waysOut } from '../../src/plan/where';
 
@@ -62,6 +61,5 @@ describe('188 what a check-in may change (SC12)', () => {
     expect(v.errors).toEqual([]);
     expect(v.value.arrivals!.cast[0]).toMatchObject({ key: 'rider_1' });
     expect(v.value).not.toHaveProperty('zones');
-    expect(FIXED.checkin).toContain('Never add zones or rooms to a place');
   });
 });

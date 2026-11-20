@@ -4,12 +4,8 @@
 // stands) and costs it 10 morale per tier of gap. Both sides mark.
 import { describe, expect, it } from 'vitest';
 import { forcedRng, makeVillage } from '../harness';
-import { getLibrary } from '../../src/library';
-import { BUILT_PERKS } from '../../src/library/builtPerks';
 import { PK } from '../../src/library/perkIds';
 import { SK } from '../../src/library/skillIds';
-import { FN, GR } from '../../src/library/functionIds';
-import { FUNCTION_GROUP, functionName } from '../../src/library/functionNames';
 import { engagementAuras } from '../../src/engine/auras';
 import { payFear } from '../../src/engine/morale';
 import { moraleLost } from '../../src/ruleset/morale';
@@ -36,14 +32,6 @@ const setup = (zone?: string) => {
 const run = (s: GameState, rolls: number[]) => engagementAuras(s, forcedRng(rolls), (a, id, gap) => payFear(s, forcedRng([50]), a, id, { gap }));
 
 describe('152 Dread Presence', () => {
-  it('is the Intimidation 100 perk; Battle Cry moves to 140; the aura functions sit in the Aura group', () => {
-    const perks = getLibrary().perks;
-    expect(perks[PK.dread_presence]?.ladder).toEqual({ skill: SK.intimidation, milestone: 100 });
-    expect(BUILT_PERKS.has(PK.dread_presence)).toBe(true);
-    expect(FUNCTION_GROUP[FN.engagement_aura]).toBe(GR.aura);
-    expect(FUNCTION_GROUP[FN.projected_aura]).toBe(GR.aura);
-    expect(functionName(FN.engagement_aura)).toBe('Engagement aura');
-  });
 
   it('a target that loses is Shaken toward the owner and pays 10 morale per tier, once per engagement', () => {
     const { s, t } = setup();

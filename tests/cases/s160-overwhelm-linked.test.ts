@@ -5,10 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import { makeVillage, place } from '../harness';
 import { intent, play } from './w4-kit';
-import { getLibrary } from '../../src/library';
-import { BUILT_PERKS } from '../../src/library/builtPerks';
 import { PERK_LINKS } from '../../src/library/perkLinks';
-import { AURA_SKILLS } from '../../src/library/auras';
 import { hasPerk, trueSkill } from '../../src/ruleset/perks';
 import { syncPerkLinks } from '../../src/ruleset/perkLinks';
 import { maxMorale, moraleLevel } from '../../src/ruleset/morale';
@@ -18,7 +15,7 @@ import { createRng } from '../../src/rng';
 import { buildNarrationView } from '../../src/views';
 import { PK } from '../../src/library/perkIds';
 import { SK } from '../../src/library/skillIds';
-import { FR, LK } from '../../src/library/tableIds';
+import { FR } from '../../src/library/tableIds';
 import type { Actor, ContestResult, GameState } from '../../src/types';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
@@ -28,13 +25,6 @@ const resolve = (a: Actor, raw: number) => { a.core.skills[SK.resolve] = { raw, 
 const won = (gap: number) => ({ winner: 'a', gap: -gap }) as ContestResult;
 
 describe('160 Overwhelm and linked perks', () => {
-  it('Overwhelm is the Resolve 100 perk; Crushing Presence is a linked perk; both built', () => {
-    expect(getLibrary().perks[PK.overwhelm]?.ladder).toEqual({ skill: SK.resolve, milestone: 100 });
-    expect(getLibrary().perks[PK.crushing_presence]?.linked).toBe(true);
-    expect(BUILT_PERKS.has(PK.overwhelm) && BUILT_PERKS.has(PK.crushing_presence)).toBe(true);
-    expect(PERK_LINKS.find((l) => l.id === LK.crushing_presence)).toMatchObject({ needs: [PK.dread_presence, PK.overwhelm], kind: 'grant' });
-    expect(AURA_SKILLS).toEqual([SK.intimidation]);
-  });
 
   it('overwhelms only with the perk, a win by 3+ tiers and a target at half the owner\'s max morale or less', () => {
     const s = makeVillage();

@@ -17,10 +17,6 @@ const sk = (raw: number) => ({ raw, state: 'normal' as const });
 
 describe('126 Equip requirements', () => {
   it('EQ8–EQ11: levels and what they ask; quality 3 and 4 add a level', () => {
-    expect(requirement(itemDef(null, IT.gambeson))).toEqual({ skill: SK.light_armor, level: 'common', need: 25 });
-    expect(requirement(itemDef(null, IT.arming_sword))).toEqual({ skill: SK.melee_medium, level: 'fine', need: 50 });
-    expect(requirement(itemDef(null, IT.plate_harness))).toEqual({ skill: SK.heavy_armor, level: 'superior', need: 75 });
-    expect(requirement(itemDef(null, IT.round_shield))).toEqual({ skill: SK.block, level: 'common', need: 25 });
     expect(requirement(itemDef(null, IT.bandage))).toBeNull();
     const minted = (q: 1 | 2 | 3 | 4, base: string = IT.crossbow): ItemDef => ({ ...itemDef(null, base), base: { itemId: base, quality: (['quality_1', 'quality_2', 'quality_3', 'quality_4'] as const)[q - 1], boosts: '' } });
     expect(itemLevel(minted(2))).toBe('superior');

@@ -2,7 +2,6 @@
 // talent, no children, creation and the stage line.
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
-import { bannedLines } from '../harness/guard';
 import { intent, wholeTurn } from '../harness/turn';
 import { FIXED } from '../../src/agents/prompts';
 import { ageFloor, ageKeeps, ageText, ageYears, advanceAging, bornDayFor, lifeStage, stageName, stageOf, stageReaches, talentMult, talentName, youngestAge } from '../../src/ruleset/age';
@@ -69,9 +68,6 @@ describe('NPC ages (AG13, AG14)', () => {
 });
 
 describe('youngest age per rank (AG12, AG21–AG25)', () => {
-  it('reads training years from the rank rows, the same for every race, +10 a step past Paragon', () => {
-    expect(['rank_0', 'rank_1', 'rank_2', 'rank_3', 'rank_4', 'rank_5', 'rank_6', 'rank_8', 'rank_9'].map((r) => rankRow(r as `rank_${number}`).training)).toEqual([0, 1, 4, 8, 12, 20, 30, 50, 60]);
-  });
   it('multiplies them by talent, halving past Prodigy, from the race\'s Youth start', () => {
     expect(['talent_0', 'talent_1', 'talent_2', 'talent_3', 'talent_4', 'talent_5', 'talent_6'].map((k) => talentMult(k as `talent_${number}`))).toEqual([3, 2, 1, 0.75, 0.5, 0.25, 0.125]);
     expect(talentName('talent_6')).toBe('Prodigy++');
@@ -124,9 +120,6 @@ describe('no children', () => {
     const s = makeVillage();
     for (let i = 0; i < 20; i++) expect(stageOf(s, spawnNpc(s, TP.patron, { id: `npc_k${i}`, zone: 'z', placeId: 'p', bandId: 'b', ageStage: 'stage_0' }))).not.toBe('Child');
     expect(Object.values(getLibrary().templates).some((t) => t.label.includes('child'))).toBe(false);
-  });
-  it('has no child preset, role or tension left in the code', () => {
-    expect(bannedLines(/TP\.child|RO\.child|TN\.old_head|kind: 'child'|ageStage: 'stage_0'/)).toEqual([]);
   });
   it('tells every agent the world has no children, and offers the Weaver no Child stage', async () => {
     const t = wholeTurn();

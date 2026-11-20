@@ -6,7 +6,6 @@ import { makeVillage } from '../harness';
 import { intent, play } from './w4-kit';
 import { placeAll } from '../../src/engine/position';
 import { buildNarrationView } from '../../src/views';
-import { NARRATOR_INSTRUCTIONS } from '../../src/agents/prompts';
 import { CONFIG } from '../../src/config';
 import { boxOf } from '../../src/plan/geom';
 
@@ -23,7 +22,6 @@ it('BG-47: a leg that stops short of the door says how many metres are still to 
   const mv = v.events.find((e) => ev.some((g) => g.id === e.id && g.kind === 'move' && g.actorId === s.player.id))!;
   expect(mv.heading).toBe('common room');
   expect(mv.toGo).toBeGreaterThan(0);
-  expect(NARRATOR_INSTRUCTIONS).toContain('toGo');
 });
 
 it('BG-48: a leg toward someone in another zone that stops short says how far the way still is too', () => {

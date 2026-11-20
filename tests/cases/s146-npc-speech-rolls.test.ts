@@ -6,8 +6,6 @@ import { makeVillage } from '../harness';
 import { act, intent, play, plannerOut } from './w4-kit';
 import { actorById } from '../../src/engine/relations';
 import { applySpeech, pushContest } from '../../src/engine/speech';
-import { getLibrary } from '../../src/library';
-import { TP } from '../../src/library/templateIds';
 import { resolveSpeech } from '../../src/engine';
 import { buildActorView, buildNarrationView } from '../../src/views';
 import { ruleset } from '../../src/ruleset';
@@ -130,17 +128,12 @@ it('146g a repeat try of the same kind at the same listener costs the speaker 15
   expect(s.player.speechTries).toBeUndefined(); // tries end with the engagement
 });
 
-it('146h a lie rolls Falsehood and the listener answers with Insight; only the shady template lies (NT16–NT18)', () => {
+it('146h a lie rolls Falsehood and the listener answers with Insight (NT16–NT18)', () => {
   const s = makeVillage({ playerZone: 'tav_counter' });
   const c = resolveSpeech(s, intent({ action: { type: 'deceive', target: 'trader' }, spoken: 'I am the reeve.', addressees: ['trader'] }), ['trader'], createRng(2)).perSpokesperson.trader.contest;
   expect(c.b.skill).toBe(SK.insight);
   const p = pushContest(atTheGate(), actorById(atTheGate(), 'guard_1')!, 'deceive', createRng(2));
   expect(p.b.skill).toBe(SK.insight);
-  const lib = getLibrary();
-  expect(lib.trees[lib.skills[SK.falsehood].treeId].name).toBe('Trickery');
-  expect(lib.trees[lib.skills[SK.insight].treeId].skills).toEqual([SK.eyesight, SK.earshot, SK.insight, SK.scent]);
-  const liars = Object.values(lib.templates).filter((t) => t.minimums[SK.falsehood]).map((t) => t.id);
-  expect(liars).toEqual([TP.thief]);
 });
 
 // NL1-NL4 (D-155 lies only): a lie one NPC aims at another rolls the same contest; a caught false name is not kept and

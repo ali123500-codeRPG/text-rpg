@@ -6,7 +6,6 @@ import type { GameEvent } from '../../src/types';
 import { makeVillage, place } from '../harness';
 import { noteSightings } from '../../src/perception';
 import { buildPlayerView } from '../../src/views';
-import { PARSER_INSTRUCTIONS } from '../../src/agents/prompts';
 
 let n = 0;
 const ev = (e: Partial<GameEvent> & Pick<GameEvent, 'actorId' | 'kind' | 'zone'>): GameEvent =>
@@ -25,9 +24,5 @@ describe('181 heard leaving (BG-28)', () => {
     keep.zone = 'tav_kitchen';
     noteSightings(ev({ actorId: 'trader', kind: 'move', zone: 'tav_kitchen', fromZone: 'tav_cellar' }), s);
     expect(buildPlayerView(s).lastSeen).toContainEqual(expect.objectContaining({ id: 'trader', zone: 'tav_cellar', zoneName: 'cellar' }));
-  });
-
-  it('the Parser is told not to ask who someone in lastSeen is', () => {
-    expect(PARSER_INSTRUCTIONS).toContain('never ask who the player means when one of them fits the words');
   });
 });

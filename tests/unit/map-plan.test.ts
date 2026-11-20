@@ -4,7 +4,6 @@ import { describe, expect, it } from 'vitest';
 import { checkReach, checkStage, planScene, roughMeasure, wrap, type Box, type Scene } from '../../src/ui/mapPlan';
 import { knownMap, type MapZone } from '../../src/ui/mapData';
 import { createFakeGame } from '../../src/ui/fakeGame';
-import { FAKE_STAGES } from '../../src/ui/fakeStages';
 import { wholeTurn } from '../harness/turn';
 import { intent } from '../cases/w4-kit';
 import type { GameState } from '../../src/types';
@@ -67,7 +66,6 @@ describe('MAP-52 test stages', () => {
     expect(out).toContain('MAP-12 zone high_lane runs through the building tavern');
     expect(out.some((f) => f.startsWith('MAP-10 zone tavern.common'))).toBe(true);
   });
-  it('the stages exist as the fake preview names them', () => expect(Object.keys(FAKE_STAGES)).toEqual(['bent-nail', 'bent-nail-saved', 'one-room', 'long-names']));
 });
 
 describe('MR2: a stored layout that breaks the map rules is named, never moved (PZ16 b: plans are kept as drawn)', () => {

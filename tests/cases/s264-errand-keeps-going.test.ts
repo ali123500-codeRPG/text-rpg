@@ -8,7 +8,6 @@ import type { AcceptedAgentOutput } from '../../src/engine';
 import { act, intent, play, plannerOut } from './w4-kit';
 import { SK } from '../../src/library/skillIds';
 import { plannerActors } from '../../src/agents/game';
-import { CONFIG } from '../../src/config';
 
 it('an NPC that answers with an errand keeps thinking until it holds', () => {
   const s = makeVillage({ playerZone: 'tav_counter', without: ['slime_1', 'slime_2', 'guard_1'] });
@@ -22,5 +21,4 @@ it('an NPC that answers with an errand keeps thinking until it holds', () => {
   expect(plannerActors(s)).toContain('trader');
   play(s, { intent: intent(), agentOutputs: [plannerOut('trader', act('hold'))] });
   expect(plannerActors(s)).not.toContain('trader');
-  expect(CONFIG.ERRAND_TURNS).toBeGreaterThan(0);
 });

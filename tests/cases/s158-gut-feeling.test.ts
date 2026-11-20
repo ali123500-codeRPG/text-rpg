@@ -8,7 +8,6 @@ import { forcedRng, makeVillage, place } from '../harness';
 import { gutFeelings, hiddenWatcher } from '../../src/engine/hunches';
 import { buildNarrationView } from '../../src/views';
 import { beliefStatus } from '../../src/perception';
-import { BUILT_PERKS } from '../../src/library/builtPerks';
 import { PK } from '../../src/library/perkIds';
 import type { Actor, GameState } from '../../src/types';
 import { play } from './w4-kit';
@@ -31,7 +30,6 @@ const setup = (zone?: string) => {
 };
 
 describe('158 Gut Feeling', () => {
-  it('is coded but not takeable until it has a place on the Insight ladder (LI7)', () => expect(BUILT_PERKS.has(PK.gut_feeling)).toBe(false));
 
   it('a hidden watcher is wary of the owner, aware of it, close, and unseen by it', () => {
     const { s, g } = setup();

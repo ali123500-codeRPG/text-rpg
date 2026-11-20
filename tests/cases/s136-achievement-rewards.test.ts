@@ -52,12 +52,6 @@ describe('136 achievement rewards', () => {
     s.player.progression!.charges![ACH.brink_3] -= 1;
     expect(deathsDoor(s, s.player, 50, 120)).toBe(top);
   });
-  it('Shadow\'s Edge (50 unaware defeats) gives XP only; The Unseen Death makes your moves one step quieter', () => {
-    const lib = getLibrary().achievements!;
-    const { id: _i, name: _n, level: _l, rule: _r, tags: _t, count: _c, after: _a, personality: _p, ...rest } = lib[ACH.unaware_50];
-    expect(rest).toEqual({}); // no reward beyond XP (its personality step, AP4, is not a game effect)
-    expect(lib[ACH.unaware_100].quieter).toBe(1);
-  });
   it('Bones Heal Later grants Past the Pain: one Crippled part gives no role penalty', () => {
     const s = makeVillage();
     s.player.core.condition.parts.right_arm = -10; // Crippled

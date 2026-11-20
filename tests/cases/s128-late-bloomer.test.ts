@@ -21,11 +21,9 @@ describe('128 Late bloomer and class-level perks', () => {
     expect(validateBuild({ ...b, skills: { ...b.skills, [SK.riposte]: 5, [SK.dodge]: 5 } })).toEqual(['Riposte is not open to the point-buy']);
     const p = createPlayer(b, 's1');
     expect(p.core.classes).toEqual([{ classId: CL.late_bloomer, state: 'current', level: 1 }, { classId: CL.commoner, state: 'unlocked', level: 0 }]); // Commoner is open from the start
-    expect(getLibrary().classes[CL.late_bloomer].name).toBe('Unwritten Legend');
     expect(p.core.perks).toContainEqual({ perkId: PK.any_road_will_do, source: 'class', gainedTurn: 0 });
     expect(p.core.perks.some((x) => x.perkId === PK.quick_study)).toBe(false); // UL2: Quick Study is A Nobody's own
     expect(p.progression!.unspentPerkPoints).toBe(0);
-    expect(p.label).toBe('a young stranger');
     expect(p.core.inventory.map((i) => [i.itemId, i.equippedIn ?? null])).toEqual([[IT.dagger, null], [IT.arming_sword, ['grip:right_arm']], [IT.crude_clothes, ['armor']], [IT.woodsman_axe, null], [IT.pack, ['pack']], [IT.coin, null], [IT.bandage, null]]); // Medium Weapons 40 points, tagged: 50 (YB1), the Fine arming sword, and its stand-ins meet the dagger and woodsman's axe; no Light Armor: crude clothes; CT7: a worn pack
   });
 

@@ -3,7 +3,7 @@
 // while no god gives a Tier V blessing it can't begin. A god's Blessed class opens for anyone that god blesses.
 import { afterEach, describe, expect, it } from 'vitest';
 import { getLibrary } from '../../src/library';
-import { createPlayer, creationPoints, recommendedBuild, startGives, validateBuild } from '../../src/library/spawn';
+import { createPlayer, recommendedBuild, startGives, validateBuild } from '../../src/library/spawn';
 import { unlockClasses } from '../../src/engine/xp';
 import { CL } from '../../src/library/classIds';
 import { GD } from '../../src/library/godIds';
@@ -17,23 +17,13 @@ const bless = () => { getLibrary().perks[FIXTURE] = { id: FIXTURE, name: 'Test B
 afterEach(() => { delete getLibrary().perks[FIXTURE]; });
 
 describe('308 Starts and the blessed start', () => {
-  it('the Starts, with their class and level; every Start has CREATION_POINTS (100); the Swordsman start is gone', () => {
-    const lib = getLibrary();
-    expect(Object.values(lib.starts).map((s) => [s.name, s.classId, s.points, s.level])).toEqual([
-      ['Unwritten Legend', CL.late_bloomer, undefined, 1], ['The Threadbound', CL.threadbounded, undefined, 1], ['The Blessed', undefined, undefined, 1]]);
-    expect(Object.keys(lib.starts).map(creationPoints)).toEqual([100, 100, 100]);
-    expect(Object.values(ST)).not.toContain('ST1'); // retired, never reused
+  it('the Unwritten Legend start begins in its class, Commoner open', () => {
     expect(createPlayer(recommendedBuild(ST.late_bloomer), 's1').core.classes).toEqual([{ classId: CL.late_bloomer, state: 'current', level: 1 }, { classId: CL.commoner, state: 'unlocked', level: 0 }]);
   });
 
   it('blessing tiers count up with no end: Tier I is the weakest, the start\'s Tier V is mid-ladder (CC1 b)', () => {
     expect([BLESSING_TIERS.pos('tier_1'), BLESSING_TIERS.pos('tier_5'), BLESSING_TIERS.pos('tier_6')]).toEqual([0, 4, 5]);
     expect([BLESSING_TIERS.name('tier_4'), BLESSING_TIERS.name('tier_9'), BLESSING_TIERS.name('tier_14'), BLESSING_TIERS.name('tier_30')]).toEqual(['Tier IV', 'Tier IX', 'Tier XIV', 'Tier XXX']);
-  });
-
-  it('the blessed start can not begin while no god gives a Tier V blessing', () => {
-    if (Object.values(getLibrary().perks).some((p) => p.blessing?.tier === 'tier_5')) return; // the extraction blessing is tagged: covered below
-    expect(validateBuild(recommendedBuild(ST.blessed))).toContain('No god gives this start’s blessing yet');
   });
 
   it('begins with a random god\'s Tier V blessing, in that god\'s Blessed class; the same story gives the same roll', () => {

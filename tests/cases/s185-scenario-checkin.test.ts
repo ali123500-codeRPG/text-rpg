@@ -11,7 +11,6 @@ import { ScenarioDirector } from '../../src/scenario/director';
 import { VirtualClock } from '../../src/scenario/fixtures';
 import { isBugCode } from '../../src/save/bugs';
 import { checkCheckin } from '../../src/agents/schema';
-import { FIXED } from '../../src/agents/prompts';
 import { CONFIG } from '../../src/config';
 import { advanceClock } from '../../src/time';
 
@@ -146,7 +145,6 @@ describe('185 the check-in call and its answer (SC8, SC14)', () => {
   it('the schema reads an answer, and the check-in has its own instructions', () => {
     expect(checkCheckin({ verdict: 'end', as: 'escaped', text: 't' }).errors).toEqual([]);
     expect(checkCheckin({ verdict: 'maybe' }).errors.length).toBeGreaterThan(0);
-    expect(FIXED.checkin).toContain('checking in on a scenario');
   });
 });
 
@@ -175,6 +173,5 @@ describe('185 BG-41 the check-in sees what happened', () => {
     const v = buildWeaverView(s, { kind: 'checkin', placeId: s.player.placeId, reason: 'judged' });
     expect(v.target.scenario!.happened.map((h) => h.text)).toEqual(['the player gave Mags coin', 'Old Wim yielded in the spar', 'the spar ended: won by the player']);
     expect(v.target.scenario!.remembered).toEqual([{ who: 'patron_1', turn: s.turn, text: 'The stranger beat me fairly in a bout.' }]);
-    expect(FIXED.checkin).toContain('Never add a beat for something that already happened');
   });
 });

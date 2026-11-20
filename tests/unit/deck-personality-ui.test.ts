@@ -8,20 +8,18 @@ import { pullOf } from '../../src/ui/ideaLeans';
 import { personalityOf } from '../../src/ruleset/personality';
 import { PA, VL } from '../../src/library/tableIds';
 import { CONFIG } from '../../src/config';
-import { wholeTurn, intent } from '../harness/turn';
+import { wholeTurn } from '../harness/turn';
+import { makeVillage } from '../harness';
 
 const kinds = (gs: ReturnType<typeof deck>) => gs.flatMap((g) => g.actions.map((a) => a.kind)).sort();
 
 describe('the action deck by personality', () => {
-  it('whole turn: a quiet, cautious character gets Stealth before Fight and Talk marked; the same actions either way', async () => {
-    const g = wholeTurn({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
-    const s = g.game.state()!;
-    await g.turn(intent(), 'I look around');
+  it('a quiet, cautious character gets Stealth before Fight and Talk marked; the same actions either way', () => {
+    const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
     const pv = buildPlayerView(s);
     const plain = deck({ pv, s, self: { nerve: 0, traits: {}, values: [] } });
     expect(plain.map((x) => x.group)).toEqual(deck({ pv, s }).map((x) => x.group));
     s.player.core.personality = { nerve: -70, traits: { [PA.sociability]: -80 }, values: [] };
-    await g.turn(intent(), 'I look around');
     const shy = deck({ pv: buildPlayerView(s), s, self: personalityOf(s.player) });
     const order = shy.map((x) => x.group);
     expect(order.indexOf('stealth')).toBeLessThan(order.indexOf('fight'));
