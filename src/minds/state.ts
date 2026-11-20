@@ -13,7 +13,7 @@ import { beliefStatus, computePerception, hearsClearly, inLookReach, perceptionO
 import { VOLUME_NOISE } from '../perception/noise';
 import { markUse, ruleset, situational, fnRoller, tierLevel, toContest, usableModes, fallbackAttackSkill, modeSkill, effectiveSkill } from '../ruleset';
 import { coverShown, rollFnSkills } from '../ruleset/gear';
-import { rewardSum } from '../ruleset/achRewards';
+import { rewardSources } from '../ruleset/achRewards';
 import { distM, seeingM, sightDistM, withinGrip, withinM, type Located } from '../engine/position';
 import { hasPerk, meltAwayHere } from '../ruleset/perks';
 import { blindSpotNow } from '../engine/perkMarks';
@@ -322,8 +322,23 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): voi
 const senseSkill = (state: GameState, a: Actor, sense: Sense): number => effectiveSkill(state, a, SENSE_SKILL[sense], { fullValue: rollFnSkills(a, sense) }).value;
 /** SE20/SE21/SE24: the m² one search covers: SEARCH_AREA_M2 × the rolling skill ÷ SEARCH_AREA_SKILL_BASE, + the owner's
  * searchArea %, + SEARCH_M2_PER_REACH_M m² per metre of searchReach (perks and achievements; every source adds up) */
-export const searchAreaM2 = (a: Actor, skill: number): number =>
-  Math.max(0, CONFIG.SEARCH_AREA_M2 * skill / CONFIG.SEARCH_AREA_SKILL_BASE * (1 + rewardSum(a, 'searchArea') / 100) + rewardSum(a, 'searchReach') * CONFIG.SEARCH_M2_PER_REACH_M);
+export const searchAreaM2 = (a: Actor, skill: number): number => searchAreaParts(a, skill).areaM2;
+/** searchAreaM2 with its terms: the skill's base m², each searchArea % and searchReach m by source */
+function searchAreaParts(a: Actor, skill: number) {
+  const baseM2 = CONFIG.SEARCH_AREA_M2 * skill / CONFIG.SEARCH_AREA_SKILL_BASE;
+  const areaPct = rewardSources(a, 'searchArea'), reachM = rewardSources(a, 'searchReach');
+  const sum = (xs: { value: number }[]) => xs.reduce((n, x) => n + x.value, 0);
+  return { baseM2, areaPct, reachM, areaM2: Math.max(0, baseM2 * (1 + sum(areaPct) / 100) + sum(reachM) * CONFIG.SEARCH_M2_PER_REACH_M) };
+}
+/** AB18 a, SE21/SE24, LX2/LX5: what a search by `a` covers from where it stands: the sense it rolls (the better after
+ * light; smell only when it beats both), that sense's effective skill, the area with its terms, its radius and ring one's */
+export function searchReach(state: GameState, a: Actor) {
+  const here = zoneById(state, a.zone);
+  const after = (sense: Sense) => CONFIG.SKILL_WEIGHT * senseSkill(state, a, sense) + watcherRoll(state, a, sense, here).modifiers.reduce((n, m) => n + m.value, 0);
+  const sense: Sense = ([FN.sight, FN.hearing, FN.smell] as Sense[]).reduce((b, f) => (after(f) > after(b) ? f : b));
+  const skill = senseSkill(state, a, sense), parts = searchAreaParts(a, skill), radiusM = searchRadiusM(parts.areaM2);
+  return { sense, skill, ...parts, radiusM, ring1M: CONFIG.SEARCH_RING1_RADII * radiusM };
+}
 /** SE1, PZ11 a, BG-314 (BF100 b), LX2/LX3: `h` is in what a search by `a` covers: the search area's circle round the
  * searcher, the same in a fight and out of one, never under SEARCH_MIN_RADIUS_M, in a clear line, whatever title either
  * stands in */
@@ -346,12 +361,8 @@ export const searchSees = (state: GameState, a: Actor, h: Located, r: number): b
  * area (the Search it is part of covered that, LX2), in two rings (ringShift, LX5). `only`: a search aimed at one person. Returns the contests the
  * searcher won, with who it found. */
 export function searchFor(state: GameState, a: Actor, event: GameEvent, rng: Rng, opts: { look?: Sense; only?: string; outside?: boolean } = {}): { found: Actor; r: ContestResult }[] {
-  const here = zoneById(state, a.zone);
-  const after = (sense: Sense) => CONFIG.SKILL_WEIGHT * senseSkill(state, a, sense) + watcherRoll(state, a, sense, here).modifiers.reduce((n, m) => n + m.value, 0);
-  // AB18 a: a search rolls the better sense after light; smell only when it beats both (light never touches it)
-  const best: Sense = ([FN.sight, FN.hearing, FN.smell] as Sense[]).reduce((b, f) => (after(f) > after(b) ? f : b));
+  const { sense: best, areaM2: area } = searchReach(state, a);
   const sense: Sense = opts.look ?? best;
-  const area = searchAreaM2(a, senseSkill(state, a, best));
   const reaches = (h: Actor) => opts.look ? inLookReach(seeingM(state, a, h)) && !(opts.outside && inSearch(state, a, h, area)) : inSearch(state, a, h, area);
   const done = contestedThisTurn(state);
   const won: { found: Actor; r: ContestResult }[] = [];
