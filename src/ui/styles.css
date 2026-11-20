@@ -345,17 +345,15 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .cs-sk[role="button"] { cursor: pointer; border-radius: var(--r-md); padding: var(--space-1) var(--space-2); margin: calc(-1 * var(--space-1)) calc(-1 * var(--space-2)); transition: background-color var(--m-feedback) var(--m-ease); }
 .cs-sk[role="button"]:hover, .cs-sk[role="button"]:focus-visible { background: color-mix(in oklch, var(--accent-soft) 70%, transparent); }
 /* HS7: tiles sit on the sky with no box and no lines; space alone parts them, a hover tints the one under the pointer */
-.cs-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-6); }
-.cs-tile { display: grid; gap: 2px; justify-items: start; min-width: 0; text-align: left; padding: var(--space-3) var(--space-4); border: 0; border-radius: var(--r-lg);
+.cs-tiles { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-6); }
+.cs-tile { display: inline-flex; align-items: center; gap: var(--space-2); min-width: 0; text-align: left; padding: var(--space-1) var(--space-3); border: 0; border-radius: var(--r-lg);
   background: none; color: var(--text); font: inherit; cursor: pointer; transition: background-color var(--m-feedback) var(--m-ease); }
 .cs-tile:hover, .cs-tile:focus-visible { background: var(--accent-soft); }
-.cs-tile .hs-label .mk-i { width: 22px; height: 22px; color: var(--muted); }
-.cs-tile b { font-size: 20px; font-weight: 800; line-height: 1.2; }
-.cs-tile-sub { max-width: 100%; color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cs-tile > .mk-i { width: 22px; height: 22px; color: var(--muted); }
+.cs-tile b { font-size: 17px; font-weight: 800; line-height: 1.2; white-space: nowrap; }
 .cs-tile.lit[data-tile="perks"] b { color: var(--perk-20); }
 @media (max-width: 900px) {
   main.cs-page { height: auto; } .cs-page .cs-split { grid-template-columns: minmax(0, 1fr); } .cs-page .cs-card, .cs-right { overflow: visible; }
-  .cs-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 /* CP5: the skill, body, gear and personality pop-ups */
 .sk-pop .dpop-body, .bp-pop .dpop-body, .gear-pop .dpop-body { justify-items: stretch; }
