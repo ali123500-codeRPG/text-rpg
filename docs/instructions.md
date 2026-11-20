@@ -229,9 +229,7 @@ The source of truth for every design decision.
 - Long runs (anything over about ten minutes, such as a long build or a large soak) go on GitHub too: push the branch
   and read its checks. Decided 19/11/2026; the first agent that needs a long run after 19/12/2026 asks the owner
   again.
-- A balancing change can move the replay or soak results (`tests/replay`, `tests/soak`). The replay set runs in the
-  PR's checks. Its recordings are remade only from playtests, so if one must be remade and you cannot run
-  playtests, say so in the PR.
+- A balancing change can move the soak results (`tests/soak`).
 - Where work splits cleanly, use parallel workers. Give each a narrow scope, the spec sections it owns and the
   interfaces it must match, and merge through one owner of the integration.
 - The game's own agents and which model each uses are set in `CONFIG.AGENT_MODELS`.
