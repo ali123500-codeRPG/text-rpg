@@ -390,14 +390,14 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
   // ---------- the stage map to scale (rpg-map): code lays out every mark (mapPlan), then this draws it, then dev views check it
   let measureCtx: CanvasRenderingContext2D | null | undefined;
   /** the browser's width of a text in a map style (MAP-51: real sizes, so the layout and the check agree) */
-  const measure: Measure = (t, kind) => {
+  const measure: Measure = (t, kind, px) => {
     if (measureCtx === undefined) measureCtx = document.createElement('canvas').getContext('2d');
-    if (!measureCtx) return roughMeasure(t, kind);
+    if (!measureCtx) return roughMeasure(t, kind, px);
     const st = TEXT[kind];
     // zone names are drawn in the rounded face (.map-name), the rest in the map's own
     const face = kind === 'label' ? getComputedStyle(svg).getPropertyValue('--font-round').trim() : '';
-    measureCtx.font = `${st.weight} ${st.size}px ${face || getComputedStyle(svg).fontFamily || 'sans-serif'}`;
-    return measureCtx.measureText(t).width + (kind === 'title' ? t.length * st.size * 0.06 : 0); // titles: .06em tracking
+    measureCtx.font = `${st.weight} ${px ?? st.size}px ${face || getComputedStyle(svg).fontFamily || 'sans-serif'}`;
+    return measureCtx.measureText(t).width + (kind === 'title' ? t.length * (px ?? st.size) * 0.06 : 0); // titles: .06em tracking
   };
   const innerPlaces = (zones: MapZone[]) => (cur?.places ?? []).filter((p) => rootOf(p.id) === world && p.id !== world).sort((a, b) => a.depth - b.depth)
     .map((p) => ({ id: p.id, name: p.name, depth: p.depth, zones: zones.filter((z) => inside(z.placeId, p.id)) })).filter((p) => p.zones.length);

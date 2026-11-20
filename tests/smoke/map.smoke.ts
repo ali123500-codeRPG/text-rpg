@@ -37,11 +37,9 @@ describe('map checker on the test stages (MAP-52)', () => {
     const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } }), errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
     await page.goto(`${url}?fake=1&stage=${stage}`);
-    const diag = (sel: string) => page.evaluate((sel) => ({ fonts: [...document.fonts].map((f) => `${f.family} ${f.weight} ${f.status}`), check: document.fonts.check('700 13px "HISAB Round"'),
-      labels: [...document.querySelectorAll(`${sel} [data-role="label"][data-layer="back"]`)].map((l) => { const z = document.querySelector(`${sel} [data-role="zone"][data-id="${(l as HTMLElement).dataset.for}"]`)!.getBoundingClientRect(), b = l.getBoundingClientRect(); const c = document.createElement('canvas').getContext('2d')!, face = getComputedStyle(l).fontFamily, t = l.textContent!, w = (px: number) => { c.font = `700 ${px}px ${face}`; return c.measureText(t).width.toFixed(2); }; return `m12x=${(+w(12) * +l.getAttribute('font-size')! / 12).toFixed(2)} mDirect=${w(+l.getAttribute('font-size')!)} svgLen=${(l as SVGTextElement).getComputedTextLength().toFixed(2)} ${(l as HTMLElement).dataset.for} fs=${l.getAttribute('font-size')} label=${[b.left, b.top, b.right, b.bottom].map((v) => v.toFixed(1))} zone=${[z.left, z.top, z.right, z.bottom].map((v) => v.toFixed(1))} text=${l.textContent}`; }) }), sel);
-    await expect.poll(() => page.evaluate(() => (window as unknown as { __minimapFindings?: Found }).__minimapFindings?.findings), { timeout: 15_000, message: 'minimap' }).toEqual([]).catch(async (e) => { console.log('DIAG minimap', JSON.stringify(await diag('.mm-svg'))); throw e; });
+    await expect.poll(() => page.evaluate(() => (window as unknown as { __minimapFindings?: Found }).__minimapFindings?.findings), { timeout: 15_000 }).toEqual([]);
     await page.locator('[data-open="map"]').click();
-    await expect.poll(() => page.evaluate(() => (window as unknown as { __mapFindings?: Found }).__mapFindings?.findings), { timeout: 15_000, message: 'map' }).toEqual([]).catch(async (e) => { console.log('DIAG map', JSON.stringify(await diag('.map-svg'))); throw e; });
+    await expect.poll(() => page.evaluate(() => (window as unknown as { __mapFindings?: Found }).__mapFindings?.findings), { timeout: 15_000 }).toEqual([]);
     expect(errors).toEqual([]);
     await page.close();
   });

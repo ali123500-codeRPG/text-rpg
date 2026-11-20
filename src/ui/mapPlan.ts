@@ -31,10 +31,11 @@ export const TEXT: Record<TextKind, { size: number; weight: number; h: number; p
   title: { size: 13, weight: 800, h: 18, pad: 5, line: 15 }, // as styles.css draws them (13 px, LK6 a)
   note: { size: 13, weight: 600, h: 20, pad: 7, line: 15 },
 };
-/** the width of a text in a style, in screen pixels */
-export type Measure = (text: string, kind: TextKind) => number;
+/** the width of a text in a style, in screen pixels, at the style's size or at `px` (BG-325: measured at the size drawn, never
+ *  scaled, since text widths do not grow evenly with size) */
+export type Measure = (text: string, kind: TextKind, px?: number) => number;
 /** a stand-in for the browser's measure where there is none (tests): a little wide, so real text always fits its box */
-export const roughMeasure: Measure = (t, k) => t.length * TEXT[k].size * (k === 'title' ? 0.72 : 0.6);
+export const roughMeasure: Measure = (t, k, px) => t.length * (px ?? TEXT[k].size) * (k === 'title' ? 0.72 : 0.6);
 
 /** what a zone is to the character (MAP-33): where it is, been in, or only seen across an exit */
 export type ZoneState = 'current' | 'explored' | 'seen';
@@ -252,7 +253,7 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean): Scene {
     if (x.z.seen && !x.z.seen.length) continue; // BG-313: a title the character has seen none of shows no name
     const zb = x.z.seen ? seenBox(x.z.seen) ?? x.box : x.box, full = x.z.name, room = { w: zb.x1 - zb.x0 - 2 * PAD, h: zb.y1 - zb.y0 - 2 * PAD };
     for (let px = NAME_PX.max; px >= NAME_PX.min; px -= 0.5) {
-      const m: Measure = (t, kd) => (measure(t, kd) * px) / TEXT.label.size, line = Math.round(px * 1.2 * 100) / 100;
+      const m: Measure = (t, kd) => measure(t, kd, px), line = Math.round(px * 1.2 * 100) / 100;
       // no plate round a name, so none of the plate's padding; the letters' dark edge instead
       const lines = room.w > NAME_EDGE ? wrap(full, 'label', room.w - NAME_EDGE + 2 * TEXT.label.pad, 3, m) : null;
       // the letters' full height (ascenders to descenders) is about 1.3 times their size

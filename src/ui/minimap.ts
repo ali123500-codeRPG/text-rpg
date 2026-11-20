@@ -143,9 +143,9 @@ export function minimapPanel(api: GameApi, opts: {
 
   // a name's letters measured in the browser (MAP-51: the checker measures the real text too)
   const ctx = typeof document !== 'undefined' ? document.createElement('canvas').getContext('2d') : null;
-  const measure: Measure = (t, kind) => {
-    if (!ctx) return t.length * TEXT[kind].size * 0.6;
-    ctx.font = `${TEXT[kind].weight} ${TEXT[kind].size}px ${face || 'sans-serif'}`;
+  const measure: Measure = (t, kind, px = TEXT[kind].size) => {
+    if (!ctx) return t.length * px * 0.6;
+    ctx.font = `${TEXT[kind].weight} ${px}px ${face || 'sans-serif'}`;
     return ctx.measureText(t).width;
   };
   /** MAP-20/MAP-22: a zone's name, centred in the part of it in view, as large as fits up to NAME_MAX; null when even the
@@ -154,7 +154,7 @@ export function minimapPanel(api: GameApi, opts: {
     const rw = b.x1 - b.x0 - 2 * PAD - NAME_EDGE, rh = b.y1 - b.y0 - 2 * PAD - NAME_EDGE;
     if (rw <= 0 || rh <= 0) return null;
     for (let size = NAME_MAX; size >= NAME_PX.min; size -= 0.5) {
-      const m: Measure = (t, kd) => (measure(t, kd) * size) / TEXT.label.size, line = size * 1.2;
+      const m: Measure = (t, kd) => measure(t, kd, size), line = size * 1.2;
       const lines = wrap(text, 'label', rw + 2 * TEXT.label.pad, 3, m);
       if (lines && lines.length * line - line + size * 1.3 <= rh) return { lines, size, line };
     }
