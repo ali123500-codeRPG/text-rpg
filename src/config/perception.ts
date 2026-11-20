@@ -26,8 +26,10 @@ export const PERCEPTION = {
   /** LX5 b: a Search's checks beyond its search area: the first ring reaches this many times the search radius, the second
    * from there out to the look's reach (clear sight, 25 m) */
   SEARCH_RING1_RADII: 2,
-  /** LX2/LX5: tiers on the searcher's roll in the first and second ring beyond the search area (placeholders) */
-  SEARCH_RING_SHIFTS: [-1, -2] as [number, number],
+  /** LX8 a: tiers on a Search's roll against a hider inside its search area, so searching beats waiting (placeholder) */
+  SEARCH_AREA_SHIFT: 1,
+  /** LX5/LX8 a: tiers on the searcher's roll in the first and second ring beyond the search area (placeholders) */
+  SEARCH_RING_SHIFTS: [0, -1] as [number, number],
   WARNED_SHIFT: 2, // WN3: tiers on an answer to a lie (Insight) by one that knows the trick (saw through it, or was warned)
   POINTED_SHIFT: 1, // WN4 b (placeholder): tiers on the next notice or search roll at a hidden foe an ally pointed out
   POINTED_TURNS: 6, // WN4 b (placeholder, = DECAY_TURNS): how long a pointed-out spot stays fresh
