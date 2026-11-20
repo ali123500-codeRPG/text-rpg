@@ -20,6 +20,9 @@ describe('bug log (TQ8)', () => {
   it('every fixed row names the issue or PR that fixed it', () => {
     expect(rows.filter((l) => cells(l).some((c) => /^fixed/i.test(c)) && !/#\d+/.test(l)).map((l) => cells(l)[0])).toEqual([]);
   });
+  it('every row is one line on what was wrong (older rows too, #1160)', () => {
+    expect(rows.filter((l) => cells(l)[1].length > 160).map((l) => cells(l)[0])).toEqual([]);
+  });
   it('a row after BG-326 is one line on what was wrong and names its claim issue', () => {
     const LAST_OLD_FORM = 326, ONE_LINE = 160;
     const fresh = rows.filter((l) => Number(cells(l)[0].slice(3)) > LAST_OLD_FORM);

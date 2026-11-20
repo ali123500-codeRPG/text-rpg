@@ -3,6 +3,9 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bug-fix-log.md`.
 
+- 20/11/2026: `docs/instructions.md` section 2 "Bugs": every Bug log row is one line, BG-1 to BG-326 included (the
+  owner chose "Normalise, change rule"); an older row that held more than its fix log entry is kept as filed at the
+  end of that entry.
 - 20/11/2026: `AGENTS.md` "Finding your way" and map: `npm run spec -- <SETTING>` gives the config file and line that
   set it. `docs/providers/claude.md` "Questions hub: writing and answers": where a questionnaire lives is one lookup
   in Supabase, not a date; an own-database page with `moved` is a stale copy that names where it lives.
