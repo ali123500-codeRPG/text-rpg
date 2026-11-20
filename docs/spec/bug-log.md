@@ -341,3 +341,4 @@ The game files a report at `bugs/new-<time>` (status new) for every bug code it 
 | BG-327 | People last seen never show on the Map or in zone cards: their zone reaches the map as a name, looked up by id (MAP-45) | Thread | Open | #1156 |
 | BG-328 | The save check demanded exactly one current class, so a classless start's save (Commoner unlocked only) failed it | Thread | Fixed | #1175 |
 | BG-329 | Bluff listed allies in reach as targets, which the engine then refused as not foes | Thread | Fixed | #1193 |
+| BG-330 | The strike-card smoke test (BF66) failed now and then: its dummy, a standing copy of the player, punched back and felled the player | Thread | Fixed | #1202 |
