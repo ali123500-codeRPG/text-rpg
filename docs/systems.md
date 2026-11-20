@@ -375,6 +375,7 @@ furniture, ground items; the Map and minimap screens (see the `rpg-map` skill).
   - `src/library/layouts.ts`
   - `src/plan/clutter.ts`
   - `src/plan/draw.ts`
+  - `src/plan/footprint.ts`
   - `src/plan/fog.ts`
   - `src/plan/geom.ts`
   - `src/plan/holes.ts`

@@ -24,7 +24,8 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   outline with square corners. It never tells how far unseen ground runs and never covers another place's zone. The
   drawn outline and the checker (`checkStage`, MAP-18) use this one shape: the outline is drawn from the ground seen, and the
   checker reads the whole ground of a building's indoor zones, where a zone of somewhere else that cuts the shape in two
-  runs through it (MAP-12) (`footprint`, src/ui/mapPlan.ts). Its title sits outside the footprint, above
+  runs through it (MAP-12). Zone placement and the load report read the checker's shape too (MAP-18, MAP-19)
+  (`footprint` and `buildingCheck`, src/plan/footprint.ts). Its title sits outside the footprint, above
   the top-left corner (a title wider than the place may run out past that corner) (CO9; WF8 a; RM5 a, RM7 a; Ali, 20/11/2026, Questions hub page "Map rules revision").
 - **MAP-14** Each doorway, gap, window or stair is drawn once, at its own point on its wall, never at the middle of a
   shared edge and never by a compass word: one mark per opening, with a barrier's padlock, bolt or cross in its place.
@@ -38,12 +39,17 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   seen ground can be pointed at (PZ12 a).
 - **MAP-17** Merged into MAP-10 and MAP-13 (RM7 a).
 - **MAP-18** Code places every zone on the 1 m grid, with whole-metre sides and corners and the area's best whole-metre
-  fit (MAP-10). It places a zone beside what it links to, never partly over another zone, and never inside another
-  building's footprint (MAP-13), so a street runs beside a building and never through it
-  (MAP-11, MAP-12). Among the free spots it takes the one that leaves room for the sides its exits name: "behind the
-  counter, north" keeps the common room's north side clear (RM5 a).
-- **MAP-19** A stored layout that breaks MAP-10, MAP-11 or MAP-12 is named in the load report, never moved. No save from
-  before these rules loads (brokenLayouts, src/scenario/geometry.ts; PZ16 b; RM8 a).
+  fit (MAP-10). It places a zone beside what it links to, never partly over another zone, never over another building's
+  rooms and never cutting its footprint in two, and a new room never leaves its own building in pieces (MAP-11,
+  MAP-12). The footprint is the checker's shape (MAP-13): the whole ground of the building's indoor zones, seen or not.
+  So a street runs beside a building and never through it, and may fill its notches and courtyards. Among the free spots
+  it takes the one that leaves room for the sides its exits name, with no zone of somewhere else along them: "behind the
+  counter, north" keeps the common room's north side clear. Only new placement reads this; stored layouts never move
+  (MAP-03, MAP-19) (placeZones, src/scenario/geometry.ts; RM5 a; RM19 b, RM21 a; Ali, 20/11/2026, Questions hub page
+  "Map rules revision").
+- **MAP-19** A stored layout that breaks MAP-10, MAP-11 or MAP-12 is named in the load report, never moved; MAP-12 is
+  read on the checker's shape (MAP-13). No save from before these rules loads (brokenLayouts, src/scenario/geometry.ts;
+  PZ16 b; RM8 a; RM19 b).
 
 #### Labels
 
