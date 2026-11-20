@@ -176,7 +176,6 @@ export function deckView(api: GameApi, o: {
 }
 
 const keyOf = (a: DeckAction) => `${a.kind}|${a.label}`;
-/** A3: a used move's hollow mark with a slash; a waiting one's ring, filled by the share of the wait gone */
 /** the hover line of a deck action: its wait, its time, then what the old sub-line said (SD6: no line under the name) */
 const actTip = (a: DeckAction) => [a.limit?.tip, a.time, a.note].filter(Boolean).join(' · ');
 /** a padlock after a defense that can't be used now; its name says what it needs (SD14) */
@@ -202,6 +201,7 @@ function natureMark(a: DeckAction): HTMLElement | null {
   return el;
 }
 
+/** A3: a used move's hollow mark with a slash; a waiting one's ring, filled by the share of the wait gone */
 function limitMark(a: DeckAction): HTMLElement | null {
   if (!a.limit) return null;
   return 'used' in a.limit ? h('span', { class: 'dk-mark used', 'aria-hidden': 'true' })
