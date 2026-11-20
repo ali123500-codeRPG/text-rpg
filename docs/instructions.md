@@ -205,9 +205,9 @@ The source of truth for every design decision.
   owner does not merge PRs. The same rule holds for agents of every provider (decided 19/11/2026).
 - After resolving a merge conflict, search the repo for conflict markers before committing, and stage only the files
   you resolved.
-- Long runs (the full test suite, a long build, anything over about ten minutes) go on GitHub: push the branch and
-  read its checks. Locally, run only the tests your change affects. Decided 19/11/2026; the first agent that needs
-  a long run after 19/12/2026 asks the owner again.
+- Long runs (anything over about ten minutes, such as a long build or a large soak) go on GitHub: push the branch and
+  read its checks. The full test suite is not a long run (`npm test`, about two minutes) and may run locally.
+  Decided 19/11/2026; the first agent that needs a long run after 19/12/2026 asks the owner again.
 - A balancing change can move the replay or soak results (`tests/replay`, `tests/soak`). The replay set runs in the
   PR's checks. Its recordings are remade only from playtests, so if one must be remade and you cannot run
   playtests, say so in the PR.
