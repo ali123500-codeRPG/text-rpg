@@ -273,7 +273,8 @@ question IDs, BG/D numbers) sits in one trailing parenthesis.
   (`swapCapstone`); either choice is final. With nothing on offer the default is active at once.
 - **PROG-184** The alternates themselves are designed in the capstone thread.
 - **PROG-185** There is one XP bar. A level goes to the class picked in the class tree, or else to the current class
-  (X9; settles OQ-8).
+  (X9; settles OQ-8). The pick may be an unlocked class or a previous one below its top level (D-65), made before the
+  level-up.
 
 #### Class tree
 

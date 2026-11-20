@@ -48,10 +48,11 @@ export function awardXp(state: GameState, amount: number, source: string, why?: 
 
 const capped = (c: { classId: string; level: number }) => c.level >= classMaxLevel(c.classId);
 
-/** the class the next level goes to: the picked one, else the current one; none when that class is at its top level */
+/** the class the next level goes to: the picked one (current, unlocked or previous, D-65), else the current one; none
+ * when that class is at its top level */
 export function levelTarget(p: Actor) {
   const cur = p.core.classes.find((c) => c.state === 'current');
-  const pick = p.core.classes.find((c) => c.classId === p.progression?.nextClass && c.state !== 'previous') ?? cur;
+  const pick = p.core.classes.find((c) => c.classId === p.progression?.nextClass) ?? cur;
   return pick && !capped(pick) ? pick : undefined;
 }
 
@@ -130,7 +131,7 @@ function levelUp(p: Actor, turn: number): XpAward['levelUp'] & {} {
   const cur = p.core.classes.find((c) => c.state === 'current');
   const pick = levelTarget(p);
   if (!pick) return { classId: '', level: charLevel(p) };
-  if (pick !== cur) { // Part 4: putting a level into an unlocked class makes it current
+  if (pick !== cur) { // Part 4: putting a level into an unlocked or previous class (D-65) makes it current
     if (cur) cur.state = 'previous';
     pick.state = 'current';
     delete pr.nextClass;

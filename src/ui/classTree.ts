@@ -97,7 +97,7 @@ export function classTree(p: Actor): { nodes: ClassNode[]; links: ClassLink[] } 
     return {
       id: c.id, name: c.name, tier: c.tier, shown: e ? 'have' : 'next', level: e?.level ?? 0, top, state: e?.state,
       source: classSource(c), deadEnd: !all.some((l) => l.from === c.id) && !opensAll(c), opensAll: opensAll(c),
-      target: c.id === target, pickable: !!e && e.state !== 'previous' && e.level < top,
+      target: c.id === target, pickable: !!e && e.level < top, // D-65: a previous class below its top level can be picked again
     };
   });
   const ids = new Set(nodes.map((n) => n.id));

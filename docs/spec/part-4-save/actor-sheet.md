@@ -79,9 +79,9 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
 | Current | At most one: an actor with no class has none (an NPC template without one; a Start with no class, SHEET-95). Receives every new level for persistent characters |
 | Previous | A former current class. Keeps its levels; its skills stay usable |
 
-- **SHEET-51** Putting a level into an unlocked class makes it current, and the old current class becomes previous.
+- **SHEET-51** Putting a level into an unlocked or previous class makes it current, and the old current class becomes previous.
 - **SHEET-52** Class perks come at class levels set in the library (normally 10 and 20) and are derived.
-- **SHEET-53** Previous-class skills keep improving like any other skill. Returning to a previous class is agreed, not built: the player picks it on the class screen before the level-up (D-65).
+- **SHEET-53** Previous-class skills keep improving like any other skill. A previous class below its top level can be picked again on the class screen, before the level-up (D-65).
 
 #### First-build classes
 
