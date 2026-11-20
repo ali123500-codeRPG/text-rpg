@@ -272,10 +272,9 @@ one-map answers (page "Map and minimap: one map, doors", MQ1 to MQ6) are in the 
 the code decides what the game does (`AGENTS.md`, Order of authority).
 
 - **MAP-85 in part (D-423):** the lists hold what the deck lists today: the doors, walls, things on the ground and beds
-  of the title you stand in, so one outside it opens no list. The engine walks to a thing and works it in one order only
-  within one move slot's walk (the close-in, FR4, BG-86: about 6 m in a fight, 8 m out of one); farther, the action comes
-  to nothing and the walk goes on, and a door or wall is found only from the title the actor stands in at that moment.
-  Walking to anything on the map and then acting (MQ8) waits on an engine rule, asked of the owner. Only one greyed
-  entry is built: the deck's door entry on a lock you hold no key to, "needs its key" (the engine's way op answers no_key).
+  of the title you stand in, so one outside it opens no list. The engine side is built: an action picked on a thing out
+  of reach walks there and is done on arrival (ACT-334; MQ15 a / MQ16 a; Ali, 20/11/2026, Questions hub page "Map and
+  minimap: one map, doors"). Only one greyed entry is built: the deck's door entry on a lock you hold no key to, "needs
+  its key" (the engine's way op answers no_key).
 - **MAP-44 and MAP-45:** someone heard going into a zone the character has never seen is last seen there (MAP-45), but
   the map shows only zones seen or stood in (MAP-44), so they are not drawn anywhere.

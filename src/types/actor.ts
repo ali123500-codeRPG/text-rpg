@@ -1,6 +1,9 @@
 // Part 4 §4 and §9: the actor sheet.
 import type { ActorId, Belief, BeliefStatus, Fact, FactId, LibraryRef, PlaceId, SlotKey, StoryId, Turn, Stance } from './core';
-import type { ItemInstance } from './items';
+import type { GearOp, ItemInstance } from './items';
+
+/** MQ8/MQ15 a: the action a walk carries to the thing it is done on (busy.order's shape, with a way op or the pick-ups) */
+export type WalkThen = { type: string; target: string | null; item: string | null; way?: { toZone: string; op: import('../engine/barriers').WayOp }; gear?: GearOp[] };
 
 /** a standing defense: a choice, not a skill; DEFENSE_SKILL names the skill each one rolls */
 export type DefenseKind = 'dodge' | 'block' | 'parry';
@@ -58,8 +61,9 @@ export type Actor = {
     /** AT47/AT67: its coming-near check fired: it is asked for a new order next turn */
     alert?: true;
   };
-  /** AT49: the player's walk not yet at its goal, carried on by the next turns until another move or action is ordered */
-  walking?: NonNullable<import('./agents').Intent['move']>;
+  /** AT49: the player's walk not yet at its goal, carried on by the next turns until another move or action is ordered;
+   * then (MQ8, MQ15 a): the action it walks to do, done where it ends */
+  walking?: NonNullable<import('./agents').Intent['move']> & { then?: WalkThen };
   /** RE1 (BG-291): minutes travelled on roads since the last encounter roll, carried from trip to trip; a full TRAVEL_LEG_MIN rolls */
   roadMin?: number;
   /** BG-190: the player lost the one they were following this turn: who, why, and the zone they last had them in */

@@ -109,8 +109,9 @@ export type SeenActor = {
 };
 /** AT11a/AT2: a long action under way: what, in words, and whole seconds done and to go */
 export type DoingView = { what: string; done: number; left: number };
-/** AT49 (stage 4): the player's walk still on its way: where to (zone id and name), metres and seconds at a walk still to go */
-export type WalkingView = { toZone: string; to: string; metres: number; seconds: number };
+/** AT49 (stage 4): the player's walk still on its way: where to (zone id and name), metres and seconds at a walk still to
+ * go; then (MQ15 a): the action it walks to do, by its deck name ("unlock", "sleep") */
+export type WalkingView = { toZone: string; to: string; metres: number; seconds: number; then?: string };
 /** BG-190: whom the player is following (a walk with spot near them and follow): kept after turn by turn while seen or
  * heard; lost (once, the turn after): seen going down, slipped from sight where they were, or gone on out of sight from `zone` */
 export type FollowingView = { who: string; name: string; lost?: 'down' | 'slipped_away' | 'out_of_sight'; zone?: string; keepM?: number }; // keepM: BF35, the distance the follow keeps

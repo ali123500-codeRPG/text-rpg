@@ -103,7 +103,7 @@ BG/D numbers) sits in one trailing parenthesis.
 - **ACT-80** A walk not yet at its goal carries on next turn by itself until the actor orders something else; a dash
   runs for the turn's seconds (AT49).
 - **ACT-81** Built for the player (stage 3d-1): Actor.walking keeps the move; a turn whose intent has no move and no
-  action (or only words) carries it on (resolve.ts carryOnWalk); any other action or a new move ends it; the Parser is
+  action (or only words) carries it on (resolve.ts carryOnWalk), with the action it carries (ACT-334); any other action or a new move ends it; the Parser is
   told (rule 24), and a stop where they stand is a move to their own zone.
 - **ACT-82** Outside a fight a walk runs on the world clock to its goal (AT45/AT46, below); in a fight it walks the
   turn's move time and carries on. A way found shut ends it (BG-69). NPCs' walks carrying on wait (they get an order
@@ -114,6 +114,18 @@ BG/D numbers) sits in one trailing parenthesis.
   a way of moving) (BG-190).
 - **ACT-84** Lost, it ends and the player is told why once, the turn after (Actor.followLost; logged follow\_lost): seen
   going down, slipped from sight in the zone the player had them in, or gone on out of sight.
+- **ACT-334** **Walk then act (MQ8):** the player's action on a thing out of reach (a door's way op, picking or breaking
+  a lock, breaking through a wall or door, opening, forcing or filching a container, picking something up, Sleep on a
+  bed) walks there and is done on arrival, wherever on the map the thing is; never an attack (it runs on, BG-255) and
+  never someone. The walk goes to the thing's reach point (FR4: a doorway of the title you stand in, else where the
+  thing is), or to the order's own move for a door or wall of another title and for a bed. The walk carries its action
+  like a walk (Actor.walking.then, the shape of busy.order with the way op or the pick-ups). Outside a fight it is one
+  turn: the turn's move time, then the world clock (ACT-82) to the thing, and the action as the turn's own (a long one
+  then runs on the world clock, AT45; Sleep runs its night on the bed). In a fight each turn walks the move time and the
+  action is done the turn it comes into reach. Stopped on the way (contact, someone closing, a fight), the walk keeps its
+  action ("Walking to …, then unlock"); a turn with no move and no action (Keep walking), or one of only words or a sneak,
+  finishes the walk and does it; any other order cancels both; a way found shut ends both (BG-69). Within one move
+  slot's walk it is done the same turn, as closing in (FR4, BG-86) (MQ15 a / MQ16 a; Ali, 20/11/2026, Questions hub page "Map and minimap: one map, doors").
 - **ACT-85** The Parser reads input that only carries on ("continue", "keep following") as a turn with no move and no
   action (rule 24).
 - **ACT-86** **On screen:** while following, the action box shows the following line in place of the walk line:
@@ -465,7 +477,10 @@ BG/D numbers) sits in one trailing parenthesis.
 - **ACT-330** **Built (screen side, AT49).** While PlayerView.player.walking is there, the action box shows the walk
   under the long action, in the accent the map uses for you: "➜ Walking to village square · 24 m · 17 s to go", the note
   "Carries on next turn while you only talk; any other order stops it.", and two chips that fill the box: Keep walking
-  ("I keep walking to village square") and Stop here ("I stop and wait here"); nothing is sent until Send.
+  ("I keep walking to village square") and Stop here ("I stop and wait here"); nothing is sent until Send. A walk that
+  carries an action (ACT-334) names it and measures to the thing: "➜ Walking to the bed, then sleep · 24 m · 17 s to go"
+  (WalkingView.then, the action's deck name, a way op by its own word), and the deck's Keep walking reads "Keep walking
+  to the bed, then sleep".
 - **ACT-331** A goal with no open way reads "no open way there" (src/ui/doing.ts walkLeft).
 - **ACT-332** On the Map the goal zone gets a dashed accent outline and "Heading here", and its card says "Heading here
   · 24 m · 17 s to go".

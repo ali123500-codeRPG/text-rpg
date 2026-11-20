@@ -350,5 +350,6 @@ Closed rows of the "Bug log" (`bug-log.md`): fixed, won't fix or duplicate. A ro
 | BG-343 | The ambush rolled the attacker's weapon skill against one sense, not Combat Stealth (against ST2); now the attack's own stealth contests | Thread | Fixed | #1304 |
 | BG-345 | The sleep bonus (FT8) went to anyone asleep in a room with a bed, on it or not: nearness by room, not metres | Thread | Fixed | #1377 |
 | BG-346 | A zone name does not fit its zone at an intermediate zoom on the Bent Nail Map (MAP-20, tavern.common) | Thread | Fixed | #1378 |
+| BG-347 | Sleep on a far bed from the map slept where the first move ended, then walked to the bed | Thread | Fixed | #1397 |
 | BG-348 | A zone name showed on ground not seen: back yard on bent-nail, on the Map at 40 m and the minimap (MAP-16), fitted to the zone, not its seen part | Thread | Fixed | #1416 |
 | BG-349 | An exit's arrow ran past the map's edge while its note was in view (MAP-50, minimap 60 m on the default fake page, Map 60 m on long-names) | Thread | Fixed | #1420 |

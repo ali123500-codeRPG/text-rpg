@@ -49,7 +49,7 @@ it('BG-86/AT19: a door out of reach is walked to on move time and opened with th
   expect(ev.some((e) => e.kind === 'hold' && e.actorId === t.player.id)).toBe(false);
 });
 
-it('BG-85: a pick-up is within grip reach of where the item lies: a few steps away it is walked to first; across a street it is not reached', () => {
+it('BG-85: a pick-up is within grip reach of where the item lies: a few steps away it is walked to first; across a street it is walked to, then picked up (MQ8)', () => {
   const s = laidOut();
   const room = middle(zoneById(s, 'tav_common')!);
   s.player.pos = { x: room.x - 2, y: room.y };
@@ -61,7 +61,7 @@ it('BG-85: a pick-up is within grip reach of where the item lies: a few steps aw
   const far = lay(s, street.id, { id: 'far', itemId: IT.curio });
   expect(distM(s, s.player, { zone: street.id, pos: far.at })).toBeGreaterThan(CONFIG.ZONE_SIZE_M2.room ** 0.5);
   play(s, { intent: intent({ gear: [{ op: 'pick_up', item: 'far' }] }) });
-  expect(s.player.core.inventory.some((i) => i.id === 'far')).toBe(false);
+  expect(s.player.core.inventory.some((i) => i.id === 'far')).toBe(true);
 });
 
 it('BG-85: something dropped lies where its owner stood', async () => {

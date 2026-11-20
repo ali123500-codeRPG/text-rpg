@@ -66,7 +66,7 @@ import { fightingWith } from '../engine/engagement';
 import { PK } from '../library/perkIds';
 import { readsHealthOf } from '../ruleset/achRewards';
 import { IT } from '../library/itemIds';
-import { cap, listWords, mentions, r1, theOf } from '../words';
+import { cap, listWords, mentions, r1, theItem, theOf } from '../words';
 import { clutterCover, gripsOf, isAccSlot, isGripSlot, isHeld, meleeReachM, modeName, pieceName, usableModes } from '../ruleset/gear';
 import { partName, usableGrips } from '../ruleset/body';
 import { met, outcomeText } from '../ruleset/hits';
@@ -558,16 +558,26 @@ const heardOf = (state: GameState): string[] => (state.player.journal?.heardOf ?
 /** SY1: Mentally steady (from steadying oneself at Great Success or better): the next morale loss is halved */
 const steadyOf = (a: Actor): { mentallySteady?: true } => (a.core.condition.mentallySteady ? { mentallySteady: true } : {});
 
-/** AT49 (stage 4): the player's walk still on its way, as metres and seconds at a walk to its zone */
+/** AT49 (stage 4): the player's walk still on its way, as metres and seconds at a walk to its zone (MQ8: to its spot,
+ * when it carries an action), and the action it carries (MQ15 a) */
 function walkingOf(state: GameState, p: Actor, seen: SeenActor[]): { walking?: WalkingView } {
   const w = p.walking;
   if (!w) return {};
-  const m = distOrNull(state, p, { zone: w.toZone }), walk = moveSpeed(state, p).walk;
+  const sp = w.then && w.spot ? spotPoint(state, w.toZone, w.spot, p, p) : null;
+  const m = distOrNull(state, p, sp ? { zone: w.toZone, pos: sp.pos } : { zone: w.toZone }), walk = moveSpeed(state, p).walk;
   if (m === null || walk <= 0) return {};
-  // BG-281: a walk up to someone is named by them as the player sees them, never by the zone they stand in
-  const near = w.spot && 'near' in w.spot ? seen.find((a) => a.id === (w.spot as { near: string }).near) : undefined;
-  return { walking: { toZone: w.toZone, to: near ? near.name ?? near.label : zoneById(state, w.toZone)?.name ?? w.toZone, metres: Math.round(m), seconds: Math.round(m / walk) } };
+  // BG-281: a walk up to someone is named by them as the player sees them, never by the zone they stand in; MQ8: a walk to
+  // a door or a bed by it
+  const ref = w.spot?.near, near = ref ? seen.find((a) => a.id === ref) : undefined;
+  const piece = ref && !near && w.then ? furnitureIn(state, w.toZone).find((f) => f.id === ref)?.name : undefined;
+  const thing = piece ? theItem(piece) : ref && !near && w.then ? wayTo(state, w.toZone, ref)?.label : undefined;
+  return { walking: { toZone: w.toZone, to: near ? near.name ?? near.label : thing ?? zoneById(state, w.toZone)?.name ?? w.toZone, metres: Math.round(m), seconds: Math.round(m / walk),
+    ...(w.then ? { then: thenName(state, w.then) } : {}) } };
 }
+/** MQ15 a: the action a walk carries, by its deck name (a way op by its own word) */
+const THEN_NAME: Record<string, string> = { pick: 'pick a lock', open: 'open', filch: 'filch', sleep: 'sleep', hold: 'pick up' };
+const thenName = (state: GameState, t: NonNullable<NonNullable<Actor['walking']>['then']>): string =>
+  t.way ? t.way.op : t.type === 'break' ? (findContainer(state, t.target) ? 'force open' : 'break through') : THEN_NAME[t.type] ?? t.type;
 /** each weapon in the player's hands at its longest reach, longest first (natural attacks and fists left out) */
 export function reachesOf(state: GameState, p: Actor): { reaches?: { name: string; metres: number }[] } {
   const best = new Map<string, number>(); // by name, so two daggers read once
