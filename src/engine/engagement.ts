@@ -23,7 +23,7 @@ export function engagedPair(a: Actor, b: Actor): boolean {
 /** a is fighting b: both count in a fight, a is hostile to b, and the two are engaged (YD6). A hostile that only tracks
  * or hunts b, such as one listening from another room, is not in the fight (BG-4) */
 export function fightingWith(state: GameState, a: Actor, b: Actor): boolean {
-  return countsInFight(a) && countsInFight(b) && hostile(state, a, b) && engagedPair(a, b);
+  return countsInFight(a) && countsInFight(b) && engagedPair(a, b) && hostile(state, a, b); // engagedPair first: hostile scans every actor
 }
 
 /** raises a's awareness of b to `status` (never lowers it) and marks this turn as one of attacking or closing in */
