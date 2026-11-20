@@ -14,8 +14,10 @@ with where its full meaning lives. A term's rules are never defined here.
   "TL8 a" means option a of question TL8. They appear in the spec as the source of a decision. Some share their
   letters with a library prefix (ST, SK, IT): the context tells which is meant. Pick new letters that are free of
   both.
-- **M-nn**: a play screen motion rule. Spec, "### Play screen motion".
+- **M-nn**: a play screen motion rule. `docs/spec/part-2-turn-engine/play-screen-motion.md`.
 - **MAP-nn**: a map rule. `docs/spec/part-2-turn-engine/map.md`.
+- **PS-nn**: a play screen rule. `docs/spec/part-2-turn-engine/play-screen.md`.
+- **SHEET-nn**: an actor sheet rule. `docs/spec/part-4-save/actor-sheet.md`.
 - **GF-nn**: a game-feel rule. `.agents/skills/game-feel/SKILL.md`.
 - **Numbers are never reused.** An answered question or a retired item keeps its ID.
 

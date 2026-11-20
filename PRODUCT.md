@@ -31,8 +31,8 @@ Success: a build reads and compares at a glance, every figure is trustworthy and
 
 - Runs as one self-contained page in a Claude artifact, PC only (no phone layout), using only the game's own Claude and database capabilities; no other network calls.
 - The story lives in the artifact's database, so any PC on the same account continues it; browser storage holds only per-PC conveniences such as panel layout.
-- The play screen design rules live in docs/build-spec.md, section "### Play screen", with motion in "### Play screen motion". The approved creation screen layout is linked from that section.
-- Look changes are shown to Ali as 2 to 4 named options drawn over the real page, one recommended, and he picks one. Questions for Ali go through the channel AGENTS.md rule 10 and the provider file name (for Claude: one question on a decision card, two or more on the Questions hub), never loose in a chat message.
+- The play screen design rules live in docs/spec/part-2-turn-engine/play-screen.md (PS-nn), with motion in play-screen-motion.md (M-nn) beside it. The approved creation screen layout is linked from PS-110.
+- Only a major look change is shown first, as 2 to 4 named options drawn over the real page, one recommended, and Ali picks one; small fixes and bug fixes ship without a mock-up (PS-106). Questions for Ali go through the channel AGENTS.md rule 10 and the provider file name (for Claude: one question on a decision card, two or more on the Questions hub), never loose in a chat message.
 
 ## Capabilities and Constraints
 
@@ -42,11 +42,11 @@ Success: a build reads and compares at a glance, every figure is trustworthy and
 - Every distance uses real-life metres.
 - No invented mechanics: a gap is reported as a numbered question with a recommendation.
 - Terms the screens use: tiers (Critical Failure, Failure, Near Miss, Success, Great Success, Critical Success), perks named by milestone ("20 perk", "40 perk"), quirks for negative perks, XP called Thread in the lore, essences, scars, achievements.
-- Open: the game's look (UI font, palette, main button) is being chosen in the look study; cards and pop-ups (HS7) are open.
+- The look is decided: Graphite, HISAB Round for UI text and one light-blue accent for links and main buttons (PS-13, PS-24 to PS-28); pop-ups and game-moment cards stay as built (PS-103).
 
 ## Brand Commitments
 
-- Story voice: close on the hero's shoulder, short lines, dry and never solemn; the supernatural is told only through results. Full tone rules: docs/build-spec.md "### World, tone and the power ladder".
+- Story voice: close on the hero's shoulder, short lines, dry and never solemn; the supernatural is told only through results. Full tone rules: docs/spec/part-2-turn-engine/world-tone-and-the-power-ladder.md.
 - Interface words: plain words, one name per thing, no internal ids. Colour always comes with a word. Real-world dates read DD/MM/YYYY; in-world time reads "Day 2 · Morning".
 - Setting look, not lore: an anime-style isekai fantasy world with game-like rules that only looks about 1400 (plate, crossbows, walled towns, guilds and coin).
 - No decision stamps (names and dates of rulings) in code, comments or game text.
@@ -65,11 +65,11 @@ Success: a build reads and compares at a glance, every figure is trustworthy and
 2. Code decides, the screen shows: every figure on screen comes from one function in code, never a second formula in the UI.
 3. Show only what the character knows: no screen, timing or animation leaks hidden state.
 4. Trustworthy numbers: estimates start with ≈ and show their source; rolls and their sources are one click away.
-5. Ali decides: look changes and undecided rules go to him as options with a recommendation; nothing is guessed into the design.
+5. Ali decides: major look changes and undecided rules go to him as options with a recommendation; nothing is guessed into the design.
 
 ## Accessibility & Inclusion
 
-- Readability first: Ali rejected looks for poor readability, so text size and contrast are judged on the real pixels, not on contrast ratios alone. [Inferred from the look study; the exact minimum text size is still an open question there.]
+- Readability first: Ali rejected looks for poor readability, so text size and contrast are judged on the real pixels, not on contrast ratios alone. No UI text is smaller than 13px, and a styles test keeps that floor (PS-30).
 - Reduced motion, or the Motion switch beside Show rolls, means nothing moves.
 - Full keyboard use: a set Tab order, tips on keyboard focus as well as hover, skipping narration with a click on the story or Esc, never a typing key.
 - Colour is never the only signal: it always comes with a word.
