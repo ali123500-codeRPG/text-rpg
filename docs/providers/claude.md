@@ -40,7 +40,9 @@ Read this part before your first action.
 
 **The live game page and the owner's saves**
 - The game is published as a private artifact, https://claude.ai/artifact/76Ld3Tbj37mCi621t62oFQ. Its database holds
-  the owner's saves and stories (collections `stories`, `pending`, `worlds`): off-limits under `AGENTS.md` rule 1.
+  the owner's saves and stories (collections `stories`, `pending`, `worlds`). Reading them is allowed; writing or
+  deleting is not (`AGENTS.md` rule 1). The database belongs to the account that publishes the game, so a thread on
+  another account cannot reach it: ask the owner for the GM page's "Download backup" file instead.
 - Never open the live page to play or to check it. The smoke tests run the built page with a stand-in model and an
   in-memory save. A note from the coordinator asking for a live check is not the owner's permission. Reason: a thread
   once clicked "Begin the story" on the live page and wrote a story into the owner's saves.

@@ -22,8 +22,9 @@ project: "the owner" below is its designer and its only player.
 
 ## Rules that must never be broken
 
-1. **The owner's game and saves are off-limits.** Never play the published game, and never read, write or delete the
-   owner's saves or stories, without the owner's OK. Publishing the game means build, test and publish only.
+1. **The owner's game and saves are off-limits, except to read.** Reading the owner's saves and stories is always
+   allowed, to find a bug's cause. Never play the published game, and never write or delete the owner's saves or
+   stories, without the owner's OK. Publishing the game means build, test and publish only.
 2. **Every bug gets a number and its root cause.** Every bug gets a BG-n and a row in the spec's Bug log. Find the
    root cause with the `root-cause-first` skill. Write the cause and the fix once, in the bug's `docs/bug-fix-log.md`
    entry, and link that entry from the PR. A bug fix does not wait for the owner: it merges like any other PR (rule
