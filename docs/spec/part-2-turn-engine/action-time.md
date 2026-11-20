@@ -168,13 +168,13 @@ BG/D numbers) sits in one trailing parenthesis.
   is a long action (src/engine/resolve.ts longAction): it takes all the time left each turn, the actor is busy
   (Actor.busy: row, seconds done of need) and an event of kind busy says so; it takes effect in the turn its seconds are
   done.
-- **ACT-131** The player carries it on by giving the same order again (same row; the same item and target, except a
-  crossbow's spanning, which goes on whoever it is aimed at); any other order sets it aside.
+- **ACT-131** The player carries it on by giving the same order again (same row; the same item and target); any other
+  order sets it aside.
 - **ACT-132** An NPC at one is not asked for a new order (plannerActors skips it, AT47) and carries it on, unless a
   trigger fires for it.
 - **ACT-133** An attack aimed at someone at a long action breaks it by the row's focus (careful and deep: any attack;
   steady: a hit that wounds; breakFocus); broken off or set aside, its work is kept when the row's onBreak keeps it at
-  that progress (spanning, armour, picking), else lost (a bandage: lost, and not used up).
+  that progress (picking a lock), else lost (a bandage: lost, and not used up).
 - **ACT-134** Outside a fight the player's action longer than EXPLORE\_TURN\_S (a rest) runs on the world clock at the
   end of the turn (a stretch of kind busy, posed standing) and takes effect when its time is done; one that would be
   refused (no coin, nothing they'd buy) is refused at once instead (resolve.ts wouldGo; buy, sell and equipArmor have a
@@ -184,8 +184,8 @@ BG/D numbers) sits in one trailing parenthesis.
   a wall or barrier stopped after 2 min: a fight in sight or hearing"; a break keeps its work on the wall, BW13 a).
 - **ACT-136** The one the player is at it with (the seller at a trade) talking to them is part of it, not contact.
 - **ACT-137** An NPC's long action outside a fight still takes effect at once.
-- **ACT-138** Not yet: share, misfire and fires (no long fight action uses them); words stay said all at once in the
-  turn they are ordered (a long line takes the turn).
+- **ACT-138** Not yet: misfire and fires (no long fight action uses them; a rest's share does, ACT-139); words stay said
+  all at once in the turn they are ordered (a long line takes the turn).
 - **ACT-139** A rest in a fight is a long action too (deep; broken off, it heals by the share done).
 - **ACT-140** **Reaction and hesitation.** In a fight, an actor's initiative is rolled once, when its fight starts (a
   fight turn after a turn without one): its reaction time is ruleset/actionTime.ts reactSeconds, the Action-times
@@ -209,7 +209,7 @@ BG/D numbers) sits in one trailing parenthesis.
   Bluff) last PERK\_MARK\_ROUNDS (2) rounds of game time after the turn they were made (PerkMark.made) (AT74).
 - **ACT-153** **Leftover.** A fight turn's finished action leaves its unused seconds (main, and move once the walk
   arrived) to the next turn, minus any carried seconds it did not use; holds, idles, waits, sleeps and rests carry
-  nothing. A pool so never holds more than twice a turn (tests/cases/s269).
+  nothing. Carried time never passes CARRY\_MAX\_TURNS fight turns (ACT-61; tests/cases/s269).
 
 #### Long actions (stage 2)
 
@@ -227,8 +227,8 @@ BG/D numbers) sits in one trailing parenthesis.
   counts later), share, misfire (names a row of a Misfires table, empty until spells exist) or fires (takes effect as if
   finished) (AT6, AT28).
 - **ACT-167** Example: a fire spell 0 to 60% lost, 60 to 90% misfire (explodes in the hand), 90 to 100% fires.
-- **ACT-168** In a fight today only lost and kept occur: share, misfire and fires wait for rows that use them there
-  (rest, talk and spells are never long in a fight; CS5).
+- **ACT-168** In a fight today lost, kept and share occur (share: a rest, ACT-139); misfire and fires wait for rows that
+  use them there (talk and spells are never long in a fight; CS5).
 - **ACT-169** **Defending while busy.** Defences as normal, unless the action carries a tag that blocks or penalises
   defence; every defence roll gets the same penalties (AT7).
 - **ACT-170** **No gates.** Rest, wait, sleep and heal items can always be started; their time and what breaks them are
@@ -344,7 +344,8 @@ BG/D numbers) sits in one trailing parenthesis.
 - **ACT-262** It stops on contact (an attack aimed at the player, words to them they hear, a sound at WAKE\_NOISE or
   louder), on the closing and change checks above, or on a fight in the player's senses (mode.ts fightInSenses).
 - **ACT-263** The levers are CONFIG.READY\_S per body pose (BODY\_POSES: a rest is spent lying, a wait standing),
-  DECIDE\_S, RUSH\_SHARE, REARM\_FACTOR; the strike distance is HOSTILE\_NEAR\_M (the page's STRIKE\_M, the same 2 m).
+  DECIDE\_S, RUSH\_SHARE, REARM\_FACTOR; the strike distance (the page's STRIKE\_M) is hostileNearM:
+  HOSTILE\_NEAR\_STEP\_M plus the closer's own melee reach (SZ19, GSM-174; `src/ruleset/gear.ts`).
 - **ACT-264** Someone whose path ends at the player is someone tracking, hunting or engaging them.
 - **ACT-265** Reading choice: someone newly perceived who does not fire the check is listed (accepted) at once, so steps
   stay long and only a change fires them again.
@@ -451,7 +452,7 @@ BG/D numbers) sits in one trailing parenthesis.
   same action again carries it on.
 - **ACT-322** The active move order waits for walks that carry on (AT49, stage 3).
 - **ACT-323** **Built (screen side).** Who's here: each fully seen person at a long action gets a teal chip with a small
-  meter of the share done and "span a crossbow · 6 s left".
+  meter of the share done and "pick a lock · 20 s left".
 - **ACT-324** The action box: the player's own long action shows above the chips ("Bandage · 15 s done · 25 s to go", a
   meter, and a Keep going chip that fills the box with "I keep going: bandage"; nothing is sent until Send), since only
   the same order again carries it on.
@@ -468,23 +469,3 @@ BG/D numbers) sits in one trailing parenthesis.
 - **ACT-332** On the Map the goal zone gets a dashed accent outline and "Heading here", and its card says "Heading here
   · 24 m · 17 s to go".
 - **ACT-333** The fake page's "walk <zone>" sets a walk; "stop" ends it.
-
-#### Open discrepancies
-
-Where passages of the old rules disagree with each other or with the code, both are kept as written above and the point
-is marked here. Until the owner rules, the code decides what the game does (`AGENTS.md`, Order of authority).
-
-- **ACT-139 and ACT-168, a rest in a fight:** ACT-139 makes a rest in a fight a long action (deep; broken off, it heals
-  by the share done); ACT-168 says rest is never long in a fight and that share does not occur there. The code sides
-  with ACT-139 (`src/engine/resolve.ts` `case 'rest'`, "AT8: in a fight a long action"; the rest row's onBreak is share
-  in `src/library/data.ts`).
-- **ACT-34 and ACT-131/133/323, crossbow spanning:** ACT-34 makes spanning instant for every crossbow (TP6 f, TP8 a),
-  and the code does (`src/library/data.ts`); ACT-131, ACT-133 and ACT-323 still treat spanning as a long action that can
-  be carried on, kept when broken off and shown with "6 s left".
-- **ACT-40/112 and ACT-133, armour:** armour on and off is instant (ACT-40, ACT-112), yet ACT-133 lists armour among the
-  long actions whose work is kept when broken off.
-- **ACT-61 and ACT-153, the size of a pool:** ACT-61 lets carried time reach CARRY\_MAX\_TURNS fight turns (2, so 12 s)
-  on top of the turn's own length; ACT-153 says a pool never holds more than twice a turn.
-- **ACT-263 and the Game state model, the strike distance:** ACT-263 reads HOSTILE\_NEAR\_M, a fixed 2 m; GSM-174 sets
-  when a hostile is near by HOSTILE\_NEAR\_STEP\_M plus its own melee reach (hostileNearM). Both settings are in
-  `src/config/`.

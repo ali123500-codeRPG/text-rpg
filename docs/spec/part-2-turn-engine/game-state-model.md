@@ -131,8 +131,9 @@ type Band = {                   // a small group: a guard post, a gang, a househ
   a stairs or hatch hole (PZ3 a, `src/plan/line.ts` lineClear).
 - **GSM-61** Through a doorway you see a slice of the next room. Every sight range (the sight table, SZ11) reads the
   line's metres.
-- **GSM-62** perceivedZoneIds and sight links are gone; a view's zones list is the viewer's title and the titles it
-  sees into through an opening.
+- **GSM-62** Sight links are gone. A view's zones list, the perceived zones (perceivedZoneIds,
+  `src/engine/relations.ts`), is the viewer's title, the titles it sees into through an opening, and those across a wall
+  seen over or through (glazing, a low wall, a fence, an arcade); who is seen in them is the line of sight's.
 - **GSM-63** Distance (distM) is the straight line between the bodies when the line is clear (sightDistM, which attacks
   use: a blow or shot never goes round a wall), else the walking path.
 
@@ -144,7 +145,7 @@ type Band = {                   // a small group: a guard post, a gang, a househ
 - **GSM-71** A walk never goes through a wall, a low wall or fence (those are climbed, not walked), a window, a way
   shut to the walker that it knows is shut (BG-69, FR5), or an opening too small for its body (SZ7).
 - **GSM-72** A move walks along the path as far as its metres go (walkLeg), and the walker's title is the title of the
-  point it ends at. A move to a title ends CONFIG.ENTER_M (1 m) past the way in.
+  point it ends at. A move to a title ends CONFIG.ENTER_M (1 m) past the way in, to the walker's near edge (GSM-173).
 - **GSM-73** gateAhead is the first opening on the path whose barrier is not open to the walker; a walk up to it stops
   GATE_SHORT_M (0.1 m, a hand's breadth) short of it on the near side, since a walker standing in the doorway itself
   would be past it to every later walk.
@@ -260,8 +261,9 @@ type Band = {                   // a small group: a guard post, a gang, a househ
 - **GSM-166** Reach (weapons, grips, natural attacks) is metres past the body's edge. A natural attack's reach is
   re-measured from the edge (SZ9: a horse bites 0.5 m past its nose and kicks 1.8 m behind its rump); a body type
   part's reach × the race's factor on the shape's longest measure (SZ10).
-- **GSM-167** Placing and a walk's end keep PLACE_SPACING_M and PLACE_GAP_M between bodies, and a walk closing in
-  stops where the bodies are its reach apart (SZ6). Tails: D-366.
+- **GSM-167** Placing keeps PLACE_SPACING_M between bodies (GSM-51); a walk's end keeps PLACE_GAP_M from everyone but
+  the one it closes in on, a walk up to someone stops PLACE_SPACING_M short of them, and a walk closing in to strike
+  stops where the bodies are its reach apart (SZ6, BF71). Tails: D-366.
 
 #### Body size, round 2
 
@@ -338,7 +340,7 @@ type GameEvent = {
   zone: string; target?: string;
   tier?: Tier;                  // absent for actions with no check, such as a plain move or speech
   effects: Effect[];            // structured; text is built per view, never stored
-  noise: NoiseKey; visibility: VisibilityKey;   // NOISE / VISIBILITY keys (src/scales.ts); hearing: perception/noise.ts hearingOf (CONFIG.NOISE_DB, real metres, losses, background), CONFIG.SIGHT_M metres from `pos`
+  noise: NoiseKey; visibility: VisibilityKey;   // NOISE / VISIBILITY keys (src/scales.ts); hearing: perception/noise.ts hearingOf (CONFIG.NOISE_DB, real metres, losses, background), CONFIG.SIGHT_M metres from the maker's body while it still stands at `pos`, else from `pos` (perception/index.ts madeAt)
   pos?: { x: number; y: number };               // where it happened (the actor's point, step 2); absent = the zone's centre
   perception: Record<string, { level: Perception; cue: Cue }>;   // absent = not perceived
   bark?: boolean;               // words beside a deed: copy no belief, but are real speech (BF67): listeners who hear them get the words, and the speaker's said list has them
@@ -357,7 +359,7 @@ type Effect = { kind: string; actorId: string; data: Record<string, unknown> };
 
 #### Routines
 
-- **GSM-210** Routines, routine sets, activities and durations are library content, not saved state **\[Proposed\]**.
+- **GSM-210** Routines, routine sets, activities and durations are library content, not saved state.
 - **GSM-211** The routine bank is the only source of routines. Claude drafts entries offline from a brief the designer
   sets; the designer edits and approves them; the import validator checks them; only the designer promotes them to the
   library.
@@ -371,15 +373,17 @@ type RoutineSet = {                       // the bank entry Agent Weaver picks
   id: string;
   brief: string;                          // one line for the Weaver
   tags: { place: string[]; role: string[]; time: ('day' | 'night' | 'any')[]; event: string[] };
-  slots: Record<string, { kind: 'zone' | 'route'; hint: string }>;   // hint: one line for the Weaver
+  slots: Record<string, { kind: 'zone' | 'route'; hint: string; optional?: true }>;   // hint: one line for the Weaver; optional: may be left unbound (RT)
   routines: string[];                     // [default, ...others]; becomes Mind.routines
 };
 type Routine = {
   id: string;
   brief: string;                          // one line for the Planner, Responder and Voice
-  kind: 'schedule' | 'follow' | 'wait';
-  loop: boolean; steps: RoutineStep[];    // schedule only
-  activity?: string;                      // follow and wait only
+  kind: 'schedule' | 'follow' | 'wait' | 'head';   // head (NW2): walk to slot 'dest', then back to the routine before it
+  loop: boolean; steps: RoutineStep[];    // schedule only; NW10: the steps at any time of day `times` does not name
+  times?: { at: TimeOfDay[]; steps: RoutineStep[] }[];   // NW10, NW13: the steps at some times of day
+  activity?: string;                      // follow, wait and head only
+  posture?: 'stealthy';                   // NS: the actor keeps stealthy while on this routine (the thief's prowl)
   alert?: string;                         // this routine's alert variant; listed in the same set
   onAlert: OrderTemplate | null;          // one order, fired once on alarm
 };
@@ -472,13 +476,14 @@ type ActivityDef = {
 
 #### Follow and wait
 
-- **GSM-280** **Follow.** The zone where the actor believes the player is (its lastKnownZone, never the truth), with
-  the routine's activity.
+- **GSM-280** **Follow.** The zone where the actor believes the player is (its lastKnownZone, never the truth), with the
+  routine's activity. In that zone, with the player believed there, it keeps after them at its own distance (a move near
+  the player with follow set, BF35; `src/minds/routines.ts` routineOrder).
 - **GSM-281** **Wait.** The zone bound to the actor's here slot, with the routine's activity. Code writes here when the
   actor switches to a wait routine.
 - **GSM-282** Nothing is resumed: when control returns, the actor reads its desired state for the current turn.
 
-#### Slots \[Proposed\]
+#### Slots
 
 - **GSM-290** Slot names belong to the actor, not to a routine: one binding per name, shared by every routine in the
   actor's routines list.
@@ -487,7 +492,7 @@ type ActivityDef = {
 - **GSM-292** Shared routines, used by more than one set, read only the standard slots post, route, refuge, exit and
   here. A set may add its own slot names for its own routines.
 
-#### Anchors \[Proposed\]
+#### Anchors
 
 - **GSM-300** Code sets every anchorTurn; no agent sets one:
 
@@ -501,7 +506,7 @@ On a switch to another routine: anchorTurn = currentTurn
 On a calm return:               the anchor saved in returnTo (Explore mode: Alarm)
 ```
 
-#### Companions \[Proposed\]
+#### Companions
 
 - **GSM-310** Every player-band member uses the library set companion: follow (the default) and wait, each with an
   alert variant.
@@ -543,25 +548,3 @@ type Tier = 'critical_failure' | 'failure' | 'near_miss' | 'success' | 'great_su
   actors it perceives fully it sees held items, shield and armor by public look, accessories only when tagged visible,
   concealed items only once revealed, and never stowed items; it sees ground items in perceived zones.
 - **GSM-341** No view holds a gear number.
-
-#### Open discrepancies
-
-Where passages of the old rules disagree with each other or with the code, both are kept as written above and the point
-is marked here. Until the owner rules, the code decides what the game does (`AGENTS.md`, Order of authority).
-
-- **GSM-51 and GSM-167, spacing between bodies:** GSM-51 places each body PLACE_SPACING_M (0.75 m) from every other;
-  GSM-167 says placing keeps "PLACE_SPACING_M and PLACE_GAP_M" (0.15 m, GSM-173) between bodies, without saying which
-  gap applies where.
-- **GSM-72 and GSM-173, where a move into a title ends:** GSM-72 says ENTER_M (1 m) past the way in; GSM-173 says
-  ENTER_M past the way in to the body's near edge, half its length more.
-- **GameEvent and GSM-163/165/181, where an event is perceived from:** the GameEvent shape measures sight as
-  CONFIG.SIGHT_M metres from `pos` (absent: the zone's centre); GSM-163 and GSM-165 measure from the maker's body, and
-  GSM-181 reads every sight range ÷ the seen body's factor.
-- **GSM-62 and the views, zones as the unit of perception:** GSM-62 says perceivedZoneIds are gone, yet PlayerView
-  holds "zones ... the player perceives" and GSM-340 "ground items in perceived zones". GSM-62's zones list (the
-  viewer's title and the titles it sees into) may be what they mean; the spec does not say.
-- **GSM-280 and GSM-50, where Follow goes:** Follow reads lastKnownZone, a title; GSM-50 keeps lastKnownAt, a point, as
-  the belief's place, with the title only "for words".
-- **GSM-210, Slots, Anchors and Companions, still \[Proposed\]:** the code has built them (the routine bank in
-  `src/library/routineBank.ts` with its companion set; RoutineSet and Routine in `src/types/hidden.ts`). The marks are
-  kept until the owner settles them.
