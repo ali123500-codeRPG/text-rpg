@@ -159,7 +159,8 @@ export function checkInvariants(pages: Pages, storyId: string, lib: Library, r: 
   if (actors.filter((a) => a.kind === 'player').length !== 1) r.errors.push('invariant: exactly one player actor');
   for (const a of actors) {
     const c = a.core;
-    if (c.classes.length && c.classes.filter((x) => x.state === 'current').length !== 1) r.errors.push(`invariant: ${a.id} must have exactly one current class`);
+    // SHEET-50: at most one current class; a classless start holds only Commoner unlocked (CC6 b)
+    if (c.classes.filter((x) => x.state === 'current').length > 1) r.errors.push(`invariant: ${a.id} has more than one current class`);
     if (zonePlace.get(a.zone) !== a.placeId) r.errors.push(`invariant: ${a.id} placeId ${a.placeId} is not the place of zone ${a.zone}`);
     const ct = L.bodyType(c.bodyTypeId);
     if (!ct) { r.errors.push(`invariant: ${a.id} body type ${c.bodyTypeId} unknown`); continue; }
