@@ -533,7 +533,8 @@ function lastSeen(state: GameState, seen: SeenActor[]): NonNullable<PlayerView['
     if (!a || seen.some((x) => x.id === id && x.level === 'full') || !isActive(a)) return [];
     // BG-130: their pronouns too, so words about someone out of sight never guess them from a name
     // BG-155: a seller seen before is still known to sell, so a buy from them steps up to them
-    return [{ id, name: nameFor(state, p, a) ?? a.label, zone: zoneById(state, zone)?.name ?? zone, ...(a.pronouns ? { pronouns: a.pronouns } : {}), ...(!speaks(a) ? { mute: true as const } : {}), ...(isSeller(a) ? { wares: wareList(state, p, a) } : {}), ...(goneFromSpot(state, id) ? { gone: true } : {}) }];
+    // BG-327: zone is the id, as everywhere in PlayerView, with its name beside it (as cameFrom)
+    return [{ id, name: nameFor(state, p, a) ?? a.label, zone, zoneName: zoneById(state, zone)?.name ?? zone, ...(a.pronouns ? { pronouns: a.pronouns } : {}), ...(!speaks(a) ? { mute: true as const } : {}), ...(isSeller(a) ? { wares: wareList(state, p, a) } : {}), ...(goneFromSpot(state, id) ? { gone: true } : {}) }];
   });
 }
 

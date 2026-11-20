@@ -148,7 +148,7 @@ export type PlayerView = {
   known?: { id: string; name: string }[];
   actors: SeenActor[];
   /** people seen clearly earlier who are out of sight now, and the zone they were last seen in */
-  lastSeen?: { id: string; name: string; zone: string; pronouns?: string; wares?: WareView[]; gone?: true; mute?: true }[]; // wares: BG-155, a seller known to sell; gone: BG-164, their last-seen spot is in sight and empty
+  lastSeen?: { id: string; name: string; zone: string; zoneName: string; pronouns?: string; wares?: WareView[]; gone?: true; mute?: true }[]; // wares: BG-155, a seller known to sell; gone: BG-164, their last-seen spot is in sight and empty
   /** NM2: names the player has heard but cannot yet put a face to */
   heardOf?: string[];
   /** BG-55: who the player was just talking with (actor ids); words with no one named are for them */

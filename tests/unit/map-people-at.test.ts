@@ -35,3 +35,17 @@ describe('people at their own points on the Map', () => {
     expect(whoInitial('an archer')).toBe('A');
   });
 });
+
+// BG-327: someone out of sight shows on the Map in the zone where they were last seen or heard (MAP-45)
+describe('people last seen on the Map', () => {
+  it('whole turn: the people left behind in the tavern show in their rooms, with no point', async () => {
+    const g = wholeTurn({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
+    const s = g.game.state()!;
+    await g.turn(intent(), 'I look around');
+    for (let i = 0; i < 4 && s.player.zone === 'tav_common'; i++) await g.turn(intent({ move: { toZone: 'street_door' }, action: null }), 'I step out');
+    const left = buildPlayerView(s).lastSeen ?? [];
+    expect(left.map((x) => x.id).sort()).toEqual(['patron_1', 'trader']);
+    for (const x of left) expect(people(s).find((p) => p.id === x.id)).toMatchObject({ zone: s.actors.find((a) => a.id === x.id)!.zone, now: false });
+    for (const p of people(s).filter((x) => !x.now)) expect(p.at).toBeUndefined();
+  });
+});

@@ -22,7 +22,7 @@ describe('177 seen leaving (BG-23)', () => {
     expect(e.perception.player).toMatchObject({ level: 'full', cue: 'sight' });
     noteSightings(e, s);
     expect(s.player.journal!.clearSight!.trader).toBe('tav_cellar');
-    expect(buildPlayerView(s).lastSeen).toContainEqual(expect.objectContaining({ id: 'trader', zone: 'cellar' }));
+    expect(buildPlayerView(s).lastSeen).toContainEqual(expect.objectContaining({ id: 'trader', zone: 'tav_cellar', zoneName: 'cellar' }));
   });
 
   it('a move that ends in a zone out of sight and starts in one too stays unseen', () => {

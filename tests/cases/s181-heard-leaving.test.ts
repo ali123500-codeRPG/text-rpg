@@ -20,11 +20,11 @@ describe('181 heard leaving (BG-28)', () => {
     keep.zone = 'tav_cellar';
     noteSightings(ev({ actorId: 'trader', kind: 'move', zone: 'tav_cellar', fromZone: 'tav_counter', perception: { player: { level: 'partial', cue: 'sound' } } }), s);
     expect(s.player.journal!.clearSight!.trader).toBeUndefined(); // Q17: no longer seen clearly
-    expect(buildPlayerView(s).lastSeen).toContainEqual(expect.objectContaining({ id: 'trader', zone: 'cellar' }));
+    expect(buildPlayerView(s).lastSeen).toContainEqual(expect.objectContaining({ id: 'trader', zone: 'tav_cellar', zoneName: 'cellar' }));
     // a later move the player doesn't perceive at all keeps the last place known
     keep.zone = 'tav_kitchen';
     noteSightings(ev({ actorId: 'trader', kind: 'move', zone: 'tav_kitchen', fromZone: 'tav_cellar' }), s);
-    expect(buildPlayerView(s).lastSeen).toContainEqual(expect.objectContaining({ id: 'trader', zone: 'cellar' }));
+    expect(buildPlayerView(s).lastSeen).toContainEqual(expect.objectContaining({ id: 'trader', zone: 'tav_cellar', zoneName: 'cellar' }));
   });
 
   it('the Parser is told not to ask who someone in lastSeen is', () => {
