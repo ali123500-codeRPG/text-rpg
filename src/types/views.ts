@@ -101,6 +101,11 @@ export type SeenActor = {
   talkDown?: true; // TF13: in a fight, a foe the player can offer a stand-down (it speaks and fights the player)
   holdsOut?: { item: string; name: string }; // BF34: what this person holds out to the viewer: it is the viewer's once they take it (action take, item that id)
   demandYield?: true; // TF19: a foe the player can demand surrender from (as talkDown, or it cowers Broken)
+  /** MAP-40, MAP-69: the race the player sees it is (an RC id), in full sight only */
+  race?: string;
+  /** MAP-68, GSM-193 (SZ16): seen clearly at its own point: where it stands (Actor.pos), its floor size in metres and the way it
+   *  faces, in the player's view only */
+  body?: { x: number; y: number; lengthM: number; widthM: number; facing: [number, number] };
 };
 /** AT11a/AT2: a long action under way: what, in words, and whole seconds done and to go */
 export type DoingView = { what: string; done: number; left: number };
