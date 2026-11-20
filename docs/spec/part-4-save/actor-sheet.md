@@ -824,6 +824,6 @@ The points the split listed were settled on 20/11/2026 where a later recorded de
 settle actor-sheet discrepancies"). What is left is for the owner; until the owner rules, the code decides what the game
 does (`AGENTS.md`, Order of authority).
 
-- **SHEET-166 and the Unwritten Legend story line:** the late bloomer's recommended build meets the hand axe
+- **SHEET-166 and the Unwritten Legend story line (D-417):** the late bloomer's recommended build meets the hand axe
   (SHEET-176), so it opens armed, while its class story says it starts "in rough clothes with empty hands"
   (src/library/data.ts, CL.late_bloomer).

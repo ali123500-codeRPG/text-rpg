@@ -701,8 +701,8 @@ Until the owner rules, the code decides what the game does (`AGENTS.md`, Order o
 split were settled on 20/11/2026 where a later recorded decision and the code agreed (PR "Spec: settle play-screen
 discrepancies").
 
-- **PS-452 and the code, right column width:** "a fixed 300 px (--sheet-w), as narrow as its skill rows" (PS-452)
+- **PS-452 and the code, right column width (D-414):** "a fixed 300 px (--sheet-w), as narrow as its skill rows" (PS-452)
   against the code's 420px `--panel-w` (styles.css), set when the column took the minimap and Who's here (AD1–AD16).
-- **PS-160, the Commands panel height:** "at most 40% of the story's height" (PS-160); the code sets no such cap.
-- **PS-453, dragging the sheet:** "so does dragging it with the mouse" (PS-453); since the right column took the
+- **PS-160, the Commands panel height (D-415):** "at most 40% of the story's height" (PS-160); the code sets no such cap.
+- **PS-453, dragging the sheet (D-416):** "so does dragging it with the mouse" (PS-453); since the right column took the
   minimap (AD1–AD16) nothing wires the drag, and a drag on the minimap pans it.
