@@ -9,7 +9,7 @@ import type { GameApi } from '../types';
 import { boxOf, h, tipOff, tipOn } from './kit';
 import { CONFIG } from '../config';
 import type { KnownMap, MapZone } from './mapData';
-import { MAX_K, PX_PER_M, TEXT, checkReach, checkStage, planScene, roughMeasure, wrap, type Box, type Measure, type Scene } from './mapPlan';
+import { MAX_K, PX_PER_M, TEXT, checkReach, checkStage, hitCap, planScene, roughMeasure, wrap, type Box, type Measure, type Scene } from './mapPlan';
 import { checkMap } from './mapCheck';
 import { doorGlyph, fogClip, fogMask, iconMark, keyTool, planKeyRows, floorMarks, floorName, pin, wayGlyph } from './map';
 import { furnIcon } from './furnitureIcons';
@@ -244,11 +244,15 @@ export function planView(api: GameApi, opts: PlanOpts) {
       if (t.you) { const g = pin(t.cx, t.cy, d.youTitle ?? 'You are here', d.facing); g.setAttribute('data-role', 'token'); g.setAttribute('data-id', 'you'); gTokens.append(g); continue; }
       const who = t.who!, c = t.cap, tok = { 'data-role': 'token', 'data-id': t.id };
       // BG-324: the disc (GSM-193: or the body's capsule) alone is the token the checker measures; its icon (MAP-69) sits inside it
-      const shape = c ? s('rect', { x: t.cx - c.len / 2, y: t.cy - c.wide / 2, width: c.len, height: c.wide, rx: Math.min(c.len, c.wide) / 2, transform: `rotate(${c.deg} ${t.cx} ${t.cy})`, ...tok })
-        : s('circle', { cx: t.cx, cy: t.cy, r: t.r, ...tok });
+      const capRect = (q: NonNullable<typeof c>, at: Record<string, string | number>) => s('rect', { x: t.cx - q.len / 2, y: t.cy - q.wide / 2, width: q.len, height: q.wide, rx: Math.min(q.len, q.wide) / 2, transform: `rotate(${q.deg} ${t.cx} ${t.cy})`, ...at });
+      const shape = c ? capRect(c, tok) : s('circle', { cx: t.cx, cy: t.cy, r: t.r, ...tok });
+      // RM17 b: a capsule narrower than the disc keeps the disc's width to click on, unseen; its icon shrinks to fit inside it
+      const hitArea = c && c.wide < 2 * t.r ? [capRect(hitCap(c), { class: 'map-who-hit' })] : [];
+      const turn = c ? Math.abs(Math.cos((c.deg * Math.PI) / 180)) + Math.abs(Math.sin((c.deg * Math.PI) / 180)) : 1;
+      const iconPx = (2 * t.r - 4) * Math.min(1, (c ? Math.min(c.len, c.wide) : 2 * t.r) / (2 * t.r) / turn);
       const g = s('g', { class: `map-who plan-who${who.now && !who.lastAt ? '' : ' last'}${who.at ? ' at' : ''}`, 'data-zone': t.zoneId, 'data-thing': 'person', 'data-of': who.id, tabindex: 0, role: 'button', 'aria-label': `${t.title}: what to do` },
         ...(t.ring ? [s('circle', { class: 'map-who-ring', cx: t.ring.cx, cy: t.ring.cy, r: t.ring.r })] : []),
-        s('g', {}, shape, iconMark(who.icon, t.cx, t.cy, 2 * t.r - 4, 'map-who-icon')),
+        s('g', {}, ...hitArea, shape, iconMark(who.icon, t.cx, t.cy, iconPx, 'map-who-icon')),
         s('text', { x: t.x1 + 4, y: t.cy + 4, class: 'map-who-label' }, who.name), s('title', {}, t.title));
       gTokens.append(g);
     }
