@@ -3,6 +3,10 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bug-fix-log.md`.
 
+- 20/11/2026: one rule for permanent tests (the owner: "Permanent test cases require explicit owner approval", "This
+  applies whether the new case is added to an existing file or a new file"). `docs/instructions.md` section 8: a
+  temporary test may check a task and is deleted before merge; any new permanent case needs the owner's OK quoted in
+  the PR; changed assertions and completeness rows need none. The section's two-line addition from #1321 is folded in.
 - 20/11/2026: the bug fix log's entries up to BG-326 (the ones that name a PR) move unchanged to
   `docs/bug-fix-log-archive.md` (the owner, asked whether to split it as well: "yeah"). `AGENTS.md` map follows.
 - 20/11/2026: active and archive (the owner: "for the spec for decisions and bugs etc files, I would still want to

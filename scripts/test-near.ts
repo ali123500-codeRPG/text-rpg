@@ -11,7 +11,7 @@
 // change can break without being imported by them. Tests that reach the change only indirectly (through another file
 // that imports it) are left to the PR's checks, which run the whole suite. A change to the build or test set-up
 // (package.json, tsconfig, vitest configs, the setup file), or to a src file nothing imports and no browser test names,
-// gets a warning to run `npm test`.
+// gets a warning; the PR's checks run the whole suite.
 // A changed file no test reaches is named in a warning. Browser tests that reach the change are listed, and run with
 // --smoke. It ends PASSED, FAILED, NOTHING TESTED (exit 3) or could not pick tests (exit 2). Plain-syntax TypeScript so
 // Node 22 runs it; tests/unit/systems-map.test.ts checks it.
@@ -222,7 +222,7 @@ function main(args: string[]): number {
   const unseen = paths.filter((p) => p.startsWith('src/') && p.endsWith('.ts') && !p.endsWith('.d.ts') && existsSync(p) && !imported.has(p) && !coveredBySmoke(p).length);
   if (whole.length || unseen.length) {
     const why = whole.length ? `${whole.join(', ')} change${whole.length > 1 ? '' : 's'} how every test runs` : `nothing imports ${unseen.join(', ')}, so its tests cannot be traced`;
-    console.warn(`test:near: WARNING: ${why}. The whole suite is left to the PR's checks; run it here with \`npm test\`.`);
+    console.warn(`test:near: WARNING: ${why}. The whole suite runs in the PR's checks.`);
   }
   const near = pick(paths, all, read, words, graph, ids);
   const tests = [...new Set([...near, ...guard])].sort();
@@ -231,15 +231,15 @@ function main(args: string[]): number {
   for (const p of paths.filter((x) => /^src\/.*\.(ts|css)$/.test(x) && !x.endsWith('.d.ts'))) {
     if (pick([p], near, read, words, graph, ids).length) continue;
     const browser = smoke.filter((t) => pick([p], [t], read, words, graph).length || coveredBySmoke(p).includes(t));
-    console.warn(`test:near: WARNING: no unit or scenario test imports ${p}${browser.length ? `; browser tests: ${browser.join(' ')}` : '; run `npm test`, or add one'}.`);
+    console.warn(`test:near: WARNING: no unit or scenario test imports ${p}${browser.length ? `; browser tests: ${browser.join(' ')}` : '; the PR\'s checks run the whole suite'}.`);
   }
   if (!near.length && !list) {
     // a run that tested nothing near the change must not read as a pass: exit 3, so `npm run test:near && git push` stops
-    console.error('test:near: NOTHING TESTED near the change. No test imports or names what you changed. Run the tests you expect by path, or `npm test`.');
+    console.error('test:near: NOTHING TESTED near the change. No test imports or names what you changed. Run the tests you expect by path; the PR\'s checks run the whole suite.');
     if (smoke.length) console.error(`Only browser tests reach it: npm run test:near -- --smoke, or npm run smoke -- ${smoke.join(' ')}`);
     return 3;
   }
-  if (smoke.length && !args.includes('--smoke')) console.log(`Browser tests that reach what you changed: ${smoke.join(' ')}. Run them with --smoke, or leave them to the PR's checks.`);
+  if (smoke.length && !args.includes('--smoke')) console.log(`Browser tests that reach what you changed: ${smoke.join(' ')}. The PR's checks run them; run them here only to debug a failure.`);
   if (list) {
     console.log(tests.join('\n'));
     return 0;

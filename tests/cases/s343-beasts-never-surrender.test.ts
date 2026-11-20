@@ -6,7 +6,7 @@ import { makeVillage } from '../harness';
 import { actorById } from '../../src/engine/relations';
 import { payFear } from '../../src/engine/morale';
 import { moraleLevel } from '../../src/ruleset/morale';
-import { createRng } from '../../src/rng';
+import { createRng, forcedRng } from '../../src/rng';
 import { getLibrary } from '../../src/library';
 import { FR } from '../../src/library/tableIds';
 import { RC } from '../../src/library/raceIds';
@@ -31,16 +31,15 @@ describe('343 BG-268: a slime breaks, it never surrenders', () => {
 
   it('a break on a Critical Failure morale roll: a person surrenders, a slime only breaks', () => {
     const got: Record<string, Set<string>> = { patron_1: new Set(), slime_1: new Set() };
-    for (let seed = 1; seed <= 60; seed++) {
-      for (const id of ['patron_1', 'slime_1']) {
-        const s = makeVillage();
-        const a = actorById(s, id)!;
-        a.core.skills = Object.fromEntries(Object.entries(a.core.skills).map(([k, v]) => [k, { ...v, raw: 0 }])); // a weak will, so rolls fail often
-        a.core.condition.moraleLost = 0;
-        for (let i = 0; i < 40 && !a.mind?.moraleState; i++) {
-          const r = payFear(s, createRng(seed * 100 + i), a, FR.bandmate_down);
-          if (r) { got[id].add(r); a.mind!.moraleState = r; }
-        }
+    for (const id of ['patron_1', 'slime_1']) {
+      const s = makeVillage();
+      const a = actorById(s, id)!;
+      a.core.skills = Object.fromEntries(Object.entries(a.core.skills).map(([k, v]) => [k, { ...v, raw: 0 }])); // a weak will, so rolls fail often
+      a.core.condition.moraleLost = 0;
+      const rng = forcedRng(Array(40).fill(1)); // every morale roll a natural 1, so a break comes on a Critical Failure
+      for (let i = 0; i < 40 && !a.mind?.moraleState; i++) {
+        const r = payFear(s, rng, a, FR.bandmate_down);
+        if (r) { got[id].add(r); a.mind!.moraleState = r; }
       }
     }
     expect(got.patron_1.has('surrendered')).toBe(true);

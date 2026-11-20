@@ -217,14 +217,15 @@ The source of truth for every design decision.
   check, unit and scenario tests, build, browser smoke, and the PR rule. The template's terms (completeness rows,
   whole-turn test) are in `docs/glossary.md`.
 - Tests manage risk; they are not a deliverable. Before adding one, search `tests/` for a test or smoke flow that
-  already covers the behaviour; if one does, extend it or name it. Add a new test only when a break would go
-  unnoticed (numbers, saves, RNG, ordering, a sibling path) and nothing covers it, in the cheapest form that catches
-  it: a pure function gets a unit test, a whole turn only when the turn itself is the risk. Never match source text.
+  already covers the behaviour; if one does, extend it or name it. A temporary test may check a task; delete it and
+  its fixtures before the PR merges. A new permanent test case, in a new file or an existing one, needs the owner's OK,
+  quoted in the PR: ask only when a break would go unnoticed (numbers, saves, RNG, ordering, a sibling path) and
+  nothing covers it, and write it in the cheapest form that catches it: a pure function gets a unit test, a whole turn
+  only when the turn itself is the risk. Changing an existing test's assertions or adding a completeness row needs no
+  OK. Never match source text.
   Docs, spec, rule, config and tooling changes, and wiring a smoke flow already covers, get none. A test that
   duplicates another, guards nothing or matches source text may be deleted in a PR that touches it, naming what
   covers it. A change of meaning gets a search of the whole repo for the old pattern, not a guard test (spec, TQ5).
-  A test written to check one task is temporary: delete it and its fixtures before the PR merges. A new permanent
-  test needs the owner's OK: the PR names the silent break it catches and why nothing covers it.
 - The agent that opened a PR reviews it and squash-merges it once every check is green, without asking the
   owner. That includes bug fixes and rule-file changes; a rule-file PR quotes the owner's words it acts on
   (`AGENTS.md` rule 6). The owner does not merge PRs. The same rule holds for agents of every provider.
