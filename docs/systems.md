@@ -506,7 +506,7 @@ agent is given; leak prevention; autopilot.
 
 ## save: saves and stored data
 
-Save and load, the store, world and universe saves, replay, bug reports the game files, the hall of fame. The owner's
+Save and load, the store, world saves, replay, bug reports the game files, the hall of fame. The owner's
 saves are off-limits (AGENTS.md rule 1).
 
 - Spec: [part-4-save/](spec/part-4-save/)
@@ -520,7 +520,6 @@ saves are off-limits (AGENTS.md rule 1).
   - `src/save/replay.ts`
   - `src/save/sends.ts`
   - `src/save/store.ts`
-  - `src/save/universe.ts`
   - `src/save/world.ts`
   - `src/ui/fame.ts`
 

@@ -7,7 +7,6 @@ import { roofed } from '../plan/where';
 import { worldCheck } from '../scenario/ways';
 import { checkInvariants, checkShape, migrate, newReport, reconcile, repairReferences, type CheckReport } from './checks';
 export { memoryStore, artifactDbStore, type MemoryStore, type DB } from './store';
-export { universeDay, reachDay } from './universe';
 export { carryOn, pastCharacterId } from './world';
 export { MIGRATIONS } from './checks';
 export { hashPage, stableStringify, toPages, fromPages } from './pages';

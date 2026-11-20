@@ -31,7 +31,8 @@ archetypes are library tables.
 - **Heroes into NPCs (12-13/11/2026; HF1-HF34).** A fallen character on the Hall of fame can be sent to the
   NPC templates as a unique: one specific saved character, kept in the code library and added by a PR.
   They return as echoes: they cannot train, their gear is soulbound copies, and they always drop an essence.
-  Each story is a world under one Universe with a shared calendar (#653, #655, #663, #664). Still to do: the
+  Each story is a world under one Universe (#653, #655, #663, #664); its shared calendar was removed on 20/11/2026
+  ("neat but not required": every new world starts on day 1). Still to do: the
   Universe record of where each unique is. Parked: echoes that grow (D-243), their lore (D-244), what
   happened in an empty world (D-251).
 - **Goal-driven uniques (13/11/2026; UG1-UG17).** Unique NPCs act from goals, not strict routines: drives
