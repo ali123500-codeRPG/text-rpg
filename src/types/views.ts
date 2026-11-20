@@ -96,6 +96,7 @@ export type SeenActor = {
   doing?: DoingView; // AT11a: a long action it is at (full sight only)
   mute?: true; // BG-280: seen clearly as one who cannot talk (a slime, a beast): no talk, trade or giving
   lying?: true; // BG-278: half seen and lying still (down, dead or asleep: the viewer cannot tell which)
+  band?: true; // YB2: in the player's band (the engine's rule: the same bandId); YB3 c: its health and morale then show at every level
   foe?: { strikes?: string }; // BG-265: in a fight, one fighting the viewer (beasts too), or one it saw strike first at someone not fighting it (strikes: whom)
   talkDown?: true; // TF13: in a fight, a foe the player can offer a stand-down (it speaks and fights the player)
   holdsOut?: { item: string; name: string }; // BF34: what this person holds out to the viewer: it is the viewer's once they take it (action take, item that id)
@@ -148,7 +149,7 @@ export type PlayerView = {
   known?: { id: string; name: string }[];
   actors: SeenActor[];
   /** people seen clearly earlier who are out of sight now, and the zone they were last seen in */
-  lastSeen?: { id: string; name: string; zone: string; zoneName: string; pronouns?: string; wares?: WareView[]; gone?: true; mute?: true }[]; // wares: BG-155, a seller known to sell; gone: BG-164, their last-seen spot is in sight and empty
+  lastSeen?: { id: string; name: string; zone: string; zoneName: string; pronouns?: string; wares?: WareView[]; gone?: true; mute?: true; band?: true }[]; // wares: BG-155, a seller known to sell; gone: BG-164, their last-seen spot is in sight and empty
   /** NM2: names the player has heard but cannot yet put a face to */
   heardOf?: string[];
   /** BG-55: who the player was just talking with (actor ids); words with no one named are for them */

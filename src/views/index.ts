@@ -80,6 +80,8 @@ const moraleWord = (a: Actor): string => MORALE_LEVELS.name(moraleLevel(a));
 /** AS3: the word others see for someone's morale: a foe who surrendered shows Surrendered, a visible state like Broken */
 export const SURRENDERED_WORD = 'Surrendered';
 // BG-199: a broken NPC shows Broken for as long as it lasts, whatever its bar has crept back to
+/** YB2: the engine's band-mate rule: two actors in the same band (relations, yield, warnings all test the same bandId) */
+const inBand = (a: Actor, b: Actor): boolean => a !== b && !!a.bandId && a.bandId === b.bandId;
 const seenMoraleWord = (a: Actor): string => (a.mind?.moraleState === 'surrendered' ? SURRENDERED_WORD : a.mind?.moraleState === 'broken' ? MORALE_LEVELS.name(isCoweringLevel(moraleLevel(a)) ? 'cowering' : 'broken') : moraleWord(a));
 const fatigueWord = (a: Actor): string => FATIGUE_LEVELS.name(fatigueLevel(a));
 /** FT20: the player's stamina bar as points left, to a tenth */
@@ -338,15 +340,17 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
     const destroyed = parts.filter((p) => p.state === 'destroyed').map((p) => p.id);
     const damaged = parts.filter((p) => p.state === 'damaged').map((p) => p.id);
     const look = lookOf(state, events, viewer.id, a.id);
+    const mate = viewer === state.player && inBand(viewer, a); // YB3 c: a band-mate in clear sight shows its health and morale at every level
     out.push({
       id: a.id, label: a.label, ...(name ? { name } : {}), ...(a.pronouns ? { pronouns: a.pronouns } : {}), zone: a.zone, level,
       ...(!speaks(a) ? { mute: true as const } : {}), // BG-280: made out as one who cannot talk (a slime, a beast)
       ...(stageOf(state, a) ? { age: stageOf(state, a)! } : {}), // AG16: the life stage, never the number
       ...place,
       ...(look ? { activityLook: look } : {}),
-      ...(healthShows(h, reads(viewer, a)) || readsHealthOf(viewer, a) ? { health: h } : {}),
+      ...(mate ? { band: true as const } : {}),
+      ...(mate || healthShows(h, reads(viewer, a)) || readsHealthOf(viewer, a) ? { health: h } : {}),
       // someone Down (incapacitated or dead) shows no mood
-      ...(fooledByFeint(state, viewer, a) ? { morale: MORALE_LEVELS.name('broken') } : !isDownLevel(h) && (moraleShows(moraleLevel(a)) || a.mind?.moraleState) ? { morale: seenMoraleWord(a) } : {}), // TC52 a: a believer sees a feint as a break
+      ...(fooledByFeint(state, viewer, a) ? { morale: MORALE_LEVELS.name('broken') } : !isDownLevel(h) && (mate || moraleShows(moraleLevel(a)) || a.mind?.moraleState) ? { morale: seenMoraleWord(a) } : {}), // TC52 a: a believer sees a feint as a break
       ...(!isDownLevel(h) && fatigueShows(fatigueLevel(a)) ? { fatigue: fatigueWord(a) } : {}),
       ...(readsFace(state, viewer, a) ? { stance: stance(state, a, viewer) } : {}),
       ...(crippled.length ? { crippled } : {}), ...(destroyed.length ? { destroyed } : {}), ...tendedOf(state, a),
@@ -534,7 +538,7 @@ function lastSeen(state: GameState, seen: SeenActor[]): NonNullable<PlayerView['
     // BG-130: their pronouns too, so words about someone out of sight never guess them from a name
     // BG-155: a seller seen before is still known to sell, so a buy from them steps up to them
     // BG-327: zone is the id, as everywhere in PlayerView, with its name beside it (as cameFrom)
-    return [{ id, name: nameFor(state, p, a) ?? a.label, zone, zoneName: zoneById(state, zone)?.name ?? zone, ...(a.pronouns ? { pronouns: a.pronouns } : {}), ...(!speaks(a) ? { mute: true as const } : {}), ...(isSeller(a) ? { wares: wareList(state, p, a) } : {}), ...(goneFromSpot(state, id) ? { gone: true } : {}) }];
+    return [{ id, name: nameFor(state, p, a) ?? a.label, zone, zoneName: zoneById(state, zone)?.name ?? zone, ...(a.pronouns ? { pronouns: a.pronouns } : {}), ...(!speaks(a) ? { mute: true as const } : {}), ...(isSeller(a) ? { wares: wareList(state, p, a) } : {}), ...(goneFromSpot(state, id) ? { gone: true } : {}), ...(inBand(p, a) ? { band: true as const } : {}) }];
   });
 }
 

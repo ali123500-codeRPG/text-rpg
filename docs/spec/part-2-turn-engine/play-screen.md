@@ -200,10 +200,18 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
   HS7: no extra veil behind it).
 - **PS-132** The right column (PS-410) shows at every width. Its health strip stays folded (health level and bar,
   damaged-part chips, Stealthy); a click opens the full condition in a pop-up (UI8; AD1–AD16).
-- **PS-133** Who's here sits in the right column as rows, under the minimap (PS-410; AD1–AD16).
+- **PS-133** Who's here sits in the right column under the minimap and Your band, as compact cells several to a row
+  (name, pin and status words; how far they are in the cell's tip, PS-172) so it takes little room (PS-410; AD1–AD16;
+  YB4 a, Ali 20/11/2026).
 - **PS-134** It lists the actors the character fully perceives (PlayerView), by label until the name is known; "Nobody
   in view" when empty (Voyage C2, U6, U7).
-- **PS-135** Others' health shows only from Wounded down (Part 3), never as a bar (Voyage C2, U6, U7).
+- **PS-135** Others' health shows only from Wounded down (Part 3), never as a bar (Voyage C2, U6, U7); band-mates are the
+  exception (PS-138).
+- **PS-138** Your band sits between the minimap and Who's here, in the same cells: everyone in the player's band (the
+  engine's rule, the same bandId; YB2, Ali 20/11/2026). One in clear sight shows its health and morale as two thin
+  bars at every level, the level words in their tips; one out of sight shows, dimmed, the place it was last seen
+  (YB3 c, Ali 20/11/2026; PlayerView `band`). A band-mate is never also listed in Who's here. With no band-mate the
+  heading reads Solo (YB4 a, Ali 20/11/2026).
 - **PS-136** Narration log: checked narration, newest last. Story text is set in Literata.
 - **PS-137** While a turn runs, one neutral line for every turn, "The story is moving… 12 s", with "Taking longer than
   usual" after 90 s; it never names the agent (play screen review UI2).
