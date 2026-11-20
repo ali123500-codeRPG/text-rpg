@@ -23,6 +23,7 @@ import { healItems, partName } from './healing';
 import { cap, r1, theItem } from '../words';
 import { durationText, now, secondsSince } from '../time';
 import { orderCost } from '../engine/resolve';
+import { ridesBeside } from '../engine/beside';
 import { fromIntent } from '../engine/merge';
 
 export const DECK_GROUPS = ['getaway', 'fight', 'talk', 'move', 'stealth', 'use', 'perks'] as const;
@@ -121,8 +122,9 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
   const waiting = (gone: number, of: number, unit: 's' | 'min'): DeckLimit => ({ share: Math.max(0, Math.min(1, gone / of)), tip: `Ready in ${Math.max(1, Math.ceil(of - gone))} ${unit}` });
 
   const A: DeckAction[] = [];
-  const add = (kind: DeckKind, group: DeckGroup, label: string, steps: Step[], play: (c: Choice) => Order, extra: { note?: string; hot?: true; limit?: DeckLimit; free?: true } = {}) =>
-    A.push({ kind, group, label, steps, play, ...extra });
+  // SX8: free (beside your action, not instead of it) is the engine's rule (engine/beside.ts), asked of the order the entry plays
+  const add = (kind: DeckKind, group: DeckGroup, label: string, steps: Step[], play: (c: Choice) => Order, extra: { note?: string; hot?: true; limit?: DeckLimit } = {}) =>
+    A.push({ kind, group, label, steps, play, ...extra, ...(ridesBeside(firstOrder(steps, play)?.intent ?? {}) ? { free: true as const } : {}) });
 
   // ---- Fight (MB12/BF37: a broken nerve allows no attack; words, a yield, sneaking and a walk away (BF79) still work) ----
   if (!broken) {
@@ -260,20 +262,20 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
   if (heal.length) add('use_item', 'use', 'Treat wounds', [{ key: 'item', title: 'With what?', picks: () => heal.map(invPick) }, { key: 'target', title: 'Treat whom?', picks: () => [{ id: '', label: 'Yourself' }, ...full.map(person)] }],
     (c) => order(`Use ${theItem(item(c.item!)?.name ?? '')} on ${c.target ? them(c) : 'myself'}`, { action: act('use_item', { item: c.item!, target: c.target || null }) }));
   const stowed = inv.filter((i) => !i.equippedIn.length && i.kind === 'weapon'), held = inv.filter((i) => isHeld(i));
-  if (stowed.length) add('draw', 'use', 'Draw', [{ key: 'item', title: 'Draw what?', picks: () => stowed.map(invPick) }], (c) => order(`Draw ${theItem(item(c.item!)?.name ?? '')}`, { gear: [{ op: 'draw', item: c.item! }] }), { free: true });
+  if (stowed.length) add('draw', 'use', 'Draw', [{ key: 'item', title: 'Draw what?', picks: () => stowed.map(invPick) }], (c) => order(`Draw ${theItem(item(c.item!)?.name ?? '')}`, { gear: [{ op: 'draw', item: c.item! }] }));
   if (held.length) add('stow', 'use', 'Put away', [{ key: 'item', title: 'Put away what?', picks: () => held.map(invPick) }, ...(containers.some((g) => g.container?.open) || inv.some((i) => i.container) ? [{ key: 'target' as const, title: 'Into?', picks: () => [{ id: '', label: 'On you' }, ...inv.filter((i) => i.container).map(invPick), ...containers.filter((g) => g.container?.open).map((g) => ({ id: g.id, label: cap(g.name) }))] }] : [])],
-    (c) => order(`Put away ${theItem(item(c.item!)?.name ?? '')}`, { gear: [{ op: 'stow', item: c.item!, ...(c.target ? { into: c.target } : {}) }] }), { free: true });
-  if (held.length && stowed.length) add('swap', 'use', 'Swap weapons', [{ key: 'item', title: 'Take up what?', picks: () => stowed.map(invPick) }], (c) => order(`Swap to ${theItem(item(c.item!)?.name ?? '')}`, { gear: [{ op: 'swap', item: c.item! }] }), { free: true });
+    (c) => order(`Put away ${theItem(item(c.item!)?.name ?? '')}`, { gear: [{ op: 'stow', item: c.item!, ...(c.target ? { into: c.target } : {}) }] }));
+  if (held.length && stowed.length) add('swap', 'use', 'Swap weapons', [{ key: 'item', title: 'Take up what?', picks: () => stowed.map(invPick) }], (c) => order(`Swap to ${theItem(item(c.item!)?.name ?? '')}`, { gear: [{ op: 'swap', item: c.item! }] }));
   const acc = inv.filter((i) => i.kind === 'accessory');
-  if (acc.some((i) => !i.equippedIn.length)) add('wear_acc', 'use', 'Put on', [{ key: 'item', title: 'Put on what?', picks: () => acc.filter((i) => !i.equippedIn.length).map(invPick) }], (c) => order(`Put on ${theItem(item(c.item!)?.name ?? '')}`, { gear: [{ op: 'wear_acc', item: c.item! }] }), { free: true });
-  if (acc.some((i) => i.equippedIn.length)) add('remove_acc', 'use', 'Take off', [{ key: 'item', title: 'Take off what?', picks: () => acc.filter((i) => i.equippedIn.length).map(invPick) }], (c) => order(`Take off ${theItem(item(c.item!)?.name ?? '')}`, { gear: [{ op: 'remove_acc', item: c.item! }] }), { free: true });
+  if (acc.some((i) => !i.equippedIn.length)) add('wear_acc', 'use', 'Put on', [{ key: 'item', title: 'Put on what?', picks: () => acc.filter((i) => !i.equippedIn.length).map(invPick) }], (c) => order(`Put on ${theItem(item(c.item!)?.name ?? '')}`, { gear: [{ op: 'wear_acc', item: c.item! }] }));
+  if (acc.some((i) => i.equippedIn.length)) add('remove_acc', 'use', 'Take off', [{ key: 'item', title: 'Take off what?', picks: () => acc.filter((i) => i.equippedIn.length).map(invPick) }], (c) => order(`Take off ${theItem(item(c.item!)?.name ?? '')}`, { gear: [{ op: 'remove_acc', item: c.item! }] }));
   const armor = inv.filter((i) => i.kind === 'armor');
   if (armor.length) add('equip', 'use', 'Armor on or off', [{ key: 'item', title: 'Which armor?', picks: () => armor.map((i) => ({ ...invPick(i), note: i.equippedIn.length ? 'worn: take it off' : 'put it on' })) }],
-    (c) => order(`${item(c.item!)?.equippedIn.length ? 'Take off' : 'Put on'} ${theItem(item(c.item!)?.name ?? '')}`, { gear: [{ op: 'armor', item: c.item! }] }), { free: true });
+    (c) => order(`${item(c.item!)?.equippedIn.length ? 'Take off' : 'Put on'} ${theItem(item(c.item!)?.name ?? '')}`, { gear: [{ op: 'armor', item: c.item! }] }));
   const ground = pv.zone.groundItems.filter((g) => !g.container?.fixed);
-  if (ground.length) add('pick_up', 'use', 'Pick up', [{ key: 'item', title: 'Pick up what?', picks: () => ground.map((g) => ({ id: g.id, label: cap(g.name) })) }], (c) => order(`Pick up ${theItem(ground.find((g) => g.id === c.item)?.name ?? '')}`, { gear: [{ op: 'pick_up', item: c.item! }] }), { free: true });
-  if (inv.length) add('set_down', 'use', 'Set down', [{ key: 'item', title: 'Set down what?', picks: () => inv.map(invPick) }], (c) => order(`Set down ${theItem(item(c.item!)?.name ?? '')}`, { gear: [{ op: 'set_down', item: c.item! }] }), { free: true });
-  if (pv.player.summonable?.length) add('summon', 'use', 'Summon', [{ key: 'item', title: 'Summon what?', picks: () => pv.player.summonable!.map((x) => ({ id: x.id, label: cap(x.name) })) }], (c) => order(`Summon ${pv.player.summonable!.find((x) => x.id === c.item)?.name ?? ''}`, { gear: [{ op: 'summon', item: c.item! }] }), { free: true });
+  if (ground.length) add('pick_up', 'use', 'Pick up', [{ key: 'item', title: 'Pick up what?', picks: () => ground.map((g) => ({ id: g.id, label: cap(g.name) })) }], (c) => order(`Pick up ${theItem(ground.find((g) => g.id === c.item)?.name ?? '')}`, { gear: [{ op: 'pick_up', item: c.item! }] }));
+  if (inv.length) add('set_down', 'use', 'Set down', [{ key: 'item', title: 'Set down what?', picks: () => inv.map(invPick) }], (c) => order(`Set down ${theItem(item(c.item!)?.name ?? '')}`, { gear: [{ op: 'set_down', item: c.item! }] }));
+  if (pv.player.summonable?.length) add('summon', 'use', 'Summon', [{ key: 'item', title: 'Summon what?', picks: () => pv.player.summonable!.map((x) => ({ id: x.id, label: cap(x.name) })) }], (c) => order(`Summon ${pv.player.summonable!.find((x) => x.id === c.item)?.name ?? ''}`, { gear: [{ op: 'summon', item: c.item! }] }));
   const shut = [...containers.filter((g) => g.container?.shut), ...inv.filter((i) => i.container && !i.container.open)];
   if (shut.length) add('open', 'use', 'Open', [{ key: 'target', title: 'Open what?', picks: () => shut.map((g) => ({ id: g.id, label: cap(g.name), note: g.container?.lock === 'locked' ? (g.container.key ? 'locked · you hold its key' : 'locked') : undefined })) }],
     (c) => order(`Open ${theItem(shut.find((g) => g.id === c.target)?.name ?? '')}`, { action: act('open', { target: c.target! }) }));
@@ -301,12 +303,12 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
   // ---- WN9 a: warn your side about a trick you saw through, or someone hidden you see (a free shout beside the turn) ----
   const warnable = pv.player.warnable ?? [];
   if (warnable.length) add('warn', 'talk', 'Warn your side', [who('Warn them about whom?', seen.filter((a) => warnable.some((w) => w.id === a.id)))],
-    (c) => order(`Warn your side about ${them(c)}`, { warn: c.target! }), { free: true, note: 'a shout' });
+    (c) => order(`Warn your side about ${them(c)}`, { warn: c.target! }), { note: 'a shout' });
 
   // ---- Perks (AE5/AE8: perk moves; a free one goes beside the turn, an action one is the turn) ----
   for (const m of pv.player.perkMoves ?? []) {
     const label = PERK_LABEL[m.id] ?? m.name;
-    const extra = { note: m.name, ...(m.action ? {} : { free: true as const }) };
+    const extra = { note: m.name };
     if (m.used) add('perk', 'perks', label, [], () => order(label, { perkMove: { perk: m.id, target: null } }), { ...extra, limit: { used: true, tip: 'Used this fight' } });
     else if (!m.inRange) add('perk', 'perks', label, [], () => order(label, { perkMove: { perk: m.id, target: null } }), extra);
     else if (m.inRange.length) add('perk', 'perks', label, [who(`${label}: whom?`, up.filter((a) => m.inRange!.includes(a.id)))], (c) => order(`${label}: ${them(c)}`, { perkMove: { perk: m.id, target: c.target! } }), extra);
@@ -324,18 +326,23 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
   return by(groups, (g) => (g.group === 'getaway' ? Infinity : pull(g.group === 'use' || g.group === 'perks' ? undefined : g.group)));
 }
 
+/** the order an entry plays with the first pick of each step (null when it can't be built so) */
+function firstOrder(steps: Step[], play: (c: Choice) => Order): Order | null {
+  try {
+    const c: Choice = {};
+    for (const st of steps) if (st.key !== 'words') c[st.key] = st.picks(c)[0]?.id;
+    return play(c);
+  } catch { return null; }
+}
+
 /** the hover line saying how long an action takes: its Action times row's seconds (resolve orderCost) for the first pick of
  * each step; a move goes by the distance, and an action with no row of its own takes the turn */
 function timeTip(s: GameState, a: DeckAction): string {
   if (a.free) return 'Free: beside your action, not instead of it';
   if (a.kind === 'wait') return 'Lasts until the time you pick';
   if (a.kind === 'sleep') return 'Lasts until you are rested';
-  let intent: Intent;
-  try {
-    const c: Choice = {};
-    for (const st of a.steps) if (st.key !== 'words') c[st.key] = st.picks(c)[0]?.id;
-    intent = a.play(c).intent;
-  } catch { return ''; }
+  const intent = firstOrder(a.steps, a.play)?.intent;
+  if (!intent) return '';
   if (!intent.action) return intent.move ? 'Takes as long as the way there' : '';
   const cost = orderCost(s, s.player, fromIntent(s, intent, false));
   if (!cost) return 'Takes the turn';

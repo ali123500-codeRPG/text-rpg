@@ -1,6 +1,6 @@
 // AD (free mark): an entry carries the free mark (a lightning bolt: beside your action, not instead of it) exactly when
-// the engine resolves its order beside the main action. The deck sets `free` by hand on each entry (src/ui/deck.ts add(...,
-// { free: true })), so this guard derives the expectation from the engine's own order instead: fromIntent (the Order the
+// the engine resolves its order beside the main action. The deck asks engine/beside.ts (ridesBeside); this guard does not,
+// and derives the expectation from the engine's own order instead: fromIntent (the Order the
 // turn resolves), resolve.ts (Order.type is the main action, doMain through useMain; a move or a way op takes the move slot,
 // or the main time when nothing else is planned) and PERK_MOVES (which perk moves are free). Never from a list of kinds.
 import { describe, expect, it } from 'vitest';

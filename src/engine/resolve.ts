@@ -194,6 +194,7 @@ import {
   modeSkill,
   obstacleGate,
   partStates,
+  PERK_MOVES,
   pickSeconds,
   pickTool,
   roleOff,
@@ -322,6 +323,9 @@ import {
   perkMoveBlock,
   resolvePerkMove,
 } from './perkMoves';
+import {
+  ridesBeside,
+} from './beside';
 import {
   sawThrough,
   TRICK,
@@ -2802,13 +2806,15 @@ function doTravel(ctx: Ctx, a: Actor, o: Order, t: NonNullable<ReturnType<typeof
   } else if (t.frontier && trip.stop === 'arrived') doMove(ctx, a, { zone: t.frontier }, o, false, 0);
 }
 
-/** AE5/AE8: a perk move; a free one resolves beside the main action, just before it */
+/** AE5/AE8: a perk move; a free one resolves beside the main action, just before it (engine/beside.ts) */
 function doPerkMove(ctx: Ctx, a: Actor, pm: NonNullable<Order['perkMove']>): void {
   const why = perkMoveBlock(ctx.state, a, pm.perk, pm.target);
   if (why) return logCode(ctx.state, 'perk_move_dropped', { actorId: a.id, perk: pm.perk, reason: why });
   if (pm.perk === PK.battle_cry && tooSpent(a, actionRow(DU.battle_cry)?.effort)) return logCode(ctx.state, 'perk_move_dropped', { actorId: a.id, perk: pm.perk, reason: 'spent' }); // FT10
-  if (pm.perk === PK.battle_cry) return doBattleCry(ctx, a);
   if (pm.perk === PK.rally && tooSpent(a, actionRow(DU.rally)?.effort)) return logCode(ctx.state, 'perk_move_dropped', { actorId: a.id, perk: pm.perk, reason: 'spent' });
+  // AT11 (SX8): one that does not ride beside the main action spends its Action times row from the main time first
+  if (!ridesBeside({ perkMove: pm })) { const row = PERK_MOVES[pm.perk]?.row; useMain(ctx, a, { row: row ? actionRow(row) : undefined }); }
+  if (pm.perk === PK.battle_cry) return doBattleCry(ctx, a);
   if (pm.perk === PK.rally) return doRally(ctx, a);
   if (pm.perk === PK.draw_them_in) return doDrawThemIn(ctx, a);
   if (pm.perk === PK.play_dead) return doPlayDead(ctx, a);
@@ -2825,9 +2831,8 @@ function doWarn(ctx: Ctx, a: Actor, about: string): void {
   ev.effects.push(...giveWarning(ctx.state, a, about, ev));
 }
 
-/** TC44 a Play Dead (Guile 20): the turn's main action; the owner drops as if Down and each foe that sees it clearly rolls */
+/** TC44 a Play Dead (Guile 20): the turn's main action (its time spent in doPerkMove); the owner drops as if Down and each foe that sees it clearly rolls */
 function doPlayDead(ctx: Ctx, a: Actor): void {
-  useMain(ctx, a, { row: actionRow(DU.play_dead) });
   const ev = mk(ctx, a, 'play_dead');
   ev.effects.push(...startPlayDead(ctx.state, a, ctx.rng));
   ev.perception = computePerception(ev, ctx.state, ctx.rng);
@@ -2856,23 +2861,21 @@ function doDrawThemIn(ctx: Ctx, a: Actor): void {
   emit(ctx, ev);
 }
 
-/** TC39 a Rally (Command 100): the main action, once a fight; a Loud call, and each ally it reaches makes the rally roll
+/** TC39 a Rally (Command 100): the main action (its time spent in doPerkMove), once a fight; a Loud call, and each ally it reaches makes the rally roll
  * with the owner's Command (rallyCall in auras.ts) */
 function doRally(ctx: Ctx, a: Actor): void {
   const { state, rng } = ctx;
   countPerkMove(state, a, PK.rally, null);
-  useMain(ctx, a, { row: actionRow(DU.rally) });
   const ev = mk(ctx, a, 'rally');
   ev.perception = computePerception(ev, state, rng);
   emit(ctx, ev, undefined, true);
   for (const r of rallyCall(state, a, ev, rng)) ev.effects.push({ kind: r.tiers ? 'rallied' : 'rally_unmoved', actorId: r.target.id, data: { by: a.id, perk: PK.rally, tiers: r.tiers } });
 }
 
-/** I9 Battle Cry: the main action; a Loud roar heard at any level, however far (battleCry in auras.ts) */
+/** I9 Battle Cry: the main action (its time spent in doPerkMove); a Loud roar heard at any level, however far (battleCry in auras.ts) */
 function doBattleCry(ctx: Ctx, a: Actor): void {
   const { state, rng } = ctx;
   countPerkMove(state, a, PK.battle_cry, null);
-  useMain(ctx, a, { row: actionRow(DU.battle_cry) });
   const ev = mk(ctx, a, 'battle_cry');
   ev.perception = computePerception(ev, state, rng);
   emit(ctx, ev, undefined, true);
