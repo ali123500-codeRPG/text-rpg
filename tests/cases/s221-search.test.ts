@@ -4,13 +4,13 @@
 // (one tier down). NPCs search by the same rule. The ground covered grows with skill and with searchArea/searchReach.
 import { TP } from '../../src/library/templateIds';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { makeVillage, place, beside } from '../harness';
+import { makeVillage, place, beside, westEdge } from '../harness';
 import { intent, play, act, plannerOut } from './w4-kit';
 import { ruleset } from '../../src/ruleset';
 import { spawnNpc } from '../../src/library/spawn';
-import { searchAreaM2 } from '../../src/minds';
+import { searchAreaM2, searchReach } from '../../src/minds';
 import { getLibrary } from '../../src/library';
-import { CONFIG } from '../../src/config';
+import { CONFIG, resetConfig } from '../../src/config';
 import { SK } from '../../src/library/skillIds';
 import { FN } from '../../src/library/functionIds';
 import type { Actor, ContestResult, GameState, RollRequest } from '../../src/types';
@@ -41,7 +41,7 @@ function thief(s: GameState, zone: string): Actor {
 const seen = (s: GameState) => s.player.journal?.stealthSeen?.thief_1;
 const search = (target: string | null = null) => ({ intent: intent({ action: { type: 'search', target } }) });
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => { vi.restoreAllMocks(); resetConfig(); }); // smallVillage's radius must not reach other files
 
 describe('221 search', () => {
   it('SE3/SE6: a search won finds the hider, and only then shows its dice', () => {
@@ -147,6 +147,7 @@ describe('221 search', () => {
   it('SE14: Look around is also a search against anyone hiding in its range, one tier down', () => {
     const s = makeVillage({ playerZone: 'street_square' });
     thief(s, 'street_square');
+    westEdge(s, 'player');
     beside(s, 'thief_1', 'player', 10);
     const calls = rig(1);
     play(s, { intent: intent({ action: { type: 'observe', skill: SK.eyesight, target: null } }) });
@@ -167,16 +168,18 @@ describe('221 search', () => {
     expect(g.mind!.knowledge.player?.status).toBe('aware');
   });
 
-  /** LX5 b: with a 2 m search radius (the floor), ring one reaches SEARCH_RING1_RADII × 2 m, ring two the look's 25 m */
-  function tinyArea<T>(f: () => T): T {
-    const r0 = CONFIG.SEARCH_RADIUS_AT_0_M;
+  /** LX5 b: the village with every search radius at the 2 m floor, so ring one reaches SEARCH_RING1_RADII × 2 m and ring
+   * two the look's 25 m; set after makeVillage, which resets CONFIG (afterEach resets it again) */
+  function smallVillage(): GameState {
+    const s = makeVillage({ playerZone: 'street_square' });
     (CONFIG as { SEARCH_RADIUS_AT_0_M: number }).SEARCH_RADIUS_AT_0_M = 0.001;
-    try { return f(); } finally { (CONFIG as { SEARCH_RADIUS_AT_0_M: number }).SEARCH_RADIUS_AT_0_M = r0; }
+    return s;
   }
   const lookShift = (calls: RollRequest[]) => calls.flatMap((b) => b.tierShifts).find((x) => x.source === 'searching')?.value ?? 0; // a ±0 ring adds no shift
 
-  it('LX5 b, LX8 a: past the search area a Search takes ring one\'s shift, past SEARCH_RING1_RADII radii ring two\'s', () => tinyArea(() => {
-    const s = makeVillage({ playerZone: 'street_square' });
+  it('LX5 b, LX8 a: past the search area a Search takes ring one\'s shift, past SEARCH_RING1_RADII radii ring two\'s', () => {
+    const s = smallVillage();
+    expect(searchReach(s, s.player).radiusM).toBe(CONFIG.SEARCH_MIN_RADIUS_M); // BG-341: the small radius really holds
     const t = thief(s, 'street_square');
     beside(s, 'thief_1', 'player', 3.2); // past 2 m, inside 4 m
     let calls = rig(-1);
@@ -189,26 +192,26 @@ describe('221 search', () => {
     calls = rig(-1);
     play(s, search());
     expect(lookShift(calls)).toBe(CONFIG.SEARCH_RING_SHIFTS[1]);
-  }));
+  });
 
-  it('LX7 a: an NPC\'s search has the rings too, so a guard finds the hiding player past its search area', () => tinyArea(() => {
-    const s = makeVillage({ playerZone: 'street_square' });
+  it('LX7 a: an NPC\'s search has the rings too, so a guard finds the hiding player past its search area', () => {
+    const s = smallVillage();
     const g = spawnNpc(null, TP.guard, { id: 'guard_x', zone: 'street_square', placeId: 'street', bandId: 'village_watch', name: 'Bors', storyId: 'test' });
     s.actors.push(g);
-    beside(s, 'guard_x', 'player', 9); // its perks' searchReach (120 m²) give it a radius of 6.2 m
+    beside(s, 'guard_x', 'player', 9); // its search radius is the 2 m floor, ring one ends at 4 m: 9 m is ring two
     s.player.posture = 'stealthy';
-    rig(1);
+    const calls = rig(1);
     play(s, { agentOutputs: [plannerOut('guard_x', act('search'))] });
+    expect(calls.flatMap((b) => b.tierShifts)).toContainEqual({ source: 'searching', value: CONFIG.SEARCH_RING_SHIFTS[1] });
     expect(searches(s)).toContainEqual({ actorId: 'guard_x', hiderId: 'player', gap: 1, sense: FN.sight });
     expect(searches(s).length).toBe(1);
     expect(g.mind!.knowledge.player?.status).toBe('aware');
-  }));
+  });
 
   it('WC1/WC2, LX8 a: inside its area a Search uses up waiting\'s contest; in either ring that contest still runs, and the better counts', () => {
     for (const [m, keeps] of [[1.5, false], [3, true], [9, true]] as const) { // in the 2 m area, ring one (to 4 m), ring two
       vi.restoreAllMocks();
-      const s = makeVillage({ playerZone: 'street_square' });
-      (CONFIG as { SEARCH_RADIUS_AT_0_M: number }).SEARCH_RADIUS_AT_0_M = 0.001; // after makeVillage, which resets CONFIG: every radius at the 2 m floor
+      const s = smallVillage();
       const g = spawnNpc(null, TP.guard, { id: 'guard_x', zone: 'street_square', placeId: 'street', bandId: 'village_watch', name: 'Bors', storyId: 'test' });
       s.actors.push(g);
       beside(s, 'guard_x', 'player', m);

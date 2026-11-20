@@ -187,10 +187,17 @@ export function beside(state: GameState, id: string, near = 'player', m = 0.5): 
   for (const side of [1, -1]) {
     a.pos = { x: b.pos!.x + side * m, y: b.pos!.y };
     a.pos.x += side * (m - floorGap(state, b, a));
-    if (inTitle(z, a.pos)) break;
+    if (inTitle(z, a.pos)) return a;
   }
-  // shortcut: when neither side fits it stays outside the title, and the next placeAll stands it near the middle (8 tests ask
-  // for that today); make it throw once they are fixed. tests/harness/measure.ts checks the gap it got
+  // a spot outside its title reads as the title's middle, and the next placeAll stands it there: never a silent other gap
+  throw new Error(`beside: ${id} cannot stand ${m} m east or west of ${near} inside ${b.zone}`);
+}
+
+/** stands `id` `m` metres in from the west edge of its title, on its middle line, so `beside` east of it has the title's
+ * width to use (fixture setup only) */
+export function westEdge(state: GameState, id: string, m = 0.5): Actor {
+  const a = actor(state, id), r = boxOf(state.zones.find((q) => q.id === a.zone)!.outline);
+  a.pos = { x: r.x - r.w / 2 + m, y: r.y };
   return a;
 }
 
@@ -200,6 +207,7 @@ export function byDoor(state: GameState, id: string, zone: string, other: string
   const z = state.zones.find((x) => x.id === zone)!, d = wayTo(state, zone, other)!.opening.at, c = middle(z);
   const dx = c.x - d.x, dy = c.y - d.y, len = Math.hypot(dx, dy);
   a.pos = { x: d.x + dx / len * m, y: d.y + dy / len * m };
+  if (!inTitle(z, a.pos)) throw new Error(`byDoor: ${id} cannot stand ${m} m in from the way to ${other} inside ${zone}`); // BG-341
   return a;
 }
 

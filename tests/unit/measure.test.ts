@@ -1,5 +1,5 @@
 // The balance probe (tests/harness/measure.ts): the same scenario and seeds give the same result, the two stand at the
-// asked gap, and a gap the title cannot hold is reported, never measured at another distance.
+// asked gap, and a gap the title cannot hold stops the run, never measured at another distance.
 import { describe, expect, it } from 'vitest';
 import { measure, report, type Scenario } from '../harness/measure';
 import { searchAreaM2 } from '../../src/minds';
@@ -23,9 +23,7 @@ describe('balance probe', () => {
     expect(m.reach.radiusM).toBeCloseTo(Math.max(2, Math.sqrt(m.reach.areaM2 / Math.PI)), 6);
   });
 
-  it('a gap the title cannot hold is a deviation, not a silent other distance', () => {
-    const m = measure({ ...sc, distanceM: 25, trials: 1, turns: 1, modes: ['wait'] }); // the square is 20 m across
-    expect(m.deviations[0]).toMatch(/asked 25 m, stood \d+\.\d\d m apart/);
-    expect(report(m)).toContain('DEVIATIONS');
+  it('a gap the title cannot hold stops the run, never a silent other distance (BG-341)', () => {
+    expect(() => measure({ ...sc, distanceM: 25, trials: 1, turns: 1, modes: ['wait'] })).toThrow(/cannot stand 25 m/); // the square is 20 m across
   });
 });

@@ -4,7 +4,7 @@
 // shooter stays hidden. Melee makes no impact.
 import { describe, expect, it } from 'vitest';
 import type { GameEvent, GameState } from '../../src/types';
-import { beside, makeVillage } from '../harness';
+import { beside, makeVillage, westEdge } from '../harness';
 import { intent, play } from './w4-kit';
 import { CONFIG } from '../../src/config';
 import { SK } from '../../src/library/skillIds';
@@ -19,6 +19,7 @@ const archer = (zone = 'tav_common', skill = 300): GameState => {
   for (const a of s.actors) delete a.mind!.knowledge.player; // nobody knows the player is there
   const p = s.actors.find((a) => a.id === 'patron_1')!;
   p.zone = zone; p.placeId = s.zones.find((z) => z.id === zone)!.placeId;
+  westEdge(s, 'player');
   beside(s, 'patron_1', 'player', 5);
   const t = s.actors.find((a) => a.id === 'trader')!;
   t.zone = zone; t.placeId = p.placeId;
