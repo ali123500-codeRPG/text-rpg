@@ -196,6 +196,7 @@ section { margin-top: 30px; }
   .opts li, .box .prev, .sec-h p, .top .sub, #intro, .counts, .map a, .legend, .flow li, .levels div { font-size: 15px; }
   .eq, .exr .cells span, .exr > b, .ckey { font-size: 14.5px; }
 }
+.supa-off{position:fixed;left:8px;bottom:8px;margin:0;padding:4px 8px;font-size:13px;background:var(--danger);color:#fff;border-radius:4px;z-index:9}
 </style>
 
 <header class="top">
@@ -542,8 +543,85 @@ async function restoreScroll() { if (scrolled || !PAGE) return; scrolled = true;
 addEventListener('scroll', () => { if (Date.now() < skipUntil || !PAGE) return; moved = true; clearTimeout(posT);
   posT = setTimeout(() => { const p = where(), s = JSON.stringify(p); if (s !== lastPos) { lastPos = s; remember('qpos:' + PAGE, p); } }, 700); }, { passive: true });
 
+// One hub for both Claude accounts: the documents live in the Supabase table hub_docs (project "questions-hub"),
+// reached through the viewer's Supabase connector, with the same doc/collection calls as the built-in db. Supabase
+// cannot push changes, so watched documents are read again every POLL ms while the page is visible.
+const POLL = 20000;
+function supaDb(mcp) {
+  const q = (s) => "'" + String(s).replace(/'/g, "''") + "'";
+  let refP = null;
+  const ref = () => refP ??= mcp.callTool('Supabase', 'list_projects', {}, { cache: false }).then((r) => {
+    const id = (r.payload?.projects || []).find((x) => x.name === 'questions-hub')?.id;
+    if (!id) { refP = null; throw new Error('no Supabase project named questions-hub'); } return id; }, (e) => { refP = null; throw e; });
+  const run = async (sql) => {
+    const r = (await mcp.callTool('Supabase', 'execute_sql', { project_id: await ref(), query: sql }, { cache: false })).payload;
+    // the rows sit between a tag pair on lines of their own; the same tag name also appears inside the notice's sentence
+    const m = /<(untrusted-data-[\w-]+)>\n([\s\S]*?)\n<\/\1>/.exec(typeof r === 'string' ? r : r?.result ?? '');
+    return m ? JSON.parse(m[2]) : [];
+  };
+  const snapDoc = (p, row) => ({ id: p.split('/').pop(), exists: !!row, data: () => row?.data });
+  const getDoc = async (p) => snapDoc(p, (await run(`select data from hub_docs where path = ${q(p)}`))[0]);
+  const getColl = async (c, and = '') => ({ docs: (await run(`select path, data from hub_docs where starts_with(path, ${q(c + '/')})
+    and strpos(substr(path, ${c.length + 2}), '/') = 0${and} order by path`)).map((r) => snapDoc(r.path, r)) });
+  const subs = new Set();
+  const watch = (key, read, cb, err) => {
+    const s = { key, last: null, tick: () => read().then((snap) => {
+      const j = JSON.stringify(snap.docs ? snap.docs.map((d) => [d.id, d.data()]) : snap.data() ?? null);
+      if (j !== s.last) { s.last = j; cb(snap); } }, err || (() => {})) };
+    subs.add(s); s.tick(); return () => subs.delete(s);
+  };
+  const tickAll = () => { if (!document.hidden) subs.forEach((s) => s.tick()); };
+  setInterval(tickAll, POLL); document.addEventListener('visibilitychange', tickAll);
+  const poke = (p) => subs.forEach((s) => { if (s.key === p || s.key === p.slice(0, p.lastIndexOf('/'))) s.tick(); });
+  const doc = (p) => ({
+    get: () => getDoc(p),
+    set: async (v) => { await run(`insert into hub_docs (path, data) values (${q(p)}, ${q(JSON.stringify(v))}::jsonb)
+      on conflict (path) do update set data = excluded.data, updated_at = now()`); poke(p); },
+    delete: async () => { await run(`delete from hub_docs where path = ${q(p)}`); poke(p); },
+    onSnapshot: (cb, err) => watch(p, () => getDoc(p), cb, err),
+  });
+  const collection = (c) => ({
+    get: () => getColl(c),
+    where: (f, op, v) => { if (op !== '>') throw new Error('only > is supported'); return { get: () => getColl(c, ` and data->>${q(f)} > ${q(v)}`) }; },
+    onSnapshot: (cb, err) => watch(c, () => getColl(c), cb, err),
+  });
+  return { doc, collection };
+}
+
+// Both stores at once: Supabase (shared by both accounts) and this page's own db (questionnaires written before the
+// move). The home list is the union, Supabase first; each questionnaire's rounds, questions and answers are read and
+// written in the store that holds its page, so a thread that wrote one still finds the answers where it looks.
+function bothDb(a, b) {
+  if (!b) return a;
+  const home = new Map(), idOf = (p) => /^(?:pages|rounds|qs|answers)\/([^/]+)/.exec(p)?.[1];
+  const where = (p) => { const id = idOf(p); if (!id) return Promise.resolve(a);
+    if (!home.has(id)) home.set(id, a.doc('pages/' + id).get().then((d) => d.exists ? a
+      : b.doc('pages/' + id).get().then((e) => e.exists ? b : a, () => a)));
+    return home.get(id); };
+  const lazy = (p, f) => { let un = null, off = false; where(p).then((s) => { if (!off) un = f(s); }); return () => { off = true; un?.(); }; };
+  const doc = (p) => ({ get: async () => (await where(p)).doc(p).get(), set: async (v) => (await where(p)).doc(p).set(v),
+    delete: async () => (await where(p)).doc(p).delete(), onSnapshot: (cb, err) => lazy(p, (s) => s.doc(p).onSnapshot(cb, err)) });
+  const pages = async (f) => {
+    const [x, y] = await Promise.all([f(a), f(b).catch(() => ({ docs: [] }))]), ids = new Set(x.docs.map((d) => d.id));
+    x.docs.forEach((d) => home.set(d.id, Promise.resolve(a)));
+    const extra = y.docs.filter((d) => !ids.has(d.id)); extra.forEach((d) => home.set(d.id, Promise.resolve(b)));
+    return { docs: [...x.docs, ...extra] };
+  };
+  const collection = (c) => c === 'pages'
+    ? { get: () => pages((s) => s.collection(c).get()), where: (...w) => ({ get: () => pages((s) => s.collection(c).where(...w).get()) }) }
+    : { get: async () => (await where(c)).collection(c).get(), onSnapshot: (cb, err) => lazy(c, (s) => s.collection(c).onSnapshot(cb, err)) };
+  return { doc, collection };
+}
+
 (async () => {
-  try { db = window.claude?.use ? await window.claude.use('db') : null; } catch (e) { db = null; }
+  try {
+    const mcp = window.claude?.use ? await window.claude.use('mcp') : null, sdb = mcp?.callTool ? supaDb(mcp) : null;
+    // the built-in db stays the fallback: a viewer without the Supabase connector still sees this page's own data
+    const why = (e) => { const n = document.createElement('p'); n.className = 'supa-off'; n.textContent = `Supabase unavailable (${e?.code || e?.message || e}): showing this page's own data only.`; document.body.append(n); return null; };
+    const own = window.claude?.use ? await window.claude.use('db') : null;
+    const shared = sdb ? await sdb.collection('pages').get().then(() => sdb, why) : mcp ? null : why('connectors not offered here');
+    db = shared ? bothDb(shared, own) : own;
+  } catch (e) { db = null; }
   const last = db ? await recall('qhub:last') : null;
   if (db && last) openPage(last); else showHome();
 })();

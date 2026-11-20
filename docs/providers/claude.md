@@ -26,14 +26,16 @@ Links to `claude.ai/artifact/...` open only for the owner and for Claude session
 ## Questions: decision cards and the Questions hub
 
 - One question: a decision card in the thread, with options and a recommendation.
-- Two or more: a page on the Questions hub, https://claude.ai/artifact/Fu3pVa1AQsrVjUygXCLiDp. Every questionnaire is a
-  page inside that one artifact, written into its database. Never publish a new artifact for a questionnaire.
+- Two or more: a questionnaire on the Questions hub. A new one is written to the shared Supabase table
+  (`tools/questions-hub/README.md`, "Where the data lives"), which both accounts' hub pages show: here
+  https://claude.ai/artifact/Fu3pVa1AQsrVjUygXCLiDp, and the other account's link below. Never publish a new artifact
+  for a questionnaire.
 - Write only what changed. A new round, or a question marked done or re-asked, writes only its own small documents
   plus the page's `updated` time, in one batch built with `tools/questions-hub/hubdb.py`. Never re-save a whole page.
 - Read `tools/questions-hub/README.md` first. It holds the data layout, the question layout (colour blocks from
   `blocks.py`, `lint()` before every write), reading answers and marking them read.
-- The owner's submit line names the questions answered. Read the answers from the hub's database, act, and mark each
-  one done.
+- The owner's submit line names the questions answered. Read the answers where the questionnaire lives (Supabase, or
+  a hub's own database for one written there before 20/11/2026), act, and mark each one done.
 - Comments on the hub wake every thread that watches it. Before acting on one, read its comment thread: if a Claude
   reply is already there, another thread owns it.
 - A bug whose fix needs the owner's decision is asked on a decision card in the thread, and the coordinator is told,
@@ -106,9 +108,9 @@ The owner also works from a second Claude account. A session there cannot save t
 its database. That is expected, not a bug. It also cannot publish the game page or the library viewer:
 see "Where the game page and the library viewer live".
 
-- **Its own Questions hub:** https://claude.ai/artifact/Ldhfi7SenB4mkRHXyiwCYu, published 19/11/2026 as
-  `tools/questions-hub/README.md` "Publishing a new hub" says. On that account it takes the place of the hub link in
-  "Questions" above; everything else there applies. Never pass the other account's hub link to a publish.
+- **Its own Questions hub page:** https://claude.ai/artifact/Ldhfi7SenB4mkRHXyiwCYu. It shows the shared Supabase
+  questionnaires and the ones written into its own database before the move. On that account it takes the place of the
+  hub link in "Questions" above; everything else there applies. Never pass the other account's hub link to a publish.
 - **Desk label:** `desk:rpg-game` (`docs/instructions.md` section 4, "Claim the work first").
 
 ## Bug numbers

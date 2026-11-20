@@ -3,6 +3,9 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, `docs/build-spec.md` and `docs/bug-fix-log.md`.
 
+- 20/11/2026: One Questions hub for both Claude accounts. New questionnaires go to a shared Supabase table, and each
+  account's hub page shows it beside its own older questionnaires (`tools/questions-hub/README.md`, "Where the data
+  lives"). `docs/providers/claude.md` "Questions" and "Claude on another account" say where to write and read.
 - 20/11/2026: `tools/questions-hub/README.md`: a new hub's link is recorded in `docs/providers/claude.md`, in the
   same thread, as "Claude on another account" does. `AGENTS.md` Upkeep: read the provider file in full and
   `docs/instructions.md` sections 4 and 5 before the first action, and check every question against rule 10.
