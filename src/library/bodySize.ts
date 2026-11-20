@@ -24,4 +24,7 @@ export function seenAreaM2(s: BodySize, lookDown = 0): number {
 /** SZ11: how much farther a body is seen than a person: √(its seen area ÷ a person's from level ground) (Johnson's criteria:
  * the range a thing is made out at grows with its size across). No cap; the horizon caps it outdoors. */
 export const sightFactor = (s: BodySize, lookDown = 0): number => Math.sqrt(seenAreaM2(s, lookDown) / seenAreaM2(HUMANOID_SIZE));
+/** the most sightFactor can be from any angle: height × cos θ + shorter side × sin θ is never more than √(height² + shorter²) */
+export const maxSightFactor = (s: BodySize): number =>
+  Math.sqrt((Math.max(s.lengthM, s.widthM) * Math.hypot(s.heightM, Math.min(s.lengthM, s.widthM))) / seenAreaM2(HUMANOID_SIZE));
 
