@@ -212,6 +212,24 @@ describe('cleanup, backups, restore', () => {
     expect(new Set(await st.list('stories/test/pages'))).toEqual(live);
   });
 
+  it('works ordinary cleanups out from the old head, and sweeps what a failed save left on backup turns', async () => {
+    const s = makeVillage();
+    CONFIG.BACKUP_EVERY = 4;
+    const st = memoryStore();
+    const stray = async () => {
+      const h = await head(st);
+      const live = new Set([h, h.undo!].flatMap((b) => Object.entries(b.pages).map(([k, r]) => `stories/test/pages/${k}@${r.version}`)));
+      return (await st.list('stories/test/pages')).filter((p) => !live.has(p));
+    };
+    await play(st, s, 1, 1);
+    st.failNext = { match: /control\/head/, code: 'store_error' };
+    await expect(play(st, s, 2, 2)).rejects.toMatchObject({ committed: false }); // turn 2's pages are written, never committed
+    await play(st, s, 3, 3);
+    expect((await stray()).length).toBeGreaterThan(0); // no bookmark ever held them, so only a sweep finds them
+    await play(st, s, 4, 4); // a backup turn lists and sweeps
+    expect(await stray()).toEqual([]);
+  });
+
   it('backs up every BACKUP_EVERY turns, keeps BACKUPS_KEPT, restores with a safety bookmark', async () => {
     const s = makeVillage();
     CONFIG.BACKUP_EVERY = 2;
@@ -384,7 +402,7 @@ describe('save and load round trips', () => {
     expect(pages).toBeGreaterThan(8);
     r.reset();
     await play(r.s, s, 3, 3);
-    expect(r.count()).toBeLessThanOrEqual(5); // head + meta, pages + record, head, cleanup lists, deletes
+    expect(r.count()).toBeLessThanOrEqual(4); // head + meta, pages + record, head, deletes worked out from the old head
     r.reset();
     s.turn = CONFIG.BACKUP_EVERY;
     await saveTurn(r.s, s, rec(s, CONFIG.BACKUP_EVERY)); // the backup packs the pages just saved, no read-back
