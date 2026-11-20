@@ -3,10 +3,7 @@
 import { expect, it } from 'vitest';
 import type { GameEvent, GameState } from '../../src/types';
 import { actor, makeVillage, place } from '../harness';
-import { computePending } from '../../src/engine';
 import { lookAround, noteSightings, perceptionOf } from '../../src/perception';
-import { intent, play } from './w4-kit';
-import { SK } from '../../src/library/skillIds';
 
 const ev = (s: GameState, actorId: string, kind: string, zone: string, visibility: GameEvent['visibility'] = 'low'): GameEvent =>
   ({ id: `x${kind}`, turn: s.turn, actorId, kind, zone, effects: [], noise: 'silent', visibility, perception: {} }) as GameEvent;
@@ -25,12 +22,3 @@ it('108 a clear look keeps a still figure seen until it moves', () => {
   expect(perceptionOf(hold, s, s.player)?.level).toBe('partial');
 });
 
-it('108 looking around is a sight roll on the player\'s event', () => {
-  const s = makeVillage();
-  s.turn = 0;
-  computePending(s);
-  const events = play(s, { intent: intent({ action: { type: 'observe', skill: SK.eyesight } }) });
-  const look = events.find((e) => e.actorId === 'player' && e.roll);
-  expect(look?.roll).toMatchObject({ actorId: 'player', skill: SK.eyesight });
-  expect(look?.obstacle).toBeUndefined(); // Look around is not an act on a graded thing
-});

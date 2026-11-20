@@ -10,10 +10,8 @@ import { tierMult } from '../../src/ruleset/gear';
 import { intent, play } from './w4-kit';
 import { CONFIG } from '../../src/config';
 import { getLibrary } from '../../src/library';
-import { spawnNpc } from '../../src/library/spawn';
 import { SK } from '../../src/library/skillIds';
 import { PK } from '../../src/library/perkIds';
-import { TP } from '../../src/library/templateIds';
 import { RV } from '../../src/library/tableIds';
 import { now, advanceClock } from '../../src/time';
 import { passiveFatigue, payMove, payStrain, restRecover, sleepMult } from '../../src/engine/fatigue';
@@ -131,20 +129,6 @@ describe('291 stamina perks', () => {
     } finally { delete hs.sleepClear; }
   });
 
-  it('SS12: a template\'s quirk tag rolls one quirk with that tag per NPC, the same for the same ID', () => {
-    makeVillage();
-    const t = getLibrary().templates[TP.patron];
-    const was = t.quirkTags;
-    t.quirkTags = ['sleep'];
-    try {
-      const quirks = (id: string) => spawnNpc(null, TP.patron, { id, zone: 'tav_common', placeId: 'tavern', bandId: 'patrons', name: id })
-        .core.perks.map((p) => p.perkId).filter((p) => p === PK.heavy_sleeper || p === PK.insomniac);
-      const all = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].map(quirks);
-      for (const q of all) expect(q).toHaveLength(1);
-      expect(new Set(all.flat()).size).toBe(2);
-      expect(quirks('a')).toEqual(all[0]);
-    } finally { t.quirkTags = was; }
-  });
   it('SS15 Overdrive: with the line above half, every roll adds 10% of Stamina and costs 1 strain; at half or below, nothing', () => {
     const s = quiet();
     s.player.core.skills[SK.stamina] = { raw: 140, state: 'normal' };

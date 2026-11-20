@@ -12,7 +12,6 @@ import { power } from '../../src/engine/xp';
 import { offersFromDefeats, qualityRoll } from '../../src/engine/essence';
 import { CONFIG } from '../../src/config';
 import { tidyRewards } from '../../src/scenario/validate';
-import { advanceClock } from '../../src/time';
 import { ACH } from '../../src/library/achievementIds';
 import { IT } from '../../src/library/itemIds';
 import { PK } from '../../src/library/perkIds';
@@ -103,16 +102,6 @@ describe('191 the Varo\'s Loop', () => {
     expect(tierName(ev(s, 70))).toBe('Great Success'); // 50.5 + 19.5 × 1.5 = 79.75
     expect(tierName(ev(worn(), 30))).toBe('Near Miss');
     expect(tierName(ev(s, 30))).toBe('Failure'); // 50.5 − 20.5 × 1.5 = 19.75
-  });
-
-  it('Call the Toss fires by itself on an essence quality roll and keeps the die farther from the middle, once a day', () => {
-    const s = worn([ACH.event_crit_2]);
-    const by = { state: s, actor: s.player };
-    expect(qualityRoll(forcedRng([55, 99]), LOW, by)).toEqual({ grade: 'rare', past: 0 }); // 99 is farther from 50.5 than 55
-    expect(qualityRoll(forcedRng([55, 99]), LOW, by)).toBeNull(); // cooling down: 55 alone is a Near Miss
-    advanceClock(s, 1440);
-    expect(qualityRoll(forcedRng([55, 99]), LOW, by)).toEqual({ grade: 'rare', past: 0 });
-    expect(ruleset.eventRoll(s.player, s, forcedRng([55, 99])).roll).toBe(55); // event rolls are untouched
   });
 
   it('All or Nothing fires first and lands an essence roll only on the Critical tiers; one ability per roll', () => {

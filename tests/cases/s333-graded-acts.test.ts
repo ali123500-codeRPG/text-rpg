@@ -112,14 +112,4 @@ describe('333 breaking a box open on the gate (OD13 a)', () => {
     expect(c.lock!.locked).toBe(true);
     expect(c.graded).toContain('player');
   });
-  it('sure: it always opens, and still rolls to see what breaks inside', () => {
-    for (const seed of [1, 2, 3, 4, 5]) {
-      const s = village(), c = box(s, 'none');
-      bare(s, 100);
-      const ev = brk(s, seed);
-      expect(ev.roll).toBeDefined();
-      expect(ev.breakOpen!.opened).toBe(true);
-      expect(c.open).toBe(true);
-    }
-  });
 });

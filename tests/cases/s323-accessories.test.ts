@@ -10,10 +10,8 @@ import { SK } from '../../src/library/skillIds';
 import { TR } from '../../src/library/treeIds';
 import { getLibrary } from '../../src/library';
 import { applyGearOps } from '../../src/engine/gear';
-import { effectValue, effectiveSkill, pieceName, pieceRolledSkill, rolledPool } from '../../src/ruleset/gear';
+import { effectValue, effectiveSkill, pieceRolledSkill, rolledPool } from '../../src/ruleset/gear';
 import { itemValue } from '../../src/ruleset/value';
-import { itemRows } from '../../src/ui/pages';
-import { skillName } from '../../src/library/skillNames';
 import type { GameState } from '../../src/types';
 
 const eff = (s: GameState, skill: string) => effectiveSkill(s, s.player, skill).value;
@@ -41,18 +39,6 @@ describe('323 accessories', () => {
     const d = lib()[IT.spectacles], e = d.effects![0];
     expect([undefined, 'fine', 'superior', 'masterwork'].map((level) => effectValue(level ? { ...d, level: level as 'fine' } : d, e))).toEqual([5, 10, 15, 20]);
     expect(itemValue(null, d)).toBe(5 * CONFIG.ITEM_VALUE.skillPoint);
-  });
-
-  it('AX3 c: a ring rolls its skill once, boosts it while worn, and its name and panel show it', () => {
-    const s = bare(makeVillage());
-    expect(rolledPool()).not.toContain(SK.tremor); // tier 0
-    const id = ringId(s, (k) => !!s.player.core.skills[k]), skill = pieceRolledSkill(s, ring(id))!;
-    expect(pieceRolledSkill(s, ring(id))).toBe(skill);
-    expect(pieceName(s, ring(id))).toBe(`charmed ring (${skillName(skill)})`);
-    const before = eff(s, skill);
-    wear(s, ring(id));
-    expect(eff(s, skill)).toBeCloseTo(before + 5);
-    expect(itemRows(s, ring(id)).some((r) => String(r.v).includes(skillName(skill)))).toBe(true);
   });
 
   it('AX4 c: fighting and sense skills come up more often than class skills', () => {

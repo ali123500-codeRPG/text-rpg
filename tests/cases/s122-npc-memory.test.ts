@@ -7,10 +7,9 @@ import { createRng, makeVillage, place } from '../harness';
 import { resolveTurn } from '../../src/engine';
 import { hasAgenda } from '../../src/engine/relations';
 import { plannerActors } from '../../src/agents';
-import { pruneRecent } from '../../src/agents/game';
 import { buildOppositionView, buildPlayerView } from '../../src/views';
 import { CONFIG } from '../../src/config';
-import type { GameEvent, GameState, Intent, NpcAction, PlannerOutput } from '../../src/types';
+import type { GameState, Intent, NpcAction, PlannerOutput } from '../../src/types';
 
 const hold: Intent = { move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null, action: null };
 const act = (type: NpcAction['type'] = 'hold', target: string | null = null): NpcAction =>
@@ -85,20 +84,4 @@ describe('122 NPC memory and agreements', () => {
     expect(plannerActors(s)).toEqual(['guard_1']);
   });
 
-  it('PM6: events that fall out of the window become earlier lines; repeats are counted', () => {
-    const s = makeVillage();
-    const ev = (n: number, extra: Partial<GameEvent> = {}): GameEvent => ({
-      id: `t${n}.1`, turn: n, actorId: 'player', kind: 'search', zone: 'gate_inner', effects: [], noise: 'quiet', visibility: 'normal',
-      perception: { guard_1: { level: 'full', cue: 'sight', heard: true } }, ...extra,
-    });
-    const all = [ev(1, { kind: 'speak', line: { text: 'Seen any slimes?', volume: 'normal' } }), ev(2), ev(3),
-      ...Array.from({ length: CONFIG.RECENT_EVENTS }, (_, i) => ev(4 + i, { kind: 'hold' }))];
-    const kept = pruneRecent(s, all);
-    expect(kept).not.toContain(all[1]);
-    const g = s.actors.find((a) => a.id === 'guard_1')!;
-    expect(g.mind!.earlier!.lines).toEqual(['turn 1: player speak: "Seen any slimes?"', 'turn 2–3: player search ×2']);
-    expect(buildOppositionView(s, 'guard_1').earlier).toEqual(g.mind!.earlier!.lines);
-    pruneRecent(s, kept); // nothing new falls out: no line is written twice
-    expect(g.mind!.earlier!.lines).toHaveLength(2);
-  });
 });

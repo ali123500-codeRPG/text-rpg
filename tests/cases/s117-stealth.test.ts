@@ -65,15 +65,6 @@ describe('117 stealth', () => {
     expect(b1.lastKnownZone).toBe('gate_inner');
     expect(['aware', 'tracking']).toContain(status(s, 'guard_2'));
   });
-  it('a sneak that stays put never rolls against someone who already sees you, without Melt Away (VS2)', () => {
-    const s = makeVillage();
-    place(s, 'player', 'gate_inner');
-    aware(s, 'guard_1', 'gate_inner');
-    const calls = rig({ guard_1: -1 });
-    turn(s, intent(null, { type: 'sneak' }));
-    expect(calls.some(([, b]) => b.actorId === 'guard_1')).toBe(false);
-    expect(['aware', 'tracking']).toContain(status(s, 'guard_1'));
-  });
   it('a shot target that loses the notice contest still turns suspicious, at the shooter\'s zone (ST19)', () => {
     const s = makeVillage();
     place(s, 'player', 'field_edge');

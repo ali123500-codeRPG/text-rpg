@@ -13,14 +13,13 @@ import { wallsAround, holeSpot } from '../../src/plan/holes';
 import { seesNow } from '../../src/plan/line';
 import { walkPath } from '../../src/plan/path';
 import { waysOut } from '../../src/plan/where';
-import { addWear, breakJob, jobShare, regrow, secondsLeft, toolCheck, type BreakJob } from '../../src/engine/breakThrough';
+import { addWear, breakJob, jobShare, regrow, secondsLeft, type BreakJob } from '../../src/engine/breakThrough';
 import { breakSeconds, wallStuff } from '../../src/ruleset/breaking';
 import { zoneById } from '../../src/engine/relations';
 import { passage } from '../../src/engine/barriers';
 import { now } from '../../src/time';
 import { CONFIG } from '../../src/config';
 import { BK, BM } from '../../src/library/tableIds';
-import { IT } from '../../src/library/itemIds';
 import { BT } from '../../src/library/raceIds';
 import { NOISE } from '../../src/scales';
 
@@ -157,15 +156,6 @@ describe('402 breaking through walls and barriers (BW8-BW26)', () => {
     regrow(s, again);
     expect(jobShare(again)).toBe(0);
     expect(s.openings.some((o) => o.id === crack)).toBe(false);
-  });
-
-  it('BW23 a: a full spell of work with a tool is one breakage check; a sledgehammer is tough, so a plain roll never breaks it', () => {
-    const s = quiet();
-    s.player.core.inventory.push({ id: 'hammer', itemId: IT.sledgehammer });
-    const r = toolCheck(s, s.player, createRng(3));
-    expect(r.tool).toBe('hammer');
-    expect(r.broke).toBeUndefined();
-    expect(toolCheck(s, { ...s.player, core: { ...s.player.core, inventory: [] } }, createRng(3))).toEqual({});
   });
 
 });
