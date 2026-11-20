@@ -8,4 +8,4 @@
 
 ## Tests
 
-<!-- "covered by <test>" or "none needed: <why>"; a new test names the silent break it catches and the search that found nothing covering it; completeness rows added -->
+<!-- "covered by <test>" or "none needed: <why>"; task tests are deleted before merge; a new permanent test quotes the owner's OK and names the silent break it catches; completeness rows added -->

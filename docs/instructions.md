@@ -96,6 +96,7 @@ The source of truth for every design decision.
   task, no extras, and every part the change touches is finished (callers, tests, fixtures). Where it says "no
   config", the balancing rule below wins; where it asks for a test, section 8 decides.
 - **Stay in scope.** Out-of-scope work becomes its own task. Do not widen the current one.
+- **Read by ID, not by file.** `npm run spec -- <ID>` or a line range. Never read a file over 50 KB whole.
 - **Balancing levers.** Every balancing number lives in one easy-to-edit place (`src/config.ts`, whose parts are in
   `src/config/`, or a library table), with a clear name, placeholders marked, and the lever named in the spec. Use names
   tables for ordered scales, so a level can be inserted. Reason: the owner balances by playing and tunes numbers without touching logic.
@@ -218,6 +219,8 @@ The source of truth for every design decision.
   Docs, spec, rule, config and tooling changes, and wiring a smoke flow already covers, get none. A test that
   duplicates another, guards nothing or matches source text may be deleted in a PR that touches it, naming what
   covers it. A change of meaning gets a search of the whole repo for the old pattern, not a guard test (spec, TQ5).
+  A test written to check one task is temporary: delete it and its fixtures before the PR merges. A new permanent
+  test needs the owner's OK: the PR names the silent break it catches and why nothing covers it.
 - The agent that opened a PR reviews it and squash-merges it once every check is green, without asking the
   owner. That includes bug fixes and rule-file changes; a rule-file PR quotes the owner's words it acts on
   (`AGENTS.md` rule 6). The owner does not merge PRs. The same rule holds for agents of every provider.
