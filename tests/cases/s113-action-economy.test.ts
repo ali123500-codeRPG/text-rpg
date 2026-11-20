@@ -43,6 +43,14 @@ describe('113 action economy', () => {
     expect(ev2.some((e) => e.kind === 'attack' && e.actorId === 'player')).toBe(true);
     expect(walked(ev2)).toBeCloseTo(slotMetres(t, t.player, 'move', CONFIG.FIGHT_TURN_S - actionSeconds(actionRow(DU.bow_medium)!)), 0);
     expect(walked(ev2)).toBeLessThan(walked(ev));
+    // BG-340: a crossbow's spanning is instant (TP8 a), so its shot locks movement like any shot (5 s leaves 1 s of the walk)
+    const u = makeVillage();
+    place(u, 'player', 'field_edge');
+    bow(u);
+    u.player.core.inventory.find((i) => i.id === 'bow')!.itemId = IT.stirrup_crossbow;
+    const ev3 = turn(u, intent({ toZone: 'gate_inner' }, { type: 'attack', target: 'slime_1' }));
+    expect(ev3.some((e) => e.kind === 'attack' && e.actorId === 'player')).toBe(true);
+    expect(walked(ev3)).toBeCloseTo(slotMetres(u, u.player, 'move', CONFIG.FIGHT_TURN_S - actionSeconds(actionRow(DU.crossbow_shot)!)), 0);
   });
   it('a ranged attack out of reach gives way to the move', () => {
     const s = makeVillage();

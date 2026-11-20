@@ -22,7 +22,8 @@ export const CLOCK = {
   /** AT12 (placeholder): heavy armour put on or taken off alone takes this many times as long as with help */
   ARMOR_ALONE_MULT: 2,
   // ---- the world clock (AT56, AT65 to AT68; src/engine/comingNear.ts). Placeholders from the Action Time part three page.
-  // The strike distance is HOSTILE_NEAR_M (a step and a blow), the lever the page names STRIKE_M ----
+  // The strike distance, the lever the page names STRIKE_M, is hostileNearM: HOSTILE_NEAR_STEP_M plus the closer's own
+  // melee reach (SZ19, src/ruleset/gear.ts) ----
   /** AT67: seconds to get ready to act from each body pose (getting up off the floor takes 2 to 3 s) */
   READY_S: { lying: 3, sitting: 2, standing: 1 } as Record<import('../scales').BodyPoseKey, number>,
   /** AT67: seconds to take in what is happening and decide; the warning time is READY_S for the pose + DECIDE_S */

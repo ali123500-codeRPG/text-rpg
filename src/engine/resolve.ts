@@ -714,9 +714,11 @@ export function orderCost(state: GameState, a: Actor, o: Order): { row: Duration
       const m = attackMode(state, a, o).m;
       if (!m) return of(DU.blow);
       const it = inv(m.itemId), ids = attackRowIds(it ? itemDef(state, it.itemId) : undefined, m.mode);
-      // AT11c: a crossbow spans, then shoots: one long action under the spanning row (its focus, its work kept when broken off)
+      // AT11c: a crossbow spans, then shoots, under the first row that takes time: an instant spanning (TP8 a) leaves the
+      // shot's lock, focus and effort (BG-340); a spanning that takes time is one long action under its own row
       const rows = ids.map(actionRow).filter((r): r is DurationDef => !!r);
-      return rows.length ? { row: rows[0], seconds: rows.reduce((n, r) => n + actionSeconds(r, undefined, f), 0) } : undefined;
+      const row = rows.find((r) => actionSeconds(r, undefined, f) > 0) ?? rows[0];
+      return row ? { row, seconds: rows.reduce((n, r) => n + actionSeconds(r, undefined, f), 0) } : undefined;
     }
     case 'use_item': {
       const it = inv(o.item), heal = it ? itemDef(state, it.itemId).heal : undefined;

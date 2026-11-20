@@ -142,7 +142,8 @@ BG/D numbers) sits in one trailing parenthesis.
 - **ACT-103** Haggling (barter) is words, so its turn is capped. Longer actions, walks, rests and waits run on the world
   clock instead (AT45).
 - **ACT-110** **Costs (orderCost).** A blow, throw or shot takes its row (bows and crossbows name theirs on the item:
-  shotTime, and a crossbow's spanTime before each shot, under the spanning row).
+  shotTime, and a crossbow's spanTime before each shot); the first of its rows that takes time governs the action's lock,
+  focus and effort, so an instant spanning leaves the shot's (BG-340).
 - **ACT-111** A bandage, a drink, a hide, a look around, a trade (haggling too) and persuading, lying or threatening
   (the Speech row, 3 s however long the words, TK1 c) take theirs; plain talk takes none in a fight (TP6 c, TK6) and the
   Speech row's time outside one.

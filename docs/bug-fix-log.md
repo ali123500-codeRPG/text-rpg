@@ -9,6 +9,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the spec's bug log, docs/spec/bug-log.md, has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-340
+
+**What was wrong:** A crossbow shot did not lock movement and paid base strain instead of Hard, against ACT-33 and ACT-114. `attackRowIds` (`src/ruleset/actionTime.ts`) lists a crossbow's spanning row before its shot row, and `orderCost` (`src/engine/resolve.ts`) took the first row as the one that governs the action (lock, focus, effort). That was right while spanning took time; since TP8 a made every spanning instant (0 s), the 5 s shot ran under a row with no `locksMove`, no `focus` and effort `base`. A crossbow shooter who also moved walked 8.4 m that turn instead of the 1.4 m the shot's lock leaves.
+
+**What was done:** `orderCost` takes the first row that takes any time as the governing row, so an instant spanning leaves the shot's row in charge, and a spanning that takes time (none today; `tests/cases/s270` stands one in) is still one long action under its own row. The seconds are unchanged (the rows summed). `tests/cases/s113` now checks a crossbow shot's lock through a whole turn. The stale HOSTILE\_NEAR\_M comment in `src/config/clock.ts` names hostileNearM.
+
+**Fixed by:** #1291
+
 ## BG-338
 
 **What was wrong:** `/undo` could say "there is no turn to undo" and keep the undone turn on screen while the save had already gone back a turn. `undoTurn` (`src/save/index.ts`) writes the head first (that is the commit), then deletes the undone turn's record and cleans up. All three steps ran in one `guard` marked not committed, so a failed delete after the head write came back as an uncommitted `SaveError`. The `/undo` command (`src/agents/game.ts`) read every uncommitted error as "nothing to undo" and returned without reloading. Reproduced with the whole-turn harness: two turns, then `/undo` with the delete of turn 2's record failing. The head was on turn 1 while the screen stayed on turn 2 with the "no turn to undo" line.
