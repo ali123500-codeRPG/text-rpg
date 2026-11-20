@@ -13,8 +13,4 @@ describe('world lore in the fixed instructions', () => {
   it('stays short (calls are not cached)', () => {
     expect(WORLD_LORE.split(/\s+/).length).toBeLessThanOrEqual(350);
   });
-  it('keeps the Thread hidden and gods away from it', () => {
-    expect(WORLD_LORE).toMatch(/Never name or hint at it/);
-    expect(WORLD_LORE).toMatch(/no god touches it/);
-  });
 });

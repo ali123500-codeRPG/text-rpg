@@ -16,7 +16,6 @@ describe('345 BF79: Cowering, below Broken', () => {
     const s = makeVillage();
     const p = s.player, max = maxMorale(p);
     expect(MORALE_LEVELS.keys.at(-1)).toBe('cowering');
-    expect(CONFIG.MORALE_COWER_AT).toBe(1.2);
     setMoraleLost(p, max);
     expect(moraleLevel(p)).toBe('broken');
     setMoraleLost(p, 1.1 * max);

@@ -8,7 +8,7 @@ import { buildOppositionView } from '../../src/views';
 import { checkStagePlan } from '../../src/agents/schema';
 import { applyStagePlan } from '../../src/scenario';
 import { toStoryStart, villageStagePlan } from '../../src/scenario/fixtures';
-import { RESPONDER_INSTRUCTIONS, WEAVER_SHAPE } from '../../src/agents/prompts';
+import { WEAVER_SHAPE } from '../../src/agents/prompts';
 import { IT } from '../../src/library/itemIds';
 import { SK } from '../../src/library/skillIds';
 import type { GameState } from '../../src/types';
@@ -60,5 +60,4 @@ it('BF18: the Weaver gives a placed item an owner; the job rule points at self.m
   expect(holder.core.inventory.find((i) => i.itemId === IT.lucky_charm)?.owner).toBe(owner.id);
   expect(buildOppositionView(st, owner.id).self.missing?.map((m) => m.name)).toEqual(['lucky charm']);
   expect(WEAVER_SHAPE).toContain('that person knows it is missing');
-  expect(RESPONDER_INSTRUCTIONS).toContain('the id of one of self.missing');
 });

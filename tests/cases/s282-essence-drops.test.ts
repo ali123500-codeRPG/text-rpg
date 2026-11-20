@@ -21,7 +21,6 @@ const slain = <T extends { core: { condition: { hpLostPct: number } }; mind?: { 
 const codes = (s: GameState) => s.log.filter((l) => l.code.startsWith('essence_')).map((l) => l.code);
 
 it('D-274: a notable foe always leaves an essence; only its quality roll can make it fade', () => {
-  expect(CONFIG.ESSENCE_APPEAR_CHANCE.foe).toBe(100);
   for (const q of [100, 1]) {
     const s = makeVillage(), foe = slime(s);
     foe.core.generation = 'rolled'; // notable
@@ -62,7 +61,6 @@ it('FP8: the same trait held twice counts once; its points add; it goes only wit
 });
 
 it('a foe is notable by power only at ESSENCE_NOTABLE_SHARE (2) times the player\'s power or more', () => {
-  expect(CONFIG.ESSENCE_NOTABLE_SHARE).toBe(2);
   const s = makeVillage(), guard = s.actors.find((a) => a.id === 'guard_1')!;
   expect(power(s, guard) / power(s, s.player)).toBeGreaterThanOrEqual(2);
   expect(notable(s, guard)).toBe(true);

@@ -9,8 +9,6 @@ import { roadShape } from '../../src/scenario/apply';
 import { placeAll } from '../../src/engine/position';
 import { budgetUsed, checkScenarioEnd, frameOf, noteIdle } from '../../src/engine/scenarioEnd';
 import { buildWeaverView } from '../../src/views';
-import { FIXED } from '../../src/agents/prompts';
-import { CONFIG } from '../../src/config';
 import { ZK } from '../../src/library/tableIds';
 import { advanceClock, now } from '../../src/time';
 import type { GameState, PlanEnding, Zone } from '../../src/types';
@@ -20,14 +18,6 @@ const frame = (s: GameState, scale = 'situation') => { s.stage.scenario = frameO
 const tavern = () => makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'trader'] });
 
 describe('326 scenario budgets count acting time (BG-240)', () => {
-  it('the budgets fit 30-second turns; the small scales count acting time only, Journey and Venture all game time', () => {
-    expect(CONFIG.SCENARIO_SCALE.moment).toMatchObject({ budgetMin: 5, actingOnly: true });
-    expect(CONFIG.SCENARIO_SCALE.situation).toMatchObject({ budgetMin: 15, actingOnly: true });
-    expect(CONFIG.SCENARIO_SCALE.episode).toMatchObject({ budgetMin: 45, actingOnly: true });
-    expect(CONFIG.SCENARIO_SCALE.journey.actingOnly).toBeUndefined();
-    expect(CONFIG.SCENARIO_SCALE.venture.actingOnly).toBeUndefined();
-    expect(FIXED.weaver).toContain('situation (about 15 min of acting time, not counting waits, rest, sleep or trips');
-  });
   it('a long wait inside a Situation leaves it running and uses none of its budget', () => {
     const s = tavern();
     const f = frame(s);

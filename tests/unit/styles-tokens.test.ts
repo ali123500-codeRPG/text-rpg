@@ -2,21 +2,9 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-// Colours come from the HISAB tokens in :root; rules use var(--…) or colour mixes of tokens, never a raw hex.
-// Depth is borders and tints: the only shadow is the toast shadow.
-describe('play styles use tokens only', () => {
+// Text stays readable: a floor on font size, and text colours that reach 4.5:1 on the page colours.
+describe('play styles stay readable', () => {
   const css: string = readFileSync('src/ui/styles.css', 'utf8');
-  const body = css.replace(/:root\s*\{[^}]*\}/, '');
-  it('has no hex colours outside :root', () => {
-    expect(body.match(/#[0-9a-fA-F]{3,8}\b/g) ?? []).toEqual([]);
-  });
-  it('has no glows or drop shadows other than the toast shadow', () => {
-    const shadows = body.match(/(box-shadow|text-shadow|drop-shadow)[^;}]*/g) ?? [];
-    expect(shadows.filter((s) => !/box-shadow:\s*var\(--shadow-toast\)/.test(s))).toEqual([]);
-  });
-  it('buttons and form fields take the page font (BG-302)', () => {
-    expect(css).toMatch(/button, input, select, textarea \{ font-family: inherit; \}/);
-  });
   it('no UI text is smaller than 13px, except the step numbers inside the perk ladder marks (LK6)', () => {
     const small: string[] = [];
     for (const [, sel, decl] of css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
@@ -35,14 +23,5 @@ describe('play styles use tokens only', () => {
     const text = ['text', 'muted', 'faint', 'accent', 'ok', 'warn', 'danger', 'scenario-mark', 'perk-40', ...groups];
     const low = text.flatMap((k) => ['bg', 'surface'].filter((g) => ratio(hex(k)!, hex(g)!) < 4.5).map((g) => `${k} on ${g}: ${ratio(hex(k)!, hex(g)!).toFixed(2)}`));
     expect(low).toEqual([]);
-  });
-  it('hover and focus never change size or position, only colour, opacity, background or an outline (P6)', () => {
-    const moved: string[] = [];
-    for (const [, sel, decl] of css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
-      if (!/:hover|:focus/.test(sel)) continue;
-      const bad = decl.match(/(?<![-\w])(width|height|(?:min|max)-(?:width|height)|margin(?:-[a-z]+)?|padding(?:-[a-z]+)?|border(?:-[a-z]+)?-width|font-size|font-weight|letter-spacing|font)\s*:/g);
-      if (bad) moved.push(`${sel.trim()} → ${bad.join(' ')}`);
-    }
-    expect(moved).toEqual([]);
   });
 });

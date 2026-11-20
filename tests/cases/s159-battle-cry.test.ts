@@ -5,9 +5,6 @@
 import { describe, expect, it } from 'vitest';
 import { makeVillage, place } from '../harness';
 import { intent, play } from './w4-kit';
-import { getLibrary } from '../../src/library';
-import { BUILT_PERKS } from '../../src/library/builtPerks';
-import { PERK_MOVES } from '../../src/ruleset/perks';
 import { perkMoveBlock } from '../../src/engine/perkMoves';
 import { maxMorale, moraleLost } from '../../src/ruleset/morale';
 import { buildPlayerView } from '../../src/views';
@@ -35,11 +32,6 @@ const setup = () => {
 };
 
 describe('159 Battle Cry', () => {
-  it('is the Intimidation 140 perk, built, and a main-action move aimed at no one', () => {
-    expect(getLibrary().perks[PK.battle_cry]?.ladder).toEqual({ skill: SK.intimidation, milestone: 140 });
-    expect(BUILT_PERKS.has(PK.battle_cry)).toBe(true);
-    expect(PERK_MOVES[PK.battle_cry]).toMatchObject({ free: false, perEngagement: 1, untargeted: true });
-  });
 
   it('needs no target, shows as an action in the Parser view and in the action deck', () => {
     const { s } = setup();

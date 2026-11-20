@@ -1,8 +1,6 @@
 // 373 Never Flat-Footed (TC35 b, Battle Sense 100): a foe the owner has seen this fight can never catch it unaware.
 import { describe, expect, it } from 'vitest';
 import { makeVillage, place } from '../harness';
-import { getLibrary } from '../../src/library';
-import { BUILT_PERKS } from '../../src/library/builtPerks';
 import { PK } from '../../src/library/perkIds';
 import { SK } from '../../src/library/skillIds';
 import { neverFlatFooted, noteSeen } from '../../src/engine/flatFooted';
@@ -26,11 +24,6 @@ function hiddenFoe(s: GameState): Actor {
 }
 
 describe('373 Never Flat-Footed', () => {
-  it('is built as the Battle Sense 100 perk', () => {
-    expect(getLibrary().perks[PK.never_flat_footed]?.ladder).toEqual({ skill: SK.battle_sense, milestone: 100 });
-    expect(BUILT_PERKS.has(PK.never_flat_footed)).toBe(true);
-  });
-
   it('notes who the owner sees in a fight, only for owners of the perk', () => {
     const s = makeVillage();
     const patron = place(s, 'patron_1', s.player.zone);

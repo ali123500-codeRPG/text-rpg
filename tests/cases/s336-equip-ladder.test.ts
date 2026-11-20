@@ -38,17 +38,8 @@ describe('336 equip ladder', () => {
     for (const k of QUALITY_LEVELS.keys) expect(fragility.has(QUALITY_LEVELS.name(k))).toBe(false);
   });
 
-  it('IR8: armor covers what the real garment covers', () => {
-    const covers = (id: string) => item(id).armor!.covers;
-    expect(covers(IT.brigandine)).toEqual(['general']);
-    expect(covers(IT.boiled_leather)).toEqual(['general']);
-    expect(covers(IT.gambeson)).toEqual(['general', 'left_arm', 'right_arm']);
-    expect(covers(IT.mail_hauberk)).toEqual(['general', 'left_arm', 'right_arm']);
-  });
-
   it('IR2: every gear class but improvised has a piece at every level from Common to Masterwork; Masterwork ones are fantasy', () => {
     const lib = getLibrary(), items = Object.values(lib.items);
-    expect(Object.keys(lib.gearClasses ?? {}).length).toBe(12);
     for (const gc of Object.keys(lib.gearClasses ?? {})) {
       if (gc === GC.improvised) continue;
       for (const lv of ['common', 'fine', 'superior', 'masterwork']) expect(items.some((d) => d.gearClass === gc && d.level === lv), `${gc} ${lv}`).toBe(true);

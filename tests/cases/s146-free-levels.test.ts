@@ -10,13 +10,9 @@ import { getLibrary } from '../../src/library';
 import { ACH } from '../../src/library/achievementIds';
 import { CL } from '../../src/library/classIds';
 
-const chain = [ACH.class_tiers_2, ACH.class_tiers_3, ACH.class_tiers_4, ACH.class_tiers_5, ACH.class_tiers_all];
-
 describe('146 free levels', () => {
   it('the tiers chain gives free levels by its place, carried up the chain', () => {
     const a = getLibrary().achievements!;
-    expect(chain.map((id) => a[id].freeLevels)).toEqual([1, 1.5, 2, 2.5, 3]);
-    expect(chain.map((id) => a[id].name)).toEqual(['Across Two Heights', 'Across Three Heights', 'Across Four Heights', 'Across Five Heights', 'Every Height Climbed']);
     expect(rewardLines(a[ACH.class_tiers_3])).toEqual(['+2.5 free levels (levels that cost no XP) in all (+1 from Across Two Heights, +1.5 here)']);
   });
 

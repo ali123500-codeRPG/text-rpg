@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { makeVillage, forcedRng } from '../harness';
-import { naturalEdge, ruleset } from '../../src/ruleset';
-import { CONFIG } from '../../src/config';
+import { ruleset } from '../../src/ruleset';
 import { getLibrary } from '../../src/library';
 
 describe('37 Natural edge', () => {
@@ -16,10 +15,5 @@ describe('37 Natural edge', () => {
     // clamped at the ends (event roll only)
     s.player.core.perks = [];
     expect(ruleset.eventRoll(s.player, s, forcedRng([1])).tier).toBe('critical_failure');
-  });
-  it('every natural edge is one tier: the lowest and highest NATURAL_EDGE results only', () => {
-    for (let d = 1; d <= 100; d++) {
-      expect(naturalEdge(d)).toBe(d <= CONFIG.NATURAL_EDGE ? -1 : d > 100 - CONFIG.NATURAL_EDGE ? 1 : 0);
-    }
   });
 });

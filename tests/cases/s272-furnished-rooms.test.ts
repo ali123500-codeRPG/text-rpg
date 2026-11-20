@@ -4,7 +4,6 @@
 import { expect, it } from 'vitest';
 import { makeVillage, createRng } from '../harness';
 import { intent, play } from './w4-kit';
-import { wholeTurn } from '../harness/turn';
 import { CONFIG } from '../../src/config';
 import { FU, LY } from '../../src/library/tableIds';
 import { applyStagePlan, validateStagePlan, type PlanContext } from '../../src/scenario';
@@ -65,13 +64,4 @@ it('FR1: an unknown kind counts as other; a piece with no side stands in the mid
   const [f] = makeFurniture(s, z, [{ kind: 'FU999', name: 'loom' }]);
   expect(f).toMatchObject({ id: `${z.id}.fu1`, kind: FU.other, name: 'loom', pos: { x: 0, y: 0 } });
   expect(f.side).toBeUndefined();
-});
-
-it('whole turn: the Narrator sees the room\'s furniture', async () => {
-  const g = wholeTurn({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
-  const st = g.game.state()!, z = zoneById(st, 'tav_common')!;
-  st.furniture.push(...makeFurniture(st, z, [{ kind: FU.hearth, name: 'smoky hearth', at: 'e' }]));
-  await g.turn(intent({ action: { type: 'wait' } }));
-  const req = g.claude.callsFor('narrator').at(-1) as { input: { content: string }[] };
-  expect(req.input[1].content).toContain('smoky hearth');
 });

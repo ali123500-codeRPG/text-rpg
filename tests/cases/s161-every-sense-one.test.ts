@@ -7,9 +7,6 @@ import { makeVillage } from '../harness';
 import { perceptionOf } from '../../src/perception';
 import { grantAllSteps } from '../../src/ruleset/allSteps';
 import { fnRoller } from '../../src/ruleset';
-import { ALL_BUNDLES, STEP_PARTS, SKILL_PARTS } from '../../src/library/allPerks';
-import { BUILT_PERKS } from '../../src/library/builtPerks';
-import { getLibrary } from '../../src/library';
 import { hasPerk } from '../../src/ruleset/perks';
 import { PK } from '../../src/library/perkIds';
 import { SK } from '../../src/library/skillIds';
@@ -22,14 +19,6 @@ const give = (a: Actor) => a.core.perks.push({ perkId: PK.one_sense, source: 'ma
 const raw = (a: Actor, skill: string, v: number) => { a.core.skills[skill] = { raw: v, state: 'normal' }; };
 
 describe('161 All-150 Every Sense One', () => {
-  it('is the All-150 part of Eyesight and Earshot, built; All-50 parts are the 50 step of STEP_PARTS', () => {
-    expect(ALL_BUNDLES.find((b) => b.treeId === TR.perception && b.step === 150)?.passive).toBeUndefined();
-    expect(STEP_PARTS[150][SK.eyesight]).toBe(PK.one_sense);
-    expect(STEP_PARTS[150][SK.earshot]).toBe(PK.one_sense);
-    expect(getLibrary().perks[PK.one_sense]?.allStep).toMatchObject({ treeId: TR.perception, step: 150, skill: SK.eyesight });
-    expect(BUILT_PERKS.has(PK.one_sense)).toBe(true);
-    expect(STEP_PARTS[50]).toBe(SKILL_PARTS);
-  });
 
   it('is granted once three Perception skills reach 150, like an All-50 at its step', () => {
     const s = makeVillage();

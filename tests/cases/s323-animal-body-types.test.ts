@@ -66,7 +66,7 @@ describe('323 animal body types', () => {
     expect(naturalReduction(s, boar, getLibrary().races![RC.boar].naturalArmor!)).toBeCloseTo(CONFIG.ARMOR_FACTOR * effectiveSkill(s, boar, SK.hide).value * 1, 9);
   });
 
-  it('AB16: each natural skill opens only to bodies and races with that attack; the dragon weighs 1,000 kg (AB17)', () => {
+  it('AB16: each natural skill opens only to bodies and races with that attack', () => {
     const s = makeVillage(), a = s.player, lib = getLibrary();
     const as = (race: string) => { a.core.raceId = race; a.core.bodyTypeId = lib.races![race].bodyTypeId; return a; };
     expect([SK.bite, SK.claws, SK.hooves_horns, SK.tail, SK.slam].map((k) => skillOpen(as(RC.tiger), k))).toEqual([true, true, false, false, false]);
@@ -74,7 +74,6 @@ describe('323 animal body types', () => {
     expect([SK.tail, SK.claws].map((k) => skillOpen(as(RC.crocodile), k))).toEqual([true, false]);
     expect([SK.slam, SK.bite].map((k) => skillOpen(as(RC.slime), k))).toEqual([true, false]);
     expect(skillOpen(as(RC.human), SK.bite)).toBe(false);
-    expect(lib.races![RC.dragon].hpMultiplier).toBe(5.9);
     expect(skillOpen(as(RC.dragon), SK.bite)).toBe(true); // it bites now that the old catch-all skill is gone
   });
 

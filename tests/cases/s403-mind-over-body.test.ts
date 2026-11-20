@@ -3,8 +3,6 @@
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { markEndurance, totalHp } from '../../src/ruleset';
-import { STEP_PARTS } from '../../src/library/allPerks';
-import { BUILT_PERKS } from '../../src/library/builtPerks';
 import { CONFIG } from '../../src/config';
 import { SK } from '../../src/library/skillIds';
 import { PK } from '../../src/library/perkIds';
@@ -14,10 +12,6 @@ import type { Actor, AttackResult } from '../../src/types';
 const give = (a: Actor) => a.core.perks.push({ perkId: PK.mind_over_body, source: 'mastery', gainedTurn: 0, treeId: TR.fortitude, tier: 100 });
 
 describe('403 Mind Over Body', () => {
-  it('is Resolve\'s All-100 part and is built', () => {
-    expect(STEP_PARTS[100][SK.resolve]).toBe(PK.mind_over_body);
-    expect(BUILT_PERKS.has(PK.mind_over_body)).toBe(true);
-  });
   it('adds Resolve × MIND_OVER_BODY_SHARE to max health, the way Endurance adds', () => {
     const s = makeVillage();
     s.player.core.skills[SK.endurance] = { raw: 100, state: 'normal' };

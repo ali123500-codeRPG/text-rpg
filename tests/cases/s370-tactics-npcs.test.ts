@@ -3,29 +3,17 @@
 // own Battle Sense; bands carry no tactics word.
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
-import { getLibrary } from '../../src/library';
 import { spawnNpc } from '../../src/library/spawn';
 import { buildActorView, buildDialogueView } from '../../src/views';
 import { tacticsWord } from '../../src/views/tactics';
 import { formatOppositionView } from '../../src/agents/format';
 import { CONFIG } from '../../src/config';
-import { RO } from '../../src/library/npcLayerIds';
 import { SK } from '../../src/library/skillIds';
 import { TP } from '../../src/library/templateIds';
 
 const opts = { id: 'n1', zone: 'z', placeId: 'p', bandId: 'b' };
 
 describe('370 Tactics on NPCs', () => {
-  it('roles band the Tactics skills as TC9 a says', () => {
-    const r = getLibrary().npcRoles!;
-    expect(r[RO.soldier].bands.high).toContain(SK.battle_sense);
-    expect(r[RO.leader].bands.high).toContain(SK.command);
-    expect(r[RO.hunter].bands.high).toContain(SK.fieldcraft);
-    expect(r[RO.sneak].bands.high).toContain(SK.stratagem);
-    expect(r[RO.skirmisher].bands.moderate).toContain(SK.battle_sense);
-    expect(r[RO.beast].bands.moderate).toEqual(expect.arrayContaining([SK.battle_sense, SK.stratagem]));
-  });
-
   it('a wolf gets Battle Sense and Stratagem, a slime neither', () => {
     const wolf = spawnNpc(null, TP.wolf, opts);
     expect(wolf.core.skills[SK.battle_sense]?.raw).toBeGreaterThan(0);

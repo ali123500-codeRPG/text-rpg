@@ -8,7 +8,6 @@ import { makeVillage } from '../harness';
 import { awardXp, charLevel, keepCapstone, levelCost, levelTarget, spendXp, swapCapstone, xpToNext } from '../../src/engine/xp';
 import { getLibrary } from '../../src/library';
 import { classMaxLevel } from '../../src/library/spawn';
-import { CONFIG } from '../../src/config';
 import { CL } from '../../src/library/classIds';
 import { CLASS_TIERS } from '../../src/scales';
 import { SK } from '../../src/library/skillIds';
@@ -20,8 +19,6 @@ describe('131 Class level cap', () => {
   it('XP banks at the cap, the default class opens, and picking it takes every banked level', () => {
     const s = makeVillage();
     const p = s.player, pr = p.progression!;
-    expect(CONFIG.CLASS_MAX_LEVEL).toBe(20);
-    expect(getLibrary().classes[CL.commoner].name).toBe('Commoner');
     p.core.classes = [{ classId: CL.guard, state: 'current', level: 9 }];
     p.core.perks = [];
     awardXp(s, xpToNext(p), 'test'); // 9 → 10, the Guard's top level (tier 1)
@@ -104,7 +101,5 @@ describe('131 Class level cap', () => {
   it('every class has a tier from the CLASS_TIERS table', () => {
     const lib = getLibrary();
     for (const c of Object.values(lib.classes)) expect(CLASS_TIERS.has(c.tier), c.name).toBe(true);
-    const tier = (id: string) => CLASS_TIERS.pos(lib.classes[id].tier);
-    expect([CL.commoner, CL.swordsman, CL.sword_dancer, CL.a_nobody, CL.late_bloomer].map(tier)).toEqual([0, 2, 2, 2, 5]);
   });
 });

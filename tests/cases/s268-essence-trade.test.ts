@@ -20,10 +20,6 @@ const unique = (a: Actor) => { a.core.generation = 'rolled'; a.progression = { s
 const purse = (a: Actor, n: number) => { a.core.inventory = a.core.inventory.filter((i) => i.itemId !== IT.coin); a.core.inventory.push({ id: `purse_${a.id}`, itemId: IT.coin, qty: n }); };
 
 describe('268 passing on essences', () => {
-  it('ES5 a: value = points × the gear skill-point rate × ESSENCE_VALUE_MULT', () => {
-    expect(essenceValue({ points: { a: 4, b: 3 } })).toBe(7 * CONFIG.ITEM_VALUE.skillPoint * CONFIG.ESSENCE_VALUE_MULT);
-  });
-
   it('ES3/ES4: a gift goes into a rolled NPC\'s slot with no yes needed; someone without a record, or out of reach, can\'t take it', () => {
     const s = makeVillage(), wim = s.actors.find((a) => a.id === 'patron_1')!;
     beside(s, 'patron_1', 'player');

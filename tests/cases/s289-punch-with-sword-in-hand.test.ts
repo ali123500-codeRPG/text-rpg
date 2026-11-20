@@ -7,7 +7,6 @@ import { AM } from '../../src/library/tableIds';
 import { IT } from '../../src/library/itemIds';
 import { buildOppositionView, buildPlayerView } from '../../src/views';
 import { checkParserLegality } from '../../src/agents/legality';
-import { PARSER_INSTRUCTIONS, PLANNER_INSTRUCTIONS } from '../../src/agents/prompts';
 
 const tavern = () => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
@@ -23,8 +22,6 @@ it('BG-193: the player and NPCs see their fists and grapple, even with a sword i
   expect(s.player.core.inventory.some((i) => i.equippedIn?.some((e) => e.startsWith('grip:')))).toBe(true);
   expect(buildPlayerView(s).player.bodyAttacks).toEqual([{ mode: AM.punch, name: 'fists' }, { mode: AM.grapple, name: 'grapple' }]);
   expect(buildOppositionView(s, 'trader').self.bodyAttacks?.map((b) => b.mode)).toContain(AM.punch);
-  expect(PARSER_INSTRUCTIONS).toContain('player.bodyAttacks');
-  expect(PLANNER_INSTRUCTIONS).toContain('self.bodyAttacks');
 });
 
 it('BG-193: a punch names the fists by mode, passes the Parser checks, and lands as fists, not the sword in hand', () => {

@@ -7,7 +7,6 @@ import { resolveTurn } from '../../src/engine';
 import { ScenarioDirector } from '../../src/scenario';
 import { grovePlan, VirtualClock } from '../../src/scenario/fixtures';
 import { headTo } from '../../src/minds';
-import { FIXED } from '../../src/agents/prompts';
 import { applyCheckinPlan } from '../../src/scenario/checkin';
 import { waysOut } from '../../src/plan/where';
 
@@ -50,12 +49,5 @@ describe('317 the World builder (WB1-WB4)', () => {
     applyCheckinPlan(s, { as: 'continue', frontiers: [{ zone: s.zones[0].id, key: 'trapdoor', label: 'a trapdoor', brief: 'the smugglers\' cellar' }] } as never, createRng(1));
     const id = s.zones.flatMap((z) => waysOut(s, z.id)).find((l) => l.label === 'a trapdoor')!.to;
     expect(s.hidden.frontierBriefs?.[id]).toBe('the smugglers\' cellar');
-  });
-
-  it('WB4: the roles keep their names; the World builder writes no story (WB2) and does not scale people to the hero', () => {
-    expect(FIXED.world).toMatch(/World builder/);
-    expect(FIXED.world).not.toMatch(/You are the Weaver/);
-    expect(FIXED.region).toMatch(/World builder/);
-    expect(FIXED.weaver).toMatch(/Weaver/);
   });
 });

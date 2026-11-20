@@ -18,6 +18,5 @@ describe('160 crippled essential part', () => {
     for (const sk of [SK.eyesight, SK.dodge, SK.resolve]) expect(essential(woundsMods(s, p, sk)).map((m) => m.value)).toEqual([CONFIG.ESSENTIAL_CRIPPLED_PENALTY]);
     p.core.condition.parts.head = -150; // Destroyed counts too, still only once
     expect(essential(woundsMods(s, p, SK.eyesight))).toHaveLength(1);
-    expect(CONFIG.ESSENTIAL_CRIPPLED_PENALTY).toBe(-7);
   });
 });

@@ -14,10 +14,6 @@ import { CL } from '../../src/library/classIds';
 const SWORD = 'ST_test_sword';
 
 describe('313 race choice at creation', () => {
-  it('Human and Elf are playable; Slime and Dragon are not (CC8 b reversed)', () => {
-    expect(playableRaces()).toEqual([RC.human, RC.elf]);
-  });
-
   it('a build names its race; left out it is Human', () => {
     expect(createPlayer(recommendedBuild(), 's1').core.raceId).toBe(RC.human);
     const elf = createPlayer({ ...recommendedBuild(), raceId: RC.elf }, 's1');

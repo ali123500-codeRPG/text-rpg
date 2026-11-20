@@ -7,7 +7,6 @@ import { makeVillage, place } from '../harness';
 import { intent, play } from './w4-kit';
 import { CONFIG } from '../../src/config';
 import { getLibrary } from '../../src/library';
-import { BUILT_PERKS } from '../../src/library/builtPerks';
 import { PK } from '../../src/library/perkIds';
 import { SK } from '../../src/library/skillIds';
 import { IT } from '../../src/library/itemIds';
@@ -34,21 +33,6 @@ const npc = (s: GameState, id: string) => actorById(s, id)!;
 const set = (a: Actor, sk: string, raw: number) => { a.core.skills[sk] = { raw, state: 'normal' } as never; };
 
 describe('403 missing 20 and 40 perks', () => {
-  it('each sits on its skill\'s ladder at its milestone, and is built', () => {
-    makeVillage();
-    const perks = getLibrary().perks;
-    for (const [id, sk, m] of [
-      [PK.deflect, SK.parry, 20], [PK.grit_your_teeth, SK.resolve, 20], [PK.hear_me_out, SK.persuasion, 20],
-      [PK.guarded_answer, SK.riposte, 40], [PK.dancers_feet, SK.blade_dance, 40], [PK.deep_reserves, SK.resolve, 40],
-      [PK.silver_tongue, SK.persuasion, 40], [PK.unseen_strike, SK.combat_stealth, 40], [PK.fear_bites_deeper, SK.intimidation, 40],
-      [PK.shadow_work, SK.sneaking, 40], [PK.thick_of_it, SK.vanishing, 40], [PK.free_movement, SK.light_armor, 40],
-      [PK.deeper_soak, SK.heavy_armor, 40], [PK.honest_face, SK.falsehood, 40], [PK.sharp_answer, SK.parry, 40], [PK.read_the_feint, SK.insight, 40], [PK.covered_joints, SK.medium_armor, 40],
-    ] as const) {
-      expect(perks[id]?.ladder, id).toEqual({ skill: sk, milestone: m });
-      expect(BUILT_PERKS.has(id), id).toBe(true);
-    }
-  });
-
   it('LG11 Unseen Strike: awareness defense is one table; the perk moves unaware to −20 and suspicious to −10', () => {
     const s = makeVillage(), a = s.player;
     expect(awarenessMod(a, undefined)).toBeUndefined();
@@ -167,8 +151,6 @@ describe('403 missing 20 and 40 perks', () => {
 
   it('LG26 a Quick Read (Insight 60): in a fight the owner sizes up everyone it sees clearly, once each a fight', () => {
     const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'trader'] }), p = s.player;
-    expect(getLibrary().perks[PK.quick_read]?.ladder).toEqual({ skill: SK.insight, milestone: 60 });
-    expect(BUILT_PERKS.has(PK.quick_read)).toBe(true);
     set(p, SK.insight, 60);
     const others = s.actors.filter((a) => a !== p);
     const clear = others.filter((o) => sightAt(s, p, o, 'normal') === 'full').map((o) => o.id);

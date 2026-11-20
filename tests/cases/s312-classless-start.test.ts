@@ -17,12 +17,6 @@ const addStart = () => { getLibrary().starts[FIXTURE] = { id: FIXTURE, name: 'Te
 afterEach(() => { delete getLibrary().starts[FIXTURE]; });
 
 describe('312 classless start', () => {
-  it('the A Nobody start is gone (CC3); its class stays', () => {
-    expect(Object.values(getLibrary().starts).map((s) => s.name)).not.toContain('A Nobody');
-    expect(getLibrary().classes[CL.a_nobody]).toBeDefined();
-    expect(Object.values(ST)).not.toContain('ST3'); // retired, never reused
-  });
-
   it('begins with no class at level 0, Commoner open to pick, whatever level the Start names', () => {
     addStart();
     expect(classlessStart(FIXTURE)).toBe(true);

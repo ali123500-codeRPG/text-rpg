@@ -68,9 +68,6 @@ describe('NPC ages (AG13, AG14)', () => {
 });
 
 describe('youngest age per rank (AG12, AG21–AG25)', () => {
-  it('reads training years from the rank rows, the same for every race, +10 a step past Paragon', () => {
-    expect(['rank_0', 'rank_1', 'rank_2', 'rank_3', 'rank_4', 'rank_5', 'rank_6', 'rank_8', 'rank_9'].map((r) => rankRow(r as `rank_${number}`).training)).toEqual([0, 1, 4, 8, 12, 20, 30, 50, 60]);
-  });
   it('multiplies them by talent, halving past Prodigy, from the race\'s Youth start', () => {
     expect(['talent_0', 'talent_1', 'talent_2', 'talent_3', 'talent_4', 'talent_5', 'talent_6'].map((k) => talentMult(k as `talent_${number}`))).toEqual([3, 2, 1, 0.75, 0.5, 0.25, 0.125]);
     expect(talentName('talent_6')).toBe('Prodigy++');

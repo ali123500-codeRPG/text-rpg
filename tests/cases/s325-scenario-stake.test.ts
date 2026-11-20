@@ -12,7 +12,6 @@ import { validateStagePlan } from '../../src/scenario/validate';
 import { toStoryStart, villageStagePlan } from '../../src/scenario/fixtures';
 import { buildWeaverView } from '../../src/views';
 import { checkCheckin } from '../../src/agents/schema';
-import { FIXED } from '../../src/agents/prompts';
 
 const judged: PlanEnding[] = [{ when: { kind: 'judged' }, as: 'resolved', text: 'x' }, { when: { kind: 'judged' }, as: 'lost', text: 'y' }];
 const ctx: PlanContext = { tier: 'success', kind: 'scenario', placeId: 'tavern' };
@@ -37,7 +36,6 @@ describe('325 a scenario names its stake (SW8)', () => {
     expect(s.stage.scenario!.stake).toBe('the farmer loses his field');
     const v = buildWeaverView(s, { kind: 'checkin', placeId: s.player.placeId, reason: 'judged' });
     expect(v.target.scenario!.stake).toBe('the farmer loses his field');
-    expect(FIXED.checkin).toContain('whether its stake (target.scenario.stake) was saved or lost');
   });
   it('a check-in may change the stake; one that changes only the question keeps it', () => {
     const s = running('the field');

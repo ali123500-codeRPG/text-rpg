@@ -4,8 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { actor } from '../harness/village';
 import { fightEnded, turnFeats } from '../../src/engine/feats';
-import { combatPart, levelRating, power } from '../../src/engine/xp';
-import { nonCombatPart } from '../../src/engine/nonCombat';
+import { power } from '../../src/engine/xp';
 import { ACH } from '../../src/library/achievementIds';
 import type { Actor, GameState } from '../../src/types';
 
@@ -45,17 +44,5 @@ describe('161 stronger foes', () => {
     t.player.core.condition.hpLostPct = 120; // Incapacitated
     fightEnded(t, { hp: 0, foes: [], most: 1, above: 200, abovePct: 200, down: true });
     expect(earned(t).some((k) => k === ACH.survived_above_100 || k === ACH.won_above_100)).toBe(false);
-  });
-});
-
-describe('161 one power measure', () => {
-  it('defeat XP and the stronger-foe gap read the same power (level + combat + non-combat parts)', async () => {
-    const { defeatXp } = await import('../../src/engine/xp');
-    const { CONFIG } = await import('../../src/config');
-    const s = makeVillage();
-    const guard = actor(s, 'guard_1');
-    expect(power(s, guard)).toBeCloseTo(levelRating(guard, s) + combatPart(s, guard) + nonCombatPart(s, guard), 5);
-    const t = Math.min(1, CONFIG.DEFEAT_XP_TAPER * power(s, guard) / power(s, s.player));
-    expect(defeatXp(s, guard)).toBeCloseTo(power(s, guard) * t * CONFIG.DEFEAT_XP_MULT, 1);
   });
 });

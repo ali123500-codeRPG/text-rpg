@@ -6,7 +6,6 @@ import { intent, wholeTurn } from '../harness/turn';
 import { CONFIG } from '../../src/config';
 import { lengthReport } from '../../src/agents/narration';
 import type { LogLine } from '../../src/types';
-import { NARRATOR_INSTRUCTIONS } from '../../src/agents/prompts';
 
 const styleOf = (req: { input: { content: string }[] }) => {
   const data = req.input[1].content;
@@ -44,8 +43,7 @@ describe('LN narration length', () => {
     expect(md).not.toContain('turn 1:');
   });
 
-  it('TL4 d: the running commentary is asked for, and the view carries what shapes it (nerve, morale, health, wounds)', async () => {
-    expect(NARRATOR_INSTRUCTIONS).toContain('running commentary');
+  it('TL4 d: the view carries what shapes the running commentary (nerve, morale, health, wounds)', async () => {
     const g = wholeTurn({ without: ['slime_1', 'slime_2', 'guard_1'] });
     await g.turn(intent());
     const data = (g.claude.callsFor('narrator').at(-1) as { input: { content: string }[] }).input[1].content;

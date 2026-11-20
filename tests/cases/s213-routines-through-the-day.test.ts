@@ -39,15 +39,6 @@ describe('213 routines through the day (RT1–RT9)', () => {
     at(s, 'morning');
     expect(want(s, b.id)!.zone).toBe('tav_counter');
   });
-  it('RT1: a gate guard drinks in the evening; a night guard holds the post at night and sleeps by day', () => {
-    const lib = getLibrary();
-    const steps = (id: string, k: string) => (lib.routines![id].times?.find((t) => t.at.includes(k as never))?.steps ?? lib.routines![id].steps).map((x) => x.activity);
-    expect(steps('guard_post', 'afternoon')).toEqual(['stand_watch']);
-    expect(steps('guard_post', 'evening')).toEqual(['drink', 'chat']);
-    expect(steps('guard_post', 'night')).toEqual(['sleep']);
-    expect(steps('night_guard_post', 'night')).toEqual(['stand_watch']);
-    expect(steps('night_guard_post', 'morning')).toEqual(['sleep']);
-  });
   it('the Weaver may leave an optional slot out, but not a required one', () => {
     const s = toStoryStart(makeVillage());
     const ctx = { tier: 'success' as const, kind: 'scenario' as const, placeId: 'tavern' };

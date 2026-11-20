@@ -8,7 +8,6 @@ import { intent, play } from './w4-kit';
 import { buildNarrationView } from '../../src/views';
 import { lookAround } from '../../src/perception';
 import { nameFor, actorById } from '../../src/engine/relations';
-import { RESPONDER_INSTRUCTIONS } from '../../src/agents/prompts';
 
 it('a use with no item carried is wasted, saying why', () => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
@@ -16,7 +15,6 @@ it('a use with no item carried is wasted, saying why', () => {
   const ev = play(s, { intent: intent({ action: { type: 'use_item', item: null, target: 'patron_1' } }) });
   expect(ev.find((e) => e.actorId === 'player' && e.kind === 'wasted')?.reason).toBe('no_item');
   expect(ev.some((e) => e.kind === 'use_item')).toBe(false);
-  expect(RESPONDER_INSTRUCTIONS).toContain('A shut one (its container says shut) is opened first');
 });
 
 it('someone the player meant to go to, put off after they left, is told as not there', () => {

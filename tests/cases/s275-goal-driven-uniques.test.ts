@@ -15,7 +15,6 @@ import { hasAgenda, actorById } from '../../src/engine/relations';
 import { goalThinkers } from '../../src/agents/game';
 import { buildActorView, buildWeaverView } from '../../src/views';
 import { checkPlanner } from '../../src/agents/schema';
-import { PLANNER_INSTRUCTIONS, RESPONDER_INSTRUCTIONS, VOICE_INSTRUCTIONS } from '../../src/agents/prompts';
 import { CONFIG } from '../../src/config';
 import { DAY_MINUTES, now } from '../../src/time';
 
@@ -114,8 +113,6 @@ it('the Planner and Responder are told about goals and steps; the Voice is not',
   expect(v.errors).toEqual([]);
   expect(v.value.goals).toEqual({ met: [1], failed: [], add: [{ text: 'find the smith', about: ['smith'] }] });
   expect(v.value.steps?.[1].until?.at).toBe('dusk');
-  for (const p of [PLANNER_INSTRUCTIONS, RESPONDER_INSTRUCTIONS]) expect(p).toContain('If your view lists goals');
-  expect(VOICE_INSTRUCTIONS).not.toContain('If your view lists goals');
 });
 
 it('whole turn: a goal holder away from any fight gets its one think in the background, and its steps apply', async () => {

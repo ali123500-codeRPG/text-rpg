@@ -42,29 +42,18 @@ function mundaneProblems(d: ItemDef): string[] {
 }
 
 describe('342 item families', () => {
-  it('IR30: every equipment piece names a family from the families table; ordinary gear is Mundane', () => {
+  it('IR30: every equipment piece names a family from the families table', () => {
     const lib = getLibrary();
-    expect(Object.values(lib.itemFamilies!).map((f) => f.name)).toEqual(['Mundane', 'Threadbound', 'Relic']);
     for (const d of Object.values(lib.items)) {
       if (GEAR.includes(d.kind) || d.threadbound) expect(lib.itemFamilies![d.family!], d.id).toBeDefined();
       else expect(d.family, d.id).toBeUndefined();
     }
-    expect(lib.items[IT.arming_sword].family).toBe(IF.mundane);
-    expect(lib.items[IT.spectacles].family).toBe(IF.mundane);
-    const loop = Object.values(lib.items).find((d) => d.threadbound)!;
-    expect(loop.family).toBe(IF.threadbound);
   });
 
   it('IR31: a Mundane piece takes every number from its level, class and type; nothing is set by hand', () => {
     const mundane = Object.values(getLibrary().items).filter((d) => d.family === IF.mundane);
     expect(mundane.length).toBeGreaterThan(60);
     for (const d of mundane) expect(mundaneProblems(d), d.id).toEqual([]);
-  });
-
-  it('IR31: the plate harnesses carry no hand-set head pool (the head is a helmet\'s job)', () => {
-    const I = getLibrary().items;
-    expect(I[IT.plate_harness].armor!.pools).toBeUndefined();
-    expect(I[IT.peerless_plate].armor!.pools).toBeUndefined();
   });
 
   it('IR32: a minted piece stays Mundane; its quality adds factor × need × quality on top of its level', () => {

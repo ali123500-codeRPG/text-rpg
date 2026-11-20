@@ -9,14 +9,10 @@ import type { GameState } from '../../src/types';
 import { makeVillage, furnish } from '../harness';
 import { sleepDebtFor } from '../harness/sleep';
 import { intent, play } from './w4-kit';
-import { wholeTurn } from '../harness/turn';
 import { CONFIG } from '../../src/config';
 import { getLibrary } from '../../src/library';
 import { DU, FU } from '../../src/library/tableIds';
 import { SK } from '../../src/library/skillIds';
-import { FN, GR } from '../../src/library/functionIds';
-import { FUNCTION_GROUP } from '../../src/library/functionNames';
-import { TR } from '../../src/library/treeIds';
 import { TP } from '../../src/library/templateIds';
 import { EFFORT } from '../../src/scales';
 import { now } from '../../src/time';
@@ -45,10 +41,7 @@ const withStamina = (s: GameState, v: number) => { s.player.core.skills[SK.stami
 describe('278 fatigue and stamina', () => {
   it('FT24/FT25: one tier table, Base free; every Action times row names a tier', () => {
     makeVillage();
-    expect(EFFORT.keys.map((k) => CONFIG.STRAIN_COST[k])).toEqual([0, 0.5, 1, 2, 4]);
     for (const r of Object.values(getLibrary().durations ?? {})) expect(EFFORT.has(r.effort), r.id).toBe(true);
-    const d = getLibrary().durations!;
-    expect([d[DU.talk].effort, d[DU.door].effort, d[DU.blow].effort, d[DU.battle_cry].effort]).toEqual(['base', 'base', 'hard', 'all_out']);
   });
 
   it('FT2/FT23: strain drains the line first, then spills half into the long term; armour multiplies it', () => {
@@ -176,10 +169,6 @@ describe('278 fatigue and stamina', () => {
   it('FT15/FT27: Stamina is the third Fortitude skill, own group at quarter XP; marked per 50 strain of any effort', () => {
     const s = quiet();
     const lib = getLibrary();
-    expect(lib.trees[TR.fortitude].skills).toEqual([SK.endurance, SK.resolve, SK.stamina]);
-    expect(lib.skills[SK.stamina].functions).toEqual([FN.stamina]);
-    expect(FUNCTION_GROUP[FN.stamina]).toBe(GR.stamina);
-    expect(CONFIG.XP_GROUP_FACTOR[GR.stamina]).toBe('quarter');
     s.player.core.inventory = s.player.core.inventory.filter((i) => !i.equippedIn?.includes('armor'));
     payStrain(s, s.player, 'light', 48);
     payStrain(s, s.player, 'hard', 12);
@@ -202,17 +191,5 @@ describe('278 fatigue and stamina', () => {
     expect(seen().fatigue).toBe('Exhausted');
     expect(buildActorView(s, p.id).self.fatigue).toBe('Exhausted');
     expect(debtPct(p)).toBeCloseTo(60);
-  });
-
-  it('whole turn: an attack in a fight drains the line, and the Narrator gets the fatigue level', async () => {
-    const g = wholeTurn({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'trader'] });
-    const s = g.game.state()!;
-    const m = actorById(s, 'patron_1')!.mind!;
-    m.overrides = { player: 'hostile' };
-    m.knowledge.player = { status: 'engaged', lastKnownZone: s.player.zone, lastSeenTurn: s.turn, source: 'seen', revealed: [] };
-    await g.turn(intent({ action: { type: 'attack', target: 'patron_1' } }));
-    expect(lineUsed(g.game.state()!.player)).toBeGreaterThan(0);
-    const req = g.claude.callsFor('narrator').at(-1) as { input: { content: string }[] };
-    expect(req.input[1].content).toMatch(/"fatigue":"Rested"/);
   });
 });

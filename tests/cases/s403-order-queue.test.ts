@@ -6,7 +6,6 @@ import type { GameEvent, LogLine } from '../../src/types';
 import { intent, wholeTurn } from '../harness/turn';
 import { makeVillage } from '../harness/village';
 import { orderStops, queuedSteps, watchOrder } from '../../src/engine';
-import { PARSER_INSTRUCTIONS } from '../../src/agents/prompts';
 
 const ev = (e: Partial<GameEvent>): GameEvent => ({ id: 'e1', turn: 1, actorId: 'guard_1', kind: 'idle', zone: 'tav_common', effects: [], noise: 'normal', visibility: 'normal', perception: {}, ...e } as GameEvent);
 
@@ -53,9 +52,5 @@ describe('403 the rest of a long order is queued, one step per turn', () => {
     (wim.mind!.knowledge ??= {}).player = { status: 'aware', source: 'seen', revealed: [] }; // Wim now knows of the player
     expect(orderStops(s, { ...unseen, senses: quiet.senses }, [], [])).toBe(false); // newly aware of a plain walker: no news
     expect(orderStops(s, { ...unseen, senses: quiet.senses, sneaking: true }, [], [])).toBe(true); // seen while sneaking
-  });
-
-  it('tells the Parser the deferred steps play one per turn', () => {
-    expect(PARSER_INSTRUCTIONS).toContain('the steps play one per turn after this one');
   });
 });

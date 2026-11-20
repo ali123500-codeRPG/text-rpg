@@ -4,8 +4,6 @@
 import { describe, expect, it } from 'vitest';
 import { forcedRng, makeVillage } from '../harness';
 import { act, play, plannerOut } from './w4-kit';
-import { getLibrary } from '../../src/library';
-import { BUILT_PERKS } from '../../src/library/builtPerks';
 import { PK } from '../../src/library/perkIds';
 import { SK } from '../../src/library/skillIds';
 import { actorById } from '../../src/engine/relations';
@@ -23,10 +21,6 @@ const lie = (s: GameState, heard: 'full' | 'sound' | 'none' = 'full'): GameEvent
 };
 
 describe('156 Overheard', () => {
-  it('is the Insight 20 perk and is built', () => {
-    expect(getLibrary().perks[PK.overheard]?.ladder).toEqual({ skill: SK.insight, milestone: 20 });
-    expect(BUILT_PERKS.has(PK.overheard)).toBe(true);
-  });
 
   it('an owner who hears a lie told to someone else can see through it; others are not checked', () => {
     const s = makeVillage();

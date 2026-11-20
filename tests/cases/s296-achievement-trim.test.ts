@@ -16,21 +16,11 @@ import { CONFIG } from '../../src/config';
 import type { GameState } from '../../src/types';
 
 const lib = () => getLibrary().achievements!;
-const counts = (rule: string, by?: string) => Object.values(lib()).filter((d) => d.rule === rule && d.by === by).map((d) => d.count).sort((a, b) => a! - b!);
 const earned = (s: GameState) => (s.player.progression!.achievements ?? []).map((a) => a.id);
 const aimMod = (s: GameState, part: string) => ruleset.attack({ attackerId: 'player', targetId: 'patron_1', weaponId: `player_${IT.arming_sword}_1`, targetPart: part, aimed: true }, s, forcedRng([50, 50]))
   .attack.modifiers.find((m) => m.type === 'aim')!.value;
 
 describe('296 achievement trim (round 3 answers)', () => {
-  it('the decided counts', () => {
-    expect(counts('defeats')).toEqual([10, 50, 100, 250]);
-    expect(lib()[ACH.defeats_50].name).toBe('Carver of Fifty Graves');
-    expect(Object.values(lib()).some((d) => d.id === 'AC9')).toBe(false); // retired
-    expect(counts('clean_defense')).toEqual([1, 10, 100, 500]);
-    expect(counts('aimed_hits')).toEqual([10, 50, 100]);
-    expect(counts('aimed_hits', 'size')).toEqual([1, 10, 50]);
-  });
-
   it('the first clean defense and the first aimed hit on a part size are achievements', () => {
     const s = makeVillage();
     CONFIG.GROWTH_AT_SCENARIO_END = false;

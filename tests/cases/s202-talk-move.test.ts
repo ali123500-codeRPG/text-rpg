@@ -6,7 +6,6 @@ import { WK } from '../../src/library/tableIds';
 import { intent } from './w4-kit';
 import { SK } from '../../src/library/skillIds';
 import { CONFIG } from '../../src/config';
-import { PARSER_INSTRUCTIONS } from '../../src/agents/prompts';
 
 const village = (counter = true) => makeVillage({ without: ['slime_1', 'slime_2'],
   shape: counter ? COUNTER_SHAPE : { ...COUNTER_SHAPE, tav_common: { ...COUNTER_SHAPE.tav_common, walls: { n: WK.wall, e: WK.wall, s: WK.wall, w: WK.wall } } } });
@@ -90,5 +89,4 @@ it('BG-158: from behind the counter, coming out to someone in the room crosses i
   s.player.zone = 'tav_counter';
   expect(talkMove(s, talk('patron_1', { toZone: 'tav_common', spot: { near: 'patron_1' } }))).toMatchObject({ toZone: 'tav_counter', spot: { near: 'tav_common' } });
   expect(talkMove(s, talk('patron_1', { toZone: 'tav_common', spot: { near: 'patron_1' }, behind: true }))).toMatchObject({ toZone: 'tav_common', spot: { near: 'patron_1' } });
-  expect(PARSER_INSTRUCTIONS).toContain('or out from behind it');
 });

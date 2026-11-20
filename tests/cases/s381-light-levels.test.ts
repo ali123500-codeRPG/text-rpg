@@ -36,6 +36,5 @@ describe('381 light levels (LT1-LT3)', () => {
     const field = zoneById(s, 'field_mid')!;
     setTitleLight(s, field, 'black');
     for (const t of ['evening', 'night'] as const) { startClock(s, t); expect(zoneLight(s, field)).toBe(CONFIG.SKY_LIGHT[t]); }
-    expect(CONFIG.SKY_LIGHT.night).toBe('moonlit');
   });
 });

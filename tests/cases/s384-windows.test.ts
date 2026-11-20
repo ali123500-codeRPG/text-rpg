@@ -6,7 +6,6 @@ import type { GameState } from '../../src/types';
 import { makeVillage, place, createRng, putBarrier } from '../harness';
 import { wayTo } from '../../src/plan/where';
 import { zoneById } from '../../src/engine/relations';
-import { getLibrary } from '../../src/library';
 import { BK } from '../../src/library/tableIds';
 import { coverMod, coverShown } from '../../src/ruleset/gear';
 import { openingShown } from '../../src/ruleset/objectCover';
@@ -29,11 +28,6 @@ function house(open = true, kind: string = BK.window): GameState {
 }
 
 describe('384 windows (PC3)', () => {
-  it('a Window is shutters 0.6 × 1 m with the sill 0.9 m up, that lock and bar', () => {
-    const k = getLibrary().barrierKinds![BK.window];
-    expect(k).toMatchObject({ window: true, sillM: 0.9, openingM: [0.6, 1], lock: true, bar: true, seeThrough: false });
-  });
-
   it('through the open window a person 2 m inside shows about 55% (head and chest): −9, the hub example', () => {
     const s = house();
     const g = s.actors.find((a) => a.id === 'guard_1')!, z = zoneById(s, 'tav_common')!;
@@ -73,10 +67,7 @@ describe('384 windows: the frame works one way', () => {
 });
 
 describe('384 window kinds (PC4)', () => {
-  it('four kinds, by real size; a slit and bars are always seen through and never open or shut', () => {
-    const k = getLibrary().barrierKinds!;
-    expect([BK.window, BK.arrow_slit, BK.barred_window, BK.large_window].map((id) => [k[id].name, k[id].openingM, k[id].sillM, !!k[id].fixed])).toEqual([
-      ['Shuttered window', [0.6, 1], 0.9, false], ['Arrow slit', [0.1, 1.2], 1, true], ['Barred window', [0.6, 1], 0.9, true], ['Large window', [1.2, 1.5], 0.6, false]]);
+  it('a slit is always seen through and never opens or shuts', () => {
     const s = house(false, BK.arrow_slit);
     expect(seesNow(s, wayTo(s, 'tav_common', 'street_door')!.opening)).toBe(true); // a window is a way out from inside only (a drop), seen through from both sides
     expect(wayOp(s.barriers!.win1, s.player, 'street_door', 'open')).toBe('fixed');

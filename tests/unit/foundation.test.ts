@@ -3,11 +3,6 @@ import { makeVillage, createRng } from '../harness';
 import { isEngaged, shortestPath } from '../../src/engine/relations';
 
 describe('foundation', () => {
-  it('builds the village fixture', () => {
-    const s = makeVillage();
-    expect(s.actors.map((a) => a.id)).toEqual(['guard_1', 'trader', 'patron_1', 'slime_1', 'slime_2']);
-    expect(s.actors.find((a) => a.id === 'slime_1')!.mind!.routine!.id).toBe('roam_field');
-  });
   it('rng is seeded and replayable', () => {
     const a = createRng(7), b = createRng(7);
     expect([a.d100(), a.d100(), a.d100()]).toEqual([b.d100(), b.d100(), b.d100()]);

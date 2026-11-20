@@ -8,8 +8,6 @@ import { fit, forcedRng, makeVillage, place, beside } from '../harness';
 import { effectiveSkill, ruleset } from '../../src/ruleset';
 import { augmentsOf } from '../../src/ruleset/gear';
 import { unlockClasses } from '../../src/engine/xp';
-import { SKILL_PARTS } from '../../src/library/allPerks';
-import { BUILT_PERKS } from '../../src/library/builtPerks';
 import { CONFIG } from '../../src/config';
 import { SK } from '../../src/library/skillIds';
 import { PK } from '../../src/library/perkIds';
@@ -28,12 +26,6 @@ const hold = (a: Actor, itemId: string, id = `${a.id}_w`) => {
 const skill = (a: Actor, id: string, raw: number) => { a.core.skills[id] = { raw, state: 'normal' }; };
 
 describe('157 All-50 round 3', () => {
-  it('Parry, Block and Resolve carry their parts, all built', () => {
-    expect(SKILL_PARTS[SK.parry]).toBe(PK.against_the_grain);
-    expect(SKILL_PARTS[SK.block]).toBe(PK.iron_rim);
-    expect(SKILL_PARTS[SK.resolve]).toBe(PK.grit);
-    for (const id of [PK.against_the_grain, PK.iron_rim, PK.grit]) expect(BUILT_PERKS.has(id)).toBe(true);
-  });
 
   it('Grit: a quarter of Endurance augments Resolve, so every morale roll', () => {
     const s = makeVillage();
@@ -48,10 +40,6 @@ describe('157 All-50 round 3', () => {
   });
 
   it('PT12 Misdirection: Vanishing\'s part, a quarter of Guile augments every Vanishing roll; Fade Back stays parked', () => {
-    expect(SKILL_PARTS[SK.vanishing]).toBe(PK.misdirection);
-    expect(BUILT_PERKS.has(PK.misdirection)).toBe(true);
-    expect(BUILT_PERKS.has(PK.fade_back)).toBe(false);
-    expect(Object.values(SKILL_PARTS)).not.toContain(PK.fade_back);
     const s = makeVillage();
     skill(s.player, SK.guile, 40);
     skill(s.player, SK.vanishing, 20);

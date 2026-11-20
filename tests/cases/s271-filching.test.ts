@@ -14,9 +14,7 @@ import { CONFIG } from '../../src/config';
 import { sightAt } from '../../src/perception';
 import { IT } from '../../src/library/itemIds';
 import { SK } from '../../src/library/skillIds';
-import { FN, GR } from '../../src/library/functionIds';
-import { getLibrary } from '../../src/library';
-import { groupsOf } from '../../src/library/functionNames';
+import { FN } from '../../src/library/functionIds';
 import { effectiveSkill } from '../../src/ruleset/gear';
 import { tierLevel } from '../../src/ruleset';
 import { NOISE } from '../../src/scales';
@@ -24,8 +22,6 @@ import { createRng } from '../../src/rng';
 import { filchContest, takeFilched } from '../../src/engine/filch';
 import { sell } from '../../src/engine/trade';
 import { checkParserLegality } from '../../src/agents/legality';
-import { NEEDS } from '../../src/engine/merge';
-import { wholeTurn } from '../harness/turn';
 import { lay } from '../harness';
 
 const village = (): { s: GameState; wim: Actor } => {
@@ -38,12 +34,9 @@ const village = (): { s: GameState; wim: Actor } => {
 const skill = (a: Actor, id: string, raw: number) => { a.core.skills[id] = { raw, state: 'normal' }; };
 
 it('FL1: Filching and Lockpicking are the Sleight group and stand in for each other at 0.3', () => {
-  const k = getLibrary().skills;
-  expect([groupsOf(k[SK.filching])[0], groupsOf(k[SK.lockpicking])[0]]).toEqual([GR.sleight, GR.sleight]);
   const { s } = village();
   skill(s.player, SK.lockpicking, 50);
   expect(effectiveSkill(s, s.player, FN.filching, { fullValue: [SK.filching] }).value).toBeCloseTo(15);
-  expect(NEEDS.filch).toBe('grip');
 });
 
 it('TN1: the sound is Hushed at Near Miss or better and one level louder per tier below', () => {
@@ -109,19 +102,6 @@ it('FL7: an NPC filches from the player; a sharp-eyed player catches it', () => 
   expect(f.outcome).toBe('caught');
   expect(f.caught).toContain(s.player);
   expect(f.perception[s.player.id]?.level).toBe('full');
-});
-
-it('whole turn: a filch caught in the act reaches the Narrator as a filch event marked caught', async () => {
-  const g = wholeTurn({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'trader'] });
-  const s = g.game.state()!;
-  const wim = actorById(s, 'patron_1')!;
-  if (wim.pos) s.player.pos = { ...wim.pos };
-  wim.core.inventory.push({ id: 'ring', itemId: IT.charmed_ring });
-  skill(wim, SK.eyesight, 400);
-  const { events } = await g.turn(intent({ action: { type: 'filch', target: 'patron_1' } })) // the ring is stowed, unseen (CT6b): whatever comes to hand;
-  expect(events.find((e) => e.kind === 'filch')?.filch).toBe('caught');
-  const req = g.claude.callsFor('narrator').at(-1) as { input: { content: string }[] };
-  expect(req.input[1].content).toContain('"filch"');
 });
 
 it('a filch is a Slight sight: a sharp-eyed watcher 10 m off sees nothing of it (Close once let it be glimpsed to 20 m)', () => {

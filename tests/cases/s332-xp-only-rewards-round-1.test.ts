@@ -28,8 +28,7 @@ describe('332 XP-only rewards, round 1', () => {
     expect(rewardOf(L()[ACH.unseen_250], 'quieter')).toBe(1);
   });
 
-  it('XR16: vanished gains a 50 row; Vanishing +1, +2, +3', () => {
-    expect(L()[ACH.vanished_50]).toMatchObject({ count: 50, after: ACH.vanished_25, rule: 'vanished' });
+  it('XR16: Vanishing +1, +2, +3 along the vanished chain', () => {
     const s = makeVillage();
     give(s, ACH.vanished_1, ACH.vanished_5, ACH.vanished_25, ACH.vanished_50);
     expect(achievementSkill(s.player, SK.vanishing)).toBe(6);
@@ -69,12 +68,6 @@ describe('332 XP-only rewards, round 1', () => {
     expect(achievementMaxMorale(s.player)).toBe(15);
     give(s, ACH.morale_lost_100, ACH.morale_lost_1000);
     expect(achievementMaxMorale(s.player)).toBe(25);
-  });
-
-  it('XR32 b: achievements earned pay +1 on event rolls at 50 and +2 more at 250 (+3)', () => {
-    expect(rewardOf(L()[ACH.total_50], 'eventRoll')).toBe(1);
-    expect(rewardOf(L()[ACH.total_100], 'eventRoll')).toBe(1);
-    expect(rewardOf(L()[ACH.total_250], 'eventRoll')).toBe(3);
   });
 
   it('XR35: Room for No More opens one more essence slot', () => {

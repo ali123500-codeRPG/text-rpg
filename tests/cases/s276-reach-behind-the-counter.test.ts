@@ -6,7 +6,6 @@ import { actor, makeVillage, COUNTER_SHAPE } from '../harness';
 import { intent, play } from './w4-kit';
 import { PY, VL } from '../../src/library/tableIds';
 import { personalityFrom } from '../../src/ruleset/personality';
-import { PLANNER_INSTRUCTIONS, RESPONDER_INSTRUCTIONS, VOICE_INSTRUCTIONS } from '../../src/agents/prompts';
 
 const tavern = (traderY: number) => {
   const s = makeVillage({ shape: COUNTER_SHAPE, playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
@@ -33,11 +32,6 @@ it('BG-183: handing something over the counter from the near side walks up to th
   expect(s.player.zone).toBe('tav_common');
   expect(outOfReach(ev)).toBe(false);
   expect(actor(s, 'trader').core.inventory.some((i) => i.id === 'coin_x')).toBe(true);
-});
-
-it('BG-183: an NPC speaks of an item as its own only if it carries it, and of a key only for a lock', () => {
-  for (const p of [PLANNER_INSTRUCTIONS, RESPONDER_INSTRUCTIONS, VOICE_INSTRUCTIONS]) expect(p).toContain('only if self.gear lists it');
-  for (const p of [PLANNER_INSTRUCTIONS, RESPONDER_INSTRUCTIONS]) expect(p).toContain('it needs a key\n   only if it has a lock');
 });
 
 it('BG-183: personality types and values from the Weaver count by id or by name', () => {

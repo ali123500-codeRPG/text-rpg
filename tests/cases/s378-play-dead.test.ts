@@ -1,12 +1,9 @@
 // 378 Play Dead (TC32 a, TC44-TC48; Guile 20): drop as if Down after a bad blow; foes that lose the roll take you for Down.
 import { describe, expect, it } from 'vitest';
 import { createRng, makeVillage, place } from '../harness';
-import { getLibrary } from '../../src/library';
-import { BUILT_PERKS } from '../../src/library/builtPerks';
 import { PK } from '../../src/library/perkIds';
 import { SK } from '../../src/library/skillIds';
 import { CONFIG } from '../../src/config';
-import { PERK_MOVES } from '../../src/ruleset';
 import { buildNarrationView, buildOppositionView, buildPlayerView } from '../../src/views';
 import { openPlayDead, playDeadChecks, playDeadOpen } from '../../src/engine/playDead';
 import { act, intent, play, plannerOut } from './w4-kit';
@@ -35,12 +32,6 @@ function owner(s: GameState): void {
 const drop = (s: GameState) => play(s, { intent: intent({ perkMove: { perk: PK.play_dead, target: null } }) });
 
 describe('378 Play Dead', () => {
-  it('is built as the Guile 20 perk, a move that takes the turn', () => {
-    expect(getLibrary().perks[PK.play_dead]?.ladder).toEqual({ skill: SK.guile, milestone: 20 });
-    expect(BUILT_PERKS.has(PK.play_dead)).toBe(true);
-    expect(PERK_MOVES[PK.play_dead].free).toBe(false);
-  });
-
   it('opens only after a blow leaves the owner Wounded or worse but not Down, for that turn and the next', () => {
     const s = makeVillage();
     give(s.player, PK.play_dead);

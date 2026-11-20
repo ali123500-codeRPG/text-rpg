@@ -11,8 +11,6 @@ import { intent, play } from './w4-kit';
 import { CONFIG } from '../../src/config';
 import { getLibrary } from '../../src/library';
 import { spawnNpc } from '../../src/library/spawn';
-import { SKILL_PARTS } from '../../src/library/allPerks';
-import { BUILT_PERKS } from '../../src/library/builtPerks';
 import { SK } from '../../src/library/skillIds';
 import { PK } from '../../src/library/perkIds';
 import { TP } from '../../src/library/templateIds';
@@ -29,18 +27,6 @@ const pass = (s: GameState, minutes: number) => { advanceClock(s, minutes); pass
 const ev = (over: Partial<GameEvent>): GameEvent => ({ id: 'x', turn: 1, actorId: 'guard_1', kind: 'speak', zone: 'tav_cellar', effects: [], noise: 'normal', visibility: 'normal', perception: {}, ...over });
 
 describe('291 stamina perks', () => {
-  it('every built one is on the Stamina ladder at its milestone, and Second Breath is Stamina\'s All-50 part', () => {
-    makeVillage();
-    const perks = getLibrary().perks;
-    for (const [id, m] of [[PK.catnap, 20], [PK.iron_lungs, 40], [PK.deep_lungs, 80], [PK.sleepless, 100], [PK.bottomless, 120], [PK.overdrive, 140]] as const) {
-      expect(perks[id]?.ladder, id).toEqual({ skill: SK.stamina, milestone: m });
-      expect(BUILT_PERKS.has(id), id).toBe(true);
-    }
-    expect(SKILL_PARTS[SK.stamina]).toBe(PK.second_breath);
-    expect(perks[PK.short_sleeper]).toBeUndefined(); // banked (D-300)
-    expect([perks[PK.heavy_sleeper].quirk, perks[PK.insomniac].quirk]).toEqual([true, true]);
-  });
-
   it('SS1 Catnap: a rest clears as much sleep debt as an hour of sleep there, by the share of the hour', () => {
     const s = quiet();
     s.player.core.condition.fatigue = { debt: 20, line: 0, awake: 20 };

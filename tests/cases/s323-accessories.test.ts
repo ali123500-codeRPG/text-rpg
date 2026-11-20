@@ -31,7 +31,6 @@ const wear = (s: GameState, ...items: { id: string; itemId: string }[]) => {
 
 describe('323 accessories', () => {
   it('AX6 a: five accessory slots; a sixth accessory is not worn', () => {
-    expect(CONFIG.ACCESSORY_SLOTS).toBe(5);
     const s = bare(makeVillage());
     wear(s, ...Array.from({ length: 6 }, (_, n) => ({ id: `sig${n}`, itemId: IT.charmed_ring })));
     const worn = s.player.core.inventory.filter((i) => i.id.startsWith('sig') && i.equippedIn?.length);

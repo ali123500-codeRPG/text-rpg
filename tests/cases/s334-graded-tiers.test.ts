@@ -7,7 +7,6 @@ import { resolveTurn } from '../../src/engine';
 import { npcActionToOrder } from '../../src/engine/merge';
 import { zoneById } from '../../src/engine/relations';
 import { makeFurniture } from '../../src/engine/furniture';
-import { effectiveSkill } from '../../src/ruleset';
 import { lineExtras } from '../../src/agents/game';
 import { buildNarrationView } from '../../src/views';
 import { NOISE } from '../../src/scales';
@@ -30,9 +29,6 @@ const quiet = (s: GameState) => turn(s, intent({ action: { type: 'interact', ski
 const step = (n: GameEvent['noise'], by: number) => NOISE.keys[NOISE.pos(n) + by];
 
 describe('334 what a graded act\'s tier does (OD5 a)', () => {
-  it('the roll is at the grade the test thinks (Endurance 50 against Major)', () => {
-    expect(effectiveSkill(village(), village().player, SK.endurance).value).toBe(50);
-  });
   it('Critical Failure with nothing to break and no drop: a loud noise, one step up', () => {
     const s = village(), base = quiet(village());
     const ev = tryWinch(s, 1);

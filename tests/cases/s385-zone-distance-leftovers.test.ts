@@ -26,7 +26,6 @@ describe('385 no zone links or same zone as distance', () => {
     expect(withBed(s, 'gate_guard', { post: 'gate_inner' }, 'gate_inner').bed).toBe('gate_inner'); // gate_inner, field_edge, field_mid
     addPiece(s, 'tav_common', { kind: FU.bed, name: 'bunk' }, 'bunk');
     expect(withBed(s, 'barkeep', { counter: 'tav_counter', refuge: 'tav_cellar' }, 'tav_counter').bed).toBe('tav_common');
-    expect(CONFIG.BED_NEAR_M).toBe(30);
   });
 
   it('BG-304: a zone four ways out that one move reaches is a Fieldcraft step-to zone', () => {

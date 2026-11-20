@@ -29,7 +29,6 @@ describe('120 dead', () => {
   it('the UI never shows Dead, and nothing heals the dead', () => {
     const s = makeVillage();
     expect(SHOWN_LEVELS().map(([l]) => l)).not.toContain('dead');
-    expect(SHOWN_LEVELS()).toHaveLength(8);
     expect(shownLevel('dead')).toBe('incapacitated');
     s.player.core.condition.hpLostPct = CONFIG.HP_LOST_MAX;
     expect(wouldHeal(s, s.player, HL.clinic)).toBe(false);

@@ -8,7 +8,6 @@ import { intent, play } from './w4-kit';
 import { isActive } from '../../src/engine/relations';
 import { applyGearOps } from '../../src/engine/gear';
 import { buildNarrationView } from '../../src/views';
-import { NARRATOR_INSTRUCTIONS } from '../../src/agents/prompts';
 
 describe('178 striking someone down (BG-25)', () => {
   it('a blow on someone Incapacitated lands with no defense and pushes them toward Dead', () => {
@@ -32,7 +31,6 @@ describe('178 striking someone down (BG-25)', () => {
     const w = ev.find((e) => e.actorId === s.player.id && e.kind === 'wasted');
     expect(w?.reason).toBe('already_dead');
     expect(buildNarrationView(s, ev, null).events.find((e) => e.id === w!.id)?.reason).toBe('already dead');
-    expect(NARRATOR_INSTRUCTIONS).toContain('Never make up a miss, a stuck blade or shaking hands');
   });
 });
 

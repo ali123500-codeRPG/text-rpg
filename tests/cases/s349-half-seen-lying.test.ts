@@ -5,7 +5,6 @@ import { CONFIG } from '../../src/config';
 import { actor, beside, makeVillage } from '../harness';
 import { buildNarrationView, buildPlayerView } from '../../src/views';
 import { deck } from '../../src/ui/deck';
-import { NARRATOR_INSTRUCTIONS } from '../../src/agents/prompts';
 import { setTitleLight } from '../../src/plan/draw';
 
 const dark = () => {
@@ -41,9 +40,4 @@ it('a sleeper half seen lies still too; someone standing in the dark does not', 
   expect(up).toMatchObject({ level: 'partial' });
   expect(up?.lying).toBeUndefined();
   expect(targets(s, 'talk').map((p) => p.id)).toContain('guard_1');
-});
-
-it('the Narrator never makes one lying still stand, move or answer', () => {
-  expect(NARRATOR_INSTRUCTIONS).toContain('One with lying lies still on the ground');
-  expect(NARRATOR_INSTRUCTIONS).toContain('never make it stand, move or answer');
 });

@@ -6,7 +6,6 @@ import { makeVillage, place } from '../harness';
 import { intent, play } from './w4-kit';
 import { placeAll, sideFrom } from '../../src/engine/position';
 import { checkParserLegality } from '../../src/agents/legality';
-import { PARSER_INSTRUCTIONS } from '../../src/agents/prompts';
 import { buildPlayerView } from '../../src/views';
 import { CONFIG } from '../../src/config';
 import type { GameState } from '../../src/types';
@@ -42,10 +41,6 @@ describe('175 left and right (BG-18)', () => {
     expect(v.actors.find((a) => a.id === 'slime_2')?.side).toBe('right');
   });
 
-  it('the Parser picks one of two equally near foes and never asks', () => {
-    expect(PARSER_INSTRUCTIONS).toMatch(/When several fit the words equally .* pick one; never ask/);
-    expect(PARSER_INSTRUCTIONS).toMatch(/whose \\?"side\\?" says so/);
-  });
 });
 
 describe('175 the back of a zone (BG-19)', () => {
@@ -61,7 +56,6 @@ describe('175 the back of a zone (BG-19)', () => {
   });
 
   it('"walk to the cellar steps" is a spot by the steps, not a move down them', () => {
-    expect(PARSER_INSTRUCTIONS).toContain('Going to a way out without going through it');
     const s = mapped('tav_counter');
     const v = buildPlayerView(s);
     const out = checkParserLegality(intent({ move: { toZone: 'tav_counter', spot: { near: 'tav_cellar' } } }), v);

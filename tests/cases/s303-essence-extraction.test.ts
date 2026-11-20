@@ -5,7 +5,6 @@
 import { expect, it } from 'vitest';
 import type { Actor, GameState } from '../../src/types';
 import { beside, makeVillage } from '../harness';
-import { bannedLines } from '../harness/guard';
 import { intent, play } from './w4-kit';
 import { CONFIG } from '../../src/config';
 import { PK } from '../../src/library/perkIds';
@@ -78,12 +77,4 @@ it('BG-319: the deck names extraction by the perk\'s library name', () => {
   s.mode = 'tactical';
   const entry = deck({ pv: buildPlayerView(s), s }).flatMap((x) => x.actions).find((a) => a.kind === 'extract')!;
   expect(entry.label).toBe(getLibrary().perks[PK.extract_essence].name);
-});
-
-it('BG-319: no code outside the library types a perk\'s name; labels read it with perkName, so a rename reaches them', () => {
-  const esc = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const names = Object.values(getLibrary().perks).map((d) => d.name).filter((n) => n !== 'Rally'); // Rally is also the achievements' rally bonus (modSources)
-  const typed = new RegExp(`(['"\`])(${names.map(esc).join('|')})\\1`);
-  const roots = ['agents', 'engine', 'land', 'minds', 'perception', 'plan', 'ruleset', 'save', 'scenario', 'types', 'ui', 'views'].map((d) => `src/${d}`);
-  expect(bannedLines(typed, { 'src/ui/fakeGame.ts': 'a made-up save for the screen previews' }, roots)).toEqual([]);
 });

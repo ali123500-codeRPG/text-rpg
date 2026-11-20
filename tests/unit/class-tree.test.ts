@@ -3,8 +3,7 @@
 // the character's own path.
 import { describe, expect, it } from 'vitest';
 import { classLinks, classSource, classTree, classPath, classThread, lanes } from '../../src/ui/classTree';
-import { wholeTurn } from '../harness/turn';
-import { intent } from '../cases/w4-kit';
+import { makeVillage } from '../harness';
 import { getLibrary } from '../../src/library';
 import { CL } from '../../src/library/classIds';
 import { levelTarget, spendXp } from '../../src/engine/xp';
@@ -26,10 +25,8 @@ describe('class tree', () => {
     expect(classSource(lib[CL.a_nobody])).toBeNull(); // Commoner opens it; being a start does not count then
   });
 
-  it('whole turn: the tree shows your classes and the next step from each; dead ends are marked; the class card picks the next level', async () => {
-    const g = wholeTurn({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
-    await g.turn(intent({ action: { type: 'wait' } }));
-    const s = g.game.state()!, p = s.player;
+  it('the tree shows your classes and the next step from each; dead ends are marked; the class card picks the next level', () => {
+    const s = makeVillage(), p = s.player;
     p.core.classes = [{ classId: CL.commoner, state: 'previous', level: 5 }, { classId: CL.trader, state: 'current', level: 2 }, { classId: CL.swordsman, state: 'unlocked', level: 0 }];
     const { nodes, links } = classTree(p);
     const by = (id: string) => nodes.find((n) => n.id === id);
@@ -62,10 +59,8 @@ describe('class tree', () => {
     }
   });
 
-  it('the thread follows the level log: a class levelled after another comes after it, and a link it follows is its stretch', async () => {
-    const g = wholeTurn({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
-    await g.turn(intent({ action: { type: 'wait' } }));
-    const p = g.game.state()!.player;
+  it('the thread follows the level log: a class levelled after another comes after it, and a link it follows is its stretch', () => {
+    const p = makeVillage().player;
     p.core.classes = [{ classId: CL.a_nobody, state: 'current', level: 1 }, { classId: CL.commoner, state: 'previous', level: 5 }];
     p.progression!.xpLog = [{ source: 'level', amount: 0, turn: 1, levelUp: { classId: CL.commoner, level: 5 } }, { source: 'level', amount: 0, turn: 2, levelUp: { classId: CL.a_nobody, level: 6 } }];
     expect(classPath(p)).toEqual([CL.commoner, CL.a_nobody]);
@@ -74,10 +69,8 @@ describe('class tree', () => {
     expect(classTree(p).links).toContainEqual(expect.objectContaining({ from: t[0].from, to: t[0].to }));
   });
 
-  it('a class whose capstone can open every class is not a dead end', async () => {
-    const g = wholeTurn({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
-    await g.turn(intent({ action: { type: 'wait' } }));
-    const p = g.game.state()!.player;
+  it('a class whose capstone can open every class is not a dead end', () => {
+    const p = makeVillage().player;
     p.core.classes = [{ classId: CL.late_bloomer, state: 'current', level: 1 }];
     const n = classTree(p).nodes.find((x) => x.id === CL.late_bloomer)!;
     expect(n.opensAll).toBe(true);

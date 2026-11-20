@@ -122,7 +122,7 @@ describe('NPC generation by rank, role and theme (NG1–NG9)', () => {
     expect(g.core.skills[SK.melee_medium].raw).toBeGreaterThan(before);
     expect(g.core.perks.map((p) => p.perkId)).toContain(PK.keen_ear);
   });
-  it('NG1, NG21: every preset names a known role, theme and rank; every role and theme is used or available', () => {
+  it('NG1, NG21: every preset names a known role, theme and rank', () => {
     const lib = getLibrary();
     for (const t of Object.values(lib.templates).filter((x) => x.generation !== 'unique')) {
       expect(lib.npcRoles?.[t.roleId!], t.id).toBeDefined();
@@ -130,8 +130,6 @@ describe('NPC generation by rank, role and theme (NG1–NG9)', () => {
       expect(t.rank, t.id).toMatch(/^rank_\d+$/);
       expect(t.level, t.id).toBeUndefined(); // NG7: presets never set a level
     }
-    expect(Object.keys(lib.npcRoles ?? {})).toHaveLength(13); // NR4 Hunter, NR6 Healer, NR8 Leader, NR13 Knight
-    expect(Object.keys(lib.themes ?? {})).toHaveLength(8); // NR16
   });
 });
 

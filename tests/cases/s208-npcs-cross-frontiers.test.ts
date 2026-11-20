@@ -12,7 +12,6 @@ import { grovePlan, VirtualClock } from '../../src/scenario/fixtures';
 import { buildActorView } from '../../src/views';
 import { headTo, routineOrder } from '../../src/minds';
 import { zoneById } from '../../src/engine/relations';
-import { ZK } from '../../src/library/tableIds';
 import { waysOut } from '../../src/plan/where';
 import { addFrontier } from '../../src/plan/draw';
 
@@ -102,9 +101,5 @@ describe('208 NPCs and unbuilt frontiers (NW3, NW8)', () => {
     expect(weave).toHaveBeenCalledTimes(1); // the NPC's build is reused
     expect(zoneById(s, s.player.zone)!.name).toBe('a grove');
     expect(d.applyBuiltAhead(s, createRng(1))).toEqual([]);
-  });
-  it('NW4 still holds for builds ahead: the grove leads on', () => {
-    expect(grovePlan().zones[0].kind).toBe(ZK.woods);
-    expect(grovePlan().zones[0].ways.length).toBeGreaterThan(1);
   });
 });

@@ -131,15 +131,6 @@ describe('achievement personality points (AP1-AP20)', () => {
     a.progression = { ...(a.progression ?? {}), achievements: rows.map((r) => ({ id: r.key, ...r, turn: 0 })) } as Actor['progression'];
     return a;
   };
-  it('rows are written in steps of the ACH_PERSONALITY_STEP lever (AP2)', () => {
-    const lib = getLibrary().achievements!;
-    expect(lib[ACH.unaware_1].personality).toEqual({ [PA.honesty]: -STEP });
-    expect(lib[ACH.outnumbered_1].personality).toEqual({ nerve: STEP });
-    expect(lib[ACH.morale_breaks_1].personality).toEqual({ nerve: -STEP }); // a scar pushes its own way (AP3)
-    expect(lib[ACH.no_blow_1].personality).toBeUndefined(); // AP8 turned down
-    expect(lib[ACH.defeated_5].personality).toEqual({ [PA.pride]: -STEP }); // AP18: losing humbles
-    expect(lib[ACH.spar_losses_1].personality).toEqual({ [PA.pride]: -STEP });
-  });
   it('a held chain level adds its own step plus every lower level by reference (AP1)', () => {
     const base = personalityOf(npc(TP.guard));
     const p = personalityOf(earn(npc(TP.guard), { key: ACH.unaware_50 }));

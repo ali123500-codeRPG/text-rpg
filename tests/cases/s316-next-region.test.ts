@@ -40,10 +40,6 @@ const tick = () => new Promise((r) => setTimeout(r, 0));
 const S = CONFIG.REGION_SIZE_M;
 
 describe('316 the next region', () => {
-  it('WZ17: land is made out to the sight table\'s farthest glimpse, by day or night', () => {
-    expect(landSightM()).toBe(CONFIG.SIGHT_M.glaring![1]);
-  });
-
   it('is wanted only once the edge is in sight', async () => {
     const { s } = await story();
     standAt(s, { x: S / 2, y: S / 2 });

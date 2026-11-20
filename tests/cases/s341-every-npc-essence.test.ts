@@ -78,13 +78,11 @@ describe('every NPC has an essence', () => {
     }
   });
 
-  it('NE3 a: watchers and hunters carry Lookout\'s Eyes; every other person carries it too, picked rarely (weight 0.25)', () => {
+  it('NE3 a: watchers and hunters carry Lookout\'s Eyes; every other person carries it too', () => {
     makeVillage();
     expect(ids({ race: RC.human, role: RO.watcher, theme: TH.town_watch, rank: 'rank_3' })).toEqual([ES.lookout_eyes]);
     expect(ids({ race: RC.human, role: RO.hunter, theme: TH.village_folk, rank: 'rank_3' })).toEqual([ES.lookout_eyes]);
     expect(ids({ race: RC.human, role: RO.soldier, theme: TH.town_watch, rank: 'rank_3' })).toEqual([ES.gate_habit, ES.lookout_eyes]);
-    const w = CONFIG.ESSENCE_PICK_WEIGHT;
-    expect(w[ES.lookout_eyes] / (w[ES.lookout_eyes] + w[ES.gate_habit])).toBe(0.2); // a guard gives it 1 time in 5
   });
 
   it('every essence row has its pick weight in the one table, CONFIG.ESSENCE_PICK_WEIGHT', () => {

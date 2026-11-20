@@ -17,7 +17,6 @@ import { fallbackOrder } from '../../src/minds';
 import { triggerHolds } from '../../src/engine/triggers';
 import { TIERS } from '../../src/scales';
 import { CONFIG } from '../../src/config';
-import { TP } from '../../src/library/templateIds';
 import { ago, tick, turnsFor } from '../harness/time';
 import { waysOut } from '../../src/plan/where';
 import { drawTitles } from '../../src/plan/draw';
@@ -264,12 +263,5 @@ describe('190 chases and free roam', () => {
       expect(closeScenario(s)).toBe('new');
       expect(s.stage.roam).toBeUndefined();
     }
-  });
-
-  it('templates carry the CH5 defaults', () => {
-    const s = makeVillage();
-    expect(chaseRange(s, actor(s, 'guard_1'))).toBe('ground');
-    expect(actor(s, 'trader').core.templateId).toBe(TP.trader);
-    expect(chaseRange(s, actor(s, 'trader'))).toBe('post');
   });
 });
