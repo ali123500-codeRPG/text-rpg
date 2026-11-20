@@ -49,14 +49,20 @@ const BODY_ICON: Record<string, IconName> = { [BT.amorphous]: 'slime', [BT.quadr
 export const kindIconName = (raceId: string | undefined, bodyTypeId: string | undefined): IconName => (raceId && RACE_ICON[raceId]) || (bodyTypeId && BODY_ICON[bodyTypeId]) || 'person';
 /** a class's icon; a class not listed yet shows the Commoner's */
 export const classIconName = (classId: string): IconName => CLASS_ICON[classId] ?? 'commoner';
-/** a skill tree's icon, large in its band's heading; Sword Dancer and Merchant share their class's */
+/** a skill tree's icon, large in its band's heading in place of its name; Sword Dancer and Merchant share their class's */
 const TREE_ICON: Record<string, IconName> = {
   [TR.melee]: 'tr_melee', [TR.defense]: 'tr_defense', [TR.fortitude]: 'tr_fortitude', [TR.armor]: 'tr_armor', [TR.swordsman]: 'tr_swordsman',
   [TR.perception]: 'tr_perception', [TR.ranged]: 'tr_ranged', [TR.unarmed]: 'tr_unarmed', [TR.stealth]: 'tr_stealth', [TR.speech]: 'tr_speech',
   [TR.trickery]: 'tr_trickery', [TR.natural]: 'tr_natural', [TR.slime_senses]: 'tr_slime_senses', [TR.tools]: 'tr_tools',
   [TR.sword_dancer]: 'sword_dancer', [TR.merchant]: 'merchant', [TR.medicine]: 'tr_medicine', [TR.tactics]: 'tr_tactics',
 };
-export const treeIcon = (treeId: string): HTMLElement | null => (TREE_ICON[treeId] ? itemIcon(TREE_ICON[treeId], undefined, 'trico') : null);
+/** a tree's icon in place of its name, which is its tip and accessible name; null for a tree with no icon yet */
+export const treeIcon = (treeId: string, name: string): HTMLElement | null => {
+  if (!TREE_ICON[treeId]) return null;
+  const el = itemIcon(TREE_ICON[treeId], undefined, 'trico');
+  el.setAttribute('role', 'img'); el.title = name; el.setAttribute('aria-label', name);
+  return el;
+};
 /** a skill's icon: the item or class icon it shares where one fits, else its own sk_ pick */
 const SKILL_ICON: Record<string, IconName> = {
   [SK.melee_light]: 'dagger', [SK.melee_medium]: 'sword', [SK.melee_heavy]: 'axe', [SK.ranged_light]: 'sk_ranged_light', [SK.ranged_medium]: 'bow', [SK.ranged_heavy]: 'crossbow',

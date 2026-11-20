@@ -345,7 +345,7 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .cs-tile { display: grid; gap: 2px; justify-items: start; min-width: 0; text-align: left; padding: var(--space-3) var(--space-4); border: 0; border-radius: var(--r-lg);
   background: none; color: var(--text); font: inherit; cursor: pointer; transition: background-color var(--m-feedback) var(--m-ease); }
 .cs-tile:hover, .cs-tile:focus-visible { background: var(--accent-soft); }
-.cs-tile .hs-label .mk-i { margin-right: 6px; color: var(--muted); }
+.cs-tile .hs-label .mk-i { width: 22px; height: 22px; color: var(--muted); }
 .cs-tile b { font-size: 20px; font-weight: 800; line-height: 1.2; }
 .cs-tile-sub { max-width: 100%; color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cs-tile.lit[data-tile="perks"] b { color: var(--perk-20); }
@@ -495,9 +495,10 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .cs-tree-h { display: flex; align-items: center; gap: var(--space-2); }
 .cs-tree-h .trico { flex: none; width: 32px; height: 32px; color: var(--t); cursor: default; }
 .cs-tree-h .trico svg { width: 100%; height: 100%; display: block; }
-.cs-tree-h b { flex: 1; min-width: 0; font-size: 15px; }
+.cs-tree-h b { min-width: 0; font-size: 15px; }
+.cs-tree-h .trsum { margin-left: auto; }
 .cs-tree-h span { color: var(--muted); font-size: 13px; white-space: nowrap; cursor: help; }
-.cs-tree-h .lock { margin-left: 6px; cursor: help; }
+.cs-tree-h .lock { cursor: help; }
 /* two lines per skill so the bar always gets the tree's full width: name and value, then the bar and its learning window */
 /* fixed columns, so every bar in a band has the same length: room for the icon and two marks, a 3-digit value, and a range up to "100–120" */
 .cs-sk { display: grid; grid-template-columns: 50px 3ch minmax(0, 1fr) 7ch; grid-template-areas: "n num bar lwn"; gap: 6px; align-items: center; }
