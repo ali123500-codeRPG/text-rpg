@@ -1,6 +1,6 @@
-// 272 Worlds a new character can carry on (HF25, HF26, HF28, HF31, HF32). A world whose character fell is free: the creation
+// 272 Worlds a new character can carry on (HF25, HF26, HF28, HF31, CW1–CW7). A world whose character fell is free: the creation
 // screen lists it, and a new character picked into it carries on its last save. The fallen character stays there, dead,
-// under their own id, so people remember them and not the newcomer. The world's date jumps to the Universe date.
+// under their own id, as the save left them, so people remember them and not the newcomer. The world keeps its date (CW4 a).
 import { describe, expect, it } from 'vitest';
 import { ScriptedClaude, furnish, lay, makeVillage } from '../harness';
 import { createGame, VirtualClock, type ScenarioDirector } from '../../src/agents';
@@ -42,7 +42,7 @@ function fallenWorld(): GameState {
 }
 
 describe('272 carrying a world on', () => {
-  it('lists a fallen world; a new character there meets its people as a stranger, on the Universe date', async () => {
+  it('lists a fallen world; a new character there meets its people as a stranger, on the day it was left', async () => {
     const clock = new VirtualClock(), store = memoryStore();
     const g = createGame({ client: new ScriptedClaude(clock), clock, store, director: arrive });
     const old = fallenWorld();
@@ -64,11 +64,11 @@ describe('272 carrying a world on', () => {
     expect((await readTurnRecord(store, s.storyId, 13))?.opening).toBe(true); // replay reads it as the story's opening
     expect(past.names.current).toBe(old.player.names.current);
     expect(past.kind).toBe('npc');
-    expect(healthLevel(past)).toBe('dead'); // HF27: the original perished there
+    expect(healthLevel(past)).toBe(healthLevel(old.player)); // CW2 a: as the save left them
     const npc = s.actors.find((a) => a.mind?.knowledge[pastId])!;
     expect(npc.mind!.knowledge.player).toBeUndefined(); // the grudge stays with the one who fell
     expect(s.places.map((p) => p.id)).toEqual(old.places.map((p) => p.id));
-    expect(dayOf(now(s))).toBe(40); // HF32: the world jumps to the Universe date
+    expect(dayOf(now(s))).toBe(10); // CW4 a: the world keeps its date, however far other worlds went
     expect(Math.round(ageYears(s, s.player)!)).toBe(30);
     expect(await g.worlds()).toEqual([]); // one character lives in a world at a time
     expect((await loadStory(store, 'story_a', getLibrary())).state.player.names.current).toBe(old.player.names.current); // the old story is untouched
@@ -173,9 +173,9 @@ describe('272 carrying a world on', () => {
     for (let i = 0; i < 20 && !(await storySaved(store, g.state()!.storyId)); i++) await tick();
     const s = (await loadStory(store, g.state()!.storyId, getLibrary())).state;
     // every piece of the saved state is in exactly one list: kept as it was, kept and moved on, or the new story's own
-    const asWas = ['places', 'zones', 'regions', 'facts', 'walls', 'openings', 'roofs', 'lights', 'furniture', 'ground', 'barriers', 'blueprints'];
+    const asWas = ['places', 'zones', 'regions', 'facts', 'walls', 'openings', 'roofs', 'lights', 'furniture', 'ground', 'barriers', 'blueprints', 'settings'];
     const movedOn = ['actors', 'bands', 'hidden', 'clocks', 'turnEnds', 'recentEvents', 'turn', 'pending', 'stage'];
-    const storyOwn = ['storyId', 'player', 'meta', 'settings', 'libraryVersion', 'rngSeed', 'rngState', 'mode', 'events', 'agentLog', 'log', 'scenarioCaps', 'quests'];
+    const storyOwn = ['storyId', 'player', 'meta', 'libraryVersion', 'rngSeed', 'rngState', 'mode', 'events', 'agentLog', 'log', 'scenarioCaps', 'quests'];
     expect(Object.keys(old).filter((k) => ![...asWas, ...movedOn, ...storyOwn].includes(k))).toEqual([]);
     const same = (v: unknown) => (Array.isArray(v) ? v : [v]).map((x) => JSON.stringify(x ?? null).replaceAll('"story_a"', `"${s.storyId}"`)).sort();
     for (const k of asWas) expect([k, same(s[k as keyof GameState])]).toEqual([k, same(old[k as keyof GameState])]);
@@ -188,5 +188,23 @@ describe('272 carrying a world on', () => {
     // the opening is turn 13; the live state already names turn 14, the next one. Play and GM pages read turnShown
     expect(g.state()!.turn).toBe(14);
     expect(turnShown(g.state(), g.lines())).toBe(13);
+  });
+
+  it('CW6 a: only what involved the fallen character ends; others\' fights, spars and long actions go on', () => {
+    const world = fallenWorld();
+    const [guard, trader, patron] = ['guard_1', 'trader', 'patron_1'].map((id) => world.actors.find((a) => a.id === id)!);
+    const busy = (target: string | null) => ({ row: 'r', key: 'k', order: { type: 'use_item', target, item: null }, done: 3, need: 10, turn: 12 });
+    guard.engagement = { start: 10, last: 12, kinds: ['fight'] };
+    trader.busy = busy(null);
+    patron.busy = busy(world.player.id); // binding the fallen one's wounds
+    world.player.busy = busy(null);
+    world.spars = [{ id: 'sp1', sides: [[guard.id], [trader.id]], start: 10, last: 12, out: {} }, { id: 'sp2', sides: [[world.player.id], [patron.id]], start: 10, last: 12, out: {} }];
+    const s = carryOn(world, { ...world, storyId: 'story_b', player: createPlayer(build, 'story_b', { world }), actors: [], bands: [], hidden: { ...world.hidden, plans: {} } });
+    const of = (id: string) => s.actors.find((a) => a.id === id)!;
+    expect(of(guard.id).engagement).toEqual(guard.engagement);
+    expect(of(trader.id).busy).toEqual(trader.busy);
+    expect(of(patron.id).busy).toBeUndefined();
+    expect(of(pastCharacterId('story_a')).busy).toBeUndefined();
+    expect(s.spars?.map((x) => x.id)).toEqual(['sp1']);
   });
 });

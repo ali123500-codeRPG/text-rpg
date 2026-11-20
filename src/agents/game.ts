@@ -15,7 +15,7 @@ import { pendingEnding } from '../engine/scenarioEnd';
 import { barrierName } from '../engine/barriers';
 import { scenarioGainsNow } from '../engine/growth';
 import { CONFIG, defaultSettings } from '../config';
-import { advanceClock, clockText, DAY_MINUTES, dayOf, durationText, noteTurnEnd, now, now as gameNow, timeOfDay, timeView } from '../time';
+import { clockText, dayOf, durationText, noteTurnEnd, now, now as gameNow, timeOfDay, timeView } from '../time';
 import { outcomeText, struck } from '../ruleset/hits';
 import { GRADE_LEVELS, HEALTH_LEVELS, PART_STATES, TIME_OF_DAY, type TimeOfDay } from '../scales';
 import { createRng } from '../rng';
@@ -755,11 +755,9 @@ export function createGame(deps: GameDeps): Game {
     turnLog = [];
     busy = true;
     emit();
-    // HF22: a new world starts the day after the furthest day any world has reached; HF32: a world carried on jumps to that
-    // day, with nothing else changed. The new character's birth day moves with the day they start on.
-    const universe = await save.universeDay(store).catch(() => 0);
-    if (!world) state.clocks.startDay = universe + 1;
-    else if (dayOf(gameNow(state)) < universe) advanceClock(state, (universe - dayOf(gameNow(state))) * DAY_MINUTES);
+    // HF22: a new world starts the day after the furthest day any world has reached; CW4 a: a world carried on keeps the
+    // minute it was left. The new character's birth day moves with the day they start on.
+    if (!world) state.clocks.startDay = (await save.universeDay(store).catch(() => 0)) + 1;
     if (state.player.core.bornDay !== undefined) state.player.core.bornDay += dayOf(gameNow(state)) - 1;
     // the build is kept until turn 0 is saved, so closing the game during the opening doesn't lose it (resume restarts it)
     await save.savePendingStart(store, { storyId, build, at: new Date(now).toISOString(), ...(owner === 'agent' ? { owner } : {}), ...(free ? { worldId: free.worldId } : {}) }).catch(() => {});

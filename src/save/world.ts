@@ -1,4 +1,4 @@
-// Worlds (HF25, HF26, HF31, HF32): the Universe holds worlds and a world holds stories, one after another. A story is one
+// Worlds (HF25, HF26, HF31, CW1–CW7): the Universe holds worlds and a world holds stories, one after another. A story is one
 // character's life in a world. Carrying a world on copies its last save into a new story with a new character.
 import type { GameState, Head } from '../types';
 import { getLibrary } from '../library';
@@ -6,7 +6,6 @@ import { fromPages, toPages } from './pages';
 import { newReport, repairReferences } from './checks';
 import { CONFIG } from '../config';
 import { itemHolders } from '../ruleset/threadboundItems';
-import { levelMaxPct } from '../ruleset/body';
 import { isActive, stance } from '../engine/relations';
 import { itemValue } from '../engine/trade';
 import { itemDef } from '../library';
@@ -25,11 +24,12 @@ function renameIds<T>(v: T, map: Map<string, string>, key?: string): T {
 export const pastCharacterId = (storyId: string) => `hero_${storyId.replace(/^story_/, '')}`;
 
 /**
- * HF26/HF31: `fresh` (a new story's state, its new player standing nowhere yet) carried on in `world` (the world's last
- * save). Places and their floor plans, people, their memories, deals and things lying about stay. The last character stays where they fell,
- * dead (HF27: the original perished there), under their own id, so everything people knew of them stays theirs and
- * nothing of it passes to the newcomer. The story's own state (stage, plans, quests, fights) starts fresh, and the turn
- * count runs on from the world's. The world's clock is left as it was: the caller moves it to the Universe date (HF32).
+ * HF26/HF31, CW1–CW7: `fresh` (a new story's state, its new player standing nowhere yet) carried on in `world` (the world's
+ * last save), which goes on as the file left it. The last character stays as the save left them (CW2 a: down or dead), an
+ * NPC under their own id, so everything people knew of them stays theirs and nothing of it passes to the newcomer. Only
+ * what involved them ends (CW6 a): their own action under way, their fight's yields, mercy and spars, and offers made to or
+ * by them; everyone else's fights and long actions go on. The world keeps its clock (CW4 a) and its settings (CW7 a). The
+ * new story's own scenario, plans and quests start fresh (CW5 b), and the turn count runs on from the world's.
  * WP1 b: a last character reset while standing (`fell` false) left the world for good, with everything they carried;
  * what pointed at them is dropped as for anyone gone (the load's reference repair). WP6 a: before the newcomer arrives,
  * the foes who downed the one who fell loot the body (lootTheFallen).
@@ -42,11 +42,13 @@ export function carryOn(world: GameState, fresh: GameState, fell = true): GameSt
   const past = w.player;
   past.kind = 'npc';
   past.mind ??= { control: 'code', knowledge: {}, knows: [] };
-  past.core.condition.hpLostPct = Math.max(past.core.condition.hpLostPct, levelMaxPct('incapacitated') + 0.001);
   const band = w.bands.find((b) => b.id === past.bandId);
   if (band) band.name = player.names.current;
+  // CW6 a: what they were doing ends with them; others keep theirs, except a long action or an offer aimed at them
+  delete past.engagement; delete past.react; delete past.carry; delete past.busy; delete past.walking; delete past.followLost; delete past.offer;
   for (const a of [past, ...w.actors]) {
-    delete a.engagement; delete a.react; delete a.carry; delete a.busy;
+    if (a.busy?.order.target === pastId) delete a.busy;
+    if (a.offer?.to === pastId) delete a.offer;
     if (!a.mind) continue;
     delete a.mind.hitByPlayer; delete a.mind.hitUnaware; // flags about "the player", who is someone else now
     // code-made memory lines name the player by the word: they were about the last character
@@ -55,12 +57,17 @@ export function carryOn(world: GameState, fresh: GameState, fell = true): GameSt
   }
   if (fell) lootTheFallen(w, past);
   // BG-332: everything is the world's unless named here as the story's own, so world state added later stays by itself.
-  // The last story's fights (spars, yields, stand-downs, mercy), its night and its per-turn scratch end with it.
-  const { spars: _sp, yielding: _y, offers: _o, mercy: _m, night: _n, scratch: _sc, ...kept } = w;
-  const { storyId, player: newcomer, meta, settings, libraryVersion, rngSeed, rngState, mode, events, agentLog, log, scenarioCaps, quests } = fresh;
+  // The player's yield, mercy and night were the last character's; spars and stand-downs keep those without them (CW6 a).
+  const { yielding: _y, mercy: _m, night: _n, scratch: _sc, spars: _sp, offers: _of, ...kept } = w;
+  const spars = w.spars?.filter((sp) => !sp.sides.flat().includes(pastId));
+  const offers = w.offers && {
+    pending: w.offers.pending.filter((o) => o.from !== pastId && o.to !== pastId),
+    truces: Object.fromEntries(Object.entries(w.offers.truces).filter(([k]) => k !== pastId).map(([k, ids]) => [k, ids.filter((i) => i !== pastId)])),
+  };
+  const { storyId, player: newcomer, meta, libraryVersion, rngSeed, rngState, mode, events, agentLog, log, scenarioCaps, quests } = fresh;
   const s: GameState = {
-    ...kept,
-    storyId, player: newcomer, meta, settings, libraryVersion, rngSeed, rngState, mode, events, agentLog, log, scenarioCaps, quests,
+    ...kept, ...(spars?.length ? { spars } : {}), ...(offers ? { offers } : {}),
+    storyId, player: newcomer, meta: { ...meta, settings: structuredClone(w.settings) }, libraryVersion, rngSeed, rngState, mode, events, agentLog, log, scenarioCaps, quests,
     turn: world.turn + 1,
     pending: { ...fresh.pending, turn: world.turn + 1 },
     actors: fell ? [...w.actors, past] : w.actors,

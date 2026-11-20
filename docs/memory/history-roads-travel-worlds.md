@@ -28,3 +28,8 @@ in `src/config.ts`. Question IDs name the owner's answers on the Questions hub.
   whose last character's story has ended (#664, #671): a standing reset frees the world, worlds have titles, one
   Threadbound item per world, and standing foes loot the fallen. Parked: the old character staying on as an NPC
   (D-252), any NPC looting any body (D-253).
+- **Carrying a world on, as the file left it (20/11/2026; CW1-CW7, questionnaire "Carrying a world on: exactly as it
+  was left?").** The world goes on from the fallen character's last save: they stay as the save left them, down or dead
+  (CW2 a, replacing HF27); the clock keeps the minute it was left (CW4 a, replacing HF32's jump; D-251 dropped); only what
+  involved them ends, so others' fights and long actions go on (CW6 a); the world's settings stay (CW7 a). Kept: the copy
+  per story (CW1, following YS2 b), the looting (CW3 b), a fresh opening scenario (CW5 b).
