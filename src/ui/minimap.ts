@@ -218,8 +218,9 @@ export function minimapPanel(api: GameApi, opts: {
         continue;
       }
       const who = t.who!, foot = footprintMark(t.cx, t.cy, t.r, who, PX_PER_M * k);
+      // BG-324: the disc alone is the token the checker measures; the initial's text box is taller than the disc, its letter is not
       const g = s('g', { class: `map-who plan-who${who.now ? '' : ' last'}${who.at ? ' at' : ''}`, tabindex: 0, role: 'button', 'aria-label': `${t.title}: what to do` }, ...(foot ? [foot] : []),
-        s('g', { 'data-role': 'token', 'data-id': t.id }, s('circle', { cx: t.cx, cy: t.cy, r: t.r }), s('text', { x: t.cx, y: t.cy + 3, 'text-anchor': 'middle' }, whoInitial(who.name))),
+        s('g', {}, s('circle', { cx: t.cx, cy: t.cy, r: t.r, 'data-role': 'token', 'data-id': t.id }), s('text', { x: t.cx, y: t.cy + 3, 'text-anchor': 'middle' }, whoInitial(who.name))),
         s('text', { x: t.cx + t.r + 4, y: t.cy + 4, class: 'map-who-label' }, who.name), s('title', {}, t.title));
       const open = (e: Event) => { e.stopPropagation(); if (!api.busy()) opts.onPerson(who.id, (g as Element).getBoundingClientRect()); };
       g.addEventListener('click', open);

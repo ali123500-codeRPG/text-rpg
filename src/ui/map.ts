@@ -470,8 +470,9 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
       if (t.you) { const g = pin(t.cx, t.cy, youAt?.title ?? 'You are here'); g.setAttribute('data-role', 'token'); g.setAttribute('data-id', 'you'); marks.append(g); continue; }
       const who = t.who!;
       const foot = footprintMark(t.cx, t.cy, t.r, who, PX_PER_M * k);
+      // BG-324: the disc alone is the token the checker measures; the initial's text box is taller than the disc, its letter is not
       marks.append(s('g', { class: `map-who plan-who${who.now ? '' : ' last'}${who.at ? ' at' : ''}`, 'data-zone': t.zoneId, 'data-who': who.id }, ...(foot ? [foot] : []),
-        s('g', { 'data-role': 'token', 'data-id': t.id }, s('circle', { cx: t.cx, cy: t.cy, r: t.r }), s('text', { x: t.cx, y: t.cy + 3, 'text-anchor': 'middle' }, whoInitial(who.name))),
+        s('g', {}, s('circle', { cx: t.cx, cy: t.cy, r: t.r, 'data-role': 'token', 'data-id': t.id }), s('text', { x: t.cx, y: t.cy + 3, 'text-anchor': 'middle' }, whoInitial(who.name))),
         s('text', { x: t.cx + t.r + 4, y: t.cy + 4, class: 'map-who-label' }, who.name), s('title', {}, t.title)));
     }
     const bar = barOf(sc, k);
