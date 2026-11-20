@@ -18,8 +18,20 @@ export const onSightPerks = (a: Actor) => a.core.perks.filter((p) => !p.dormant)
 export function allActors(state: GameState): Actor[] {
   return [state.player, ...state.actors];
 }
+/** where each actor stood in a state's list when last looked up; a hit is checked against the list itself, so a list
+ * changed since (pushed, filtered, reordered) is read afresh, never trusted */
+const actorAt = new WeakMap<Actor[], Map<string, number>>();
 export function actorById(state: GameState, id: string): Actor | undefined {
-  return id === state.player.id ? state.player : state.actors.find((a) => a.id === id);
+  if (id === state.player.id) return state.player;
+  const list = state.actors;
+  let at = actorAt.get(list), i = at?.get(id);
+  if (i === undefined || list[i]?.id !== id) {
+    at = new Map();
+    list.forEach((a, k) => { if (!at!.has(a.id)) at!.set(a.id, k); }); // the first with an id, as a find would give
+    actorAt.set(list, at);
+    i = at.get(id);
+  }
+  return i === undefined ? undefined : list[i];
 }
 export function bandById(state: GameState, id: string) {
   return state.bands.find((b) => b.id === id);
@@ -69,12 +81,17 @@ export function hostile(state: GameState, a: Actor, b: Actor): boolean {
   if (s === 'hostile') return true;
   if (s === 'yielded' || warm(s)) return false;
   const opposed = cold(s);
+  if (!maySideWith(state, a, opposed)) return false;
   return allActors(state).some((c) => {
     if (c === a || c === b || !isActive(c) || stance(state, b, c) !== 'hostile') return false;
     const ac = stance(state, a, c);
     return ac === 'loyal' || (ac === 'friend' && opposed);
   });
 }
+/** a can take anyone's side (RS3): it holds a loyal stance, or a friend one when opposed. stance gives those only from an
+ * override or its band's relations (its other sources only cool it), so with neither, hostile scans no one */
+const maySideWith = (state: GameState, a: Actor, friendToo: boolean): boolean =>
+  [...Object.values(a.mind?.overrides ?? {}), ...Object.values(bandById(state, a.bandId)?.relations ?? {})].some((x) => x === 'loyal' || (friendToo && x === 'friend'));
 /** MB42: the player and a foe that took the player's yield are at truce for the rest of the scenario; TF16: so are those
  * at a stand-down truce (engine/offer.ts) */
 export function truce(state: GameState, a: Actor, b: Actor): boolean {
