@@ -6,6 +6,7 @@ import type { GameState } from '../types';
 import { itemDef } from '../library';
 import { IT } from '../library/itemIds';
 import { CL } from '../library/classIds';
+import { SK } from '../library/skillIds';
 import { ICON_ART, type IconName } from './iconArt';
 import { instanceItem } from '../views';
 
@@ -37,6 +38,21 @@ const CLASS_ICON: Record<string, IconName> = {
 };
 /** a class's icon; a class not listed yet shows the Commoner's */
 export const classIconName = (classId: string): IconName => CLASS_ICON[classId] ?? 'commoner';
+/** a skill's icon: the item or class icon it shares where one fits, else its own sk_ pick */
+const SKILL_ICON: Record<string, IconName> = {
+  [SK.melee_light]: 'dagger', [SK.melee_medium]: 'sword', [SK.melee_heavy]: 'axe', [SK.ranged_light]: 'sk_ranged_light', [SK.ranged_medium]: 'bow', [SK.ranged_heavy]: 'crossbow',
+  [SK.unarmed_strike]: 'sk_strike', [SK.unarmed_grapple]: 'sk_grapple', [SK.unarmed_improvised]: 'sk_improvised', [SK.slam]: 'sk_slam',
+  [SK.dodge]: 'sk_dodge', [SK.block]: 'shield', [SK.endurance]: 'sk_endurance', [SK.eyesight]: 'sk_eyesight', [SK.earshot]: 'sk_earshot',
+  [SK.sneaking]: 'sk_sneaking', [SK.combat_stealth]: 'sk_combat_stealth', [SK.vanishing]: 'sk_vanishing', [SK.persuasion]: 'sk_persuasion',
+  [SK.intimidation]: 'sk_intimidation', [SK.barter]: 'coin', [SK.riposte]: 'sk_riposte', [SK.light_armor]: 'leather', [SK.medium_armor]: 'mail',
+  [SK.heavy_armor]: 'plate', [SK.tremor]: 'sk_tremor', [SK.lockpicking]: 'picks', [SK.blade_dance]: 'sword_dancer', [SK.falsehood]: 'sk_falsehood',
+  [SK.insight]: 'sk_insight', [SK.shrewd_dealing]: 'sk_shrewd_dealing', [SK.resolve]: 'sk_resolve', [SK.parry]: 'sk_parry', [SK.filching]: 'sk_filching',
+  [SK.stamina]: 'sk_stamina', [SK.bite]: 'sk_bite', [SK.claws]: 'sk_claws', [SK.hooves_horns]: 'sk_hooves_horns', [SK.tail]: 'sk_tail',
+  [SK.scent]: 'sk_scent', [SK.hide]: 'sk_hide', [SK.healing]: 'sk_healing', [SK.battle_sense]: 'sk_battle_sense', [SK.command]: 'sk_command',
+  [SK.fieldcraft]: 'sk_fieldcraft', [SK.stratagem]: 'sk_stratagem', [SK.guile]: 'sk_guile',
+};
+/** a skill's icon, small, before its name on the Character page; a skill not listed yet shows none */
+export const skillIcon = (skillId: string): HTMLElement | null => (SKILL_ICON[skillId] ? itemIcon(SKILL_ICON[skillId], undefined, 'skico') : null);
 const BY_KIND: Record<string, IconName> = {
   weapon: 'sword', shield: 'shield', armor: 'tunic', accessory: 'ring', tool: 'picks', consumable: 'potion', misc: 'pouch',
 };

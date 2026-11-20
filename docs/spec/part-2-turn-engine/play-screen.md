@@ -443,6 +443,12 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
   value at the right, then the bar with its learning window.
 - **PS-275** When the true value differs from raw, the value gets a dotted underline and the raw value shows in a small
   card beside it only on hover or keyboard focus.
+- **PS-276** Under the card's figures, the six compound ratings (CONFIG.RATINGS, PS-273) sit in one row, each an icon
+  and its whole number; the name, exact value and gear portion are the tip and accessible name (src/ui/power.ts
+  ratingIcons; icons in scripts/icons.mjs).
+- **PS-277** Every skill row starts with the skill's icon, tinted its tree's colour (SKILL\_ICON in
+  src/ui/itemIcons.ts; a skill shares an item or class icon where one fits). The tree bands are at least 220 px wide,
+  so more trees sit in one row.
 
 #### Inventory equipment
 

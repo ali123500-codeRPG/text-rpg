@@ -22,6 +22,18 @@ const PICKS = {
   class_start: 'gi:sprout', class_next: 'gi:upgrade', class_any: 'gi:crossroad',
   // Play header toggles (SD7)
   agent: 'gi:robot-golem', rolls: 'gi:dice-twenty-faces-twenty', narration: 'gi:open-book', sound: 'gi:speaker', sound_off: 'gi:speaker-off',
+  // the Character page's ratings, keyed as RT (src/library/functionIds.ts)
+  melee_strength: 'gi:biceps', ranged_strength: 'gi:high-shot', toughness: 'gi:heart-armor', agility: 'gi:acrobatic',
+  presence: 'gi:crown', senses: 'gi:eye-target',
+  // skills that have no item or class icon to share (SKILL_ICON in src/ui/itemIcons.ts)
+  sk_ranged_light: 'gi:pocket-bow', sk_strike: 'gi:punch', sk_grapple: 'gi:grab', sk_improvised: 'gi:broken-bottle', sk_slam: 'gi:fist',
+  sk_dodge: 'gi:dodging', sk_endurance: 'gi:heart-plus', sk_eyesight: 'gi:eyeball', sk_earshot: 'gi:sound-waves',
+  sk_sneaking: 'gi:footsteps', sk_combat_stealth: 'gi:backstab', sk_vanishing: 'gi:invisible', sk_persuasion: 'gi:conversation',
+  sk_intimidation: 'gi:enrage', sk_riposte: 'gi:sword-clash', sk_tremor: 'gi:quake-stomp', sk_falsehood: 'gi:duality-mask',
+  sk_insight: 'gi:third-eye', sk_shrewd_dealing: 'gi:shaking-hands', sk_resolve: 'gi:mountain-climbing', sk_parry: 'gi:crossed-swords',
+  sk_filching: 'gi:robber-hand', sk_stamina: 'gi:lungs', sk_bite: 'gi:fangs', sk_claws: 'gi:claw-slashes', sk_hooves_horns: 'gi:bull-horns',
+  sk_tail: 'gi:spiked-tail', sk_scent: 'gi:nose-side', sk_hide: 'gi:animal-hide', sk_healing: 'gi:healing', sk_battle_sense: 'gi:radar-sweep',
+  sk_command: 'gi:rally-the-troops', sk_fieldcraft: 'gi:compass', sk_stratagem: 'gi:chess-knight', sk_guile: 'gi:fox-head',
   // the map's settlements, one per site size (MAP-71)
   hamlet: 'gi:house', village: 'gi:village', town: 'gi:medieval-gate',
 };

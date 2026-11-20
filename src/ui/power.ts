@@ -3,7 +3,7 @@
 import type { Actor, GameState } from '../types';
 import { CONFIG } from '../config';
 import { groupName, ratingName } from '../library/functionNames';
-import { GR } from '../library/functionIds';
+import { GR, RT } from '../library/functionIds';
 import { compoundRating, groupRating, type Rating } from '../ruleset/ratings';
 import type { ShareRule } from '../engine/nonCombat';
 import { powerParts } from '../engine/xp';
@@ -11,6 +11,7 @@ import { r1 } from '../words';
 import { h } from './kit';
 import { gmView, skillName } from './creation';
 import { openPop } from './pop';
+import { ICONS } from './itemIcons';
 
 /** one line of the breakdown: what it is, how it is worked out, what it adds (or, for a rating, its value), and the lines under it */
 export type PowerLine = { label: string; how: string; adds?: number; value?: string; sub?: PowerLine[] };
@@ -40,6 +41,16 @@ export function ratingLines(s: GameState, p: Actor): PowerLine[] {
   const groups = (Object.values(GR) as string[]).map((g) => [groupName(g), groupRating(s, p, g)] as const);
   const rows = Object.keys(CONFIG.RATINGS).map((id) => [ratingName(id), compoundRating(s, p, id)] as const);
   return [...rows, ...groups].filter(([, r]) => r.rating > 0).map(([label, r]) => row(label, r));
+}
+
+/** the six compound ratings on the character card: an icon and the number; the name and gear portion are its tip */
+export function ratingIcons(s: GameState, p: Actor): HTMLElement {
+  return h('div', { class: 'cs-ratings' }, (Object.entries(RT) as [keyof typeof RT, string][]).map(([key, id]) => {
+    const r = compoundRating(s, p, id), tip = `${ratingName(id)} ${r1(r.rating)}${r.gear > 0 ? ` (${r1(r.own)} own + ${r1(r.gear)} from gear)` : ''}`;
+    const icon = h('span', { class: 'mk-i' });
+    icon.innerHTML = ICONS[key];
+    return h('span', { class: 'cs-rt', role: 'img', title: tip, 'aria-label': tip, 'data-rating': id }, icon, h('b', {}, String(Math.round(r.rating))));
+  }));
 }
 
 const plus = (n: number) => `+${r1(n)}`;

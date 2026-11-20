@@ -456,6 +456,11 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .cs-figs :is(.cs-power, .cs-fig) { display: grid; justify-items: start; text-align: left; background: none; border: 0; padding: 0; color: inherit; font: inherit; cursor: pointer; }
 .cs-figs :is(.cs-power, .cs-fig) span { text-decoration: underline dotted; text-underline-offset: 3px; }
 .cs-figs :is(.cs-power, .cs-fig):is(:hover, :focus-visible) b { color: var(--accent); }
+/* the six compound ratings: icon and number in one row; the name is the tip */
+.cs-ratings { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--space-2, 8px); border-top: 1px solid var(--border); padding-top: 12px; }
+.cs-rt { display: flex; align-items: center; gap: 6px; cursor: help; }
+.cs-rt .mk-i { width: 20px; height: 20px; color: var(--muted); }
+.cs-rt b { font-size: 16px; font-weight: 800; }
 /* P2: a number in a line that opens its parts (HP on the card, morale on the sheet) */
 .cs-figlink { background: none; border: 0; padding: 0; color: inherit; font: inherit; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
 .cs-figlink:is(:hover, :focus-visible) { color: var(--accent); }
@@ -478,7 +483,7 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .cs-gear { border-top: 1px solid var(--border); padding-top: 14px; display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
 .cs-gear .cs-item { color: var(--text); font-weight: 600; text-decoration: underline; text-decoration-color: var(--border); text-underline-offset: 3px; }
 .cs-gear .cs-item:hover { color: var(--accent); }
-.cs-trees { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--space-4) var(--space-8); }
+.cs-trees { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-4) var(--space-8); }
 .cs-tree { display: grid; gap: 10px; padding-top: var(--space-3); border-top: 2px solid var(--t); align-content: start; }
 .cs-tree-h { display: flex; justify-content: space-between; align-items: baseline; }
 .cs-tree-h b { font-size: 15px; }
@@ -487,6 +492,8 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 /* two lines per skill so the bar always gets the tree's full width: name and value, then the bar and its learning window */
 .cs-sk { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "n num" "bar lwn"; gap: 6px var(--space-3); align-items: center; }
 .cs-sk .n { grid-area: n; font-weight: 600; } .cs-sk .num { grid-area: num; } .cs-sk .cs-bar { grid-area: bar; } .cs-sk .lwn { grid-area: lwn; }
+.cs-sk .skico { display: inline-block; width: 16px; height: 16px; margin-right: 6px; vertical-align: -3px; color: var(--t); }
+.cs-sk .skico svg { width: 100%; height: 100%; display: block; }
 .cs-sk .n small { display: block; font-weight: 400; font-size: 13px; color: var(--faint); }
 .cs-sk .num { text-align: right; font-weight: 800; font-size: 16px; position: relative; }
 /* true value differs from raw: a dotted underline says there is more, and the raw value shows beside the number on hover or focus */
