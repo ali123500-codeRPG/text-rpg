@@ -9,7 +9,7 @@ import type { GameApi } from '../types';
 import { boxOf, h, tipOff, tipOn } from './kit';
 import { CONFIG } from '../config';
 import type { KnownMap, MapZone } from './mapData';
-import { MAX_K, PX_PER_M, TEXT, checkReach, checkStage, hitCap, planScene, roughMeasure, wrap, type Box, type Measure, type Scene } from './mapPlan';
+import { MAX_K, PX_PER_M, TEXT, checkReach, checkStage, hitCap, nameFit, planScene, roughMeasure, type Box, type Measure, type Scene, type TextKind } from './mapPlan';
 import { checkMap } from './mapCheck';
 import { doorGlyph, fogClip, fogMask, iconMark, keyTool, planKeyRows, floorMarks, floorName, pin, wayGlyph } from './map';
 import { furnIcon } from './furnitureIcons';
@@ -63,8 +63,6 @@ const s = (tag: string, attrs: Record<string, string | number> = {}, ...kids: (N
   return e;
 };
 const HINT = 'Point anywhere you know to see the way and how long it takes. Click to plan a move; double-click to walk there now. Right-click a zone for its card.';
-/** room a name keeps from its zone's walls (MAP-20: 6 px, plus the hair the floor sits inside), and its letters' dark edge */
-const PAD = 7, NAME_EDGE = 3;
 const clip = (a: Box, b: Box): Box | null => {
   const c = { x0: Math.max(a.x0, b.x0), y0: Math.max(a.y0, b.y0), x1: Math.min(a.x1, b.x1), y1: Math.min(a.y1, b.y1) };
   return c.x1 - c.x0 > 1 && c.y1 - c.y0 > 1 ? c : null;
@@ -131,26 +129,22 @@ export function planView(api: GameApi, opts: PlanOpts) {
   const K = () => k * PX_PER_M;
   const px = (q: Pos) => ({ x: q.x * K(), y: -q.y * K() });
 
-  // a text's width measured in the browser (MAP-51: real sizes, so the layout and the check agree)
+  // a text's width and line height measured in the browser (MAP-51: real sizes, so the layout and the check agree)
   let ctx: CanvasRenderingContext2D | null | undefined;
-  const measure: Measure = (t, kind, size0) => {
+  const font = (kind: TextKind) => {
     if (ctx === undefined) ctx = typeof document !== 'undefined' ? document.createElement('canvas').getContext('2d') : null;
-    if (!ctx) return roughMeasure(t, kind, size0);
+    if (!ctx) return null;
     const st = TEXT[kind], face = kind === 'label' ? getComputedStyle(svg).getPropertyValue('--font-round').trim() : '';
-    ctx.font = `${st.weight} ${size0 ?? st.size}px ${face || getComputedStyle(svg).fontFamily || 'sans-serif'}`;
-    return ctx.measureText(t).width + (kind === 'title' ? t.length * (size0 ?? st.size) * 0.06 : 0); // titles: .06em tracking
+    ctx.font = `${st.weight} ${st.size}px ${face || getComputedStyle(svg).fontFamily || 'sans-serif'}`;
+    return ctx;
   };
-  /** MAP-20: a zone's name in the part of it in view, as large as fits; null when even the smallest letters don't fit */
-  function nameIn(text: string, b: Box): { lines: string[]; size: number; line: number } | null {
-    const rw = b.x1 - b.x0 - 2 * PAD - NAME_EDGE, rh = b.y1 - b.y0 - 2 * PAD - NAME_EDGE;
-    if (rw <= 0 || rh <= 0) return null;
-    for (let size0 = 32; size0 >= 4; size0 -= 0.5) {
-      const m: Measure = (t, kd) => measure(t, kd, size0), line = size0 * 1.2;
-      const lines = wrap(text, 'label', rw + 2 * TEXT.label.pad, 3, m);
-      if (lines && lines.length * line - line + size0 * 1.3 <= rh) return { lines, size: size0, line };
-    }
-    return null;
-  }
+  const measure: Measure = Object.assign((t: string, kind: TextKind) => {
+    const c = font(kind);
+    return c ? c.measureText(t).width + (kind === 'title' ? t.length * TEXT[kind].size * 0.06 : 0) : roughMeasure(t, kind); // titles: .06em tracking
+  }, { line: (kind: TextKind) => {
+    const m = font(kind)?.measureText('');
+    return m ? { ascent: m.fontBoundingBoxAscent, descent: m.fontBoundingBoxDescent } : roughMeasure.line(kind);
+  } });
   const sceneAt = (kk: number) => planScene({ zones: d!.floor, every: d!.every, places: d!.places, k: kk, measure, awayName: d!.awayName });
 
   /** a zone to scale: its floor at its real size, each side drawn as its edge kind; no zone state (MAP-33): the fog's
@@ -201,17 +195,15 @@ export function planView(api: GameApi, opts: PlanOpts) {
       const c = clip(x.box, vb), z = x.z;
       if (!c) continue;
       gZones.append(planZone(z, x.box, c));
-      // MZ2: each zone's name behind every mark, sized to the part of its box in view
+      // MZ2: each zone's name behind every mark, in the part of its box in view; none where it does not fit (MAP-20)
       const l = labels.get(z.id);
-      const n = z.seen && !z.seen.length ? null : l && same(c, x.box) ? l : nameIn(z.name, c); // BG-313: no name on a title never seen
+      const n = z.seen && !z.seen.length ? null : l && same(c, x.box) ? l : nameFit(z.name, c, measure); // BG-313: no name on a title never seen
       if (!n) continue;
-      const cx = l && same(c, x.box) ? (l.x0 + l.x1) / 2 : (c.x0 + c.x1) / 2, cy = l && same(c, x.box) ? (l.y0 + l.y1) / 2 : (c.y0 + c.y1) / 2;
-      const first = cy - ((n.lines.length - 1) * n.line) / 2 + n.size * 0.36;
-      const nw = Math.max(...n.lines.map((t) => measure(t, 'label', n.size))) + NAME_EDGE, nh = (n.lines.length - 1) * n.line + n.size * 1.3 + NAME_EDGE;
-      names.push({ x0: cx - nw / 2, y0: cy - nh / 2, x1: cx + nw / 2, y1: cy + nh / 2 });
-      gNames.append(s('text', { class: 'map-name', x: cx, y: first, 'text-anchor': 'middle', 'font-size': n.size,
+      const cx = (n.x0 + n.x1) / 2;
+      names.push(n);
+      gNames.append(s('text', { class: 'map-name', x: cx, y: n.base, 'text-anchor': 'middle', 'font-size': TEXT.label.size,
         'data-role': 'label', 'data-layer': 'back', 'data-id': `label:${z.id}`, 'data-for': z.id, 'data-placement': 'inside' },
-      ...n.lines.map((line, i) => s('tspan', { x: cx, y: first + i * n.line }, line))));
+      ...n.lines.map((line, i) => s('tspan', { x: cx, y: n.base + i * TEXT.label.line }, line))));
     }
     // AD9: how far one move slot walks this turn; BF91: and how far a dash runs, a second, wider ring
     if (d.you) {

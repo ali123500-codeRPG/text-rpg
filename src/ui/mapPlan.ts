@@ -1,7 +1,7 @@
 // The stage map's layout (rpg-map MAP-10..42): from the zones the character knows on one floor, code works out where every
 // mark goes, in screen pixels at the map's zoom, before anything is drawn. Zones keep their stored rectangles (metres,
 // MAP-03); tokens, doors, stairs, furniture, things on the ground and exit notes are placed here so none covers another (MAP-31), yielding in the
-// order MAP-23 sets. A zone's name is a background layer inside it, sized to the box, that marks may sit on (MZ2, MZ4).
+// order MAP-23 sets. A zone's name is a background layer inside it, at one small size, that marks may sit on (MZ2, MZ4).
 // Marks inside a zone keep one spot at every zoom (BG-216): each is placed once, at the widest of a few set zooms with room
 // for it, and every zoom reuses that spot as a share of the zone. No DOM: map.ts draws the scene, and a measure function gives text widths (the browser's
 // own in the page, an estimate in tests).
@@ -20,30 +20,31 @@ export const MAX_K = 2.5;
 /** BG-216: the zooms marks inside zones are placed at, widest view first; a mark takes its spot at the first that has room
  *  for it, and keeps that spot (as a share of its zone) at every zoom */
 export const PLACE_KS = [1, 1.6, MAX_K];
-/** a zone name's letters: as large as fit its box, between these sizes in screen pixels (MZ2, MZ3) */
-export const NAME_PX = { max: 32, min: 4 };
 /** the dark edge drawn round a name's letters (its stroke width in .map-name), which adds to the room it needs */
 const NAME_EDGE = 3;
 /** the text styles the map measures: a zone's name, a place's title, an exit's note */
 export type TextKind = 'label' | 'title' | 'note';
+/** an exit's note, as styles.css draws .map-note text (13 px) */
+const NOTE = { size: 13, weight: 600, h: 20, pad: 7, line: 15 };
 /** font size, box height and side padding of each text style, in screen pixels */
 export const TEXT: Record<TextKind, { size: number; weight: number; h: number; pad: number; line: number }> = {
-  label: { size: 12, weight: 700, h: 18, pad: 6, line: 14 },
+  label: { size: NOTE.size, weight: 700, h: 18, pad: 6, line: NOTE.line }, // MAP-20 (RM24 a): every zone name at the exit notes' size
   title: { size: 13, weight: 800, h: 18, pad: 5, line: 15 }, // as styles.css draws them (13 px, LK6 a)
-  note: { size: 13, weight: 600, h: 20, pad: 7, line: 15 },
+  note: NOTE,
 };
-/** the width of a text in a style, in screen pixels, at the style's size or at `px` (BG-325: measured at the size drawn, never
- *  scaled, since text widths do not grow evenly with size) */
-export type Measure = (text: string, kind: TextKind, px?: number) => number;
-/** a stand-in for the browser's measure where there is none (tests): a little wide, so real text always fits its box */
-export const roughMeasure: Measure = (t, k, px) => t.length * (px ?? TEXT[k].size) * (k === 'title' ? 0.72 : 0.6);
+/** the width of a text in a style at the style's size, in screen pixels; `line`: how tall the browser boxes one line of it,
+ *  the font's own ascent and descent (BG-346: the checker measures that box, so the layout must too) */
+export type Measure = { (text: string, kind: TextKind): number; line(kind: TextKind): { ascent: number; descent: number } };
+/** a stand-in for the browser's measure where there is none (tests): a little wide and tall, so real text always fits its box */
+export const roughMeasure: Measure = Object.assign((t: string, k: TextKind) => t.length * TEXT[k].size * (k === 'title' ? 0.72 : 0.6),
+  { line: (k: TextKind) => ({ ascent: TEXT[k].size * 1.1, descent: TEXT[k].size * 0.35 }) });
 
 export type SZone = { z: MapZone; box: Box };
 /** box: the box round its outline; outline: its footprint as an SVG path (MAP-13) */
 export type SPlace = { id: string; name: string; box: Box; outline: string; title: SText };
 export type SText = Box & { text: string; full: string; cut: boolean; lines: string[] };
-/** a zone's name, drawn behind every mark inside its zone at `size` px (MZ2) */
-export type SLabel = SText & { zoneId: string; placement: 'inside'; size: number; line: number };
+/** a zone's name, drawn behind every mark inside its zone (MZ2); `base`: its first line's baseline */
+export type SLabel = SText & { zoneId: string; placement: 'inside'; base: number };
 /** zones: the two titles the doorway joins, the far one too when it is not on this map (MAP-85: its deck target) */
 export type SDoor = Box & { id: string; cx: number; cy: number; dir: 'h' | 'v'; kind: 'door' | 'opening'; way?: MapWay; title: string; zones: string[] };
 export type SExit = { id: string; zoneId: string; target: string; state: string; x1: number; y1: number; x2: number; y2: number; note: SText; goto?: string; way?: MapWay; title: string };
@@ -157,13 +158,15 @@ export function planScene(inp: PlanInput): Scene {
   let ref: Scene | undefined;
   // MAP-25: the zone names at each of those zooms, so furniture is placed clear of them there and at every closer one
   const names = PLACE_KS.map((k) => zoneNames(inp.zones.filter((z) => z.rect).map((z) => ({ z, box: zoneBox(z, k) })), k, inp.measure));
-  for (const k of PLACE_KS) ref = layout({ ...inp, k }, ref, false, names);
-  return layout(inp, ref, true, names);
+  const placedAt = new Map<string, number>(); // the set zoom each piece and thing was placed at
+  for (const k of PLACE_KS) {
+    ref = layout({ ...inp, k }, ref, false, names);
+    for (const m of [...ref.furniture, ...ref.items]) if (!placedAt.has(m.id)) placedAt.set(m.id, k);
+  }
+  return layout(inp, ref, true, names, placedAt);
 }
 
-/** zone names (MZ2, MZ3, MAP-20): bold letters inside the zone, centred and as large as fit its box with 6 px to spare,
- *  over up to three lines; a background layer the marks may sit on, so a name takes no room and pushes no mark (BG-216).
- *  A zone too small even for the smallest letters shows its name in its tooltip only. */
+/** zone names (MZ2, MAP-20): a background layer the marks may sit on, so a name takes no room and pushes no mark (BG-216) */
 function zoneNames(zones: Pick<SZone, 'z' | 'box'>[], k: number, measure: Measure): SLabel[] {
   const labels: SLabel[] = [];
   /** BG-313: the biggest seen rectangle of a title (its seen rows of one width stacked), on screen: its name sits there */
@@ -179,20 +182,23 @@ function zoneNames(zones: Pick<SZone, 'z' | 'box'>[], k: number, measure: Measur
   };
   for (const x of zones) {
     if (x.z.seen && !x.z.seen.length) continue; // BG-313: a title the character has seen none of shows no name
-    const zb = x.z.seen ? seenBox(x.z.seen) ?? x.box : x.box, full = x.z.name, room = { w: zb.x1 - zb.x0 - 2 * PAD, h: zb.y1 - zb.y0 - 2 * PAD };
-    for (let px = NAME_PX.max; px >= NAME_PX.min; px -= 0.5) {
-      const m: Measure = (t, kd) => measure(t, kd, px), line = Math.round(px * 1.2 * 100) / 100;
-      // no plate round a name, so none of the plate's padding; the letters' dark edge instead
-      const lines = room.w > NAME_EDGE ? wrap(full, 'label', room.w - NAME_EDGE + 2 * TEXT.label.pad, 3, m) : null;
-      // the letters' full height (ascenders to descenders) is about 1.3 times their size
-      const h = (lines?.length ?? 1) * line - line + px * 1.3 + NAME_EDGE;
-      if (!lines || h > room.h) continue;
-      const w = Math.ceil(Math.max(...lines.map((l) => m(l, 'label')))) + NAME_EDGE, cx = (zb.x0 + zb.x1) / 2, cy = (zb.y0 + zb.y1) / 2;
-      labels.push({ x0: cx - w / 2, y0: cy - h / 2, x1: cx + w / 2, y1: cy + h / 2, text: lines.join(' '), lines, full, cut: false, zoneId: x.z.id, placement: 'inside', size: px, line });
-      break;
-    }
+    const n = nameFit(x.z.name, x.z.seen ? seenBox(x.z.seen) ?? x.box : x.box, measure);
+    if (n) labels.push({ ...n, text: n.lines.join(' '), full: x.z.name, cut: false, zoneId: x.z.id, placement: 'inside' });
   }
   return labels;
+}
+
+/** MAP-20, MAP-21 (RM24 a): a zone's name in box `b` at the one name size, centred, on up to three lines, 6 px clear of its
+ *  walls; null when it does not fit, so it shows on hover only. Its box is the letters' as the browser boxes them (the
+ *  font's ascent and descent: BG-346) plus their dark edge; `base` is its first line's baseline */
+export function nameFit(full: string, b: Box, measure: Measure): (Box & { lines: string[]; base: number }) | null {
+  const room = { w: b.x1 - b.x0 - 2 * PAD - NAME_EDGE, h: b.y1 - b.y0 - 2 * PAD - NAME_EDGE };
+  // no plate round a name, so none of the plate's padding
+  const lines = room.w > 0 ? wrap(full, 'label', room.w + 2 * TEXT.label.pad, 3, measure) : null;
+  const { ascent, descent } = measure.line('label'), ink = ((lines?.length ?? 1) - 1) * TEXT.label.line + ascent + descent;
+  if (!lines || ink > room.h) return null;
+  const w = Math.ceil(Math.max(...lines.map((l) => measure(l, 'label')))) + NAME_EDGE, h = ink + NAME_EDGE, cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2;
+  return { x0: cx - w / 2, y0: cy - h / 2, x1: cx + w / 2, y1: cy + h / 2, lines, base: cy - ink / 2 + ascent };
 }
 
 /** a mark's spot as a share of the room it may move in (its zone less the mark's inset), and back */
@@ -200,8 +206,9 @@ const shareOf = (v: number, a: number, b: number, inset: number) => (b - a - 2 *
 const fromShare = (f: number, a: number, b: number, inset: number) => (b - a - 2 * inset > 0 ? a + inset + f * (b - a - 2 * inset) : (a + b) / 2);
 
 /** `ref`: the spots marks already have; `final`: this zoom is drawn, so a mark with no spot yet, or whose spot is covered
- *  here, is hidden (listed in `dropped`) rather than placed anew; `names`: the zone names at each of PLACE_KS */
-function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: Box[][]): Scene {
+ *  here, is hidden (listed in `dropped`) rather than placed anew; `names`: the zone names at each of PLACE_KS; `placedAt`:
+ *  the set zoom each piece and thing was placed at */
+function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: Box[][], placedAt?: Map<string, number>): Scene {
   const { k, measure } = inp;
   const zones: SZone[] = inp.zones.filter((z) => z.rect).map((z) => ({ z, box: zoneBox(z, k) }));
   const byId = new Map(zones.map((x) => [x.z.id, x]));
@@ -407,28 +414,41 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
   // its zone is full, or zoomed out where it would cover a name (MAP-22, MAP-25)
   const furniture: SFurn[] = [];
   for (const l of labels) take(l, 'label');
-  // placing, not drawing: clear of the names at the closer set zooms too (a name in a small zone grows with it), each
-  // scaled to this zoom, so zooming in never covers a piece of furniture shown farther out
-  if (!final) PLACE_KS.forEach((kk, i) => { if (kk > k) for (const l of names[i]) take({ x0: l.x0 * k / kk, y0: l.y0 * k / kk, x1: l.x1 * k / kk, y1: l.y1 * k / kk }, 'label'); });
-  for (const x of zones) for (const f of x.z.furniture ?? []) {
-    if (x.z.seen && !seenIn(x.z.seen, f)) continue; // BG-313: furniture only where the character has seen
-    const kept = spotOf(`furn:${f.id}`, x.box, FURN_R + 3);
-    const p = final ? (kept && free(disc(kept.cx, kept.cy, FURN_R)) ? kept : null) : kept ?? nearFree(f.x * PX_PER_M * k, -f.y * PX_PER_M * k, FURN_R, x.box, FURN_R + 3);
-    if (!p) { dropped.push(f.id); continue; }
-    furniture.push({ id: `furn:${f.id}`, zoneId: x.z.id, kind: f.kind, name: f.name, ...p, ...disc(p.cx, p.cy, FURN_R) });
-    take(disc(p.cx, p.cy, FURN_R), 'icon');
-    used.add('furniture');
-  }
-  // ---- MAP-86: things on the ground (icons, after the furniture, so one dropped never moves a piece): placed as furniture
-  // is, except that like stairs they may sit on a zone's name (MAP-22)
+  // placing, not drawing: clear of the names at the closer set zooms too (a zone too small for its name here may show it
+  // there), each at its own size about its centre at this zoom: a name keeps its size as its zone grows (MAP-20), so a piece
+  // clear of it here is clear at every closer zoom, and zooming in never covers furniture shown farther out
+  if (!final) PLACE_KS.forEach((kk, i) => { if (kk > k) for (const l of names[i]) {
+    const cx = ((l.x0 + l.x1) / 2) * k / kk, cy = ((l.y0 + l.y1) / 2) * k / kk, w = (l.x1 - l.x0) / 2, h = (l.y1 - l.y0) / 2;
+    take({ x0: cx - w, y0: cy - h, x1: cx + w, y1: cy + h }, 'label');
+  } });
+  // a thing on the ground placed at a wider zoom keeps its spot (MAP-25): a piece placed nearer in stays clear of it
+  if (!final) for (const x of zones) for (const t of x.z.things ?? []) { const p = spotOf(`item:${t.id}`, x.box, ITEM_R + 3); if (p) take(disc(p.cx, p.cy, ITEM_R), 'icon'); }
+  // drawn, the pieces and things placed at this zoom or a wider one come first; those zoomed out past where they were placed
+  // follow, shown only where they cover nothing (BG-216, MAP-25)
+  const home = (id: string) => (placedAt?.get(id) ?? Infinity) <= k + 1e-9;
   const items: SItem[] = [], clear = (b: Box) => !taken.some((t) => t.role !== 'label' && hit(t.box, b, GAP));
-  for (const x of zones) for (const t of x.z.things ?? []) {
-    if (x.z.seen && !seenIn(x.z.seen, t)) continue;
-    const id = `item:${t.id}`, kept = spotOf(id, x.box, ITEM_R + 3);
-    const p = final ? (kept && clear(disc(kept.cx, kept.cy, ITEM_R)) ? kept : null) : kept ?? nearFree(t.x * PX_PER_M * k, -t.y * PX_PER_M * k, ITEM_R, x.box, ITEM_R + 3, ITEM_R, clear);
-    if (!p) { dropped.push(t.id); continue; }
-    items.push({ id, of: t.id, zoneId: x.z.id, name: t.name, icon: t.icon, ...(t.kind ? { kind: t.kind } : {}), ...p, ...disc(p.cx, p.cy, ITEM_R) });
-    take(disc(p.cx, p.cy, ITEM_R), 'icon');
+  for (const round of final ? [true, false] : [undefined]) {
+    for (const x of zones) for (const f of x.z.furniture ?? []) {
+      if (x.z.seen && !seenIn(x.z.seen, f)) continue; // BG-313: furniture only where the character has seen
+      if (round !== undefined && home(`furn:${f.id}`) !== round) continue;
+      const kept = spotOf(`furn:${f.id}`, x.box, FURN_R + 3);
+      const p = final ? (kept && free(disc(kept.cx, kept.cy, FURN_R)) ? kept : null) : kept ?? nearFree(f.x * PX_PER_M * k, -f.y * PX_PER_M * k, FURN_R, x.box, FURN_R + 3);
+      if (!p) { dropped.push(f.id); continue; }
+      furniture.push({ id: `furn:${f.id}`, zoneId: x.z.id, kind: f.kind, name: f.name, ...p, ...disc(p.cx, p.cy, FURN_R) });
+      take(disc(p.cx, p.cy, FURN_R), 'icon');
+      used.add('furniture');
+    }
+    // ---- MAP-86: things on the ground (icons, after the furniture, so one dropped never moves a piece): placed as furniture
+    // is, except that like stairs they may sit on a zone's name (MAP-22)
+    for (const x of zones) for (const t of x.z.things ?? []) {
+      if (x.z.seen && !seenIn(x.z.seen, t)) continue;
+      const id = `item:${t.id}`, kept = spotOf(id, x.box, ITEM_R + 3);
+      if (round !== undefined && home(id) !== round) continue;
+      const p = final ? (kept && clear(disc(kept.cx, kept.cy, ITEM_R)) ? kept : null) : kept ?? nearFree(t.x * PX_PER_M * k, -t.y * PX_PER_M * k, ITEM_R, x.box, ITEM_R + 3, ITEM_R, clear);
+      if (!p) { dropped.push(t.id); continue; }
+      items.push({ id, of: t.id, zoneId: x.z.id, name: t.name, icon: t.icon, ...(t.kind ? { kind: t.kind } : {}), ...p, ...disc(p.cx, p.cy, ITEM_R) });
+      take(disc(p.cx, p.cy, ITEM_R), 'icon');
+    }
   }
 
   const bounds = union([...zones.map((x) => x.box), ...places.flatMap((p) => [p.box, p.title]), ...taken.map((t) => t.box)]);

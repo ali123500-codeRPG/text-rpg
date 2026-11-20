@@ -1206,8 +1206,8 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-plan .map-area.on rect, .map-plan .map-area:hover rect { stroke: var(--scenario-mark); }
 .map-tile.plan.here .map-tile-box { stroke-width: 3; }
 .map-place-title text, .map-note text { pointer-events: none; }
-/* a zone's name: bold letters behind every mark, sized to its box by the planner; a dark edge keeps it clear over the floor plan */
-.map-name { fill: var(--text); fill-opacity: 0.82; font-family: var(--font-round); font-weight: 700; pointer-events: none;
+/* a zone's name: small, quiet bold letters behind every mark (MAP-20, at the planner's size); a dark edge keeps it clear over the floor plan */
+.map-name { fill: var(--faint); font-family: var(--font-round); font-weight: 700; pointer-events: none;
   paint-order: stroke; stroke: var(--bg); stroke-width: 3px; stroke-linejoin: round; }
 .map-place-title { cursor: pointer; }
 .map-place-title rect { fill: color-mix(in srgb, var(--bg) 70%, transparent); }
