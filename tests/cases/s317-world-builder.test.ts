@@ -2,22 +2,19 @@
 // the World builder: its view has no tier and no story, its note is its own, and any story part it returns is dropped.
 import { describe, expect, it, vi } from 'vitest';
 import type { GameState, Intent, WeaverView, WorldView } from '../../src/types';
-import { createRng, makeVillage } from '../harness';
+import { byWay, createRng, makeVillage } from '../harness';
 import { resolveTurn } from '../../src/engine';
+import { headTo } from '../../src/minds';
 import { ScenarioDirector } from '../../src/scenario';
 import { grovePlan, VirtualClock } from '../../src/scenario/fixtures';
-import { headTo } from '../../src/minds';
 import { applyCheckinPlan } from '../../src/scenario/checkin';
 import { waysOut } from '../../src/plan/where';
-import { unplace } from '../../src/engine/position';
 
 const idle: Intent = { move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null, action: null };
 /** the guard waits at the field's far edge, heading into the unbuilt woods: its wait asks for the ground beyond */
 function waiting(): GameState {
   const s = makeVillage({ playerZone: 'tav_cellar', without: ['slime_1', 'slime_2', 'patron_1'] });
-  const g = s.actors.find((a) => a.id === 'guard_1')!;
-  g.zone = 'field_far'; g.placeId = 'field'; unplace(s, g);
-  headTo(s, g, 'woods');
+  headTo(s, byWay(s, 'guard_1', 'field_far', 'woods'), 'woods');
   s.turn += 1;
   resolveTurn(s, { intent: idle, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(1));
   return s;

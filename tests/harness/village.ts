@@ -9,7 +9,7 @@ import { resetLibrary } from '../../src/library';
 import { CONFIG, resetConfig } from '../../src/config';
 import { getLibrary, itemDef, routineSet } from '../../src/library';
 import { requirement } from '../../src/ruleset/requirements';
-import { floorGap, unplace } from '../../src/engine/position';
+import { floorGap, frontierPoint, titleMiddle, unplace } from '../../src/engine/position';
 import { drawTitles } from '../../src/plan/draw';
 import { inTitle, middle, wayTo } from '../../src/plan/where';
 import { boxOf } from '../../src/plan/geom';
@@ -185,6 +185,15 @@ export function place(state: GameState, id: string, zone: string): Actor {
   a.placeId = state.places.find((p) => p.zones.some((z) => z.id === zone))!.id;
   unplace(state, a);
   placeAll(state);
+  return a;
+}
+
+/** `id` stands a step in from the way out of `zone` to the unbuilt `key`: within this turn's walk of it, so a walk
+ * heading there steps in on its next move (NW3, BG-1619) */
+export function byWay(state: GameState, id: string, zone: string, key: string): Actor {
+  const a = actor(state, id), at = frontierPoint(state, zone, key)!, mid = titleMiddle(state.zones.find((z) => z.id === zone)!);
+  const d = Math.hypot(mid.x - at.x, mid.y - at.y);
+  Object.assign(a, { zone, placeId: state.places.find((p) => p.zones.some((z) => z.id === zone))!.id, pos: { x: at.x + (mid.x - at.x) / d, y: at.y + (mid.y - at.y) / d }, floor: mid.floor });
   return a;
 }
 

@@ -11,7 +11,7 @@ import { logCode } from './effects';
 import { passiveFatigue } from './fatigue';
 import { passiveHealing } from './heal';
 import { bedGap, freeBeds } from './sleep';
-import { gateAhead, M_EPS, seeingM, walkLeg, withinM, placeOf } from './position';
+import { frontierPoint, gateAhead, M_EPS, pathM, seeingM, walkLeg, withinM, placeOf } from './position';
 import type { Located } from './position';
 import { isActive, isAsleep, isEngaged } from './relations';
 import { travelSpeed } from './travel';
@@ -32,7 +32,8 @@ function doorSeen(state: GameState, o: Opening, zone: string): boolean {
 
 /** NW11: the time a turn took moves everyone on. Each NPC not in a fight goes toward where its routine puts it at the new
  * time, as far as it could walk in that time at the travel pace (travelSpeed), less what its own move already walked:
- * one jump, no Claude calls. It stops at a shut way or an unbuilt frontier, and a road is walked by its length. Healing
+ * one jump, no Claude calls. It stops at a shut way or at an unbuilt frontier's way (BG-1619: its point, not on entering
+ * its title), and a road is walked by its length. Healing
  * already counts minutes. CS11: a way it can open (its key, the bolt's side) it opens and walks through when it is
  * out of the player's sight (BG-316), and leaves it as it was where it can: the key locks it again from either side; a bar slid back from
  * its own side can't be drawn again from the far side, so it stays open. */
@@ -48,9 +49,11 @@ export function catchUp(state: GameState, minutes: number, deductWalked = true, 
     if (!d) continue;
     // MQ13 a: going to sleep, it walks on to a free bed of its sleep title, its middle, until beside it
     const bed = d.activity === 'sleep' ? freeBeds(state, a, d.zone)[0] : undefined;
-    const away = () => a.zone !== d.zone || (!!bed && bedGap(state, a, bed) > CONFIG.BED_REACH_M);
+    // NW3, BG-1619: heading for unbuilt ground, it walks on to the frontier way's point, where its step in is simulated
+    const way = d.frontier ? frontierPoint(state, d.zone, d.frontier) : null;
+    const goal: Located = bed ? { zone: d.zone, pos: bed.pos } : way ? { zone: d.zone, pos: way } : { zone: d.zone };
+    const away = () => a.zone !== d.zone || (!!bed && bedGap(state, a, bed) > CONFIG.BED_REACH_M) || (!!way && !withinM(pathM(state, a, goal, a), 0));
     if (!away()) continue;
-    const goal: Located = bed ? { zone: d.zone, pos: bed.pos } : { zone: d.zone };
     let left = travelSpeed(state, a) * minutes * 60 - (walked[a.id] ?? 0);
     const start = a.zone;
     for (let i = 0; i < 100 && left > M_EPS && away(); i++) {
