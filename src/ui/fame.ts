@@ -6,7 +6,10 @@ import { claudeComments, h, type CommentsApi } from './kit';
 import { fellFacts, fellLine } from './fell';
 import { gradeLetter } from '../ruleset/reportCard';
 import { GRADE_LETTERS } from '../scales';
-import { itemIcon, type IconName } from './itemIcons';
+import { itemIcon, skillMark, type IconName } from './itemIcons';
+import { getLibrary } from '../library';
+import { skillName } from '../library/skillNames';
+import { TREE_VIEW } from './creation';
 import { characterPage } from './pages';
 
 const REFRESH_MS = 5000;
@@ -15,6 +18,14 @@ const REFRESH_MS = 5000;
 const GRADES = Object.keys(GRADE_LETTERS);
 const gradeTone = (g: string) => { const i = GRADES.indexOf(g); return i < 0 || i > 6 ? 'great' : i > 4 ? 'ok' : i > 2 ? 'near' : 'bad'; };
 const RC_LINES: [keyof FallenCharacter['card'], IconName, string][] = [['combat', 'fig_power', 'Combat Power'], ['achievements', 'rc_achievements', 'Achievements'], ['reputation', 'rc_reputation', 'Reputation']];
+/** each row's colour, from what it already means elsewhere: perks violet, achievements gold, scars red */
+const ROW_TONE: Record<string, string> = { Perks: '--tg:var(--perk-40)', Achievements: '--tg:var(--scenario-mark)', Scars: '--tg:var(--danger)' };
+/** a best skill: its icon in place of its name, then its value, tinted in its tree's colour (the entry keeps names only) */
+const bestSkill = (s: { name: string; value: number }) => {
+  const lib = getLibrary(), id = Object.keys(lib.skills).find((k) => skillName(k) === s.name);
+  const tree = id ? TREE_VIEW.find((t) => lib.trees[t.id]?.skills.includes(id)) : undefined;
+  return h('span', { class: 'hs-tg fame-sk', style: tree ? `--tg:var(--${tree.c})` : undefined }, id ? skillMark(id, s.name) : s.name, ` ${s.value}`);
+};
 /** a report card line: the line's icon in place of its name (name and grade in its tip and accessible name), then its letter */
 const rcChip = (c: FallenCharacter, [k, icon, name]: (typeof RC_LINES)[number]) => {
   const g = gradeLetter(c.card[k]);
@@ -81,7 +92,7 @@ export function famePage(api: GameApi) {
     return h('p', { class: 'fame-send' }, btn, h('span', { class: 'hs-note', role: 'status' }, notes.get(c.storyId) ?? (c.sent ? 'Sent. Waiting for Claude’s PR.' : '')));
   };
   const list = (title: string, xs: string[]) => (xs.length ? h('div', { class: 'fame-list' }, h('p', { class: 'hs-label' }, title),
-    h('p', {}, ...xs.map((x) => h('span', { class: 'hs-tg' }, x)))) : '');
+    h('p', {}, ...xs.map((x) => h('span', { class: 'hs-tg', style: ROW_TONE[title] }, x)))) : '');
   // a card is two parts side by side when there is room: who they were and how they fell, then what they had
   const card = (c: FallenCharacter) => h('article', { class: 'fame-card' }, h('div', { class: 'fame-who' },
     h('div', { class: 'fame-h' },
@@ -94,7 +105,7 @@ export function famePage(api: GameApi) {
     h('div', { class: 'fame-list' }, h('p', { class: 'hs-label' }, 'Report card'), h('p', {}, RC_LINES.map((l) => rcChip(c, l)))),
     sendRow(c)),
     h('div', { class: 'fame-had' }, c.skills.length ? h('div', { class: 'fame-list' }, h('p', { class: 'hs-label' }, 'Best skills'),
-      h('p', {}, ...c.skills.map((s) => h('span', { class: 'hs-tg' }, `${s.name} ${s.value}`)))) : '',
+      h('p', {}, ...c.skills.map(bestSkill))) : '',
     list('Perks', c.perks), list('Achievements', c.achievements), list('Scars', c.scars)));
   function draw() {
     if (sheet) { if (el.firstChild !== sheet.el) el.replaceChildren(sheet.el); return; }

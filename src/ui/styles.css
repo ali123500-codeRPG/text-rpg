@@ -262,6 +262,7 @@ pre.json { margin: 0; font: 13px/1.45 var(--font-mono); color: var(--muted); whi
 .check .tier, .rc-g.tier { padding: 0 7px; border-radius: var(--r-pill); font-weight: 700; font-size: 13px; line-height: 20px; color: var(--text); background: color-mix(in srgb, var(--tc) 30%, transparent); border: 1px solid color-mix(in srgb, var(--tc) 60%, transparent); }
 .check .tier.great, .rc-g.great { --tc: var(--ok); } .check .tier.ok, .rc-g.ok { --tc: var(--accent); } .check .tier.near, .rc-g.near { --tc: var(--warn); } .check .tier.bad, .rc-g.bad { --tc: var(--danger); }
 .rc-g { display: inline-flex; align-items: center; gap: 4px; padding-left: 4px; }
+.fame-sk { display: inline-flex; align-items: center; gap: 2px; padding-left: 3px; font-weight: 700; } .fame-sk .skico { width: 18px; height: 18px; }
 .check .gap { color: var(--faint); }
 .check .res b { color: var(--text); display: inline-block; }
 /* M-20: a hit's word says whose loss it is: the player's hit in the accent, a hit on the player in danger */
