@@ -29,8 +29,8 @@ Each is in `.agents/skills/<name>/SKILL.md`, in full. Change one only through a 
 - **design-spatial**: for any UI change. Render the built page, run its layout audit (`scripts/layout-audit.js`:
   overflow, collisions, contrast, tap size as gates; balance, alignment and spacing as signals only), look at the
   annotated screenshot, and measure what the change is about (an icon against what it labels, the gap to a
-  neighbour). From connerkward/ckw-design-skill (MIT); the source's text and script are kept whole, with a part for
-  this project on top, and its licence beside it.
+  neighbour). Trimmed from connerkward/ckw-design-skill (MIT) to what the game uses (render, overflow gate, audit,
+  optical craft), with this project's steps in it; the script is kept whole, the licence beside it.
 
 The three motion skills are general craft. The game's own motion rules are in `docs/build-spec.md`, "### Play screen
 motion", and win over them.

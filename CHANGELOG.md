@@ -3,6 +3,10 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bug-fix-log.md`.
 
+- 21/11/2026: `design-spatial` trimmed to what the game uses (render and look, the overflow gate, the audit, optical
+  craft; about 1.5k tokens instead of 5k), and its fresh-eyes subagent runs only for new screens and layout changes, not
+  small changes (`docs/instructions.md` section 7). The owner, on the two ways offered to cut its token cost: "apply
+  both."
 - 21/11/2026: `docs/providers/claude.md`, "Questions": a question from an agent's own work (permissions, housekeeping,
   a follow-up) is still a question, asked on a card or the hub, never as a line in a summary. The owner, on a
   decision card after a thread asked in plain chat: "Add the line".
