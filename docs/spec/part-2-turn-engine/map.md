@@ -42,7 +42,7 @@ continuous map (D-1558)"). Rules below that still lay marks out zone by zone are
   is its two posts and its badge. A door's click reaches across as far as a wall's does and along only its own width,
   with no smallest size (RM35 a). A barrier's badge sits
   on its door, scaling with it, its diameter the door's drawn width times CONFIG.MAP_DOOR_BADGE_SHARE (the 16 px badge of
-  a 1 m door at zoom 1), with no smallest size, and may cover the door. A lock, a blocked way, and anything the same from
+  a 1 m door at zoom 1), with no smallest size and no wider than CONFIG.MAP_BADGE_MAX_PX (its size at the old closest zoom; OM12 b), and may cover the door. A lock, a blocked way, and anything the same from
   both sides is centred on the door; a bar, opened only from the side its bolt is on, leans toward that side by
   CONFIG.MAP_BADGE_LEAN of the badge's diameter (0.5: the whole badge on that side, its edge on the door's line), a share
   and never pixels. The layout and the checker measure the door and its badge together (src/ui/mapPlan.ts; RM28 a; Ali,
@@ -171,7 +171,8 @@ continuous map (D-1558)"). Rules below that still lay marks out zone by zone are
   road", "I go to the hut door" (exitOrder, src/ui/map.ts).
 - **MAP-63** There is one map of everything the character knows, in the one world frame (D-1558): every known zone at
   the height shown, each place inside a top-level place outlined as an area (MAP-13). A road is ground like any other
-  and has no outline. A top-level place (a village) has no outline yet: how it shows from far out comes with the land
+  and has no outline: it is drawn in its own packed-earth tone with solid edges, its 4 m band to scale, a thin solid
+  line far out (MapZone.road; OM10 a; Ali, 21/11/2026, Questions hub page "One continuous map (D-1558)"). A top-level place (a village) has no outline yet: how it shows from far out comes with the land
   joining this map (OM2). No exit points to a known zone on the same floor, which is on the map already. The map is
   laid out in fixed tiles, the land's regions (CONFIG.REGION_SIZE_M): a place is laid out whole in the tile holding the
   middle of its top-level place's ground, so nothing inside it is cut at a tile's edge, and a person in the tile holding
@@ -192,7 +193,10 @@ continuous map (D-1558)"). Rules below that still lay marks out zone by zone are
   height is the thumb, named beside it ("57 m up", "· you" at yours), and yours a mark on the bar; nothing else is
   named. Dragging snaps to the nearest notch; ▲ and ▼, the arrow keys and the wheel over it step notch to notch. It is
   hidden while the view has one height (heightsInView, drawFloors, src/ui/map.ts; TD3 a; Ali, 21/11/2026, Questions hub
-  page "A 3D view of the Map (D-421)": "a idea is nice, but it looks ugly. see if you can fix it up.").
+  page "A 3D view of the Map (D-421)": "a idea is nice, but it looks ugly. see if you can fix it up."). Off the ground,
+  the height shown is drawn full over the ground level, which lies faded under it (its floors and walls only, nothing on
+  it to click), so you keep your bearings upstairs or down a cellar (src/ui/planView.ts; OM9 b; Ali, 21/11/2026,
+  Questions hub page "One continuous map (D-1558)").
 - **MAP-87** The Map has a 3D view of the same plan: a **3D** button after ⤢ (pressed while on) stands every wall of
   the height shown up from its line, to its own height above that floor (Wall.top), drawn this share of its metres up
   the screen and this share to the right (CONFIG.MAP_3D_RISE, CONFIG.MAP_3D_LEAN, placeholders), so north stays up and

@@ -84,6 +84,8 @@ export type MapZone = {
   /** TV7: on a road, how far along it you are: metres from its west (or south) end, of its whole length; on a road bound
    *  to the land (Zone.road), metres from its line's first point, that end named by its compass side */
   along?: { m: number; len: number; from: Compass; to: Compass };
+  /** OM10 a: its ground is a road's (a road title: Zone.line, road or danger), drawn in the road's tone with solid edges */
+  road?: true;
   /** WZ1: a road bound to a region road line runs along this line, in metres in the world's frame */
   line?: Pt[];
   /** PZ12 a, BG-313: the parts of the title the character has seen (the fog), in metres: the map draws its floor, walls,
@@ -231,7 +233,7 @@ export function knownMap(s: GameState): KnownMap {
     const line = z.line; // WZ1, PZ14: a road runs along its line
     const mz: MapZone = { id, placeId: z.placeId, name: z.name, look: z.look, outdoor: !roofed(s, z), here: id === p.zone, inView: !!v, height: heightOf(z),
       ...(box ? { rect: box, outline: z.outline.map((q) => ({ x: q.x, y: q.y })), walls: wallsOn(s, z), ...furnitureOn(s, id), ...(v ? thingsOn(s, v.groundItems) : {}), seen: seenRuns(s, z), sight: seenRuns(s, z, { inView: !!v }) } : {}), links,
-      ...(you ? { you } : {}), ...(line ? { line } : {}),
+      ...(you ? { you } : {}), ...(line ? { line } : {}), ...(line || z.road || z.danger ? { road: true as const } : {}),
       ...(you && line ? { along: alongLine(line, you) } : {}),
       items: v ? v.groundItems.map((i) => i.name) : [], ...(v ? { light: v.light, cover: v.cover } : {}) };
     if (!byPlace.has(z.placeId)) byPlace.set(z.placeId, []);
