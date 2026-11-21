@@ -169,6 +169,10 @@ export const GEAR = {
   /** MAP-14 (RM31 b): how far a badge for a barrier that opens from one side only (a bar) sits off its door's line toward
    *  that side, as a share of the badge's diameter: at 0.5 the whole badge is on that side, its edge on the line */
   MAP_BADGE_LEAN: 0.5,
+  /** MAP-87 (TD1 a): the Map's 3D view draws a wall's height this share of its metres up the screen and this share to the
+   *  right, so north stays up and the plan keeps its layout; placeholders */
+  MAP_3D_RISE: 0.55,
+  MAP_3D_LEAN: 0.3,
   /** MQ7 a: how long a touch is held on the map before it opens the zone's card. Android's long-press timeout is 400 ms
    * (ViewConfiguration.getLongPressTimeout), iOS's long-press gesture 0.5 s (UILongPressGestureRecognizer) */
   MAP_LONG_PRESS_MS: 500,
