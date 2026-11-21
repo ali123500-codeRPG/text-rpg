@@ -14,8 +14,9 @@ lore itself is in `docs/build-spec.md` ("### World, tone and the power ladder", 
 - **A blessing's name matches its tier** (21/11/2026). A Tier I blessing is weak, so its name is tame: it never sounds
   like acting on the god's behalf or with the god's authority, which is above a Tier I blessing's level. The owner: "it should
   sound weak, but the name you shared is as if you are acting on their behalf, and acting on the behalf or authority
-  of a minor god is not a tier I blessing level. give it a more tame name." Turned down on these grounds: Imbra's Measure,
-  Imbra's Grip.
+  of a minor god is not a tier I blessing level. give it a more tame name." The name also says what the blessing does:
+  "a passing glance sucks as a name and doesn't capture what the blessing does". Turned down: Imbra's Measure, Imbra's
+  Grip, A Passing Glance. Chosen: Essence Affinity (IB1 a).
 - **"Minor" is game-side only** (14/11/2026). Code, spec and the library viewer rank every current god as minor.
   In-world text (looks, stories, narration) calls each one a god. `tests/unit/minor-gods.test.ts` checks this.
   Reason: to mortals every god is grand, yet today's gods are only the lowest rung of the divine, with wider

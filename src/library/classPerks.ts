@@ -55,9 +55,9 @@ export const CLASS_PERKS: Record<string, PerkDef> = {
       effect: 'No roll: their essence is offered to you, from their own list. Its grade comes from a quality roll that never fades it (below Success it is Common). They are left Hollowed.', lasts: 'once per person' },
   },
   // Imbra's Tier I blessing, given at Blessed by Imbra level 1 (ClassDef.levelBlessings)
-  [PK.passing_glance]: {
-    id: PK.passing_glance, name: 'A Passing Glance', built: true, blessing: { god: GD.imbra, tier: 'tier_1' }, essenceBoost: CONFIG.IMBRA_ESSENCE_BOOST,
-    story: 'Imbra glanced your way once, not for long. Since then the essences you carry sit a little better on you, and give a little more.',
+  [PK.essence_affinity]: {
+    id: PK.essence_affinity, name: 'Essence Affinity', built: true, blessing: { god: GD.imbra, tier: 'tier_1' }, essenceBoost: CONFIG.IMBRA_ESSENCE_BOOST,
+    story: 'Essences take to you better than to most. Each one you carry gives you a little more.',
     rules: { kind: 'Always on (blessing)', trigger: 'Any use of true skill.', conditions: ['The owner holds an essence.'],
       effect: `The true skill every held essence gives is raised by ${CONFIG.IMBRA_ESSENCE_BOOST * 100}%.`, lasts: 'always' },
   },

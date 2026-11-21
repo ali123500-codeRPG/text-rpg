@@ -113,7 +113,7 @@ function flatTrueSkill(a: Actor, skill: string, out?: SkillPart[]): number {
   return e.raw + fromPerks + ach + essenceSkill(a, skill);
 }
 /** growth proposal 2.2/EG4 a: the true skill the actor's held essences add (thread, not body: it counts everywhere true skill does),
- * raised by the owner's essenceBoost perks (A Passing Glance), several adding in full */
+ * raised by the owner's essenceBoost perks (Essence Affinity), several adding in full */
 export const essenceSkill = (a: Actor, skill: string): number =>
   essencePoints(a, skill) * (1 + owned(a).reduce((n, p) => n + (getLibrary().perks[p.perkId]?.essenceBoost ?? 0), 0));
 const essencePoints = (a: Actor, skill: string): number => (a.progression?.essences ?? []).reduce((n, e) => n + (e.points[skill] ?? 0), 0);
