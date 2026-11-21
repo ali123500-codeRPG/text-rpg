@@ -146,7 +146,7 @@ export function isEngaged(state: GameState, actor: Actor): boolean {
 /** a can have a foe at all: a hostile override or band relation; a stance cooled on sight (Dreaded on Sight, which can
  * cool any stance to hostile); a loyal or friend stance (hostile's ally rule, RS3); or a live spar. stance has no other
  * way to reach hostile, so an NPC with none of these is engaged with no one, and its knowledge need not be scanned */
-function mayFight(state: GameState, a: Actor): boolean {
+export function mayFight(state: GameState, a: Actor): boolean {
   if (a.sightChecks?.length || maySideWith(state, a, true)) return true;
   if ([...Object.values(a.mind?.overrides ?? {}), ...Object.values(bandById(state, a.bandId)?.relations ?? {})].includes('hostile')) return true;
   return !!state.spars?.some((sp) => sp.sides.some((side) => side.includes(a.id)));

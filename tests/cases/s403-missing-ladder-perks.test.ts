@@ -122,9 +122,9 @@ describe('403 missing 20 and 40 perks', () => {
       foe.mind!.knowledge.player = { status: 'engaged', lastKnownZone: s.player.zone, lastSeenTurn: s.turn, source: 'seen', revealed: [] };
       set(foe, SK.resolve, 30);
       if (perk) give(foe, PK.grit_your_teeth);
-      play(s, {}, 2); // the fight starts: the once-a-fight use is kept on the engagement
+      play(s, {}, 3); // the fight starts: the once-a-fight use is kept on the engagement
       foe.core.condition.moraleLost = 0.4 * maxMorale(foe); // Rattled: the roar's loss leaves it Rattled or worse
-      const ev = play(s, { intent: intent({ perkMove: { perk: PK.battle_cry, target: null } } as never) }, 2);
+      const ev = play(s, { intent: intent({ perkMove: { perk: PK.battle_cry, target: null } } as never) }, 3);
       expect(ev.find((e) => e.kind === 'battle_cry')!.effects.find((f) => f.actorId === 'patron_1')?.kind).toBe('cry_took');
       if (perk) expect(perkMoveBlock(s, foe, PK.grit_your_teeth, null)).toBe('too_soon'); // it was a real steady: the cooldown runs
       return ev.filter((e) => e.kind === 'steady' && e.actorId === 'patron_1').length;
