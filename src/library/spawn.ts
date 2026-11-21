@@ -724,14 +724,15 @@ export function createPlayer(build: CreationBuild, storyId: string, opts: { prev
 
 /** Copy NPCs follow their template live (the rank table and NPC_BAND_MULT must reach existing
  * templates and NPCs). On load, each copy's skills are rebuilt from its template with the current CONFIG, and the
- * template's perks are added if missing. Unique NPCs keep what they rolled. */
+ * template's own perks are added if missing; its rank traits stay as drawn at spawn (BG-351). Unique NPCs keep what they rolled. */
 export function refreshCopies(state: GameState): void {
   for (const a of state.actors) {
     if (a.kind !== 'npc' || a.core.generation !== 'copy' || !a.core.templateId) continue;
     if (!hasTemplate(state, a.core.templateId)) continue;
     const t = npcTemplate(state, a.core.templateId);
     a.core.skills = templateSkills(t, a.id); // NG9: its own spread, the same every load
-    for (const perkId of templatePerks(t, a.id)) if (!a.core.perks.some((p) => p.perkId === perkId)) a.core.perks.push({ perkId, source: 'template', gainedTurn: state.turn });
+    // BG-351: rank traits stay as drawn at spawn; a load re-adds only the template's own perks (no actor id: no rank draw)
+    for (const perkId of templatePerks(t)) if (!a.core.perks.some((p) => p.perkId === perkId)) a.core.perks.push({ perkId, source: 'template', gainedTurn: state.turn });
     a.core.perks = a.core.perks.filter((p) => p.source !== 'level'); // NG11: a copy's milestone perks follow its rebuilt skills
     npcMilestonePerks(a, t, perkPointsUpTo(templateLevel(t)), state.turn);
   }

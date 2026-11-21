@@ -590,7 +590,9 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
 - **SHEET-375** Milestones read true skill, so a tagged 125 reaches 131 with its 40 perk and stops short of a 140 perk.
 - **SHEET-376** **Rank traits**: a rank draws RANK\_TRAITS (0, 0, 0, 1, 1, 2, 2, 3, 3, 3 from Untrained; +
   RANK\_TRAITS\_BEYOND per step past the last row) from its theme's and role's trait pools, perks and quirks alike,
-  seeded by the actor's ID, as 'template' perks (ThemeDef.traits, NpcRoleDef.traits; NG12).
+  seeded by the actor's ID, as 'template' perks (ThemeDef.traits, NpcRoleDef.traits; NG12). They are drawn once, at
+  spawn, and kept: a load re-adds only the template's own perks, so a pool or RANK\_TRAITS edit reaches new NPCs only
+  (owner, decision card, 21/11/2026; BG-351).
 - **SHEET-377** The pools are thin placeholders until the perk thread adds rows; no preset below Veteran draws any
   today.
 - **SHEET-378** **Generator rules**: a role's kind sets its rank floor (RANK\_FLOOR: combat Trained, civilian Novice; a
