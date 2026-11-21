@@ -1,7 +1,7 @@
 // PZ1 a: where a point is: its title (the smallest space that holds it), whether it is indoors (a roof overhead), and the
 // ways out of a title (the openings that join it, read from its side).
 import type { GameState, Opening, Pt, Zone } from '../types';
-import { areaOf, boxOf, inOutline, middleOf } from './geom';
+import { areaOf, boxOf, inOutline, middleOf, nearestEdge } from './geom';
 import { CONFIG } from '../config';
 
 /** a title's space in m³ (its footprint's area × its height): the smaller wins where spaces overlap */
@@ -17,7 +17,9 @@ function boxFor(z: Zone) {
   return b;
 }
 /** the point lies in the title's footprint (its edge counts as in) */
-export function inTitle(z: Zone, p: Pt, eps = 0.01): boolean {
+/** how near a title's edge a point counts as on it (inTitle's tolerance) */
+const EDGE_EPS_M = 0.01;
+export function inTitle(z: Zone, p: Pt, eps = EDGE_EPS_M): boolean {
   if (!z.outline?.length) return false;
   const b = boxFor(z);
   return p.x >= b.x0 - eps && p.x <= b.x1 + eps && p.y >= b.y0 - eps && p.y <= b.y1 + eps && inOutline(p, z.outline, eps);
@@ -25,11 +27,14 @@ export function inTitle(z: Zone, p: Pt, eps = 0.01): boolean {
 /** the point lies in the title's space at height `floor` (metres above the ground outside) */
 export const inSpace = (z: Zone, p: Pt, floor: number): boolean => inSpan(z, floor) && inTitle(z, p);
 
-/** PZ1 a: the title of a point on a floor: the smallest space that holds it; `prefer` breaks a tie (the title it was in) */
+/** PZ1 a: the title of a point on a floor: the smallest space that holds it; `prefer` (the title it was in) breaks a tie.
+ * BG-1506: a point on a wall the title it was in shares with another (a doorway) stays in the title it was in */
 export function zoneAt(state: GameState, p: Pt, floor: number, prefer?: string): Zone | undefined {
   let best: Zone | undefined, bv = Infinity;
+  const was = prefer ? state.zones.find((z) => z.id === prefer && inSpace(z, p, floor)) : undefined;
   for (const z of state.zones) {
     if (!inSpace(z, p, floor)) continue;
+    if (was && z !== was && nearestEdge(p, z.outline).d <= EDGE_EPS_M) continue;
     const v = volumeOf(z);
     if (v < bv - 1e-6 || (Math.abs(v - bv) <= 1e-6 && z.id === prefer)) { best = z; bv = v; }
   }

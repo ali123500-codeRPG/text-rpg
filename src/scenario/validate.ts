@@ -143,6 +143,8 @@ function fillRosterAndGroups(state: GameState, plan: StagePlan, err: (code: stri
   if (!Array.isArray(plan?.cast)) return;
   const used = new Set<string>();
   for (const c of plan.cast) {
+    // BG-1507: an entry keyed by a roster key that names nobody else is that roster entry
+    if (c && !c.roster && c.template === undefined && c.compose === undefined && c.actor === undefined && !c.group && typeof c.key === 'string' && rosterEntry(state, c.key)) c.roster = c.key;
     if (!c?.roster) continue;
     const e = rosterEntry(state, c.roster);
     if (!e) { err('bad_roster', `cast ${c.key}: roster ${c.roster} is not a roster key from land`, c.key); continue; }
