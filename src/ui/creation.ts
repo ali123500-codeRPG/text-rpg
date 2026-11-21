@@ -237,9 +237,10 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
   const stopped = api.notices().find((n) => n.kind === 'stop_play');
   const starts = h('div', { class: 'actions', role: 'group', 'aria-label': 'Start' }, Object.values(lib.starts).map((s) =>
     h('button', { class: s.id === startId ? 'hs-btn-main' : 'hs-btn-text', type: 'button', 'aria-pressed': String(s.id === startId), 'data-start': s.id,
-      title: [`${creationPoints(s.id)} points, level ${startLevel(s.id)}`, ...startFacts(s.id).perks].join(' · '),
+      title: [startFacts(s.id).tier, `${creationPoints(s.id)} points, level ${startLevel(s.id)}`, ...startFacts(s.id).perks].filter(Boolean).join(' · '),
       onclick: () => { if (s.id !== startId) switchTo(s.id); } }, startIcon(s, s.name),
-    [startFacts(s.id).tier, `${creationPoints(s.id)} pts`, `level ${startLevel(s.id)}`].filter(Boolean).join(' · '))));
+    // the icon's colour shows the class tier, so its name is only in the tip; "no class" has no colour and stays
+    [classlessStart(s.id) ? startFacts(s.id).tier : '', `${creationPoints(s.id)} pts`, `level ${startLevel(s.id)}`].filter(Boolean).join(' · '))));
   /** why this start can't begin: no god gives its blessing (DX1), or no Threadbound item free in the picked world (WP2 b); '' if it can */
   function blockedWhy(id: string): string {
     if (startFacts(id).blocked) return startFacts(id).blocked;
