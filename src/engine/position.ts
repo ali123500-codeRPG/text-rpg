@@ -81,6 +81,10 @@ function segSeg([a0, a1]: [Pos, Pos], [b0, b1]: [Pos, Pos]): number {
 }
 /** SZ5: the gap on the floor between two shapes (0 when they touch or overlap) */
 export const shapeGap = (a: Shape, b: Shape): number => Math.max(0, segSeg(ends(a), ends(b)) - a.r - b.r);
+/** SZ5: metres up or down between two bodies standing from floors fa and fb (0 where their heights overlap) */
+const riseGap = (fa: number, A: Shape, fb: number, B: Shape): number => Math.max(0, fb - fa - A.h, fa - fb - B.h);
+/** SZ5, BG-1616: `o` stands on the floor a body `me` on floor `f` stands on (their heights overlap), whatever titles they are in */
+const sameFloor = (state: GameState, me: Shape, f: number, o: Actor): boolean => riseGap(f, me, floorOf(state, o), shapeOf(state, o, o.pos)) <= EPS;
 /** SZ5: metres from a point to a shape's edge */
 const pointGap = (p: Pos, s: Shape): number => Math.max(0, toSeg(p, ...ends(s)) - s.r);
 /** the fewest metres a and b can be apart by any measure here (floorGap, the sight line, a walking path; all body edge to
@@ -127,7 +131,8 @@ const titleIn = (state: GameState, z: Zone, p: Pos): string => zoneAt(state, p, 
 /** ZP1: gives everyone on stage whose point is outside its title (or off its floors), or who was just put in it
  * (`unplaced`, `withPlayer`), a free spot in it on its floor: where placement starts (anchor), else the nearest point on a
  * half-PLACE_SPACING_M grid around it whose body keeps PLACE_SPACING_M from everyone already standing there (SZ6: body to
- * body), never in a smaller title inside it. `withPlayer`: the ids of those who just arrived with the player (GSM-51).
+ * body; BG-1616: everyone on that floor, in any title), never in a smaller title inside it. `withPlayer`: the ids of
+ * those who just arrived with the player (GSM-51).
  * PZ1: anyone whose point lies in a smaller title inside its own is in that one (Actor.zone is a cache of zoneAt). D-1623:
  * in a title with no outline everyone keeps their own point. */
 export function placeAll(state: GameState, withPlayer: readonly string[] = []): void {
@@ -144,7 +149,7 @@ export function placeAll(state: GameState, withPlayer: readonly string[] = []): 
       if (t !== a.zone) { a.zone = t; a.placeId = zoneById(state, t)?.placeId ?? a.placeId; }
       continue;
     }
-    const taken = people.filter((o) => o !== a && !pending.has(o) && o.zone === a.zone && o.pos && inside(z, o.pos)).map((o) => shapeOf(state, o, o.pos!));
+    const taken = people.filter((o) => o !== a && !pending.has(o) && sameFloor(state, shapeOf(state, a, a.pos), z.floor, o)).map((o) => shapeOf(state, o, o.pos));
     const c = anchor(state, z, withPlayer.includes(a.id));
     let spot = c;
     const step = gap / 2; // SZ6: a finer grid than the spacing, so bodies of any width find the nearest free spot
@@ -192,7 +197,7 @@ export function sightDistM(state: GameState, a: Located, b: Located): number {
   const ea = eyeOf(state, a, pa, 1.5), eb = eyeOf(state, b, pb, ea.z - floorOf(state, a));
   if (!lineClear(state, ea, eb)) return Infinity;
   const fa = floorOf(state, a), fb = floorOf(state, b);
-  return Math.hypot(shapeGap(A, B), Math.max(0, fb - fa - A.h, fa - fb - B.h));
+  return Math.hypot(shapeGap(A, B), riseGap(fa, A, fb, B));
 }
 
 /** SZ11: how much farther `b` is seen from `a` than a person would be: its body's sightFactor at the look-down angle (a
@@ -332,14 +337,17 @@ export function sideFrom(viewer: { pos?: Pos; facing?: [number, number] }, at: P
   return Math.abs(ahead) >= Math.abs(left) ? (ahead >= 0 ? 'ahead' : 'behind') : left > 0 ? 'left' : 'right';
 }
 
-/** BF35/BF71: everyone else in the walker's title whose spot a walk's end keeps PLACE_GAP_M from: all of them (none is let
- * off for standing near the start), but never the one it closes in on (`toward`), whom it stops at reach from */
-const othersFor = (state: GameState, walker: Actor, toward?: string) =>
-  allActors(state).filter((x) => x !== walker && x.id !== toward && x.zone === walker.zone && !!x.pos);
+/** BF35/BF71: everyone else on the walker's floor (BG-1616: in any title) whose spot a walk's end keeps PLACE_GAP_M from:
+ * all of them (none is let off for standing near the start), but never the one it closes in on (`toward`), whom it stops at
+ * reach from */
+const othersFor = (state: GameState, walker: Actor, toward?: string) => {
+  const me = shapeOf(state, walker, walker.pos), f = floorOf(state, walker);
+  return allActors(state).filter((x) => x !== walker && x.id !== toward && sameFloor(state, me, f, x));
+};
 /** SZ6: the walker's body at p (facing `dir`) keeps PLACE_GAP_M from everyone else's */
 const free = (state: GameState, walker: Actor, others: Actor[], p: Pos, dir?: [number, number]) => {
   const me = shapeOf(state, walker, p, dir);
-  return !others.some((x) => shapeGap(me, shapeOf(state, x, x.pos!)) < CONFIG.PLACE_GAP_M - EPS);
+  return !others.some((x) => shapeGap(me, shapeOf(state, x, x.pos)) < CONFIG.PLACE_GAP_M - EPS);
 };
 /** the largest t in [lo, hi] where ok(t) holds, given ok holds up to some t and not past it */
 function lastTrue(ok: (t: number) => boolean, lo: number, hi: number): number {
@@ -349,7 +357,7 @@ function lastTrue(ok: (t: number) => boolean, lo: number, hi: number): number {
 }
 
 /** BF35: how far along the line from `A` toward `B` (d metres) the walker may go, at most `go`, so that where it stops keeps
- * PLACE_GAP_M from everyone else in its title */
+ * PLACE_GAP_M from everyone else on its floor */
 function roomAt(state: GameState, walker: Actor, A: Pos, B: Pos, go: number, d: number, toward?: string): number {
   const others = othersFor(state, walker, toward), dir = unit(A, B);
   const at = (t: number): Pos => ({ x: A.x + (B.x - A.x) * t / d, y: A.y + (B.y - A.y) * t / d });
@@ -359,12 +367,12 @@ function roomAt(state: GameState, walker: Actor, A: Pos, B: Pos, go: number, d: 
 }
 
 /** BF71: the free spots, nearest to `from` first, round `target` (standing at B) where the walker's body, facing it, is `r`
- * metres from its body (SZ5) inside the walker's title, keeping PLACE_GAP_M from everyone but `toward` (RING_STEPS
- * directions round it) */
+ * metres from its body (SZ5) on the walker's floor in any title it can see to (BG-1616), keeping PLACE_GAP_M from everyone
+ * but `toward` (RING_STEPS directions round it) */
 function ringSpots(state: GameState, walker: Actor, target: Located, B: Pos, r: number, from: Pos, toward?: string): Pos[] {
   const z = zoneById(state, walker.zone);
   if (!z?.outline?.length || r <= EPS) return [];
-  const others = othersFor(state, walker, toward), G = shapeOf(state, target, B);
+  const others = othersFor(state, walker, toward), G = shapeOf(state, target, B), f = floorOf(state, walker);
   const me = shapeOf(state, walker, B), far = r + 2 * (me.half + me.r + G.half + G.r) + 1;
   const out: Pos[] = [];
   for (let i = 0; i < CONFIG.RING_STEPS; i++) {
@@ -372,7 +380,7 @@ function ringSpots(state: GameState, walker: Actor, target: Located, B: Pos, r: 
     const at = (k: number): Pos => ({ x: B.x + k * c, y: B.y + k * sn }), dir: [number, number] = [-c, -sn];
     const k = lastTrue((m) => shapeGap(shapeOf(state, walker, at(far - m), dir), G) >= r, 0, far); // walking in from far out
     const p = at(far - k);
-    if (inside(z, p) && free(state, walker, others, p, dir) && lineClear(state, { ...from, z: z.floor + 0.3 }, { ...p, z: z.floor + 0.3 })) out.push(p);
+    if (zoneAt(state, p, f) && free(state, walker, others, p, dir) && lineClear(state, { ...from, z: f + 0.3 }, { ...p, z: f + 0.3 })) out.push(p);
   }
   return out.sort((a, b) => flat(a, from) - flat(b, from));
 }
@@ -381,7 +389,7 @@ function ringSpots(state: GameState, walker: Actor, target: Located, B: Pos, r: 
  * the target is hemmed in on every side */
 export function roomAround(state: GameState, walker: Actor, target: Actor, r: number): boolean {
   const A = pointOf(state, walker), B = pointOf(state, target);
-  if (walker.zone !== target.zone || !A || !B) return true;
+  if (!A || !B) return true;
   if (floorGap(state, walker, target) <= r + EPS) return true;
   return ringSpots(state, walker, target, B, Math.max(0, r - EPS), A, target.id).length > 0;
 }
@@ -397,7 +405,13 @@ function approach(state: GameState, a: Located, goal: Located, B: Pos, metres: n
     const room = roomAt(state, walker, A, B, go, d, toward);
     if (toward && room < go - EPS) {
       const p = ringSpots(state, walker, goal, B, stopShort, A, toward).find((x) => flat(A, x) <= metres + EPS);
-      if (p) { const m = flat(A, p); if (m <= EPS) return 0; step(a, p); return m; }
+      if (p) {
+        const m = flat(A, p); if (m <= EPS) return 0;
+        step(a, p);
+        const t = zoneAt(state, p, floorOf(state, a), a.zone); // BG-1616: a ring spot may lie in the next title over
+        if (t) { a.zone = t.id; if ('placeId' in a) a.placeId = t.placeId; }
+        return m;
+      }
     }
     go = room;
   }
@@ -626,10 +640,9 @@ export function withinGrip(state: GameState, actor: Actor, at: Located, extra = 
   const r = gripReachM(state, actor);
   return r > 0 && withinM(distM(state, actor, at), r + extra) && gripReaches(state, actor, at);
 }
-/** BF12: a grip reaches from where `a` stands to `b`: in the same title; or the straight line at hand height crosses only
+/** BF12: a grip reaches from where `a` stands to `b`: the straight line at hand height crosses only
  * walls reached across (a counter, a fence) and ways that let a grip through (gripPasses); or every way on the walk does */
 function gripReaches(state: GameState, a: Actor, b: Located): boolean {
-  if (a.zone === b.zone) return true;
   const A = pointAt(state, a), B = pointAt(state, b);
   const line = crossings(state, { x: A.x, y: A.y, z: A.floor + 1 }, { x: B.x, y: B.y, z: B.floor + 1 });
   if (line.every((c) => c.kind === 'wall' && (c.opening ? gripPasses(barrierOn(state, c.opening)) : !!wallKind(c.wall.kind)?.reach))) return true;
