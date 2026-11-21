@@ -67,8 +67,8 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
 - **SHEET-46** **Speaking races**: each race is tagged if it can speak (Human and Elf yes, Slime and Dragon no), and a
   condition can name a race tag (RaceDef.tags 'speaks'; Ali, 08/11/2026, SR1).
 - **SHEET-47** Intimidation is open to anyone with the Speech tree; persuasion and barter must have a speaking race.
-- **SHEET-48** Banked: nested groups of conditions (the Tools tree and Lockpicking are gone, D-89 RP2: TA7 moot; nested groups of
-  conditions: TA11; D-113).
+- **SHEET-48** No nested groups of conditions: they are added when a tree first needs one (TA11; D-113 a, closed). The
+  Tools tree and Lockpicking are gone (D-89 RP2), so TA7 is moot.
 
 #### Classes
 
