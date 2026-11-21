@@ -8,7 +8,7 @@
 import { CONFIG } from '../config';
 import { compassOf } from '../scenario/geometry';
 import { furnitureById, furniturePos } from './furniture';
-import { FU } from '../library/tableIds';
+import { FU, OP } from '../library/tableIds';
 import { actorById, allActors, nameFor, zoneById } from './relations';
 import { theName, theOf } from '../words';
 import { barrierOn, gripPasses, passage, type Passage } from './barriers';
@@ -667,6 +667,13 @@ export function reachOverFrom(state: GameState, a: Located, b: Located): Located
   const d = flat(A, at), back = Math.min(d, 0.05);
   const p = d > EPS ? { x: at.x + (A.x - at.x) * back / d, y: at.y + (A.y - at.y) * back / d } : { x: A.x, y: A.y };
   return { zone: zoneAt(state, p, A.floor, a.zone)?.id ?? a.zone, pos: p };
+}
+
+/** ACT-84 (BG-1736): leaving
+ * a place is going through a way (a doorway, stairs, a window): the walk from `from` to `to` passes one. An open edge
+ * between two titles (a gap) is no way out, whatever titles it joins */
+export function wentThroughWay(state: GameState, from: Located, to: Located): boolean {
+  try { return !!walkThrough(state, from, to)?.through.some((o) => o.kind !== OP.gap); } catch { return false; }
 }
 
 /** FR2: `at` is within the actor's grip reach, plus `extra` metres (the receiver's own reach when handing over) */

@@ -84,6 +84,12 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
     if (!ok && out.move.toZone !== view.zone.id) delete out.move.spot;
     else if (!ok) illegal.push(`move.spot ${JSON.stringify(sp)}`);
   }
+  // ACT-84 (BG-1736): an
+  // attack on someone out of sight now goes after them to where they were last seen; lost only when that spot is seen
+  // empty (gone: the way they took is unknown), which asks who is meant as before
+  const after = out.action?.type === 'attack' && out.action.target && !actors.has(out.action.target) && !out.move?.after
+    ? view.lastSeen?.find((l) => l.id === out.action!.target && !l.gone) : undefined;
+  if (after) { out.move = { toZone: after.zone, spot: { near: after.id, lastSeen: true } }; out.action = null; }
   const a = out.action;
   if (a?.mode) a.mode = modeIdOf(a.mode); // a mode named by its name maps to its AM id
   if (a) {
