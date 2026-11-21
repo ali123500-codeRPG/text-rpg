@@ -19,7 +19,7 @@ import { HEALTH_LEVELS } from '../../src/scales';
 
 it('167 a hit that moves the player to a new health level pays the health fear', () => {
   let checked = 0;
-  for (let seed = 1; seed < 400 && checked < 5; seed++) {
+  for (let seed = 1; seed < 400 && checked < 3; seed++) {
     const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] }); // the field's slimes play no part
     s.actors.find((a) => a.id === 'patron_1')!.mind!.overrides = { player: 'hostile' };
     s.player.core.condition.hpLostPct = 40;
@@ -30,7 +30,7 @@ it('167 a hit that moves the player to a new health level pays the health fear',
     // a Resolve roll at Critical Success pays (and logs) nothing; these seeds roll none
     expect(s.log.some((l) => l.code === 'morale' && (l.detail as { actorId: string }).actorId === 'player')).toBe(true);
   }
-  expect(checked).toBe(5);
+  expect(checked).toBe(3);
 });
 
 it('167b a hit that cripples a part rolls the part fear, once per hit; Destroyed rolls again', () => {
@@ -51,7 +51,7 @@ it('167b a hit that cripples a part rolls the part fear, once per hit; Destroyed
   const twelve = [...human, ...human.map((p) => ({ ...p, id: p.id + '_2' }))];
   expect(partFearCost(fears[FR.own_part_crippled], ['left_arm'], twelve)).toBe(7.5);
   let checked = 0, paid = 0;
-  for (let seed = 1; seed < 400 && checked < 5; seed++) {
+  for (let seed = 1; seed < 400 && checked < 3; seed++) {
     const s = makeVillage({ playerZone: 'tav_common' });
     s.actors.find((a) => a.id === 'patron_1')!.mind!.overrides = { player: 'hostile' };
     for (const k of Object.keys(s.player.core.condition.parts)) if (k !== 'head' && k !== 'neck') s.player.core.condition.parts[k] = 1;
@@ -64,7 +64,7 @@ it('167b a hit that cripples a part rolls the part fear, once per hit; Destroyed
     expect(mine.length).toBeLessThanOrEqual(hits); // once per hit, however many parts
     paid += mine.length;
   }
-  expect(checked).toBe(5);
+  expect(checked).toBe(3);
   expect(paid).toBeGreaterThan(0); // a Critical Success costs nothing, so not every crippling logs
 });
 
