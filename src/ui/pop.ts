@@ -104,11 +104,12 @@ export function openPop(o: { title: string; body: (Node | string | null)[]; open
   const el = h('aside', { class: `dpop ${o.cls ?? ''}`, role: 'dialog', 'aria-modal': 'false', 'aria-labelledby': tid, tabindex: '-1', style: o.tone ? `--pc: var(--${o.tone})` : undefined },
     head, h('div', { class: 'dpop-body' }, ...o.body));
   dragBy(el, head);
-  // beside a map mark (left of it, else right), else above the opener (below where the top has no room), else near the top right
+  // beside a map mark (left of it, else right), else above the opener (below where the top has no room); one that opens by
+  // itself is centred on the screen (BG-344: at the top right it covered the minimap's Map button)
   document.body.append(el);
   const r = o.opener ? boxOf(o.opener) : undefined, b = o.beside, v = viewSize(), w = el.offsetWidth, hgt = el.offsetHeight;
-  fitInView(el, b ? (b.left - w - 8 >= 16 ? b.left - w - 8 : b.right + 8) : r ? r.left + r.width / 2 - w / 2 : v.w - w - 32,
-    b ? b.top : r ? (r.top - hgt - 12 >= 16 ? r.top - hgt - 12 : r.bottom + 12) : 96);
+  fitInView(el, b ? (b.left - w - 8 >= 16 ? b.left - w - 8 : b.right + 8) : r ? r.left + r.width / 2 - w / 2 : (v.w - w) / 2,
+    b ? b.top : r ? (r.top - hgt - 12 >= 16 ? r.top - hgt - 12 : r.bottom + 12) : (v.h - hgt) / 2);
   current = { el, opener: o.opener, ...(o.back ? { back: true as const } : {}) };
   if (o.back && !history.state?.dpop) history.pushState({ dpop: true }, ''); // Back closes it
   arrive(el, 0, 6);

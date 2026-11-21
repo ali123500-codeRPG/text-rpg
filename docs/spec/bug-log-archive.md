@@ -349,6 +349,7 @@ Closed rows of the "Bug log" (`bug-log.md`): fixed, won't fix or duplicate. A ro
 | BG-340 | A crossbow shot ran under its instant spanning row, so it never locked movement and paid base strain, not Hard | Thread | Fixed | #1291 |
 | BG-341 | Test fixtures ran at another distance than asked: `beside()` fell back silently, and `tinyArea()` was undone by `makeVillage()` | Thread | Fixed | #1275 |
 | BG-343 | The ambush rolled the attacker's weapon skill against one sense, not Combat Stealth (against ST2); now the attack's own stealth contests | Thread | Fixed | #1304 |
+| BG-344 | An essence offer pop-up opens over the minimap's top corner and hides the Map button there (MAP-60) until it is closed | Thread | Fixed | #1311 |
 | BG-345 | The sleep bonus (FT8) went to anyone asleep in a room with a bed, on it or not: nearness by room, not metres | Thread | Fixed | #1377 |
 | BG-346 | A zone name does not fit its zone at an intermediate zoom on the Bent Nail Map (MAP-20, tavern.common) | Thread | Fixed | #1378 |
 | BG-347 | Sleep on a far bed from the map slept where the first move ended, then walked to the bed | Thread | Fixed | #1397 |

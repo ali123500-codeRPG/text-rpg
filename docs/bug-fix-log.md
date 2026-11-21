@@ -12,6 +12,16 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the spec's bug log, docs/spec/bug-log.md, has one. Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-344
+
+**What was wrong:** An essence offer pop-up opened at the top right of the play screen, over the minimap's top corner, and hid the minimap's expand button, the only way to open the Map (MAP-60), until it was closed or dragged. Keyboard focus could still reach the button, but under the pop-up.
+
+**Root cause:** `openPop` (`src/ui/pop.ts`) places a pop-up above its opener or beside a map mark; one with neither, such as the offer `maybeOfferPop` opens by itself (`src/ui/essences.ts`), fell back to a fixed spot near the top right (`left = width − w − 32`, `top = 96`). Since #1287 that spot sits over the minimap's expand button.
+
+**What was done:** A pop-up that opens by itself is now centred on the screen (PS-103; the owner's choice, "Centred on the screen"). `map.smoke.ts` no longer closes the pop-up before clicking the Map button, so it now clicks the button with the offer open. Checked in the browser at 1600 × 1000 and 1100 × 800: the pop-up sits in the middle, clear of the minimap; at 390 px wide it fills the width in the middle.
+
+**Fixed by:** #1311
+
 ## BG-339
 
 **What was wrong:** Two door marks touched on the minimap's widest view, 100 m across: doors 3–6 m apart on the test village (village.o and tavern.o_2, tavern.o_7 and thornbury.o on bent-nail, manor.o_7 and manor.o_8 on long-names). The Map, which never zooms out that far, kept them apart.
