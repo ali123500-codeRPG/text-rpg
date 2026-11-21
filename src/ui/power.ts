@@ -9,12 +9,12 @@ import type { ShareRule } from '../engine/nonCombat';
 import { powerParts } from '../engine/xp';
 import { r1 } from '../words';
 import { h } from './kit';
-import { gmView, skillName } from './creation';
+import { gmView } from './creation';
 import { openPop } from './pop';
-import { ICONS, type IconName } from './itemIcons';
+import { ICONS, skillMark, type IconName } from './itemIcons';
 
 /** one line of the breakdown: what it is, how it is worked out, what it adds (or, for a rating, its value), and the lines under it */
-export type PowerLine = { label: string; how: string; adds?: number; value?: string; sub?: PowerLine[] };
+export type PowerLine = { label: string; how: string | (string | HTMLElement)[]; adds?: number; value?: string; sub?: PowerLine[] };
 
 const pct = (x: number) => `${r1(100 * x)}%`;
 /** GR34: what each non-combat share is, in words */
@@ -37,7 +37,7 @@ export function powerLines(s: GameState, p: Actor): { total: number; lines: Powe
 
 /** GR7: the ratings (skill points): every skill group and compound row with anything in it, with its gear portion (GR8) */
 export function ratingLines(s: GameState, p: Actor): PowerLine[] {
-  const row = (label: string, r: Rating): PowerLine => ({ label, how: r.gear > 0 ? `${r1(r.own)} own + ${r1(r.gear)} from gear` : r.parts.map((x) => skillName(x.skill)).join(', '), value: String(r1(r.rating)) });
+  const row = (label: string, r: Rating): PowerLine => ({ label, how: r.gear > 0 ? `${r1(r.own)} own + ${r1(r.gear)} from gear` : r.parts.flatMap((x, i) => (i ? [' ', skillMark(x.skill)] : [skillMark(x.skill)])), value: String(r1(r.rating)) });
   const groups = (Object.values(GR) as string[]).map((g) => [groupName(g), groupRating(s, p, g)] as const);
   const rows = Object.keys(CONFIG.RATINGS).map((id) => [ratingName(id), compoundRating(s, p, id)] as const);
   return [...rows, ...groups].filter(([, r]) => r.rating > 0).map(([label, r]) => row(label, r));

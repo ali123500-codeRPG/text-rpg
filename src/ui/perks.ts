@@ -38,15 +38,15 @@ export function treesOf(p: Actor) {
     .filter((t) => t.skills.length);
 }
 
-function node(skill: string, milestone: number, st: Show, label: boolean) {
+function node(skill: string, milestone: number, st: Show) {
   const d = st === 'own' || st === 'open' ? milestonePerk(skill, milestone) : undefined;
   const sel = ui.sel?.skill === skill && ui.sel.milestone === milestone;
   return h('button', {
     type: 'button', class: `pk-n ${st}${sel ? ' sel' : ''}`, 'data-k': `${skill}:${milestone}`, 'data-series': perkSeries(milestone), disabled: st === 'sealed',
     'aria-label': st === 'sealed' ? `${skillName(skill)} ${milestone}, sealed` : `${skillName(skill)} ${milestone}${d ? ', ' + d.name : st === 'empty' ? ', no perk yet' : ''}`,
-    title: `${seriesName(milestone)} ${milestone}${d ? ` · ${d.name}` : ''}`, // the name beside it may be cut short in a narrow box
+    title: `${seriesName(milestone)} ${milestone}${d ? ` · ${d.name}` : ''}`, // the perk's name shows here and on its card, not on the board
     onclick: () => { ui.sel = sel ? null : { skill, milestone }; redraw(); },
-  }, h('span', {}, String(milestone)), label && d ? h('em', {}, d.name) : null);
+  }, h('span', {}, String(milestone)));
 }
 
 /** the All-XXX marker: tree skills at the step, of the count the tree's rating needs (allStepNeed), once one is there; an inferior tree never earns one */
@@ -65,7 +65,7 @@ function ladders(p: Actor, treeId: string, skills: string[]) {
       return h('div', { class: 'pk-col' },
         h('div', { class: 'pk-ch' }, skillMark(k, skillName(k)), h('span', {}, String(v))),
         h('div', { class: 'pk-rail' }, h('i', { class: 'pk-fill', style: `height:${pct(v)}` }),
-          milestonesUpTo(top).map((r) => h('div', { class: 'pk-at', style: `bottom:${pct(r)}` }, node(k, r, milestoneState(p, k, r), true)))));
+          milestonesUpTo(top).map((r) => h('div', { class: 'pk-at', style: `bottom:${pct(r)}` }, node(k, r, milestoneState(p, k, r))))));
     }));
 }
 
@@ -75,7 +75,7 @@ function track(p: Actor, k: string, show: (r: number, st: MilestoneState) => Sho
     h('div', { class: 'pk-tl' }, skillMark(k, skillName(k)), h('span', {}, String(v))),
     h('div', { class: 'pk-tt' }, h('i', { class: 'pk-tf', style: `width:${pct(v)}` }),
       allStepsUpTo(top).map((m) => h('b', { class: 'pk-tm', style: `left:${pct(m)}` })),
-      milestonesUpTo(top).map((r) => h('div', { class: 'pk-ta', style: `left:${pct(r)}` }, node(k, r, show(r, milestoneState(p, k, r)), false)))));
+      milestonesUpTo(top).map((r) => h('div', { class: 'pk-ta', style: `left:${pct(r)}` }, node(k, r, show(r, milestoneState(p, k, r)))))));
 }
 
 /** perks the owner can switch on and off */

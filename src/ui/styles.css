@@ -410,7 +410,7 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .ct-link.gold { stroke: var(--scenario-mark); stroke-width: 3; stroke-opacity: 1; }
 .ct-link.gold.planned { stroke-dasharray: 7 5; }
 .ct-head.gold { fill: var(--scenario-mark); fill-opacity: 1; }
-.ct-node { position: relative; z-index: 2; display: grid; gap: 2px; justify-items: start; align-self: center; align-content: start; min-width: 170px; max-width: 100%; padding: var(--space-2) var(--space-4); text-align: left;
+.ct-node { position: relative; z-index: 2; display: grid; gap: 2px; justify-items: start; align-self: center; align-content: start; min-width: 112px; max-width: 100%; padding: var(--space-2) var(--space-3); text-align: left;
   border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); color: var(--text); font: inherit; cursor: pointer; transition: border-color var(--m-feedback) var(--m-ease); }
 .ct-node:hover, .ct-node:focus-visible { border-color: var(--accent); }
 .ct-node b { font-size: 15px; }
@@ -653,6 +653,7 @@ button.cs-sigil:hover, button.cs-sigil:focus-visible { box-shadow: 0 0 0 4px var
 .pk-pts { color: var(--scenario-mark); font-weight: 800; font-size: 13px; border: 1px solid color-mix(in oklch, var(--scenario-mark) 50%, transparent); border-radius: var(--r-pill); padding: 3px 12px; }
 .pk-pts.none { color: var(--faint); border-color: var(--border); }
 .pk-inn { display: grid; gap: var(--space-2); }
+.pk > .pk-inn { margin-top: var(--space-4); } /* clear of the boards, so the Story / Effect toggle never touches one */
 .pk-inn h3 { margin: 0; font-size: 13px; color: var(--faint); text-transform: uppercase; letter-spacing: .06em; }
 .pk-inn-h { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
 /* the Story / Effect toggle sits beside where the perks are written: compact, under the section or card heading's weight */
@@ -673,22 +674,23 @@ button.cs-sigil:hover, button.cs-sigil:focus-visible { box-shadow: 0 0 0 4px var
 /* every tree in its own box, side by side in rows; a box starts as wide as its skills (--n) need and the boxes of a row
    share out the rest of its width, so no row leaves a gap (fit the screen) */
 .pk-trees { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-3); }
-.pk-board { flex: var(--n) 1 calc(48px + var(--n) * 150px); min-width: 0; box-sizing: border-box;
+.pk-board { flex: var(--n) 1 calc(80px + var(--n) * 56px); min-width: 0; box-sizing: border-box;
   padding: var(--space-2) var(--space-3) var(--space-3); border: 1px solid var(--border); border-radius: var(--r-md); }
 .pk-board h3 { margin: 0 0 var(--space-2); font-size: 13px; font-weight: 700; color: var(--muted); }
 /* tree and skill icons in place of their names, tinted the tree's colour as on the Character page (PS-277) */
+.pk-board h3 { display: flex; justify-content: center; } /* the tree's emblem centred over its ladders */
 .pk-board h3 .trico { display: block; width: 28px; height: 28px; color: var(--t); }
 .pk .skico { display: block; width: 20px; height: 20px; color: var(--t, var(--muted)); }
 .pk .trico svg, .pk .skico svg { width: 100%; height: 100%; display: block; }
 .pk-card-head .k .skico { display: inline-block; vertical-align: -5px; }
 /* SD14: a box that grows alone on its row (Speech) keeps its ladders together, as wide as in the other boxes, instead of spreading them */
-.pk-lad { --rh: 200px; position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); padding: 0 0 0 56px; max-width: calc(56px + var(--n) * 180px); }
+.pk-lad { --rh: 200px; position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); padding: 0 0 0 56px; max-width: calc(56px + var(--n) * 72px); }
 .pk-mb { position: absolute; left: 0; right: 0; height: 0; border-top: 1px dashed color-mix(in oklch, var(--scenario-mark) 40%, transparent); }
 .pk-mb b { position: absolute; left: 0; top: -18px; color: var(--scenario-mark); font-size: 13px; }
 .pk-mb small { position: absolute; left: 0; top: 3px; color: var(--faint); font-size: 13px; }
 /* the rail sits to the left of its column, so the perk names beside its milestones have the rest of the width */
-.pk-col { display: grid; grid-template-rows: 38px var(--rh); justify-items: start; gap: 8px; min-width: 0; padding-left: 14px; }
-.pk-ch { min-width: 0; max-width: 100%; margin-left: -10px; } .pk-ch b { display: block; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pk-col { display: grid; grid-template-rows: auto var(--rh); justify-items: center; gap: 8px; min-width: 0; } /* icon, value and rail share one centre line */
+.pk-ch { display: grid; justify-items: center; gap: 2px; }
 .pk-ch span { color: var(--scenario-mark); font-weight: 800; font-size: 14px; }
 .pk-rail { position: relative; width: 8px; border-radius: 4px; background: var(--bg); }
 .pk-fill { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 4px; background: var(--scenario-mark); }
@@ -706,8 +708,6 @@ button.cs-sigil:hover, button.cs-sigil:focus-visible { box-shadow: 0 0 0 4px var
 .pk-n.empty::before, .pk-n.other::before { background: var(--surface); border: 1.5px dashed var(--faint); } .pk-n.empty span, .pk-n.other span { color: var(--faint); }
 .pk-n.sel::before { outline: 2px solid var(--text); outline-offset: 2px; }
 /* a long perk name wraps to a second line rather than being cut short (13px floor) */
-.pk-n em { position: absolute; left: 26px; top: 50%; transform: translateY(-50%); width: max-content; max-width: 104px; overflow: hidden; line-height: 1.1; text-align: left; font-style: normal; font-size: 13px; font-weight: 700; color: var(--pk-c); }
-.pk-n.open em { color: var(--text); }
 .pk-trk { display: grid; gap: 14px; }
 .pk-trk { display: none; }
 .pk-tr { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 12px; align-items: center; }
@@ -1262,6 +1262,10 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .iico[data-kind="accessory"] { --ic: var(--scenario-mark); } .iico[data-kind="tool"] { --ic: var(--c15); } .iico[data-kind="consumable"] { --ic: var(--c2); }
 .iico.blank { --ic: var(--faint); opacity: .45; border-style: dashed; background: none; }
 /* IC3: small icons beside a name: a class or Start (no kind, so the accent), and a thing in the loot pop-up (kind-tinted) */
+/* skill and tree icons standing in for their names: one default size everywhere, a page may set its own; tinted by --t where a tree colour is set */
+.skico, .trico { display: inline-grid; width: 20px; height: 20px; flex: none; vertical-align: -4px; color: var(--t, currentColor); }
+.trico { width: 28px; height: 28px; vertical-align: -8px; }
+.skico svg, .trico svg { width: 100%; height: 100%; display: block; }
 .cico { display: inline-grid; width: 20px; height: 20px; flex: none; align-self: center; vertical-align: -4px; color: var(--accent); }
 /* a class icon's colour says its tier, in the class tree's tier hues (.ct-band): accent for tiers 0-2, perk purple for
    3-4, the scenario gold for 5, each deeper as the tier rises */
@@ -1275,6 +1279,7 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .cico svg { width: 100%; height: 100%; display: block; }
 .iico.lico { width: 26px; height: 26px; padding: 3px; border-radius: var(--r-sm); }
 .ct-name { display: inline-flex; align-items: center; gap: var(--space-2); }
+.ct-name .cico { width: 28px; height: 28px; } /* the class leads; its marks follow smaller */
 .cs-row b .cico, .actions .cico { margin-right: var(--space-1); }
 .eq { display: grid; grid-template-columns: minmax(300px, 400px) minmax(0, 1fr); gap: var(--space-3) var(--space-8); align-items: start; padding-bottom: var(--space-6); border-bottom: 1px solid var(--border); }
 .eq-col { display: grid; gap: var(--space-3); align-content: start; }

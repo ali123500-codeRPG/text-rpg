@@ -31,7 +31,7 @@ import { IT } from '../library/itemIds';
 import { wornPack } from '../engine/containers';
 import { gripParts } from '../engine/gear';
 import { coins, coinWords, countWords, itemValue } from '../engine/trade';
-import { iconName, itemIcon, ICONS, type IconName } from './itemIcons';
+import { iconName, itemIcon, ICONS, skillMark, type IconName } from './itemIcons';
 import { cap, r1 } from '../words';
 import { compareRows } from './compare';
 
@@ -179,7 +179,7 @@ function charTiles(s: GameState, open: { essences: (b: HTMLElement) => void; per
   );
 }
 /** EQ7: "Medium Weapons 50" */
-const needText = (r: { skill: string; need: number }) => `${skillName(r.skill)} ${r.need}`;
+const needText = (r: { skill: string; need: number }) => [skillMark(r.skill), ` ${r.need}`];
 
 /** an item's exact stats: the Inventory's side panel and the equipment panel's hover card share these rows */
 export function itemRows(s: GameState, it: { id?: string; itemId: string; boundTo?: string; qty?: number }): PanelRow[] {
@@ -191,15 +191,19 @@ export function itemRows(s: GameState, it: { id?: string; itemId: string; boundT
   for (const m of d.weapon?.modes ?? []) rows.push({ k: `Attack · ${modeName(m)}`, v: `${m.tree} ${m.class}, reach ${m.reach} m, damage ${sign(m.damageAdj)}, hit ${sign(m.hitAdj)}` });
   if (d.armor) rows.push({ k: 'Armor', v: `${d.armor.weight}, covers ${d.armor.covers.join(', ')}, reduction ${d.armor.reduction}, multiplier ×${d.armor.multiplier}` });
   if (d.shield) rows.push({ k: 'Shield pool', v: String(d.shield.pool) });
-  for (const e of d.effects ?? []) rows.push({ k: e.kit ? 'Standard kit' : 'Effect', v: `${sign(effectValue(d, e))} to ${e.kind === 'skill' ? (e.skill === '$mode' ? 'the attack skill' : e.skill === ROLLED_SKILL ? (it.id ? skillName(rolledSkill(s, { id: it.id }, e)) : 'one skill, rolled for each piece') : skillName(e.skill ?? '')) : `${e.roll} rolls`} while ${e.active}${e.kit ? ' (kit pieces share one bonus per roll)' : ''}` });
+  for (const e of d.effects ?? []) {
+    const what: string | HTMLElement = e.kind !== 'skill' ? `${e.roll} rolls` : e.skill === '$mode' ? 'the attack skill'
+      : e.skill === ROLLED_SKILL ? (it.id ? skillMark(rolledSkill(s, { id: it.id }, e)) : 'one skill, rolled for each piece') : skillMark(e.skill ?? '');
+    rows.push({ k: e.kit ? 'Standard kit' : 'Effect', v: h('span', {}, `${sign(effectValue(d, e))} to `, what, ` while ${e.active}${e.kit ? ' (kit pieces share one bonus per roll)' : ''}`) });
+  }
   // EQ7: the requirement, red while the player is short, grey once met
   const need = requirement(d);
   if (need) {
     const short = shortBy(s.player, d), steps = shortSteps(short);
     const rolls = d.armor ? 'Dodge and stealth rolls while worn' : 'rolls with it';
     rows.push({ k: 'Needs', v: h('span', { class: short > 0 ? 'tone-bad' : 'tone-muted' }, short > 0
-      ? `${needText(need)} (you have ${r1(need.need - short)}: ${plural(steps, 'outcome step')} worse on ${rolls})`
-      : `${needText(need)} (met)`) });
+      ? [...needText(need), ` (you have ${r1(need.need - short)}: ${plural(steps, 'outcome step')} worse on ${rolls})`]
+      : [...needText(need), ' (met)']) });
   }
   rows.push({ k: 'Bulk', v: String(d.bulk) });
   // what it is worth in coin (the price a trader starts from), and for a stack what the whole stack is worth
@@ -346,7 +350,7 @@ function equipment(api: GameApi, s: GameState, openItem: (it: InvItem) => void, 
 function itemMarks(s: GameState, it: InvItem): HTMLElement[] {
   const d = safe(() => itemDef(s, it.itemId)), need = d ? requirement(d) : null, short = d && need ? shortBy(s.player, d) : 0;
   const hurt = damageText(it);
-  return [hurt ? iconMark(ICONS.damaged, `Damaged: ${hurt}`) : null, need && short > 0 ? iconMark(ICONS.locked, `Needs ${needText(need)} (you have ${r1(need.need - short)})`) : null]
+  return [hurt ? iconMark(ICONS.damaged, `Damaged: ${hurt}`) : null, need && short > 0 ? iconMark(ICONS.locked, `Needs ${skillName(need.skill)} ${need.need} (you have ${r1(need.need - short)})`) : null]
     .filter((x): x is HTMLElement => !!x);
 }
 /** "shield 60%": the pools below full, or '' for a whole item */

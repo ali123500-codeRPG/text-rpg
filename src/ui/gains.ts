@@ -7,7 +7,7 @@
 // long the turn took (M-03); only how many gains there are sets how long it runs, as long as the moment needs.
 import { h, plural } from './kit';
 import { arrive, bar as barMove, count, impact, later, measured, ms, paced, play, stamp } from './motion';
-import { skillName } from './creation';
+import { skillMark, treeIcon } from './itemIcons';
 import { perkSeries } from './perks';
 import { getLibrary } from '../library';
 import { SCENARIO_ENDING_NAMES, SCENARIO_ENDING_OUTCOMES, type AchievementNote, type GameApi, type ScenarioEndNote, type ScenarioGains, type XpPart } from '../types';
@@ -82,13 +82,13 @@ function gainsSpine(g: ScenarioGains, achCard: (a: AchievementNote) => HTMLEleme
     h('li', { class: 'g-sec', 'data-sec': key }, h('span', { class: 'g-node', 'aria-hidden': 'true' }, '✦'), h('p', { class: 'hs-label g-label', ...termAttrs(label) }, label), h('div', { class: 'g-items' }, ...items));
   const secs: HTMLElement[] = [];
   if (g.skills.length) secs.push(sec('skills', 'Skills', ...g.skills.map((s) => h('div', { class: 'g-skill', 'data-from': String(s.from), 'data-to': String(s.to) },
-    h('b', { class: 'n' }, skillName(s.skill)), h('span', { class: 'num' }, num(s.to)),
+    h('span', { class: 'n' }, skillMark(s.skill)), h('span', { class: 'num' }, num(s.to)),
     h('span', { class: 'g-up' }, `▲ ${plus(s.to - s.from)}`),
     h('div', { class: 'cs-bar' }, h('b', { style: `width:${Math.min(100, s.to)}%` }))))));
   if (g.perks.length) secs.push(sec('perks', g.perks.length === 1 ? 'New perk' : 'New perks', ...g.perks.map((p) =>
-    h('div', { class: 'perk-new g-perk', 'data-series': perkSeries(p.milestone) }, star(), h('div', {}, 'New perk unlocked', h('small', {}, `${skillName(p.skill)} reached ${p.milestone}`))))));
+    h('div', { class: 'perk-new g-perk', 'data-series': perkSeries(p.milestone) }, star(), h('div', {}, 'New perk unlocked', h('small', {}, skillMark(p.skill), ` reached ${p.milestone}`))))));
   if (g.allPerks.length) secs.push(sec('all', 'Tree perks', ...g.allPerks.map((a) =>
-    h('div', { class: 'perk-new g-all' }, star(), h('div', {}, a.name, h('small', {}, `${lib.trees[a.tree]?.name ?? 'A tree'}: its skills reached ${a.step}`))))));
+    h('div', { class: 'perk-new g-all' }, star(), h('div', {}, a.name, h('small', {}, treeIcon(a.tree, lib.trees[a.tree]?.name ?? '') ?? lib.trees[a.tree]?.name ?? 'A tree', `: its skills reached ${a.step}`))))));
   if (g.achievements.length) {
     const scars = g.achievements.every((a) => a.scar), achs = g.achievements.every((a) => !a.scar);
     secs.push(sec('ach', achs ? 'Achievements' : scars ? 'Scars' : 'Achievements and scars', ...g.achievements.map(achCard)));
