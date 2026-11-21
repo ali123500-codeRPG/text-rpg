@@ -513,9 +513,9 @@ export function prototypeLibrary(): Library {
     healing: {
       [HL.rest]: { id: HL.rest, name: 'Rest', hpPct: CONFIG.REST_HEAL_PCT, composure: CP.rest, reach: 'damaged', revivesDead: false },
       [HL.clinic]: { id: HL.clinic, name: 'Clinic', hpPct: CONFIG.CLINIC_HEAL_PCT, composure: CP.clinic, reach: 'crippled', revivesDead: false, placeKinds: ['clinic', 'infirmary'] },
-      [HL.bandage]: { id: HL.bandage, name: 'Bandage', hpPct: 10, reach: 'damaged', revivesDead: false },
+      [HL.bandage]: { id: HL.bandage, name: 'Bandage', hpPct: 10, reach: 'damaged', revivesDead: false, grade: 'minor' }, // D-235b b: grade placeholders
       // AT10 (placeholder): a healing draught, 25% of health and parts up to Damaged, any time
-      [HL.draught]: { id: HL.draught, name: 'Healing draught', hpPct: 25, reach: 'damaged', revivesDead: false },
+      [HL.draught]: { id: HL.draught, name: 'Healing draught', hpPct: 25, reach: 'damaged', revivesDead: false, grade: 'moderate' },
       // NR34: Heal (Healing 50); its share is set per use by the roll's tier (CONFIG.HEAL_TIER_SHARE of what is missing)
       [HL.heal]: { id: HL.heal, name: 'Heal', hpPct: 0, reach: 'damaged', revivesDead: false },
       // H12–H14: natural recovery, all the time (fights too): endurance × 0.01 % an hour (0.5% at 50); never Crippled or worse
