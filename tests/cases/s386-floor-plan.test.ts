@@ -102,4 +102,18 @@ describe('386 titles on a floor plan (PZ1-PZ17)', () => {
     expect(s.player.progression!.cellsStood).toHaveLength(2);
     expect(ids()).not.toContain(ACH.ground_25);
   });
+
+  it('PZ7 (BG-1660): new titles stand on the ground outside, whatever order they are listed in', () => {
+    const H = CONFIG.STOREY_HEIGHT;
+    const keep = [
+      title('yard', 'keep', [way('hall', 'the hall door', 'door')], { rect: { x: 0, y: 0, w: 10, d: 10 }, roof: false }),
+      title('hall', 'keep', [way('tower', 'the stairs up', 'up'), way('vault', 'the stairs down', 'down')], { rect: { x: 10, y: 0, w: 10, d: 10 }, roof: true }),
+      title('tower', 'keep', [], { rect: { x: 10, y: 0, w: 10, d: 10 }, roof: true }),
+      title('vault', 'keep', [], { rect: { x: 10, y: 0, w: 10, d: 10 }, roof: true }),
+    ];
+    for (const order of [keep, [...keep].reverse()]) {
+      const s = planWorld(order), floor = (id: string) => s.zones.find((z) => z.id === id)!.floor;
+      expect([floor('yard'), floor('hall'), floor('tower'), floor('vault')]).toEqual([0, 0, H, -H]);
+    }
+  });
 });

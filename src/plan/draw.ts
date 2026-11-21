@@ -171,10 +171,13 @@ export function frontierTo(state: GameState, o: Opening, to: Zone): void {
 }
 
 /** PZ7: floors from the ways: a title up a way of kind up from a title on a known floor stands a storey above it, down a
- * storey below, else level; a title nothing reaches stands at 0 (a story's first titles) */
-function settleFloors(state: GameState, titles: Zone[]): void {
+ * storey below, else level. Titles nothing on a known floor reaches (a story's first titles) settle from one another,
+ * then stand so that the lowest of them in the open is on the ground outside (0); with none in the open, the first
+ * listed stands at 0 */
+function settleFloors(state: GameState, titles: Zone[], open: (z: Zone) => boolean): void {
   const todo = new Set(titles.filter((z) => !Number.isFinite(z.floor)).map((z) => z.id));
   const byId = (id: string) => state.zones.find((z) => z.id === id);
+  const group = new Map<Zone, number>(); // titles settled from a guessed 0, not a known floor, by the title guessed
   for (let pass = 0; todo.size && pass < 100; pass++) {
     let moved = false;
     for (const o of state.openings) {
@@ -182,17 +185,22 @@ function settleFloors(state: GameState, titles: Zone[]): void {
       const a = byId(o.joins[0]), b = byId(o.joins[1]);
       if (!a || !b) continue;
       const climb = pendingClimb.get(o) ?? (o.to ? Math.sign(o.to.floor - o.floor) : 0);
-      if (todo.has(b.id) && Number.isFinite(a.floor)) { b.floor = a.floor + climb * CONFIG.STOREY_HEIGHT; todo.delete(b.id); moved = true; }
-      else if (todo.has(a.id) && Number.isFinite(b.floor)) { a.floor = b.floor - climb * CONFIG.STOREY_HEIGHT; todo.delete(a.id); moved = true; }
+      if (todo.has(b.id) && Number.isFinite(a.floor)) { b.floor = a.floor + climb * CONFIG.STOREY_HEIGHT; todo.delete(b.id); moved = true; if (group.has(a)) group.set(b, group.get(a)!); }
+      else if (todo.has(a.id) && Number.isFinite(b.floor)) { a.floor = b.floor - climb * CONFIG.STOREY_HEIGHT; todo.delete(a.id); moved = true; if (group.has(b)) group.set(a, group.get(b)!); }
     }
-    if (!moved) { const id = [...todo][0]; byId(id)!.floor = 0; todo.delete(id); }
+    if (!moved) { const z = byId([...todo][0])!; z.floor = 0; todo.delete(z.id); group.set(z, group.size); }
+  }
+  for (const g of new Set(group.values())) {
+    const zs = [...group].filter(([, n]) => n === g).map(([z]) => z);
+    const ground = Math.min(...zs.filter(open).map((z) => z.floor));
+    if (Number.isFinite(ground)) for (const z of zs) z.floor -= ground;
   }
 }
 
 /** PZ14 a: draws the draft's titles: floors, footprints (placeZones), then walls, openings, roofs, lights and furniture */
 export function drawPlan(state: GameState, draft: Draft): Zone[] {
   const { titles, specs } = draft;
-  settleFloors(state, titles);
+  settleFloors(state, titles, (z) => !roofOf(specs.get(z.id), z));
   for (const z of titles) if (!Number.isFinite(z.top)) z.top = topFor(z.floor, roofOf(specs.get(z.id), z));
   // footprints: titles with none are placed next to the titles they join
   const todo: PlaceInput[] = titles.filter((z) => !z.outline.length).map((z) => {
