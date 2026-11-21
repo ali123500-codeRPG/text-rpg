@@ -130,7 +130,7 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 
 #### Tips, choice states and risky choices
 
-- **PS-80** Tips: a hover tip waits --m-tip-delay (150 ms); keyboard focus shows it at once. Once one tip is open (or
+- **PS-80** Tips: a hover tip waits --m-tip-delay (75 ms); keyboard focus shows it at once. Once one tip is open (or
   closed within twice the delay), the next shows at once; leaving hides it at once (A7; tipOn/tipOff in src/ui/kit.ts
   for item cards, Loot, the rail and the minimap; a transition-delay for the CSS tips).
 - **PS-81** The minimap's hover text (rooms, rings, doors, stairs, furniture, people, its buttons) is this tip, not the
