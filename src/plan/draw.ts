@@ -15,6 +15,7 @@ import { roofed, topFor, inTitle } from './where';
 import { paintWall, wallAt } from './walls';
 import { planChanged } from './stamp';
 import { freshId } from '../ids';
+import { createRng, textSeed } from '../rng';
 
 /** what drawing keeps of a title until it is drawn: its spec, and the ways read from it */
 type Draft = { titles: Zone[]; specs: Map<string, TitleSpec> };
@@ -215,6 +216,14 @@ function settleFloors(state: GameState, titles: Zone[], open: (z: Zone) => boole
   }
 }
 
+/** FZ5 a: a new title's long side ÷ short side, rolled evenly between its kind's least and most, from dice seeded by the
+ * story and the title, so the same title always draws the same shape */
+function rollAspect(state: GameState, z: Zone, range?: [number, number]): number {
+  if (!range) return 1;
+  const [least, most] = range;
+  return least + createRng(textSeed(`${state.storyId}:aspect:${z.id}`)).next() * (most - least);
+}
+
 /** PZ14 a: draws the draft's titles: floors, footprints (placeZones), then walls, openings, roofs, lights and furniture */
 export function drawPlan(state: GameState, draft: Draft): Zone[] {
   const { titles, specs } = draft;
@@ -223,7 +232,7 @@ export function drawPlan(state: GameState, draft: Draft): Zone[] {
   // footprints: titles with none are placed next to the titles they join
   const todo: PlaceInput[] = titles.filter((z) => !z.outline.length).map((z) => {
     const sp = specs.get(z.id), k = kindDef(z.kind);
-    return { z, area: z.area ?? CONFIG.ZONE_SIZE_M2[k?.size ?? 'room'], aspect: sp?.aspect ?? k?.aspect ?? 1, roof: roofOf(sp, z) };
+    return { z, area: z.area ?? CONFIG.ZONE_SIZE_M2[k?.size ?? 'room'], aspect: sp?.aspect ?? rollAspect(state, z, k?.aspect), roof: roofOf(sp, z) };
   });
   const joins: PlaceJoin[] = state.openings.filter((o) => !o.frontier).flatMap((o) => {
     const c = pendingClimb.get(o) ?? 0;

@@ -106,14 +106,18 @@ type Band = {                   // a small group: a guard post, a gang, a househ
 - **GSM-40** The Weaver names titles with a kind and a size and the ways between them; code, never Claude, draws them
   (PZ14 a, `src/plan/draw.ts`).
 - **GSM-41** Title kinds (library zoneKinds ZK1-ZK10: room, corridor, stairs, cellar, street, square, gate, yard,
-  field, woods) are drawing templates: a default size and aspect, whether a roof goes over it (roof), its default wall
+  field, woods) are drawing templates: a default size and an aspect range, whether a roof goes over it (roof), its default wall
   kind (indoors WK1 wall, outdoors none), its default light (a source, Light below) and its default furniture. They
   have no cover, light or outdoor columns.
 - **GSM-42** Code first places each new title's footprint (placeZones, unchanged in method): a rectangle of its area
-  at its kind's aspect touching the title it joins on the side its way's compass word names, else the first free side,
+  at its aspect touching the title it joins on the side its way's compass word names, else the first free side,
   in whole metres, never inside another building's footprint (MAP-10 to MAP-12). Of the free spots, one that touches
   more of the placed titles it joins wins first, so a yard between a lane and a back yard touches both and neither way
-  needs a long connector on the Map (CO1 B).
+  needs a long connector on the Map (CO1 B). A title's aspect (long side ÷ short side) is its spec's when given, else rolled evenly between its kind's
+  least and most (the library's zoneKinds aspect range, placeholders), from dice seeded by the story and the title, so the
+  same title always draws the same shape (FZ5 a, Ali, 21/11/2026, Questions hub page "Field sizes"; rollAspect in
+  src/plan/draw.ts). Irregular outlines for fields and woods follow as their own task (the owner's choice on the shapes
+  card, 21/11/2026: "Proportions, then irregular").
 - **GSM-43** Then code draws the plan (drawPlan): one wall along each side by its wall kind (a side two titles share
   gets one wall, the more closed of their two kinds), one opening per way at the middle of the shared wall (a doorway),
   a roof over each roofed title, its lights and its furniture at points (CO3).
