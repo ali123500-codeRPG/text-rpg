@@ -3,6 +3,7 @@ import {
   roofed,
   wayTo,
 } from '../plan/where';
+import { ofOurs } from './belonging';
 import {
   checkScenarioEnd,
   closeScenario,
@@ -956,7 +957,7 @@ function setAttackOverrides(state: GameState, ev: GameEvent): void {
     if (p.id === ev.actorId || !p.mind || !(isActive(p) || felt)) continue;
     // CS5: a bandmate must perceive the attack fully (a partial event names no attacker)
     const saw = ev.perception[p.id]?.level === 'full';
-    if (!felt && (self ? !saw && !atLeast(p.mind.knowledge[ev.actorId]?.status, 'aware') : p.bandId !== target.bandId || !saw)) continue;
+    if (!felt && (self ? !saw && !atLeast(p.mind.knowledge[ev.actorId]?.status, 'aware') : !ofOurs(state, p, target) || !saw)) continue; // BEL-51: one of its group or crew
     setStanceWhole(state, p, ev.actorId, 'hostile', self); // D-206 BN2 a: a grudge over an attack on itself fades only so far
   }
 }
@@ -1040,7 +1041,7 @@ function findBodies(ctx: Ctx): void {
       ev.perception[x.id] ??= { level: 'full', cue: 'sight' };
       emit(ctx, ev, undefined, true);
       m.startled = state.turn;
-      if (!!b.bandId && b.bandId === x.bandId) fear(ctx, x, FR.bandmate_down, {}, ev.perception);
+      if (ofOurs(state, x, b)) fear(ctx, x, FR.bandmate_down, {}, ev.perception);
     }
   }
 }
@@ -1059,7 +1060,7 @@ function fear(ctx: Ctx, a: Actor, id: string, o: { gap?: number; mult?: number; 
   // BF37/BF79: broken, what it has yet to do loses any attack or perk move (fleeing if nothing is left); surrendered, it holds
   if (!ctx.acted.has(a.id) && ctx.orders.has(a.id)) { const v = buildActorView(state, a.id); ctx.orders.set(a.id, v.self.broken && !v.self.surrendered ? brokenHolds(v, ctx.orders.get(a.id)!) : brokenOrder(v)); }
   // MB23: bandmates who perceived it are frightened too
-  for (const p of allActors(state)) if (p !== a && !!a.bandId && p.bandId === a.bandId && seen[p.id]) fear(ctx, p, FR.bandmate_broken, {}, seen);
+  for (const p of allActors(state)) if (ofOurs(state, p, a) && seen[p.id]) fear(ctx, p, FR.bandmate_broken, {}, seen);
 }
 
 /** SY1 steadying yourself: the event, the roll, and a loss through fear() (which applies a break). `o` carries the words said
@@ -1517,7 +1518,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
   for (const { fear: f, parts } of partFears(before.parts, partStates(state, t))) fear(ctx, t, f.id, { cost: partFearCost(f, parts, actorBody(state, t).parts) }, seenBy); // parts Crippled (or worse) by this hit
   if (!isActive(t) && before.active) { // newly down: a blow on someone already down downs no one
     if (isActive(a) && !a.mind?.moraleState) calm(state, a, CP.foe_downed); // TM28: a composure row, so it counts as calmed
-    for (const p of allActors(state)) if (p !== t && !!t.bandId && p.bandId === t.bandId && seenBy[p.id]) fear(ctx, p, FR.bandmate_down, {}, seenBy);
+    for (const p of allActors(state)) if (ofOurs(state, p, t) && seenBy[p.id]) fear(ctx, p, FR.bandmate_down, {}, seenBy);
     for (const id of Object.keys(seenBy)) { const m = actorById(state, id)?.mind; if (m) m.bodiesFound = [...new Set([...(m.bodiesFound ?? []), t.id])]; } // BF65: seen to fall, never found later
   }
   // B16 One-Two: an improvised hit with a Grip part free is followed by a free punch at the same foe
@@ -2411,7 +2412,7 @@ function doBreakThrough(ctx: Ctx, a: Actor, o: Order, spent?: number): void {
 function theftSeen(state: GameState, a: Actor, owner: Actor, what: string, ev: GameEvent): void {
   const caught: Actor[] = [], suspicious: Actor[] = [];
   for (const w of allActors(state)) {
-    if (w === a || w.bandId === a.bandId || (!w.mind && w.kind !== 'player') || !isActive(w) || isAsleep(w)) continue;
+    if (w === a || ofOurs(state, w, a) || (!w.mind && w.kind !== 'player') || !isActive(w) || isAsleep(w)) continue;
     const level = ev.perception[w.id]?.level ?? perceptionOf(ev, state, w)?.level;
     if (level) (level === 'full' ? caught : suspicious).push(w);
   }

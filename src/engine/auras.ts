@@ -18,7 +18,8 @@ import { setStanceWhole } from './regard';
 import { STANCES, TIERS } from '../scales';
 import { probe } from './yield';
 import { distM, withinM, placeOf } from './position';
-import { besidePlayer } from './engagement';
+import { besidePlayer, onFightSide } from './engagement';
+import { ofOurs } from './belonging';
 import { hears, perceptionOf } from '../perception';
 import { AURAS, type AuraDef } from '../library/auras';
 import { applySpeech } from './speech';
@@ -108,7 +109,7 @@ export function sightDread(state: GameState, fear: AuraFear): { owner: Actor; ta
     for (const d of onSightPerks(owner)) {
       const k = `${d.id}:${owner.id}`;
       for (const t of allActors(state)) {
-        if (t === owner || !isActive(t) || t.sightChecks?.includes(k) || (!!t.bandId && t.bandId === owner.bandId)) continue;
+        if (t === owner || !isActive(t) || t.sightChecks?.includes(k) || ofOurs(state, t, owner) || onFightSide(state, t, owner)) continue; // BEL-51
         if (probe(state, t, owner, 'silent', 'normal')?.cue !== 'sight') continue;
         (t.sightChecks ??= []).push(k);
         fear(t, d.onSight!.fear, undefined, undefined, fearMult(owner));
@@ -121,11 +122,11 @@ export function sightDread(state: GameState, fear: AuraFear): { owner: Actor; ta
 
 export type CryResult = { target: Actor; contest?: ContestResult; took?: boolean; rallied?: true; overwhelmed?: true };
 
-/** an ally of the owner for Battle Cry: a bandmate, someone who counts the owner a friend or better, or (for the player)
- * someone fighting beside them */
+/** an ally of the owner for Battle Cry: one of its own (BEL-51: group or crew), someone on its side of the fight (BEL-27),
+ * someone who counts the owner a friend or better, or (for the player) someone fighting beside them */
 export function cryAlly(state: GameState, t: Actor, owner: Actor): boolean {
   const s = stance(state, t, owner);
-  return (!!t.bandId && t.bandId === owner.bandId) || atLeastStance(s, 'friend') || (owner === state.player && besidePlayer(state, t));
+  return ofOurs(state, t, owner) || onFightSide(state, owner, t) || atLeastStance(s, 'friend') || (owner === state.player && besidePlayer(state, t));
 }
 
 /** TC43 a: a rally is one roll by the one rallied: its morale check (Resolve) plus RALLY_SHARE of the rallier's rallying

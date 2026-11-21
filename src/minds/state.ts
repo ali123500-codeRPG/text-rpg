@@ -1,5 +1,6 @@
 // State-side minds work: routine install and switch, the alarm machine, Explore detection and ambush.
 import { groundZoneOf } from '../engine/ground';
+import { ofOurs } from '../engine/belonging';
 import { FN } from '../library/functionIds';
 import type { Actor, ActorView, ContestResult, Cue, GameEvent, GameState, ItemInstance, Order, Rng, RollResult, SkillFunction, Tier, TierRoll, Zone } from '../types';
 import type { NoiseKey } from '../scales';
@@ -292,7 +293,7 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): str
   const feat = (r: ContestResult, fns?: SkillFunction[]) => { if (act) { matchedCritFeat(state, r); act.push({ c: r, fns }); } else contestFeat(state, r, fns); }; // N4c
   for (const a of allActors(state)) {
     const pair = pairKey(s, a) + own;
-    if (a.id === s.id || a.bandId === s.bandId || (!a.mind && a.kind !== 'player') || !isActive(a)) continue;
+    if (a.id === s.id || ofOurs(state, a, s) || (!a.mind && a.kind !== 'player') || !isActive(a)) continue;
     const sees = atLeast(beliefStatus(state, a, s), 'aware');
     if (fade ? !sees || !event.spotted?.includes(a.id) : sees && !moved && !melt) continue; // ST12: no slipping away without a step or Melt Away
     const seen = perceptionOf(event, state, a);
@@ -415,7 +416,7 @@ export function searchFor(state: GameState, a: Actor, event: GameEvent, rng: Rng
   const done = contestedThisTurn(state);
   const won: { found: Actor; r: ContestResult }[] = [];
   for (const h of allActors(state)) {
-    if (h.id === a.id || h.posture !== 'stealthy' || h.bandId === a.bandId || !isActive(h) || (opts.only && h.id !== opts.only)) continue;
+    if (h.id === a.id || h.posture !== 'stealthy' || ofOurs(state, a, h) || !isActive(h) || (opts.only && h.id !== opts.only)) continue;
     if (atLeast(beliefStatus(state, a, h), 'aware')) continue;
     const noise = opts.noiseOf?.(h) ?? CONFIG.HIDE_STILL_NOISE;
     const reach = opts.look ? [] : DETECTION_SENSES.flatMap((f) => { const t = senseReach(state, a, h, f, noise, !!opts.only); return t === null ? [] : [{ sense: f, ...t }]; });

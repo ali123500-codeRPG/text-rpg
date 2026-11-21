@@ -10,6 +10,7 @@
 // FILCH_CAUGHT_OWNER_STEPS, every other catcher by FILCH_CAUGHT_WITNESS_STEPS, and all remember. A taken item keeps who it
 // was taken from (FL6, ItemInstance.stolenFrom).
 import type { Actor, GameEvent, GameState, ItemInstance, Mod, Perception, Rng, RollResult } from '../types';
+import { ofOurs } from './belonging';
 import { CONFIG } from '../config';
 import { FN } from '../library/functionIds';
 import { SENSE_SKILL } from '../library/skillIds';
@@ -52,7 +53,7 @@ export function filchContest(state: GameState, a: Actor, owner: Actor | undefine
   const zone = zoneById(state, at.zone);
   const size = filchSize(bulk) ?? 0;
   for (const w of allActors(state)) {
-    if (w === a || w.bandId === a.bandId || (!w.mind && w.kind !== 'player') || !isActive(w) || isAsleep(w)) continue;
+    if (w === a || ofOurs(state, w, a) || (!w.mind && w.kind !== 'player') || !isActive(w) || isAsleep(w)) continue;
     const mods: Mod[] = [pctMod('attention', CONFIG.FILCH_ATTENTION[attentionOf(state, w, a, events)] ?? 0), pctMod('size', size)];
     /** one sense's contest: the watcher's roll against F; made out clearly and won catches, else won or tied is suspicion */
     const contest = (sense: 'sight' | 'hearing', level: Perception): 'caught' | 'suspicious' | null => {

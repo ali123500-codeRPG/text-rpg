@@ -4,6 +4,7 @@
 // nothing has engaged it, either way, for ENGAGEMENT_END (engagementEndS) in a row. Talk turning into a fight (or back)
 // stays one engagement, so once-per-engagement effects and the end-of-engagement improvement rolls happen once.
 import type { Actor, EngagementKind, GameEvent, GameState } from '../types';
+import { ofOurs, onSide } from './belonging';
 import { actorById, allActors, atLeast, countsInFight, hostile, isActive, sparring } from './relations';
 import { logCode } from './effects';
 import { M_EPS, distM, spotAt, standingAt } from './position';
@@ -25,6 +26,9 @@ export function engagedPair(a: Actor, b: Actor): boolean {
 export function fightingWith(state: GameState, a: Actor, b: Actor): boolean {
   return countsInFight(a) && countsInFight(b) && engagedPair(a, b) && hostile(state, a, b); // engagedPair first: hostile scans every actor
 }
+
+/** BEL-27: b is on a's side of the fight: it fights one of a's foes and is not a's foe */
+export const onFightSide = (state: GameState, a: Actor, b: Actor): boolean => onSide(state, a, b, (x, y) => fightingWith(state, x, y));
 
 /** raises a's awareness of b to `status` (never lowers it) and marks this turn as one of attacking or closing in */
 function press(state: GameState, a: Actor, b: Actor, status: 'hunting' | 'engaged'): void {
@@ -51,7 +55,7 @@ export function noteFighting(state: GameState, events: GameEvent[]): void {
       const knows = (m: Actor) => atLeast(m.mind?.knowledge?.[a.id]?.status, 'aware');
       press(state, a, t, 'engaged');
       if (knows(t)) press(state, t, a, 'engaged');
-      for (const m of allActors(state)) if (m !== t && m !== a && m.bandId === t.bandId && e.perception[m.id] && knows(m)) press(state, m, a, 'engaged');
+      for (const m of allActors(state)) if (m !== t && m !== a && ofOurs(state, m, t) && e.perception[m.id] && knows(m)) press(state, m, a, 'engaged');
     }
     if (e.kind === 'move') {
       for (const b of allActors(state)) {

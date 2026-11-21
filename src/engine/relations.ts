@@ -11,7 +11,7 @@ import { fitsOpening } from '../plan/path';
 import { waysOut, type Way } from '../plan/where';
 import { wallAt, wallKind } from '../plan/walls';
 import { sharedSides } from '../plan/geom';
-import { groupAndOrgStance, heldStances, sameGroup } from './belonging';
+import { groupAndOrgStance, heldStances, ofOurs, sameGroup } from './belonging';
 
 /** the actor's active perks and quirks that work on sight (PerkDef.onSight) */
 export const onSightPerks = (a: Actor) => a.core.perks.filter((p) => !p.dormant).map((p) => getLibrary().perks?.[p.perkId]).filter((d): d is NonNullable<typeof d> => !!d?.onSight);
@@ -63,7 +63,7 @@ export function stance(state: GameState, a: Actor, b: Actor): Stance {
  * a personal grudge fades back to it) */
 export function baseStance(state: GameState, a: Actor, b: Actor): Stance {
   const s = groupAndOrgStance(state, a, b);
-  if (sameGroup(state, a, b)) return s;
+  if (a.bandId === b.bandId || sameGroup(state, a, b)) return s;
   // an achievement's first-sight reward: a hunted kind meets b wary until b attacks it (the attack sets a hostile override)
   if (s === 'hostile' && firstSightOf(b, a)) return 'opposed';
   // Dreaded on Sight: once a has seen b, its band's stance reads colder (the player holds no stances)
@@ -275,9 +275,10 @@ const homes = (state: GameState, a: Actor) =>
   Object.values(a.mind?.slots ?? {}).flat().map((z) => zoneById(state, z)?.placeId).filter((p): p is string => !!p).map((p) => topPlace(state, p));
 
 /** BG-95: one rule for who knows whose name, player and NPC alike: their own, a public figure's (knownOnSight: everyone,
- * or KN1 b those who live in its settlement), a bandmate's, or one learned by hearing it said (learnNames) */
+ * or KN1 b those who live in its settlement), one of its own's (BEL-53: its group's members are introduced as it forms, and
+ * crew-mates know each other), or one learned by hearing it said (learnNames) */
 export function knowsName(state: GameState, viewer: Actor, a: Actor): boolean {
-  if (a === viewer || a.knownOnSight === 'everyone' || (viewer.bandId && viewer.bandId === a.bandId)) return true;
+  if (a === viewer || a.knownOnSight === 'everyone' || ofOurs(state, viewer, a)) return true;
   if (namesOf(state, viewer)?.namesKnown?.includes(a.id)) return true;
   if (a.knownOnSight !== 'locals') return false;
   const theirs = homes(state, a);

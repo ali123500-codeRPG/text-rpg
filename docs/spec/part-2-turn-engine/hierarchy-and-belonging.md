@@ -1,13 +1,14 @@
 ### Hierarchy and belonging
 
-**Decided; steps 1 and 2 of 4 built (D-1768).** Step 1 (BEL-61, PR #1774 and issue #1788): the organization,
+**Decided; steps 1 and 2 of 4 built, step 3 in part (D-1768).** Step 1 (BEL-61, PR #1774 and issue #1788): the organization,
 link and tie records (`Organization`, `OrgLink`, `Tie` in src/types/core.ts; `GameState.organizations` and `orgLinks`,
 `Actor.ties`, `Place.holder` and `law`), the group's new fields on the band (`purpose`, `leaderId`, `officerIds`,
 `backer`, `parentId`), the names tables `TIE_STATUS`, `COMMITMENT`, `TIE_COVER` and `LINK_KINDS` (src/scales.ts), the
 save keeping all of them, the library table renamed to `castRecipes` (BEL-17), a recipe's lead and seconds made its
 group's leader and officers (BEL-09), and the ties code gives at spawn (src/scenario/belong.ts, below). Step 2 (PR
-#1777): the default attitude (BEL-25). Readers other than the default attitude still read the band, as the band rules
-in [Information model](information-model.md) say, and where this topic and the code differ the code wins.
+#1777): the default attitude (BEL-25). Readers not moved below still read the band, as the band rules in [Information
+model](information-model.md) say; where an older rule says "bandmate" for a reader moved below, this topic is what the
+game does. Where this topic and the code differ the code wins.
 
 **What spawning fills** (the owner, Questions hub page "Belonging build", 21/11/2026, BB1 a and BB2 a; the organization
 each recipe names is the recipe's `org` or `hired` in src/library/npcs.ts, the council's kind and commitment
@@ -38,6 +39,19 @@ to fellow members, since being told of one has no rule yet; a secret tie is know
 character learn one; a tie to a person says nothing about others; RS3 (taking a side) counts loyal and friend entries
 of a's groups and organizations as it counted the band's. No organization holds a stance entry yet (the Weaver naming
 organizations is BEL-55), so every stance in play is what it was.
+
+**Step 3 built in part** (BEL-51 to BEL-53): `ofOurs` (group or crew, as the viewer knows the crew) and `onSide` (the
+fight's side, BEL-27) in src/engine/belonging.ts, `onFightSide` in src/engine/engagement.ts. Moved to group or crew:
+turning hostile when one of yours is attacked (RS6) and engagement spreading; fear when one goes down or breaks
+(MB23); the wake shout (NW21); witnesses ignoring their own (filching, a guarded container forced, drawing steel, a
+guard's suspicion, hunches, coming near, a readied "anyone"); a stealthy ally not hidden from you (the stealth contest,
+searching, what you perceive and see); warnings to allies; Battle Cry, Fall Back On Me and the first-sight quirk, which
+also read the fight's side; knowing names (BEL-53: a group's members are introduced as it forms, and in-play joining
+is parked, so its members know each other while in it; crew-mates know each other). Moved to the fight's side: the
+Planner's own side (NV1 b). Not moved yet, asked on "Belonging build": Back off and Draw into the pack (B4, S1) look for
+an ally who is not fighting, whom the fight's side cannot hold; the Spotter perk (T5b), which no reader list names;
+Command from orders (TC7, BEL-54), which needs a group leader the Weaver cannot yet name. The organization's lasting
+aims (BEL-53) wait for the Weaver to name organizations (BEL-55).
 
 Who a character belongs to, whom it serves, whom it works beside right now, who may give it orders, and what each
 character knows about the others' ties. Decided by the owner on the Questions hub page "Hierarchy and belonging",

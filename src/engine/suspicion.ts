@@ -8,6 +8,7 @@
 // Persuasion or Falsehood contest against the guard. It lasts until cleared or the scenario ends (GD5 a), and anyone can be
 // suspected, NPCs too (GD6 a).
 import type { Actor, ActorView, GameEvent, GameState, ItemInstance, Order } from '../types';
+import { ofOurs } from './belonging';
 import { CL } from '../library/classIds';
 import { CONFIG } from '../config';
 import { itemDef } from '../library';
@@ -26,7 +27,7 @@ export const sought = (state: GameState, i: ItemInstance): boolean => !!i.stolen
 
 /** GD2/GD3: a guard's search found `box`, a locked container `t` carries: it suspects them, one step colder, and remembers */
 export function suspect(state: GameState, guard: Actor, t: Actor, box: ItemInstance): void {
-  if (!guard.mind || guard === t || !isGuard(guard) || guard.bandId === t.bandId) return;
+  if (!guard.mind || guard === t || !isGuard(guard) || ofOurs(state, guard, t)) return;
   const s = (guard.mind.suspects ??= {});
   if (s[t.id]) return;
   s[t.id] = { box: box.id, turn: state.turn };

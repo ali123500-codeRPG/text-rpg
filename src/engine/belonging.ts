@@ -60,16 +60,35 @@ export function rankedTies(a: Actor): Tie[] {
 
 /** a and b are in one group, directly or through the groups theirs sit inside (BEL-12) */
 export function sameGroup(state: GameState, a: Actor, b: Actor): boolean {
+  if (!a.bandId || !b.bandId) return false;
   if (a.bandId === b.bandId) return true;
   const gb = groupChain(state, b.bandId);
   return groupChain(state, a.bandId).some((g) => gb.includes(g));
+}
+
+/** a and b share a crew (BEL-04: a close-knit organization), as `a` knows b's ties (BEL-20) */
+export function sameCrew(state: GameState, a: Actor, b: Actor): boolean {
+  if (a === b || !a.ties?.length || !b.ties?.length) return false;
+  const mine = new Set(a.ties.map(orgOf).filter((x): x is string => !!x && !!orgById(state, x)?.closeKnit));
+  return mine.size > 0 && knownTies(state, a, b).some((t) => { const o = orgOf(t); return !!o && mine.has(o); });
+}
+
+/** BEL-51: `b` is one of `a`'s own: in a's group (or a group they share) or in a crew of a's that a knows b to be in */
+export const ofOurs = (state: GameState, a: Actor, b: Actor): boolean => a !== b && (sameGroup(state, a, b) || sameCrew(state, a, b));
+
+/** BEL-27: b is on a's side of a fight: b fights one of a's foes and is not a's foe (from engagements; a passer-by who
+ * joins the fight is on your side without joining your group) */
+export function onSide(state: GameState, a: Actor, b: Actor, fighting: (x: Actor, y: Actor) => boolean): boolean {
+  if (a === b || fighting(a, b) || fighting(b, a)) return false;
+  const all = [state.player, ...state.actors];
+  return all.some((f) => f !== a && f !== b && (fighting(a, f) || fighting(f, a)) && (fighting(b, f) || fighting(f, b)));
 }
 
 /** BEL-25 steps 3 to 5: a's default attitude toward b from groups and organizations, before regard, the fight's state and
  * perks (relations.ts baseStance). The player holds no stances (BEL-22): only its group speaks for it */
 export function groupAndOrgStance(state: GameState, a: Actor, b: Actor): Stance {
   // step 3: a's group and the groups above it. Sharing any of them is the same team
-  if (sameGroup(state, a, b)) return 'friendly';
+  if (a.bandId === b.bandId || sameGroup(state, a, b)) return 'friendly';
   const ga = groupChain(state, a.bandId), gb = groupChain(state, b.bandId);
   const theirs = a.kind === 'player' ? [] : knownOrgs(state, a, b);
   const keys = [b.id, ...gb.map((g) => g.id), ...theirs];
