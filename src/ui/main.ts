@@ -1,6 +1,6 @@
 // Entry point bundled into dist/play/. In the artifact it wires the real game: Claude through the `sample`
 // capability, saves through the `db` capability. ?fake=play|fell|notices runs the in-memory fake (screenshots only);
-// &stage=bent-nail|one-room|long-names swaps its world for a map test stage.
+// &stage=bent-nail|one-room|long-names|two-towns swaps its world for a map test stage.
 import './styles.css';
 import type { GameApi, Notice } from '../types';
 import { mountApp } from './app';

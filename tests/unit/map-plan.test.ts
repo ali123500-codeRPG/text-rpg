@@ -1,5 +1,5 @@
 // The stage map's layout (rpg-map): code places zones on the 1 m grid with buildings in one piece (MAP-10, MAP-12), then
-// places every mark so none covers another (MAP-20..32), and the three test stages (MAP-52) come out clean.
+// places every mark so none covers another (MAP-20..32), and the four test stages (MAP-52) come out clean.
 import { describe, expect, it } from 'vitest';
 import { TEXT, checkReach, checkStage, planScene, roughMeasure, type Box, type Scene } from '../../src/ui/mapPlan';
 import { knownMap, type MapZone } from '../../src/ui/mapData';
@@ -39,7 +39,7 @@ const stageState = (key: string) => {
 };
 
 describe('MAP-52 test stages', () => {
-  for (const key of ['bent-nail', 'one-room', 'long-names']) for (const k of [0.6, 1, 1.6]) {
+  for (const key of ['bent-nail', 'one-room', 'long-names', 'two-towns']) for (const k of [0.6, 1, 1.6]) {
     it(`${key} at zoom ${k}: no mark covers another, every exit named, zones on the grid and out of other buildings`, () => {
       const { sc, zones, places, m } = sceneOf(stageState(key), k);
       expect(findings(sc)).toEqual([]);

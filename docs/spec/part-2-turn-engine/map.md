@@ -287,8 +287,8 @@ continuous map (D-1558)"). Rules below that still lay marks out zone by zone are
 
 #### Checks and test stages
 
-- **MAP-04** A map change ships only when the checker reports zero findings on each of the three MAP-52 test stages:
-  bent-nail, one-room and long-names.
+- **MAP-04** A map change ships only when the checker reports zero findings on each of the four MAP-52 test stages:
+  bent-nail, one-room, long-names and two-towns.
 - **MAP-50** The renderer tags every map element with `data-role` (`zone`, `place`, `label`, `token`, `icon`, `exit`)
   and `data-id`. Labels also carry `data-for` (the zone id) and `data-placement` (`inside` or `outside`). Zone names
   carry `data-layer="back"`. Zones carry `data-parent` when they sit inside a place. Exits carry `data-target`.
@@ -296,21 +296,24 @@ continuous map (D-1558)"). Rules below that still lay marks out zone by zone are
   browser lays out the text. Run `checkReach` on the stage data. Any finding fails the change (checkMap,
   src/ui/mapCheck.ts; checkReach, src/ui/mapPlan.ts).
 - **MAP-52** Test stages: (a) the Bent Nail (kitchen, common room, behind the counter) beside the high lane with the
-  midden yard and its locked plank gate, and a cart horse in the lane, drawn as its capsule (GSM-193), and a locked chest and a rusty knife on the ground of the midden yard (MAP-86); (b) a single room with a straw cot (MAP-85); (c) a 12-zone stage with long zone names. Render each, take
-  a screenshot, and look at it before reporting (bent-nail, one-room, long-names in src/ui/fakeStages.ts).
+  midden yard and its locked plank gate, and a cart horse in the lane, drawn as its capsule (GSM-193), and a locked chest and a rusty knife on the ground of the midden yard (MAP-86); (b) a single room with a straw cot (MAP-85); (c) a 12-zone stage with long zone names; (d) two towns,
+  Brookend (a village green and its inn) and Highmarket (its gate, market and guildhall), at the ends of the 2 km ridge
+  road, with the player on Brookend's green (D-1558; Ali, 21/11/2026: "Add a 4th test stage with two towns and a road").
+  Render each, take a screenshot, and look at it before reporting (bent-nail, one-room, long-names, two-towns in
+  src/ui/fakeStages.ts).
 - **MAP-53** Report every finding verbatim. Never say all checks passed if any check reported something.
 - **MAP-54** `bent-nail-saved` is not a MAP-52 stage. It is a negative fixture holding the live save's stored layout,
   which breaks MAP-10 and MAP-12 on purpose so that the load report must name it (MAP-19). tests/unit/map-plan.test.ts
   asserts it is caught (src/ui/fakeStages.ts; MR2; PZ16 b).
 - **MAP-77** The fake page's Ashford sits at the far end of a 30 km west road (a day's walk) from Millbrook's square
   (RD1-RD3; RM9 a).
-- **MAP-55** Dev views: `?fake=1&stage=bent-nail|bent-nail-saved|one-room|long-names` and `?mapcheck`. There, after
+- **MAP-55** Dev views: `?fake=1&stage=bent-nail|bent-nail-saved|one-room|long-names|two-towns` and `?mapcheck`. There, after
   every to-scale render, the Map runs `checkMap`, `checkReach` and the MAP-10/MAP-12 stage checks (`checkStage`), logs
   each finding to the console as "[map-check] …" and sets `window.__mapFindings`. The minimap, the same view (MAP-84),
   runs the same checks, logs "[minimap-check] …" and sets `window.__minimapFindings` (src/ui/planView.ts,
   src/ui/mapCheck.ts, src/ui/mapPlan.ts).
 - **MAP-56** The automated check is `npm run smoke`: tests/smoke/map.smoke.ts builds the page and asserts zero findings
-  on the minimap and on the Map for the three MAP-52 stages, with no page errors. Agents reuse it and do not write their
+  on the minimap and on the Map for the four MAP-52 stages, with no page errors. Agents reuse it and do not write their
   own Playwright scripts. The run in the PR's checks is the judge: a finding that only a local browser shows, where
   text measures differently (BG-325), does not hold a change back (WF1 c). If a finding ever reaches `main`, D-412
   says what follows.

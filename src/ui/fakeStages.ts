@@ -1,4 +1,4 @@
-// The stage map's test stages (rpg-map MAP-52), for the fake preview only: ?fake=1&stage=bent-nail|one-room|long-names.
+// The stage map's test stages (rpg-map MAP-52), for the fake preview only: ?fake=1&stage=bent-nail|one-room|long-names|two-towns.
 // Each is a stage as the Weaver hands it over (titles, sizes, places, ways: no positions), drawn on the floor plan by
 // the same code the game uses (plan/draw drawTitles), with what the character knows of it. Not game content.
 import type { Barrier, GameState, TitleSpec, WayKind } from '../types';
@@ -6,6 +6,7 @@ import { drawTitles } from '../plan/draw';
 import { BK, FU, WK, ZK } from '../library/tableIds';
 import { RC } from '../library/raceIds';
 import { IT } from '../library/itemIds';
+import { roadShape } from '../scenario/apply';
 
 type Place = GameState['places'][number];
 /** a stage's titles and floor plan, drawn by the game's own code */
@@ -110,4 +111,23 @@ function longNames(): FakeStage {
   };
 }
 
-export const FAKE_STAGES: Record<string, () => FakeStage> = { 'bent-nail': () => bentNail(), 'bent-nail-saved': () => bentNail(true), 'one-room': oneRoom, 'long-names': longNames };
+export const FAKE_STAGES: Record<string, () => FakeStage> = { 'bent-nail': () => bentNail(), 'bent-nail-saved': () => bentNail(true), 'one-room': oneRoom, 'long-names': longNames, 'two-towns': twoTowns };
+
+/** (d) two towns and the road between them (D-1558): Brookend's green and inn, a 2 km road, and Highmarket's gate and market
+ *  at its far end, all on one map */
+function twoTowns(): FakeStage {
+  const B = 'brookend', R = 'ridge_road', H = 'highmarket';
+  const { places, plan } = placed([P(B, 'village', null, 'Brookend'), P(R, 'road', null, 'the ridge road'), P(H, 'town', null, 'Highmarket')], [
+    Z('b.green', B, 'Brookend green', ZK.square, 900, [['b.inn', 'the inn door, north'], ['r.road', 'the ridge road, east', true]], { roof: false }),
+    Z('b.inn', B, 'the Wayside Inn', ZK.room, 60, [['b.green', 'the green, south']], { furniture: [{ kind: FU.hearth, name: 'hearth', at: 'w' }, { kind: FU.table, name: 'long table' }] }),
+    Z('r.road', R, 'the ridge road', ZK.street, 0, [['b.green', 'Brookend, west', true], ['h.gate', 'Highmarket, east', true]], { roof: false, ...roadShape(2, 'quiet') }),
+    Z('h.gate', H, 'Highmarket gate', ZK.gate, 25, [['r.road', 'the ridge road, west', true], ['h.market', 'the market, north', true]], { roof: false, aspect: 2 }),
+    Z('h.market', H, 'Highmarket market', ZK.square, 1200, [['h.gate', 'the gate, south', true], ['h.hall', 'the guildhall door, north']], { roof: false }),
+    Z('h.hall', H, 'the guildhall', ZK.room, 80, [['h.market', 'the market, south']]),
+  ]);
+  return {
+    places, plan, zone: 'b.green', placeId: B, seen: ['b.green', 'b.inn', 'r.road', 'h.gate', 'h.market'], trail: ['b.inn', 'r.road', 'h.gate', 'h.market'], you: [3, -2],
+    people: [{ id: 'f_host', label: 'the innkeeper', zone: 'b.inn', at: [1, 1] }, { id: 'f_carter', label: 'a carter', zone: 'r.road', last: 'zone' }],
+    barriers: [{ id: 'fb_inn', a: 'b.green', b: 'b.inn', rec: { kind: BK.door, grade: 'minor' } }],
+  };
+}
