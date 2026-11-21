@@ -47,7 +47,7 @@ vi.mock('../../src/views', async () => {
     buildDialogueView: (_s: unknown, id: string) => f.dialogueView(id),
     buildNarrationView: () => f.narrationView(),
     narrationBand: () => 'normal', lengthText: () => '60 to 110 words, 1 or 2 paragraphs', lengthTop: () => 110,
-    callName: () => 'player',
+    callName: () => 'player', keepClearSight: () => {},
   };
 });
 vi.mock('../../src/save', () => ({

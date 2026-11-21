@@ -26,7 +26,7 @@ import { isDark, timeView, zoneLight, clockSet, now, timeOfDay, durationText, sp
 import { charLevel, power, wornTitle } from '../engine/xp';
 import { presetAgeFloor, presetTalent, rankName, rankRow, spawnNpc } from '../library/spawn';
 import { uniqueInWorld } from '../library/echo';
-import { distM, distOrNull, seeingM, sideFrom, sightDistM, spotPoint } from '../engine/position';
+import { distM, distOrNull, seeingM, sideFrom, sightDistM, spotPoint, wayLeftM } from '../engine/position';
 import { moveSpeed, turnMetres } from '../engine/speed';
 import { hiddenFrom } from '../engine/gear';
 import { revealedTo } from '../minds/state';
@@ -186,6 +186,13 @@ export function callName(state: GameState, viewerId: string, id: string): string
 }
 /** whoever `viewer` sees clearly right now (BG-95: a name heard is put to this face) */
 export const seesClearlyNow = (state: GameState, viewer: Actor, id: string): boolean => seenActors(state, viewer).some((x) => x.id === id && x.level === 'full');
+/** Q17/PG11 a (BG-1545): everyone the player sees clearly as a turn ends, by distance, by what they did or by a make-out roll,
+ * stays seen clearly while they stay put (journal.clearSight): the next turn starts with no events and no make-outs, so
+ * its views would otherwise half see someone the narration just named */
+export function keepClearSight(state: GameState, events: GameEvent[]): void {
+  const cs = state.player.journal ? (state.player.journal.clearSight ??= {}) : undefined;
+  if (cs) for (const a of seenActors(state, state.player, events)) if (a.level === 'full') cs[a.id] = a.zone;
+}
 /** everyone the viewer sees now, clearly or half (Never Flat-Footed notes them: src/engine/flatFooted.ts) */
 export const seenIds = (state: GameState, viewer: Actor): string[] => seenActors(state, viewer).map((x) => x.id);
 
@@ -534,9 +541,10 @@ function need(state: GameState, id: string): Actor {
 function talkingWithSeen(state: GameState): { id: string; name: string }[] {
   return talkingWith(state).map((id) => ({ id, name: callName(state, state.player.id, id) }));
 }
-/** BG-164: the player sees the spot where they last saw `id`, and nobody is made out there: they are gone from it, as far
- * as the player knows (never where to) */
-function goneFromSpot(state: GameState, id: string): boolean {
+/** BG-164: the player sees the spot where they last saw `id`, and does not perceive them now (BG-1545: someone half seen is
+ * still there as far as the player knows): they are gone from it (never where to) */
+function goneFromSpot(state: GameState, id: string, seen: { id: string }[]): boolean {
+  if (seen.some((x) => x.id === id)) return false;
   const j = state.player.journal, zone = j?.lastKnown?.[id], pos = j?.lastSpot?.[id];
   return !!zone && !!pos && spotInSight(state, { zone, pos });
 }
@@ -551,7 +559,7 @@ function lastSeen(state: GameState, seen: SeenActor[]): NonNullable<PlayerView['
     // BG-130: their pronouns too, so words about someone out of sight never guess them from a name
     // BG-155: a seller seen before is still known to sell, so a buy from them steps up to them
     // BG-327: zone is the id, as everywhere in PlayerView, with its name beside it (as cameFrom)
-    return [{ id, name: nameFor(state, p, a) ?? a.label, zone, zoneName: zoneById(state, zone)?.name ?? zone, ...(a.pronouns ? { pronouns: a.pronouns } : {}), ...(!speaks(a) ? { mute: true as const } : {}), ...(isSeller(a) ? { wares: wareList(state, p, a) } : {}), ...(goneFromSpot(state, id) ? { gone: true } : {}), ...(inBand(p, a) ? { band: true as const } : {}) }];
+    return [{ id, name: nameFor(state, p, a) ?? a.label, zone, zoneName: zoneById(state, zone)?.name ?? zone, ...(a.pronouns ? { pronouns: a.pronouns } : {}), ...(!speaks(a) ? { mute: true as const } : {}), ...(isSeller(a) ? { wares: wareList(state, p, a) } : {}), ...(goneFromSpot(state, id, seen) ? { gone: true } : {}), ...(inBand(p, a) ? { band: true as const } : {}) }];
   });
 }
 
@@ -566,8 +574,9 @@ const steadyOf = (a: Actor): { mentallySteady?: true } => (a.core.condition.ment
 function walkingOf(state: GameState, p: Actor, seen: SeenActor[]): { walking?: WalkingView } {
   const w = p.walking;
   if (!w) return {};
-  const sp = w.then && w.spot ? spotPoint(state, w.toZone, w.spot, p, p) : null;
-  const m = distOrNull(state, p, sp ? { zone: w.toZone, pos: sp.pos } : { zone: w.toZone }), walk = moveSpeed(state, p).walk;
+  // BG-1545: measured to where the walk ends (walkThere): its spot (MQ8), else where it gets into its title
+  const sp = w.spot ? spotPoint(state, w.toZone, w.spot, p, p) : null;
+  const m = sp ? distOrNull(state, p, { zone: w.toZone, pos: sp.pos }) : wayLeftM(state, p, w.toZone, p, true) ?? distOrNull(state, p, { zone: w.toZone }), walk = moveSpeed(state, p).walk;
   if (m === null || walk <= 0) return {};
   // BG-281: a walk up to someone is named by them as the player sees them, never by the zone they stand in; MQ8: a walk to
   // a door or a bed by it
@@ -1000,7 +1009,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     // essences that appeared this turn and failed their quality roll: they show, then fade
     ...(comings.size ? { cameAndWent: cameAndWent(state, me, comings) } : {}),
     ...((f) => f ? { fightFinished: { rounds: f.rounds, stop: FINISH_STOP_WORDS[f.stop] } } : {})(state.scratch?.fightFinished as { rounds: number; stop: FinishStop } | undefined), // IQ4 a
-    ...((gone) => gone.length ? { notThere: gone } : {})(notThere(state, intent, seenIds)),
+    ...((gone) => gone.length ? { notThere: gone } : {})(notThere(state, intent, seen)),
     ...((w) => w ? { stayedPut: w } : {})(stayedPut(state, events, intent)),
     ...((faded) => faded.length ? { essencesFaded: faded } : {})(state.log.filter((l) => l.turn === state.turn && l.code === 'essence_faded')
       .map((l) => String((l.detail as { essence?: string } | undefined)?.essence ?? ''))
@@ -1038,13 +1047,13 @@ export function narrationBand(state: GameState, events: GameEvent[], nv: Narrati
 
 /** BG-164: people this turn's words, action or walk were for, who are not where the player last saw them (seen empty):
  * by name, with where that was */
-function notThere(state: GameState, intent: Intent | null | undefined, seenIds: Set<string>): string[] {
+function notThere(state: GameState, intent: Intent | null | undefined, seen: SeenActor[]): string[] {
   const named = (id: string) => { const a = actorById(state, id), n = a && (nameFor(state, state.player, a) ?? a.label); return !!n && (intent?.deferred ?? []).some((d) => mentions(d, n)); };
   // BG-171: someone the player meant to go to, put off by the Parser (deferred, by the name they know), counts too
   const ids = new Set([intent?.action?.target, intent?.move?.spot?.near, ...(intent?.addressees ?? []), ...Object.keys(state.player.journal?.lastKnown ?? {}).filter(named)].filter((x): x is string => !!x));
   return [...ids].flatMap((id) => {
     const a = actorById(state, id), zone = state.player.journal?.lastKnown?.[id];
-    if (!a || seenIds.has(id) || !zone || !goneFromSpot(state, id)) return [];
+    if (!a || !zone || !goneFromSpot(state, id, seen)) return [];
     return [`${nameFor(state, state.player, a) ?? a.label}, last seen in ${zoneById(state, zone)?.name ?? zone}`];
   });
 }
