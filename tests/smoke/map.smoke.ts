@@ -1,4 +1,4 @@
-// rpg-map MAP-04, MAP-51, MAP-52: the Map's and the minimap's checkers find nothing on the three test stages, drawn by
+// rpg-map MAP-04, MAP-51, MAP-52: the Map's and the minimap's checkers find nothing on the four test stages, drawn by
 // the page as built. Run: npm run smoke.
 // near: src/ui/map src/ui/minimap.ts src/ui/furnitureIcons.ts src/ui/fakeStages.ts src/ui/styles.css src/plan/ src/scenario/geometry.ts
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -34,7 +34,7 @@ afterAll(async () => { await browser?.close(); server?.close(); });
 type Found = { findings: string[] } | undefined;
 describe('map checker on the test stages (MAP-52)', () => {
   // bent-nail-saved is left out: it draws a stored layout that breaks MAP-10 and MAP-12 on purpose, to show it named
-  for (const stage of ['bent-nail', 'one-room', 'long-names']) it(`${stage}: no findings on the minimap or the Map`, async () => {
+  for (const stage of ['bent-nail', 'one-room', 'long-names', 'two-towns']) it(`${stage}: no findings on the minimap or the Map`, async () => {
     const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } }), errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
     await page.goto(`${url}?fake=1&stage=${stage}`);
