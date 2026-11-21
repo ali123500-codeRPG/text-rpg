@@ -13,7 +13,8 @@ import { h, safe, type boxOf } from './kit';
 import { closePop, openPop } from './pop';
 import { deck, thingActions, type Choice, type DeckAction, type DeckCtx, type MapPeople, type MapThing, type Order, type Pick } from './deck';
 import { openLoot } from './loot';
-import { ICONS, instanceIcon, partMark } from './itemIcons';
+import { ICONS, instanceIcon, partMark, skillMark } from './itemIcons';
+import { DEFENSE_SKILL } from '../library/skillIds';
 import { AGAINST_NATURE } from './ideaLeans';
 import type { MinimapPoint } from './minimap';
 
@@ -125,7 +126,7 @@ export function deckView(api: GameApi, o: {
     const p = s.player, chosen = p.core.standingDefense, used = safe(() => usableDefense(s, p, false)) ?? chosen;
     DEFENSES.forEach((d, i) => {
       const b = defBtns[i], can = canDefend(s, p, d.kind), v = can ? safe(() => defenseValue(s, p, d.kind)) : null;
-      b.replaceChildren(h('span', {}, cap(d.kind)), can ? h('span', { class: 'dv' }, v === null ? '' : figure(v)) : lockMark(d.needs!));
+      b.replaceChildren(skillMark(DEFENSE_SKILL[d.kind], cap(d.kind)), can ? h('span', { class: 'dv' }, v === null ? '' : figure(v)) : lockMark(d.needs!));
       b.setAttribute('aria-pressed', String(d.kind === chosen));
       if (can) b.removeAttribute('aria-disabled'); else b.setAttribute('aria-disabled', 'true');
       b.title = can ? d.tip : `Needs ${d.needs}`;

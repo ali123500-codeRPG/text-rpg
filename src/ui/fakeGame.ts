@@ -80,11 +80,11 @@ function fightTurn(st: GameState, out = 'heavy hit'): Partial<LogLine> {
   if (shield) shield.pools = { ...shield.pools, shield: Math.min(40, (shield.pools?.shield ?? 100) - 60) };
   return {
     text: 'The slime rears and lashes down. You get the shield up late; the blow tears past it and something in your right arm gives with a wet crack. You answer anyway, a heavy cut that opens its side. It sags, steaming, and coins spill from its gut into the grass.',
-    check: { kind: 'attack', skill: SK.melee_medium, tier: 'great_success', against: { what: 'slime’s dodge', tier: 'failure' }, result: `${out}, body` },
+    check: { kind: 'attack', skill: SK.melee_medium, tier: 'great_success', against: { what: 'slime’s', skill: SK.dodge, tier: 'failure' }, result: `${out}, body` },
     // the hit cards on Play, in the order the blows fell: the slime's on you, then yours
     hits: [{ mine: false, by: 'the slime', target: 'you', weapon: 'slam', result: 'crushing hit, right arm', changes: ['Your right arm is Crippled'] },
       { mine: true, by: 'you', target: 'a slime', weapon: 'arming sword', result: `${out}, body`, changes: ['The slime is Wounded'] }],
-    incomingChecks: [{ kind: 'attack', skill: SK.melee_light, tier: 'critical_success', against: { what: 'your block', tier: 'near_miss' }, result: 'crushing hit, right arm', by: 'the slime' }],
+    incomingChecks: [{ kind: 'attack', skill: SK.melee_light, tier: 'critical_success', against: { what: 'your', skill: SK.block, tier: 'near_miss' }, result: 'crushing hit, right arm', by: 'the slime' }],
     changes: [{ kind: 'combat', text: 'Slime → you · crushing hit, right arm' }, { kind: 'combat', text: 'You → slime · heavy hit, body' }, { kind: 'condition', text: 'Your right arm is crippled' }],
     wounds: [{ id: 'right_arm', from: 'healthy', to: 'crippled' }], gains: { [SK.block]: 2 }, coin: 15,
   };
@@ -381,11 +381,11 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       { turn: 2, kind: 'narration', text: NARRATION[1], place: KETTLE, scenario: 2, gear: ['Now held: right hand · Arming sword', 'Now held: left hand · Round shield'] },
       { turn: 3, kind: 'player', text: 'I raise my shield and cut back at it', aimed: true },
       { turn: 3, kind: 'narration', text: NARRATION[2], place: KETTLE, scenario: 2,
-        check: { kind: 'attack', skill: SK.melee_medium, tier: 'great_success', against: { what: 'slime’s dodge', tier: 'success' }, result: 'full hit, body' },
+        check: { kind: 'attack', skill: SK.melee_medium, tier: 'great_success', against: { what: 'slime’s', skill: SK.dodge, tier: 'success' }, result: 'full hit, body' },
         speech: [{ speaker: 'a gate guard', volume: 'shout', text: 'That’s one! Watch your left!' }],
         heals: [{ source: HL.bandage, from: 'hurt', to: 'bruised', parts: [{ id: 'left_leg', from: 'damaged', to: 'healthy' }] }],
         unlocks: [{ skill: SK.block, milestone: 40 }], gains: { [SK.block]: 3 },
-        incomingChecks: [{ kind: 'attack', skill: SK.melee_light, tier: 'great_success', against: { what: 'your block', tier: 'success' }, result: 'blocked, shield', by: 'the slime' }],
+        incomingChecks: [{ kind: 'attack', skill: SK.melee_light, tier: 'great_success', against: { what: 'your', skill: SK.block, tier: 'success' }, result: 'blocked, shield', by: 'the slime' }],
         changes: [{ kind: 'combat', text: 'Slime → you · blocked, shield' }, { kind: 'combat', text: 'You → slime · full hit, body' }, { kind: 'health', text: 'You are Bruised' }],
         mechanics: ['Slime slam: d100 71 + 30×0.5 + 10 → Great Success', 'Your block: d100 64 + 65×0.5 → Success · gap −1 · blocked (shield 30 → 18)', 'Your cut: d100 82 + 75×0.5 → Great Success · dodge 0 · full hit · 25 damage to body'] },
     ];

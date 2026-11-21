@@ -33,7 +33,7 @@ const QUIET = new Set<string>([HL.passive]);
 
 export function healCard(n: HealNote): HTMLElement {
   const name = getLibrary().healing?.[n.source]?.name ?? cap(n.source);
-  const bits: (HTMLElement | string)[] = [h('span', { class: 'src' }, name)];
+  const bits: (HTMLElement | string)[] = [ART[n.source] ? healMark(n.source, name) : h('span', { class: 'src' }, name)];
   if (n.from !== n.to) bits.push(lvTag(n.from), arrow(), lvTag(n.to));
   for (const p of n.parts) bits.push(h('span', { class: 'pt' }, '· ', partMark(p.id)), psTag(p.from), arrow(), psTag(p.to));
   if (n.from === n.to && !n.parts.length) bits.push(h('span', { class: 'pt' }, n.better ? '· a little better' : '· no change'));
@@ -75,9 +75,16 @@ export function quickHeal(s: GameState, p: Actor): HealItem | null {
 
 const BANDAGE = '<svg viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(-45 12 12)"><rect x="2" y="8" width="20" height="8" rx="4" fill="#e9d2b0" stroke="#b99a72"/><rect x="9" y="8" width="6" height="8" fill="#f6ead6" stroke="#b99a72"/><circle cx="11" cy="10.6" r=".6" fill="#b99a72"/><circle cx="13" cy="10.6" r=".6" fill="#b99a72"/><circle cx="11" cy="13.4" r=".6" fill="#b99a72"/><circle cx="13" cy="13.4" r=".6" fill="#b99a72"/></g></svg>';
 const VIAL = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9.5" y="2.5" width="5" height="3" rx="1" fill="#a07a52"/><path d="M10 5.5h4v3.2c2.9 1 5 3.7 5 6.8a7 7 0 0 1-14 0c0-3.1 2.1-5.8 5-6.8z" fill="#5fd38a55" stroke="#9ff0bd" stroke-width="1.2"/><path d="M6.4 15h11.2a5.6 5.6 0 0 1-11.2 0z" fill="#5fd38a"/></svg>';
+const ART: Record<string, string> = { [HL.bandage]: BANDAGE, [HL.draught]: VIAL };
 /** an item's icon: by healing source for now (a library icon field can replace this) */
 export function healIcon(it: HealItem): HTMLElement {
   const el = h('span', { class: 'hico' });
-  el.innerHTML = it.row.id === HL.bandage ? BANDAGE : VIAL;
+  el.innerHTML = ART[it.row.id] ?? VIAL;
+  return el;
+}
+/** a healing item's icon in place of its name, which is its tip and accessible name (Patched up card) */
+function healMark(source: string, name: string): HTMLElement {
+  const el = h('span', { class: 'hico', role: 'img', title: name, 'aria-label': name });
+  el.innerHTML = ART[source];
   return el;
 }

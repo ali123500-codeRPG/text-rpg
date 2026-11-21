@@ -91,7 +91,7 @@ export type LineCheck = {
   kind: 'attack' | 'contest' | 'roll';
   skill: string; // skill id
   tier: Tier; beyond?: number;
-  against?: { what: string; tier: Tier; beyond?: number }; // the defense or the other side of a contest, e.g. "its dodge"
+  against?: { what: string; skill?: string; tier: Tier; beyond?: number }; // the other side: whose defense ("the slime’s", "your") with its skill, or who a contest is with
   shifts?: string[]; // BG-200: what moved the gap besides the two tiers, e.g. "cover: 1 tier his way"
   result: string; // "full hit, body", "you win the exchange"; empty: the roll has no words of its own (the story tells it, BG-257)
 };

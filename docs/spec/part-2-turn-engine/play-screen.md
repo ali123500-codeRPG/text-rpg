@@ -249,7 +249,9 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
   bandage") (UI4; A1).
 - **PS-145** Check line: the player's own roll this turn with no numbers: skill, tier, the other side's tier, how far
   apart they are ("1 tier ahead") and the result, e.g. "Medium weapons Great Success vs the slime's dodge Success · 1
-  tier ahead · full hit, body" (Voyage U10).
+  tier ahead · full hit, body" (Voyage U10). The defense or skill on the other side shows as its skill icon in place of
+  its name, after whose it is ("vs the slime's [dodge]", "vs your [block]"), the name its tip and accessible name
+  (LogLine check `against.skill`; issue #1516). A contest with someone names them only.
 - **PS-146** It opens with an icon for the kind of roll (attack or talk), and each tier is a chip tinted green (Great
   Success and up), blue (Success), amber (Near Miss) or red (Failure and worse) (Ali, 07/11/2026).
 
@@ -555,7 +557,9 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
   its icon mirrored; a numbered leg has its number after the icon. The whole-body pool shows a torso for a humanoid,
   else what the body is. A beast's fore and hind legs and a spider's legs, which no set draws alone, are framed out of
   a whole figure (a deer's foreleg and hindquarters, one jointed spider leg). The library viewer keeps the words
-  (issues #1474, #1496).
+  (issues #1474, #1496). On the Patched up card a healing item (bandage, draught) shows as the quick slot's icon in
+  place of its name, the name its tip and accessible name; a source with no item (rest, a clinic, a perk) keeps its
+  words (issue #1516).
 - **PS-307** Scales past 100: game-icons.net has supernatural subjects (rune blades, auras, creatures) for gear and
   beings above the human range.
 
@@ -683,7 +687,8 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 
 - **PS-400** Beside Aim, Dodge, Parry and Block pick the player's standing defense, free and with no turn. Until then
   only the creation default was ever used (Ali, 18/11/2026; GameApi.setDefense).
-- **PS-401** Each shows its effective skill, the figure the defense roll uses (defenseValue in src/ruleset/gear.ts).
+- **PS-401** Each shows its effective skill, the figure the defense roll uses (defenseValue in src/ruleset/gear.ts). Its
+  skill icon (DEFENSE_SKILL) stands in place of its name, the name its tip and accessible name (issue #1516).
 - **PS-402** One that can't be used now (Block without a shield in hand, Parry without a melee weapon or Open-Hand
   Guard) is Locked: a padlock after its name whose tip and accessible name say what it lacks ("Needs a shield in hand")
   (SD14; canDefend).
