@@ -125,7 +125,17 @@ export function planView(api: GameApi, opts: PlanOpts) {
     const m = font(kind)?.measureText('');
     return m ? { ascent: m.fontBoundingBoxAscent, descent: m.fontBoundingBoxDescent } : roughMeasure.line(kind);
   } });
-  const sceneAt = (kk: number) => planScene({ zones: d!.floor, every: d!.every, places: d!.places, people: d!.people, k: kk, measure, awayName: d!.awayName, youWidthM: d!.km.youWidthM });
+  // D-1558: the scene is laid out once per zoom for the data taken at update(); panning only redraws it
+  const scenes = new Map<number, Scene>();
+  let scenesOf: PlanData | null = null;
+  const sceneAt = (kk: number) => {
+    if (scenesOf !== d) { scenes.clear(); scenesOf = d; }
+    let sc = scenes.get(kk);
+    if (!sc) scenes.set(kk, (sc = planScene({ zones: d!.floor, every: d!.every, places: d!.places, people: d!.people, k: kk, measure, awayName: d!.awayName, youWidthM: d!.km.youWidthM })));
+    return sc;
+  };
+  // names are sized from measured text: once the map's own font has loaded, lay the scene out again
+  document.fonts?.ready.then(() => { scenes.clear(); if (d) render(); });
 
   /** a zone to scale: its floor at its real size, each side drawn as its edge kind; no zone state (MAP-33): the fog's
    *  two tones say what is in sight now, and the zone you stand in has no outline, even when its card is open */
