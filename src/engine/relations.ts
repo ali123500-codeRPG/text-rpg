@@ -11,6 +11,7 @@ import { fitsOpening } from '../plan/path';
 import { waysOut, type Way } from '../plan/where';
 import { wallAt, wallKind } from '../plan/walls';
 import { sharedSides } from '../plan/geom';
+import { groupAndOrgStance, heldStances, sameGroup } from './belonging';
 
 /** the actor's active perks and quirks that work on sight (PerkDef.onSight) */
 export const onSightPerks = (a: Actor) => a.core.perks.filter((p) => !p.dormant).map((p) => getLibrary().perks?.[p.perkId]).filter((d): d is NonNullable<typeof d> => !!d?.onSight);
@@ -53,14 +54,16 @@ export function countsInFight(actor: Actor): boolean {
   return isActive(actor) && !actor.mind?.moraleState;
 }
 
-/** stance(a, b) = a's override for b, else the relation of a's band to b's band. Same band: friendly. */
+/** stance(a, b) = a's override for b (its regard), else its default attitude (BEL-25: its group's word on b, then its
+ * organizations', then its stance toward strangers). Same group: friendly. */
 export function stance(state: GameState, a: Actor, b: Actor): Stance {
   return a.mind?.overrides?.[b.id] ?? baseStance(state, a, b);
 }
-/** the stance a would hold toward b with no override of its own: its band's (D-206: a personal grudge fades back to it) */
+/** the stance a would hold toward b with no override of its own: its default attitude (BEL-25, engine/belonging.ts; D-206:
+ * a personal grudge fades back to it) */
 export function baseStance(state: GameState, a: Actor, b: Actor): Stance {
-  if (a.bandId === b.bandId) return 'friendly';
-  const s = bandById(state, a.bandId)?.relations[b.bandId] ?? 'neutral';
+  const s = groupAndOrgStance(state, a, b);
+  if (sameGroup(state, a, b)) return s;
   // an achievement's first-sight reward: a hunted kind meets b wary until b attacks it (the attack sets a hostile override)
   if (s === 'hostile' && firstSightOf(b, a)) return 'opposed';
   // Dreaded on Sight: once a has seen b, its band's stance reads colder (the player holds no stances)
@@ -91,9 +94,9 @@ export function hostile(state: GameState, a: Actor, b: Actor): boolean {
   });
 }
 /** a can take anyone's side (RS3): it holds a loyal stance, or a friend one when opposed. stance gives those only from an
- * override or its band's relations (its other sources only cool it), so with neither, hostile scans no one */
+ * override, its groups' or its organizations' entries (its other sources only cool it), so with none, hostile scans no one */
 const maySideWith = (state: GameState, a: Actor, friendToo: boolean): boolean =>
-  [...Object.values(a.mind?.overrides ?? {}), ...Object.values(bandById(state, a.bandId)?.relations ?? {})].some((x) => x === 'loyal' || (friendToo && x === 'friend'));
+  [...Object.values(a.mind?.overrides ?? {}), ...heldStances(state, a)].some((x) => x === 'loyal' || (friendToo && x === 'friend'));
 /** MB42: the player and a foe that took the player's yield are at truce for the rest of the scenario; TF16: so are those
  * at a stand-down truce (engine/offer.ts) */
 export function truce(state: GameState, a: Actor, b: Actor): boolean {

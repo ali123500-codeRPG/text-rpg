@@ -1,14 +1,23 @@
 ### Hierarchy and belonging
 
-**Decided, step 1 of 4 partly built (D-1768).** Built (BEL-61 step 1, PR for issue #1772): the organization, link and
+**Decided; steps 1 and 2 of 4 built, step 1 in part (D-1768).** Step 1 (BEL-61, PR #1774): the organization, link and
 tie records (`Organization`, `OrgLink`, `Tie` in src/types/core.ts; `GameState.organizations` and `orgLinks`,
 `Actor.ties`, `Place.holder` and `law`), the group's new fields on the band (`purpose`, `leaderId`, `officerIds`,
 `backer`, `parentId`), the names tables `TIE_STATUS`, `COMMITMENT`, `TIE_COVER` and `LINK_KINDS` (src/scales.ts), the
 save keeping all of them, the library table renamed to `castRecipes` (BEL-17), and a recipe's lead and seconds made
 its group's leader and officers (BEL-09). Waiting on the owner (Questions hub page "Belonging build"): which
-organization each recipe names and what its ties hold (BB1), and ties for one-person roster hooks (BB2). No reader uses
-the new records yet, so the band rules in [Information model](information-model.md) are still what the game does, and
-where this topic and the code differ the code wins.
+organization each recipe names and what its ties hold (BB1), and ties for one-person roster hooks (BB2). Readers other
+than the default attitude (step 2) still read the band, as the band rules in [Information model](information-model.md)
+say, and where this topic and the code differ the code wins.
+
+**Step 2 built** (BEL-25, src/engine/belonging.ts `groupAndOrgStance`, read by `baseStance` in src/engine/relations.ts):
+steps 3 to 5 of the default attitude. The word of a group reads its relations toward b, b's group or an organization a
+knows b to be in, in that order, nearest group first. Sharing any group, nested or not, is friendly and skips the
+first-sight and Dreaded-on-sight cooling, as the same band did. Read as built, asked as BB3 on that page: an open tie is
+known to anyone, whether or not they have seen the character yet (a stance only acts once they meet); a quiet tie is
+known only to fellow members, since being told of one has no rule yet; a secret tie is known to no one else yet; a tie
+to a person says nothing about others; RS3 (taking a side) counts loyal and friend entries of a's groups and
+organizations as it counted the band's. Until BB1 fills ties at spawn, no one holds a tie, so play is unchanged.
 
 Who a character belongs to, whom it serves, whom it works beside right now, who may give it orders, and what each
 character knows about the others' ties. Decided by the owner on the Questions hub page "Hierarchy and belonging",
