@@ -9,7 +9,7 @@ import { IT } from '../library/itemIds';
 
 type Place = GameState['places'][number];
 /** a stage's titles and floor plan, drawn by the game's own code */
-export type FakePlan = Pick<GameState, 'zones' | 'walls' | 'openings' | 'roofs' | 'lights' | 'furniture' | 'ground'>;
+export type FakePlan = Pick<GameState, 'zones' | 'walls' | 'openings' | 'roofs' | 'lights' | 'furniture' | 'ground' | 'barriers'>;
 export type FakeStage = {
   places: Place[]; plan: FakePlan; zone: string; placeId: string; seen: string[]; trail: string[];
   /** where you stand, metres from your zone's centre (east, north) */
@@ -34,8 +34,8 @@ const P = (id: string, kind: string, parentId: string | null, name: string): Pla
 function placed(places: Place[], titles: TitleSpec[]): { places: Place[]; plan: FakePlan } {
   const st = { places, zones: [], walls: [], openings: [], roofs: [], lights: [], furniture: [], ground: [], actors: [], barriers: {} } as unknown as GameState;
   drawTitles(st, titles);
-  const { zones, walls, openings, roofs, lights, furniture, ground } = st;
-  return { places, plan: { zones, walls, openings, roofs, lights, furniture, ground } };
+  const { zones, walls, openings, roofs, lights, furniture, ground, barriers } = st;
+  return { places, plan: { zones, walls, openings, roofs, lights, furniture, ground, barriers } };
 }
 
 /** the rectangles the live story's save holds for the Bent Nail and Thornbury, placed before the layout fixes: the

@@ -294,11 +294,11 @@ function useStage(st: GameState, stage: FakeStage): void {
     const pos = at(t.zone, t.at), z = st.zones.find((q) => q.id === t.zone);
     if (pos && z) st.ground.push({ id: t.id, itemId: t.itemId, at: { ...pos, floor: z.floor }, ...(t.locked ? { lock: { locked: true } } : {}) });
   }
-  st.barriers = {};
+  st.barriers ??= {}; // the plan's plain doors (BG-355)
   for (const b of stage.barriers) {
     st.barriers[b.id] = { id: b.id, ...b.rec, ...(b.rec.tried ? { tried: [p.id] } : {}) };
     const o = wayBetween(st, b.a, b.b);
-    if (o) o.barrier = b.id;
+    if (o) { if (o.barrier) delete st.barriers[o.barrier]; o.barrier = b.id; }
   }
 }
 
