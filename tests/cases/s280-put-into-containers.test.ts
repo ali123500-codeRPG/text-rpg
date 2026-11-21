@@ -12,6 +12,8 @@ import { checkNpcLegality, checkParserLegality } from '../../src/agents/legality
 import { buildOppositionView, buildPlayerView } from '../../src/views';
 import type { NpcAction } from '../../src/types';
 import { groundIn } from '../../src/engine/ground';
+import { mechanicsLines } from '../../src/agents/game';
+import { stowRoom } from '../../src/engine/containers';
 
 const village = (): GameState => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
@@ -48,11 +50,13 @@ it('PI2: part of a stack goes in, and more of it joins the same stack', () => {
   expect(buildPlayerView(s).player.inventory.find((x) => x.id === 'sack')?.container?.contents?.[0].qty).toBe(6);
 });
 
-it('PI3: a container holds anything (size is parked); a container never goes in another; worn things come off first', () => {
+it('PI3, D-254 a: a container holds up to its holds in bulk (a sack 6), and what does not fit stays out with a line; a container never goes in another; worn things come off first', () => {
   const s = village();
   s.player.core.inventory.push({ id: 'axe', itemId: IT.greataxe }, { id: 'spear', itemId: IT.spear }, { id: 'sack2', itemId: IT.sack });
-  play(s, { intent: intent({ gear: [{ op: 'stow', item: 'axe', into: 'sack' }, { op: 'stow', item: 'spear', into: 'sack' }, { op: 'stow', item: 'knife', into: 'sack' }, { op: 'stow', item: 'sack2', into: 'sack' }] }) });
-  expect(sack(s).contents?.map((x) => x.id)).toEqual(['axe', 'spear', 'knife']);
+  const ev = play(s, { intent: intent({ gear: [{ op: 'stow', item: 'axe', into: 'sack' }, { op: 'stow', item: 'spear', into: 'sack' }, { op: 'stow', item: 'knife', into: 'sack' }, { op: 'stow', item: 'sack2', into: 'sack' }] }) });
+  expect(sack(s).contents?.map((x) => x.id)).toEqual(['axe', 'spear']); // 3 + 3 fills the sack's 6
+  expect(has(s, 'knife')).toBe(true);
+  expect(mechanicsLines(s, ev)).toContain('Dagger: no room in the sack');
   expect(has(s, 'sack2')).toBe(true);
   const armor = s.player.core.inventory.find((x) => x.equippedIn?.includes('armor'))!;
   const s2 = village();
@@ -83,4 +87,17 @@ it('BG-192, 196, 198, 205: an NPC may name what is in its own sack, to give it o
   expect(r).toEqual({ orderError: null, errors: [] });
   expect(out.action.item).toBe('charm');
   expect(out.gear).toHaveLength(1);
+});
+
+it('D-254 a: a worn pack holds its stowed items up to its holds (10): a pick-up past it is refused with a line; a sack stowed in it counts with what it holds', () => {
+  const s = village();
+  s.player.core.inventory.push({ id: 'pack', itemId: IT.pack, equippedIn: ['pack'] });
+  for (let n = 0; stowRoom(s, s.player) >= 3; n++) s.player.core.inventory.push({ id: `spear${n}`, itemId: IT.spear });
+  lay(s, 'tav_common', { id: 'axe', itemId: IT.greataxe }, s.player.pos);
+  const ev = play(s, { intent: intent({ gear: [{ op: 'pick_up', item: 'axe' }] }) });
+  expect(has(s, 'axe')).toBe(false);
+  expect(mechanicsLines(s, ev)).toContain('Greataxe: no room in your pack');
+  const room = stowRoom(s, s.player);
+  play(s, { intent: intent({ gear: [{ op: 'pick_up', item: 'axe' }, { op: 'stow', item: 'knife', into: 'sack' }] }) });
+  expect(stowRoom(s, s.player)).toBe(room); // moving the knife into the sack (stowed in the pack) takes no room of its own
 });

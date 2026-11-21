@@ -50,7 +50,7 @@ export type ItemDef = {
   threadbound?: { rank: import('../scales').ThreadboundRankKey; grants: { perk: LibraryRef; achievement: string }[] }; // rank: TB11, its Rank (THREADBOUND_RANKS)
   /** CT1: it holds other items. worn: a pack worn on the back (CT7: its wearer's stowed items are its contents); fixed:
    * it stands in a zone and can't be picked up (a chest); neither: carried or set down (a sack) */
-  container?: { worn?: true; fixed?: true; soft?: true }; // soft: BF31, cloth (a sack, a pack): an edged weapon cuts it open
+  container?: { worn?: true; fixed?: true; soft?: true; holds?: number }; // soft: BF31, cloth (a sack, a pack): an edged weapon cuts it open; holds: D-254 a, the bulk it holds (unset: no limit)
   /** BF31: an edged weapon (a blade or an axe): it cuts a soft container open */
   edge?: true;
   /** BK1: how easily it breaks when its container is forced open (FRAGILITY); unset: CONFIG.FRAGILITY_BY_KIND for its kind */

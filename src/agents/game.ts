@@ -1572,6 +1572,14 @@ export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: Tu
     if (d.actorId !== s.player.id) continue;
     out.push(`${engine.healingName(d.source)}: nothing to heal, so you keep it`);
   }
+  // D-254 a: an item that does not fit in a container (or the pack worn) says so, and stays where it was
+  for (const l of s.log) {
+    if (l.turn !== turn || l.code !== 'no_room') continue;
+    const d = l.detail as { actorId: string; itemId: string; into?: string };
+    if (d.actorId !== s.player.id) continue;
+    const into = d.into ? [...s.player.core.inventory, ...s.ground].find((i) => i.id === d.into) : undefined;
+    out.push(`${cap(itemDef(s, d.itemId).name)}: no room in ${into ? `the ${itemDef(s, into.itemId).name}` : 'your pack'}`);
+  }
   // run 17: a rest or wait that the rules refuse says why, so the player doesn't keep trying
   for (const l of s.log) {
     if (l.turn !== turn || (l.code !== 'rest_blocked' && l.code !== 'wait_blocked')) continue;

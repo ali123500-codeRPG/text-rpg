@@ -20,6 +20,7 @@ import { listWords } from '../words';
 import { SV } from '../library/serviceIds';
 import { minutesUntil, now } from '../time';
 import { bedToBook } from './sleep';
+import { stowRoom } from './containers';
 import { FU } from '../library/tableIds';
 
 const GOODS = 'goods:';
@@ -123,7 +124,7 @@ export function payCoin(from: Actor, to: Actor, n: number): void {
 
 export type BuyResult =
   | { ok: true; price: number; qty: number; itemInst?: string; service?: string; to: Actor }
-  | { ok: false; reason: 'not_here' | 'out_of_earshot' | 'out_of_reach' | 'refuses' | 'not_offered' | 'out_of_stock' | 'not_enough_coin' | 'no_free_bed' };
+  | { ok: false; reason: 'not_here' | 'out_of_earshot' | 'out_of_reach' | 'refuses' | 'not_offered' | 'out_of_stock' | 'not_enough_coin' | 'no_free_bed' | 'no_room' };
 
 /** RD2, BG-57: a called order carries as far as a voice at CONFIG.ORDER_NOISE is heard clearly where `b` stands (hearingOf,
  * real metres and walls). Farther trades (messengers, letters) stay parked (D-194). */
@@ -154,6 +155,7 @@ export function buy(state: GameState, buyer: Actor, seller: Actor | undefined, w
   if (wareId === SERVICE + SV.forge && !forge) return { ok: false, reason: 'not_offered' };
   const price = each * qty;
   if (coins(buyer) < price) return { ok: false, reason: 'not_enough_coin' };
+  if (goods && (itemDef(state, wareId!.slice(GOODS.length)).bulk ?? 0) * qty > stowRoom(state, to)) return { ok: false, reason: 'no_room' }; // D-254 a: into the pack worn
   if (dry) return { ok: true, price, qty, to }; // AT45: would it go through (before a trade's time is spent)
   payCoin(buyer, seller, price);
   if (buyer === state.player) tally(state, 'coin_spent', { add: price }); // N5: copper spent buying
