@@ -26,7 +26,7 @@ import { isDark, timeView, zoneLight, clockSet, now, timeOfDay, durationText, sp
 import { charLevel, power, wornTitle } from '../engine/xp';
 import { presetAgeFloor, presetTalent, rankName, rankRow, spawnNpc } from '../library/spawn';
 import { uniqueInWorld } from '../library/echo';
-import { distM, distOrNull, seeingM, sideFrom, sightDistM, spotPoint, standingAt, wayLeftM } from '../engine/position';
+import { distM, distOrNull, placeOf, seeingM, sideFrom, sightDistM, spotPoint, standingAt, wayLeftM, type Located } from '../engine/position';
 import { moveSpeed, turnMetres } from '../engine/speed';
 import { hiddenFrom } from '../engine/gear';
 import { revealedTo } from '../minds/state';
@@ -49,7 +49,7 @@ import { warnableOf } from '../engine/warnings';
 import { fooledBy, playDeadOpen } from '../engine/playDead';
 import { fooledByFeint } from '../engine/feint';
 import { tacticsWord } from './tactics';
-import { headEdge, waysView } from './ways';
+import { headGoal, waysView } from './ways';
 import { fallBackOwner } from '../engine/nerve';
 import { PERK_MOVES, fallbackAttackSkill, hasPerk, healthLevel, isDownLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
 import { itemHolders, summonableThreadboundItems } from '../ruleset/threadboundItems';
@@ -715,18 +715,16 @@ const routineOf = (state: GameState, a: Actor): { routine?: ActorView['self']['r
   return r ? { routine: { id: r.id, anchorTurn: r.anchorTurn, elapsed: Math.max(0, now(state) - (r.at ?? now(state))), dayPart: timeOfDay(now(state)) } } : {};
 };
 /** BA7: the zones near it and their ways, for code paths; a way shut to this actor (no key, the far side of the bar, rubble) is no way */
-const mapOf = (state: GameState, a: Actor): MapZone[] => nearbyZones(state, [a.zone], [a.placeId]).map((z) => ({ id: z.id, links: waysOut(state, z.id).map((l) => ({ to: l.to, sight: seesAcross(state, l), ...(l.frontier ? { frontier: true } : {}), ...(l.drop ? { drop: true } : {}), ...(linkPassage(state, l, a, z.id) === 'shut' ? { shut: true } : {}) })) }));
+const mapOf = (state: GameState, a: Actor): MapZone[] => nearbyZones(state, [placeOf(a)]).map((z) => ({ id: z.id, links: waysOut(state, z.id).map((l) => ({ to: l.to, sight: seesAcross(state, l), ...(l.frontier ? { frontier: true } : {}), ...(l.drop ? { drop: true } : {}), ...(linkPassage(state, l, a, z.id) === 'shut' ? { shut: true } : {}) })) }));
 /** what desiredState reads, without the rest of the view (perception, gear, events): the world clock and sleep ask it for
- * every NPC on every step. The map is built only for a head_to walk, the one routine that reads it. */
+ * every NPC on every step. A head_to walk's goal is decided here by metres (views/ways.ts headGoal). */
 export function routineView(state: GameState, a: Actor): RoutineInput {
   const m = a.mind!;
   const b = m.knowledge.player;
-  const map = m.routine && routine(m.routine.id).kind === 'head' ? mapOf(state, a) : [];
-  const edge = headEdge(state, a, map);
+  const g = headGoal(state, a);
   return {
-    self: { zone: a.zone, slots: m.slots ?? {}, ...routineOf(state, a), ...(edge ? { headEdge: edge } : {}) },
+    self: { zone: a.zone, slots: m.slots ?? {}, ...routineOf(state, a), ...(g ? { headGoal: g } : {}) },
     beliefs: b && actorById(state, 'player') ? [{ about: 'player', ...(b.lastKnownZone !== undefined ? { lastKnownZone: b.lastKnownZone } : {}) }] : [],
-    map,
   };
 }
 
@@ -767,7 +765,7 @@ function baseView(state: GameState, actorId: string): BaseView {
   const band = bandById(state, a.bandId);
   const jobs = jobViews(state, a.id);
   const chase = chaseZones(state, a);
-  const map = mapOf(state, a), edge = headEdge(state, a, map);
+  const map = mapOf(state, a), head = headGoal(state, a);
   return {
     turn: state.turn,
     time: timeView(state),
@@ -794,7 +792,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       ...((back) => ({ ...withinStrike(state, a, back), ...(back ? { holdsBack: true as const } : {}) }))(m.control === 'code' && holdsBack(state, a)),
       ...(a.mind?.suspects && Object.keys(a.mind.suspects).length ? { suspects: Object.entries(a.mind.suspects).map(([id, s]) => ({ id, name: callName(state, a.id, id), item: `a locked ${boxName(state, s.box)}` })) } : {}), // GD3
       ...(atChaseLine(state, a) ? { atChaseLine: true as const } : {}),
-      ...(edge ? { headEdge: edge } : {}),
+      ...(head ? { headGoal: head } : {}),
     },
     beliefs, perceived, told, said,
     ...(m.earlier?.lines.length ? { earlier: [...m.earlier.lines] } : {}),
@@ -1200,10 +1198,13 @@ export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverV
   const lib = getLibrary();
   const start = !zoneById(state, state.player.zone); // story start: the player stands nowhere yet (BG-1549)
   // WI8 a: the ground around the player and the target (the frontier's edge too), not the whole world
-  const edges = target.frontierKey ? state.openings.filter((o) => o.frontier && o.joins[1] === target.frontierKey).map((o) => o.joins[0]) : [];
-  const near = nearbyZones(state, [state.player.zone, ...edges], [target.placeId, state.player.placeId]);
-  const stage = new Set(near.map((z) => z.id));
-  const onStage = state.actors.filter((a) => stage.has(a.zone));
+  // BG-1615: by metres from the player's point and the points where the ways out to the frontier are left
+  const edges: Located[] = target.frontierKey ? state.openings.filter((o) => o.frontier && o.joins[1] === target.frontierKey && Number.isFinite(o.at.x)).map((o) => ({ zone: o.joins[0], pos: o.at, floor: o.floor })) : [];
+  const from = [...(start ? [] : [placeOf(state.player)]), ...edges];
+  const onStage = state.actors.filter((a) => from.some((f) => (distOrNull(state, f, a) ?? Infinity) <= CONFIG.PLAN_VIEW_M));
+  // the titles near, and the title each one cast stands in, so no one is left out of its place
+  const stage = new Set([...nearbyZones(state, from).map((z) => z.id), ...onStage.map((a) => a.zone)]);
+  const near = state.zones.filter((z) => stage.has(z.id));
   const bandIds = new Set([state.player.bandId, ...onStage.map((a) => a.bandId)]);
   const cur = state.player.core.classes.find((c) => c.state === 'current');
   const bp = (kind: string) => state.blueprints.filter((b) => b.kind === kind);

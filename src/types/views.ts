@@ -242,7 +242,7 @@ export type ActorView = {
     holdsBack?: true; // D-205 b: a code-run NPC that never closes in: it strikes only who is in withinStrike (a step), else flees
     chaseZones?: string[]; // CH5: a code-run actor's chase range as zones it may chase into (absent: anywhere)
     atChaseLine?: true; // ZR12: it stands at the end of its near chase range, CHASE_NEAR_M past the ground: it turns back
-    headEdge?: string; // NW2, BG-1614: a head_to walk bound for a frontier: the title with a way into it nearest by its walk
+    headGoal?: { zone: string; frontier?: string }; // NW2: where a head_to walk goes: its destination, or for a frontier the title with a way into it nearest by its walk (BG-1614)
   };
   beliefs: BeliefView[];
   perceived: EventView[]; // events it perceived, latest last (no barks), incl. last few exchanges heard
@@ -271,9 +271,8 @@ export type ActorView = {
 };
 /** what desiredState reads (views routineView builds only this; an ActorView is one too) */
 export type RoutineInput = {
-  self: Pick<ActorView['self'], 'zone' | 'routine' | 'slots' | 'headEdge'>;
+  self: Pick<ActorView['self'], 'zone' | 'routine' | 'slots' | 'headGoal'>;
   beliefs: Pick<BeliefView, 'about' | 'lastKnownZone'>[];
-  map: MapZone[];
 };
 
 // ---------- OppositionView: Agent Planner and Responder ----------

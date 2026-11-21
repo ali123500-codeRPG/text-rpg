@@ -4,13 +4,13 @@ import type { ActorView, GameState } from '../../src/types';
 import { actorById, isActive, hostile, seesAcross, stance } from '../../src/engine/relations';
 import { fallbackAttackSkill } from '../../src/ruleset';
 import { waysOut } from '../../src/plan/where';
-import { headEdge, waysView } from '../../src/views/ways';
+import { headGoal, waysView } from '../../src/views/ways';
 
 export function fakeView(state: GameState, id: string, self: Partial<ActorView['self']> = {}): ActorView {
   const a = actorById(state, id)!;
   const m = a.mind!;
   const map = state.zones.map((z) => ({ id: z.id, links: waysOut(state, z.id).map((l) => ({ to: l.to, sight: seesAcross(state, l), ...(l.frontier ? { frontier: true } : {}) })) }));
-  const edge = headEdge(state, a, map);
+  const head = headGoal(state, a);
   const beliefs = Object.entries(m.knowledge).map(([about, b]) => {
     const o = actorById(state, about)!;
     return { about, status: b.status, lastKnownZone: b.lastKnownZone, lastSeenTurn: b.lastSeenTurn, source: b.source, revealed: [], stance: stance(state, a, o), hostile: hostile(state, a, o), active: isActive(o), label: o.label };
@@ -27,7 +27,7 @@ export function fakeView(state: GameState, id: string, self: Partial<ActorView['
       routine: m.routine ? { ...m.routine, elapsed: Math.max(0, now(state) - m.routine.at), dayPart: timeOfDay(now(state)) } : undefined,
       routines: (m.routines ?? []).map((r) => ({ id: r, brief: '' })),
       routineSetId: m.routineSetId, slots: { ...(m.slots ?? {}) }, alarm: m.alarm ? { ...m.alarm } : undefined,
-      ...(edge ? { headEdge: edge } : {}),
+      ...(head ? { headGoal: head } : {}),
       ...self,
     },
     beliefs,

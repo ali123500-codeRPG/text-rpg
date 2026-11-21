@@ -3,8 +3,8 @@
 // (walkRoute); a flight runs from the nearest threat (by straight line when in sight, else by walk) through the way out
 // whose point is farthest from it by walk.
 import type { Actor, BeliefView, GameState, MapZone, RoutineInput, WaysView } from '../types';
-import { distM, frontierPoint, pathM, placeOf, spotAt, walkRoute, wayPoint, type Located } from '../engine/position';
-import { actorById } from '../engine/relations';
+import { distM, pathM, placeOf, spotAt, walkRoute, wayPoint, type Located } from '../engine/position';
+import { actorById, zoneById } from '../engine/relations';
 import { desiredState } from '../minds/routines';
 import { routine } from '../library';
 
@@ -17,14 +17,16 @@ function nextOn(state: GameState, a: Actor, goal: Located): string | null {
   try { return walkRoute(state, placeOf(a), goal, a, true)?.path[0] ?? null; } catch { return null; }
 }
 
-/** NW2: a head_to walk bound for a frontier off its map: the title on its map with a way into that frontier nearest by its
- * walk to where the way is left */
-export function headEdge(state: GameState, a: Actor, map: MapZone[]): string | undefined {
+/** NW2: where a head_to walk goes: its destination title, or for a frontier the title with a way into it nearest by its
+ * walk to where that way is left (BG-1614), which it steps through from; undefined for a destination gone (or never bound) */
+export function headGoal(state: GameState, a: Actor): { zone: string; frontier?: string } | undefined {
   const r = a.mind?.routine, dest = first(a.mind?.slots?.dest);
-  if (!r || routine(r.id).kind !== 'head' || !dest || map.some((z) => z.id === dest)) return undefined;
-  const m = (z: string) => { const p = frontierPoint(state, z, dest); try { return pathM(state, placeOf(a), { zone: z, ...(p ? { pos: p } : {}) }, a); } catch { return Infinity; } };
-  const edges = map.filter((z) => z.links.some((l) => l.frontier && l.to === dest)).map((z) => ({ z: z.id, m: m(z.id) }));
-  return edges.length ? edges.reduce((best, e) => (e.m < best.m ? e : best)).z : undefined;
+  if (!r || routine(r.id).kind !== 'head' || !dest) return undefined;
+  if (zoneById(state, dest)) return { zone: dest };
+  const m = (at: Located) => { try { return pathM(state, placeOf(a), at, a); } catch { return Infinity; } };
+  const edges = state.openings.filter((o) => o.frontier && o.joins[1] === dest && zoneById(state, o.joins[0]))
+    .map((o) => ({ z: o.joins[0], m: m({ zone: o.joins[0], ...(Number.isFinite(o.at.x) ? { pos: o.at } : {}) }) }));
+  return edges.length ? { zone: edges.reduce((best, e) => (e.m < best.m ? e : best)).z, frontier: dest } : undefined;
 }
 
 /** where `a` places someone it believes in: where they stand when it perceives them now, else its last known point (or
@@ -74,7 +76,7 @@ function fleeTo(state: GameState, a: Actor, beliefs: BeliefView[], seen: Set<str
  * flight's title when it may flee (broken, or a code-run NPC with someone to fear or lying as if dead) */
 export function waysView(state: GameState, a: Actor, beliefs: BeliefView[], seen: Set<string>, map: MapZone[], self: RoutineInput['self']): WaysView {
   const goals = new Map<string, Located>();
-  const want = desiredState({ self, beliefs, map })?.zone;
+  const want = desiredState({ self, beliefs })?.zone;
   if (want) goals.set(want, { zone: want });
   for (const b of hunted(beliefs)) if (!goals.has(b.lastKnownZone!)) goals.set(b.lastKnownZone!, spotAt(b.lastKnownZone!, a.mind?.knowledge[b.about]?.lastKnownAt));
   const next: Record<string, string> = {};
