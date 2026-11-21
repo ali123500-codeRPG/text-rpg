@@ -240,7 +240,7 @@ type Journal = {
   factsWitnessed: FactId[];
   remembered: Record<SlotKey, { value: string; seenTurn: Turn }>;
   namesKnown: ActorId[];             // actors the player knows by name
-  clearSight?: Record<ActorId, ZoneId>; // actors seen clearly and where; kept until they move unseen (Q17)
+  clearSight?: Record<ActorId, Pt3>; // actors seen clearly and the point where; kept while within CLEAR_SIGHT_STAY_M of it (Q17, BG-1618)
   lastKnown?: Record<ActorId, ZoneId>; // where each actor was last seen or heard; never forgotten (BG-28)
 };
 

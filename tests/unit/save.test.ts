@@ -310,6 +310,13 @@ describe('migration and reconcile', () => {
     expect(engine.recentEvents[0]).toMatchObject({ pos: { x: 1, y: 2, floor: cellar.floor } });
     expect(tile.items.some((i) => (i as { id: string }).id === 'lost')).toBe(false);
   });
+  it('BG-1618: a v15 save\'s clear sight by title keeps the point of whoever still stands in that title, and drops the rest', () => {
+    const s = makeVillage();
+    const pages = toPages(s), patron = s.actors.find((a) => a.id === 'patron_1')!;
+    (pages['actor.player'] as { journal: { clearSight: unknown } }).journal.clearSight = { patron_1: patron.zone, trader: 'tav_cellar', gone_1: 'tav_common' };
+    MIGRATIONS[15](pages);
+    expect((pages['actor.player'] as GameState['player']).journal!.clearSight).toEqual({ patron_1: { ...patron.pos, floor: patron.floor } });
+  });
 });
 
 describe('turn lock', () => {

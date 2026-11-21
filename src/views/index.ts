@@ -1,5 +1,5 @@
 // W3 — the six deny-by-default view builders (+ the combat packet). Copy whitelisted fields into new objects only.
-import { middle, waysOut, wayTo, type Way } from '../plan/where';
+import { middle, waysOut, wayTo, zoneAt, type Way } from '../plan/where';
 import { wallsAround } from '../plan/holes';
 import { withBackdrop } from './backdrop';
 import { wallStuff } from '../ruleset/breaking';
@@ -26,7 +26,7 @@ import { isDark, timeView, zoneLight, clockSet, now, timeOfDay, durationText, sp
 import { charLevel, power, wornTitle } from '../engine/xp';
 import { presetAgeFloor, presetTalent, rankName, rankRow, spawnNpc } from '../library/spawn';
 import { uniqueInWorld } from '../library/echo';
-import { distM, distOrNull, seeingM, sideFrom, sightDistM, spotPoint, wayLeftM } from '../engine/position';
+import { distM, distOrNull, seeingM, sideFrom, sightDistM, spotPoint, standingAt, wayLeftM } from '../engine/position';
 import { moveSpeed, turnMetres } from '../engine/speed';
 import { hiddenFrom } from '../engine/gear';
 import { revealedTo } from '../minds/state';
@@ -52,7 +52,7 @@ import { tacticsWord } from './tactics';
 import { fallBackOwner } from '../engine/nerve';
 import { PERK_MOVES, fallbackAttackSkill, hasPerk, healthLevel, isDownLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
 import { itemHolders, summonableThreadboundItems } from '../ruleset/threadboundItems';
-import { beliefStatus, hearsWords, isComm, noteBody, soundOf, spotInSight } from '../perception';
+import { beliefStatus, hearsWords, isComm, keepsClearSight, noteBody, soundOf, spotInSight } from '../perception';
 import { hearingOf } from '../perception/noise';
 import { perkSum } from '../ruleset/perks';
 import { skillName } from '../library/skillNames';
@@ -192,7 +192,7 @@ export const seesClearlyNow = (state: GameState, viewer: Actor, id: string): boo
  * its views would otherwise half see someone the narration just named */
 export function keepClearSight(state: GameState, events: GameEvent[]): void {
   const cs = state.player.journal ? (state.player.journal.clearSight ??= {}) : undefined;
-  if (cs) for (const a of seenActors(state, state.player, events)) if (a.level === 'full') { cs[a.id] = a.zone; noteBody(state, actorById(state, a.id)); } // RX1 a
+  if (cs) for (const a of seenActors(state, state.player, events)) { const x = actorById(state, a.id); if (a.level === 'full' && x) { cs[a.id] = standingAt(x); noteBody(state, x); } } // RX1 a
 }
 /** everyone the viewer sees now, clearly or half (Never Flat-Footed notes them: src/engine/flatFooted.ts) */
 export const seenIds = (state: GameState, viewer: Actor): string[] => seenActors(state, viewer).map((x) => x.id);
@@ -348,7 +348,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
     // (spoke face to face, say): then they stay seen
     // Q17/BG-252 (PG11 a): someone the player saw clearly (by distance, a look or a make-out roll) stays seen while they
     // stay put and can still be glimpsed (sight is not null here); anyone made out by sight this turn is seen clearly
-    const keptSight = viewer.journal?.clearSight?.[a.id] === a.zone || madeOutBySight(state, viewer.id, a.id);
+    const keptSight = keepsClearSight(viewer, a.id, standingAt(a)) || madeOutBySight(state, viewer.id, a.id);
     const dark = isDark(zoneLight(state, zoneById(state, a.zone), a.pos)) && !(sight === 'full' && seenClearly(state, viewer.id, a.id));
     const level = keptSight ? 'full' : sight === 'partial' || dark ? 'partial' : 'full';
     // CS7: a partially perceived actor keeps its id (needed as a target) but shows only 'someone'
@@ -564,9 +564,10 @@ function goneFromSpot(state: GameState, id: string, seen: { id: string }[]): boo
  * off (BG-28) */
 function lastSeen(state: GameState, seen: SeenActor[]): NonNullable<PlayerView['lastSeen']> {
   const p = state.player;
-  return Object.entries({ ...p.journal?.clearSight, ...p.journal?.lastKnown }).flatMap(([id, zone]) => {
-    const a = actorById(state, id);
-    if (!a || seen.some((x) => x.id === id && x.level === 'full') || !isActive(a)) return [];
+  const cs = p.journal?.clearSight ?? {}, known = p.journal?.lastKnown ?? {};
+  return [...new Set([...Object.keys(cs), ...Object.keys(known)])].flatMap((id) => {
+    const a = actorById(state, id), zone = known[id] ?? (cs[id] && zoneAt(state, cs[id], cs[id].floor)?.id); // the title of the point where they were seen
+    if (!a || !zone || seen.some((x) => x.id === id && x.level === 'full') || !isActive(a)) return [];
     // BG-130: their pronouns too, so words about someone out of sight never guess them from a name
     // BG-155: a seller seen before is still known to sell, so a buy from them steps up to them
     // BG-327: zone is the id, as everywhere in PlayerView, with its name beside it (as cameFrom)

@@ -4,7 +4,7 @@ import { middle } from '../plan/where';
 import { seeSquares, seeWhole } from '../plan/fog';
 import { boxOf } from '../plan/geom';
 import { dropOnGround, groundIn } from '../engine/ground';
-import { titleMiddle } from '../engine/position';
+import { standingAt, titleMiddle } from '../engine/position';
 import { BK, PA, VL, WK } from '../library/tableIds';
 import { roadShape } from '../scenario/apply';
 import { HL } from '../library/tableIds';
@@ -325,9 +325,10 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
 
   function start(b: CreationBuild) {
     const player = playerFromBuild(b, 'fake', 'tav_common', 'tavern');
-    player.journal = { ...(player.journal ?? { secretsKnown: [], factsWitnessed: [], remembered: {}, namesKnown: [] }), zonesSeen: ['ash_gate', 'w_road', 'v_square', 'field_edge', 'field_mid', 'tav_common', 'tav_kitchen', 'tav_yard', 'tav_upstairs'], clearSight: { slime_1: 'field_mid' } };
+    player.journal = { ...(player.journal ?? { secretsKnown: [], factsWitnessed: [], remembered: {}, namesKnown: [] }), zonesSeen: ['ash_gate', 'w_road', 'v_square', 'field_edge', 'field_mid', 'tav_common', 'tav_kitchen', 'tav_yard', 'tav_upstairs'], lastKnown: { slime_1: 'field_mid' } };
     const settings = defaultSettings();
     const slime = spawnNpc(null, TP.slime, { id: 'slime_1', zone: 'field_mid', placeId: 'field', bandId: 'slimes', storyId: 'fake', name: 'slime' });
+    player.journal.clearSight = { slime_1: standingAt(slime) };
     slime.mind!.knowledge = { player: { status: 'aware', lastKnownZone: 'field_edge', lastSeenTurn: 2, source: 'seen', revealed: [] } };
     const guard = spawnNpc(null, TP.guard, { id: 'guard_1', zone: 'tav_common', placeId: 'tavern', bandId: 'village_watch', storyId: 'fake', name: 'Bren' });
     state = {
@@ -358,7 +359,8 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       const kael = spawnNpc(null, TP.patron, { id: 'mate_2', zone: 'tav_yard', placeId: 'tavern', bandId: player.bandId, storyId: 'fake', name: 'Kael' });
       mira.core.condition.hpLostPct = 45; mira.core.condition.moraleLost = 12;
       state.actors.push(mira, kael);
-      player.journal!.clearSight = { ...player.journal!.clearSight, mate_1: 'tav_common', mate_2: 'tav_yard' };
+      player.journal!.clearSight = { ...player.journal!.clearSight, mate_1: standingAt(mira), mate_2: standingAt(kael) };
+      player.journal!.lastKnown = { ...player.journal!.lastKnown, mate_1: 'tav_common', mate_2: 'tav_yard' };
       player.journal!.namesKnown = [...(player.journal!.namesKnown ?? []), 'mate_1', 'mate_2'];
     }
     // KT18: an unknown ?stage= name fails loudly, so the Map's browser check never passes on the default page

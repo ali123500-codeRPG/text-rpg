@@ -48,6 +48,8 @@ const unit = (A: Pos, B: Pos): [number, number] | undefined => { const d = flat(
 export const floorOf = (state: GameState, a: Located): number => a.floor ?? zoneById(state, a.zone)?.floor ?? 0;
 /** D-1623: an actor's point and height (where an event it makes happens) */
 export const standingAt = (a: Actor): Pt3 => ({ x: a.pos.x, y: a.pos.y, floor: a.floor });
+/** metres between two points, heights included */
+export const pointsM = (a: Pt3, b: Pt3): number => Math.hypot(a.x - b.x, a.y - b.y, a.floor - b.floor);
 /** D-1623: where an actor stands, as a copy: its title, point and height */
 export const placeOf = (a: Actor): Located => ({ zone: a.zone, pos: { ...a.pos }, floor: a.floor });
 /** D-1623: where an event's point lies: its title, point and height */

@@ -78,6 +78,19 @@ export const MIGRATIONS: Record<number, (pages: Pages) => void> = {
     }
     for (const k of Object.keys(pages)) if (k.startsWith('tile.')) { const t = pages[k] as TilePage; t.items = t.items.filter((i) => i.at); }
   },
+  // BG-1618: clear sight keeps the point (and height) someone was seen at, not their title: someone still in the title
+  // they were seen in keeps clear sight from where they stand; anyone else is dropped and seen afresh
+  15: (pages) => {
+    const actors = new Map(actorKeys(pages).map((k) => [(pages[k] as Actor).id, pages[k] as Actor]));
+    for (const p of actors.values()) {
+      const j = p.journal as { clearSight?: Record<string, unknown> } | undefined;
+      if (!j?.clearSight) continue;
+      j.clearSight = Object.fromEntries(Object.entries(j.clearSight).flatMap(([id, at]) => {
+        const a = actors.get(id);
+        return a && at === a.zone ? [[id, { x: a.pos.x, y: a.pos.y, floor: a.floor }]] : [];
+      }));
+    }
+  },
 };
 
 /** run steps from → to in order; returns false (and an error) when the save is too old, too new or a step is missing. */

@@ -4,7 +4,7 @@ import { SPEECH_ACTIONS } from '../types';
 import { CONFIG } from '../config';
 import { AWARENESS, GRADE_LEVELS, HIT_OUTCOMES, NOISE, type GradeLevel, type NoiseKey } from '../scales';
 import { hearingOf, soundDb, VOLUME_NOISE } from './noise';
-import { M_EPS, distOrNull, leastGapM, seeingM, spotAt, standingAt, withinM, type Located } from '../engine/position';
+import { M_EPS, distOrNull, leastGapM, pointsM, seeingM, spotAt, standingAt, withinM, type Located } from '../engine/position';
 import { sightLevel, stillGlimpsed } from './sight';
 export { hearingOf, openAirReachM, soundDb } from './noise';
 import { isDark, now, pitchBlack, turnTime, zoneLight } from '../time';
@@ -164,12 +164,18 @@ function sightOf(event: GameEvent, state: GameState, observer: Actor, at: Locate
   // BG-23: a leg out of a zone is seen where it set off as well as where it ended (someone walking out through a door
   // in plain sight is seen going, though the room beyond is out of sight)
   if (event.fromZone) sight = better(sight, seenAt(spotAt(event.fromZone, event.fromPos)));
-  // Q17: someone the player saw clearly stays seen while they stay put (within the zones the player can see); BG-252
-  // (PG11 a): as long as they can still be glimpsed, the same rule as Who's here (seenActors)
-  if (observer.kind === 'player' && event.kind !== 'move' && event.kind !== 'flee' && observer.journal?.clearSight?.[event.actorId] === event.zone
+  // Q17: someone the player saw clearly stays seen while they stay put (BG-1618: within CLEAR_SIGHT_STAY_M of where they
+  // were seen); BG-252 (PG11 a): as long as they can still be glimpsed, the same rule as Who's here (seenActors)
+  if (observer.kind === 'player' && event.kind !== 'move' && event.kind !== 'flee' && event.pos && keepsClearSight(observer, event.actorId, event.pos)
     && stillGlimpsed(event.visibility, seeingM(state, observer, at))) sight = { level: 'full', cue: 'sight' };
   return sight;
 }
+
+/** Q17, BG-1618: the player saw `id` clearly and it has stayed within CLEAR_SIGHT_STAY_M of that point since */
+export const keepsClearSight = (player: Actor, id: string, now: Pt3): boolean => {
+  const seen = player.journal?.clearSight?.[id];
+  return !!seen && pointsM(seen, now) <= CONFIG.CLEAR_SIGHT_STAY_M;
+};
 
 /** D-40: the detection senses that reach `observer` from the event, each by its own reach and each on its own (smell
  * too when the event is seen or heard): sight as perceptionOf sees it, hearing its sound above the floor, smell its
@@ -213,7 +219,7 @@ export function perceptionOf(event: GameEvent, state: GameState, observer: Actor
   return best && (sound?.level === 'full' || oneSense) ? { ...best, heard: true } : best;
 }
 
-/** Q17: the player's clear sightings. A full sight of an actor records its zone; a move the player did not see clearly forgets it.
+/** Q17: the player's clear sightings. A full sight of an actor records its point (BG-1618); a move the player did not see clearly forgets it.
  * NS2: a stealthy actor's move the player does not perceive at all loses it: aware drops to suspicious. */
 export function noteSightings(event: GameEvent, state: GameState): void {
   const p = state.player;
@@ -222,7 +228,8 @@ export function noteSightings(event: GameEvent, state: GameState): void {
   const cs = (p.journal.clearSight ??= {});
   if (per) (p.journal.lastKnown ??= {})[event.actorId] = event.zone; // BG-28: seen or heard, the last place known
   if (per && event.pos) (p.journal.lastSpot ??= {})[event.actorId] = { ...event.pos }; // BG-125; an event with no point (none: ZP1) never erases a known one
-  if (per?.level === 'full' && per.cue === 'sight') { cs[event.actorId] = event.zone; noteBody(state, actorById(state, event.actorId)); }
+  const who = actorById(state, event.actorId);
+  if (per?.level === 'full' && per.cue === 'sight' && (event.pos || who)) { cs[event.actorId] = event.pos ? { ...event.pos } : standingAt(who!); noteBody(state, who); }
   else if (event.kind === 'move' || event.kind === 'flee') delete cs[event.actorId];
   if (!per && (event.kind === 'move' || event.kind === 'flee') && actorById(state, event.actorId)?.posture === 'stealthy') updateBeliefs(state, { kind: 'lost', observerId: p.id, aboutId: event.actorId });
 }
@@ -272,7 +279,7 @@ export function lookAround(state: GameState): string[] {
     if (a.id === p.id) continue;
     const d = seeingM(state, p, a);
     // BG-279: a good look is this turn's make-out of everyone it shows, so their own move later this turn keeps them seen
-    if (inLookReach(d)) { cs[a.id] = a.zone; recordMadeOut(state, p.id, a.id, FN.sight, true); (p.journal.lastKnown ??= {})[a.id] = a.zone; (p.journal.lastSpot ??= {})[a.id] = standingAt(a); noteBody(state, a); shown.push(a.id); }
+    if (inLookReach(d)) { cs[a.id] = standingAt(a); recordMadeOut(state, p.id, a.id, FN.sight, true); (p.journal.lastKnown ??= {})[a.id] = a.zone; (p.journal.lastSpot ??= {})[a.id] = standingAt(a); noteBody(state, a); shown.push(a.id); }
   }
   return shown;
 }
