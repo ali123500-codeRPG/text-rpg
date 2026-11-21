@@ -31,6 +31,7 @@ import { moveSpeed, turnMetres } from '../engine/speed';
 import { hiddenFrom } from '../engine/gear';
 import { revealedTo } from '../minds/state';
 import { sightLevel } from '../perception/sight';
+import { attended, attentionSteps } from '../perception/attention';
 import { madeOutBySight } from '../perception/madeOut';
 import { atChaseLine, chaseLost, chaseZones } from '../engine/chase';
 import { actorById, allActors, knowsName, labelFor, nameFor, atLeast, bandById, heldBy, isActive, isAsleep, hostile, perceivedZoneIds, seesAcross, shortestPath, sparring, stance, zoneById } from '../engine/relations';
@@ -327,7 +328,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
   for (const a of allActors(state)) {
     if (a.id === viewer.id || !zones.includes(a.zone)) continue;
     if (a.id === state.player.id && !atLeast(viewer.mind?.knowledge[a.id]?.status, 'aware')) continue;
-    const sight = sightLevel(personVisibility(a, events), seeingM(state, viewer, a));
+    const sight = attended(sightLevel(personVisibility(a, events), seeingM(state, viewer, a)), attentionSteps(state, viewer, a)); // D-200
     // NS2/NS4: a stealthy NPC outside the viewer's band shows only to those who see it; a suspicious viewer half sees someone
     const hidden = a.id !== state.player.id && a.posture === 'stealthy' && a.bandId !== viewer.bandId ? beliefStatus(state, viewer, a) : 'aware';
     if (!sight) {

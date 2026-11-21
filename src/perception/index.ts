@@ -6,6 +6,7 @@ import { AWARENESS, GRADE_LEVELS, HIT_OUTCOMES, NOISE, type GradeLevel, type Noi
 import { hearingOf, soundDb, VOLUME_NOISE } from './noise';
 import { M_EPS, distOrNull, leastGapM, pointsM, seeingM, spotAt, standingAt, withinM, type Located } from '../engine/position';
 import { sightLevel, stillGlimpsed } from './sight';
+import { attended, attentionSteps } from './attention';
 export { hearingOf, openAirReachM, soundDb } from './noise';
 import { isDark, now, pitchBlack, turnTime, zoneLight } from '../time';
 import { actorById, allActors, atLeast, isActive, isAsleep, zoneById } from '../engine/relations';
@@ -107,7 +108,8 @@ export function sightAt(state: GameState, observer: Actor, at: Located, visibili
   if (far === undefined || leastGapM(state, observer, at) / ('core' in at ? maxSightFactor(actorBody(state, at as Actor).size) : 1) > far) return null;
   const light = zoneLight(state, zoneById(state, at.zone), at.pos);
   const sl = pitchBlack(light) ? null : sightLevel(visibility, seeingM(state, observer, at)); // LT1: nothing is seen in pitch black
-  return sl && (isDark(light) ? 'partial' : sl);
+  // D-200: off its facing, or busy, a clear sight is only a glimpse
+  return sl && (isDark(light) ? 'partial' : attended(sl, attentionSteps(state, observer, at)));
 }
 
 /** AB18 a: `observer` smells someone at that point: within its Scent skill in metres along the open ways (the straight line
@@ -154,8 +156,10 @@ export function faintness(state: GameState, event: GameEvent, observer: Actor, c
     if (!band || m === null || m > band[1] || pitchBlack(light)) return null; // LT1: nothing is seen in pitch black
     const share = Math.max(0, (m - band[0]) / (band[1] - band[0]));
     const dark = isDark(light) && !hasPerk(observer, PK.night_eyes);
-    const g = GRADE_LEVELS.pos(pick(CONFIG.MAKE_OUT_SIGHT_GRADES, (n) => share <= n)) + (dark ? CONFIG.MAKE_OUT_DARK_STEPS : 0);
-    return Math.min(g, GRADE_LEVELS.keys.length - 1);
+    // D-200: attention's rungs; the first one on a clear sight only makes it a glimpse (the easiest grade)
+    const steps = attentionSteps(state, observer, p), wasClear = m <= band[0] && !isDark(light);
+    const g = Math.min(GRADE_LEVELS.pos(pick(CONFIG.MAKE_OUT_SIGHT_GRADES, (n) => share <= n)) + (dark ? CONFIG.MAKE_OUT_DARK_STEPS : 0), GRADE_LEVELS.keys.length - 1);
+    return Math.min(g + Math.max(0, steps - (wasClear ? 1 : 0)), Math.max(g, GRADE_LEVELS.pos('extreme'))); // attention stops at Extreme
   };
   const ps = [at(madeAt(state, event)), event.fromZone ? at(spotAt(event.fromZone, event.fromPos)) : null].filter((g): g is number => g !== null);
   return ps.length ? GRADE_LEVELS.at(Math.min(...ps)) : null;

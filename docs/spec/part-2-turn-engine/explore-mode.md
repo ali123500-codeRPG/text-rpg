@@ -61,6 +61,16 @@ Ali, 14/11/2026, PG3–PG9 all a (Questions hub page "Passive Eyesight and Earsh
 - **Shown** (PG9 a). Only the player's roll is kept (GameEvent.madeOut), and only the Rolls panel shows it (Show rolls on); the narration tells what was made out.
 - **Scaling.** Chance of Success or better: Minor 45 / 70 / 82 / 95% at skill 0 / 50 / 75 / 100, Extreme 22 / 47 / 60 / 72%; at 150 every grade is 95%. Past about 150 it stops mattering, because the clear and glimpse ranges and the hearing floor are human numbers: senses past 100 widening those ranges is parked as D-321 (PG10 a).
 
+#### Attention
+
+Ali, 21/11/2026, D-200 a and D-200b b (Questions hub page "Open parked items 3"); src/perception/attention.ts.
+
+- **Facing** (D-200). Every body faces the way it last walked, or turns toward what it strikes, looks at or speaks to (engine/position.ts). One that has never walked or turned has no facing yet and sees all round it. Turning by choice and rotation speed are parked (D-439).
+- **Rungs.** Sight runs down one ladder: clear, then a glimpse that is Minor, Moderate, Major, Extreme to make out. Each rung of attention is one step down it. Attention alone never takes sight away: a glimpse stops at Extreme. Darkness and distance still can.
+- **Off the facing** (D-200, D-200b b). Within ATTENTION\_SIDE\_DEG (60°) of the facing, sight is as usual. Past it, ATTENTION\_SIDE\_STEPS (1) rung worse: clear becomes a glimpse, a glimpse is a grade harder. Past ATTENTION\_BACK\_DEG (100°, behind, outside the eyes' field), ATTENTION\_BACK\_STEPS (2) rungs worse. Real figures: each eye sees about 60° toward the nose and 100° toward the temple (Spector, "Visual Fields", Clinical Methods, 1990).
+- **Busy** (D-200). ATTENTION\_BUSY\_STEPS (1) rung more while busy: a long action under way (Actor.busy, not paused), or fighting someone else (it struck at someone this turn or last, and not at the one seen).
+- **Where.** Every sight check for everyone: events (sightAt, and the make-out grade in faintness), Who's here and the actor views (seenActors), filching and the Insight look. The Q17 rule still keeps a still person the player saw clearly seen clearly. A sleeper still sees nothing.
+
 #### Searching
 
 Ali, 11–13/11/2026, SE1–SE25 (questions page "Search redesign"); fight reach SA8 b (page "Search achievements"; dropped by LX3 a). A search may be repeated every turn with a fresh roll (SE12 a); its event is quiet and normally seen (SE13). Use, interact and other keep the scene-number check until their own deep dive (SE18 a; the numbers are D-7). The look in a Search has no scene number (SE15).

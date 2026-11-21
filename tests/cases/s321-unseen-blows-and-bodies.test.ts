@@ -10,6 +10,7 @@ import { SK } from '../../src/library/skillIds';
 import { IT } from '../../src/library/itemIds';
 import { plannerActors } from '../../src/agents/game';
 import { earlierLine } from '../../src/views';
+import { faceToward } from '../../src/engine/position';
 
 const hidden = (night = false): GameState => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
@@ -52,6 +53,7 @@ describe('321 unseen blows and bodies', () => {
     const s = hidden();
     const p = s.actors.find((a) => a.id === 'patron_1')!, t = s.actors.find((a) => a.id === 'trader')!;
     p.core.condition.hpLostPct = 200; // dead
+    t.mind!.routine = { id: 'wait', anchorTurn: s.turn, at: 0 }; faceToward(t, p); // D-200: the trader stays facing the body (one behind it is only glimpsed)
     const ev = play(s);
     expect(ev.filter((e) => e.kind === 'found_body' && e.actorId === 'trader' && e.target === 'patron_1')).toHaveLength(1);
     expect(t.mind!.alarm?.armed).toBe(true);
