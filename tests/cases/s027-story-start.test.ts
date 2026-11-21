@@ -32,4 +32,15 @@ describe('27 Story start', () => {
     expect(s.player.placeId).toBe('tavern');
     roll.mockRestore();
   });
+
+  it('BG-1549: the start view claims no place for the player, and the plan\'s arriveAt is where they start', async () => {
+    const weave = vi.fn(async (view: { tier: string; player: { standsIn: unknown } }) => {
+      expect(view.player.standsIn).toBeNull();
+      return { ...villageStagePlan(TIERS.keyOf(view.tier)!), arriveAt: 'field_mid' };
+    });
+    const s = toStoryStart(makeVillage());
+    await new ScenarioDirector({ weave, clock: new VirtualClock() }).storyStart(s, createRng(s.rngState));
+    expect(weave).toHaveBeenCalledTimes(1);
+    expect(s.player.zone).toBe('field_mid');
+  });
 });

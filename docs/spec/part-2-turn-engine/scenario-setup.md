@@ -14,7 +14,7 @@ Runs inside the turn that calls scenarioBreak, after resolveTurn and before the 
 
 Setup details (CS2):
 
-- At story start the player has no zone on the stage yet and starts in the plan's first zone. Their place has no node yet either: code makes a bare one so the Weaver's plan and the fallback can use its id.
+- At story start the player has no zone on the stage yet. The Weaver's view says so (player.standsIn is null) and the plan's arriveAt names the zone the player starts in; with none, they start in the plan's first zone (PQ1 a). Starting outdoors, they stand at the door of the building beside them (BG-49). Their place has no node yet either: code makes a bare one so the Weaver's plan and the fallback can use its id.
 - Someone the Weaver brings back (a cast entry naming an actor already in the world) keeps their names; a name in the plan is ignored.
 - A seeded trigger whose owner has no plan gets an empty plan (no goal, no steps) to hold it.
 - A stage extension keeps the scenario's challenge and gain; its event summary is added after the scenario's, and its hidden terms join the stage's.
@@ -22,6 +22,6 @@ Setup details (CS2):
 
 Story start has no triggering turn: setup runs alone, is saved as turn 0, and one opening Agent Narrator call narrates it. Until turn 0 is saved, the build is kept at pending/start; reopening the game with it there starts the opening again (Ali, 08/11/2026). Turn 0's premise and starting place come from the story's setting, chosen per story (D-1).
 
-**First build:** the premise is the config value STORY\_PREMISE, "A swordsman arrives at a village troubled by slimes", and the story starts in the village tavern.
+**First build:** the premise is the config value STORY\_PREMISE, "A swordsman arrives at a village troubled by slimes", and that bare place is STORY\_START\_PLACE (tavern), which the first plan fills in; where the player starts is the plan's choice, as above.
 
 The player sees the event roll only on the Rolls line, with Show rolls on (ER5): the scenario's first line reads "Event roll d100 63 → Success" with its modifiers. With Show rolls off it stays hidden, and Agent Narrator never gets it.

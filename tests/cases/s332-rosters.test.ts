@@ -8,7 +8,7 @@ import { applyStagePlan, validateStagePlan, type PlanContext } from '../../src/s
 import { toStoryStart, villageStagePlan } from '../../src/scenario/fixtures';
 import { drawRegion, type RegionBrief } from '../../src/land/generate';
 import { groupMembers, landmarkRoster, roadRoster, siteRoster, wildTable } from '../../src/land/roster';
-import { buildWorldView } from '../../src/views';
+import { buildWeaverView, buildWorldView } from '../../src/views';
 import { getLibrary } from '../../src/library';
 import { RK, LM, LC, ZK } from '../../src/library/tableIds';
 import { GP, HK, RO, TH as THEME } from '../../src/library/npcLayerIds';
@@ -122,6 +122,8 @@ describe('332 rosters and groups', () => {
   it('NR17: a cast entry naming a roster key takes who and how strong from it, once; the World view drops filled entries', () => {
     const s = withLand();
     const leader = siteRoster(site('village'))[0];
+    // PQ2 a, BG-1549: the Weaver's story-start view lists the rosters too
+    expect(buildWeaverView(s, { kind: 'scenario', placeId: 'tavern' }).land!.sites.find((x) => x.id === site('village').id)!.roster!.map((e) => e.key)).toContain(leader.key);
     const p = castRoster(leader.key);
     expect(validateStagePlan(s, p, ctx)).toEqual([]);
     expect(p.cast.at(-1)!.compose).toEqual(leader.compose);

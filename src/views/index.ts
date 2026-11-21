@@ -1176,6 +1176,7 @@ export function buildWorldView(state: GameState, target: WeaverTarget): WorldVie
 }
 export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverView {
   const lib = getLibrary();
+  const start = !zoneById(state, state.player.zone); // story start: the player stands nowhere yet (BG-1549)
   // WI8 a: the ground around the player and the target (the frontier's edge too), not the whole world
   const edges = target.frontierKey ? state.openings.filter((o) => o.frontier && o.joins[1] === target.frontierKey).map((o) => o.joins[0]) : [];
   const near = nearbyZones(state, [state.player.zone, ...edges], [target.placeId, state.player.placeId]);
@@ -1205,12 +1206,13 @@ export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverV
         ...encounterPeople(state, zoneById(state, state.stage.encounter.zone)?.road, state.stage.encounter.at, timeOfDay(now(state)) === 'night') } } : {}),
       ...((target.kind === 'scenario' || target.kind === 'window') && state.stage.cause ? { cause: structuredClone(state.stage.cause) } : {}) },
     headlines: headlinesFor(state, target.placeId, true),
-    ...((land) => (land ? { land } : {}))(landView(state, state.player.pos ?? (() => { const z = zoneById(state, state.player.zone); return z?.outline?.length ? middle(z) : undefined; })())),
+    // PQ2 a: the start's settlement is cast from its roster, as the World builder casts a site's
+    ...((land) => (land ? { land: start ? withRosters(state, land, timeOfDay(now(state)) === 'night') : land } : {}))(landView(state, state.player.pos ?? (() => { const z = zoneById(state, state.player.zone); return z?.outline?.length ? middle(z) : undefined; })())),
     places: weaverPlaces(state, near, onStage),
     quests: state.quests.map((q) => ({ id: q.id, state: q.state, text: q.text })),
     bands: state.bands.filter((b) => bandIds.has(b.id)).map((b) => ({ id: b.id, name: b.name, goals: b.goals, relations: { ...b.relations }, ...(b.chase ? { chase: b.chase } : {}) })),
     player: { level: charLevel(state.player), power: Math.round(power(state, state.player)), ...(state.player.pronouns ? { pronouns: state.player.pronouns } : {}), currentClass: cur ? { id: cur.classId, name: lib.classes[cur.classId]?.name ?? cur.classId } : null, health: healthLevel(state.player),
-      standsIn: { place: state.player.placeId, placeName: placeName(state, state.player.placeId), area: state.player.zone },
+      standsIn: start ? null : { place: state.player.placeId, placeName: placeName(state, state.player.placeId), area: state.player.zone },
       ...((() => { const own = itemHolders(state).flat().filter((i) => i.boundTo === state.player.id && lib.items[i.itemId]?.threadbound).map((i) => lib.items[i.itemId].name); return own.length ? { threadbound: own } : {}; })()) },
     previousNote: state.hidden.weaverNote,
     lastScenarios: lastScenarios(state).map((r) => ({ question: r.question, scale: SCENARIO_SCALES.name(r.scale), tier: tierName(r.tier), ending: SCENARIO_ENDING_NAMES[r.ending], note: r.text, turns: r.endTurn - r.startTurn, fallen: [...r.fallen], gained: r.gained.map((i) => { try { return itemDef(state, i).name; } catch { return i; } }), ...(r.inner ? { inner: true as const } : {}) })),

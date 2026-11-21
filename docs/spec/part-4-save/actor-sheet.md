@@ -542,7 +542,8 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
 - **SHEET-339** The seat is at least its minimum (village Veteran or Elite, town Paragon, city Beyond, court Mythic),
   one step higher on SEAT_STEP_UP_PCT (TL24).
 - **SHEET-340** The World builder's view (`land`) lists each unfilled entry beside its site, road or landmark (`roster`,
-  `travellers`, `people`: key, who, what it gives, and who code rolled).
+  `travellers`, `people`: key, who, what it gives, and who code rolled). The Weaver's view at story start lists them too,
+  and the Weaver casts the start settlement's roster by the World builder's rule (PQ2 a).
 - **SHEET-341** `land.wild` lists who can be met on each cover at this time of day (`wildPeople`, NR19 a).
 - **SHEET-342** A cast entry names the key in `roster`: code takes the entry's race and rank, and who it is unless the
   entry gives a template or composition; a key is filled once (`hidden.rosterFilled`). An entry keyed by a roster key

@@ -46,7 +46,7 @@ export const ENGINE = {
   EARLIER_LINES: 6, // PM6: code-made lines about events older than RECENT_EVENTS (placeholder)
   SAID_LINES: 6, // P5: an NPC's own last lines in its view, so it stops repeating itself
   STORY_PREMISE: 'A swordsman arrives at a village troubled by slimes',
-  STORY_START_PLACE: 'tavern', // First build: a new story starts in the village tavern (its place id)
+  STORY_START_PLACE: 'tavern', // First build: the place id a new story's first plan fills in (BG-32); the plan's arriveAt says where the player starts (PQ1 a)
   SHOW_MECHANICS: true, // master switch: false removes Show rolls everywhere
   SHOW_ROLLS_DEFAULT: false, // a new story starts with Show rolls off; the player turns it on from the play header
   /** M-33: reaching this health level or worse pulses the play screen's edge red once; from MOTION_EDGE_STEADY on the edge keeps a steady tint */

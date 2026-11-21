@@ -322,6 +322,15 @@ const PLAN_RULES_SHARED = [
   `   To make an actor differ from its template, give it a personality: a Nerve line, up to two types and up to three`,
   `   values from catalogs.personality, strongest first.`,
 ].join('\n');
+/** NR17, SHEET-340: casting the land's rosters, one copy for the World builder and the Weaver's story start (PQ2 a) */
+const ROSTER_RULE = [
+  `from land: a site you build a place on lists its roster`,
+  `   (land.sites[].roster), a road its travellers (roads[].travellers), a landmark its people (landmarks[].people).`,
+  `   Cast each entry for the ground you build once, naming its key in roster: code has set who they are and how strong`,
+  `   (is), and you give the name, look, routine and band. A group entry is one cast entry, its leader (label, name and look are the leader's alone); code adds its followers. An`,
+  `   entry with goals is a seat of the Great: give them a name, the deeds that made them (motive) and 1 to ${CONFIG.GOALS_HELD} goals;`,
+  `   people call them the Great, never by a rank.`,
+].join('\n');
 export const WEAVER_INSTRUCTIONS = [
   `You are the Weaver of a text RPG. You decide what is happening at a place and`,
   `who is there, so the scenario fits the hand the dice dealt. You never narrate,`,
@@ -354,7 +363,7 @@ export const WEAVER_INSTRUCTIONS = [
   `   an actor with a plan stops being an ordinary NPC.`,
   `   A unique (one specific person from catalogs.uniques) acts from its own goals, not a routine: give it 1 to ${CONFIG.GOALS_HELD} goals,`,
   `   from its values, archetype and past (an echo's first goal is its unfinished business, from its past, fitted to this`,
-  `   world), each naming in about the ids or keys of the people, places and items it is after. Only uniques get goals.`,
+  `   world), each naming in about the ids or keys of the people, places and items it is after. Only uniques, and a seat of the Great from a roster (rule 11), get goals.`,
   `   A job for the player (a quest) comes only through an actor: put it in that`,
   `   actor's plan, and it offers the job in talk.`,
   `8. Keep your note short: what the story is building toward and what you set up.`,
@@ -366,6 +375,7 @@ export const WEAVER_INSTRUCTIONS = [
   `   template, give its own name as name, and its pronouns, personality and age are its own. One marked echo is a hero who`,
   `   fell in another time or world and walks again from the afterlife; past is who it was, hidden: keep it out of public text.`,
   `   A unique comes into a world once: after that it is in your view like anyone else.`,
+  `11. Fill a settlement you build with the people who matter to play, ${ROSTER_RULE}`,
   '',
   `Return only JSON matching the schema.`,
 ].join('\n');
@@ -408,7 +418,7 @@ export const VOICE_SHAPE = `{"action":${NPC_ACTION},"line":string,"volume":"whis
 export const NARRATOR_SHAPE = '{"text":string,"narrated":[event_id],"closing"?:string}';
 export const WEAVER_SHAPE = `{"event":{"summary":string,"challenge":grade,"gain":grade},
  "places":[{"key","name","kind","parent":placeKey|placeId|null,"site"?:site id from WEAVER_VIEW.land.sites,"layout"?:layout id from catalogs.layouts,"names"?:{layoutZoneKey:name},"looks"?:{layoutZoneKey:look},"furniture"?:{layoutZoneKey:[furniture]}}],
- "timeOfDay"?:${words(TIME_OF_DAY)},"arriveAt"?:area id from WEAVER_VIEW.places or a new zone key (only when target.arrive is set),
+ "timeOfDay"?:${words(TIME_OF_DAY)},"arriveAt"?:area id from WEAVER_VIEW.places or a new zone key (only when target.arrive is set or the story is starting),
  "zones":[{"key","place","kind"?:zone kind id from catalogs.zoneKinds (none for a road),"name","look","light"?:${words(LIGHT)},"size"?:${words(ZONE_SIZES)},"area"?:m²,"walls"?:{"n"|"e"|"s"|"w":wall kind id from catalogs.wallKinds},"length"?:${words(ROAD_LENGTHS)}|km,"danger"?:${words(ROAD_DANGERS)},"road"?:road id from WEAVER_VIEW.land.roads,"node"?:junction id from WEAVER_VIEW.land.junctions,"sideWay"?:{"toward"?:site id from WEAVER_VIEW.land.sites or a landmark name from land.landmarks,"name"?},"furniture"?:[{"kind":furniture kind id from catalogs.furnitureKinds,"name","at"?:"n"|"ne"|"e"|"se"|"s"|"sw"|"w"|"nw","edge"?:true,"grade"?:grade}],"ways":[{"to","label","kind"?:${WAY_KINDS.map((k) => `"${k}"`).join('|')},"barrier"?:{"kind":barrier kind id from catalogs.barrierKinds,"grade"?:grade,"locked"?:true,"barredFrom"?:zoneKey,"guarded"?:true,"keys"?:[castKey|actorId]},"doorless"?:true}]}],
  "frontiers":[{"key","label","brief"?:string}],
  "bands":[{"key","name","goals","temperament","lethal":boolean,"relations":{bandKey:${words(STANCES)}},"chase"?:${words(CHASE_RANGES)}}],
@@ -462,6 +472,7 @@ If WEAVER_VIEW.target.ahead is set, the player is not crossing that frontier: so
 If WEAVER_VIEW.target.arrive is set, a new character arrives in a world that already has a past: its places and people are as the last character left them, and the newcomer arrives at that very moment. WEAVER_VIEW.places shows that settlement and everyone in it: build on it, using its places and areas by their ids, and never declare them again. Set "arriveAt" to where the newcomer arrives: an area id from WEAVER_VIEW.places, or the key of a new zone you add (new zones are welcome but not needed). To have them arrive along a way still marked frontier in WEAVER_VIEW.places (unbuilt new ground, such as a road out), build that way: give your new zone the frontier's id as its key, and it becomes that way. Never add a second zone for a way that is already a frontier. New people go beside the ones already there; give someone already there a part with "actor". They are a stranger here: nobody knows them yet.
 If WEAVER_VIEW.player.threadbound is set, the player owns those Threadbound items: one of a kind, and the bond dies with its owner, so whoever kills the owner can take the item for good. On a Critical Failure tier or worse, the scenario may bring a strong hostile foe who has come for it: they want it badly enough to kill for it.
 If WEAVER_VIEW.target.wake is set, the player was knocked out and comes to now, at Critical health: plan a new place whose first zone is where they wake, somewhere safe (a bed, a healer's cot, a quiet corner) with no threat in reach, and say in event.summary how they got there.
+If WEAVER_VIEW.player.standsIn is null and target.arrive is not set, the story is starting: set "arriveAt" to where the player starts, the key of a zone you build (a layout's zone by placeKey.zoneKey); left out, they start in your first zone.
 WEAVER_VIEW.time is the day and time of day. If it is null the story is starting: set "timeOfDay" to when it opens (${words(TIME_OF_DAY)}). Otherwise leave "timeOfDay" out or give the current one.
 Pick routine sets whose time tags fit the time of day.
 A healer's house or infirmary is a place of kind "clinic": resting there heals fully, crippled limbs included, once the patient has bought clinic care from its healer. Settlements may have one. A smithy has a forge: a Smith (a Trader) there may offer repair (${SV.repair}) and use of the forge (${SV.forge}); anywhere without a forge those two are dropped.
@@ -529,12 +540,8 @@ export const WORLD_BUILDER_INSTRUCTIONS = [
   `Rules:`,
   `1. Build what lies beyond target.label: the zones a traveller would find there and how they look. If target.brief is`,
   `   set, the Weaver asked for this ground for its story: build it to that brief.`,
-  `2. Fill it with the people who matter to play, from land: a site you build a place on lists its roster`,
-  `   (land.sites[].roster), a road its travellers (roads[].travellers), a landmark its people (landmarks[].people).`,
-  `   Cast each entry for the ground you build once, naming its key in roster: code has set who they are and how strong`,
-  `   (is), and you give the name, look, routine and band. A group entry is one cast entry, its leader (label, name and look are the leader's alone); code adds its followers. An`,
-  `   entry with goals is a seat of the Great: give them a name, the deeds that made them (motive) and 1 to ${CONFIG.GOALS_HELD} goals;`,
-  `   people call them the Great, never by a rank. On wild ground, cast from land.wild for its cover and the time of day,`,
+  `2. Fill it with the people who matter to play, ${ROSTER_RULE}`,
+  `   On wild ground, cast from land.wild for its cover and the time of day,`,
   `   as a group at a rank that fits the place, or nobody. Everyone else is the crowd: write them into how a place looks,`,
   `   with no actor. Everyday people are as strong as such people really are, never scaled to the player.`,
   PLAN_RULES_SHARED,
