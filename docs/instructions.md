@@ -177,6 +177,9 @@ The source of truth for every design decision.
 - **Never ask** what already goes without saying: whether a new skill gets perks at each milestone or who drafts
   them; whether a new tree shows on the creation screen (tree access rules exist: apply them and state the result);
   whether a per-tier bonus stacks (it does).
+- **A new skill's ladder perks** (20 to 140) are never left out or described as not existing. When they are not
+  written with the skill, the same turn gives them one row in the perks list (IPP-n) marked to be built, and they are
+  drafted only when the owner asks for them; no thread is started for them before then.
 - A comment the owner leaves on a document or page also counts as an answer. A reply to a comment only answers or
   confirms; a new question still goes through the question channel.
 
