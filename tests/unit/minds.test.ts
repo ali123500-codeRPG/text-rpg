@@ -1,6 +1,7 @@
 import { PK } from '../../src/library/perkIds';
 import { afterEach, describe, expect, it } from 'vitest';
-import { makeVillage, actor, place, createRng } from '../harness';
+import { makeVillage, actor, place, createRng, putBarrier } from '../harness';
+import { BK } from '../../src/library/tableIds';
 import { CONFIG, resetConfig } from '../../src/config';
 import { getLibrary } from '../../src/library';
 import type { GameEvent, GameState, Order } from '../../src/types';
@@ -40,7 +41,7 @@ describe('desired state', () => {
 });
 
 describe('routineOrder', () => {
-  it('moves one link, idles there, stays when unreachable', () => {
+  it('moves one way on, idles there, stays when there is no walk there', () => {
     const s = makeVillage();
     const g = place(s, 'guard_1', 'street_door');
     let o = routineOrder(fakeView(s, 'guard_1'));
@@ -48,8 +49,10 @@ describe('routineOrder', () => {
     g.zone = 'gate_inner';
     o = routineOrder(fakeView(s, 'guard_1'));
     expect(o).toMatchObject({ type: 'idle', source: 'routine', activity: 'stand_watch' });
-    s.zones = s.zones.filter((z) => z.id !== 'street_square'); // the square out of the guard's map
-    g.zone = 'street_door';
+    // BG-1614: no walk there over the floor plan: its post is the cellar, whose one door is locked, and the guard knows it
+    g.mind!.slots = { post: 'tav_cellar' };
+    putBarrier(s, 'tav_counter', 'tav_cellar', { id: 'cellar_door', kind: BK.door, grade: 'minor', lock: { locked: true }, tried: ['guard_1'] });
+    place(s, 'guard_1', 'tav_counter');
     o = routineOrder(fakeView(s, 'guard_1'));
     expect(o).toMatchObject({ type: 'idle', intent: UNREACHABLE, activity: 'stand_watch' });
   });

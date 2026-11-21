@@ -190,6 +190,14 @@ export type TacticsView = { rows: string[]; outnumbered?: true; calledHelp?: tru
   feint?: 'start' | 'run'; turnOn?: ActorId; // S3: begin or keep up a feigned flight; turnOn: the lone believer to strike
   readyShield?: string }; // B3: the stowed shield (item instance id) to draw, beside the order
 
+/** BG-1614: where a code mind's walks go, decided by metres where the state is (views/ways.ts), so the routines count no
+ * doors. next: the first title on its walk (by walked metres over the floor plan, round the ways it knows are shut) to each
+ * title it may head for (where its routine wants it, where it last knew of those it hunts); a title with no walk is left out.
+ * flee: the title a flight steps into: toward its exit or refuge while that leads away from the nearest threat, else
+ * through the way out whose point is farthest by walk from it (the nearest threat: by straight line when in sight, else by
+ * walk); absent, it cowers */
+export type WaysView = { next: Record<string, string>; flee?: string };
+
 export type ActorView = {
   turn: number;
   time: TimeView;
@@ -234,6 +242,7 @@ export type ActorView = {
     holdsBack?: true; // D-205 b: a code-run NPC that never closes in: it strikes only who is in withinStrike (a step), else flees
     chaseZones?: string[]; // CH5: a code-run actor's chase range as zones it may chase into (absent: anywhere)
     atChaseLine?: true; // ZR12: it stands at the end of its near chase range, CHASE_NEAR_M past the ground: it turns back
+    headEdge?: string; // NW2, BG-1614: a head_to walk bound for a frontier: the title with a way into it nearest by its walk
   };
   beliefs: BeliefView[];
   perceived: EventView[]; // events it perceived, latest last (no barks), incl. last few exchanges heard
@@ -258,10 +267,11 @@ export type ActorView = {
   jobs?: JobView[]; // QT5: the player's jobs from it or sending the player to it
   tacticsWord: Tactics; // TC4 a: how it reads a fight, from its own Battle Sense (CONFIG.TACTICS_FROM); the Planner's CHARACTER.tactics, never the Voice's
   tactics?: TacticsView; // D-17: set only for the code-run fight list (views/tactics.ts withTactics), never for an agent
+  ways?: WaysView; // BG-1614: read by the code routines, never shown to an agent
 };
 /** what desiredState reads (views routineView builds only this; an ActorView is one too) */
 export type RoutineInput = {
-  self: Pick<ActorView['self'], 'zone' | 'routine' | 'slots'>;
+  self: Pick<ActorView['self'], 'zone' | 'routine' | 'slots' | 'headEdge'>;
   beliefs: Pick<BeliefView, 'about' | 'lastKnownZone'>[];
   map: MapZone[];
 };

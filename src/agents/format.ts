@@ -23,7 +23,7 @@ function voiceCharacter(view: OppositionView | DialogueView) {
 
 /** OppositionView minus the band block (it is in CHARACTER); fired triggers are shown as "already happened" */
 function opposition(view: OppositionView) {
-  const { band: _band, personality: _p, title: _t, tacticsWord: _w, firedTriggers, ...rest } = view; // the tactics word goes in CHARACTER
+  const { band: _band, personality: _p, title: _t, tacticsWord: _w, firedTriggers, ways: _ways, ...rest } = view; // the tactics word goes in CHARACTER; ways are the code routines' (BG-1614)
   return { ...rest, alreadyHappened: firedTriggers };
 }
 

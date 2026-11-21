@@ -104,7 +104,7 @@ One hundred and three tests: the original eight, updated, eight for the rev. 2 c
 | 98 | Minted reward cap | A quality-3 variant on a moderate-gain scenario is lowered to quality 2, and a weapon boosts of "keen edge" becomes hitAdj; the plan applies with no repair call |
 | 99 | Fallback attack | An engaged slime with the player in its zone attacks the player with unarmed\_natural, targetPart null; the order's source is fallback |
 | 100 | Fallback target | An engaged minor actor that a companion hit last turn attacks the companion, even with the player in the same zone |
-| 101 | Fallback close in | An engaged minor actor whose belief puts the player two links away moves one link along the shortest path, never into a frontier; in that zone with nobody there, it searches |
+| 101 | Fallback close in | An engaged minor actor whose belief puts the player two links away moves one way along its walk (by walked metres, BG-1614), never into a frontier; in that zone with nobody there, it searches |
 | 102 | Late Planner fights on | A significant engaged actor whose Planner call is late runs its type's combat list that turn instead of holding |
 | 103 | Broken flees (BF79) | s302: a broken actor keeps an allowed action and may walk away, never toward a foe; with nothing allowed it flees one link, and cowers when cornered; s345: Cowering below Broken at MORALE\_COWER\_AT, no flight |
 | 104 | Improvised weapon | The Parser's improvised chair leg becomes a held improvised\_medium story item with hitAdj IMPROVISED\_HIT\_ADJ and no kit bonus, and the attack uses it |

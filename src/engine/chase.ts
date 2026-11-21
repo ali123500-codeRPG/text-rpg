@@ -9,7 +9,7 @@ import type { Actor, GameEvent, GameState, Lull, WindowAnswer } from '../types';
 import { CONFIG } from '../config';
 import { CHASE_RANGES, type ChaseRange } from '../scales';
 import { getLibrary } from '../library';
-import { atLeast, bandById, chaseLost, hostile, isActive, shortestPath, zoneById } from './relations';
+import { atLeast, bandById, chaseLost, hostile, isActive, zoneById } from './relations';
 import { pathM, wayPoint, type Located } from './position';
 import { applyMemoryOps } from './memory';
 import { logCode } from './effects';
@@ -62,13 +62,11 @@ const zonesOfPlaces = (state: GameState, places: Set<string>) => state.zones.fil
 function metresToGround(state: GameState, at: { zone: string; pos?: Located['pos'] }, inGround: Set<string>): number {
   if (inGround.has(at.zone)) return 0;
   let best = Infinity;
-  const edges = [...inGround].filter((g) => waysOut(state, g).some((l) => !inGround.has(l.to)));
-  for (const g of edges) {
-    const p = shortestPath(state, at.zone, g);
-    if (!p || p.some((z) => z !== g && inGround.has(z))) continue; // only the ways into the ground from outside it
-    const prev = p.length > 1 ? p[p.length - 2] : at.zone;
-    const edge = wayPoint(state, prev, g);
-    if (edge) best = Math.min(best, pathM(state, at, { zone: prev, pos: edge }));
+  // BG-1614: every walked way into the ground from outside it, by the walk to its outer side (never by a count of ways)
+  for (const g of inGround) for (const l of waysOut(state, g)) {
+    if (inGround.has(l.to) || l.frontier || l.drop || !getLibrary().openingKinds?.[l.opening.kind]?.walk) continue;
+    const edge = wayPoint(state, l.to, g);
+    if (edge) best = Math.min(best, pathM(state, at, { zone: l.to, pos: edge }));
   }
   return best;
 }

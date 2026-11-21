@@ -217,11 +217,11 @@ export function seeingM(state: GameState, a: Located, b: Located): number | null
   return d === Infinity ? null : Math.max(d / seenSizeFactor(state, a, b), CONFIG.NEAREST_M);
 }
 
-/** PZ8: the walking path for `walker` (round ways shut to it that it knows of, then any way its body fits), or for no one
- * (any walked way) */
-function walkFor(state: GameState, A: Pt3, B: Pt3, walker?: Actor): WalkPath | null {
+/** PZ8: the walking path for `walker` (round ways shut to it that it knows of, then, unless `round`, any way its body fits),
+ * or for no one (any walked way) */
+function walkFor(state: GameState, A: Pt3, B: Pt3, walker?: Actor, round = false): WalkPath | null {
   if (!walker) return walkPath(state, A, B);
-  return walkPath(state, A, B, { walker, body: walker }) ?? walkPath(state, A, B, { body: walker });
+  return walkPath(state, A, B, { walker, body: walker }) ?? (round ? null : walkPath(state, A, B, { body: walker }));
 }
 /** SZ5: a walk's metres from A's body's edge to B's (a spot is a point) */
 function walkGap(state: GameState, a: Located, b: Located, w: WalkPath): number {
@@ -300,11 +300,11 @@ function titlesOf(pieces: Piece[], from: string): string[] {
   return out;
 }
 
-/** AD16: the walk from A to B as walkLeg walks it (the walker's way round shut ways it knows; else the plain path): the
- * titles after A's, its points from A's to B's, and its metres; null with no way */
-export function walkRoute(state: GameState, a: Located, b: Located, walker?: Actor): { path: string[]; pts: Pos[]; metres: number } | null {
+/** AD16: the walk from A to B as walkLeg walks it (the walker's way round shut ways it knows; else, unless `round`, the
+ * plain path): the titles after A's, its points from A's to B's, and its metres; null with no way */
+export function walkRoute(state: GameState, a: Located, b: Located, walker?: Actor, round = false): { path: string[]; pts: Pos[]; metres: number } | null {
   const B = b.pos ? pointAt(state, b) : { ...centreOf(state, b.zone), floor: floorOf(state, b) };
-  const w = walkFor(state, pointAt(state, a), B, walker);
+  const w = walkFor(state, pointAt(state, a), B, walker, round);
   if (!w) return null;
   const pieces = piecesOf(state, w.pts, a.zone);
   // the walker's own walk, centre to point (no body's edge taken off: what the walk walks)
