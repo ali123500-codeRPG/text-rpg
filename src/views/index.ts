@@ -9,6 +9,7 @@ import { landView } from '../land/brief';
 import { encounterPeople, withRosters } from '../land/roster';
 import { actionRow } from '../ruleset/actionTime';
 import { busyWords, doingOf } from '../engine/busy';
+import { isRoad } from '../engine/travel';
 import { budgetUsed, lastScenarios } from '../engine/scenarioEnd';
 import { nearbyZones } from '../scenario/stage';
 import { SCENARIO_ENDING_NAMES } from '../types';
@@ -1232,7 +1233,7 @@ export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverV
     target: { kind: target.kind, placeId: target.placeId, placeName: placeName(state, target.placeId), ...(target.label !== undefined ? { label: target.label } : {}), ...(target.frontierKey !== undefined ? { frontierKey: target.frontierKey } : {}), ...(target.wake ? { wake: true as const } : {}), ...(target.arrive ? { arrive: true as const } : {}), ...(target.ahead ? { ahead: true as const } : {}), ...(target.brief ? { brief: target.brief } : {}),
       ...((t) => (t ? { land: t } : {}))(target.frontierKey ? landTarget(state, target.frontierKey) : undefined),
       ...(target.kind === 'checkin' && state.stage.scenario ? { reason: target.reason, scenario: checkinScenario(state, state.stage.scenario) } : {}),
-      ...(target.kind === 'scenario' && state.stage.encounter ? { encounter: { zone: state.stage.encounter.zone, danger: zoneById(state, state.stage.encounter.zone)?.danger ?? 'quiet',
+      ...(target.kind === 'scenario' && state.stage.encounter ? { encounter: { zone: state.stage.encounter.zone, danger: ((z) => (isRoad(z) ? z?.danger ?? 'quiet' : 'wild'))(zoneById(state, state.stage.encounter.zone)), // D-245 a: off the road it is the wild
         ...encounterPeople(state, zoneById(state, state.stage.encounter.zone)?.road, state.stage.encounter.at, timeOfDay(now(state)) === 'night') } } : {}),
       ...((target.kind === 'scenario' || target.kind === 'window') && state.stage.cause ? { cause: structuredClone(state.stage.cause) } : {}) },
     headlines: headlinesFor(state, target.placeId, true),

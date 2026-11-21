@@ -17,6 +17,8 @@ import { passiveHealing } from './heal';
 import { passiveFatigue, payTravel } from './fatigue';
 import { getLibrary } from '../library';
 import { ruleset } from '../ruleset';
+import { cellAt, regionAt } from '../land/sight';
+import { LC } from '../library/tableIds';
 import type { Actor, EventRollResult, GameState, Order, Rng, Zone } from '../types';
 
 const T_EPS = 1e-6; // minutes
@@ -33,6 +35,12 @@ export type TripWorld<M = unknown> = { stepS(): number; mark(): M; after(minutes
 
 /** PZ9: a road is a title drawn along a line */
 export const isRoad = (z: Zone | undefined) => !!z?.line?.length;
+/** D-245 a: open land off the road: a point of a region whose land cover is not a settlement */
+export function wildGround(state: GameState, p: Pos | undefined): boolean {
+  const r = p ? regionAt(state, p) : undefined, i = r && p ? cellAt(r, p) : -1;
+  const ch = r && i >= 0 ? r.cover[i] : undefined; // a region drawn without cover has no open land
+  return !!ch && `LC${parseInt(ch, 36)}` !== LC.settlement;
+}
 /** dusk and night are dark enough to stop a trip (TV5) */
 export const darkOut = (t: number) => CONFIG.ROAD_DARK.includes(timeOfDay(t));
 
@@ -95,7 +103,7 @@ export function travel(state: GameState, a: Actor, goal: Located, o: Order, rng:
     if (!dark) minutes = Math.min(minutes, minutesUntil(t, 'dusk'));
     // RE5: the leg is walked in the world clock's steps (as a rest or a walk runs): each step the clock moves on, everyone
     // else moves toward their routines, and what would stop a rest stops the trip
-    let legLeft = minutes, walked = 0, onRoad = 0;
+    let legLeft = minutes, walked = 0, onRoad = 0; // onRoad: metres on a road or, D-245 a, on open land off it
     while (legLeft > T_EPS && !there() && !trip.met) {
       const sm = world ? Math.min(legLeft, world.stepS() / 60) : legLeft;
       const mark = world?.mark();
@@ -106,7 +114,7 @@ export function travel(state: GameState, a: Actor, goal: Located, o: Order, rng:
         const w = walkLeg(state, a, goal, left, 0);
         if (w === null || (!w && a.zone === zone)) break; // BG-170: a 0 m doorway crossing goes on
         if (before) last = before;
-        if (w && (isRoad(zoneById(state, zone)) || isRoad(zoneById(state, a.zone)))) onRoad += w;
+        if (w && (isRoad(zoneById(state, zone)) || isRoad(zoneById(state, a.zone)) || wildGround(state, spotOf(state, a).pos))) onRoad += w;
         left -= w; walked += w;
       }
       const m = (walked - w0) / speed;
@@ -124,17 +132,19 @@ export function travel(state: GameState, a: Actor, goal: Located, o: Order, rng:
     minutes = walked / speed;
     trip.metres += walked; trip.minutes += minutes; trip.legs += 1;
     // TV4 + RE1 (BG-291): minutes on a road count up across trips; each full leg of them rolls once, by the danger of the
-    // road the player is on then (more in the dark), and the count starts again. A leg filled off the road waits for one.
+    // road the player is on then (more in the dark), and the count starts again. D-245 a: minutes on open land off the road
+    // count too, and a leg that fills there rolls at the wild rate. A leg filled in a settlement waits for one.
     a.roadMin = Math.min(CONFIG.TRAVEL_LEG_MIN, (a.roadMin ?? 0) + onRoad / speed);
     const road = zoneById(state, a.zone);
     if (trip.met) break; // RE5: met on the way: the trip stops there, the road minutes kept for the next
-    if (a.roadMin >= CONFIG.TRAVEL_LEG_MIN - T_EPS && isRoad(road)) {
+    const wild = !isRoad(road) && wildGround(state, spotOf(state, a).pos);
+    if (a.roadMin >= CONFIG.TRAVEL_LEG_MIN - T_EPS && road && (isRoad(road) || wild)) {
       a.roadMin = 0;
-      const pct = CONFIG.ROAD_ENCOUNTER_PCT[road!.danger ?? 'quiet'] * (CONFIG.TRAVEL_LEG_MIN / 60) * (dark ? CONFIG.NIGHT_ENCOUNTER_MULT : 1);
+      const pct = CONFIG.ROAD_ENCOUNTER_PCT[wild ? 'wild' : road.danger ?? 'quiet'] * (CONFIG.TRAVEL_LEG_MIN / 60) * (dark ? CONFIG.NIGHT_ENCOUNTER_MULT : 1);
       if (rng.d100() <= pct) {
         const extra: EventRollResult['modifiers'] = dark ? [{ source: 'night travel', type: 'situational', value: CONFIG.NIGHT_TRAVEL_EVENT_MOD }] : [];
         const eventRoll = ruleset.eventRoll(a, state, rng, extra);
-        trip.encounter = { eventRoll, at: ahead(road!, spotOf(state, a).pos!, last) };
+        trip.encounter = { eventRoll, at: ahead(road, spotOf(state, a).pos!, last) };
         trip.stop = 'encounter';
         break;
       }
