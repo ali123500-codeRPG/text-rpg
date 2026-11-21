@@ -6,7 +6,7 @@ import type { NpcTemplate } from './actor';
 import type { ActivityDef, Routine, RoutineSet } from './hidden';
 import type { EntryStatus } from './state';
 import type { FN, GR } from '../library/functionIds';
-import type { GrandeurKey, HealthLevelKey, PartStateKey, Past100Key, SkillTierKey } from '../scales';
+import type { GradeLevel, GrandeurKey, HealthLevelKey, PartStateKey, Past100Key, SkillTierKey } from '../scales';
 
 /** F1–F8: a skill lists one or more narrow functions; stand-ins read them. Each function belongs to one
  * broad group (FUNCTION_GROUP, src/library/functionNames.ts); the 40 perk's +1 and the XP category read the group. */
@@ -483,6 +483,8 @@ export type HealingDef = {
   /** the composure-table row the same action also restores (rest, clinic): morale comes from that table, not this one */
   composure?: string;
   hourly?: { skill: string; pctPerPoint: number };
+  /** D-235b b: an item row's grade (a CONFIG.DIFFICULTY key): a use marks First Aid as a passed check at that difficulty */
+  grade?: GradeLevel;
   /** never applied itself: a source achievements count healing under (HL.perk: healing from perks) */
   countOnly?: true;
 };

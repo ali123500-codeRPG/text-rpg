@@ -57,6 +57,16 @@ describe('110 healing', () => {
     expect(s.player.core.inventory.some((i) => i.id === 'b1')).toBe(false);
     expect(mechanicsLines(s, ev)).toContain('Bandage: Hurt → Bruised');
   });
+  it('D-235b b: a use marks First Aid as a passed check at the row\'s grade: a bandage (minor) teaches up to raw 45, not past it', () => {
+    for (const [raw, marked] of [[40, true], [50, false]] as const) {
+      const s = makeVillage();
+      s.player.core.inventory.push({ id: 'b1', itemId: IT.bandage, qty: 1 });
+      s.player.core.skills[SK.first_aid] = { raw, state: 'normal' };
+      s.player.core.condition.hpLostPct = 40;
+      turn(s, use(IT.bandage));
+      expect(s.player.progression!.marks.includes(SK.first_aid)).toBe(marked);
+    }
+  });
   it('D-235 a: the user\'s First Aid scales what a healing item heals: half the row at 0, one and a half at 100', () => {
     const row = () => getLibrary().healing![HL.bandage].hpPct;
     for (const [raw, mult] of [[0, 0.5], [100, 1.5]]) {

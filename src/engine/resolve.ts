@@ -2018,6 +2018,8 @@ function doHealItem(ctx: Ctx, a: Actor, o: Order): boolean {
     logCode(state, 'heal_blocked', { actorId: a.id, source: row.id, reason: 'nothing_to_heal', ...(t !== a ? { target: t.id } : {}) });
   } else {
     applyHealing(state, t, row.id, { pct: row.hpPct * firstAidMult(a) }); // D-235 a: the user's First Aid scales the row
+    // D-235b b: a use marks First Aid as a passed check at the row's grade, so stronger items teach higher
+    if (row.grade) ruleset.recordUse(a, SK.first_aid, { actorId: a.id, skill: SK.first_aid, target: CONFIG.DIFFICULTY[row.grade], passed: true, modifiers: [] }, state);
     t.core.condition.tended = { turn: state.turn, by: a.id, itemId: inst.itemId }; // BG-181: the binding shows
     inst.qty = (inst.qty ?? 1) - 1;
     if (inst.qty <= 0) a.core.inventory.splice(a.core.inventory.indexOf(inst), 1);

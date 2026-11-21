@@ -185,7 +185,7 @@ export function equations(lib: Library): EquationGroup[] {
       { name: 'Healing item', at: 'firstAidMult · src/engine/heal.ts',
         formula: `a bandage or draught heals its row's % × (${n(CONFIG.FIRST_AID_BASE)} + the user's true ${skillName(SK.first_aid)} × ${n(CONFIG.FIRST_AID_PER_POINT)})`,
         terms: [['row', 'the healing row the item names (bandage, draught), split as in Heal split']],
-        notes: [`Half the row at ${skillName(SK.first_aid)} 0, the row at 50, one and a half at 100 (FIRST_AID_BASE, FIRST_AID_PER_POINT). The user's skill counts, also when tending someone else.`] },
+        notes: [`Half the row at ${skillName(SK.first_aid)} 0, the row at 50, one and a half at 100 (FIRST_AID_BASE, FIRST_AID_PER_POINT). The user's skill counts, also when tending someone else. Each use marks ${skillName(SK.first_aid)} as a passed check at the row's grade (bandage minor, draught moderate), so stronger items teach higher.`] },
     ] },
     { key: 'gain', title: 'Skill gain', about: 'How a marked skill improves.', equations: [
       { name: 'When skills roll to improve', at: 'payScenario · scenarioRolls · src/engine/growth.ts',
