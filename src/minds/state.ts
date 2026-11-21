@@ -166,10 +166,11 @@ export function raiseAlarm(state: GameState, a: Actor): void {
   }
 }
 
-/** it believes (suspicious or more) in someone it is wary of: leaving unaware of them is what raises the alarm */
+/** it believes (suspicious or more) in someone it is wary of: leaving unaware of them is what raises the alarm. PQ11 a: a belief
+ * picked up only from talk (hearsay) never does (W1); one passed on by an alert (a call for help, an alarm, a warning) still does */
 const knowsWary = (state: GameState, a: Actor): boolean => Object.entries(a.mind?.knowledge ?? {}).some(([id, b]) => {
   const o = actorById(state, id);
-  return !!o && wary(state, a, o) && atLeast(b.status, 'suspicious');
+  return !!o && !(b.source === 'told' && b.hearsay) && wary(state, a, o) && atLeast(b.status, 'suspicious');
 });
 
 /** BF1 (BG-114): knowing someone from a scenario's start is not noticing them: an actor that starts out knowing someone it

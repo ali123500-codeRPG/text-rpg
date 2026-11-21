@@ -230,6 +230,8 @@ export type Belief = {
   lastKnownAt?: Pt3;
   lastSeenTurn?: number;
   source: 'seen' | 'heard' | 'told';
+  /** PQ11 a: told only in talk, not by an alert (a call for help, an alarm, a warning): it raises no alarm (minds/state.ts knowsWary) */
+  hearsay?: true;
   /** YD6: the last turn either side attacked or closed in on the other, which keeps hunting and engaged alive */
   closedTurn?: number;
   /** CH7: the turn a chase after this actor was lost; the chaser goes back to its routine until it sees or hears them again */

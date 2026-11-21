@@ -27,6 +27,8 @@ export type BeliefUpdate =
   | { kind: 'lost'; observerId: string; aboutId: string; zone?: string }
   | { kind: 'told'; observerId: string; aboutId: string; status: BeliefStatus; zone?: string }; // an ally passes it on (All-50 Spotter); only raises
 
+/** PQ11 a: communication that is an alert: what it passes on can raise the hearer's alarm; plain talk's cannot */
+const ALERTS = new Set(['call_help', 'alarm', 'warn']);
 /** communication events copy the sender's beliefs (Information model); barks never do */
 export const isComm = (e: GameEvent) =>
   !e.bark && (['call_help', 'alarm', 'report'].includes(e.kind) || (['speak', 'talk', 'warn'].includes(e.kind) && !!e.line)); // WN2: a warning in words
@@ -383,6 +385,7 @@ export function updateBeliefs(state: GameState, update: BeliefUpdate): void {
         write(o, about, {
           status: raise(mine?.status, 'suspicious'), // told is capped at suspicious
           source: 'told', lastKnownZone: sb.lastKnownZone, lastKnownAt: sb.lastKnownAt, lastSeenTurn: sb.lastSeenTurn, revealed: sb.revealed,
+          hearsay: ALERTS.has(e.kind) ? undefined : true, // PQ11 a: talk is hearsay, an alert is not
         });
       }
     }
