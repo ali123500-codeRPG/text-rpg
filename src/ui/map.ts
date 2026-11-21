@@ -10,7 +10,7 @@ import { walkLeft } from './doing';
 import { landLayer, landLabels, type LandLabel } from './landSvg';
 import { lineLength, SITE_SIZES, type SiteSize } from '../land/generate';
 import { ICON_ART, type IconName } from './iconArt';
-import { worldTiles, knownMap, pointAlong, rootPlace, type KnownMap, type MapLink, type MapPlace, type MapWay, type MapZone } from './mapData';
+import { worldTiles, knownMap, peopleIn, pointAlong, rootPlace, type KnownMap, type MapLink, type MapPlace, type MapWay, type MapZone } from './mapData';
 import { cap, theName } from '../words';
 import { MAX_K, PIN_R, PIN_TIP, PX_PER_M } from './mapPlan';
 import { planView, type PlanData, type PlanOpts } from './planView';
@@ -225,7 +225,8 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void, onWalk?:
     if (!cur || !st || !planMap()) return null;
     const zs = floorZones().filter((z) => z.rect), here = zs.find((z) => z.here && z.you);
     const ring = here ? ringMetres(st) : null;
-    return { km: cur, every: worldZones().filter((z) => z.rect), floor: zs, height: floor(), places: innerPlaces(zs),
+    const people = cur.people.filter((w) => w.root === world && Math.abs(w.height - floor()) < 0.01);
+    return { km: cur, every: worldZones().filter((z) => z.rect), floor: zs, height: floor(), places: innerPlaces(zs), people,
       you: here ? { ...here.you! } : null, ...(here?.along ? { youTitle: alongText(here.along) } : {}), ...(facing ? { facing } : {}),
       ring, dash: here ? dashMetres(st) : null, carried: here ? carriedS(st, st.player, 'move') : 0,
       focus, selected, ...(walk?.toZone ? { heading: walk.toZone } : {}), exitSel,
@@ -541,7 +542,7 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void, onWalk?:
       const t = tilesOfWorld.find((x) => x.id === id);
       if (!t) return worldCard();
       const zs = placeOf(id)?.zones ?? [], hz = zs.find((x) => x.here);
-      const people = zs.flatMap((x) => x.people), items = zs.flatMap((x) => x.items);
+      const people = zs.flatMap((x) => peopleIn(cur!, x)), items = zs.flatMap((x) => x.items);
       const ends = roadEnds(t), along = t.links.filter((l) => placeOf(l.to)?.parentId === id);
       const row = (l: MapLink) => h('li', {}, h('span', {}, placeOf(l.to)?.name ?? l.to), h('span', { class: 'to' }, l.label),
         h('button', { type: 'button', class: 'map-go', title: `Open ${placeOf(l.to)?.name ?? 'its map'}`, 'aria-label': `Open ${placeOf(l.to)?.name ?? 'its map'}`, onclick: () => show(l.to) }, '›'));
@@ -587,7 +588,7 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void, onWalk?:
         h('span', { class: 'to' }, l.known ? `to ${zoneName(l.to) ?? 'a known zone'}${l.otherPlace ? ` (${l.otherPlace})` : ''}${climb(z, l.to)}` : 'unexplored',
           l.way ? h('span', { class: `map-exit-way${l.way.shut ? ` ${l.way.shut}` : ''}${l.way.key ? ' key' : ''}` }, ` · ${wayWords(l.way)}`) : ''),
         l.known ? h('button', { type: 'button', class: 'map-go', title: 'Show this zone', 'aria-label': `Show ${zoneName(l.to) ?? 'this zone'}`, onclick: () => goTo(l.to) }, '›') : ''))) : '',
-      z.people.length ? h('div', {}, h('p', { class: 'hs-label' }, 'People'), h('p', {}, ...z.people.map((p) => h('span', { class: 'hs-tg' + (p.now ? '' : ' faded') }, p.now ? p.name : `${p.name} (last seen)`)))) : '',
+      peopleIn(cur!, z).length ? h('div', {}, h('p', { class: 'hs-label' }, 'People'), h('p', {}, ...peopleIn(cur!, z).map((p) => h('span', { class: 'hs-tg' + (p.now ? '' : ' faded') }, p.now ? p.name : `${p.name} (last seen)`)))) : '',
       z.furniture?.length ? h('div', {}, h('p', { class: 'hs-label' }, 'Furniture'), h('p', {}, ...z.furniture.map((f) => h('span', { class: 'hs-tg' }, cap(f.name))))) : '',
       z.items.length ? h('div', {}, h('p', { class: 'hs-label' }, 'On the ground'), h('p', {}, ...z.items.map((x) => h('span', { class: 'hs-tg' }, x)))) : '')
       : h('section', { class: 'map-card' }, h('p', { class: 'hs-note' }, 'Click a zone on the map to see what you know about it.'));

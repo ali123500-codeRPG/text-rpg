@@ -81,7 +81,7 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   been through, locked, where it leads) is in its tip and the zone card: the dotted arrow already shows an exit not been
   through, and the badge a barrier (MAP-36) (RM2 a; Ali, 20/11/2026, Questions hub page "Map rules revision").
 - **MAP-25** On a place's map your pin is placed first and furniture last. A mark inside a zone (furniture, stairs,
-  and the player or a person with no point of their own) is placed once, at the widest of a few set
+  and the player with no point of their own) is placed once, at the widest of a few set
   zooms that has room for it (PLACE_KS), and every zoom keeps it at the same share of its zone (inside the room its size
   leaves). You and anyone with a known point (MAP-68) are placed from that point at each zoom drawn (BG-356). A stair is placed once at its own end, nudged then only if another mark already sits there. After that,
   furniture and stairs never move at any zoom: zoomed out, where one would cover another mark, or a piece of furniture
@@ -95,10 +95,10 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   Ali, 21/11/2026, Questions hub page "Map rules revision"). Where a person's disc at their point would overlap another
   person's or another mark at the zoom drawn, it shrinks, a pixel of diameter at a time, only as far as it must, down to
   the smallest size (CONFIG.MAP_WHO_MIN_D_PX, 7 px, a placeholder); each person is sized against the marks already placed
-  and the people still to place at the same size, in the zone's order. People whose discs would still overlap each other at
+  and the people still to place at the same size, in order. People whose discs would still overlap each other at
   the smallest size are one disc for the group, at the full size, at the mean of their points (kept inside the room with
   its badge, stepping aside only where the room has no spot for it), with a "+n" badge on that people disc, n the people it
-  stands for beyond the one shown (the first in the zone's order); two people show "+1". The badge is a pill as tall as the
+  stands for beyond the one shown (the first in order); two people show "+1". The badge is a pill as tall as the
   disc against its right edge, and the disc and badge are one token for the checker. Its hover and accessible name list
   every name, and a click asks which of them, then lists what to do to that one. Zooming in splits a group again. A
   to-scale body (GSM-193) keeps its size and steps aside as before (RM27 b; Ali, 21/11/2026, Questions hub page "Map rules
@@ -111,8 +111,8 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   sized and grouped the same way, after the people in full sight and only with each other, never with someone in full
   sight: their group is one dashed disc with the same "+n" badge, hover and click list, and every one of their dashed
   "somewhere here" circles is kept. Sizing runs over both: groups first, people in full sight before people last seen,
-  then each person against the marks placed and the people still to place. People with no known point keep their row
-  (RM30 b; Ali, 21/11/2026, Questions hub page "Map rules revision").
+  then each person against the marks placed and the people still to place (RM30 b; Ali, 21/11/2026, Questions hub page
+  "Map rules revision"). Only people in the same room merge, or people over the void with each other (MAP-68).
 - **MAP-26** To scale, a place's map is laid out by code at the zoom shown and drawn on one screen-pixel layer. No mark
   covers another at any zoom, and the first view fits the whole map with everything inside it (src/ui/mapPlan.ts).
 - **MAP-27** Merged into MAP-13, MAP-25 and MAP-68 (RM7 a).
@@ -154,9 +154,11 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
 - **MAP-42** Background stage extensions are invisible until the player perceives the new zone (matches the spec's
   motion rule M-04). No layout shift, no new outline, no indicator.
 - **MAP-43** Merged into MAP-40 (RM7 a).
-- **MAP-44** The map shows every title the character stood in or saw (journal.zonesSeen), plus exits not taken.
-- **MAP-45** Light, cover, people and ground items show only for zones in view now. Remembered zones keep name, look and
-  exits; people out of sight show where last seen.
+- **MAP-44** The map shows every title the character stood in or saw (journal.zonesSeen), plus exits not taken, and
+  every person the character perceives at their own point (MAP-68), whether or not a title shown is there.
+- **MAP-45** Light, cover and ground items show only for zones in view now. Remembered zones keep name, look and exits.
+  People belong to no zone: each shows at their own point, someone out of sight where last seen or heard (MAP-68), and a
+  zone's card names the people whose point lies in it (peopleIn, src/ui/mapData.ts).
 - **MAP-46** The fog (journal.seenSquares) is kept in 1 m squares under a roof, FOG_OPEN_SQUARE_M squares in the open
   and the land's own cells over the land. Squares are marked from the player's eye when a plan is applied and on every
   turn; each marking also replaces the squares in sight now (journal.sightSquares, MAP-33) (seenRuns, src/plan/fog.ts;
@@ -189,16 +191,24 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
 - **MAP-67** On the to-scale plan each piece of furniture is a small line glyph for its kind on a disc at its point,
   kept inside its walls, and left off where it would cover the zone's name (MAP-25). Hover names it and the zone card
   lists it under Furniture (src/ui/furnitureIcons.ts, one per FU kind; FR5; RM1 b, RM6 a).
-- **MAP-68** People on the plan: everyone in full sight stands at their own point, as you do, their disc smaller or
-  one disc for a group where they stand too close to draw apart (MAP-25; RM27 b). Someone only heard or
+- **MAP-68** People on the plan: everyone the character perceives is drawn at their own point in metres, on the map of
+  their floor, whether or not seen ground or any title on the map is there: over the void too. The title they are listed
+  in plays no part in where they are drawn (Ali, 21/11/2026, this thread: "why does it matter if it is seen or not, you
+  can draw them over the void."). Everyone in full sight stands at their own point (SeenActor.body), as you do, their
+  disc smaller or one disc for a group where they stand too close to draw apart (MAP-25; RM27 b). Someone only heard or
   glimpsed, or last seen, is their dashed disc at the point where the character last saw or heard them (the journal's
   last spot, BG-125), inside a faint dashed 2 m "somewhere here" circle (2 m its radius, as the question's picture
-  measured it: CONFIG.LAST_SEEN_RADIUS_M, a placeholder), with "somewhere here" on hover. Those dashed discs shrink, and merge only with each other into one dashed
-  disc with a "+n" badge, their circles kept, as MAP-25 sets (RM30 b; Ali, 21/11/2026, Questions hub page "Map rules
-  revision"). Someone with no known point
-  stays in a row above their zone's south wall. How the circle should grow or change is parked (D-424) (Actor.pos,
-  MapPerson.at and MapPerson.lastAt; Ali,
-  13/11/2026; RM4 a, RM7 a; Ali, 20/11/2026, Questions hub page "Map rules revision").
+  measured it: CONFIG.LAST_SEEN_RADIUS_M, a placeholder), with "somewhere here" on hover. Those dashed discs shrink, and
+  merge only with each other into one dashed disc with a "+n" badge, their circles kept, as MAP-25 sets (RM30 b; Ali,
+  21/11/2026, Questions hub page "Map rules revision"). Someone whose point lies in a title on the map stays inside its
+  walls: the title whose outline holds the point (the smallest, MAP-11), found from the point and the outlines, never
+  from the title listing them (RM26 b). Over the void there are no walls to keep inside: they stand at their point and
+  step aside only where they would overlap another mark. The map of a place shows the people listed in it or in a place
+  inside it (MapPerson.root), on the floor their point is on (MapPerson.height). Every actor has a point (BG-1528);
+  someone the map still gets with no point (an old save) is not drawn, and only the card of the title listing them names
+  them. How the circle should grow or change is parked (D-424) (Actor.pos, KnownMap.people, MapPerson.at and
+  MapPerson.lastAt; Ali, 13/11/2026; RM4 a, RM7 a; Ali, 20/11/2026, Questions hub page "Map rules revision"; Ali,
+  21/11/2026, this thread).
 - **MAP-69** Each person's disc shows an icon for what the character can see on them first: what they hold or wear
   that stands out (a weapon, armour, a tool of their trade), else what they are (a person, a beast, a slime). It uses
   only what is seen, never a hidden role, and the set of icons has enough variety that people in one scene differ.
@@ -311,10 +321,4 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
 
 #### Open discrepancies
 
-Where the old copies of these rules disagreed, or a rule and the code do, this file keeps the spec's wording and marks
-the point here. The revision of the map's rules (D-413, Questions hub page "Map rules revision", RM1 to RM10) and the
-one-map answers (page "Map and minimap: one map, doors", MQ1 to MQ6) are in the rules above; until each is built (D-423)
-the code decides what the game does (`AGENTS.md`, Order of authority).
-
-- **MAP-44 and MAP-45:** someone heard going into a zone the character has never seen is last seen there (MAP-45), but
-  the map shows only zones seen or stood in (MAP-44), so they are not drawn anywhere.
+None open.
