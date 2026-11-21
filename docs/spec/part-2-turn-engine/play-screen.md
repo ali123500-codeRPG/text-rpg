@@ -354,6 +354,9 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
   story's showMechanics (UI6; SD7).
 - **PS-195** Every turn keeps its rolls on its story line whether the switch is on or off, and the switch only shows or
   hides them, so turning it on shows past turns' rolls too.
+- **PS-496** A skip-caution icon button in the header after the narration one (eye icon) steps the story's
+  Settings.skipStop through SKIP\_STOPS: Anyone noticed, Anyone closing in (the default), Only contact. Its tip and
+  name read "Skipping time stops on: Anyone closing in"; the next rest, wait or long walk uses it (ACT-224, D-246 a).
 - **PS-196** A roll whose outcome moved by whole steps (gear beyond the holder's skill, cover, tier perks, the natural
   edge) shows the outcome before them, the steps and their sources, and the outcome after: "d100 49 → Near Miss [weapon
   +9], 8 steps down [Short of an old sword's requirement -8] → Critical Failure−−−−−−"; the same for attacks, defenses,

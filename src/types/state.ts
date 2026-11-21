@@ -66,7 +66,7 @@ export type StageInfo = {
   partner?: string;
 };
 
-export type Settings = { showMechanics: boolean; tone: string; narrationLength?: NarrationScale }; // LN6: missing = normal
+export type Settings = { showMechanics: boolean; tone: string; narrationLength?: NarrationScale; skipStop?: import('../scales').SkipStop }; // LN6: missing = normal; D-246 a: missing = closing
 /** QT11/QT21: quest states and goal kinds are unordered categories, so their names are their IDs */
 export const QUEST_STATES = ['active', 'ready', 'done', 'failed', 'abandoned', 'called_off'] as const;
 export type QuestState = (typeof QUEST_STATES)[number];

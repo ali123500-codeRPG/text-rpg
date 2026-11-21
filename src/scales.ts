@@ -192,6 +192,10 @@ export const NARRATION_BANDS = scale([['quick', 'Quick'], ['normal', 'Normal'], 
 export type NarrationBand = (typeof NARRATION_BANDS.keys)[number];
 /** LN6: the story setting that scales every band, shortest first */
 export const NARRATION_SCALES = scale([['shorter', 'Shorter'], ['normal', 'Normal'], ['longer', 'Longer']]);
+/** D-246 a: what stops the player's skipped time (a rest, a wait, a long walk or action): anyone newly noticed, anyone
+ * closing in (the coming-near check, AT67, the default) or only contact; NPCs always use the coming-near check */
+export const SKIP_STOPS = scale([['noticed', 'Anyone noticed'], ['closing', 'Anyone closing in'], ['contact', 'Only contact']]);
+export type SkipStop = (typeof SKIP_STOPS.keys)[number];
 export type NarrationScale = (typeof NARRATION_SCALES.keys)[number];
 
 /** health levels, unhurt first; the % lost and wounds modifier of each are CONFIG.HEALTH_TRACK (keyed by these keys, in this order) */

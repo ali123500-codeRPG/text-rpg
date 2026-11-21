@@ -346,7 +346,11 @@ resolve.ts).
   and on anyone not accepted coming within STRIKE\_M.
 - **ACT-222** A companion's words to a resting player pause it but never break it; anyone else's break it (AT69).
 - **ACT-223** Sleeping alone gives no warning until the sleeper wakes (AT71).
-- **ACT-224** What stops the clock is one rule for everyone (AT70; a player setting is parked as D-246).
+- **ACT-224** What stops the clock is one rule for everyone (AT70), except the player's own skipped time, which
+  follows the story's skip-caution setting (D-246 a; PS-496): *Anyone noticed* also stops on anyone newly in the
+  senses; *Anyone closing in*, the default, is the AT67 rule; *Only contact* stops only on contact, so a fight seen or
+  heard does not stop it either. NPCs always use the AT67 rule. The setting covers stretches (a rest, a wait, a long
+  walk); a trip on a road keeps its own stops.
 
 #### Nothing hidden
 

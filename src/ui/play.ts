@@ -44,7 +44,7 @@ import { ICONS, instanceIcon, itemIcon, partMark, skillMark } from './itemIcons'
 import { maybeOfferPop } from './essences';
 import { anyGains, gainsPanel, gainsSummary, honor, playGains } from './gains';
 import { working } from '../ruleset/body';
-import { HEALTH_LEVELS, HIT_OUTCOMES, LIFE_STAGES, MORALE_LEVELS, NARRATION_SCALES, PART_STATES, POSTURES, type MoraleLevel } from '../scales';
+import { HEALTH_LEVELS, HIT_OUTCOMES, LIFE_STAGES, MORALE_LEVELS, NARRATION_SCALES, PART_STATES, SKIP_STOPS, POSTURES, type MoraleLevel } from '../scales';
 import type { AttackOutcome, PartState } from '../types';
 import { cap, r1, termAttrs, theOf } from '../words';
 
@@ -636,6 +636,10 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     const nl = s?.settings.narrationLength ?? 'normal', nlNext = NARRATION_SCALES.keys[(NARRATION_SCALES.pos(nl) + 1) % NARRATION_SCALES.keys.length];
     const lengthBtn = s ? toolIcon('narration', `Narration: ${NARRATION_SCALES.name(nl)}`, `Narration: ${NARRATION_SCALES.name(nl)}. How long the story's telling is, from the next turn. Click for ${NARRATION_SCALES.name(nlNext)}`,
       null, () => { s.settings.narrationLength = nlNext; update(); }) : null;
+    // D-246 a: what stops skipped time (a rest, a wait, a long walk), one click to the next; from the next stretch
+    const sk = s?.settings.skipStop ?? 'closing', skNext = SKIP_STOPS.keys[(SKIP_STOPS.pos(sk) + 1) % SKIP_STOPS.keys.length];
+    const skipBtn = s ? toolIcon('sk_eyesight', `Skipping time stops on: ${SKIP_STOPS.name(sk)}`, `Skipping time stops on: ${SKIP_STOPS.name(sk).toLowerCase()}. What ends a rest, a wait or a long walk early. Click for ${SKIP_STOPS.name(skNext).toLowerCase()}`,
+      null, () => { s.settings.skipStop = skNext; update(); }) : null;
     // AU7: the Sound switch beside Show rolls, and one volume slider while it is on; both kept per viewer
     const sOn = soundOn();
     const soundBtn = h('span', { class: 'sound-sw' },
@@ -652,7 +656,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     // the heading is where you are now (the zone), not the story's premise; the place it sits in follows the turn below it
     const here = s ? placeHead(s, pv) : null;
     const titleKids = [h('div', {}, h('h1', {}, here?.here || 'Play', mh('tod', s ? todBadge(timeView(s).day, timeOfDay(now(s)), now(s)) : null), mh('stealth', stealthy ? stealthBadge() : null), mh('drawn', drawn ? drawnBadge() : null), mh('deals', dealChip)),
-      h('p', {}, s ? [`Turn ${lastTurn}`, here?.where ? ' · ' : '', here?.where ? (bv?.rule ? h('span', { title: ruleText(bv.rule) }, here.where) : here.where) : ''] : 'No story yet'), mh('quest', s ? questLine(s, (id) => { questFocus.id = id; nav('quests'); }) : null)), h('div', { class: 'title-tools' }, openerSlot ?? '', rollsBtn ?? '', lengthBtn ?? '', soundBtn)];
+      h('p', {}, s ? [`Turn ${lastTurn}`, here?.where ? ' · ' : '', here?.where ? (bv?.rule ? h('span', { title: ruleText(bv.rule) }, here.where) : here.where) : ''] : 'No story yet'), mh('quest', s ? questLine(s, (id) => { questFocus.id = id; nav('quests'); }) : null)), h('div', { class: 'title-tools' }, openerSlot ?? '', rollsBtn ?? '', lengthBtn ?? '', skipBtn ?? '', soundBtn)];
     const titleNow = titleKids.map((k) => k.outerHTML).join('');
     if (!frozen && titleNow !== titleHtml) { openerSlot?.replaceWith(auto.opener); title.replaceChildren(...titleKids); titleHtml = titleNow; }
     story.classList.toggle('no-rolls', !show);

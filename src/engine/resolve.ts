@@ -1833,9 +1833,11 @@ function runStretch(ctx: Ctx, st: Stretch, onLeg?: OnLeg): void {
   // AT45: the one the player is at a long action with (a seller at a trade) talking to them is part of it, not contact
   const partner = st.kind === 'busy' ? st.order?.target : undefined;
   const touched = (events: GameEvent[]): StretchStop | null => { const c = contact(p, events), by = c?.by.filter((id) => id !== partner); return c && by?.length ? { ...c, by } : null; };
-  let stop: StretchStop | null = touched(ctx.events) ?? fightStop();
+  // D-246 a: the player's setting: anyone noticed stops it too; only contact skips the coming-near check and a fight in the senses
+  const caution = state.settings.skipStop ?? 'closing';
+  let stop: StretchStop | null = touched(ctx.events) ?? (caution === 'contact' ? null : fightStop());
   // BG-231: a wait until someone appears: anyone the player comes to perceive who was not in their senses the step before
-  let sensed = st.someone ? inSenses(state, p) : null;
+  let sensed = st.someone || caution === 'noticed' ? inSenses(state, p) : null;
   const appeared = (): StretchStop | null => {
     if (!sensed) return null;
     const now = inSenses(state, p), by = [...now].filter((id) => !sensed!.has(id));
@@ -1856,7 +1858,7 @@ function runStretch(ctx: Ctx, st: Stretch, onLeg?: OnLeg): void {
     fighting = hunt.fighting;
     headArrivals(state); runSteps(state); // UG16: queued steps run on through a long turn, with no call
     ran += step;
-    const near = touched(ctx.events.slice(from)) ?? (hunt.reached.length ? { why: 'contact', by: hunt.reached } : null) ?? checkNear(state, watch, before, step) ?? fightStop();
+    const near = touched(ctx.events.slice(from)) ?? (hunt.reached.length ? { why: 'contact', by: hunt.reached } : null) ?? (caution === 'contact' ? null : checkNear(state, watch, before, step) ?? fightStop());
     const came = appeared(); // run each step, so the senses stay current
     readyStretchNpcs(ctx); // AE6 (RQ3 a): an NPC's readied step plays on the world clock as it comes true
     const ready = st.ready ? readyStretch(ctx) : null; // AE6: its condition first: the step plays where the wait stops for it
