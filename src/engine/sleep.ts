@@ -25,16 +25,22 @@ import { boxGap, pieceBox } from '../ruleset/objectCover';
 import { FU } from '../library/tableIds';
 import { actorBody } from '../library';
 import { matchedCritFeat, outmatchedOnce, type ActContest } from './feats';
-import { spotAt } from './position';
+import { floorOf, spotAt } from './position';
+import { crossings, seesNow } from '../plan/line';
 
 /** NW18: what wakes a sleeper. blow: struck; noise: a loud noise heard; heard: its hearing check passed (every sleeper sleeps light, NW14);
  * rested: its sleep ran out; watch: its turn on watch */
 export type WakeWhy = 'blow' | 'noise' | 'heard' | 'rested' | 'watch';
 
-/** FT8, MQ13 a: metres from `a`'s point to a bed's footprint (its kind's size, PC1) */
+/** FT8, MQ13 a: metres from `a`'s point to a bed's footprint (its kind's size, PC1), its floor's height apart counted too;
+ * Infinity with a wall (a counter too) between them that has no open way through (BG-1736: a bed is reached by metres and
+ * walls, whatever title it stands in) */
 export function bedGap(state: GameState, a: Actor, f: Furniture): number {
   const z = zoneById(state, f.zone), box = z && pieceBox(state, z, f);
-  return box && a.pos ? boxGap(a.pos, box) : Infinity;
+  if (!box || !a.pos) return Infinity;
+  const h = floorOf(state, a) + 0.3; // the walking line (ringSpots' line)
+  const walled = crossings(state, { ...a.pos, z: h }, { ...f.pos, z: f.floor + 0.3 }).some((c) => c.kind === 'roof' || !c.opening || !seesNow(state, c.opening));
+  return walled ? Infinity : Math.hypot(boxGap(a.pos, box), floorOf(state, a) - f.floor);
 }
 /** MQ18: who lies asleep on bed `id`, first to lie down first */
 export const sleepersOn = (state: GameState, id: string): Actor[] =>
@@ -48,7 +54,8 @@ export const bedHasRoom = (state: GameState, f: Furniture, a: Actor): boolean =>
 export const freeBeds = (state: GameState, a: Actor, zone: string): Furniture[] =>
   furnitureIn(state, zone).filter((f) => f.kind === FU.bed && bedHasRoom(state, f, a)).sort((x, y) => bedGap(state, a, x) - bedGap(state, a, y));
 /** FT8, MQ13 a: the bed with room `a` would lie down on going to sleep where it stands: one within BED_REACH_M */
-export const bedToLieOn = (state: GameState, a: Actor): Furniture | undefined => freeBeds(state, a, a.zone).find((f) => bedGap(state, a, f) <= CONFIG.BED_REACH_M);
+export const bedToLieOn = (state: GameState, a: Actor): Furniture | undefined => state.furniture
+  .filter((f) => f.kind === FU.bed && bedHasRoom(state, f, a) && bedGap(state, a, f) <= CONFIG.BED_REACH_M).sort((x, y) => bedGap(state, a, x) - bedGap(state, a, y))[0];
 /** MQ17 b: a bed in place `placeId` nobody lies asleep on and nobody has booked, for SV3 to book */
 export const bedToBook = (state: GameState, placeId: string): Furniture | undefined =>
   state.furniture.find((f) => f.kind === FU.bed && f.placeId === placeId && !sleepersOn(state, f.id).length && !bookedFor(state, f));

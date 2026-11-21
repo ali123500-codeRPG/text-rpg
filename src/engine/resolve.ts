@@ -3282,7 +3282,7 @@ const bedOf = (state: GameState, o: Order) => {
 };
 /** MQ8: the thing is within reach to be worked now (FR4's reach; a bed within BED_REACH_M) */
 function thingInReach(state: GameState, a: Actor, o: Order, then: WalkThen, bed: ReturnType<typeof bedOf>): boolean {
-  if (then.type === 'sleep') return !!bed && a.zone === bed.zone && bedGap(state, a, bed) <= CONFIG.BED_REACH_M;
+  if (then.type === 'sleep') return !!bed && bedGap(state, a, bed) <= CONFIG.BED_REACH_M; // BG-1736: metres, whatever the title
   const r = reachOf(state, a, o);
   return r ? r.ok() : o.type === 'hold' && !o.way; // no reach from here: a door or wall of another title
 }
