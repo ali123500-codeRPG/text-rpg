@@ -79,8 +79,6 @@ export function pin(cx: number, cy: number, title?: string, facing?: [number, nu
 export const alongText = (a: NonNullable<MapZone['along']>) => `${distText(a.m)} from the ${a.from} end of ${distText(a.len)}`;
 /** a height as the floor buttons and stair tips name it */
 export const floorName = (m: number) => (m === 0 ? 'Ground level' : `${Math.abs(m)} m ${m > 0 ? 'up' : 'down'}`);
-/** the heights a map has, lowest first: the height slider's stops */
-export const mapHeights = (zones: { height: number }[]): number[] => [...new Set(zones.map((z) => z.height))].sort((a, b) => a - b);
 const mode = (xs: number[]) => { const c = new Map<number, number>(); for (const x of xs) c.set(x, (c.get(x) ?? 0) + 1); return [...c.entries()].sort((a, b) => b[1] - a[1])[0][0]; };
 /** the `world` key of the World view (every top-level place as one tile) */
 const WORLD = '*world*';
@@ -220,6 +218,7 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void, onWalk?:
     onCard: (zone) => { exitSel = null; selected = zone; focus = worldZones().find((x) => x.id === zone)?.placeId ?? focus; draw(); },
     onExit: (zone, label) => { selected = zone; exitSel = { zoneId: zone, label }; draw(); },
     onGoto: (target) => goTo(target), onArea: (id) => { focus = id; draw(); }, onExpand: () => fit(world),
+    onRender: () => drawFloors(), // TD3 a: the ruler's stops are the heights in view, so a pan or zoom can change them
   });
   /** what the shared view draws: this map's zones at the height shown, the places inside it, and you when you stand here */
   function planData(): PlanData | null {
@@ -615,19 +614,59 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void, onWalk?:
     if (z.rect) pv.centreOn(z.rect);
   }
   function setFloorOf(zoneId: string) { const z = allZones().find((x) => x.id === zoneId); if (z) floors.set(ONE, z.height); }
-  /** the height slider: one stop per height this map has, lowest at the bottom; hidden when it has one */
+  /** MAP-66 (TD3 a): the height ruler, a bar to scale in metres from the lowest to the highest height in view, sky above the
+   *  ground and earth below it (as Dwarf Fortress's depth bar), a notch at each height with a known room in view and a
+   *  hollow one where only someone's point is; the shown height is the thumb, named beside it, and yours a mark on the bar.
+   *  Dragging snaps to the nearest notch; the arrows, the keys and the wheel step notch to notch. Hidden with one height */
+  let barKey = '', bar: { range: HTMLInputElement; now: HTMLElement; marks: HTMLElement[]; hs: number[]; pos(x: number): string } | null = null;
+  function heightsInView() {
+    const b = pv.viewM(), inb = (q: { x: number; y: number }) => q.x >= b.x0 && q.x <= b.x1 && q.y >= b.y0 && q.y <= b.y1;
+    const rooms = new Set(worldZones().filter((z) => z.rect && z.rect.x + z.rect.w / 2 >= b.x0 && z.rect.x - z.rect.w / 2 <= b.x1 && z.rect.y + z.rect.d / 2 >= b.y0 && z.rect.y - z.rect.d / 2 <= b.y1).map((z) => z.height));
+    const only = new Set(cur!.people.flatMap((p) => { const q = p.at ?? p.lastAt; return q && inb(q) && !rooms.has(p.height) ? [p.height] : []; }));
+    return { rooms, only };
+  }
   function drawFloors() {
-    const hs = mapHeights(world === WORLD ? [] : worldZones());
+    if (world === WORLD || !cur) { floorBar.hidden = true; floorBar.replaceChildren(); barKey = ''; bar = null; return; }
+    const { rooms, only } = heightsInView(), shown = floor();
+    const hs = [...new Set([...rooms, ...only, shown])].sort((a, b) => a - b);
     floorBar.hidden = hs.length < 2;
-    if (hs.length < 2) { floorBar.replaceChildren(); return; }
-    const mineH = cur ? worldZones().find((z) => z.id === cur!.zoneId)?.height : undefined;
-    const at = Math.max(0, hs.indexOf(floor()));
-    const said = (x: number) => `${floorName(x)}${x === mineH ? ' · you' : ''}`;
-    const out = h('output', { class: 'map-floor-now' }, floorName(hs[at]), hs[at] === mineH ? h('span', { class: 'you' }, ' · you') : '');
-    const range = h('input', { type: 'range', class: 'map-floor-range', min: '0', max: String(hs.length - 1), step: '1', value: String(at), 'aria-label': 'Height shown',
-      'aria-valuetext': said(hs[at]), oninput: (e: Event) => { floors.set(world, hs[+(e.target as HTMLInputElement).value]); draw(); } }) as HTMLInputElement;
-    floorBar.replaceChildren(h('span', { class: 'hs-label' }, 'Height'),
-      h('div', { class: 'map-floor-track' }, range, h('div', { class: 'map-floor-stops', 'aria-hidden': 'true' }, ...hs.map((x, i) => h('span', { class: i === at ? 'on' : '' }, floorName(x))).reverse())), out);
+    if (hs.length < 2) { floorBar.replaceChildren(); barKey = ''; bar = null; return; }
+    const mineH = worldZones().find((z) => z.id === cur!.zoneId)?.height;
+    const key = `${hs}|${[...only]}|${mineH}`;
+    if (key !== barKey) {
+      barKey = key;
+      const lo = hs[0], hi = hs[hs.length - 1], t = (x: number) => (x - lo) / (hi - lo);
+      // the thumb is 18 px: its middle runs from 9 px to the bar's height less 9 px
+      const pos = (x: number) => `calc(9px + (var(--bar-h) - 18px) * ${t(x).toFixed(4)})`;
+      const go = (x: number) => { if (x !== floor()) { floors.set(world, x); draw(); } };
+      const step = (d: number) => { const i = hs.indexOf(floor()) + d; if (i >= 0 && i < hs.length) go(hs[i]); };
+      const range = h('input', { type: 'range', class: 'map-floor-range', min: String(lo), max: String(hi), step: 'any', 'aria-label': 'Height shown',
+        oninput: () => go(hs.reduce((a, b) => (Math.abs(b - +range.value) < Math.abs(a - +range.value) ? b : a))),
+        onkeydown: (e: KeyboardEvent) => {
+          const d = { ArrowUp: 1, ArrowRight: 1, PageUp: 1, ArrowDown: -1, ArrowLeft: -1, PageDown: -1 }[e.key];
+          if (d) step(d); else if (e.key === 'Home') go(lo); else if (e.key === 'End') go(hi); else return;
+          e.preventDefault();
+        } }) as HTMLInputElement;
+      const marks = hs.map((x) => h('span', { class: `map-floor-notch${rooms.has(x) ? '' : ' only'}`, style: `bottom:${pos(x)}`, 'aria-hidden': 'true' }));
+      const you = mineH !== undefined && hs.includes(mineH) ? [h('span', { class: 'map-floor-you', style: `bottom:${pos(mineH)}`, 'data-tip': `You: ${floorName(mineH)}`, 'aria-hidden': 'true' })] : [];
+      const now = h('output', { class: 'map-floor-now' });
+      const groundLine = lo < 0 && hi > 0 ? [h('span', { class: 'map-floor-ground', style: `bottom:${pos(0)}`, 'aria-hidden': 'true' })] : [];
+      const ground = lo >= 0 ? 0 : hi <= 0 ? 1 : t(0);
+      const arrow = (d: number, label: string, glyph: string) => h('button', { type: 'button', class: 'map-floor-step', 'aria-label': label, 'data-tip': label, onclick: () => step(d) }, glyph);
+      floorBar.replaceChildren(arrow(1, 'Up a height', '▲'),
+        h('div', { class: 'map-floor-bar', style: `--bar-h:${Math.round(Math.min(240, Math.max(96, (hi - lo) * 6)))}px; --g:calc(9px + (var(--bar-h) - 18px) * ${ground.toFixed(4)})` }, range, ...marks, ...groundLine, ...you, now),
+        arrow(-1, 'Down a height', '▼'));
+      floorBar.onwheel = (e: WheelEvent) => { e.preventDefault(); e.stopPropagation(); step(e.deltaY < 0 ? 1 : -1); };
+      bar = { range, now, marks, hs, pos };
+    }
+    const b = bar!;
+    b.range.value = String(shown);
+    b.range.setAttribute('aria-valuetext', `${floorName(shown)}${shown === mineH ? ' · you' : ''}`);
+    b.now.style.bottom = b.pos(shown);
+    b.now.replaceChildren(floorName(shown), shown === mineH ? h('span', { class: 'you' }, ' · you') : '');
+    b.marks.forEach((m, i) => m.classList.toggle('on', b.hs[i] === shown));
+    (floorBar.firstChild as HTMLButtonElement).disabled = shown >= b.hs[b.hs.length - 1];
+    (floorBar.lastChild as HTMLButtonElement).disabled = shown <= b.hs[0];
   }
   function showWorld() {
     world = WORLD; selected = ''; draw();

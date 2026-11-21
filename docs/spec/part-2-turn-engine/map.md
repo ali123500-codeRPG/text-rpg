@@ -184,10 +184,15 @@ continuous map (D-1558)"). Rules below that still lay marks out zone by zone are
   Ali, 20/11/2026, Questions hub page "Map and minimap: one map, doors").
 - **MAP-65** The zone card leaves out the usual: the place line only when it differs from the zone, light and cover only
   when indoors, short of bright or above none, and no Exits heading when there are none.
-- **MAP-66** The map shows one height at a time. A vertical slider at the bottom left has one stop per height the map
-  has (lowest at the bottom), each named ("Ground level", "3 m up"), with "· you" at yours; it is hidden when the map
-  has one height. The slider shows heights below ground too (a cellar or dungeon, "3 m down") once one is known
-  (mapHeights, src/ui/map.ts).
+- **MAP-66** The map shows one height at a time, chosen on a height ruler at the bottom left: a bar to scale in metres
+  from the lowest to the highest height in view, sky-tinted above the ground line and earth-tinted below it (as Dwarf
+  Fortress's depth bar). The heights in view are those of the known rooms whose outline lies partly in the view and of
+  the people whose point does (MAP-68), plus the height shown; a pan or zoom can change them. Each has a notch, a hollow
+  one where only someone's point is (someone heard in a cellar never seen, who then shows over the void). The shown
+  height is the thumb, named beside it ("57 m up", "· you" at yours), and yours a mark on the bar; nothing else is
+  named. Dragging snaps to the nearest notch; ▲ and ▼, the arrow keys and the wheel over it step notch to notch. It is
+  hidden while the view has one height (heightsInView, drawFloors, src/ui/map.ts; TD3 a; Ali, 21/11/2026, Questions hub
+  page "A 3D view of the Map (D-421)": "a idea is nice, but it looks ugly. see if you can fix it up.").
 - **MAP-87** The Map has a 3D view of the same plan: a **3D** button after ⤢ (pressed while on) stands every wall of
   the height shown up from its line, to its own height above that floor (Wall.top), drawn this share of its metres up
   the screen and this share to the right (CONFIG.MAP_3D_RISE, CONFIG.MAP_3D_LEAN, placeholders), so north stays up and
@@ -196,7 +201,7 @@ continuous map (D-1558)"). Rules below that still lay marks out zone by zone are
   gap or window is a hole in it to scale (Opening.widthM, heightM, sillM; MAP-14). People, furniture and things stay
   flat marks at their points. The walls rise out of the plan and sink back in one transform move (--m-scenario,
   M-70); pan, zoom and clicks work as in the flat view, and the minimap stays flat. It still shows one height at a
-  time (MAP-66); how heights and people's heights show in it is open (D-421, D-1634) (wallFaces, src/ui/planView.ts;
+  time (MAP-66); how people's heights show in it is open (D-1634) (wallFaces, src/ui/planView.ts;
   TD1 a, TD2 a; Ali, 21/11/2026, Questions hub page "A 3D view of the Map (D-421)").
 - **MAP-67** On the to-scale plan each piece of furniture is a small line glyph for its kind on a disc at its point,
   kept inside its walls, and left off where it would cover the zone's name (MAP-25). Hover names it and the zone card

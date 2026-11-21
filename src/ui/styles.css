@@ -1124,16 +1124,30 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-crumbs .crumb.on { color: var(--text); border-color: var(--accent); }
 .map-crumbs .sep { color: var(--faint); }
 .map-tools { position: absolute; right: 12px; bottom: 12px; display: flex; gap: 6px; }
-/* CO9: the height slider, lowest height at the bottom; the stops beside it name each height the map has */
-.map-floors { position: absolute; left: 12px; bottom: 76px; display: grid; gap: var(--space-2); padding: var(--space-2) var(--space-3);
+.map-floors { position: absolute; left: 12px; bottom: 76px; display: grid; justify-items: start; gap: 4px; padding: 6px; z-index: 1;
   border: 1px solid var(--border); border-radius: var(--r-md); background: color-mix(in srgb, var(--bg) 85%, transparent); }
 .map-floors[hidden] { display: none; }
-.map-floor-track { display: flex; gap: var(--space-2); align-items: stretch; }
-.map-floor-range { writing-mode: vertical-lr; direction: rtl; width: 24px; min-height: 96px; margin: 0; accent-color: var(--accent); cursor: pointer; }
-.map-floor-stops { display: flex; flex-direction: column; justify-content: space-between; font-size: 13px; color: var(--muted); }
-.map-floor-stops .on { color: var(--text); font-weight: 700; }
-.map-floor-now { font-size: 13px; font-weight: 700; }
+/* MAP-66 (TD3 a): the height ruler, to scale; sky above the ground line, earth below it (Dwarf Fortress's depth bar) */
+.map-floor-bar { --sky: color-mix(in srgb, var(--c9) 24%, var(--surface)); --earth: color-mix(in srgb, var(--c14) 34%, var(--surface));
+  position: relative; width: 28px; height: var(--bar-h); }
+.map-floor-range { -webkit-appearance: none; appearance: none; writing-mode: vertical-lr; direction: rtl; position: absolute; left: 7px; top: 0;
+  width: 14px; height: var(--bar-h); margin: 0; border-radius: var(--r-pill); cursor: pointer; outline: none;
+  background: linear-gradient(to top, var(--earth) 0 var(--g), var(--sky) var(--g) 100%); }
+.map-floor-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--accent); border: 3px solid var(--bg); }
+.map-floor-range::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: var(--accent); border: 3px solid var(--bg); }
+.map-floor-range:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--accent); outline-offset: 2px; }
+.map-floor-notch { position: absolute; left: 9px; width: 10px; height: 1px; translate: 0 50%; background: var(--text); opacity: .45; pointer-events: none; }
+.map-floor-ground { position: absolute; left: 3px; width: 22px; height: 2px; translate: 0 50%; background: var(--text); border-radius: 1px; pointer-events: none; }
+.map-floor-notch.only { left: 9px; width: 10px; height: 10px; border: 2px dashed var(--c4); border-radius: 50%; background: none; opacity: 1; }
+.map-floor-notch.on { opacity: 0; }
+.map-floor-you { position: absolute; left: -2px; width: 0; height: 0; translate: 0 50%; border: 5px solid transparent; border-left: 7px solid var(--scenario-mark); }
+.map-floor-now { position: absolute; left: 32px; translate: 0 50%; white-space: nowrap; padding: 2px 8px; border-radius: var(--r-pill);
+  background: var(--surface); border: 1px solid var(--border); font-size: 13px; font-weight: 700; color: var(--text); pointer-events: none; }
 .map-floor-now .you { color: var(--scenario-mark); }
+.map-floor-step { width: 28px; height: 24px; padding: 0; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--bg); color: var(--text);
+  font: inherit; font-size: 11px; cursor: pointer; transition: border-color var(--m-feedback) var(--m-ease); }
+.map-floor-step:hover:not(:disabled) { border-color: var(--accent); }
+.map-floor-step:disabled { opacity: .35; cursor: default; }
 /* barriers you know stop you, on their exit: amber locked or barred, red blocked, green when you hold the key */
 .map-way { --wc: var(--warn); }
 .map-way.blocked { --wc: var(--danger); }
