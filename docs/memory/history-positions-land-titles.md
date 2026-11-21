@@ -32,3 +32,7 @@ builder". Question IDs name the owner's answers on the Questions hub.
 - **Old saves (18/11/2026; MG1-MG6).** No save from before schema 10 is kept (PZ16 b). Old upgrade steps, old
   skill ids and unused data were deleted (#1055, #1059). The upgrade frame stays for D-116, and
   `CONFIG.OLDEST_SAVE_SCHEMA` names the oldest save that loads.
+- **Saving by tiles (21/11/2026; WT1-WT6).** An audit (project doc "world-division-save-audit") found the save cut by
+  place and some rules still using titles, places or door counts for nearness. WT1 a, WT2 b: the floor plan and the
+  ground are saved by 100 m tiles (schema 13). WT3 a (D-1621) and WT4 a (D-1623) are decided, not built. WT5 a: one
+  bug per cause (BG-1614 to BG-1619). WT6 a: belonging to a named place stays keyed by place (GSM-25).

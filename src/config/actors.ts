@@ -130,7 +130,10 @@ export const ACTORS = {
   TURN_ENDS_KEPT: 500, // AT15/AT43: turn end times kept for timers (more than the longest timer needs at the shortest turn)
   HISTORY_CHUNK_TURNS: 20, // Q18: story text saved in documents of this many turns each
   LOCK_LEASE_MS: 60_000, // Q2
-  SCHEMA_VERSION: 12, // v12: item pool bands (D-89 RP12); v11: doorways hold real doors (BG-312); v10: titles and the floor plan (PZ16 b); v9: land (regions, WZ12)
+  /** WT1 a, WT2 b: the floor plan and loose items are saved in square tiles of the world frame this many metres a side
+   * (tile.<tx>.<ty>.<n> pages); a change takes effect at the next save, and saves tiled at another size still load */
+  TILE_SIZE_M: 100,
+  SCHEMA_VERSION: 13, // v13: the floor plan and the ground saved by tiles (WT1 a); v12: item pool bands (D-89 RP12); v11: doorways hold real doors (BG-312); v10: titles and the floor plan (PZ16 b); v9: land (regions, WZ12)
   /** MG2: a save older than this is refused (the prototype keeps no old saves, D-116); OLDEST_SAVE_REASON ends "this save was made …" */
   OLDEST_SAVE_SCHEMA: 10,
   OLDEST_SAVE_REASON: 'before zones became titles on a floor plan (walls, doors and light at points)',

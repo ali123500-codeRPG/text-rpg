@@ -119,7 +119,7 @@ export type GameState = {
   mode: Mode;
   zones: Zone[]; // WI8 a: every built title in the world, the same objects as in places[].zones
   /** PZ2, PZ5 (src/plan): the floor plan of every built place: walls, openings (the ways), roofs and light sources; each
-   * record names its place (placeId), and is saved on that place's plan page */
+   * record names its place (placeId), and is saved in the tile holding its point (TilePage, WT1 a) */
   walls: import('./core').Wall[];
   openings: import('./core').Opening[];
   roofs: import('./core').Roof[];
@@ -271,10 +271,11 @@ export type StoryFact = {
   promotedTo: PlaceId[];
 };
 export type FactsPage = { storyId: StoryId; placeId: PlaceId; facts: StoryFact[] };
-/** PZ16: one place's floor plan (plan.<placeId>): its walls, openings, roofs, lights and furniture */
-export type PlanPage = { storyId: StoryId; placeId: PlaceId; walls: import('./core').Wall[]; openings: import('./core').Opening[]; roofs: import('./core').Roof[]; lights: import('./core').LightSource[]; furniture: import('./core').Furniture[] };
-/** PZ11: what lies on the ground anywhere (ground) */
-export type GroundPage = { storyId: StoryId; items: import('./items').ItemInstance[] };
+/** WT1 a: the floor plan and what lies on the ground in one square tile of the world frame (tile.<tx>.<ty>.<n>): each
+ * record whose anchor point (a wall's middle, a way's or light's spot, a roof's middle, a piece's or item's point) lies in
+ * the square `size` metres a side whose south-west corner is (tx × size, ty × size); n numbers its parts under the page limit */
+export type TilePage = { storyId: StoryId; tx: number; ty: number; size: number; walls: import('./core').Wall[]; openings: import('./core').Opening[];
+  roofs: import('./core').Roof[]; lights: import('./core').LightSource[]; furniture: import('./core').Furniture[]; items: import('./items').ItemInstance[] };
 
 export type TurnRecord = {
   storyId: StoryId;

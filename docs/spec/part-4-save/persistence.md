@@ -25,7 +25,9 @@ stories/<storyId>/history/<n>         story text for turns n×HISTORY_CHUNK_TURN
 ops/republish                         the Republish button's saved task id (Play screen, Republish button)
 ```
 
-Page keys: engine, hidden, actor.\<id>, place.\<id>, region.\<id>, facts.\<placeId>.\<n>, blueprint.\<id>, plan.\<placeId>, ground.
+Page keys: engine, hidden, actor.\<id>, place.\<id>, region.\<id>, facts.\<placeId>.\<n>, blueprint.\<id>, tile.\<tx>.\<ty>.\<n>.
+
+**Tiles** (Ali, 21/11/2026, Questions hub "Splitting the world for saving", WT1 a, WT2 b: "b, but allow for flexibility"). The floor plan (walls, ways, roofs, lights, furniture) and what lies on the ground are saved by square tiles of the world frame, CONFIG.TILE_SIZE_M (100 m, the land's cell size) a side, not by place: a record goes to the tile holding its anchor point (a wall's middle, a roof's middle, a way's or light's spot, a piece's or item's point), and a full tile splits into numbered parts under the page limit, as facts do. A title only names a space, so a place page keeps names (its titles, state and headlines), and a wall between two places has one home. People keep a page each, since they move. Every tile is still loaded, so all built ground stays live (WI8 a). Each tile page records its own size, so a save tiled at another size loads, and the next save regroups at the current one (the flexibility asked for). Before each save the live lists are put in tile order (`src/save/pages.ts` inTileOrder), so a reloaded state keeps the order of the saved one. Saves of schema 10 to 12 move to tiles once on load (MIGRATIONS 12).
 
 **Platform limits** (artifact runtime contract 0.2.96):
 

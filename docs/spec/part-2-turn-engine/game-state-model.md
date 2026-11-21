@@ -66,7 +66,12 @@ type Band = {                   // a small group: a guard post, a gang, a househ
   in the title they are in, so standing in a doorway never moves anyone into the room beside it (BG-1506).
 - **GSM-24** Actor.zone is that title, kept by code whenever a point moves; code that sets a title instead (a
   scenario's start zone, a test) gets a point in it from placeAll. A title's floor is the floor of everyone standing in
-  it.
+  it. Decided, not built: every person gets a point and a height of their own, and the title is only the name of where
+  that is (WT4 a, D-1623).
+- **GSM-25** Belonging to a named place stays keyed by the place: the smith at a forge, a bed or forge for hire in the
+  seller's place, the doors an NPC knows in the place it lives or works in, and the facts the agents are told about the
+  place they are in. These say who owns or belongs to a place, not where anything is or what is near (Ali, 21/11/2026,
+  Questions hub "Splitting the world for saving", WT6 a).
 
 #### Walls, openings and roofs
 
@@ -234,7 +239,8 @@ type Band = {                   // a small group: a guard post, a gang, a househ
 #### Saves
 
 - **GSM-130** The floor-plan rewrite is schema 10; older saves are refused (no old saves are kept, prototype rule)
-  (PZ16 b). Schema 11: a doorway its old fixed flag kept shut gets the plain door it stood for (BG-312).
+  (PZ16 b). Schema 11: a doorway its old fixed flag kept shut gets the plain door it stood for (BG-312). Schema 13: the
+  floor plan and the ground move from place pages and one ground page to tiles (WT1 a, Part 4 §6).
 
 #### Drops and falls
 
