@@ -341,6 +341,7 @@ function saveIndex() {
   if (s !== savedIdx) { savedIdx = s; db.doc('hub/index').set({ rows, seen, at: new Date().toISOString() }).catch(() => { savedIdx = ''; }); }
 }
 async function loadRows() {
+  const stampsP = db.stamps ? db.stamps('pages').catch(() => null) : Promise.resolve(null); // asked now, beside the index read
   let idx = null; try { idx = (await db.doc('hub/index').get()).data(); } catch (e) {}
   const rows = {};
   if (!idx?.rows) { // no index yet: read every questionnaire once
@@ -349,14 +350,18 @@ async function loadRows() {
     doneChecked = true; left.clear(); return { rows, changed: null };
   }
   Object.assign(rows, idx.rows); savedIdx = JSON.stringify({ rows: idx.rows, seen: idx.seen });
-  const idsP = db.ids ? db.ids('pages').catch(() => null) : Promise.resolve(null); // asked now, so it travels with the next read
-  const snap = await db.collection('pages').where('updated', '>', idx.seen || '').get();
-  (await Promise.all(snap.docs.map((d) => rowOf(d.id, d.data())))).forEach((r) => { rows[r.id] = r; });
-  const changed = new Set(snap.docs.map((d) => d.id));
-  // a questionnaire copied in keeps its older `updated`, so the time check above misses it: read every id with no row
-  const all = await idsP, missing = (all || []).filter((id) => !rows[id] && !changed.has(id));
-  if (all) { const live = new Set(all); for (const id in rows) if (!live.has(id)) delete rows[id]; } // deleted since the index was saved
-  apply(rows, missing, await Promise.all(missing.map(reread))); missing.forEach((id) => changed.add(id));
+  const stamps = await stampsP; let changed;
+  if (stamps) {
+    // each page's `updated` against its own row, never as a cursor: one writer's clock running ahead, or an outbox that
+    // runs after a later write, would hide every change below it (BG-358). New, copied-in and deleted ones fall out too.
+    for (const id in rows) if (!(id in stamps)) delete rows[id];
+    changed = new Set(Object.keys(stamps).filter((id) => rows[id]?.updated !== stamps[id]));
+    apply(rows, [...changed], await Promise.all([...changed].map(reread)));
+  } else { // this page's own db alone: only what was written since the index was saved
+    const snap = await db.collection('pages').where('updated', '>', idx.seen || '').get();
+    (await Promise.all(snap.docs.map((d) => rowOf(d.id, d.data())))).forEach((r) => { rows[r.id] = r; });
+    changed = new Set(snap.docs.map((d) => d.id));
+  }
   for (const [id, r] of left) if (rows[id] && !changed.has(id)) rows[id] = r;
   return { rows, changed };
 }
@@ -662,7 +667,10 @@ function supaDb(mcp) {
   const has = (p) => { const r = recent.get(p); return r && Date.now() - r.at < 3000 ? r.p.then((d) => d.exists) : read('has', p).then((x) => !!x); };
   return { doc, collection, insertNew, prefetch, has,
     exec: async (s) => { const r = await sqlOnce(s); return typeof r === 'string' ? r : r?.result ?? JSON.stringify(r); }, // the raw answer, for error text
-    ids: async (c) => (await read('ids', c)).map((r) => r.path.slice(c.length + 1)) };
+    ids: async (c) => (await read('ids', c)).map((r) => r.path.slice(c.length + 1)),
+    // each document's `updated` without the rest of it: the home list's change check
+    stamps: async (c) => Object.fromEntries((await run(`select path, coalesce(data->>'updated', '') as u from hub_docs
+      where regexp_replace(path, '/[^/]+$', '') = ${q(c)}`)).map((r) => [r.path.slice(c.length + 1), r.u])) };
 }
 
 // The outbox: SQL that hubdb.outbox() published beside this page, so a thread never pastes it (README "Writing to the
@@ -748,8 +756,8 @@ function bothDb(a, b) {
     ? { get: () => pages((s) => s.collection(c).get()), where: (...w) => ({ get: () => pages((s) => s.collection(c).where(...w).get()) }) }
     : { get: async () => (await where(c)).collection(c).get(), onSnapshot: (cb, err) => lazy(c, (s) => s.collection(c).onSnapshot(cb, err)) };
   // all or nothing: a partial list would make the home list drop the other store's questionnaires
-  const ids = async (c) => [...new Set([...await a.ids(c), ...(await b.collection(c).get()).docs.map((d) => d.id)])];
-  return { doc, collection, ids };
+  const stamps = async (c) => ({ ...Object.fromEntries((await b.collection(c).get()).docs.map((d) => [d.id, d.data()?.updated || ''])), ...await a.stamps(c) });
+  return { doc, collection, stamps };
 }
 
 (async () => {
