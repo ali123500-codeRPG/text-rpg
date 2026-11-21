@@ -23,7 +23,7 @@ const npc = (s: GameState, id: string) => s.actors.find((a) => a.id === id)!;
 const setup = (zone?: string) => {
   const s = makeVillage();
   give(s.player, PK.dread_presence);
-  s.player.core.skills[SK.intimidation] = { raw: 80, state: 'normal' };
+  s.player.core.skills[SK.intimidation] = { raw: 100, state: 'normal' }; // where Dread Presence opens: its reach is AURA_REACH_M (D-193)
   const t = npc(s, 'patron_1');
   if (zone) { t.zone = zone; unplace(s, t); }
   t.mind!.overrides = { player: 'opposed' };

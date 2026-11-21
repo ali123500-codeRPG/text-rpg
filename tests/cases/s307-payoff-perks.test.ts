@@ -17,7 +17,7 @@ import { SK } from '../../src/library/skillIds';
 import { PK } from '../../src/library/perkIds';
 import { IT } from '../../src/library/itemIds';
 import { AM } from '../../src/library/tableIds';
-import { auraReachM } from '../../src/engine/auras';
+import { auraReachM, baseAuraReachM } from '../../src/engine/auras';
 
 afterEach(() => vi.restoreAllMocks());
 const give = (a: Actor, perkId: string, dormant = false) => a.core.perks.push({ perkId, source: 'mastery', gainedTurn: 0, ...(dormant ? { dormant } : {}) });
@@ -83,11 +83,11 @@ describe('307 payoff perks', () => {
     expect(effectiveSkill(s, s.player, SK.resolve).value).toBeCloseTo(base + trueSkill(s.player, SK.resolve) * payoffShare(2) * tierMult(SK.resolve));
   });
   it('CN8 Chorus (Intimidation 120, with the 120 boosts): each shout piece adds 1 m of aura reach and grows the base reach by the payoff share', () => {
-    const s = makeVillage();
-    expect(auraReachM(s.player)).toBe(CONFIG.AURA_REACH_M);
+    const s = makeVillage(), I = SK.intimidation, base = () => baseAuraReachM(s.player, I);
+    expect(auraReachM(s.player, I)).toBe(base());
     give(s.player, PK.chorus);
-    expect(auraReachM(s.player)).toBeCloseTo(CONFIG.AURA_REACH_M * (1 + payoffShare(1)) + CONFIG.CHORUS_REACH_M);
+    expect(auraReachM(s.player, I)).toBeCloseTo(base() * (1 + payoffShare(1)) + CONFIG.CHORUS_REACH_M);
     give(s.player, PK.dread_presence); give(s.player, PK.battle_cry);
-    expect(auraReachM(s.player)).toBeCloseTo(CONFIG.AURA_REACH_M * (1 + payoffShare(3)) + 3 * CONFIG.CHORUS_REACH_M);
+    expect(auraReachM(s.player, I)).toBeCloseTo(base() * (1 + payoffShare(3)) + 3 * CONFIG.CHORUS_REACH_M);
   });
 });
