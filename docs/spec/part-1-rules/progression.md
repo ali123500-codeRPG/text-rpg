@@ -102,7 +102,9 @@ question IDs, BG/D numbers) sits in one trailing parenthesis.
   gap shifts (gapShiftsOf: a heavy weapon against parry and block, Turn Aside, Slip the Blow), read on the defense's gap
   ladder, on every body part by how often it is hit, through the damage step's own armor (armorLayers and throughArmor
   in src/ruleset/index.ts, the attacker's armor pierce, Thick Hide, Fighter's Frame).
-- **PROG-74** An attack under a Near Miss never lands. Each side uses its best attack.
+- **PROG-74** An attack under a Near Miss never lands. Each side uses its best attack. The actor is rated as drawn:
+  of every most-full set of the weapons and shields it carries that its grips can hold, the one that rates highest is in
+  hand, so sheathing or drawing never moves its combat level or power (PQ4 a, BG-1583).
 - **PROG-75** The level is the L where the two times are equal: the code halves between whole levels (the soldier's
   sheet at a whole level is read once per library) and reads the balance on a straight line between the two whole levels
   it lies between; never below 0, with no ceiling.
@@ -118,7 +120,8 @@ question IDs, BG/D numbers) sits in one trailing parenthesis.
   stat that scales with need following it (ItemDef.relicNeed, the equations in src/library/gearScale.ts that the library
   and minted gear share: armor soak, shield pool, weapon damage), so it meets its kit at every level and a fighter in
   standard kit rates at its kit's level (sword and mail at 50 rate 50) (GR40).
-- **PROG-81** Cached by sheet; a new sheet costs a few thousandths of a second.
+- **PROG-81** Cached by sheet (what is in hand is not part of it); a new sheet costs a few thousandths of a second for
+  each set of weapons and shields it could hold.
 - **PROG-82** *Left out:* reaction time, threats, wound and morale penalties on rolls, damage to single parts and the
   limits on where a blow may land, parry strike-backs, fatigue and situational modifiers; a missile is rated as if the
   soldier could parry it (CE3) (parked, D-400 and D-401).

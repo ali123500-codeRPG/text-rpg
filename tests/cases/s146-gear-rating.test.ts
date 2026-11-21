@@ -4,13 +4,18 @@ import { makeVillage } from '../harness';
 import { actorLevel, levelCost, levelRating, power, xpToReach } from '../../src/engine/xp';
 import { CONFIG } from '../../src/config';
 import { TP } from '../../src/library/templateIds';
+import { clearCombatLevels } from '../../src/engine/combatLevel';
+import { isHeld } from '../../src/ruleset/gear';
 
 describe('146 Gear in power (GR45: through the fight, never by its coin)', () => {
-  it('a geared foe is stronger through its weapon and armor in the combat level; stowed gear does not count', () => {
+  it('a geared foe is stronger through its weapon and armor in the combat level; it is rated as drawn (BG-1583)', () => {
     const s = makeVillage();
     const g = s.actors.find((a) => a.core.templateId === TP.guard)!;
     const geared = power(s, g);
-    for (const i of g.core.inventory) delete i.equippedIn; // stowed gear is not power in the fight
+    clearCombatLevels(); // worked out afresh, not read from the cache
+    for (const i of g.core.inventory) if (isHeld(i)) delete i.equippedIn; // sheathed: what it carries still counts
+    expect(power(s, g)).toBeCloseTo(geared, 9);
+    for (const i of g.core.inventory) delete i.equippedIn; // armor taken off is not power in the fight
     expect(power(s, g)).toBeLessThan(geared);
   });
   it('levels add LEVEL_RATING_SHARE × what the XP curve asks to reach them, on both sides', () => {
