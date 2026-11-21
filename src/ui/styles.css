@@ -676,6 +676,11 @@ button.cs-sigil:hover, button.cs-sigil:focus-visible { box-shadow: 0 0 0 4px var
 .pk-board { flex: var(--n) 1 calc(48px + var(--n) * 150px); min-width: 0; box-sizing: border-box;
   padding: var(--space-2) var(--space-3) var(--space-3); border: 1px solid var(--border); border-radius: var(--r-md); }
 .pk-board h3 { margin: 0 0 var(--space-2); font-size: 13px; font-weight: 700; color: var(--muted); }
+/* tree and skill icons in place of their names, tinted the tree's colour as on the Character page (PS-277) */
+.pk-board h3 .trico { display: block; width: 28px; height: 28px; color: var(--t); }
+.pk .skico { display: block; width: 20px; height: 20px; color: var(--t, var(--muted)); }
+.pk .trico svg, .pk .skico svg { width: 100%; height: 100%; display: block; }
+.pk-card-head .k .skico { display: inline-block; vertical-align: -5px; }
 /* SD14: a box that grows alone on its row (Speech) keeps its ladders together, as wide as in the other boxes, instead of spreading them */
 .pk-lad { --rh: 200px; position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); padding: 0 0 0 56px; max-width: calc(56px + var(--n) * 180px); }
 .pk-mb { position: absolute; left: 0; right: 0; height: 0; border-top: 1px dashed color-mix(in oklch, var(--scenario-mark) 40%, transparent); }

@@ -107,6 +107,13 @@ export function instanceIcon(s: GameState, instanceId: string, cls?: string): HT
 }
 
 /** a class's icon, small: beside its name (class tree, the Starts on the creation screen), or in place of it (Character page) */
+/** a skill's icon in place of its name, which is its tip and accessible name; the name itself for a skill with no icon yet */
+export const skillMark = (skillId: string, name: string): HTMLElement => {
+  const el = skillIcon(skillId);
+  if (!el) return Object.assign(document.createElement('b'), { textContent: name });
+  el.setAttribute('role', 'img'); el.title = name; el.setAttribute('aria-label', name);
+  return el;
+};
 export const classIcon = (classId: string, label?: string): HTMLElement => {
   const el = itemIcon(classIconName(classId), undefined, 'cico');
   el.dataset.tier = getLibrary().classes[classId]?.tier ?? 'tier_0'; // its colour says its tier (styles.css .cico[data-tier])

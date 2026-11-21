@@ -436,7 +436,11 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
   1 point". Mock-ups: https://claude.ai/artifact/TVfF7qs3WnDdDZzzM6Yjf5
 - **PS-256** Every perk the Perks tile counts shows on the board. Perks on no ladder of the character's skills (a
   class perk, a Start's blessing, an achievement's, a Threadbound item's, an All-step's, Hollowed) are listed under
-  Granted, beside Innate, each tagged with where it came from (BG-331; heldPerks and grantedPerks in src/ui/perks.ts).
+  Granted, under the tree boxes, each tagged with where it came from (BG-331; heldPerks and grantedPerks in
+  src/ui/perks.ts).
+- **PS-257** As on the Character page (PS-277), each box's heading is its tree's icon and each ladder (or track) starts
+  with its skill's icon, both in the tree's colour, in place of their names; the perk card's head shows the skill's
+  icon and the milestone. Each name is its icon's tip and accessible name (skillMark, treeIcon in src/ui/itemIcons.ts).
 
 #### Journal page
 
