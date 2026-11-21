@@ -120,8 +120,8 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 
 #### Estimates and depth
 
-- **PS-70** Estimates: every estimated number starts with ≈; its source line is the tile's tip and its link stays in the
-  tile (HS6; SD4).
+- **PS-70** Estimates: every estimated number starts with ≈; its source line is the figure's tip and its link stays with
+  the figure (on the creation screen the estimate itself is the link) (HS6; SD4).
 - **PS-71** An estimate is editable only when the player sets the input behind it (the creation screen's practice
   swings) (HS6).
 - **PS-72** Depth: no glows and no shadows except the toast shadow (also the motion rules).
@@ -187,6 +187,12 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 
 - **PS-110** Creation screen: the approved layout at https://claude.ai/artifact/HW45ivigqwZ5VDo4PWPv9u (Part 4 §4,
   Player creation). The story starts from it.
+- **PS-492** The creation screen's figures sit in one build bar, pinned to the top of the page while the skill points are
+  spent: points left (its number, "of N left" and a meter), the tag and flaw marks lit for each one set, HP, standing
+  attack, standing defense shown by the icon of the skill that wins it (parry, block or dodge), the slime estimate
+  ("≈ swings : ≈ slams", which opens the estimate's input), and Begin the story at its end. Every explanation is the
+  figure's tip; the Starting total against Potential is the points' tip. A "Needs attention" line shows under the bar,
+  so the button never moves (option B on the critique page "Creation stat row", picked by the owner).
 - **PS-111** Loot: when the character can see things to take where they stand, a Loot chip shows by the action box with
   how many ("Loot ×7").
 - **PS-112** It opens a large partial pop-up listing them by where they are: each body that is down (what it wears and
@@ -207,6 +213,7 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
   place the zone sits in (Ali: the story's premise as a title told him nothing).
 - **PS-121** Pointing at the sun icon shows the day, the time of day and the clock to the second ("Day 2 · Morning ·
   07:30:15"). The day and time of day follow the turn (Ali; T11).
+- **PS-492** Pointing at the place name in the header shows who holds the place and whose law runs there ("Held by the Millbrook council, whose law runs here"), read from the nearest place up that names one (BEL-15). Anyone standing in the place knows it (The owner, Questions hub page "Show belonging to the player", 21/11/2026, OW3 a; belongingView in src/views/belonging.ts).
 - **PS-122** No mode word, Claude-call count or background-call note: each changes with the encounter mode, which is
   hidden. The call count and the running agents show in the GM view (play screen review UI1, UI3, 09/11/2026).
 - **PS-123** Your deals: an "N deals" chip beside the scenario title opens the player's deals with NPCs
@@ -237,6 +244,8 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
   bars at every level, the level words in their tips; one out of sight shows, dimmed, the place it was last seen
   (YB3 c, Ali 20/11/2026; PlayerView `band`). A band-mate is never also listed in Who's here. With no band-mate the
   heading reads Solo (YB4 a, Ali 20/11/2026).
+- **PS-493** A Who's here cell's tip adds one line for each tie the player knows the person holds (BEL-20: open ties only; never a commitment, BEL-08): the organization and the title ("The Millbrook Watch · watch captain"), or "hired by" a person. The click depth is the Journal's Organizations table (PS-495). Tips keep their line breaks (The owner, Questions hub page "Show belonging to the player", 21/11/2026, OW1 a).
+- **PS-494** One who heads an organization the player knows them to be in carries a small laurel after the name on Who's here, its words in the tip and accessible name ("Heads the Millbrook Watch") (The owner, Questions hub page "Show belonging to the player", 21/11/2026, OW4 a).
 - **PS-136** Narration log: checked narration, newest last. Story text is set in Literata.
 - **PS-137** While a turn runs, one neutral line for every turn, "The story is moving… 12 s", with "Taking longer than
   usual" after 90 s; it never names the agent (play screen review UI2).
@@ -468,8 +477,9 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
   leaves it once the person is listed above (src/ui/pages.ts heardOfNames).
 - **PS-262** Places: the current place and those above it, plus places of facts the character witnessed, folded under
   their parent place; the map draws their zones.
+- **PS-495** Under Places, an Organizations table lists every organization the ties the player knows reach, with the ones they are units of (BEL-03), folded under the one each is part of: name, kind word, part of, and the people the player knows in it with their titles, the head first (The owner, Questions hub page "Show belonging to the player", 21/11/2026, OW2 a). Its redesign is parked (IUI-1801).
 - **PS-263** A Timeline lists turns played since the page was opened.
-- **PS-264** The Journal page is built from PlayerView, the Journal and the story log only, never the hidden store.
+- **PS-264** The Journal page is built from PlayerView, the belonging view (src/views/belonging.ts, which reads only the ties the player knows), the Journal and the story log only, never the hidden store.
 
 #### Power and skill rows (Character page)
 

@@ -53,6 +53,10 @@ an ally who is not fighting, whom the fight's side cannot hold; the Spotter perk
 Command from orders (TC7, BEL-54), which needs a group leader the Weaver cannot yet name. The organization's lasting
 aims (BEL-53) wait for the Weaver to name organizations (BEL-55).
 
+**Shown to the player** (PS-492 to PS-495; the owner, Questions hub page "Show belonging to the player", 21/11/2026,
+OW1 to OW4 a): src/views/belonging.ts reads only the ties the player knows (BEL-20) and never a commitment (BEL-08). It
+is kept out of PlayerView, so no agent's input changes.
+
 Who a character belongs to, whom it serves, whom it works beside right now, who may give it orders, and what each
 character knows about the others' ties. Decided by the owner on the Questions hub page "Hierarchy and belonging",
 21/11/2026, OB1 a to OB13 a (OB7 read "a. d." with nothing after the d, and the owner confirmed a on a decision

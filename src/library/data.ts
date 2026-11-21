@@ -790,11 +790,12 @@ export function prototypeLibrary(): Library {
     // aspect, and every side's wall kind unless named (roofed: a wall; open sky: none). No cover or light columns: clutter is
     // the land and objects (PZ6), light is sources (PZ5)
     zoneKinds: Object.fromEntries(([
-      [ZK.room, 'Room', true, 'lamplit', 'room', 1], [ZK.corridor, 'Corridor', true, 'dim', 'small', 4], [ZK.stairs, 'Stairs', true, 'dim', 'cramped', 2],
-      [ZK.cellar, 'Cellar or cave', true, 'dark', 'room', 1], [ZK.street, 'Street', false, 'dark', 'yard', 4], [ZK.square, 'Square', false, 'dark', 'open', 1],
-      [ZK.gate, 'Gate', false, 'dark', 'small', 2], [ZK.yard, 'Yard', false, 'dark', 'yard', 1], [ZK.field, 'Field', false, 'dark', 'immense', 1],
-      [ZK.woods, 'Woods', false, 'dark', 'immense', 1],
-    ] as const).map(([id, name, roof, light, size, aspect]) => [id, { id, name, roof, light, size, aspect, wall: roof ? WK.wall : WK.open,
+      // aspect: the least and most long side ÷ short side a new title of the kind is drawn at (FZ5 a, placeholders)
+      [ZK.room, 'Room', true, 'lamplit', 'room', [1, 2]], [ZK.corridor, 'Corridor', true, 'dim', 'small', [3, 6]], [ZK.stairs, 'Stairs', true, 'dim', 'cramped', [2, 3]],
+      [ZK.cellar, 'Cellar or cave', true, 'dark', 'room', [1, 2]], [ZK.street, 'Street', false, 'dark', 'yard', [4, 8]], [ZK.square, 'Square', false, 'dark', 'open', [1, 1.5]],
+      [ZK.gate, 'Gate', false, 'dark', 'small', [1.5, 2.5]], [ZK.yard, 'Yard', false, 'dark', 'yard', [1, 2]], [ZK.field, 'Field', false, 'dark', 'immense', [1, 3]],
+      [ZK.woods, 'Woods', false, 'dark', 'immense', [1, 2]],
+    ] as [string, string, boolean, import('../types').Light, import('../scales').ZoneSizeKey, [number, number]][]).map(([id, name, roof, light, size, aspect]) => [id, { id, name, roof, light, size, aspect, wall: roof ? WK.wall : WK.open,
       ...(ONWARD_KINDS.has(id) ? { onward: true as const } : {}),
       ...(KIND_FURNITURE[id] ? { furniture: KIND_FURNITURE[id] } : {}) }])),
     // FR1: what furniture can be (a piece's kind sets its map icon; its name is the story's)

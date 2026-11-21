@@ -30,6 +30,8 @@ const PICKS = {
   // the Character page's ratings, keyed as RT (src/library/functionIds.ts)
   melee_strength: 'gi:biceps', ranged_strength: 'gi:high-shot', toughness: 'gi:heart-armor', agility: 'gi:acrobatic',
   presence: 'gi:crown', senses: 'gi:eye-target',
+  // Who's here: one who heads an organization the player knows them to be in (BEL-09)
+  head: 'gi:laurel-crown',
   // the character card's figures (their words are the tip)
   fig_power: 'gi:power-lightning', fig_attack: 'gi:sword-brandish', fig_defense: 'gi:checked-shield',
   // the Hall of fame report card's lines (Combat Power reads fig_power)

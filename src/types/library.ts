@@ -286,8 +286,8 @@ export type ZoneKind = {
   size: import('../scales').ZoneSizeKey; wall: string;
   /** FR2: furniture every title of this kind gets unless a layout or the Weaver gives its own */
   furniture?: PlanFurniture[];
-  /** long side ÷ short side of its footprint (1 = square) */
-  aspect: number;
+  /** FZ5 a: the least and most long side ÷ short side of its footprint (1 = square); each new title rolls its own between them */
+  aspect: [number, number];
   /** NW4 a title of this kind leads onward: besides the way in, it must have another way or a frontier (no dead-end streets) */
   onward?: true;
 };

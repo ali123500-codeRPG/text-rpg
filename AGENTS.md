@@ -66,8 +66,9 @@ project: "the owner" below is its designer and its only player.
 12. **A parked item gets its ID the same turn, in a group.** Anything the owner parks gets a row in its subject's idea
     list, named in the table at the top of the spec's "Deferred items" file: perks IPP-n, achievements IAA-n, vows and
     pledges IVP-n, classes ICI-n, essences IEI-n, Threadbound items ITI-n, combat and bodies ICB-n, items, loot and
-    trade IGT-n, world, travel and scenarios IWD-n, NPCs and personality INP-n, age and training ICG-n. It holds the
-    owner's own words. Options only where the owner gave them; add no context or reading of your own. When no list
+    trade IGT-n, world, travel and scenarios IWD-n, NPCs and personality INP-n, age and training ICG-n, screens and
+    layout IUI-n. It holds the owner's own words. Options only where the owner gave them; add no context or reading of
+    your own. When no list
     fits, the row waits in the D-n table and the owner is asked the same turn which list takes it, or for a new list.
 
 ## Order of authority

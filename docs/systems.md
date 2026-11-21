@@ -364,6 +364,7 @@ Speech rolls, offers and standing down, trade and paying, relations, personality
   - `src/scenario/belong.ts`
   - `src/ui/ideaLeans.ts`
   - `src/ui/personality.ts`
+  - `src/views/belonging.ts`
 
 ## space: positions, plans and the map
 
