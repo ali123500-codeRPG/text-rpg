@@ -251,13 +251,6 @@ export function shortestPath(state: GameState, from: string, to: string, sightOn
   return null;
 }
 
-/** across a counter, fence or rail from title `a` into the next title `b`: a wall between them that is seen over and
- * reached across (a low wall, a fence) */
-export function reachesAcross(state: GameState, a: string, b: string): boolean {
-  const A = zoneById(state, a), B = zoneById(state, b);
-  return !!A && !!B && wallsBetween(state, A, B).some((w) => !!wallKind(w.kind)?.reach);
-}
-
 /** the top-level place over `placeId` (itself when it has no parent) */
 export function topPlace(state: GameState, placeId: string): string | undefined {
   let p = state.places.find((x) => x.id === placeId);

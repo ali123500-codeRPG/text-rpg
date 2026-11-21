@@ -652,16 +652,20 @@ export function gateToward(state: GameState, a: Actor, b: Located): { near: Loca
   return { near: { zone: g.from, pos: endOn(g.o, g.from) }, far: { zone: to, pos: endOn(g.o, to) } };
 }
 
-/** BG-62 (BG-1728): the counter, fence or rail (a wall a grip reaches across, a gap in it too) that the walking line from
- * `a` to `b` meets first: the spot on a's side of it to reach over from; null when the line meets no such wall first */
+/** BG-62 (BG-1728, BG-1732): the counter, fence or rail (a wall a grip reaches across) between `a` and `b`: the one the
+ * walking line from a to b meets first, else the one whose gap the walk to b goes through: the spot on a's side of it to
+ * reach over from; null when neither meets one */
 export function reachOverFrom(state: GameState, a: Located, b: Located): Located | null {
   const A = pointAt(state, a), B = pointAt(state, b);
   if (Math.abs(A.floor - B.floor) > 0.01) return null;
   const z = A.floor + 0.3; // the walking line, below a counter's top (ringSpots' line)
   const c = crossings(state, { x: A.x, y: A.y, z }, { x: B.x, y: B.y, z }).find((x) => x.kind === 'wall');
-  if (!c || c.kind !== 'wall' || !wallKind(c.wall.kind)?.reach) return null;
-  const d = flat(A, c.at), back = Math.min(d, 0.05);
-  const p = d > EPS ? { x: c.at.x + (A.x - c.at.x) * back / d, y: c.at.y + (A.y - c.at.y) * back / d } : { x: A.x, y: A.y };
+  const reach = (id?: string) => !!wallKind(state.walls.find((w) => w.id === id)?.kind ?? '')?.reach;
+  const at = c?.kind === 'wall' && wallKind(c.wall.kind)?.reach ? c.at
+    : walkFor(state, A, B)?.through.find((o) => o.floor === A.floor && reach(o.wall))?.at;
+  if (!at) return null;
+  const d = flat(A, at), back = Math.min(d, 0.05);
+  const p = d > EPS ? { x: at.x + (A.x - at.x) * back / d, y: at.y + (A.y - at.y) * back / d } : { x: A.x, y: A.y };
   return { zone: zoneAt(state, p, A.floor, a.zone)?.id ?? a.zone, pos: p };
 }
 
