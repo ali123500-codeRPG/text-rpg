@@ -52,7 +52,8 @@ project: "the owner" below is its designer and its only player.
    A zone (title) only names a space. It never decides where something is or is drawn, how marks are placed,
    grouped, merged or hidden, who is near, or what can be reached: points, walls and outlines as shapes do.
 9. **Keep secrets and personal details out of the repo.** Never commit secrets, tokens, passwords, account or ID
-   numbers, or personal details about the owner (name, email, quotes, devices).
+   numbers, or personal details about the owner (email, devices, anything private). Decision records in the spec and
+   the changelog may name the owner and quote their answers.
 10. **Questions go where the owner answers them.** One question at a time or a numbered list, each with options and a
     recommendation, through the channel your provider file names. Never bury a question in a progress message, and
     never act on an answer the owner did not give.

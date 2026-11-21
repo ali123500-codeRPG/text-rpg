@@ -3,6 +3,9 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bugs/`.
 
+- 21/11/2026: `AGENTS.md` rule 9: decision records in the spec and the changelog may name the owner and quote their
+  answers; email, devices and anything private stay out. The owner, on the Questions hub page "One continuous map
+  (D-1558)", RX3 (keep the name and quotes as they are): "b, I don't care so muchn".
 - 21/11/2026: `docs/instructions.md` section 8 and `docs/providers/claude.md`, Skills: a merged change to a skill hands
   the owner the zip of each changed skill (`npm run skills-zip`, `dist/skills/<name>.zip`) in its report. The owner:
   "give me zip for the skill and make is a standing project rule for any change that updates skills".
