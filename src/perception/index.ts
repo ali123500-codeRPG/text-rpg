@@ -37,6 +37,13 @@ type Seen = { level: Perception; cue: Cue; heard?: true };
 /** BG-59: a bark is a line said beside a deed. Only a bark that is nothing but words is left out of NPC views and history;
  * a deed with a bark (a give, an attack) still counts, its line dropped (eventView) */
 export const barkOnly = (e: { bark?: boolean; kind: string }): boolean => !!e.bark && ['speak', 'talk'].includes(e.kind);
+/** the events one person keeps in their recent history: their last CONFIG.RECENT_EVENTS seen that are more than a bark, their
+ * last CONFIG.RECENT_EVENTS words, and the last blow at them (game pruneRecent; D-1621: the save puts each on such a page) */
+export function keptBy(id: string, all: readonly GameEvent[]): GameEvent[] {
+  const seen = all.filter((e) => e.perception[id]), n = CONFIG.RECENT_EVENTS;
+  const hit = [...seen].reverse().find((e) => e.kind === 'attack' && e.target === id);
+  return [...new Set([...seen.filter((e) => !barkOnly(e)).slice(-n), ...seen.filter(isComm).slice(-n), ...(hit ? [hit] : [])])];
+}
 /** the words of a line reach only those its sound reaches: seeing someone talk across a field gives no words */
 export const hearsWords = (p: { heard?: true } | undefined): boolean => !!p?.heard;
 const better = (a: Seen | null, b: Seen | null): Seen | null => (!a ? b : !b ? a : b.level === 'full' && a.level !== 'full' ? b : a);

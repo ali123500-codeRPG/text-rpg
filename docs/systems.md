@@ -533,6 +533,7 @@ saves are off-limits (AGENTS.md rule 1).
   - `src/save/pages.ts`
   - `src/save/replay.ts`
   - `src/save/sends.ts`
+  - `src/scenario/wants.ts`
   - `src/save/store.ts`
   - `src/save/world.ts`
   - `src/ui/fame.ts`

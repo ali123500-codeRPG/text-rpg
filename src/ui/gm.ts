@@ -12,6 +12,7 @@ import { claudeComments, fmtDate, h, openPanel, readouts, turnShown, plural, uni
 import { ICON_CREDIT } from './itemIcons';
 import { openPop } from './pop';
 import { CONFIG } from '../config';
+import { wantKey, type WantList, type WantVerdict } from '../scenario/wants';
 
 /** BA8: the ended scenarios' barriers summed by tier, best tier first */
 function waysByTier(scenarios: ScenarioRecord[]): { tier: string; scenarios: number; barriers: number; shut: string; grades: string }[] {
@@ -29,12 +30,8 @@ const KIND_WORD: Record<BlueprintPage['kind'], string> = { item: 'an item', body
 
 const json = (v: unknown) => h('pre', { class: 'json' }, JSON.stringify(v, null, 2) ?? 'null');
 
-/** NR28: the Roles wanted log grouped by who was wanted, its skills and the role used, most often first */
-export function roleWantGroups(log: NonNullable<GameState['hidden']['roleWants']>) {
-  const m = new Map<string, { label: string; skills: string[]; role: string; missing: string[]; count: number }>();
-  for (const w of log) { const k = [w.label.toLowerCase(), [...w.skills].sort().join(','), w.role].join('|'); const g = m.get(k); if (g) g.count++; else m.set(k, { label: w.label, skills: w.skills, role: w.role, missing: w.missing, count: 1 }); }
-  return [...m.values()].sort((a, b) => b.count - a.count);
-}
+/** NR28, WT8 c: the Roles wanted groups (wantKey), most often first */
+export const roleWantGroups = (log: NonNullable<GameState['hidden']['roleWants']>) => [...log].sort((a, b) => b.count - a.count);
 const skillLabel = (id: string) => skillName(id);
 
 export function gmPage(api: GameApi) {
@@ -70,14 +67,21 @@ export function gmPage(api: GameApi) {
     sent.add(b.id);
     update();
   }
-  /** NG15, D-53 a: the Wanted list; the Chronicler's deed ideas (AA-108) are on the Bugs page */
+  /** WT8 c, WT9: a group's verdict buttons; a turned-down group says so and keeps counting */
+  function verdict(list: WantList, key: string, turnedDown?: true) {
+    if (turnedDown) return h('span', { class: 'hs-note' }, 'Turned down');
+    const btn = (v: WantVerdict, text: string, title: string) => h('button', { class: 'hs-btn-text', type: 'button', title, onclick: () => api.ruleWant(list, key, v) }, text);
+    return h('span', { style: 'white-space:nowrap' }, btn('approved', 'Approve', 'Approved: it leaves the list'), btn('turned_down', 'Turn down', 'Turned down: only its count is kept'));
+  }
+  /** NG15, D-53 a: the Wanted list (WT9: counted groups, last wanted first); the Chronicler's deed ideas (AA-108) are on the Bugs page */
   function wantedSection(s: GameState | null) {
     const rows = (s?.hidden.templateWants ?? []).filter((w) => w.of !== 'deed');
     return h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'Wanted · who and which routines the game lacks'),
       rows.length ? h('table', { class: 'hs-tbl' },
-        h('thead', {}, h('tr', {}, ['Scenario', 'Cast as', 'For', 'Wanted', 'Used instead'].map((t) => h('th', {}, t)))),
+        h('thead', {}, h('tr', {}, ['Last scenario', 'Cast as', 'For', 'Wanted', 'Used instead', 'Times', ''].map((t) => h('th', {}, t)))),
         h('tbody', {}, [...rows].reverse().map((w) => h('tr', {}, h('td', { class: 'hs-num' }, `${w.scenario} · turn ${w.turn}`),
-          h('td', {}, w.label), h('td', {}, w.of === 'routine' ? 'Routine' : 'Template'), h('td', {}, w.wanted), h('td', {}, w.template || '–')))))
+          h('td', {}, w.label), h('td', {}, w.of === 'routine' ? 'Routine' : 'Template'), h('td', {}, w.wanted ?? ''), h('td', {}, w.template || '–'),
+          h('td', { class: 'hs-num' }, String(w.count)), h('td', { class: 'r' }, verdict('templateWants', wantKey.templateWants(w), w.turnedDown))))))
         : h('p', { class: 'empty' }, 'Nothing wanted yet. The Weaver writes templateGap when no template or composition gives who it means, and routineGap when no routine set fits.'));
   }
   function madeSection(s: GameState | null) {
@@ -202,9 +206,10 @@ export function gmPage(api: GameApi) {
       // NR28: compositions by wanted skills whose closest role lacks some of them, grouped by who was wanted
       h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'Roles wanted · people no role covers yet'),
         s?.hidden.roleWants?.length ? h('table', { class: 'hs-tbl' },
-          h('thead', {}, h('tr', {}, ['Wanted', 'Skills', 'Role used', 'Missing', 'Times'].map((t) => h('th', {}, t)))),
+          h('thead', {}, h('tr', {}, ['Wanted', 'Skills', 'Role used', 'Missing', 'Times', ''].map((t) => h('th', {}, t)))),
           h('tbody', {}, roleWantGroups(s.hidden.roleWants).map((g) => h('tr', {}, h('td', {}, g.label), h('td', {}, g.skills.map(skillLabel).join(', ')),
-            h('td', {}, getLibrary().npcRoles?.[g.role]?.name ?? g.role), h('td', {}, g.missing.map(skillLabel).join(', ')), h('td', { class: 'hs-num' }, String(g.count))))))
+            h('td', {}, getLibrary().npcRoles?.[g.role]?.name ?? g.role), h('td', {}, (g.missing ?? []).map(skillLabel).join(', ')), h('td', { class: 'hs-num' }, String(g.count)),
+            h('td', { class: 'r' }, verdict('roleWants', wantKey.roleWants(g), g.turnedDown))))))
           : h('p', { class: 'empty' }, 'Nothing wanted yet. A composition by wanted skills lands here when the closest role lacks some of them.')),
 
       // NR17: each settlement's hooks and how many the World builder has filled (it fills them as it builds the ground)

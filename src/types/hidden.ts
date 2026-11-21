@@ -22,12 +22,14 @@ export type HiddenStore = {
   /** W6: per-actor hidden Weaver text (motive, routineGap); GM view only. Not an agenda (hasAgenda ignores it). */
   castNotes?: Record<string, { motive: string; routineGap?: string; templateGap?: string }>;
   /** NG15: every templateGap the Weaver wrote, for the GM view's "Wanted" list (kept across scenarios); D-53 a: its routineGap
-   * too (of 'routine', `template` then the routine set used); AA-108: the Chronicler's deed ideas (of 'deed', `label` the idea's name) */
-  templateWants?: { turn: number; scenario: number; actorId: string; label: string; wanted: string; template: string; of?: 'routine' | 'deed' }[];
+   * too (of 'routine', `template` then the routine set used); AA-108: the Chronicler's deed ideas (of 'deed', `label` the idea's name).
+   * WT9: counted groups like roleWants (wantKey), at most CONFIG.GM_LOG_GROUPS_TEMPLATE_WANTS */
+  templateWants?: Wanted<TemplateWant, 'actorId' | 'wanted'>[];
   /** NR17: roster keys already filled by a cast entry; the World view leaves them out */
   rosterFilled?: string[];
-  /** NR28: each composition whose wanted skills the closest role lacks from its High or Moderate bands (GM view "Roles wanted") */
-  roleWants?: { turn: number; scenario: number; actorId: string; label: string; skills: string[]; role: string; missing: string[] }[];
+  /** NR28: each composition whose wanted skills the closest role lacks from its High or Moderate bands (GM view "Roles wanted").
+   * WT8 c: counted groups (wantKey), at most CONFIG.GM_LOG_GROUPS_ROLE_WANTS, the least recently seen first */
+  roleWants?: Wanted<RoleWant, 'actorId' | 'missing'>[];
   /** NG16 b: each scenario's hostile cast power against the player's, with the challenge grade's band; logged only */
   /** NG16 b, CK6 a: readings beside the declared challenge grade: ratio is danger to the player (hostile ÷ player power); usual
    * the place's usual hostile group power and local the hostile cast over it (both absent where the place has no threat
@@ -36,6 +38,14 @@ export type HiddenStore = {
   /** SC6: how each scenario went, oldest first (CONFIG.SCENARIO_RECORDS_SAVED kept); the next Weaver gets the last few */
   scenarios?: ScenarioRecord[];
 };
+
+/** NG15: a template or routine the Weaver wanted and no library entry gave; AA-108: a deed idea of the Chronicler */
+export type TemplateWant = { turn: number; scenario: number; actorId: string; label: string; wanted: string; template: string; of?: 'routine' | 'deed' };
+/** NR28: a composition whose wanted skills the closest role lacks */
+export type RoleWant = { turn: number; scenario: number; actorId: string; label: string; skills: string[]; role: string; missing: string[] };
+/** WT8 c, WT9: a wanted row folded into its counted group: `count` times wanted, `turn` and `scenario` the last time. Approved,
+ * the group goes; turned down, only its key and count stay (`detail` dropped), so a want that keeps coming shows it needs revising */
+export type Wanted<T, Detail extends keyof T> = Omit<T, Detail> & Partial<Pick<T, Detail>> & { count: number; turnedDown?: true };
 
 /** SC10: how a scenario ended. An unordered category, so the names are the IDs (display names: SCENARIO_ENDING_NAMES). */
 export const SCENARIO_ENDINGS = ['resolved', 'lost', 'left', 'escaped', 'interrupted', 'worn_out', 'broken_off'] as const;

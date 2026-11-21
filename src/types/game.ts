@@ -148,8 +148,12 @@ export interface GameApi {
   deedSends(): Promise<import('../save/sends').DeedSend[]>;
   /** AA-108: marks these deed ideas of this story as sent to Claude */
   markDeedsSent(ideas: readonly { scenario: number; turn: number; label: string }[]): Promise<void>;
-  /** AA-108: "Clear list": this story's deed ideas the owner has ruled on leave the Wanted list; how many left */
+  /** AA-108: "Clear list": this story's deed ideas the owner has ruled on leave the Wanted list; how many left. WT9: an
+   * approved one leaves the story too; a turned-down one keeps only its count there */
   clearRuledDeeds(): Promise<number>;
+  /** WT8 c, WT9, the GM view: the owner's verdict on a wanted group (src/scenario/wants.ts wantKey): approved, it goes;
+   * turned down, only its count stays */
+  ruleWant(list: import('../scenario/wants').WantList, key: string, verdict: import('../scenario/wants').WantVerdict): void;
   /** HF31: the player's free worlds (no one lives in them), newest fall first */
   worlds(): Promise<import('../save').FreeWorld[]>;
   /** WP5: title a world (an empty name goes back to the default) */

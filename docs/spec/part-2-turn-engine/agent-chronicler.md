@@ -13,7 +13,8 @@ anything and never narrates.
   deed in words code could count, the turn that showed it and one line on what happened there. Each goes to
   hidden.templateWants as a row of kind `deed` (name as the label, deed and what happened as the want), kept beside
   templateGap and routineGap (SHEET-319, D-53), and is listed on the Bugs page under the bugs, not in the GM view's
-  Wanted list. The rows are kept across scenarios and saved at once when the call comes back.
+  Wanted list. The rows are kept across scenarios, as counted groups (SHEET-319), and saved at once when the call comes
+  back.
 - **Then.** An idea is only a proposal. It becomes an achievement when the owner approves it and a thread writes it as a
   code rule with a library row (PROG-118).
 - **Review.** The Bugs page lists the ideas under the bugs (Deed ideas: idea, deed, scenario and turn, status), newest
@@ -24,8 +25,10 @@ anything and never narrates.
   waiting for a verdict and marks nothing. The two buttons are the bugs' own (claudeSend, src/ui/kit.ts). Once the
   owner rules on an idea, the thread writes `verdict` ("approved" or "turned\_down") on its document and the status
   shows Approved or Turned down; the idea stays listed. Clear list, shown once an idea is ruled, takes the ruled ideas
-  off the list (`cleared` on their documents). The story keeps every idea, so the Chronicler still does not propose a
-  ruled one again.
+  off the list (`cleared` on their documents). WT9 (D-1621): it also rules them in the story, as the GM view's Approve
+  and Turn down do for the Wanted list (SHEET-319): an approved idea leaves the story (it is a code rule now or soon,
+  so the library lists it); a turned-down one keeps only its name and count, so the Chronicler still sees it as
+  proposed and does not offer it again.
 - **Model.** Claude Fable 5.2 at high effort, model "claude-fable-5-2" (config AGENT\_MODELS.chronicler), with modelTier
   "complex" as the fallback. Chosen by the owner from the AA-108 comparison on one simulated scenario: Opus 5.5 high gave
   6 ideas (about $0.09 a call), Fable 5.2 medium 7 (about $0.17), Fable 5.2 high 11 (about $0.22), the most and the

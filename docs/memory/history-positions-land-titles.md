@@ -34,5 +34,5 @@ builder". Question IDs name the owner's answers on the Questions hub.
   `CONFIG.OLDEST_SAVE_SCHEMA` names the oldest save that loads.
 - **Saving by tiles (21/11/2026; WT1-WT6).** An audit (project doc "world-division-save-audit") found the save cut by
   place and some rules still using titles, places or door counts for nearness. WT1 a, WT2 b: the floor plan and the
-  ground are saved by tiles of CONFIG.TILE_SIZE_M (schema 13). WT3 a (D-1621) is decided, not built; WT4 a (D-1623) is built: everyone has a point and height of their own (schema 15, GSM-24). WT5 a: one
+  ground are saved by tiles of CONFIG.TILE_SIZE_M (schema 13). WT3 a (D-1621) is built: each person's share on their own page, the GM logs capped, the head in parts (schema 17, Part 4 §6); WT4 a (D-1623) is built: everyone has a point and height of their own (schema 15, GSM-24). WT5 a: one
   bug per cause (BG-1614 to BG-1619). WT6 a: belonging to a named place stays keyed by place (GSM-25).
