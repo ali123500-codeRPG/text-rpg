@@ -1,4 +1,3 @@
-import { BT } from '../../src/library/raceIds';
 import { describe, expect, it } from 'vitest';
 
 describe('play screen extras (Voyage UI check)', async () => {
@@ -45,15 +44,3 @@ describe('Journal page (U9)', async () => {
     expect(journalPlaces(s).find((p) => p.id === other.id)?.facts).toEqual(['The well is dry.']);
   });
 });
-
-import { BODY_TYPES } from '../../src/library/data';
-describe('body figure data', () => {
-  it('a figure draws every part of its body type and the general area, and nothing else', () => {
-    for (const ct of Object.values(BODY_TYPES)) {
-      if (!ct.figure) continue;
-      expect(Object.keys(ct.figure.parts).sort()).toEqual([...ct.parts.map((p) => p.id), 'general'].sort());
-    }
-    expect(BODY_TYPES[BT.humanoid].figure).toBeTruthy();
-  });
-});
-

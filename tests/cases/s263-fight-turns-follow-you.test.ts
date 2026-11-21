@@ -11,14 +11,11 @@ const village = () => {
   return s;
 };
 
-it('a standoff away from the player keeps normal turns', () => {
+it('a standoff away from the player keeps normal turns; a fight the player can see is fight turns', () => {
   const s = village();
   actor(s, 'guard_1').mind!.knowledge.patron_1 = { status: 'tracking', source: 'seen', revealed: [] };
   expect(computePending(s)).toMatchObject({ mode: 'explore', engaged: ['guard_1'] });
-});
-
-it('a fight the player can see is fight turns', () => {
-  const s = village();
+  // the same two come to blows where the player can see them: fight turns
   s.player.zone = actor(s, 'patron_1').zone;
   beside(s, 'guard_1', 'patron_1', 1);
   beside(s, 'player', 'patron_1', 3);

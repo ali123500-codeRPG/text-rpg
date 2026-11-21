@@ -15,7 +15,7 @@ import { CONFIG } from '../../src/config';
 const ids = (c: { race: string; role: string; theme: string; rank: string }) => templateEssences(composeTemplate(c, 'x')).map((x) => x.row.id);
 
 describe('every NPC has an essence', () => {
-  it('NE1-NE3: every template, and every person or beast mix the composer accepts, carries a row at every rank', () => {
+  it('NE1-NE3: every template, and every person or beast mix the composer accepts, carries a row at every rank; every row has its pick weight', () => {
     makeVillage();
     const lib = getLibrary();
     for (const t of Object.values(lib.templates)) expect(templateEssences(t).length, t.id).toBeGreaterThan(0);
@@ -26,9 +26,11 @@ describe('every NPC has an essence', () => {
         if (!composeError(c)) expect(ids(c).length, `${role.name} ${theme.name} ${race.name} ${rank}`).toBeGreaterThan(0);
       }
     }
+    // every essence row has its pick weight in the one table, CONFIG.ESSENCE_PICK_WEIGHT
+    for (const id of Object.keys(lib.essences!)) expect(CONFIG.ESSENCE_PICK_WEIGHT[id], id).toBeGreaterThan(0);
   });
 
-  it('NE1 a: a beast carries the rows of the natural weapons it has; a person never does', () => {
+  it('NE1 a: a beast carries the rows of the natural weapons it has, and Cornered Nerve only while its Resolve leads (D-362); a person never does', () => {
     makeVillage();
     const beast = (race: string) => ids({ race, role: RO.beast, theme: TH.wild_beasts, rank: 'rank_3' });
     expect(beast(RC.wolf)).toEqual([ES.fang_nose]);
@@ -37,14 +39,11 @@ describe('every NPC has an essence', () => {
     expect(beast(RC.crocodile)).toEqual([ES.fang_nose, ES.lashing_tail]);
     expect(beast(RC.slime)).toEqual([ES.gel_patience]);
     for (const id of [ES.fang_nose, ES.horn_hide, ES.claw_pounce, ES.lashing_tail]) expect(ids({ race: RC.human, role: RO.brute, theme: TH.road_bandits, rank: 'rank_6' })).not.toContain(id);
-  });
-
-  it('D-362: a beast whose Resolve is above every weapon skill carries Cornered Nerve; one whose weapons outgrow it does not', () => {
-    makeVillage();
-    const beast = (race: string, rank: string) => ids({ race, role: RO.beast, theme: TH.wild_beasts, rank });
+    // D-362: a beast whose Resolve is above every weapon skill carries Cornered Nerve; one whose weapons outgrow it does not
+    const beastAt = (race: string, rank: string) => ids({ race, role: RO.beast, theme: TH.wild_beasts, rank });
     for (const race of [RC.wolf, RC.boar, RC.tiger, RC.dragon, RC.python]) {
-      expect(beast(race, 'rank_0'), race).toEqual([ES.cornered_nerve]); // Resolve 50, weapons about 15
-      expect(beast(race, 'rank_3'), race).not.toContain(ES.cornered_nerve); // weapons 65 over Resolve 50
+      expect(beastAt(race, 'rank_0'), race).toEqual([ES.cornered_nerve]); // Resolve 50, weapons about 15
+      expect(beastAt(race, 'rank_3'), race).not.toContain(ES.cornered_nerve); // weapons 65 over Resolve 50
     }
     expect(ids({ race: RC.human, role: RO.leader, theme: TH.village_folk, rank: 'rank_0' })).not.toContain(ES.cornered_nerve); // beasts only
   });
@@ -57,10 +56,4 @@ describe('every NPC has an essence', () => {
       expect(ids({ ...c, race: RC.elf })).toEqual(ids({ ...c, race: RC.human }));
     }
   });
-
-  it('every essence row has its pick weight in the one table, CONFIG.ESSENCE_PICK_WEIGHT', () => {
-    makeVillage();
-    for (const id of Object.keys(getLibrary().essences!)) expect(CONFIG.ESSENCE_PICK_WEIGHT[id], id).toBeGreaterThan(0);
-  });
-
 });

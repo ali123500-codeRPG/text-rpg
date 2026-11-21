@@ -35,7 +35,7 @@ describe('300 why a scenario started', () => {
     expect(s.stage.window).toBeUndefined();
   });
 
-  it('WB6: a deal between NPCs alone opens nothing; one with the player does, and so does a job\'s goal reached', () => {
+  it('WB6/WB7: a deal between NPCs alone opens nothing, one with the player does, and so does a job\'s goal reached; quiet and stale windows wait out the rest (longer after a harder scenario) and a declined window', () => {
     const s = makeVillage();
     delete s.stage.scenario;
     s.stage.roam = { since: s.turn - 1, sinceMin: now(s), rest: 0 };
@@ -46,11 +46,7 @@ describe('300 why a scenario started', () => {
     s.log = s.log.filter((l) => l.code !== 'agreement_made');
     s.log.push({ turn: s.turn, code: 'quest_ready', detail: { id: 'q1' } });
     expect(roamWindow(s)).toBe('quest');
-  });
-
-  it('WB6/WB7: quiet and stale windows wait out the rest (longer after a harder scenario) and a declined window', () => {
-    const s = makeVillage();
-    delete s.stage.scenario;
+    s.log = s.log.filter((l) => l.code !== 'quest_ready');
     const t = now(s), rest = CONFIG.ROAM_REST_MIN.major;
     expect(rest).toBeGreaterThan(CONFIG.ROAM_REST_MIN.minor);
     s.stage.roam = { since: s.turn - 1, sinceMin: t - rest - CONFIG.ROAM_QUIET_MIN + 1, rest };

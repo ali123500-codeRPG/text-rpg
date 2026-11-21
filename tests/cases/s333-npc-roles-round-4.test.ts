@@ -18,7 +18,7 @@ const wolf = { race: RC.wolf, role: RO.beast, theme: TH.wild_beasts, rank: 'rank
 const soldier = { race: RC.human, role: RO.soldier, theme: TH.travellers, rank: 'rank_2' };
 
 describe('333 NPC roles, fourth round', () => {
-  it('NR37: a Dire wolf is one rank up with half again the health, and its own blueprint', () => {
+  it('NR37: a Dire wolf is one rank up with half again the health (the prefix multiplies it), and its own blueprint', () => {
     const s = makeVillage();
     const plain = composeTemplate(wolf, 'a wolf'), dire = composeTemplate({ ...wolf, prefix: PF.dire }, 'a dire wolf');
     expect(dire.rank).toBe('rank_3');
@@ -27,14 +27,9 @@ describe('333 NPC roles, fourth round', () => {
     s.blueprints.push({ storyId: s.storyId, kind: 'npcTemplate', id: dire.id, data: dire as never });
     const a = spawnNpc(s, dire.id, { id: 'w1', zone: s.player.zone, placeId: s.player.placeId, bandId: 'b' });
     expect(a.core.prefix).toBe(PF.dire);
-  });
-
-  it('NR37: health is multiplied by the prefix', () => {
-    const s = makeVillage();
-    const a = s.actors[0];
-    const before = totalHp(s, a);
-    a.core.prefix = PF.dire;
-    expect(totalHp(s, a)).toBeCloseTo(before * getLibrary().prefixes![PF.dire].hpMult);
+    const b = s.actors[0], before = totalHp(s, b);
+    b.core.prefix = PF.dire;
+    expect(totalHp(s, b)).toBeCloseTo(before * getLibrary().prefixes![PF.dire].hpMult);
   });
 
   it('NR46 b: a Dire beast has ×1.2 on every banded skill after the rank step, and its level follows', () => {
@@ -46,13 +41,10 @@ describe('333 NPC roles, fourth round', () => {
     expect(templateLevel(dire)).toBeGreaterThan(templateLevel(veteran));
   });
 
-  it('NR38: only beasts carry a prefix; an unknown prefix is refused', () => {
+  it('NR38: only beasts carry a prefix, an unknown prefix is refused; a group rolls Dire per beast at its chance, never at 0, and the label says so', () => {
     expect(composeError({ ...wolf, prefix: PF.dire })).toBeUndefined();
     expect(composeError({ race: RC.human, role: RO.soldier, theme: TH.town_watch, rank: 'rank_2', prefix: PF.dire })).toMatch(/only beasts/);
     expect(composeError({ ...wolf, prefix: 'PF99' })).toMatch(/unknown/);
-  });
-
-  it('NR38: a group rolls Dire per beast at its chance, never at 0, and the label says so', () => {
     const g = getLibrary().groups![GP.wolf_pack];
     const all = groupMembers(g, 'rank_2', 'x', 100);
     expect(all.every((m) => m.compose!.prefix === PF.dire)).toBe(true);
@@ -66,13 +58,7 @@ describe('333 NPC roles, fourth round', () => {
     expect(dire / n).toBeGreaterThan(0.05); expect(dire / n).toBeLessThan(0.16);
   });
 
-  it('NR39: the rank table read backwards: anchors give their levels, between them the level moves evenly', () => {
-    expect(levelAtSkill(50)).toBe(8);
-    expect(levelAtSkill(87.5)).toBe(17.5); // halfway from Elite (75, L15) to Paragon (100, L20)
-    expect(levelAtSkill(500)).toBe(CONFIG.RANK_ROWS.rank_8.level + CONFIG.RANK_BEYOND_STEP.level); // one step past Divine
-  });
-
-  it('NR39: a live NPC levels with its own skills', () => {
+  it('NR39: the rank table read backwards gives the level, and a live NPC levels with its own skills', () => {
     const s = makeVillage();
     s.blueprints.push({ storyId: s.storyId, kind: 'npcTemplate', id: composeTemplate(soldier, 'a soldier').id, data: composeTemplate(soldier, 'a soldier') as never });
     const a = spawnNpc(s, composeTemplate(soldier, 'a soldier').id, { id: 'x1', zone: s.player.zone, placeId: s.player.placeId, bandId: 'b' });
@@ -84,6 +70,10 @@ describe('333 NPC roles, fourth round', () => {
     expect(actorLevel(a, s)).toBeGreaterThanOrEqual(20); // true skill: its perks may add a little
     expect(actorLevel(a, s)).toBeLessThanOrEqual(23);
     expect(actorLevel(a)).toBe(0); // without the story its blueprint can't be found
+    // the rank table read backwards: anchors give their levels, between them the level moves evenly
+    expect(levelAtSkill(50)).toBe(8);
+    expect(levelAtSkill(87.5)).toBe(17.5); // halfway from Elite (75, L15) to Paragon (100, L20)
+    expect(levelAtSkill(500)).toBe(CONFIG.RANK_ROWS.rank_8.level + CONFIG.RANK_BEYOND_STEP.level); // one step past Divine
   });
 
   it('NR40: grandeur is the higher of role and theme; a seat is grand; it multiplies the level', () => {

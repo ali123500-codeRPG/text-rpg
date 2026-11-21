@@ -8,7 +8,6 @@ import { makeVillage } from '../harness';
 import { applyHealing, passiveHealing } from '../../src/engine/heal';
 import { achievementName } from '../../src/engine';
 import { tally } from '../../src/engine/xp';
-import { getLibrary } from '../../src/library';
 import { CONFIG } from '../../src/config';
 import { totalHp } from '../../src/ruleset';
 import { ACH } from '../../src/library/achievementIds';
@@ -29,7 +28,7 @@ describe('155 healing by source', () => {
     applyHealing(s, s.player, HL.rest); // nothing left to heal: nothing counted
     expect(healed(s, HL.rest)).toBeCloseTo(hp(s, Math.min(10, CONFIG.REST_HEAL_PCT)), 5);
   });
-  it('natural recovery counts under its own row, Fast Healer\'s doubled amount included: it is not perk healing', () => {
+  it('natural recovery counts under its own row, Fast Healer\'s doubled amount included: it is not perk healing, and the Perks row heals nothing itself', () => {
     const plain = makeVillage();
     plain.player.core.condition.hpLostPct = 30;
     passiveHealing(plain, 120);
@@ -44,13 +43,10 @@ describe('155 healing by source', () => {
     expect(healed(fast, HL.passive)).toBeCloseTo(hp(fast, total), 5);
     expect(healed(fast, HL.passive)).toBeGreaterThan(base * 2 - 1e-9); // ×2 (its +5 true skill adds a little more)
     expect(healed(fast, HL.perk)).toBe(0); // only perks that heal directly count as perk healing
-  });
-  it('the Perks row is only a counting source: it heals nothing itself', () => {
-    const s = makeVillage();
-    s.player.core.condition.hpLostPct = 30;
-    expect(getLibrary().healing![HL.perk].countOnly).toBe(true);
-    expect(applyHealing(s, s.player, HL.perk)).toBe(false);
-    expect(s.player.core.condition.hpLostPct).toBe(30);
+    // the Perks row is only a counting source: it heals nothing itself
+    const lost = fast.player.core.condition.hpLostPct;
+    expect(applyHealing(fast, fast.player, HL.perk)).toBe(false);
+    expect(fast.player.core.condition.hpLostPct).toBe(lost);
   });
   it('each source has its own chain, counted in HP: rest heals never earn the natural-recovery or perk lines', () => {
     const s = makeVillage();

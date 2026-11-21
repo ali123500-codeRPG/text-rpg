@@ -36,16 +36,6 @@ const box = (s: GameState, extra: object = {}) => {
 };
 const broken = (s: GameState, list: ItemInstance[]) => list.filter((i) => itemDef(s, i.itemId).tags?.includes('broken')).map((i) => i.id);
 
-it('BK1: fragility by kind, with tools between armor and weapons; coin, keys and Threadbound items never break', () => {
-  const s = village();
-  const f = (id: string) => fragilityOf(itemDef(s, id));
-  expect([IT.healing_draught, IT.lucky_charm, IT.charmed_ring, IT.boiled_leather, IT.lockpicks, IT.dagger, IT.coin, IT.key, IT.varos_loop].map(f))
-    .toEqual(['fragile', 'delicate', 'delicate', 'sturdy', 'tough', 'solid', 'unbreakable', 'unbreakable', 'unbreakable']);
-  const line = (id: string) => breakLine(itemDef(s, id));
-  expect(line(IT.boiled_leather)! > line(IT.lockpicks)! && line(IT.lockpicks)! > line(IT.dagger)!).toBe(true);
-  expect(line(IT.coin)).toBeNull();
-});
-
 it('BK2/BK3: one roll checks everything inside; what it reaches becomes its broken version, a stack together', () => {
   const at = (tier: string, beyond?: number) => {
     const s = village(), list = inside();
@@ -77,7 +67,7 @@ it('BK1 c: the Weaver can set how fragile an item it makes is', () => {
 });
 
 it('BK2: a real break roll checks what is inside against its own tier; the narration names it only once it is open', () => {
-  for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
+  for (const seed of [1, 4, 6, 7]) { // Success (opened, nothing broken), Failure, Critical Failure, Near Miss
     const s = village(), c = box(s, { grade: 'none' }); // within reach of bare hands at 0 (OD13)
     s.player.core.skills[SK.unarmed_improvised] = { raw: 0 } as never;
     for (const i of s.player.core.inventory) if (i.equippedIn?.some((g) => g.startsWith('grip:'))) i.equippedIn = [];

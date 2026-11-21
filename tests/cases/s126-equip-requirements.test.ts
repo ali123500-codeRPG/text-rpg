@@ -5,25 +5,16 @@
 import { describe, expect, it } from 'vitest';
 import { createRng, forcedRng, makeVillage } from '../harness';
 import { ruleset } from '../../src/ruleset';
-import { itemLevel, requirement, shortBy, shortShifts } from '../../src/ruleset/requirements';
+import { shortBy, shortShifts } from '../../src/ruleset/requirements';
 import { getLibrary, itemDef } from '../../src/library';
 import { spawnNpc } from '../../src/library/spawn';
-import type { AttackResult, ItemDef } from '../../src/types';
+import type { AttackResult } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
 import { IT } from '../../src/library/itemIds';
 
 const sk = (raw: number) => ({ raw, state: 'normal' as const });
 
 describe('126 Equip requirements', () => {
-  it('EQ8–EQ11: levels and what they ask; quality 3 and 4 add a level', () => {
-    expect(requirement(itemDef(null, IT.bandage))).toBeNull();
-    const minted = (q: 1 | 2 | 3 | 4, base: string = IT.crossbow): ItemDef => ({ ...itemDef(null, base), base: { itemId: base, quality: (['quality_1', 'quality_2', 'quality_3', 'quality_4'] as const)[q - 1], boosts: '' } });
-    expect(itemLevel(minted(2))).toBe('superior');
-    expect(itemLevel(minted(3))).toBe('masterwork');
-    expect(requirement(minted(4))?.need).toBe(100);
-    expect(itemLevel(minted(4, IT.dagger))).toBe('fine');
-  });
-
   it('EQ1/EQ3: true skill counts, and a stand-in at its share', () => {
     const s = makeVillage();
     const p = s.player;

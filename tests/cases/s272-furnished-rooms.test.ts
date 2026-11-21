@@ -41,7 +41,7 @@ it('FR2: zones get their kind\'s furniture, a layout zone its layout\'s, and the
   expect(furnitureWhere(seen, bar.id)).toBe('south side');
 });
 
-it('FR1: a move can end beside a piece of furniture; the view lists it with where it stands; the map places it', () => {
+it('FR1: a move can end beside a piece of furniture; the view lists it with where it stands; the map places it; an unknown kind counts as other', () => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
   const z = zoneById(s, 'tav_common')!;
   const fu = makeFurniture(s, z, [{ kind: FU.hearth, name: 'hearth', at: 'e' }, { kind: FU.table, name: 'table' }]);
@@ -56,12 +56,6 @@ it('FR1: a move can end beside a piece of furniture; the view lists it with wher
   expect(distM(s, s.player, hearth)).toBeLessThan(1.5);
   const mz = knownMap(s).places.flatMap((p) => p.zones).find((m) => m.id === z.id)!;
   expect(mz.furniture?.map((f) => f.kind)).toEqual([FU.hearth, FU.table]);
-});
-
-it('FR1: an unknown kind counts as other; a piece with no side stands in the middle', () => {
-  const s = makeVillage();
-  const z = zoneById(s, 'tav_common')!;
-  const [f] = makeFurniture(s, z, [{ kind: 'FU999', name: 'loom' }]);
-  expect(f).toMatchObject({ id: `${z.id}.fu1`, kind: FU.other, name: 'loom', pos: { x: 0, y: 0 } });
-  expect(f.side).toBeUndefined();
+  // an unknown kind counts as other
+  expect(makeFurniture(s, z, [{ kind: 'FU999', name: 'loom' }])[0]).toMatchObject({ kind: FU.other, name: 'loom' });
 });

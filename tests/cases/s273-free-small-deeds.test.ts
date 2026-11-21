@@ -11,7 +11,7 @@ import { checkParserLegality } from '../../src/agents/legality';
 import { buildPlayerView } from '../../src/views';
 import { groundIn } from '../../src/engine/ground';
 
-it('OA4: setting part of a stack down is free gear: it lies where you stand, and the action still happens', () => {
+it('OA4: setting part of a stack down is free gear: it lies where you stand, and the action still happens; a worn thing is not set down until taken off', () => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
   s.player.core.inventory.push({ id: 'purse', itemId: IT.coin, qty: 10 });
   const i = intent({ gear: [{ op: 'set_down', item: 'purse', qty: 2 }], action: { type: 'wait' } });
@@ -20,10 +20,7 @@ it('OA4: setting part of a stack down is free gear: it lies where you stand, and
   expect(s.player.core.inventory.find((x) => x.id === 'purse')?.qty).toBe(8);
   expect(groundIn(s, 'tav_common').find((x) => x.itemId === IT.coin)?.qty).toBe(2);
   expect(ev.some((e) => e.kind === 'set_down' && e.qty === 2)).toBe(true);
-});
-
-it('OA4: a worn thing is not set down until taken off', () => {
-  const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
+  // a worn thing is not set down until taken off
   const worn = s.player.core.inventory.find((x) => x.equippedIn?.includes('armor') || x.equippedIn?.includes('pack'))!;
   play(s, { intent: intent({ gear: [{ op: 'set_down', item: worn.id }] }) });
   expect(s.player.core.inventory.some((x) => x.id === worn.id)).toBe(true);

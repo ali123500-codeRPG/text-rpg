@@ -51,7 +51,7 @@ describe('269 search learning and secrets', () => {
     expect(run({ hiderSkill: 200, hiddenAt: { tier: 'near_miss' } }) - base).toBe(1); // PG2: found, it teaches however far above
   });
 
-  it('SE25 a: a stash keeps the stasher\'s stealth skill on the item; unwatched it learns nothing', () => {
+  it('SE25 a: a stash keeps the stasher\'s stealth skill on the item; unwatched it learns nothing; BG-211: it is hushed and low-visibility', () => {
     const s = makeVillage({ playerZone: 'street_square' });
     s.player.core.skills[SK.sneaking] = { raw: 30, state: 'normal' };
     s.player.core.inventory.push({ id: 'purse_1', itemId: IT.dagger });
@@ -61,6 +61,8 @@ describe('269 search learning and secrets', () => {
     expect(it.hiderSkill).toBe(30);
     expect(it.knownTo).toEqual(['player']);
     expect(marks(s, SK.sneaking)).toBe(0);
+    const ev = s.events.find((e) => e.kind === 'stash')!;
+    expect([ev.noise, ev.visibility]).toEqual(['hushed', 'low']);
   });
 
   it('SE17: a search aimed at someone reveals a sight secret its roll reaches, and says so in the turn', async () => {

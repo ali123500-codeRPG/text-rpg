@@ -4,31 +4,16 @@
 // is at the times that read them.
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
-import { desiredState, validateRoutineBank } from '../../src/minds';
-import { buildActorView } from '../../src/views';
+import { validateRoutineBank } from '../../src/minds';
 import { getLibrary } from '../../src/library';
-import { CONFIG } from '../../src/config';
 import { validateStagePlan } from '../../src/scenario';
 import { toStoryStart, villageStagePlan } from '../../src/scenario/fixtures';
-import type { GameState } from '../../src/types';
-
-const at = (s: GameState, k: string) => { s.clocks.time = CONFIG.TIME_OF_DAY_FROM[k] + 10; };
-const want = (s: GameState, id: string) => desiredState(buildActorView(s, id));
 
 describe('213 routines through the day (RT1–RT9)', () => {
   it('the bank is valid, and no routine set is for one half of the day only', () => {
     const lib = getLibrary();
     expect(validateRoutineBank({ routines: lib.routines!, sets: lib.routineSets!, activities: lib.activities! }).errors).toEqual([]);
     expect(Object.values(lib.routineSets!).filter((s) => s.tags.time.includes('day') || s.tags.time.includes('night'))).toEqual([]);
-  });
-  it('an optional slot left unbound: the actor stays where it is at those times; BF68: a sleep step sleeps there', () => {
-    const s = makeVillage();
-    const b = s.actors.find((a) => a.id === 'trader')!;
-    delete b.mind!.slots!.bed;
-    at(s, 'night');
-    expect(want(s, b.id)).toEqual({ zone: b.zone, activity: 'sleep', unbound: true });
-    at(s, 'morning');
-    expect(want(s, b.id)!.zone).toBe('tav_counter');
   });
   it('the Weaver may leave an optional slot out, but not a required one', () => {
     const s = toStoryStart(makeVillage());

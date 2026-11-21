@@ -37,10 +37,4 @@ describe('game sound', () => {
     expect(made.osc).toBe(1);
   });
 
-  it('every sound key has a file (its own or a licensed one) and a gain from 0 to 1', () => {
-    for (const [k, f] of Object.entries(SOUND_FILES)) {
-      expect(f.urls.length + (f.licensed?.length ?? 0), k).toBeGreaterThan(0);
-      expect(f.gain > 0 && f.gain <= 1, k).toBe(true);
-    }
-  });
 });

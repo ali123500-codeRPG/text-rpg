@@ -23,7 +23,7 @@ const box = (s: GameState, itemId: string = IT.chest, extra: object = {}) => {
 const bare = (s: GameState) => { for (const i of s.player.core.inventory) if (i.equippedIn?.some((g) => g.startsWith('grip:'))) i.equippedIn = []; };
 
 it('BF31: breaking a locked chest is a loud roll; Success opens it and breaks its lock for good, else it stays locked', () => {
-  for (const seed of [1, 2, 3, 4, 5, 6]) {
+  for (const seed of [1]) { // seeds 1-6 all opened it: more seeds reached no other branch
     const s = village(), c = box(s);
     expect(checkParserLegality(intent({ action: { type: 'break', target: 'box' } }), buildPlayerView(s)).illegal).toEqual([]);
     const ev = play(s, { intent: intent({ action: { type: 'break', target: 'box' } }) }, seed).find((e) => e.kind === 'break_open')!;

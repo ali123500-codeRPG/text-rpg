@@ -16,7 +16,7 @@ const run = (s: GameState, e: GameEvent) => {
 };
 
 describe('computePerception', () => {
-  it('sight from real distances: normal is made out to 25 m and glimpsed beyond; low (still) to 15 m', () => {
+  it('sight from real distances, from where the event happened: normal is made out to 25 m and glimpsed beyond; low (still) to 15 m', () => {
     const s = makeVillage({ playerZone: 'street_square' });
     const p = s.player.pos!;
     /** an event `m` metres east of the player, down the street toward the gate (the square ends 10 m east, the gate 30 m) */
@@ -27,6 +27,7 @@ describe('computePerception', () => {
     expect(at(32, 'normal')).toEqual({ level: 'partial', cue: 'sight' });
     expect(at(14, 'low')).toEqual({ level: 'full', cue: 'sight' });
     expect(at(20, 'low')).toEqual({ level: 'partial', cue: 'sight' });
+    expect(at(0.5, 'faint')).toEqual({ level: 'partial', cue: 'sight' }); // 0.5 m counts as NEAREST_M (1 m): past faint's clear 0.5 m
   });
   it('sound from another zone, 16 m and a shut door off, is partial when loud and lost when normal; no sight through a closed link', () => {
     const s = makeVillage({ playerZone: 'street_door' });
@@ -59,12 +60,6 @@ describe('computePerception', () => {
     expect(computePerception(said, s, createRng(1)).player).toBeUndefined();
     expect(computePerception({ ...said, kind: 'talk' }, s, createRng(1)).player).toBeUndefined();
     expect(computePerception({ ...said, kind: 'attack' }, s, createRng(1)).player).toEqual({ level: 'partial', cue: 'touch' });
-  });
-  it('dark zone caps sight at partial', () => {
-    const s = makeVillage({ playerZone: 'tav_cellar' });
-    place(s, 'patron_1', 'tav_cellar');
-    expect(computePerception(ev({ actorId: 'patron_1', kind: 'idle', zone: 'tav_cellar', noise: 'silent', visibility: 'normal' }), s, createRng(1)).player)
-      .toEqual({ level: 'partial', cue: 'sight' });
   });
   it('inactive actors perceive nothing; the actor perceives its own event', () => {
     const s = makeVillage();

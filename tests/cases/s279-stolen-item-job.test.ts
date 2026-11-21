@@ -29,15 +29,11 @@ function hire(s: GameState) {
   play(s, { intent: i, spokespeople, exchange, agentOutputs: [reply] });
 }
 
-it('BF18: an owner knows what of theirs is missing, by name, never where it is', () => {
+it('BF18: an owner knows what of theirs is missing, by name, never where it is; a job naming it is a typed deliver, and handing it back completes it', () => {
   const s = shop();
   expect(buildOppositionView(s, 'trader').self.missing).toEqual([{ id: 'charm_1', name: 'lucky charm' }]);
   expect(buildOppositionView(s, 'patron_1').self.missing).toBeUndefined();
   expect(JSON.stringify(buildOppositionView(s, 'trader').self.missing)).not.toContain('patron');
-});
-
-it('BF18: a job naming the missing item is a typed deliver, and handing it back completes it', () => {
-  const s = shop();
   hire(s);
   expect(s.quests[0].goal).toMatchObject({ kind: 'deliver', item: 'charm_1', inst: true, to: 'trader' });
   expect(s.log.some((l) => l.code === 'quest_goal_gap')).toBe(false);

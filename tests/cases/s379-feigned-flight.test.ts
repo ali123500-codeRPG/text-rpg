@@ -51,7 +51,7 @@ describe('379 S3 Feigned flight', () => {
     expect(tactics(s, patron)?.feint).toBeUndefined();
   });
 
-  it('foes that lose the roll believe it and see it broken (TC52 a); a lone believer within one move is turned on (TC50 a)', () => {
+  it('foes that lose the roll believe it and see it broken (TC52 a); a lone believer within one move is turned on (TC50 a); the feint ends after FEINT_S', () => {
     const { s, patron, guard } = outnumbered();
     const fx = startFeint(s, patron, createRng(1));
     expect(fx.filter((f) => f.kind === 'feint_fooled').map((f) => f.actorId).sort()).toEqual([guard.id, s.player.id].sort());
@@ -66,11 +66,7 @@ describe('379 S3 Feigned flight', () => {
     s.player.zone = 'street_square';
     expect(tactics(s, patron)?.turnOn).toBe(guard.id);
     expect(orderOf(s, patron)).toMatchObject({ type: 'attack', target: guard.id, rule: FX.feigned_flight });
-  });
-
-  it('with no lone follower the feint ends after FEINT_S of game time', () => {
-    const { s, patron } = outnumbered();
-    startFeint(s, patron, createRng(1));
+    // with no lone follower the feint ends after FEINT_S of game time
     expect(feinting(s, patron)).toBe(true);
     patron.feint!.at = now(s) - CONFIG.FEINT_S / 60;
     expect(feinting(s, patron)).toBe(false);

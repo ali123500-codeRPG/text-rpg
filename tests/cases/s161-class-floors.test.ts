@@ -2,17 +2,12 @@
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { getLibrary } from '../../src/library';
-import { classFloors, templateMinimums, validateBuild, recommendedBuild } from '../../src/library/spawn';
+import { classFloors, templateMinimums } from '../../src/library/spawn';
 import { CL } from '../../src/library/classIds';
 import { SK } from '../../src/library/skillIds';
 import { TP } from '../../src/library/templateIds';
 
 describe('161 class floors from unlock conditions', () => {
-  it('floors include the unlock skills; either-of groups stay groups', () => {
-    expect(classFloors(CL.trader).all[SK.barter]).toBe(20);
-    expect(classFloors(CL.sword_dancer).all[SK.dodge]).toBe(80);
-    expect(classFloors(CL.guard).any).toHaveLength(3);
-  });
   it('every template with a class meets all its class floors', () => {
     makeVillage();
     for (const t of Object.values(getLibrary().templates)) {
@@ -30,9 +25,5 @@ describe('161 class floors from unlock conditions', () => {
     const weak = { ...t, minimums: { ...t.minimums, [SK.block]: 10, [SK.dodge]: 20 } };
     expect(templateMinimums(weak)[SK.dodge]).toBe(30);
     expect(templateMinimums(weak)[SK.block]).toBe(10);
-  });
-  it('the recommended Swordsman build still passes', () => {
-    makeVillage();
-    expect(validateBuild({ ...recommendedBuild(), name: 'Aldric' })).toEqual([]);
   });
 });

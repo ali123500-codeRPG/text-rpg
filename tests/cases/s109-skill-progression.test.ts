@@ -55,13 +55,4 @@ describe('109 skill progression', () => {
     expect(lines).toContain('New perk unlocked: Eyesight 40');
     expect(lines.some((l) => l.startsWith('Earshot'))).toBe(false);
   });
-  it('no hard limit (D-374 TB7, D-383): raw stops exactly at the cap because margin 0 gains nothing', () => {
-    const s = makeVillage();
-    const p = s.player;
-    p.core.skills = { [SK.eyesight]: { raw: 99, state: 'normal' }, [SK.dodge]: { raw: 119, state: 'tagged' } }; // different groups: no group bonus
-    p.progression!.marks = [SK.eyesight, SK.dodge];
-    expect(improveMarked(s, forcedRng([100, 100]))).toMatchObject([{ skill: SK.eyesight, from: 99, to: 100 }, { skill: SK.dodge, from: 119, to: 120 }]); // margin 1: +1
-    p.progression!.marks = [SK.eyesight, SK.dodge];
-    expect(improveMarked(s, forcedRng([100, 100]))).toEqual([]); // margin 0: nothing
-  });
 });

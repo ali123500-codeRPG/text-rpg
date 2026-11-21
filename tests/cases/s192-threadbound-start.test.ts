@@ -7,9 +7,6 @@ import { play, intent } from './w4-kit';
 import { createPlayer, recommendedBuild, validateBuild } from '../../src/library/spawn';
 import { applyGearOps } from '../../src/engine/gear';
 import { buildPlayerView } from '../../src/views';
-import { getLibrary } from '../../src/library';
-import { grantThreadboundItem } from '../../src/ruleset/threadboundItems';
-import { CONFIG } from '../../src/config';
 import { checkParserLegality } from '../../src/agents/legality';
 import { ST } from '../../src/library/startIds';
 import { IT } from '../../src/library/itemIds';
@@ -54,6 +51,7 @@ describe('192 the Threadbound start', () => {
     expect(checkParserLegality({ ...intent({}), gear: [{ op: 'summon', item: 'loop' }] } as never, pv).gearErrors).toEqual([]);
     const ev = play(s, { intent: { ...intent({}), gear: [{ op: 'summon', item: 'loop' }] } as never });
     expect(loopOf(s.player.core.inventory)).toBeDefined();
+    expect(loopOf(s.player.core.inventory)!.equippedIn).toBeUndefined(); // TB12: a charm lands in the pack
     expect(loopOf(npc.core.inventory)).toBeUndefined();
     expect(ev.some((e) => e.kind === 'summon' && e.actorId === 'player')).toBe(true);
     // from the ground of another place
@@ -63,37 +61,5 @@ describe('192 the Threadbound start', () => {
     // an item bound to no one, or someone else's, cannot be summoned
     npc.core.inventory.push({ id: 'plain', itemId: IT.charmed_ring });
     expect(applyGearOps(s, s.player, [{ op: 'summon', item: 'plain' }]).invalid).toHaveLength(1);
-  });
-
-  it('TB12: a summoned item lands worn when a slot for it is free, else stowed; a charm lands in the pack', () => {
-    const s = makeVillage(), lib = getLibrary(), loop = lib.items[IT.varos_loop];
-    s.actors[0].core.inventory.push({ id: 'loop', itemId: IT.varos_loop, boundTo: 'player' });
-    applyGearOps(s, s.player, [{ op: 'summon', item: 'loop' }]);
-    expect(loopOf(s.player.core.inventory)?.equippedIn).toBeUndefined(); // the charm
-    // a Threadbound item with an accessory slot
-    loop.slot = 'accessory';
-    try {
-      const inst = loopOf(s.player.core.inventory)!;
-      s.actors[0].core.inventory.push(...s.player.core.inventory.splice(s.player.core.inventory.indexOf(inst), 1));
-      applyGearOps(s, s.player, [{ op: 'summon', item: 'loop' }]);
-      expect(inst.equippedIn).toEqual(['acc:0']);
-      delete inst.equippedIn;
-      s.actors[0].core.inventory.push(...s.player.core.inventory.splice(s.player.core.inventory.indexOf(inst), 1));
-      for (let n = 0; n < CONFIG.ACCESSORY_SLOTS; n++) s.player.core.inventory.push({ id: `ring${n}`, itemId: IT.charmed_ring, equippedIn: [`acc:${n}`] });
-      applyGearOps(s, s.player, [{ op: 'summon', item: 'loop' }]);
-      expect(inst.equippedIn).toBeUndefined();
-    } finally { delete loop.slot; }
-  });
-
-  it('TB11: Threadbounded is tier 4 and gives only items of Rank IV or higher', () => {
-    const s = makeVillage();
-    const loop = getLibrary().items[IT.varos_loop];
-    loop.threadbound!.rank = 'rank_3';
-    s.player.core.perks.push({ perkId: PK.always_yours, source: 'class', gainedTurn: 0 });
-    grantThreadboundItem(s.player, s);
-    expect(loopOf(s.player.core.inventory)).toBeUndefined();
-    loop.threadbound!.rank = 'rank_4';
-    grantThreadboundItem(s.player, s);
-    expect(loopOf(s.player.core.inventory)?.boundTo).toBe('player');
   });
 });

@@ -21,11 +21,13 @@ async function reloaded(store: ReturnType<typeof memoryStore>, clock: VirtualClo
 }
 
 describe('BF40: essence commands save at once', () => {
-  it('a taken essence survives a reload before the next turn', async () => {
+  it('a taken, passed or given essence is saved at once: each survives a reload before the next turn', async () => {
     const clock = new VirtualClock(), store = memoryStore();
     const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
     s.turn = 1;
-    s.player.progression!.essenceOffers = [offer(s)];
+    const w = beside(s, 'patron_1', 'player', 1); // within reach to hand it over
+    w.progression = { ...structuredClone(s.player.progression!), essences: [] }; // with room for one
+    s.player.progression!.essenceOffers = [offer(s), offer(s), offer(s)];
     await saveTurn(store, s, rec(s));
     const g = createGame({ client: new ScriptedClaude(clock), clock, store, director: idle });
     await g.resume();
@@ -33,18 +35,7 @@ describe('BF40: essence commands save at once', () => {
     await tick();
     const pr = (await reloaded(store, clock)).player.progression!;
     expect(pr.essences?.map((e) => e.essence)).toEqual([ES.street_instinct]);
-    expect(pr.essenceOffers ?? []).toEqual([]);
-  });
-  it('a pass and a give are saved at once too', async () => {
-    const clock = new VirtualClock(), store = memoryStore();
-    const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
-    s.turn = 1;
-    const w = beside(s, 'patron_1', 'player', 1); // within reach to hand it over
-    w.progression = { ...structuredClone(s.player.progression!), essences: [] }; // with room for one
-    s.player.progression!.essenceOffers = [offer(s), offer(s)];
-    await saveTurn(store, s, rec(s));
-    const g = createGame({ client: new ScriptedClaude(clock), clock, store, director: idle });
-    await g.resume();
+    expect(pr.essenceOffers).toHaveLength(2);
     await g.submit('/essence pass 1', { aimed: false });
     await tick();
     expect((await reloaded(store, clock)).player.progression!.essenceOffers).toHaveLength(1);

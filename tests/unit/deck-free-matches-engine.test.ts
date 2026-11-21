@@ -69,21 +69,18 @@ const CASES: Case[] = [
 ];
 
 describe('the free mark matches the engine (one rule, two places)', () => {
-  const seen = new Map<string, boolean>();
-  for (const c of CASES) {
-    const all = deck({ pv: c.pv(c.s), s: c.s, broken: c.broken }).flatMap((g) => g.actions);
-    for (const a of all) {
-      const choice = firstChoice(a);
-      if (!choice) continue;
-      const free = engineFree(c.s, a.play(choice).intent);
-      seen.set(`${a.kind}${a.kind === 'perk' ? `:${a.label}` : ''}`, free);
-      it(`${c.name}: ${a.label} (${a.kind}) is ${free ? '' : 'not '}free in the engine, and the deck agrees`, () => {
-        expect(!!a.free).toBe(free);
-      });
+  it('every deck entry in the states above is marked free exactly when the engine rides its order beside the action, and the states reach both kinds', () => {
+    const seen = new Map<string, boolean>(), wrong: string[] = [];
+    for (const c of CASES) {
+      for (const a of deck({ pv: c.pv(c.s), s: c.s, broken: c.broken }).flatMap((g) => g.actions)) {
+        const choice = firstChoice(a);
+        if (!choice) continue;
+        const free = engineFree(c.s, a.play(choice).intent);
+        seen.set(`${a.kind}${a.kind === 'perk' ? `:${a.label}` : ''}`, free);
+        if (!!a.free !== free) wrong.push(`${c.name}: ${a.label} (${a.kind}) is ${free ? '' : 'not '}free in the engine`);
+      }
     }
-  }
-
-  it('the states above reach free entries and entries that take the action, gear ops, a warning and both kinds of perk move', () => {
+    expect(wrong).toEqual([]); // each mismatch names the state and the entry
     const free = [...seen].filter(([, f]) => f).map(([k]) => k), taken = [...seen].filter(([, f]) => !f).map(([k]) => k);
     expect(free).toEqual(expect.arrayContaining(['draw', 'swap', 'stow', 'set_down', 'equip', 'warn']));
     expect(free.some((k) => k.startsWith('perk:'))).toBe(true);

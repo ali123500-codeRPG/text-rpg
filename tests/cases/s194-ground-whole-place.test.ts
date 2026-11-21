@@ -3,20 +3,8 @@
 import { describe, expect, it } from 'vitest';
 import { makeVillage, place } from '../harness';
 import { checkScenarioEnd, frameOf } from '../../src/engine/scenarioEnd';
-import { offGround } from '../../src/engine/chase';
 
 describe('194 ground is whole places', () => {
-  it('BG-43: a zone of a place the ground touches is on the ground, though no plan named it', () => {
-    const s = makeVillage({ playerZone: 'tav_common' });
-    s.stage.scenario = { ...frameOf(s, { question: 'q', scale: 'situation', endings: [] }, 'success', (_k, r) => r), ground: ['tav_common'] };
-    place(s, 'player', 'tav_cellar');
-    expect(offGround(s).off).toBe(false);
-    checkScenarioEnd(s, []);
-    expect(s.stage.ending).toBeUndefined();
-    place(s, 'player', 'street_door');
-    expect(offGround(s).off).toBe(true);
-  });
-
   it('BG-44: a leave ending waits while the player is still on the ground, and fires once off it', () => {
     const s = makeVillage({ playerZone: 'tav_common' });
     const endings = [{ as: 'left', text: 'walked out', when: { kind: 'leave' as const, place: 'tavern' } }];

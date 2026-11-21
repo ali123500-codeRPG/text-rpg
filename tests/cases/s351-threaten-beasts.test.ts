@@ -42,16 +42,12 @@ describe('351 threats at beasts', () => {
     expect(won).toBe(true);
   });
 
-  it('a slime ignores a threat: no contest, the story says it does not understand', () => {
+  it('a slime ignores a threat: no contest, the story says it does not understand; a Battle Cry still shakes it', () => {
     const s = withWolf(1);
-    const ev = threaten(s, 'slime_1').find((e) => e.actorId === 'player' && e.kind === 'speak')!;
-    expect(ev.contest).toBeUndefined();
-    expect(ev.effects.some((f) => f.kind === 'not_understood' && f.actorId === 'slime_1')).toBe(true);
+    const said = threaten(s, 'slime_1').find((e) => e.actorId === 'player' && e.kind === 'speak')!;
+    expect(said.contest).toBeUndefined();
+    expect(said.effects.some((f) => f.kind === 'not_understood' && f.actorId === 'slime_1')).toBe(true);
     expect(moraleLost(actor(s, 'slime_1'))).toBe(0);
-  });
-
-  it('a Battle Cry still shakes a slime', () => {
-    const s = withWolf(1);
     s.player.core.perks.push({ perkId: PK.battle_cry, source: 'level', gainedTurn: 0 });
     s.player.core.skills[SK.intimidation] = { raw: 300, state: 'normal' };
     const ev = play(s, { intent: intent({ perkMove: { perk: PK.battle_cry, target: null } } as never) });

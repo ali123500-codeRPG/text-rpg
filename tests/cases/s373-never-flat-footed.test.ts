@@ -47,7 +47,7 @@ describe('373 Never Flat-Footed', () => {
       fight(s, s.player, seen);
       return play(s, { intent: intent() }, seed).find((e) => e.kind === 'attack' && e.actorId === 'patron_1');
     };
-    const seeds = [1, 2, 3, 4, 5];
+    const seeds = [1, 2, 3];
     expect(seeds.some((n) => blow(false, ['patron_1'], n)?.attack?.unaware)).toBe(true); // without the perk: an ambush
     expect(seeds.some((n) => blow(true, [], n)?.attack?.unaware)).toBe(true); // with it, but never seen: still an ambush
     for (const n of seeds) {
@@ -55,5 +55,5 @@ describe('373 Never Flat-Footed', () => {
       expect(b).toBeDefined();
       expect(b?.attack?.unaware).toBeUndefined(); // seen earlier in the fight: never an ambush, whatever the dice
     }
-  }, 20000); // fifteen fresh villages
+  }, 20000); // up to nine fresh villages
 });

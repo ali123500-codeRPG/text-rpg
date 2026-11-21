@@ -24,17 +24,12 @@ const lane = (more: Partial<PZ> = {}): PZ => ({ key: 'lane', place: 'field', nam
 const build = (s: GameState) => applyStagePlan(s, plan([lane()]), ext('rg_r1'), { entry: 'open' }, createRng(1));
 
 describe('363 the world check', () => {
-  it('a world built by the rules passes, and two doors between the same two areas are fine', () => {
+  it('a world built by the rules passes, two doors between the same two areas too; then it names each broken rule: a second area on a road, a road not leading into its built end, new ground to built land, a second settlement on a site, a junction area indoors', () => {
     const s = landed();
     build(s);
     expect(worldCheck(s)).toEqual([]);
     expect(joinWay(s, zoneById(s, 'tav_common')!, zoneById(s, 'street_door')!, { label: 'the side door', kind: 'door' })).toBeDefined();
     expect(worldCheck(s)).toEqual([]);
-  });
-
-  it('names each broken rule: a second area on a road, a road not leading into its built end, new ground to built land', () => {
-    const s = landed();
-    build(s);
     const copy = structuredClone(zoneById(s, 'lane')!);
     copy.id = 'lane_2';
     s.places.find((p) => p.id === 'field')!.zones.push(copy);
@@ -45,10 +40,6 @@ describe('363 the world check', () => {
       'road rg_r1 has 2 areas (lane, lane_2); a road is one area',
       'gate_inner\'s way "the old road" is new ground, but rg_r1 is already built as lane',
     ]));
-  });
-
-  it('a second settlement on a site, and a junction area indoors, are named', () => {
-    const s = landed();
     s.places.push({ ...s.places.find((p) => p.id === 'village')!, id: 'village_2', zones: [] });
     s.regions![0].nodes[1].zone = 'tav_common';
     expect(worldCheck(s)).toEqual(expect.arrayContaining(['site rg_s1 has 2 settlements (village, village_2); a site holds one', 'junction rg_n2\'s area tav_common is indoors']));

@@ -20,21 +20,17 @@ describe('333 wound penalties as % of the average roll', () => {
     expect(wounded(400).value).toBeCloseTo(-50.1);
     expect(wounded(50).pct).toBe(-20); // PW5 a: the % travels with the points
   });
-  it('a roll carries each wound as its % and the points it came to at the roll’s effective skill', () => {
+  it('a roll carries each wound as its % and the points it came to at the roll’s effective skill; D-76: a situational % modifier comes to that % of the same average roll', () => {
     const s = makeVillage();
     s.player.core.condition.hpLostPct = 50; // Wounded
     s.player.core.skills[SK.dodge] = { raw: 150, state: 'normal' };
-    const r = ruleset.roll({ actorId: s.player.id, skill: SK.dodge, modifiers: [], tierShifts: [] }, s, forcedRng([50]));
+    const r = ruleset.roll({ actorId: s.player.id, skill: SK.dodge, modifiers: [pctMod('outnumbered', CONFIG.OUTNUMBERED_MOD)], tierShifts: [] }, s, forcedRng([50]));
+    const avg = averageRoll(effectiveSkill(s, s.player, SK.dodge).value);
     const m = r.modifiers.find((x) => x.source === 'health: Wounded')!;
     expect(m.pct).toBe(-20);
-    expect(m.value).toBeCloseTo(-0.2 * averageRoll(effectiveSkill(s, s.player, SK.dodge).value));
-  });
-  it('D-76: a situational modifier given as a % comes to that % of the roller\'s average roll, like a wound', () => {
-    const s = makeVillage();
-    s.player.core.skills[SK.dodge] = { raw: 150, state: 'normal' };
-    const r = ruleset.roll({ actorId: s.player.id, skill: SK.dodge, modifiers: [pctMod('outnumbered', CONFIG.OUTNUMBERED_MOD)], tierShifts: [] }, s, forcedRng([50]));
-    const m = r.modifiers.find((x) => x.source === 'outnumbered')!;
-    expect(m).toMatchObject({ type: 'situational', pct: CONFIG.OUTNUMBERED_MOD });
-    expect(m.value).toBeCloseTo((CONFIG.OUTNUMBERED_MOD / 100) * averageRoll(effectiveSkill(s, s.player, SK.dodge).value));
+    expect(m.value).toBeCloseTo(-0.2 * avg);
+    const o = r.modifiers.find((x) => x.source === 'outnumbered')!;
+    expect(o).toMatchObject({ type: 'situational', pct: CONFIG.OUTNUMBERED_MOD });
+    expect(o.value).toBeCloseTo((CONFIG.OUTNUMBERED_MOD / 100) * avg);
   });
 });

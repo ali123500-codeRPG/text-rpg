@@ -25,13 +25,15 @@ const beat = (endsScenario: boolean): Trigger => ({
 const calm = () => makeVillage({ without: ['slime_1', 'slime_2'] });
 
 describe('105 Story pacing', () => {
-  it('quiet turns count up and an attack resets them', () => {
+  it('quiet turns count up and an attack resets them; rest never ends the scenario (SC4, SC9)', () => {
     const s = calm();
     turn(s, null);
     turn(s, null);
     expect(s.stage.quiet).toBe(2);
     turn(s, act('attack', 'patron_1'));
     expect(s.stage.quiet).toBe(0);
+    turn(s, act('rest'));
+    expect(s.stage.breakCause).toBeUndefined(); // rest never ends the scenario (SC4, SC9)
   });
   it('a beat fires when the clock fills, its turn is not quiet, and endsScenario marks the break', () => {
     const s = calm();
@@ -44,11 +46,6 @@ describe('105 Story pacing', () => {
     expect(s.stage.breakCause).toBe('story_beat');
     turn(s, null);
     expect(s.stage.quiet).toBe(0);
-  });
-  it('rest never ends the scenario (SC4, SC9)', () => {
-    const s = calm();
-    turn(s, act('rest'));
-    expect(s.stage.breakCause).toBeUndefined();
   });
   it('a stall ends the scenario only when no live beat is left', () => {
     const s = calm();

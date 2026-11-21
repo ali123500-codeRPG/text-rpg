@@ -42,26 +42,24 @@ describe('122 NPC memory and agreements', () => {
     expect(s.hidden.memory.guard_1).toBeUndefined();
   });
 
-  it('PM3/PM5: a deal with the player, said where you hear it, shows for both sides', () => {
+  it('PM3/PM5/PM8: no deal unless the player heard it said this turn; said where they hear it, it shows for both sides, and its agent NPC gets a Planner call', () => {
     const s = makeVillage();
-    place(s, 'player', 'gate_inner');
-    turn(s, { guard_1: { dialogue: line('Fine: you draw them off, I take the healer.'), agreement: { with: 'player', text: 'The player charges; Bertram sneaks round to the healer.' } } });
-    const [g] = s.hidden.agreements!;
-    expect(g).toMatchObject({ parties: ['guard_1', 'player'], madeBy: 'guard_1', text: 'The player charges; Bertram sneaks round to the healer.' });
-    expect(buildPlayerView(s).agreements).toEqual([{ id: g.id, with: 'a village guard', withId: 'guard_1', text: g.text, madeTurn: 2 }]);
-    expect(buildOppositionView(s, 'guard_1').agreements?.[0]).toMatchObject({ with: 'player', withId: 'player' });
-    turn(s, { guard_1: { endAgreements: [{ id: g.id, outcome: 'done' }] } });
-    expect(s.hidden.agreements).toEqual([]);
-    expect(codes(s, 'agreement_ended')[0].detail).toMatchObject({ outcome: 'done', by: 'guard_1' });
-  });
-
-  it('PM3: no deal unless the other party heard it said this turn', () => {
-    const s = makeVillage();
+    expect(plannerActors(s)).toEqual([]);
     place(s, 'player', 'field_far');
     turn(s, { guard_1: { agreement: { with: 'player', text: 'a deal' } } }); // no line at all
     turn(s, { guard_1: { dialogue: line('Deal.'), agreement: { with: 'player', text: 'a deal' } } }); // said out of earshot
     expect(s.hidden.agreements ?? []).toEqual([]);
     expect(codes(s, 'invalid_agreement')).toHaveLength(2);
+    place(s, 'player', 'gate_inner');
+    turn(s, { guard_1: { dialogue: line('Fine: you draw them off, I take the healer.'), agreement: { with: 'player', text: 'The player charges; Bertram sneaks round to the healer.' } } });
+    const [g] = s.hidden.agreements!;
+    expect(g).toMatchObject({ parties: ['guard_1', 'player'], madeBy: 'guard_1', text: 'The player charges; Bertram sneaks round to the healer.' });
+    expect(buildPlayerView(s).agreements).toEqual([{ id: g.id, with: 'a village guard', withId: 'guard_1', text: g.text, madeTurn: s.turn }]);
+    expect(buildOppositionView(s, 'guard_1').agreements?.[0]).toMatchObject({ with: 'player', withId: 'player' });
+    expect(plannerActors(s)).toContain('guard_1'); // PM8: in a deal, asked even when not engaged
+    turn(s, { guard_1: { endAgreements: [{ id: g.id, outcome: 'done' }] } });
+    expect(s.hidden.agreements).toEqual([]);
+    expect(codes(s, 'agreement_ended')[0].detail).toMatchObject({ outcome: 'done', by: 'guard_1' });
   });
 
   it('PM4: NPCs make deals with each other; only a party can end one', () => {
@@ -75,13 +73,6 @@ describe('122 NPC memory and agreements', () => {
     turn(s, { trader: { endAgreements: [{ id: g.id, outcome: 'broken' }] } });
     expect(s.hidden.agreements).toHaveLength(1);
     expect(codes(s, 'invalid_agreement_end')).toHaveLength(1);
-  });
-
-  it('PM8: an agent NPC in a deal gets a Planner call even when not engaged', () => {
-    const s = makeVillage();
-    expect(plannerActors(s)).toEqual([]);
-    s.hidden.agreements = [{ id: 'd1', parties: ['guard_1', 'player'], text: 'meet at the gate', madeTurn: 1, madeBy: 'guard_1' }];
-    expect(plannerActors(s)).toEqual(['guard_1']);
   });
 
 });

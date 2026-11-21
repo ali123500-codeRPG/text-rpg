@@ -29,7 +29,7 @@ const pos = (s: GameState, g: ReturnType<typeof setup>['g']) => STANCES.pos(stan
 const searched = (s: GameState) => play(s, { intent: intent(), agentOutputs: [plannerOut('guard_1', act('search', 'player'))] });
 const openBox = (s: GameState) => play(s, { intent: intent({ action: { type: 'open', target: 'box' } }) });
 
-it('GD2/GD3: a guard whose search finds a locked container suspects its carrier, one step colder, and its agent is told', () => {
+it('GD2/GD3/GD4 a: a guard whose search finds a locked container suspects its carrier, one step colder, and its agent is told; opened before it with nothing it is after, it is cleared and the step comes back', () => {
   const { s, g } = setup();
   const before = pos(s, g);
   searched(s);
@@ -37,12 +37,7 @@ it('GD2/GD3: a guard whose search finds a locked container suspects its carrier,
   expect(pos(s, g)).toBe(before - 1);
   expect(s.hidden.memory.guard_1?.some((m) => /locked sack/.test(m.text))).toBe(true);
   expect(buildActorView(s, g.id).self.suspects).toEqual([{ id: 'player', name: expect.any(String), item: 'a locked sack' }]);
-});
-
-it('GD4 a: opened where the guard sees inside with nothing it is after: cleared, and the step comes back', () => {
-  const { s, g } = setup();
-  const before = pos(s, g);
-  searched(s);
+  // GD4 a: opened where the guard sees inside with nothing it is after: cleared, and the step comes back
   openBox(s);
   expect(g.mind!.suspects?.player).toBeUndefined();
   expect(pos(s, g)).toBe(before);

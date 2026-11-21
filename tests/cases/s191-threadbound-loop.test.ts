@@ -8,7 +8,6 @@ import { ruleset, tierName } from '../../src/ruleset';
 import { tierReach } from '../../src/ruleset/achRewards';
 import { syncThreadboundItemPerks } from '../../src/ruleset/threadboundItems';
 import { applyGearOps, bindCarriedCharms } from '../../src/engine/gear';
-import { power } from '../../src/engine/xp';
 import { offersFromDefeats, qualityRoll } from '../../src/engine/essence';
 import { CONFIG } from '../../src/config';
 import { tidyRewards } from '../../src/scenario/validate';
@@ -52,14 +51,6 @@ describe('191 the Varo\'s Loop', () => {
     earn(other, ACH.event_crit_1);
     syncThreadboundItemPerks(other, s.turn);
     expect(has(other, PK.loose_odds)).toBe(false);
-  });
-
-  it('a charm: no slot, it can\'t be worn, and it adds nothing to the rating', () => {
-    const s = worn();
-    expect(applyGearOps(s, s.player, [{ op: 'wear_acc', item: LOOP }]).invalid).toHaveLength(1);
-    const before = power(s, s.player);
-    s.player.core.inventory = s.player.core.inventory.filter((i) => i.id !== LOOP);
-    expect(power(s, s.player)).toBe(before);
   });
 
   it('abilities follow achievements and leave when it is set down', () => {

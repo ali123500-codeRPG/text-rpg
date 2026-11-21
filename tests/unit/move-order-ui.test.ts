@@ -6,9 +6,13 @@ import { wholeTurn, intent } from '../harness/turn';
 
 describe('AT49 the move order on the play screen', () => {
 
-  it('whole turn: the walk shows while on its way, and a turn with no order carries it on', async () => {
+  it('whole turn: any other order ends the walk; the walk shows while on its way, and a turn with no order carries it on', async () => {
     const g = wholeTurn({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
     const s = g.game.state()!;
+    s.player.walking = { toZone: 'street_square' };
+    await g.turn(intent({ action: { type: 'wait', skill: '', target: null, targetPart: null, item: null, mode: null, approach: '' } }), 'I stop and wait here');
+    expect(s.player.zone).toBe('tav_common');
+    expect(buildPlayerView(s).player.walking).toBeUndefined();
     s.player.walking = { toZone: 'street_square' };
     const w = buildPlayerView(s).player.walking!;
     expect(w).toMatchObject({ toZone: 'street_square' });
@@ -19,14 +23,5 @@ describe('AT49 the move order on the play screen', () => {
     expect(s.player.zone).toBe('street_square'); // carried on by itself
     const after = buildPlayerView(s).player.walking;
     if (after) expect(after.metres).toBeLessThan(w.metres);
-  });
-
-  it('whole turn: any other order ends the walk', async () => {
-    const g = wholeTurn({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
-    const s = g.game.state()!;
-    s.player.walking = { toZone: 'street_square' };
-    await g.turn(intent({ action: { type: 'wait', skill: '', target: null, targetPart: null, item: null, mode: null, approach: '' } }), 'I stop and wait here');
-    expect(s.player.zone).toBe('tav_common');
-    expect(buildPlayerView(s).player.walking).toBeUndefined();
   });
 });

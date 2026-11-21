@@ -16,12 +16,10 @@ describe('98 Minted reward cap', () => {
     p.rewards.push({ item: { base: IT.arming_sword, quality: (['quality_1', 'quality_2', 'quality_3', 'quality_4'] as const)[quality - 1], boosts, name: 'a watchman\'s sword', look: 'a well-kept blade' }, place: { carriedBy: 'guard_1' } });
     return p;
   };
-  it('quality 2 passes clean; quality 3 is lowered to 2 without blocking', () => {
-    expect(validateStagePlan(toStoryStart(makeVillage()), withSword(2), ctx)).toEqual([]);
-    expect(validateStagePlan(toStoryStart(makeVillage()), withSword(3), ctx)).toEqual([expect.objectContaining({ code: 'reward_quality', repaired: true })]);
-  });
-  it('an unknown weapon boosts becomes hitAdj and the sword is minted at the capped quality', () => {
+  it('quality 2 passes clean; quality 3 is lowered to 2 and an unknown weapon boosts becomes hitAdj, without blocking; the sword is minted so', () => {
     const s = toStoryStart(makeVillage());
+    expect(validateStagePlan(s, withSword(2), ctx)).toEqual([]);
+    expect(validateStagePlan(s, withSword(3), ctx)).toEqual([expect.objectContaining({ code: 'reward_quality', repaired: true })]);
     const p = withSword(3, 'keen edge');
     expect(validateStagePlan(s, p, ctx).map((e) => e.code)).toEqual(['reward_quality', 'reward_boosts']);
     applyStagePlan(s, p, ctx, { entry: 'open' }, createRng(1));

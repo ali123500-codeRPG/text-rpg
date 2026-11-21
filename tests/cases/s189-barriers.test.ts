@@ -45,16 +45,14 @@ const d = (n: number) => forcedRng([50, n]);
 const giveKey = (s: GameState, b: Barrier, who = s.player) => who.core.inventory.push({ id: `key_${who.id}`, itemId: IT.key, opens: [b.id] });
 
 describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
-  it('BA2: Thievery holds the Lockpicking function, and lockpicks help it', () => {
+  it('BA2: Thievery holds the Lockpicking function, and lockpicks help it; picking time halves per 25 points, past 100 too, unless capped', () => {
     const s = quiet();
     s.player.core.skills[SK.lockpicking] = { raw: 40, state: 'normal' };
     expect(fnRoller(s, s.player, FN.lockpicking)).toBe(SK.lockpicking);
     expect(pickSeconds(50)).toBe(30);
     expect(pickSeconds(75)).toBe(15);
     expect(pickSeconds(25)).toBe(60);
-  });
-  it('scaling: picking time keeps halving per 25 points past 100, and a cap would stop it', () => {
-    makeVillage();
+    // scaling: picking time keeps halving per 25 points past 100, and a cap would stop it
     expect(pickSeconds(100)).toBe(7.5);
     expect(pickSeconds(150)).toBe(1.875);
     expect(pickSeconds(200)).toBe(0.46875);
@@ -63,7 +61,7 @@ describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
     expect(pickSeconds(200)).toBe(7.5);
     speed.fastCap = null;
   });
-  it('a locked door stops a walker without its key: trying it shows it locked', () => {
+  it('a locked door stops a walker without its key: trying it shows it locked; with the key (BA3) the walk unlocks it and goes through', () => {
     const s = quiet();
     const b = put(s, 'tav_common', 'street_door', { lock: { locked: true } });
     expect(buildPlayerView(s).zone.links.find((l) => l.to === 'street_door')!.way).toEqual({ kind: 'door' }); // a shut door looks like any door
@@ -74,14 +72,11 @@ describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
     expect(buildPlayerView(s).zone.links.find((l) => l.to === 'street_door')!.way).toMatchObject({ locked: true });
     const nv = buildNarrationView(s, ev);
     expect(nv.events.find((e) => e.kind === 'way')!.way).toMatchObject({ what: 'door', did: 'tried it: locked' });
-  });
-  it('BA3: a key turns on the way through, in the move slot; outside a fight the walk goes on through it (AT45)', () => {
-    const s = quiet();
-    const b = put(s, 'tav_common', 'street_door', { lock: { locked: true } });
+    // BA3: with the key it turns on the way through, in the move slot; outside a fight the walk goes on through it (AT45)
     giveKey(s, b);
     expect(buildPlayerView(s).zone.links.find((l) => l.to === 'street_door')!.way).toMatchObject({ locked: true, key: true });
-    const ev = turn(s, go('street_door'));
-    expect(ev.find((e) => e.kind === 'way')!.way!.did).toBe('unlocked');
+    const ev2 = turn(s, go('street_door'));
+    expect(ev2.find((e) => e.kind === 'way')!.way!.did).toBe('unlocked');
     expect(b.lock!.locked).toBe(false);
     expect(s.player.zone).toBe('street_door');
   });
@@ -108,11 +103,7 @@ describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
     const inside = quiet();
     const b = put(inside, 'tav_common', 'street_door', { bar: { side: 'tav_common', drawn: true } });
     expect(turn(inside, go('street_door')).find((e) => e.kind === 'way')!.way!.did).toBe('unbarred');
-    expect(b.bar!.drawn).toBe(false);
-    const outside = quiet('street_door');
-    put(outside, 'tav_common', 'street_door', { bar: { side: 'tav_common', drawn: true } });
-    expect(turn(outside, go('tav_common')).find((e) => e.kind === 'way')!.way!.did).toBe('found_barred');
-    expect(outside.player.zone).toBe('street_door');
+    expect(b.bar!.drawn).toBe(false); // from the far side it is found barred: BG-69 below
   });
   it('a walk goes round a shut way when there is another, and rubble passes no one', () => {
     const s = quiet(undefined, true);
@@ -255,16 +246,13 @@ describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
       expect(s.actors.find((a) => a.id === 'trader')!.core.inventory.find((i) => i.itemId === IT.key)!.opens).toEqual([id]);
       expect(buildWeaverView(s, { kind: 'scenario', placeId: 'street' }).places.flatMap((p) => p.areas).find((z) => z.id === shed.id)!.links[0].way).toMatchObject({ kind: 'door', grade: 'major', lock: 'locked' });
     });
-    it('a bad barrier is refused: an unknown kind, a bolt on neither side, a lock on rubble', () => {
+    it('a bad barrier is refused: an unknown kind, a bolt on neither side, a lock on rubble, shutters off a drop or another barrier on one (PC3)', () => {
       const s = quiet();
-      const errs = (b: object) => validateStagePlan(s, plan(b), { kind: 'extension', tier: 'success', placeId: 'street' }).filter((e) => !e.repaired).map((e) => e.message).join(' ');
+      const errs = (b: object, drop = false) => validateStagePlan(s, plan(b, drop), { kind: 'extension', tier: 'success', placeId: 'street' }).filter((e) => !e.repaired).map((e) => e.message).join(' ');
       expect(errs({ kind: 'BK99' })).toMatch(/barrier kind id/);
       expect(errs({ kind: BK.gate, barredFrom: 'tav_cellar' })).toMatch(/barredFrom/);
       expect(errs({ kind: BK.rubble, locked: true })).toMatch(/takes no lock/);
-    });
-    it('PC3: a window\'s shutters go only on a drop, and a drop takes no other barrier', () => {
-      const s = quiet();
-      const errs = (b: object, drop: boolean) => validateStagePlan(s, plan(b, drop), { kind: 'extension', tier: 'success', placeId: 'street' }).filter((e) => !e.repaired).map((e) => e.message).join(' ');
+      // PC3: a window's shutters go only on a drop, and a drop takes no other barrier
       expect(errs({ kind: BK.window, locked: true }, true)).toBe('');
       expect(errs({ kind: BK.window }, false)).toMatch(/goes only on a drop/);
       expect(errs({ kind: BK.door }, true)).toMatch(/a barrier on a drop is a window/);

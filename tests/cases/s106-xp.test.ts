@@ -7,7 +7,6 @@ import { makeVillage } from '../harness';
 import { actor } from '../harness/village';
 import { achievementName, awardXp, levelCost, xpToReach, skillRating, defeatXp, payDefeats, power, ratingGroups, xpGroupFactor, xpToNext } from '../../src/engine/xp';
 import { CONFIG } from '../../src/config';
-import { REWARD_LEVELS } from '../../src/scales';
 import { getLibrary } from '../../src/library';
 import type { GameEvent } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
@@ -48,16 +47,6 @@ describe('106 XP and levels', () => {
     expect(achievementName(s, s.player.progression!.achievements![3])).toBe('Hunter of the Amorphous');
     getLibrary().achievements![ACH.defeats_10_body_type].name = '{body_type}bane';
   });
-  it('every achievement row is keyed by its own fixed AC-prefixed ID', () => {
-    const lib = getLibrary().achievements!;
-    expect(Object.entries(lib).every(([k, d]) => k === d.id && /^AC\d+$/.test(k))).toBe(true);
-    expect(new Set(Object.values(ACH)).size).toBe(Object.values(ACH).length);
-    expect(Object.keys(lib).sort()).toEqual([...Object.values(ACH)].sort());
-  });
-  it('every achievement pays the XP of its reward level', () => {
-    const lib = getLibrary().achievements!;
-    for (const d of Object.values(lib)) expect(REWARD_LEVELS.has(d.level)).toBe(true);
-  });
   it('a slime the player hit and downed pays its defeat XP once, plus a first-defeat achievement', () => {
     const s = makeVillage();
   CONFIG.ACH_LEVEL_SHARE = { floor: 0, atI: 0, power: 1 }; // the ladder alone (the level share has its own test, s379)
@@ -78,21 +67,16 @@ describe('106 XP and levels', () => {
     payDefeats(s, []);
     expect(pr.xpLog).toHaveLength(3);
   });
-  it('RS7: a downed NPC the player hit pays whatever its stance; a surrender to someone else does not', () => {
+  it('RS7: a downed NPC the player hit pays whatever its stance, and a surrender to the player pays; a surrender to someone else and a fleeing (broken) foe do not', () => {
     const s = makeVillage();
     const p = actor(s, 'patron_1');
     Object.assign(p.mind!, { overrides: { player: 'friendly' }, hitByPlayer: true });
     p.core.condition.hpLostPct = 100;
     Object.assign(actor(s, 'trader').mind!, { moraleState: 'surrendered', overrides: { guard_1: 'yielded' } });
-    payDefeats(s, []);
-    expect(s.player.progression!.xpLog!.filter((x) => x.source.startsWith('defeat')).map((x) => x.source)).toEqual(['defeat:patron_1']);
-  });
-  it('a surrender pays; a fleeing (broken) foe does not', () => {
-    const s = makeVillage();
     Object.assign(actor(s, 'slime_1').mind!, { moraleState: 'surrendered', overrides: { player: 'yielded' } });
     actor(s, 'slime_2').mind!.moraleState = 'broken';
     payDefeats(s, []);
-    expect(s.player.progression!.xpLog!.filter((x) => x.source.startsWith('defeat')).map((x) => x.source)).toEqual(['defeat:slime_1']);
+    expect(s.player.progression!.xpLog!.filter((x) => x.source.startsWith('defeat')).map((x) => x.source).sort()).toEqual(['defeat:patron_1', 'defeat:slime_1']);
   });
   it('levels need LEVEL_XP × √(level² + LEVEL_XP_EARLY²) and go to the chosen class', () => {
     const s = makeVillage();

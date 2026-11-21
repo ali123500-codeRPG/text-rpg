@@ -11,10 +11,11 @@ const build = { name: 'Arden', skills: { [SK.melee_medium]: 40, [SK.parry]: 25, 
 const stuck: ScenarioDirector = { startStory: () => new Promise(() => {}), afterResolve: async () => [], afterSave: () => {} };
 
 describe('117 close during the opening', () => {
-  it('keeps the build while turn 0 runs; a reopened game starts that opening again', async () => {
+  it('with nothing saved resume finds nothing; the build is kept while turn 0 runs, and a reopened game starts that opening again', async () => {
     const clock = new VirtualClock();
     const store = memoryStore();
     const first = createGame({ client: new ScriptedClaude(clock), clock, store, director: stuck });
+    expect(await first.resume()).toBe(false); // no story and nothing pending: resume finds nothing
     void first.newStory(build);
     await new Promise((r) => setTimeout(r, 0));
     expect((await loadPendingStart(store))?.build.name).toBe('Arden');
@@ -23,10 +24,5 @@ describe('117 close during the opening', () => {
     expect(await again.resume()).toBe(true);
     expect(again.state()).not.toBeNull();
     expect(again.busy()).toBe(true);
-  });
-  it('with no story and nothing pending, resume finds nothing', async () => {
-    const clock = new VirtualClock();
-    const g = createGame({ client: new ScriptedClaude(clock), clock, store: memoryStore(), director: stuck });
-    expect(await g.resume()).toBe(false);
   });
 });

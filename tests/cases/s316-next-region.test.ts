@@ -40,17 +40,13 @@ const tick = () => new Promise((r) => setTimeout(r, 0));
 const S = CONFIG.REGION_SIZE_M;
 
 describe('316 the next region', () => {
-  it('is wanted only once the edge is in sight', async () => {
-    const { s } = await story();
+  it('is wanted only once the edge is in sight; is asked for in the background, drawn before the next turn, and joins its neighbour', async () => {
+    const { s, d, asked } = await story();
+    const a = s.regions![0];
     standAt(s, { x: S / 2, y: S / 2 });
     expect(squaresWanted(s)).toEqual([]);
     standAt(s, { x: S - landSightM() / 2, y: S / 2 });
     expect(squaresWanted(s)).toEqual([{ gx: 1, gy: 0 }]);
-  });
-
-  it('is asked for in the background, drawn before the next turn, and joins its neighbour', async () => {
-    const { s, d, asked } = await story();
-    const a = s.regions![0];
     standAt(s, { x: S - 500, y: S / 2 });
     expect(d.drawAhead(s)).toEqual(['1,0']);
     expect(d.drawAhead(s)).toEqual([]); // asked once

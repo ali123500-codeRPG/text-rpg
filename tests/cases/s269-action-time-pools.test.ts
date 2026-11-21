@@ -29,19 +29,25 @@ const archer = () => {
 };
 
 describe('269 action time pools', () => {
-  it('AT20/AT23: a light bow shot leaves seconds over; they carry, never past CARRY_MAX_TURNS turns, and the shots even out', () => {
-    const s = archer();
+  it('AT20/AT23: a light bow shot leaves seconds over; they carry, never past CARRY_MAX_TURNS turns, and the shots even out; VS8: a stealthy archer\'s shots take SNEAK_TIME_MULT times as long, and keep them hidden', () => {
     const shot = actionSeconds(actionRow(DU.bow_light)!);
-    let shots = 0;
     const turns = 5;
-    for (let i = 0; i < turns; i++) {
-      const slime = s.actors.find((a) => a.id === 'slime_1')!;
-      slime.core.condition.hpLostPct = 0; // keep the target standing
-      const ev = turn(s, intent({ target: 'slime_1' }), 10 + i);
-      shots += ev.filter((e) => e.kind === 'attack' && e.actorId === 'player').length;
-      expect((s.player.carry ?? []).reduce((n, c) => n + c.main, 0)).toBeLessThanOrEqual(CONFIG.CARRY_MAX_TURNS * CONFIG.FIGHT_TURN_S);
-    }
-    expect(shots).toBe(Math.floor((turns * CONFIG.FIGHT_TURN_S) / shot));
+    const shots = (stealthy: boolean) => {
+      const s = archer();
+      if (stealthy) s.player.posture = 'stealthy';
+      let n = 0;
+      for (let i = 0; i < turns; i++) {
+        const slime = s.actors.find((a) => a.id === 'slime_1')!;
+        slime.core.condition.hpLostPct = 0; // keep the target standing
+        const ev = turn(s, intent({ target: 'slime_1' }), 10 + i);
+        n += ev.filter((e) => e.kind === 'attack' && e.actorId === 'player').length;
+        expect((s.player.carry ?? []).reduce((m, c) => m + c.main, 0)).toBeLessThanOrEqual(CONFIG.CARRY_MAX_TURNS * CONFIG.FIGHT_TURN_S);
+        if (stealthy) expect(s.player.posture).toBe('stealthy'); // a shot keeps you hidden
+      }
+      return n;
+    };
+    expect(shots(false)).toBe(Math.floor((turns * CONFIG.FIGHT_TURN_S) / shot));
+    expect(shots(true)).toBe(Math.floor((turns * CONFIG.FIGHT_TURN_S) / (shot * CONFIG.SNEAK_TIME_MULT)));
   });
   it('AT78: a blow beside the target repeats while the turn lasts', () => {
     const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });

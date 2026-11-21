@@ -7,7 +7,7 @@ import type { GameEvent, GameState, WeaverView } from '../../src/types';
 import { actor, byDoor, createRng, makeVillage, place } from '../harness';
 import { play } from './w4-kit';
 import { checkScenarioEnd, closeScenario, frameOf, pendingEnding } from '../../src/engine/scenarioEnd';
-import { CHASE_LOST_MEMORY, atChaseLine, chaseRange, chaseZones, checkRoam, noteCrossing, pursuers, roamStart, updateChase } from '../../src/engine/chase';
+import { CHASE_LOST_MEMORY, atChaseLine, offGround, chaseRange, chaseZones, checkRoam, noteCrossing, pursuers, roamStart, updateChase } from '../../src/engine/chase';
 import { applyStagePlan } from '../../src/scenario/apply';
 import { ScenarioDirector, validateStagePlan } from '../../src/scenario';
 import { grovePlan, VirtualClock } from '../../src/scenario/fixtures';
@@ -36,21 +36,31 @@ const hunts = (s: GameState, id: string, turn: number, zone = s.player.zone) => 
 const ev = (s: GameState, e: Partial<GameEvent>): GameEvent => ({ id: `e${Math.random()}`, turn: s.turn, actorId: 'player', kind: 'idle', zone: s.player.zone, effects: [], noise: 'normal', visibility: 'normal', perception: {}, ...e } as GameEvent);
 
 describe('190 chases and free roam', () => {
-  it('CH1: a scenario plan\'s ground is the start zone, the zones it builds and the stage zones it names; an extension adds to it', () => {
+  it('CH1: a scenario plan\'s ground is the start zone, the zones it builds and the stage zones it names; an extension adds to it. CH5: the Weaver may give a band a chase range from the table', () => {
     const s = makeVillage({ playerZone: 'field_edge' });
-    applyStagePlan(s, { ...MILL_PLAN, event: { ...MILL_PLAN.event, challenge: 'moderate', gain: 'moderate' } }, { kind: 'scenario', tier: 'success', placeId: 'field' }, { entry: 'open' }, createRng(1));
+    const ctx = { kind: 'scenario' as const, tier: 'success' as const, placeId: 'field' };
+    const plan = { ...MILL_PLAN, event: { ...MILL_PLAN.event, challenge: 'moderate' as const, gain: 'moderate' as const }, bands: [{ key: 'millers', name: 'millers', goals: '', temperament: '', tactics: 'simple' as const, lethal: true, relations: {}, chase: 'far' as const }] };
+    expect(validateStagePlan(s, plan, ctx).filter((e) => e.code === 'bad_band')).toEqual([]);
+    expect(validateStagePlan(s, { ...plan, bands: [{ ...plan.bands[0], chase: 'forever' as never }] }, ctx).map((e) => e.code)).toContain('bad_band');
+    applyStagePlan(s, plan, ctx, { entry: 'open' }, createRng(1));
+    expect(s.bands.find((b) => b.name === 'millers')!.chase).toBe('far');
     expect(s.stage.scenario!.ground).toEqual(['field_edge', 'mill_yard', 'mill_race']);
     s.player.zone = 'field_far';
     applyStagePlan(s, grovePlan(), { kind: 'extension', tier: 'success', placeId: 'field', frontierKey: 'woods' }, { entry: 'open' }, createRng(1));
     expect(s.stage.scenario!.ground).toEqual(expect.arrayContaining(['grove', 'field_far']));
   });
 
-  it('SC16: off the ground with no one chasing, the scenario ends as left and free roam starts', () => {
+  it('SC16: off the ground with no one chasing, the scenario ends as left and free roam starts; BG-43: the ground is every zone of each place it touches', () => {
     const s = makeVillage({ playerZone: 'tav_common' });
-    scenario(s, ['tav_common', 'tav_counter']);
+    scenario(s, ['tav_common']);
+    checkScenarioEnd(s, []);
+    expect(s.stage.ending).toBeUndefined();
+    place(s, 'player', 'tav_cellar'); // BG-43: in the same place, though no plan named it
+    expect(offGround(s).off).toBe(false);
     checkScenarioEnd(s, []);
     expect(s.stage.ending).toBeUndefined();
     place(s, 'player', 'street_door');
+    expect(offGround(s).off).toBe(true);
     checkScenarioEnd(s, []);
     expect(s.stage.breakCause).toBe('scenario_end');
     expect(closeScenario(s)).toBe('roam');
@@ -227,15 +237,6 @@ describe('190 chases and free roam', () => {
     expect(s.stage.roam).toBeDefined();
     expect(s.stage.scenario).toBeUndefined();
     expect(waysOut(s, 'field_far').find((l) => l.to === 'grove')?.frontier).toBeUndefined();
-  });
-
-  it('CH5: the Weaver may give a band a chase range from the table', () => {
-    const s = makeVillage({ playerZone: 'field_edge' });
-    const plan = { ...MILL_PLAN, bands: [{ key: 'millers', name: 'millers', goals: '', temperament: '', tactics: 'simple' as const, lethal: true, relations: {}, chase: 'far' as const }] };
-    expect(validateStagePlan(s, plan, { kind: 'scenario', tier: 'success', placeId: 'field' }).filter((e) => e.code === 'bad_band')).toEqual([]);
-    expect(validateStagePlan(s, { ...plan, bands: [{ ...plan.bands[0], chase: 'forever' as never }] }, { kind: 'scenario', tier: 'success', placeId: 'field' }).map((e) => e.code)).toContain('bad_band');
-    applyStagePlan(s, plan, { kind: 'scenario', tier: 'success', placeId: 'field' }, { entry: 'open' }, createRng(1));
-    expect(s.bands.find((b) => b.name === 'millers')!.chase).toBe('far');
   });
 
   it('SD1: a scenario that ends inside resolveTurn still reports its ending afterwards', () => {

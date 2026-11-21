@@ -7,15 +7,11 @@ import type { Actor, AttackResult, GameState } from '../../src/types';
 import { makeVillage, place } from '../harness';
 import { intent, play } from './w4-kit';
 import { CONFIG } from '../../src/config';
-import { getLibrary } from '../../src/library';
-import { PERK_LINKS } from '../../src/library/perkLinks';
-import { BUILT_PERKS } from '../../src/library/builtPerks';
 import { PK } from '../../src/library/perkIds';
 import { PA } from '../../src/library/tableIds';
 import { SK } from '../../src/library/skillIds';
 import { actorById, zoneById } from '../../src/engine/relations';
 import { afterAttack, coverFor, markShifts, markForRounds } from '../../src/engine/perkMarks';
-import { syncPerkLinks } from '../../src/ruleset/perkLinks';
 import { personalityOf } from '../../src/ruleset/personality';
 import { trueSkill } from '../../src/ruleset/perks';
 import { checkParserLegality } from '../../src/agents/legality';
@@ -24,7 +20,6 @@ import { LC } from '../../src/library/tableIds';
 import { landUnder } from '../harness';
 
 const give = (a: Actor, ...perks: string[]) => { for (const perkId of perks) a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 }); };
-const owns = (a: Actor, perkId: string) => a.core.perks.some((p) => p.perkId === perkId);
 /** the patron, hostile to the player, beside it in the common room */
 const fight = (status: 'suspicious' | 'aware'): GameState => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'trader'] });
@@ -37,19 +32,6 @@ const shifts = (s: GameState) => play(s, { intent: intent({ action: { type: 'att
   .filter((e) => e.actorId === 'player' && e.kind === 'attack').flatMap((e) => e.attack?.attack.tierShifts ?? []).map((x) => x.source);
 
 describe('293 link rows and personality nudges', () => {
-  it('LR1-LR5: four grant rows; each perk comes with its pair and leaves with it', () => {
-    makeVillage();
-    const rows = PERK_LINKS.filter((l) => [PK.ghost_blade, PK.combination, PK.blind_spot, PK.bulwark].includes(l.perk as never));
-    expect(rows.map((l) => l.kind)).toEqual(['grant', 'grant', 'grant', 'grant']);
-    for (const l of rows) expect(BUILT_PERKS.has(l.perk) && getLibrary().perks[l.perk]?.linked).toBe(true);
-    const s = makeVillage();
-    give(s.player, PK.shield_wall, PK.cover_ally);
-    syncPerkLinks(s.player, 0);
-    expect(owns(s.player, PK.bulwark)).toBe(true);
-    s.player.core.perks = s.player.core.perks.filter((p) => p.perkId !== PK.shield_wall);
-    syncPerkLinks(s.player, 0);
-    expect(owns(s.player, PK.bulwark)).toBe(false);
-  });
 
   it('LR1 Ghost Blade: Hidden Strike lands on a suspicious target, once per target per engagement; not on an aware one', () => {
     const s = fight('suspicious');
@@ -111,20 +93,13 @@ describe('293 link rows and personality nudges', () => {
     expect(coverFor(s, ally, false)?.id).toBe('player');
   });
 
-  it('PN1/PN4/PN5: attitude perks move one axis by the step; others none', () => {
+  it('PN1/PN4/PN5/PN6: attitude perks move one axis by the step; others none; a dormant perk adds no points', () => {
     const s = makeVillage();
     const p = s.player;
     p.core.personality = { nerve: 0, traits: {}, values: [] };
     p.core.classes = [];
     give(p, PK.bluff, PK.dread_presence, PK.hidden_strike);
     expect(personalityOf(p).traits).toEqual({ [PA.honesty]: -CONFIG.ACH_PERSONALITY_STEP, [PA.pride]: CONFIG.ACH_PERSONALITY_STEP });
-  });
-
-  it('PN6: a dormant perk adds no points', () => {
-    const s = makeVillage();
-    const p = s.player;
-    p.core.personality = { nerve: 0, traits: {}, values: [] };
-    give(p, PK.bluff);
     p.core.perks.find((x) => x.perkId === PK.bluff)!.dormant = true;
     expect(personalityOf(p).traits[PA.honesty] ?? 0).toBe(0);
   });

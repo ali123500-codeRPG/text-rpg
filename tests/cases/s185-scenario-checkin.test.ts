@@ -22,17 +22,13 @@ const codes = (s: GameState) => s.log.map((l) => l.code);
 const beat = (id: string): Trigger => ({ id, ownerId: 'trader', when: { type: 'quiet_turns', turns: 3 }, then: { type: 'talk', target: '$player', skill: null, intent: 'news' } as Trigger['then'], once: true });
 
 describe('185 budget and code endings (SC2, SC12)', () => {
-  it('the budget is game time, fights included (AT83)', () => {
+  it('the budget is game time, fights included (AT83); at twice the budget code ends the scenario as worn out, after any fight, and files a bug', () => {
     const s = makeVillage();
-    frame(s);
+    frame(s, 'moment', [{ when: { kind: 'judged' }, as: 'resolved', text: '' }, { when: { kind: 'judged' }, as: 'lost', text: '' }]);
     s.turn += 6;
     expect(budgetUsed(s, s.stage.scenario!)).toBe(0); // turns alone use none of it
     advanceClock(s, 6);
     expect(budgetUsed(s, s.stage.scenario!)).toBeCloseTo(6 / CONFIG.SCENARIO_SCALE.moment.budgetMin);
-  });
-  it('at twice the budget code ends the scenario as worn out, after any fight, and files a bug', () => {
-    const s = makeVillage();
-    frame(s, 'moment', [{ when: { kind: 'judged' }, as: 'resolved', text: '' }, { when: { kind: 'judged' }, as: 'lost', text: '' }]);
     s.stage.scenario!.lastCheckin = s.turn; // no check-in in the way
     advanceClock(s, CONFIG.SCENARIO_OVERRUN_MULT * CONFIG.SCENARIO_SCALE.moment.budgetMin);
     actor(s, 'slime_1').mind!.knowledge.player = { status: 'engaged', source: 'seen', revealed: [] } as never;
@@ -114,22 +110,20 @@ describe('185 the check-in call and its answer (SC8, SC14)', () => {
     expect(d.takeCheckin()).toMatchObject({ number: s.stage.scenario!.number, answer: { verdict: 'continue' } });
     expect(d.takeCheckin()).toBeNull();
   });
-  it('an end ends the scenario (after a clear turn) and is recorded', () => {
-    const s = calm();
-    frame(s);
-    applyCheckin(s, s.stage.scenario!.number, { verdict: 'end', as: 'resolved', text: 'the debt is paid' }, []);
-    expect(s.hidden.scenarios?.at(-1)).toMatchObject({ ending: 'resolved', text: 'the debt is paid' });
-    expect(s.stage.roam).toMatchObject({ since: s.turn }); // SD2 a: every ending starts free roam for now
-    expect(s.stage.breakCause).toBeUndefined();
-  });
-  it('continue adds its beats to their owners', () => {
+  it('continue adds its beats to their owners; an end ends the scenario (after a clear turn) and is recorded', () => {
     const s = calm();
     frame(s);
     applyCheckin(s, s.stage.scenario!.number, { verdict: 'continue', beats: [beat('watch')] }, []);
     expect(s.hidden.plans.trader.triggers.map((t) => t.id)).toEqual([`ci${s.turn}_0_watch`]);
     expect(s.stage.breakCause).toBeUndefined();
+    applyCheckin(s, s.stage.scenario!.number, { verdict: 'end', as: 'resolved', text: 'the debt is paid' }, []);
+    expect(s.hidden.scenarios?.at(-1)).toMatchObject({ ending: 'resolved', text: 'the debt is paid' });
+    expect(s.stage.roam).toMatchObject({ since: s.turn }); // SD2 a: every ending starts free roam for now
+    expect(s.stage.breakCause).toBeUndefined();
   });
-  it('a failed or invalid answer changes nothing and files a bug; an answer about a scenario that is over is dropped', () => {
+  it('the schema reads an answer; a failed or invalid answer changes nothing and files a bug; an answer about a scenario that is over is dropped', () => {
+    expect(checkCheckin({ verdict: 'end', as: 'escaped', text: 't' }).errors).toEqual([]);
+    expect(checkCheckin({ verdict: 'maybe' }).errors.length).toBeGreaterThan(0);
     const s = calm();
     frame(s);
     const n = s.stage.scenario!.number;
@@ -141,10 +135,6 @@ describe('185 the check-in call and its answer (SC8, SC14)', () => {
     expect(s.stage.breakCause).toBeUndefined();
     applyCheckin(s, n - 1, { verdict: 'end', as: 'lost' }, []);
     expect(s.stage.breakCause).toBeUndefined();
-  });
-  it('the schema reads an answer, and the check-in has its own instructions', () => {
-    expect(checkCheckin({ verdict: 'end', as: 'escaped', text: 't' }).errors).toEqual([]);
-    expect(checkCheckin({ verdict: 'maybe' }).errors.length).toBeGreaterThan(0);
   });
 });
 

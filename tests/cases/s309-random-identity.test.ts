@@ -11,7 +11,7 @@ import { PLAYER_NAMES } from '../../src/library/names';
 import { ST } from '../../src/library/startIds';
 
 describe('309 random identity at creation', () => {
-  it('every pick is a valid build, the age is Youth to before Old, and the name fits the gender', () => {
+  it('every pick is a valid build, the age is Youth to before Old, and the name fits the gender; a kept race is kept', () => {
     const seen = new Set<string>(), races = new Set<string>();
     for (let seed = 1; seed <= 200; seed++) {
       const r = randomIdentity(createRng(seed));
@@ -28,10 +28,7 @@ describe('309 random identity at creation', () => {
     }
     expect([...seen].sort()).toEqual(['he', 'she', 'they']);
     expect([...races].sort()).toEqual(playableRaces().sort()); // CC7 a: the race is random too
-  });
-
-  it('a kept race keeps its age range', () => {
-    for (let seed = 1; seed <= 50; seed++) expect(randomIdentity(createRng(seed), RC.human).raceId).toBe(RC.human);
+    for (let seed = 1; seed <= 50; seed++) expect(randomIdentity(createRng(seed), RC.human).raceId).toBe(RC.human); // a kept race stays
   });
 
 });

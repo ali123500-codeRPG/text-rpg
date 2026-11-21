@@ -17,6 +17,7 @@ import { answerOffer, canOffer, landed, makeOffer, offersTo, tiersToConvince } f
 import { coins } from '../../src/engine/trade';
 import { repeatTryMods } from '../../src/ruleset/pressure';
 import { buildPlayerView } from '../../src/views';
+import { actorBody } from '../../src/library';
 
 /** the patron (code-run) is hostile to the player and fighting them */
 const fight = (who = 'patron_1', s: GameState = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'trader'] })): GameState => {
@@ -30,15 +31,23 @@ const roll = (actorId: string, tier: RollResult['tier']) => ({ actorId, tier, ma
 const won = (by: number): ContestResult => ({ a: roll('a', 'success'), b: roll('b', 'success'), gap: -by, winner: by > 0 ? 'a' : by < 0 ? 'b' : 'tie' });
 const patron = (s: GameState) => actorById(s, 'patron_1')!;
 
-it('TF14: a fresh foe needs a win by OFFER_WIN_TIERS; a hurt or uneasy one by OFFER_WIN_TIERS_SHAKEN', () => {
+it('TF14/TF19: a fresh foe needs a win by OFFER_WIN_TIERS, a hurt or uneasy one by OFFER_WIN_TIERS_SHAKEN; a demand to yield needs a bigger win, and Broken and Crippled each make it easier', () => {
   const s = fight(), p = patron(s);
   expect(tiersToConvince(p)).toBe(CONFIG.OFFER_WIN_TIERS);
+  expect(tiersToConvince(p, 'yield', s)).toBe(CONFIG.OFFER_YIELD_WIN_TIERS);
+  expect(tiersToConvince(p, 'yield', s)).toBeGreaterThan(tiersToConvince(p));
   p.core.condition.hpLostPct = 30;
   expect(tiersToConvince(p)).toBe(CONFIG.OFFER_WIN_TIERS_SHAKEN);
   expect(landed(won(CONFIG.OFFER_WIN_TIERS_SHAKEN), p)).toBe('convinced');
   expect(landed(won(1), patron(fight()))).toBe('tempted');
   expect(landed(won(0), p)).toBe('tempted');
   expect(landed(won(-1), p)).toBe('unmoved');
+  expect(tiersToConvince(p, 'yield', s)).toBe(CONFIG.OFFER_YIELD_WIN_TIERS_SHAKEN);
+  const part = actorBody(s, p).parts[0].id;
+  p.core.condition.parts[part] = -50; // Crippled
+  expect(tiersToConvince(p, 'yield', s)).toBe(CONFIG.OFFER_YIELD_WIN_TIERS_SHAKEN - CONFIG.OFFER_YIELD_EASIER);
+  p.mind!.moraleState = 'broken';
+  expect(tiersToConvince(p, 'yield', s)).toBe(Math.max(1, CONFIG.OFFER_YIELD_WIN_TIERS_SHAKEN - 2 * CONFIG.OFFER_YIELD_EASIER));
 });
 
 it('TF13/TF16/TF18: a code-run foe convinced in the exchange stands down: a truce both ways, a talked-down tally, no defeat', () => {

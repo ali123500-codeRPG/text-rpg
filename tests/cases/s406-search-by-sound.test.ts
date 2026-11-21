@@ -64,7 +64,7 @@ describe('406 search by sound', () => {
     expect(tests(s)).toEqual([FN.sight]);
   });
 
-  it('LS1/LS2: a step round the corner is heard through the doorway though no sight passes; a still hider there is not', () => {
+  it('LS1/LS2/LS3 a: a step round the corner is heard through the doorway though no sight passes, a still hider there is not; the search hears further with skill', () => {
     const { s } = roundTheCorner();
     rig(1);
     stepped(s, 'quiet');
@@ -75,11 +75,7 @@ describe('406 search by sound', () => {
     s.recentEvents = [];
     play(s, search());
     expect(tests(s)).toEqual([]);
-  });
-
-  it('LS3 a: the search hears further with skill: 10·log10(area ÷ SEARCH_AREA_M2) dB', () => {
-    const { s } = roundTheCorner();
-    rig(-1);
+    // LS3 a: the search hears further with skill: 10·log10(area ÷ SEARCH_AREA_M2) dB
     stepped(s, 'faint'); // 20 dB: not heard round the corner at skill 50
     play(s, search());
     expect(tests(s)).toEqual([]);

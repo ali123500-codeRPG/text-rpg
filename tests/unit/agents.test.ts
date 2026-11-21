@@ -192,7 +192,7 @@ describe('VirtualClock', () => {
 });
 
 describe('browser client', () => {
-  it('tolerant JSON parse like sample.json', () => {
+  it('tolerant JSON parse like sample.json, missing commas (BG-35) and stray closing brackets (BG-45) included', () => {
     expect(parseTolerant('{"a":1}')).toEqual({ ok: true, value: { a: 1 } });
     expect(parseTolerant('Sure:\n```json\n{"a":2}\n```')).toEqual({ ok: true, value: { a: 2 } });
     expect(parseTolerant('Here it is {"a":3} done')).toEqual({ ok: true, value: { a: 3 } });
@@ -204,6 +204,12 @@ describe('browser client', () => {
     expect(parseTolerant('{"line":"Hm? Cat got your\n\nWait, correction:\n\n{"action":{"a":1},"line":"Hm?"}'))
       .toEqual({ ok: true, value: { action: { a: 1 }, line: 'Hm?' } });
     expect(parseTolerant('{"a":1,"b":{"c":2}')).toEqual({ ok: false }); // cut off: not mistaken for {"c":2}
+    // BG-35: a missing comma between members (after a string, an array, an object, a number or a literal) is put back
+    expect(parseTolerant('{"text":"You step in. \\"Who\\" asks.""narrated":["t70.2","t70.3"]}')).toEqual({ ok: true, value: { text: 'You step in. "Who" asks.', narrated: ['t70.2', 't70.3'] } });
+    expect(parseTolerant('{"a":[1] "b":{"c":2}\n "d":3 "e":true "f":null}')).toEqual({ ok: true, value: { a: [1], b: { c: 2 }, d: 3, e: true, f: null } });
+    // BG-45: a ] or } that closes nothing open is dropped; brackets inside strings are kept
+    expect(parseTolerant('{"text":"You look [close]."],"narrated":["t1.1","t1.2"]}')).toEqual({ ok: true, value: { text: 'You look [close].', narrated: ['t1.1', 't1.2'] } });
+    expect(parseTolerant('{"a":[1,2}],"c":"x \\"]\\" y"}')).toEqual({ ok: true, value: { a: [1, 2], c: 'x "]" y' } });
   });
   it('maps runtime codes and passes tier, model, effort, signal', async () => {
     expect(mapCode('capability_removed')).toBe('not_granted');

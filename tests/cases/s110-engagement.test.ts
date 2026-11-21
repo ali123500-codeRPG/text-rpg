@@ -35,19 +35,15 @@ describe('110 engagement', () => {
     expect(s.player.engagement).toBeUndefined();
     expect(s.log.filter((l) => l.code === 'engagement_ended' && (l.detail as { actorId: string }).actorId === 'player')).toHaveLength(1);
   });
-  it('a scenario break ends it at once', () => {
-    const s = makeVillage();
-    next(s, [speak(s, 'player', 'patron_1')]);
-    s.stage.breakCause = 'story_beat';
-    expect(next(s)).toBe(true);
-  });
   it('once-per-engagement uses reset with a new engagement', () => {
     const s = makeVillage();
     expect(usableThisEngagement(s.player, PK.battle_cry)).toBe(false); // not engaged
     next(s, [speak(s, 'player', 'patron_1')]);
     useThisEngagement(s.player, PK.battle_cry);
     expect(usableThisEngagement(s.player, PK.battle_cry)).toBe(false);
-    s.stage.breakCause = 'story_beat'; next(s); delete s.stage.breakCause;
+    s.stage.breakCause = 'story_beat';
+    expect(next(s)).toBe(true); // a scenario break ends it at once
+    delete s.stage.breakCause;
     next(s, [speak(s, 'player', 'patron_1')]);
     expect(usableThisEngagement(s.player, PK.battle_cry)).toBe(true);
   });

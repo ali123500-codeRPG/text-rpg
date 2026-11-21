@@ -27,14 +27,23 @@ function shop(): GameState {
 }
 const gap = (g: number) => ({ gap: g }) as ContestResult;
 
-it('133b wares, buying a service, and a refused sale', () => {
+// 133g (run 21): every buy came back "Which item do you mean?" because legality only knew items the player could reach
+it('133b/g wares at the player\'s prices, a buy naming a ware of its seller passes legality, buying a service, and a refused sale', () => {
   const s = shop();
-  const mags = buildPlayerView(s).actors.find((a) => a.id === 'trader')!;
+  const view = buildPlayerView(s);
+  const mags = view.actors.find((a) => a.id === 'trader')!;
   expect(mags.wares).toEqual([
     { id: `goods:${IT.healing_draught}`, name: 'healing draught', price: '2 silver', stock: 3 }, // value 10 × markup 2
     { id: `service:${SV.drink}`, name: 'drink', price: '2 copper' },
     { id: `service:${SV.clinic}`, name: 'clinic care', price: '4 silver' },
   ]);
+  const legal = (item: string, target = 'trader') => checkParserLegality(intent({ action: { type: 'buy', target, item } }), view).illegal;
+  expect(legal(`service:${SV.drink}`)).toEqual([]);
+  expect(legal(`goods:${IT.healing_draught}`)).toEqual([]);
+  expect(legal(`service:${SV.bed}`)).toEqual([`action.item service:${SV.bed}`]);
+  expect(legal(`service:${SV.drink}`, 'patron_1')).toEqual([`action.item service:${SV.drink}`]);
+  // run 22: haggling over a named ware asked "Which item do you mean?" the same way
+  expect(checkParserLegality(intent({ action: { type: 'barter', target: 'trader', item: `service:${SV.drink}` } }), view).illegal).toEqual([]);
   const ev = play(s, { intent: intent({ action: { type: 'buy', target: 'trader', item: `service:${SV.drink}`, qty: 2 } }) });
   expect(coins(s.player)).toBe(16);
   const b = ev.find((e) => e.kind === 'buy')!;
@@ -109,19 +118,6 @@ it('133e clinic care is bought, then used by resting in the clinic', () => {
   play(s, { intent: intent({ action: { type: 'rest' } }) });
   expect(c.hpLostPct).toBe(0);
   expect(s.player.paid).toEqual([]);
-});
-
-// run 21: every buy came back "Which item do you mean?" because legality only knew items the player could reach
-it('133g a buy naming a ware of its seller passes legality; a ware the seller lacks does not', () => {
-  const s = shop();
-  const view = buildPlayerView(s);
-  const legal = (item: string, target = 'trader') => checkParserLegality(intent({ action: { type: 'buy', target, item } }), view).illegal;
-  expect(legal(`service:${SV.drink}`)).toEqual([]);
-  expect(legal(`goods:${IT.healing_draught}`)).toEqual([]);
-  expect(legal(`service:${SV.bed}`)).toEqual([`action.item service:${SV.bed}`]);
-  expect(legal(`service:${SV.drink}`, 'patron_1')).toEqual([`action.item service:${SV.drink}`]);
-  // run 22: haggling over a named ware asked "Which item do you mean?" the same way
-  expect(checkParserLegality(intent({ action: { type: 'barter', target: 'trader', item: `service:${SV.drink}` } }), view).illegal).toEqual([]);
 });
 
 // RD2, BG-57: an order is called out, so the seller must hear a normal voice clearly where they stand (real metres, a

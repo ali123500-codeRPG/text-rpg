@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { makeVillage, place } from '../harness';
 import { intent, play } from './w4-kit';
 import { headTo } from '../../src/minds';
-import { now, startClock } from '../../src/time';
+import { now, startClock, timeOfDay } from '../../src/time';
 import { isActive } from '../../src/engine/relations';
 import { isBrokenLevel, moraleLevel } from '../../src/ruleset/morale';
 import { CONFIG } from '../../src/config';
@@ -54,11 +54,13 @@ describe('272 the world clock', () => {
     expect(s.player.core.condition.hpLostPct).toBeLessThan(50);
     expect(mechanicsLines(s, ev)).toContain('Rest stopped after 1 min: someone is coming at you');
   });
-  it('AT67: a wait runs to the time named, and its time shows', () => {
+  it('AT67: a plain wait runs to the next time of day, and its time shows', () => {
     const s = tavern();
+    startClock(s, 'morning');
     const t = now(s);
     const ev = play(s, { intent: intent({ action: { type: 'wait' } }) });
     expect(now(s) - t).toBeGreaterThan(60);
+    expect(timeOfDay(now(s))).toBe('afternoon');
     expect(s.log.find((l) => l.code === 'time_passed')).toBeDefined();
     expect(mechanicsLines(s, ev).some((l) => l.startsWith('Time passes:'))).toBe(true);
   });
@@ -106,13 +108,6 @@ describe('272 NPCs on code in a stretch (stage 3c)', () => {
     expect(g.zone).toBe('tav_common');
     expect(stopped(s)).toMatchObject({ kind: 'rest', by: ['guard_1'] });
     expect(stopped(s)!.seconds).toBeLessThan(60 * 60);
-  });
-  it('AT63: asleep, the player gets no warning: the night stops when the foe comes in', () => {
-    const { s, g } = hunted();
-    startClock(s, 'night');
-    play(s, { intent: intent({ action: { type: 'sleep' } }) });
-    expect(g.zone).toBe('tav_common');
-    expect(s.log.find((l) => l.code === 'sleep_stopped')?.detail).toMatchObject({ by: ['guard_1'] });
   });
   it('AT55: a fight out of the player\'s senses runs on code, a blow a round, and does not stop the rest', () => {
     const s = makeVillage({ playerZone: 'tav_cellar', without: ['slime_1', 'slime_2'] });

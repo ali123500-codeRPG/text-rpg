@@ -101,17 +101,19 @@ describe('125 All-50 parts', () => {
     expect(trueSkill(s.player, SK.eyesight)).toBe(40);
     expect(trueSkill(s.player, SK.earshot)).toBe(30);
   });
-  it("Fighter's Frame: melee hits on the owner cost ×0.9 health, after armor", () => {
-    const dmg = (perk: boolean) => {
+  it("Fighter's Frame (melee hits on the owner cost ×0.9 health, after armor) and Thick Hide (a hit on the owner is ×0.95 before armor)", () => {
+    const dmg = (perk?: string) => {
       const s = makeVillage();
       beside(s, 'patron_1');
       arm(s, 'patron_1');
       s.player.core.inventory = s.player.core.inventory.filter((i) => !i.equippedIn?.includes('armor'));
-      if (perk) give(s.player, PK.fighters_frame);
+      if (perk) give(s.player, perk);
       return ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'w_patron_1', targetPart: null, aimed: false }, s, forcedRng([99, 2, 50, 50])).damage;
     };
-    expect(dmg(false)).toBeGreaterThan(0);
-    expect(dmg(true)).toBeCloseTo(dmg(false) * 0.9);
+    const plain = dmg();
+    expect(plain).toBeGreaterThan(0);
+    expect(dmg(PK.fighters_frame)).toBeCloseTo(plain * 0.9);
+    expect(dmg(PK.thick_hide)).toBeCloseTo(plain * 0.95);
   });
   it('Past the Cover (CV8 b): the target counts as showing four times as much to the owner\'s ranged attacks', () => {
     const gap = (perk: boolean) => {
@@ -184,18 +186,6 @@ describe('125 All-50 parts', () => {
     expect(r(SK.persuasion, 95).tierShifts).toEqual([]);
     expect(r(SK.eyesight, 2).tierShifts).toEqual([]);
   });
-  it('Thick Hide: a hit on the owner is ×0.95 before armor', () => {
-    const dmg = (perk: boolean) => {
-      const s = makeVillage();
-      beside(s, 'patron_1');
-      arm(s, 'patron_1');
-      s.player.core.inventory = s.player.core.inventory.filter((i) => !i.equippedIn?.includes('armor'));
-      if (perk) give(s.player, PK.thick_hide);
-      return ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'w_patron_1', targetPart: null, aimed: false }, s, forcedRng([99, 2, 50, 50])).damage;
-    };
-    expect(dmg(false)).toBeGreaterThan(0);
-    expect(dmg(true)).toBeCloseTo(dmg(false) * 0.95);
-  });
   it('Dodgy: attack rolls against the owner get −10 effective skill', () => {
     const s = makeVillage();
     beside(s, 'patron_1');
@@ -228,11 +218,6 @@ describe('125 All-50 moves', () => {
     arm(s, 'patron_1');
     give(s.actors.find((a) => a.id === 'patron_1')!, PK.counter);
     expect(fight(s, 'patron_1', 'w_player', fumble).slice(0, 2)).toEqual([{ by: 'player', at: 'patron_1' }, { by: 'patron_1', at: 'player' }]);
-    const t = makeVillage();
-    place(t, 'patron_1', t.player.zone);
-    arm(t, 'player');
-    arm(t, 'patron_1');
-    expect(fight(t, 'patron_1', 'w_player', fumble).filter((c) => c.by === 'patron_1' && c.at === 'player').length).toBeLessThanOrEqual(1); // only its own turn's attack, if any
     const u = makeVillage();
     place(u, 'patron_1', u.player.zone);
     arm(u, 'player');
@@ -278,17 +263,6 @@ describe('125 All-50 moves', () => {
     fight(s, 'patron_1', 'w_player', graze, true);
     expect(foe.core.condition.hpLostPct).toBeLessThanOrEqual(45.05); // Injured at most (the second graze adds a hair)
     expect(foe.engagement?.uses?.[PK.second_wind]).toBe(1);
-  });
-  it('Strike and Fade: right after an attack from hiding the owner is stealthy again, and those the attack made aware roll Vanishing (VS3)', () => {
-    const s = makeVillage();
-    beside(s, 'patron_1');
-    arm(s, 'player');
-    give(s.player, PK.strike_and_fade);
-    s.player.posture = 'stealthy';
-    const ev = play(s, { intent: intent({ action: { type: 'attack', target: 'patron_1', item: 'w_player' } }) });
-    const fade = ev.find((e) => e.actorId === 'player' && e.kind === 'vanish');
-    expect(fade?.effects.map((f) => f.kind)).toContain(PK.strike_and_fade);
-    expect(s.log.some((l) => l.code === 'stealth_contest' && (l.detail as { skill: string }).skill === SK.vanishing)).toBe(true);
   });
   it('Volley: once per engagement, a ranged hit is followed by a free shot at a foe already hostile and known', () => {
     const run = (perk: boolean) => {

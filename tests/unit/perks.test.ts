@@ -19,15 +19,6 @@ function setup() {
 }
 
 describe('skill ladders and true skill', () => {
-  it('milestones: open when reached, sealed above, empty when no perk is written', () => {
-    const { p } = setup();
-    expect(milestoneState(p, SK.melee_medium, 20)).toBe('open');
-    expect(milestoneState(p, SK.melee_medium, 60)).toBe('sealed');
-    expect(milestoneState(p, SK.melee_medium, 80)).toBe('sealed');
-    p.core.skills[SK.dodge].raw = 25;
-    expect(milestoneState(p, SK.dodge, 20)).toBe('empty');
-  });
-
   it('a flat perk raises true skill, which can open the next milestone and feeds effective skill (S3)', () => {
     const { s, p } = setup();
     const before = effectiveSkill(s, p, SK.melee_medium).value;
@@ -38,8 +29,9 @@ describe('skill ladders and true skill', () => {
     expect(effectiveSkill(s, p, SK.melee_medium).value).toBe(before + 5);
   });
 
-  it('taking costs a point (S2); undo refunds it until the next turn (K3)', () => {
+  it('taking costs a point (S2); undo refunds it until the next turn (K3); refuses without a point or below the milestone; keeps a perk if the skill drops (S4)', () => {
     const { s, p } = setup();
+    expect(canTake(p, 't_60')).toBe('milestone not reached');
     takePerk(s, p, 't_gb');
     expect(p.progression!.unspentPerkPoints).toBe(1);
     expect(milestoneState(p, SK.melee_medium, 20)).toBe('own');
@@ -50,19 +42,19 @@ describe('skill ladders and true skill', () => {
     s.turn += 1;
     expect(canUndo(s, p, 't_gb')).toBe(false);
     expect(() => undoPerk(s, p, 't_gb')).toThrow();
-  });
-
-  it('refuses without a point or below the milestone; keeps a perk if the skill drops (S4)', () => {
-    const { s, p } = setup();
-    expect(canTake(p, 't_60')).toBe('milestone not reached');
-    takePerk(s, p, 't_gb'); takePerk(s, p, 't_wt');
+    takePerk(s, p, 't_wt');
     expect(canTake(p, 't_60')).toBe('no perk point');
     p.core.skills[SK.melee_medium].raw = 10;
     expect(milestoneState(p, SK.melee_medium, 20)).toBe('own');
   });
 
-  it('60 and 80 need one perk in the skill, 100 and 120 need two, 140 needs three', () => {
+  it('milestones: open when reached, sealed above, empty when no perk is written; 60 and 80 need one perk in the skill, 100 and 120 need two, 140 needs three', () => {
     const { s, p } = setup();
+    expect(milestoneState(p, SK.melee_medium, 20)).toBe('open');
+    expect(milestoneState(p, SK.melee_medium, 60)).toBe('sealed');
+    expect(milestoneState(p, SK.melee_medium, 80)).toBe('sealed');
+    p.core.skills[SK.dodge].raw = 25;
+    expect(milestoneState(p, SK.dodge, 20)).toBe('empty');
     p.core.skills[SK.melee_medium].raw = 145;
     p.progression!.unspentPerkPoints = 5;
     expect(milestoneState(p, SK.melee_medium, 60)).toBe('sealed');

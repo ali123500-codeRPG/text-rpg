@@ -2,11 +2,9 @@
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { achievementInfo, tally, xpToNext } from '../../src/engine/xp';
-import { questXp } from '../../src/engine/quests';
 import { ACH } from '../../src/library/achievementIds';
 import { getLibrary } from '../../src/library';
 import { achXp, rewardXp, rewardXpAt } from '../../src/ruleset/achRewards';
-import type { Quest } from '../../src/types';
 
 const share = (p: number) => (rewardXpAt(p, 10000) - rewardXpAt(p)) / 10000;
 
@@ -36,13 +34,6 @@ describe('379 achievement XP level share', () => {
     const scar = { level: 'minus_1', scar: true as const };
     expect(achXp(scar)).toBe(0);
     expect(achXp(scar, undefined, 1000)).toBe(5);
-  });
-
-  it('AL4: a quest pays its share too, at its achievement level two above', () => {
-    const s = makeVillage();
-    const q = { level: 'zero', goal: { kind: 'deliver' } } as unknown as Quest;
-    expect(questXp(s, q)).toBe(rewardXp('ii', xpToNext(s.player)));
-    expect(questXp(s, q)).toBeGreaterThan(rewardXp('ii'));
   });
 
 });

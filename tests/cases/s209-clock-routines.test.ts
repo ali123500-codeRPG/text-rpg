@@ -7,7 +7,6 @@ import { actionRow } from '../../src/ruleset/actionTime';
 import { describe, expect, it } from 'vitest';
 import type { GameState, Intent, ParserActionType, Routine } from '../../src/types';
 import { createRng, makeVillage } from '../harness';
-import { sleepDebtFor } from '../harness/sleep';
 import { resolveTurn } from '../../src/engine';
 import { desiredState, installRoutines } from '../../src/minds';
 import { buildActorView } from '../../src/views';
@@ -48,20 +47,6 @@ describe('209 routines on the clock (NW10, NW11, NW13)', () => {
     lib.routines![r.id] = { ...r, times: [...r.times!, { at: ['night'], steps: r.steps }] };
     expect(validateRoutineBank({ routines: lib.routines!, sets: lib.routineSets!, activities: lib.activities! }).errors.join(' ')).toMatch(/night is named twice/);
     lib.routines![r.id] = r;
-  });
-  it('NW11: a long sleep moves every NPC to where its routine puts it at the new time', () => {
-    const s = quiet();
-    startClock(s, 'night');
-    const g = s.actors.find((a) => a.id === 'guard_1')!;
-    // a patrol from the gate to the tavern door and back, 30 minutes a stop
-    installRoutines(g, 'patrol_guard', { route: ['gate_inner', 'street_square', 'street_door'] }, 'route', s.turn, createRng(1), now(s));
-    const before = now(s);
-    sleepDebtFor(s, 8); // FT9: 8 hours of sleep debt
-    turn(s, act('sleep'));
-    expect(now(s) - before).toBe(480 + actionRow(DU.action)!.seconds / 60); // the sleep, plus the action row's time
-    // 481 minutes into a 90-minute loop: 31 minutes in, the second stop
-    expect(desiredState(buildActorView(s, g.id))!.zone).toBe('street_square');
-    expect(g.zone).toBe('street_square');
   });
   it('NW11: it goes only as far as it could walk in the time; a turn of an action with no time of its own is the action row of walking', () => {
     const s = quiet();

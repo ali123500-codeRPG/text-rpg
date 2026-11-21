@@ -110,43 +110,28 @@ describe('save and load', () => {
     expect((await head(st)).turn).toBe(0);
   });
 
-  it('repairs dangling references and reports them; raw past its cap is fine (no hard limit, D-374 TB7)', async () => {
+  it('repairs dangling references, drops ground items and routines the library no longer has, and reports them; keeps NPC view history (recentEvents); raw past its cap is fine (no hard limit, D-374 TB7)', async () => {
     const s = makeVillage();
     s.player.journal!.factsWitnessed.push('f_missing');
     actor(s, 'guard_1').mind!.knowledge.ghost = { status: 'aware', source: 'seen', revealed: [] };
     s.player.core.skills[SK.melee_medium] = { raw: 104, state: 'normal' };
     s.player.core.skills[SK.melee_light] = { raw: 120, state: 'tagged' };
-    const st = memoryStore();
-    await saveTurn(st, s, rec(s, 0));
-    const { state, report } = await loadStory(st, 'test', lib());
-    expect(state.player.journal!.factsWitnessed).toEqual([]);
-    expect(actor(state, 'guard_1').mind!.knowledge.ghost).toBeUndefined();
-    expect(report).toEqual(expect.arrayContaining([expect.stringMatching(/witnessed facts f_missing/), expect.stringMatching(/belief about ghost/)]));
-    expect(report.some((l) => l.includes('above its cap'))).toBe(false);
-    expect((await loadStory(st, 'test', lib())).report).toEqual([]); // repair was saved
-  });
-
-  it('drops ground items the library no longer has, so zone views cannot throw', async () => {
-    const s = makeVillage();
     lay(s, s.zones[0].id, { id: 'gi1', itemId: 'retired_item' });
-    const st = memoryStore();
-    await saveTurn(st, s, rec(s, 0));
-    const { state, report } = await loadStory(st, 'test', lib());
-    expect(state.ground.map((i) => i.id)).not.toContain('gi1');
-    expect(report).toEqual(expect.arrayContaining([expect.stringMatching(/unknown ground items/)]));
-  });
-
-  it('keeps NPC view history (recentEvents) through a save; drops unknown routines', async () => {
-    const s = makeVillage();
     s.recentEvents = [{ id: 't0.1', turn: 0, actorId: 'player', kind: 'speak', zone: 'tav_common', effects: [], noise: 'quiet', visibility: 'normal', perception: { patron_1: { level: 'full', cue: 'sound' } } } as never];
     const g = actor(s, 'guard_1').mind!;
     const real = [...g.routines!];
     g.routines = [...real, 'retired_routine'];
     const st = memoryStore();
     await saveTurn(st, s, rec(s, 0));
-    const { state } = await loadStory(st, 'test', lib());
+    const { state, report } = await loadStory(st, 'test', lib());
+    expect(state.player.journal!.factsWitnessed).toEqual([]);
+    expect(actor(state, 'guard_1').mind!.knowledge.ghost).toBeUndefined();
+    expect(state.ground.map((i) => i.id)).not.toContain('gi1'); // so zone views cannot throw
     expect(state.recentEvents?.map((e) => e.id)).toEqual(['t0.1']);
     expect(actor(state, 'guard_1').mind!.routines).toEqual(real);
+    expect(report).toEqual(expect.arrayContaining([expect.stringMatching(/witnessed facts f_missing/), expect.stringMatching(/belief about ghost/), expect.stringMatching(/unknown ground items/)]));
+    expect(report.some((l) => l.includes('above its cap'))).toBe(false);
+    expect((await loadStory(st, 'test', lib())).report).toEqual([]); // repair was saved
   });
 
   it('splits a busy place into several facts pages', async () => {

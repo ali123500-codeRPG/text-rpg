@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { ScriptedClaude, makeVillage } from '../harness';
 import { createGame, VirtualClock, type ScenarioDirector } from '../../src/agents';
 import { memoryStore, saveTurn } from '../../src/save';
-import { autopilotTurn, readMove } from '../../src/agents/autopilot';
+import { autopilotTurn, plainLine, readMove } from '../../src/agents/autopilot';
 import type { GameState, TurnRecord } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
 
@@ -44,7 +44,7 @@ describe('158 autopilot saves', () => {
     expect(g.state()?.meta.owner).toBe('agent'); // the opening keeps its own story
   });
 
-  it('the agent\'s move is one command line and a short spoken line', async () => {
+  it('the agent\'s move is one command line and a short spoken line, voice tags kept and other markup dropped (186)', async () => {
     const clock = new VirtualClock(), store = memoryStore();
     const claude = new ScriptedClaude(clock).push('autopilot', { command: 'I ask the barkeep about work\nand more', say: 'Barkeeps hear everything.' });
     const g = createGame({ client: claude, clock, store, director: idle });
@@ -52,6 +52,12 @@ describe('158 autopilot saves', () => {
     expect(claude.callsFor('autopilot')[0].input[1].content).toContain('Your playstyle:');
     expect(readMove({ say: 'no command' })).toBeNull();
     expect(readMove({ command: 'I wave', say: 'Hello!', ja: 'こんにちは！' })).toEqual({ command: 'I wave', say: 'Hello!' }); // nothing but its own fields
+    // 186 RPG Voice: a move keeps the voice's own tags, drops any other markup, and reads the acting note
+    const m = readMove({ command: 'I strike the guard', say: '<GASP> He <b>missed</b>! <short pause> <dance> Again!', direction: 'breathless <x>, then fierce' })!;
+    expect(m.say).toBe('<gasp> He missed! <short pause> Again!');
+    expect(m.direction).toBe('breathless, then fierce');
+    expect(plainLine(m.say)).toBe('He missed! Again!');
+    expect(readMove({ command: 'I wait', say: 'Hm.' })!.direction).toBeUndefined();
     expect(autopilotTurn([], '', 'character')).toContain('Your voice:');
     expect(autopilotTurn([], '', 'plain')).not.toContain('Your voice:');
     expect(autopilotTurn([], '', 'plain', ['Yatta! Got him.'])).toContain('- Yatta! Got him.'); // never repeats itself

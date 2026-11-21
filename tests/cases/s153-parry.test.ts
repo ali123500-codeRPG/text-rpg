@@ -27,8 +27,11 @@ const hold = (a: Actor, items: string[]) => {
 };
 /** patron_1 swings at the player over a grid of attack and defense dice (a natural high die lifts a tier); every result */
 const DICE = [6, 11, 21, 31, 41, 51, 61, 71, 81, 91, 95, 96, 98, 100];
-const swings = (s: GameState) => DICE.flatMap((i) => DICE.map((k) =>
-  ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'patron_1_h0', targetPart: null, aimed: false }, s, forcedRng([i, k, 50, 50]))));
+const swing = (s: GameState, i: number, k: number) =>
+  ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'patron_1_h0', targetPart: null, aimed: false }, s, forcedRng([i, k, 50, 50]));
+const swings = (s: GameState) => DICE.flatMap((i) => DICE.map((k) => swing(s, i, k)));
+/** the first swing of the grid that meets a defense (the grid is walked only as far as needed) */
+const defended = (s: GameState) => { for (const i of DICE) for (const k of DICE) { const r = swing(s, i, k); if (r.defense) return r; } };
 const setup = () => {
   const s = makeVillage();
   beside(s, 'patron_1');
@@ -64,9 +67,9 @@ describe('153 Parry', () => {
   it('Block is shields only; a weapon parries; parry never stops a missile', () => {
     const s = setup();
     s.player.core.standingDefense = 'block';
-    expect(swings(s).find((r) => r.defense)!.defenseType).not.toBe('block'); // a sword can't block
+    expect(defended(s)!.defenseType).not.toBe('block'); // a sword can't block
     hold(s.player, [IT.arming_sword, IT.round_shield]);
-    expect(swings(s).find((r) => r.defense)!.defenseType).toBe('block');
+    expect(defended(s)!.defenseType).toBe('block');
     // a shot at a parrying player: it falls back to the best other defense (the shield here)
     s.player.core.standingDefense = 'parry';
     const p = npc(s, 'patron_1');
@@ -103,20 +106,19 @@ describe('153 Parry', () => {
     hold(p, [IT.greataxe]);
     p.core.inventory.find((i) => i.id === 'patron_1_h0')!.equippedIn = ['grip:right_arm', 'grip:left_arm'];
     p.core.skills[SK.melee_heavy] = { raw: 60, state: 'normal' };
-    const r = swings(s).find((x) => x.defense);
+    const r = defended(s);
     expect(r?.gapShifts).toContainEqual({ source: 'heavy vs parry', value: CONFIG.HEAVY_VS_BLOCK_GAP });
   });
 
   it('Answer the Blow: with a medium weapon the strike comes 2 gaps sooner; not with a light weapon', () => {
-    const strikesAt = (perk: boolean, weapon: string) => {
+    const strikesAt = (weapon: string) => {
       const s = setup();
       hold(s.player, [weapon]);
-      if (perk) give(s.player, PK.answer_the_blow);
+      give(s.player, PK.answer_the_blow);
       return Math.min(...swings(s).filter((r) => r.strikeBack).map((r) => r.gap!));
     };
-    expect(strikesAt(false, IT.arming_sword)).toBe(CONFIG.PARRY_STRIKE_GAP);
-    expect(strikesAt(true, IT.arming_sword)).toBe(CONFIG.PARRY_STRIKE_GAP - CONFIG.ANSWER_THE_BLOW_DROP);
-    expect(strikesAt(true, IT.dagger)).toBe(CONFIG.PARRY_STRIKE_GAP);
+    expect(strikesAt(IT.arming_sword)).toBe(CONFIG.PARRY_STRIKE_GAP - CONFIG.ANSWER_THE_BLOW_DROP);
+    expect(strikesAt(IT.dagger)).toBe(CONFIG.PARRY_STRIKE_GAP);
   });
 
   /** the player throws a strike and Flurry's free strike in one round, and patron_1 parries both cleanly; who swung at whom */
@@ -145,23 +147,20 @@ describe('153 Parry', () => {
     return { p, blows: calls.filter((c) => c.by === 'player'), backs: calls.filter((c) => c.by === 'patron_1') };
   };
 
-  it('a strike back is a free melee attack with the parrying weapon, one per round by default (D-337)', () => {
-    const { blows, backs } = parriedTwice([]);
+  it('a strike back is a free melee attack with the parrying weapon, one per round by default; Ceaseless Guard raises the limit to 5, and with Every Answer merges into Endless Answer: no limit (D-337)', () => {
+    const plain = parriedTwice([]);
     // a 6 s turn holds three strikes, each with Flurry's free strike, across two 3 s rounds: only the first of each round is
     // answered
-    expect(blows.length).toBe(6);
-    expect(backs).toEqual([0, 1].map(() => ({ by: 'patron_1', at: 'player', weapon: 'patron_1_h0' })));
-  });
-
-  it('Ceaseless Guard (Parry 100) raises the limit to 5, and with Every Answer merges into Endless Answer: no limit (D-337)', () => {
+    expect(plain.blows.length).toBe(6);
+    expect(plain.backs).toEqual([0, 1].map(() => ({ by: 'patron_1', at: 'player', weapon: 'patron_1_h0' })));
+    expect(strikeBackLimit(plain.p)).toBe(CONFIG.STRIKE_BACK_LIMIT);
     const guard = parriedTwice([PK.ceaseless_guard]);
     expect(guard.backs.length).toBe(guard.blows.length); // two blows, both under 5
+    expect(strikeBackLimit(guard.p)).toBe(CONFIG.CEASELESS_GUARD_LIMIT);
     const both = parriedTwice([PK.every_answer, PK.ceaseless_guard]);
     expect(hasPerk(both.p, PK.endless_answer)).toBe(true);
     expect(hasPerk(both.p, PK.every_answer) || hasPerk(both.p, PK.ceaseless_guard)).toBe(false); // merged: asleep
     expect(both.backs.length).toBe(both.blows.length);
-    expect(strikeBackLimit(npc(setup(), 'patron_1'))).toBe(CONFIG.STRIKE_BACK_LIMIT);
-    expect(strikeBackLimit(guard.p)).toBe(CONFIG.CEASELESS_GUARD_LIMIT);
     expect(strikeBackLimit(both.p)).toBe(Infinity);
   });
 
@@ -230,6 +229,6 @@ describe('153 Parry', () => {
     expect(defaultStandingDefense(s, s.player)).toBe('parry'); // no shield, so Block can't be chosen
     hold(s.player, [IT.arming_sword, IT.round_shield]);
     expect(defaultStandingDefense(s, s.player)).toBe('block');
-    expect(npc(makeVillage(), 'guard_1').core.standingDefense).toBe('block');
+    expect(npc(s, 'guard_1').core.standingDefense).toBe('block'); // setup leaves the guard as the village made it
   });
 });

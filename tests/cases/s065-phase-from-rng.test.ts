@@ -1,16 +1,14 @@
 import { TP } from '../../src/library/templateIds';
 import { expect, it } from 'vitest';
-import { makeVillage, createRng } from '../harness';
+import { createRng } from '../harness';
 import { spawnNpc } from '../../src/library/spawn';
 import { installRoutines } from '../../src/minds';
 
 function install(seed: number) {
-  const s = makeVillage();
-  s.turn = 50;
   const rng = createRng(seed);
   return ['g_a', 'g_b'].map((id) => {
     const g = spawnNpc(null, TP.guard, { id, zone: 'gate_inner', placeId: 'gate', bandId: 'village_watch' });
-    installRoutines(g, 'gate_guard', { post: 'gate_inner' }, undefined, s.turn, rng);
+    installRoutines(g, 'gate_guard', { post: 'gate_inner' }, undefined, 50, rng);
     return g.mind!.routine!.at;
   });
 }

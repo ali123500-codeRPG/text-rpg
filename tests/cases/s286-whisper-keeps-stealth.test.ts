@@ -18,10 +18,7 @@ const talk = (volume?: 'whisper') => {
   return s.player.posture;
 };
 
-it('BG-202: a whispered talk keeps the player stealthy', () => {
+it('BG-202: a whispered talk keeps the player stealthy; talk at a normal voice still ends stealth', () => {
   expect(talk('whisper')).toBe('stealthy');
-});
-
-it('BG-202: talk at a normal voice still ends stealth', () => {
   expect(talk()).toBe('open');
 });

@@ -65,17 +65,20 @@ describe('137 achievement rewards, round 2', () => {
     expect(warePrice(s, s.player, mags, `service:${SV.clinic}`)).toBe(Math.ceil(before * 0.95));
   });
 
-  it('T19 Seasoned: +10% healing on each rest, carried up to Old Blood', () => {
+  it('T19 Seasoned: +10% healing on each rest, carried up to Old Blood, which adds +10 on event rolls (Seasoned gives none)', () => {
     const s = makeVillage();
+    const ach = () => eventRollMods(s, s.player).filter((m) => m.type === 'achievement');
     s.player.core.condition.hpLostPct = 60;
     applyHealing(s, s.player, HL.rest);
     const plain = 60 - s.player.core.condition.hpLostPct;
     s.player.core.condition.hpLostPct = 60;
     grantAchievement(s, ACH.days_30);
+    expect(ach()).toEqual([]);
     applyHealing(s, s.player, HL.rest);
     expect(60 - s.player.core.condition.hpLostPct).toBe(plain + 10);
     s.player.core.condition.hpLostPct = 60;
     grantAchievement(s, ACH.days_100);
+    expect(ach()).toEqual([{ source: 'Old Blood', type: 'achievement', value: 10 }]);
     applyHealing(s, s.player, HL.rest);
     expect(60 - s.player.core.condition.hpLostPct).toBe(plain + 10);
   });
@@ -102,12 +105,4 @@ describe('137 achievement rewards, round 2', () => {
     expect(has(s, ACH.held_line_1)).toBe(true);
   });
 
-  it('Old Blood: +10 on event rolls (Seasoned gives none)', () => {
-    const s = makeVillage();
-    const ach = () => eventRollMods(s, s.player).filter((m) => m.type === 'achievement');
-    grantAchievement(s, ACH.days_30);
-    expect(ach()).toEqual([]);
-    grantAchievement(s, ACH.days_100);
-    expect(ach()).toEqual([{ source: 'Old Blood', type: 'achievement', value: 10 }]);
-  });
 });

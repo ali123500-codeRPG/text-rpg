@@ -23,12 +23,12 @@ const go = (s: GameState, a: CheckinAnswer) => applyCheckin(s, s.stage.scenario!
 
 describe('325 a scenario names its stake (SW8)', () => {
   it('a new scenario with no stake, or a blank one, gets a repair error; with one it is clean', () => {
-    const p = villageStagePlan();
-    expect(validateStagePlan(toStoryStart(makeVillage()), p, ctx)).toEqual([]);
+    const p = villageStagePlan(), s = toStoryStart(makeVillage()); // validation reads the state, never changes it
+    expect(validateStagePlan(s, p, ctx)).toEqual([]);
     delete p.scenario!.stake;
-    expect(validateStagePlan(toStoryStart(makeVillage()), p, ctx).map((e) => e.code)).toContain('scenario_stake');
+    expect(validateStagePlan(s, p, ctx).map((e) => e.code)).toContain('scenario_stake');
     p.scenario!.stake = '  ';
-    expect(validateStagePlan(toStoryStart(makeVillage()), p, ctx).map((e) => e.code)).toContain('scenario_stake');
+    expect(validateStagePlan(s, p, ctx).map((e) => e.code)).toContain('scenario_stake');
   });
   it('a check-in may change the stake; one that changes only the question keeps it', () => {
     const s = running('the field');

@@ -15,14 +15,23 @@ import type { Rng } from '../../src/types';
 const ids = (t: string) => templateEssences(getLibrary().templates[t]).map((x) => x.row.id);
 
 describe('template essences', () => {
-  it('EN1, EN5, EN6: each of the five templates carries the rows its stats fit', () => {
+  it('EN1, EN5, EN6: each of the five templates carries the rows its stats fit; EN2 a: race is a hard filter and deed rows never go on a list; EN3 b: an echo carries exactly its own echo row', () => {
     makeVillage();
+    const lib = getLibrary();
     expect(ids(TP.slime)).toEqual([ES.gel_patience, ES.cornered_nerve]); // D-362: its Resolve 50 is above its Slam 30
     expect(ids(TP.guard)).toEqual([ES.gate_habit, ES.lookout_eyes]); // a shield and Block
     expect(ids(TP.trader)).toEqual([ES.haggler_ear, ES.lookout_eyes]); // NE3: every person fits Lookout's Eyes
     expect(ids(TP.thief)).toEqual([ES.street_instinct, ES.lookout_eyes]);
     expect(ids(TP.patron)).toEqual([ES.tavern_brawler, ES.lookout_eyes]);
     for (const t of Object.values(getLibrary().templates)) for (const x of templateEssences(t)) expect(x.fit ?? 1).toBeGreaterThanOrEqual(CONFIG.ESSENCE_FIT_SHARE);
+    const slimeLike = { [SK.slam]: { raw: 50, state: 'normal' as const }, [SK.tremor]: { raw: 50, state: 'normal' as const } };
+    expect(fittingEssences(lib.templates[TP.trader].raceId, slimeLike).map((x) => x.row.id)).not.toContain(ES.gel_patience);
+    for (const t of Object.values(lib.templates)) expect(ids(t.id)).not.toContain(ES.hard_won_habit);
+    for (const t of Object.values(lib.templates).filter((x) => x.generation === 'unique')) {
+      expect(t.essences, t.id).toHaveLength(1);
+      expect(lib.essences![t.essences![0]].from.echo, t.id).toBe(true);
+    }
+    for (const t of Object.values(lib.templates)) for (const id of ids(t.id)) if (lib.essences![id].from.echo) expect(t.essences).toContain(id);
   });
 
   it('EN1 a: the fit is a share of the best skill, so it is the same at every scale', () => {
@@ -32,25 +41,6 @@ describe('template essences', () => {
       const v = (id: string) => (id === row.skills[1].skill ? 0.6 * top : 0); // a soldier: Earshot at 0.6 of its best, no Barter
       expect(essenceFit(row, v, top)).toBeCloseTo(0.2);
     }
-  });
-
-  it('EN2 a: race is a hard filter; deed rows never go on a list', () => {
-    makeVillage();
-    const lib = getLibrary();
-    const human = lib.templates[TP.trader];
-    const slimeLike = { [SK.slam]: { raw: 50, state: 'normal' as const }, [SK.tremor]: { raw: 50, state: 'normal' as const } };
-    expect(fittingEssences(human.raceId, slimeLike).map((x) => x.row.id)).not.toContain(ES.gel_patience);
-    for (const t of Object.values(lib.templates)) expect(ids(t.id)).not.toContain(ES.hard_won_habit);
-  });
-
-  it('EN3 b: every echo (unique template) carries exactly its own essence, an echo row', () => {
-    makeVillage();
-    const lib = getLibrary();
-    for (const t of Object.values(lib.templates).filter((x) => x.generation === 'unique')) {
-      expect(t.essences, t.id).toHaveLength(1);
-      expect(lib.essences![t.essences![0]].from.echo, t.id).toBe(true);
-    }
-    for (const t of Object.values(lib.templates)) for (const id of ids(t.id)) if (lib.essences![id].from.echo) expect(t.essences).toContain(id);
   });
 
   it('EN4: a notable foe the player killed rolls on its own template\'s list', () => {

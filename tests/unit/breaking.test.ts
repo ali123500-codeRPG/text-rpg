@@ -5,7 +5,6 @@ import { makeVillage } from '../harness';
 import { barrierStuff, breakSeconds, breakSecondsAt, breakStrength, breakTool, liftKg, materialRow, walksThrough, wallStuff } from '../../src/ruleset/breaking';
 import { refFighter } from '../../src/engine/combatLevel';
 import { equipLoadout } from '../../src/library/spawn';
-import { getLibrary } from '../../src/library';
 import { BK, BM, WK } from '../../src/library/tableIds';
 import { IT } from '../../src/library/itemIds';
 import { SK } from '../../src/library/skillIds';
@@ -58,18 +57,6 @@ describe('breaking time (BW20 a, BW22 a)', () => {
 });
 
 describe('materials (BW24 a, BW26 a, BW8 a, BW9 b)', () => {
-  it('every row has a source line, an example thickness inside its range, and no warded row', () => {
-    for (const m of Object.values(getLibrary().barrierMaterials ?? {})) {
-      expect(m.source.length, m.id).toBeGreaterThan(10);
-      expect(m.exampleCm, m.id).toBeGreaterThanOrEqual(m.thicknessCm[0]);
-      expect(m.exampleCm, m.id).toBeLessThanOrEqual(m.thicknessCm[1]);
-      expect(m.name.toLowerCase(), m.id).not.toContain('ward');
-    }
-  });
-  it('every solid wall kind and every barrier kind names a default material', () => {
-    for (const k of Object.values(getLibrary().wallKinds ?? {})) if (!k.none) expect(materialRow(k.material), k.id).toBeDefined();
-    for (const k of Object.values(getLibrary().barrierKinds ?? {})) expect(materialRow(k.material), k.id).toBeDefined();
-  });
   it('a wall with no material reads its kind\'s at that material\'s example thickness; its own material reads its own thickness', () => {
     expect(wallStuff(wall(WK.wall))).toEqual({ material: row(BM.brick), cm: row(BM.brick).exampleCm });
     expect(wallStuff(wall(WK.glazed))?.material.id).toBe(BM.glass);

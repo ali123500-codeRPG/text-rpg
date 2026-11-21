@@ -19,7 +19,7 @@ const lie = (s: GameState, heard: 'full' | 'sound' | 'none' = 'full'): GameEvent
 
 describe('156 Overheard', () => {
 
-  it('an owner who hears a lie told to someone else can see through it; others are not checked', () => {
+  it('an owner who hears a lie told to someone else, or only the voice\'s sound, can see through it; others, and a lie not heard, are not checked', () => {
     const s = makeVillage();
     const e = lie(s);
     overhearLie(s, e, [], forcedRng([5, 95]));
@@ -30,17 +30,13 @@ describe('156 Overheard', () => {
     const f = lie(s);
     overhearLie(s, f, [], forcedRng([95, 5]));
     expect(f.overheard).toBeUndefined(); // the lie holds
-  });
-
-  it('works on the sound of the voice, not on a lie the owner did not hear', () => {
-    const s = makeVillage();
-    give(s.player, PK.overheard);
-    const e = lie(s, 'sound');
-    overhearLie(s, e, [], forcedRng([5, 95]));
-    expect(e.overheard).toEqual(['player']);
-    const f = lie(s, 'none');
-    overhearLie(s, f, [], forcedRng([5, 95]));
-    expect(f.overheard).toBeUndefined();
+    // it works on the sound of the voice, not on a lie the owner did not hear
+    const g = lie(s, 'sound');
+    overhearLie(s, g, [], forcedRng([5, 95]));
+    expect(g.overheard).toEqual(['player']);
+    const h = lie(s, 'none');
+    overhearLie(s, h, [], forcedRng([5, 95]));
+    expect(h.overheard).toBeUndefined();
   });
 
   it('skips anyone who already answered the lie, and the speaker shares one roll among the owners', () => {

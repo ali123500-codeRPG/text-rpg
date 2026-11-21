@@ -80,25 +80,21 @@ const blows = (ev: GameEvent[]) => ev.filter((e) => e.kind === 'attack' && e.tar
 
 type Case = { name: string; kind: string; perk?: string; choice?: Choice; prep?: (s: GameState) => void; beside: boolean; done: (ev: GameEvent[], s: GameState) => boolean };
 const sheathed = (s: GameState) => { for (const i of s.player.core.inventory) if (i.id === SWORD) delete i.equippedIn; };
+// one case per path: each gear-op row, an accessory, summon, warn, a free perk move, the steady, and two action perk moves
 const CASES: Case[] = [
   { name: 'Draw', kind: 'draw', choice: { item: SWORD }, prep: sheathed, beside: true, done: (_, s) => inHand(s, SWORD) },
   { name: 'Put away', kind: 'stow', choice: { item: SHIELD }, prep: (s) => { s.player.core.inventory.find((i) => i.id === SHIELD)!.equippedIn = ['grip:left_arm']; }, beside: true, done: (_, s) => !inHand(s, SHIELD) },
   { name: 'Swap weapons', kind: 'swap', choice: { item: SWORD }, prep: (s) => { sheathed(s); s.player.core.inventory.find((i) => i.id === 'dagger_1')!.equippedIn = ['grip:right_arm']; }, beside: true, done: (_, s) => inHand(s, SWORD) && !inHand(s, 'dagger_1') },
   { name: 'Put on (an accessory)', kind: 'wear_acc', choice: { item: 'amulet_1' }, beside: true, done: (_, s) => worn(s, 'amulet_1') },
-  { name: 'Take off (an accessory)', kind: 'remove_acc', choice: { item: 'specs_1' }, beside: true, done: (_, s) => !worn(s, 'specs_1') },
   { name: 'Armor on or off', kind: 'equip', beside: true, done: (_, s) => !s.player.core.inventory.some((i) => i.itemId === IT.gambeson && i.equippedIn?.length) },
   { name: 'Pick up, within grip reach', kind: 'pick_up', choice: { item: 'ground_dagger' }, beside: true, done: (ev) => has(ev, 'pick_up') },
-  { name: 'Set down', kind: 'set_down', choice: { item: 'amulet_1' }, beside: true, done: (ev) => has(ev, 'set_down') },
   { name: 'Summon', kind: 'summon', beside: true, done: (ev) => has(ev, 'summon') },
   { name: 'Warn your side', kind: 'warn', beside: true, done: (ev) => has(ev, 'warn') },
   { name: 'Dirt in the Eyes (a free perk move)', kind: 'perk', perk: PK.dirt_in_the_eyes, choice: { target: 'patron_1' }, beside: true, done: (ev) => has(ev, 'perk_move') },
-  { name: 'Bluff (a free perk move)', kind: 'perk', perk: PK.bluff, choice: { target: 'patron_1' }, beside: true, done: (ev) => has(ev, 'perk_move') },
-  { name: 'Draw Them In (a free perk move)', kind: 'perk', perk: PK.draw_them_in, beside: true, done: (ev) => has(ev, 'perk_move') },
   { name: 'Grit Your Teeth (a free perk move: a steady)', kind: 'perk', perk: PK.grit_your_teeth, beside: true, done: (ev) => has(ev, 'steady') },
   // AT11: a perk move that is an action spends its Action times row from the main time; what is left still goes to the
   // action ordered with it (s159: the roar, then the blow), so the blow happens, but less main time is carried
   { name: 'Battle Cry (an action perk move)', kind: 'perk', perk: PK.battle_cry, beside: false, done: (ev) => has(ev, 'battle_cry') },
-  { name: 'Rally (an action perk move)', kind: 'perk', perk: PK.rally, beside: false, done: (ev) => has(ev, 'rally') },
   { name: 'Play Dead (an action perk move, open after a bad blow)', kind: 'perk', perk: PK.play_dead, prep: (s) => { s.player.playDeadOpen = s.turn; }, beside: false, done: (ev) => has(ev, 'play_dead') },
 ];
 

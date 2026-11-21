@@ -75,13 +75,11 @@ describe('achievement personality points (AP1-AP20)', () => {
     a.progression = { ...(a.progression ?? {}), achievements: rows.map((r) => ({ id: r.key, ...r, turn: 0 })) } as Actor['progression'];
     return a;
   };
-  it('a held chain level adds its own step plus every lower level by reference (AP1)', () => {
+  it('a held chain level adds its own step plus every lower level by reference (AP1); a by-skill row only for the skill it was earned with (AP12)', () => {
     const base = personalityOf(npc(TP.guard));
     const p = personalityOf(earn(npc(TP.guard), { key: ACH.unaware_50 }));
     expect((p.traits[PA.honesty] ?? 0) - (base.traits[PA.honesty] ?? 0)).toBe(-3 * STEP);
-  });
-  it('a by-skill row adds its per-skill points only for the skill it was earned with (AP12)', () => {
-    const base = personalityOf(npc(TP.guard));
+    // AP12: a by-skill row adds its per-skill points only for the skill it was earned with
     const lie = personalityOf(earn(npc(TP.guard), { key: ACH.speech_10, of: SK.falsehood }));
     const talk = personalityOf(earn(npc(TP.guard), { key: ACH.speech_10, of: SK.persuasion }));
     const d = (p: typeof base, k: string) => (p.traits[k] ?? 0) - (base.traits[k] ?? 0);

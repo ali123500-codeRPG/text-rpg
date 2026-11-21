@@ -29,25 +29,22 @@ describe('337 XP-only rewards, round 2', () => {
     expect(tierReach(s.player, 'hit').up).toBe(1);
   });
 
-  it('XR7 a: clean defenses add +1, +2, +3, +4 on dodge, block and parry rolls only (+10 at the top)', () => {
+  it('XR7 a: clean defenses add +1, +2, +3, +4 on dodge, block and parry rolls only (+10 at the top), as an achievement modifier on a real defense roll', () => {
     const s = makeVillage();
     give(s, ACH.clean_1);
     expect(val(achievementRollMods(s.player, 'dodge'))).toBe(1);
-    give(s, ACH.clean_10, ACH.clean_100, ACH.clean_500);
-    for (const k of ['dodge', 'block', 'parry'] as const) expect(val(achievementRollMods(s.player, k))).toBe(10);
-    expect(achievementRollMods(s.player, 'hit')).toEqual([]);
-    expect(rewardLines(L()[ACH.clean_500])[0]).toMatch(/^\+10 on your defense rolls .* in all \(\+1 from Turned Aside, \+2 from Not Here, \+3 from Wall of Steel, \+4 here\)$/);
-  });
-
-  it('XR7: the bonus reaches a real defense roll as an achievement modifier', () => {
-    const s = makeVillage();
+    give(s, ACH.clean_10);
+    // the bonus reaches a real defense roll as an achievement modifier
     place(s, 'patron_1', s.player.zone);
     const foe = s.actors.find((a) => a.id === 'patron_1')!;
     for (const i of foe.core.inventory) delete i.equippedIn;
     foe.core.inventory.push({ id: 'w_foe', itemId: IT.dagger, equippedIn: ['grip:right_arm'] });
-    give(s, ACH.clean_1, ACH.clean_10);
     const d = ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'w_foe', targetPart: null, aimed: false }, s, forcedRng([99, 50, 50, 50])).defense!;
     expect(d.modifiers.filter((m) => m.type === 'achievement')).toEqual([{ source: 'achievement: Not Here', type: 'achievement', value: 3 }]);
+    give(s, ACH.clean_100, ACH.clean_500);
+    for (const k of ['dodge', 'block', 'parry'] as const) expect(val(achievementRollMods(s.player, k))).toBe(10);
+    expect(achievementRollMods(s.player, 'hit')).toEqual([]);
+    expect(rewardLines(L()[ACH.clean_500])[0]).toMatch(/^\+10 on your defense rolls .* in all \(\+1 from Turned Aside, \+2 from Not Here, \+3 from Wall of Steel, \+4 here\)$/);
   });
 
   it('XR37 a: the spotted trunk gains a 250 row; +1 at 100, +2 more at 250, on sight, hearing and smell rolls only', () => {

@@ -23,7 +23,7 @@ function upstairs(): GameState {
 const jump = (to: string, j = true): Intent => ({ move: { toZone: to, ...(j ? { jump: true } : {}) }, gear: null, spoken: null, addressees: null, deferred: [], clarify: null, action: null });
 
 describe('186 window and ledge drops (SD7)', () => {
-  it('fall damage is flat by the drop, and the landing moves it a band', () => {
+  it('fall damage is flat by the drop, and the landing moves it a band; past the human range falls keep hurting more to about terminal speed, and landings past Critical keep helping', () => {
     expect(fallDamage(2)).toBe(0);
     expect(fallDamage(3)).toBe(CONFIG.FALL_BANDS[0].damage);
     expect(fallDamage(7)).toBe(CONFIG.FALL_BANDS[1].damage);
@@ -32,20 +32,12 @@ describe('186 window and ledge drops (SD7)', () => {
     expect(fallDamage(2, 1)).toBe(CONFIG.FALL_BANDS[0].damage);
     expect(fallDamage(12, 1)).toBe(CONFIG.FALL_BANDS[3].damage);
     expect(fallDamage(200, 1)).toBe(CONFIG.FALL_BANDS.at(-1)!.damage); // past the last band it stays
-  });
-  it('scaling past the human range: falls keep hurting more to about terminal speed, and landings past Critical keep helping', () => {
     expect(fallDamage(20)).toBeGreaterThan(fallDamage(10));
     expect(fallDamage(60)).toBeGreaterThan(fallDamage(20));
     expect(landingStep({ tier: 'critical_success' })).toBe(-1);
     expect(landingStep({ tier: 'critical_success', beyond: 3 })).toBe(-4);
     expect(landingStep({ tier: 'critical_failure', beyond: -2 })).toBe(1); // the bottom end reads its own row
     expect(fallDamage(20, landingStep({ tier: 'critical_success', beyond: 3 }))).toBe(0); // a supernatural landing from 20 m
-  });
-  it('a drop is seen through but never walked', () => {
-    const s = upstairs();
-    const walk = shortestPath(s, 'tav_counter', 'street_square');
-    expect(walk?.[0]).not.toBe('street_square'); // the walk goes round by the door
-    expect(shortestPath(s, 'tav_counter', 'street_square', true)).toEqual(['street_square']);
   });
   it('a jump lands in the zone below, hurts a leg by the drop, and the Narrator sees the fall', () => {
     const s = upstairs();
@@ -58,14 +50,13 @@ describe('186 window and ledge drops (SD7)', () => {
     expect(s.player.core.condition.hpLostPct).toBeGreaterThan(0);
     expect(buildNarrationView(s, events).events.find((e) => e.id === ev.id)).toMatchObject({ fall: { metres: 7 } });
   });
-  it('code minds path round a drop too (NPCs do not jump yet)', () => {
+  it('a drop is seen through but never walked: the paths, a code mind\'s too (NPCs do not jump yet), go round, and without jump a move to the zone below walks round', () => {
     const s = upstairs();
+    expect(shortestPath(s, 'tav_counter', 'street_square')?.[0]).not.toBe('street_square'); // the walk goes round by the door
+    expect(shortestPath(s, 'tav_counter', 'street_square', true)).toEqual(['street_square']);
     const v = buildActorView(s, 'trader');
     expect(v.map.find((z) => z.id === 'tav_counter')!.links.find((l) => l.to === 'street_square')).toMatchObject({ drop: true });
     expect(mapPath(v.map, 'tav_counter', 'street_square')?.[0]).not.toBe('street_square');
-  });
-  it('without jump, a move to the zone below walks round', () => {
-    const s = upstairs();
     s.turn += 1;
     resolveTurn(s, { intent: jump('street_square', false), aimed: false, agentOutputs: [], spokespeople: [] }, createRng(3));
     expect(s.player.core.condition.hpLostPct).toBe(0);

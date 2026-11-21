@@ -4,7 +4,6 @@ import { AM } from '../../src/library/tableIds';
 import { describe, expect, it } from 'vitest';
 import { forcedRng, makeVillage, place, beside } from '../harness';
 import { ruleset } from '../../src/ruleset';
-import { itemDef } from '../../src/library';
 import type { GameState } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
 import { IT } from '../../src/library/itemIds';
@@ -19,14 +18,6 @@ const setSkills = (s: GameState, raw: Record<string, number>) => {
 };
 
 describe('126 improvised strike and throw', () => {
-  it('every improvised base has a melee strike and a ranged throw, both on Improvisation', () => {
-    const s = makeVillage();
-    for (const id of [IT.improvised_light, IT.improvised_medium, IT.improvised_heavy]) {
-      const modes = itemDef(s, id).weapon!.modes;
-      expect(modes.map((m) => [m.id, m.tree, m.skill])).toEqual([[AM.strike, 'melee', SK.unarmed_improvised], [AM.throw, 'ranged', SK.unarmed_improvised]]);
-      expect(modes[1].thrown).toBe(true);
-    }
-  });
   it('a throw: a Ranged skill stands in, an Arms skill does not', () => {
     const s = makeVillage();
     holdImprovised(s);

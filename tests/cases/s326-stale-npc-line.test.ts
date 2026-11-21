@@ -19,9 +19,9 @@ const setup = () => {
 const at = (ev: GameEvent[], f: (e: GameEvent) => boolean) => ev.findIndex(f);
 const said = (e: GameEvent) => e.actorId === 'patron_1' && e.line?.text === LINE;
 
-for (const seed of [1, 2, 3, 4, 5]) it(`the line comes before the blow that ends what it is about (seed ${seed})`, () => {
+it('the line comes before the blow that ends what it is about', () => { // seeds 1-5 all gave the same order, and each caught a break of it
   const s = setup();
-  const ev = play(s, { intent: intent({ action: { type: 'attack', target: 'slime_1' } }), agentOutputs: [plannerOut('patron_1', act('hold'), { dialogue: { line: LINE, volume: 'shout' } })] }, seed);
+  const ev = play(s, { intent: intent({ action: { type: 'attack', target: 'slime_1' } }), agentOutputs: [plannerOut('patron_1', act('hold'), { dialogue: { line: LINE, volume: 'shout' } })] }, 1);
   expect(at(ev, said)).toBeGreaterThanOrEqual(0);
   expect(at(ev, said)).toBeLessThan(at(ev, (e) => e.actorId === 'player' && ['attack', 'wasted'].includes(e.kind)));
   expect(ev.filter((e) => e.actorId === 'patron_1' && e.kind === 'hold')).toHaveLength(1); // no second, wordless hold

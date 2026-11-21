@@ -20,21 +20,6 @@ import { DAY_MINUTES, now } from '../../src/time';
 
 const village = () => makeVillage({ playerZone: 'street_square', without: ['slime_1', 'slime_2'] });
 
-it('a cast goal holder holds its standing goal first, has an agenda and thinks on its first turn', () => {
-  const s = village();
-  const wim = actorById(s, 'patron_1')!;
-  seedGoals(s, wim, [{ text: 'pay off my debt to Mags', about: ['trader'] }], 'never go hungry again');
-  const d = s.hidden.drives!.patron_1;
-  expect(d.goals.map((g) => g.text)).toEqual(['never go hungry again', 'pay off my debt to Mags']);
-  expect(d.goals[0].standing).toBe(true);
-  expect(hasAgenda(s, 'patron_1')).toBe(true); // the Responder voices it
-  expect(goalThinkers(s, new Set())).toEqual(['patron_1']);
-  expect(goalThinkers(s, new Set(['patron_1']))).toEqual([]); // already getting a Planner call
-  const v = buildActorView(s, 'patron_1');
-  expect(v.goals?.map((g) => g.n)).toEqual([1, 2]);
-  expect(v.thinkWhy).toBe('cast');
-});
-
 it('its think queues steps: code walks it there, then the queue runs out and it thinks again', () => {
   const s = village();
   const wim = actorById(s, 'patron_1')!;
@@ -125,7 +110,7 @@ it('whole turn: a goal holder away from any fight gets its one think in the back
   expect(d.steps).toEqual([{ go: 'street_square' }]);
 });
 
-it('the Weaver casts a unique from catalogs.uniques with goals: it arrives holding them, its standing goal first, and thinks first', () => {
+it('the Weaver casts a unique from catalogs.uniques with goals: it arrives holding them, its standing goal first, has an agenda, and thinks first', () => {
   const s = toStoryStart(makeVillage());
   const ECHO = 'TP_echo_goals', lib = getLibrary();
   const t = { ...uniqueTemplate(ECHO, RC.human, 'a grim swordsman', echoSheet(s, s.player, ECHO, 'fell to a slime in the east field')), standingGoal: 'never fall again' };
@@ -144,6 +129,11 @@ it('the Weaver casts a unique from catalogs.uniques with goals: it arrives holdi
     expect(d.goals[1].about).toEqual([s.player.id, 'tavern']);
     expect(d.think).toBe('cast');
     expect(goalThinkers(s, new Set())).toContain(echo.id);
+    expect(goalThinkers(s, new Set([echo.id]))).not.toContain(echo.id); // already getting a Planner call
+    expect(hasAgenda(s, echo.id)).toBe(true); // the Responder voices it
+    const v = buildActorView(s, echo.id);
+    expect(v.goals?.map((g) => g.n)).toEqual([1, 2]);
+    expect(v.thinkWhy).toBe('cast');
     const others = s.actors.filter((a) => a.kind !== 'player' && a.id !== echo.id).map((a) => a.id);
     expect(others.some((id) => s.hidden.drives?.[id])).toBe(false); // only the unique holds goals
   } finally { setLibrary(lib); }

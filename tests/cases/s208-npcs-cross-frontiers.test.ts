@@ -29,7 +29,7 @@ const guardToWoods = (s: GameState) => {
 const flush = () => new Promise((r) => setTimeout(r, 0)); // every pending background step settles
 
 describe('208 NPCs and unbuilt frontiers (NW3, NW8)', () => {
-  it('NW3: an NPC walking into an unbuilt frontier waits at the edge, its move spent', () => {
+  it('NW3: an NPC walking into an unbuilt frontier waits at the edge, its move spent; its wait starts one background build there; once back it goes on the stage, the player stays put, and the NPC walks in', async () => {
     const s = village('tav_cellar');
     const g = guardToWoods(s);
     expect(routineOrder(buildActorView(s, g.id))).toMatchObject({ type: 'move', target: 'woods' });
@@ -37,11 +37,6 @@ describe('208 NPCs and unbuilt frontiers (NW3, NW8)', () => {
     expect(g.zone).toBe('field_far');
     expect(s.scratch?.frontierWaits).toEqual([{ actorId: g.id, frontier: 'woods' }]);
     expect(s.log.some((l) => l.code === 'frontier_wait')).toBe(true);
-  });
-  it('NW3: its wait starts one background build there; once back it goes on the stage, the player stays put, and the NPC walks in', async () => {
-    const s = village('tav_cellar');
-    const g = guardToWoods(s);
-    turn(s);
     const weave = vi.fn(async (_v: WeaverView) => grovePlan());
     const d = new ScenarioDirector({ weave, clock: new VirtualClock() });
     expect(d.afterSave(s)).toEqual(['woods']);

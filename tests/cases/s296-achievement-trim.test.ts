@@ -33,6 +33,11 @@ describe('296 achievement trim (round 3 answers)', () => {
     grantAchievement(s, ACH.aimed_size_10, part.size, undefined, true);
     grantAchievement(s, ACH.aimed_size_50, part.size, undefined, true);
     expect(aimMod(s, 'head')).toBeCloseTo(base * 0.7);
+    // XR9: the aimed-hits trunk eases every size by 5% a level, on top of the by-size rows
+    grantAchievement(s, ACH.aimed_10, undefined, undefined, true);
+    grantAchievement(s, ACH.aimed_50, undefined, undefined, true);
+    expect(achievementAimEase(s.player, part.size)).toBeCloseTo(0.3 + 0.1);
+    expect(achievementAimEase(s.player, part.size === 'tiny' ? 'big' : 'tiny')).toBeCloseTo(0.1);
     expect(rewardLines(lib()[ACH.aimed_size_50])).toEqual(['30% less aim penalty on parts of that size in all (+10 from Found the {size} Mark, +10 from {size} Target, +10 here)']); // BG-256: one total with its parts
   });
 

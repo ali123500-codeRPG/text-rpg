@@ -21,7 +21,7 @@ const village = (): GameState => {
 const sack = (s: GameState) => s.player.core.inventory.find((i) => i.id === 'sack')!;
 const has = (s: GameState, id: string) => s.player.core.inventory.some((i) => i.id === id);
 
-it('PI1: putting a knife into your sack is free gear: it leaves your inventory, the sack lists it, the action still happens', () => {
+it('PI1: putting a knife into your sack is free gear: it leaves your inventory, the sack lists it, the action still happens; taking it out again is pick_up', () => {
   const s = village();
   const i = intent({ gear: [{ op: 'stow', item: 'knife', into: 'sack' }], action: { type: 'wait' } });
   expect(checkParserLegality(i, buildPlayerView(s)).gearErrors).toEqual([]);
@@ -31,14 +31,10 @@ it('PI1: putting a knife into your sack is free gear: it leaves your inventory, 
   expect(ev.some((e) => e.kind === 'put_in' && e.into === 'sack')).toBe(true);
   expect(ev.some((e) => e.actorId === 'player' && e.kind === 'wait')).toBe(true);
   expect(buildPlayerView(s).player.inventory.find((x) => x.id === 'sack')?.container?.contents).toEqual([{ id: 'knife', name: 'dagger' }]);
-});
-
-it('PI1: taking it out again is pick_up', () => {
-  const s = village();
-  play(s, { intent: intent({ gear: [{ op: 'stow', item: 'knife', into: 'sack' }] }) });
-  const i = intent({ gear: [{ op: 'pick_up', item: 'knife' }] });
-  expect(checkParserLegality(i, buildPlayerView(s)).gearErrors).toEqual([]);
-  play(s, { intent: i });
+  // taking it out again is pick_up
+  const out = intent({ gear: [{ op: 'pick_up', item: 'knife' }] });
+  expect(checkParserLegality(out, buildPlayerView(s)).gearErrors).toEqual([]);
+  play(s, { intent: out });
   expect(has(s, 'knife')).toBe(true);
   expect(sack(s).contents).toEqual([]);
 });

@@ -14,14 +14,12 @@ afterEach(() => resetConfig());
 describe('FC1, FC3: choosing flaws', () => {
   const b = recommendedBuild();
 
-  it('the recommended build flaws three skills it never uses, and the sheet keeps them at 0 as Flawed', () => {
+  it('the recommended build flaws three skills it never uses, kept at 0 as Flawed; a build needs exactly CREATION_FLAWS flaws, none tagged, each at most CREATION_MAX_FLAWED', () => {
     expect(b.flawed).toHaveLength(CONFIG.CREATION_FLAWS);
     expect(validateBuild(b)).toEqual([]);
     const p = createPlayer(b, 's1');
     for (const k of b.flawed) expect(p.core.skills[k]).toEqual({ raw: 0, state: 'flawed' });
-  });
-
-  it('needs exactly CREATION_FLAWS flaws, none tagged, each at most CREATION_MAX_FLAWED', () => {
+    // it needs exactly CREATION_FLAWS flaws, none tagged, each at most CREATION_MAX_FLAWED
     expect(validateBuild({ ...b, flawed: [SK.persuasion, SK.barter] })).toEqual([`Flaw exactly ${CONFIG.CREATION_FLAWS} skills (2 flawed)`]);
     expect(validateBuild({ ...b, flawed: [SK.persuasion, SK.barter, SK.parry] })).toEqual(['Parry cannot be both tagged and flawed']);
     const dodge25 = { ...b.skills, [SK.dodge]: 25, [SK.parry]: 10 }; // dodge flawed above its creation max

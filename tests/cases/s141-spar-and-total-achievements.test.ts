@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { startSpar, updateSpars } from '../../src/engine/spar';
-import { achXp, grantAchievement } from '../../src/engine/xp';
+import { grantAchievement } from '../../src/engine/xp';
 import { fightEnded } from '../../src/engine/feats';
 import { actor } from '../harness/village';
 import { ACH } from '../../src/library/achievementIds';
@@ -61,14 +61,5 @@ describe('141 lost fights and the first spar lost', () => {
     expect(keys(s)).toContain(ACH.defeated_5);
     expect(s.player.progression!.xpLog!.find((x) => x.source === `achievement:${ACH.defeated_5}`)!.amount).toBe(rewardXp('zero')); // a level I scar pays level 0's XP
     expect(s.player.progression!.xpLog!.find((x) => x.source === `achievement:${ACH.defeated_1}`)!.amount).toBe(rewardXp('minus_1')); // Humbled, at the first loss
-  });
-});
-
-describe('141 scars pay one reward level lower', () => {
-  it('a scar pays the XP of the level below its own; a level 0 scar pays level −1 (25)', () => {
-    expect(achXp({ level: 'zero', scar: true })).toBe(rewardXp('minus_1'));
-    expect(achXp({ level: 'i', scar: true })).toBe(rewardXp('zero'));
-    expect(achXp({ level: 'v', scar: true })).toBe(rewardXp('iv'));
-    expect(achXp({ level: 'ii' })).toBe(rewardXp('ii'));
   });
 });

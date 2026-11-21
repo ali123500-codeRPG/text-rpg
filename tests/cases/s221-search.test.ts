@@ -44,46 +44,34 @@ const search = (target: string | null = null) => ({ intent: intent({ action: { t
 afterEach(() => { vi.restoreAllMocks(); resetConfig(); }); // smallVillage's radius must not reach other files
 
 describe('221 search', () => {
-  it('SE3/SE6: a search won finds the hider, and only then shows its dice', () => {
-    const s = makeVillage({ playerZone: 'street_square' });
-    thief(s, 'street_square');
-    beside(s, 'thief_1', 'player', 2);
-    rig(1);
-    const ev = play(s, search()).find((e) => e.kind === 'search')!;
-    expect(searches(s)).toEqual([{ actorId: 'player', hiderId: 'thief_1', gap: 1, sense: FN.sight }]);
-    expect(seen(s)).toBe('aware');
-    expect(ev.contest?.gap).toBe(1);
-    expect(ev.effects).toContainEqual({ kind: 'found', actorId: 'thief_1', data: { by: 'player' } });
-  });
-
-  it('SE3/SE6: a tie leaves "someone"; a loss changes nothing and reads like an empty spot', () => {
-    const s = makeVillage({ playerZone: 'street_square' });
-    thief(s, 'street_square');
-    beside(s, 'thief_1', 'player', 2);
-    rig(0);
-    let ev = play(s, search()).find((e) => e.kind === 'search')!;
-    expect(seen(s)).toBe('suspicious');
-    expect(ev.contest).toBeUndefined();
-    delete s.player.journal!.stealthSeen;
-    rig(-1);
-    ev = play(s, search()).find((e) => e.kind === 'search')!;
-    expect(seen(s) ?? 'unaware').toBe('unaware');
-    expect(ev.contest).toBeUndefined();
-    expect(ev.effects.map((f) => f.kind)).toEqual(['found_nothing']); // BG-142: reads the same as an empty spot
-  });
-
-  it('LX8 a: inside its area a Search takes SEARCH_AREA_SHIFT, so it beats waiting; a Pat down takes none', () => {
+  it('SE3/SE6, LX8 a: a loss changes nothing and reads like an empty spot, a tie leaves "someone", a win finds the hider and only then shows its dice; a Search takes SEARCH_AREA_SHIFT inside its area, a Pat down none', () => {
     const s = makeVillage({ playerZone: 'street_square' });
     thief(s, 'street_square');
     beside(s, 'thief_1', 'player', 2);
     let calls = rig(-1);
-    play(s, search());
+    let ev = play(s, search()).find((e) => e.kind === 'search')!;
+    expect(seen(s) ?? 'unaware').toBe('unaware');
+    expect(ev.contest).toBeUndefined();
+    expect(ev.effects.map((f) => f.kind)).toEqual(['found_nothing']); // BG-142: reads the same as an empty spot
     expect(calls.flatMap((b) => b.tierShifts)).toContainEqual({ source: 'searching', value: CONFIG.SEARCH_AREA_SHIFT });
     vi.restoreAllMocks();
     calls = rig(-1);
-    play(s, search('thief_1'));
+    play(s, search('thief_1')); // a Pat down
     expect(calls.length).toBeGreaterThan(0);
     expect(calls.flatMap((b) => b.tierShifts).some((x) => x.source === 'searching')).toBe(false);
+    vi.restoreAllMocks();
+    rig(0);
+    ev = play(s, search()).find((e) => e.kind === 'search')!;
+    expect(seen(s)).toBe('suspicious');
+    expect(ev.contest).toBeUndefined();
+    delete s.player.journal!.stealthSeen;
+    vi.restoreAllMocks();
+    rig(1);
+    ev = play(s, search()).find((e) => e.kind === 'search')!;
+    expect(searches(s)).toEqual([{ actorId: 'player', hiderId: 'thief_1', gap: 1, sense: FN.sight }]);
+    expect(seen(s)).toBe('aware');
+    expect(ev.contest?.gap).toBe(1);
+    expect(ev.effects).toContainEqual({ kind: 'found', actorId: 'thief_1', data: { by: 'player' } });
   });
 
   it('SE20/SE21, LX2/LX3: the full contest covers only the area around you, the same in a fight; beyond it the look is the weak one', () => {
@@ -105,21 +93,6 @@ describe('221 search', () => {
     s.mode = 'tactical';
     play(s, search());
     expect(searches(s)).toEqual([{ actorId: 'player', hiderId: 'thief_1', gap: 1, sense: FN.sight }]);
-  });
-
-  it('LX2: the search circle never has a radius under SEARCH_MIN_RADIUS_M, however small its area', () => {
-    const s = makeVillage({ playerZone: 'street_square' });
-    thief(s, 'street_square');
-    beside(s, 'thief_1', 'player', 1.5); // inside 2 m, body edge to body edge
-    const r0 = CONFIG.SEARCH_RADIUS_AT_0_M;
-    (CONFIG as { SEARCH_RADIUS_AT_0_M: number }).SEARCH_RADIUS_AT_0_M = 0.001; // a few cm of radius
-    try {
-      const calls = rig(1);
-      play(s, search());
-      expect(calls[0].tierShifts).toContainEqual({ source: 'searching', value: CONFIG.SEARCH_AREA_SHIFT }); // inside the 2 m floor
-    } finally {
-      (CONFIG as { SEARCH_RADIUS_AT_0_M: number }).SEARCH_RADIUS_AT_0_M = r0;
-    }
   });
 
   it('LS9 (TL17\'s ladder): the search radius doubles every 50 points from 2 m at 0; searchArea % and searchReach m add to it', () => {
@@ -170,12 +143,17 @@ describe('221 search', () => {
   }
   const lookShift = (calls: RollRequest[]) => calls.flatMap((b) => b.tierShifts).find((x) => x.source === 'searching')?.value ?? 0; // a ±0 ring adds no shift
 
-  it('LX5 b, LX8 a: past the search area a Search takes ring one\'s shift, past SEARCH_RING1_RADII radii ring two\'s', () => {
+  it('LX2, LX5 b, LX8 a: the search circle is never under SEARCH_MIN_RADIUS_M; past it a Search takes ring one\'s shift, past SEARCH_RING1_RADII radii ring two\'s', () => {
     const s = smallVillage();
     expect(searchReach(s, s.player).radiusM).toBe(CONFIG.SEARCH_MIN_RADIUS_M); // BG-341: the small radius really holds
     const t = thief(s, 'street_square');
-    beside(s, 'thief_1', 'player', 3.2); // past 2 m, inside 4 m
+    beside(s, 'thief_1', 'player', 1.5); // LX2: inside the 2 m floor, body edge to body edge
     let calls = rig(-1);
+    play(s, search());
+    expect(calls.flatMap((b) => b.tierShifts)).toContainEqual({ source: 'searching', value: CONFIG.SEARCH_AREA_SHIFT });
+    beside(s, 'thief_1', 'player', 3.2); // past 2 m, inside 4 m
+    vi.restoreAllMocks();
+    calls = rig(-1);
     play(s, search());
     expect(lookShift(calls)).toBe(CONFIG.SEARCH_RING_SHIFTS[0]);
     const r = boxOf(s.zones.find((z) => z.id === 'street_square')!.outline);

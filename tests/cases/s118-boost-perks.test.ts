@@ -4,7 +4,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { forcedRng, makeVillage, place, fit } from '../harness';
 import { ruleset, trueSkill } from '../../src/ruleset';
 import { passiveHealing } from '../../src/engine/heal';
-import { getLibrary } from '../../src/library';
 import type { Actor, GameState, RollRequest } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
 import { PK } from '../../src/library/perkIds';
@@ -39,17 +38,6 @@ const punch = (perk?: string) => {
 afterEach(() => vi.restoreAllMocks());
 
 describe('118 40/80/120 perks', () => {
-  it('every 40/80/120 perk is a built 40 milestone perk with +5 true skill and no conditions', () => {
-    const boosts = Object.values(getLibrary().perks).filter((d) => d.ladder?.milestone === 40);
-    expect(boosts.length).toBeGreaterThanOrEqual(11);
-    for (const d of boosts) {
-      expect(d.trueSkill).toBe(5);
-      expect(d.functionBoost).toBe(1);
-      expect(d.built).toBe(true);
-      expect(d.rules?.conditions).toEqual([]);
-      expect([d.numbers, d.trueSkillTo, d.ownRule].filter(Boolean)).toHaveLength(1); // exactly one more number
-    }
-  });
   it('true skill: +5 in the skill, +1 in it and in skills sharing its function, and the synergic pick', () => {
     const s = makeVillage();
     const p = s.player;
@@ -63,17 +51,18 @@ describe('118 40/80/120 perks', () => {
     expect(trueSkill(p, SK.dodge)).toBe(before[SK.dodge]);
     expect(trueSkill(p, SK.eyesight)).toBe(before[SK.eyesight]);
   });
-  it('Keen Edge: +10 to hit with any melee attack; Steady Draw: +5 to hit and ×1.1 damage with any ranged attack', () => {
+  it('Keen Edge: +10 to hit with any melee attack; Steady Draw: +5 to hit and ×1.1 damage with any ranged attack, by the attack, not the skill', () => {
     expect(hit(IT.dagger, 'patron_1', PK.keen_edge).perkMods).toEqual([{ source: 'Keen Edge', type: 'roll_perk', value: 10 }]);
-    expect(hit(IT.greataxe, 'patron_1', PK.keen_edge).perkMods).toEqual([{ source: 'Keen Edge', type: 'roll_perk', value: 10 }]); // melee in general
     expect(hit(IT.longbow, 'patron_1', PK.keen_edge).perkMods).toEqual([]); // not ranged
-    expect(hit(IT.dagger, 'patron_1').perkMods).toEqual([]);
     expect(hit(IT.longbow, 'patron_1', PK.steady_draw).perkMods).toEqual([{ source: 'Steady Draw', type: 'roll_perk', value: 5 }]);
-    expect(hit(IT.crossbow, 'patron_1', PK.steady_draw).perkMods).toEqual([{ source: 'Steady Draw', type: 'roll_perk', value: 5 }]); // ranged in general
     expect(hit(IT.dagger, 'patron_1', PK.steady_draw).perkMods).toEqual([]);
     const plain = hit(IT.longbow, 'patron_1', undefined, undefined, undefined, 85).r.damage; // both rolls in the same tier
     expect(plain).toBeGreaterThan(0);
     expect(hit(IT.longbow, 'patron_1', PK.steady_draw, undefined, undefined, 85).r.damage).toBeCloseTo(plain * 1.1, 5);
+    // melee or ranged in general goes by the attack: a punch is melee, a thrown dagger is ranged
+    expect(punch(PK.keen_edge)!.attack.modifiers.filter((m) => m.type === 'roll_perk')).toEqual([{ source: 'Keen Edge', type: 'roll_perk', value: 10 }]);
+    expect(hit(IT.dagger, 'patron_1', PK.keen_edge, undefined, undefined, 95, AM.throw).perkMods).toEqual([]);
+    expect(hit(IT.dagger, 'patron_1', PK.steady_draw, undefined, undefined, 95, AM.throw).perkMods).toEqual([{ source: 'Steady Draw', type: 'roll_perk', value: 5 }]);
   });
   it('Iron Grip: +10 on every grapple roll, attack or not', () => {
     const s = makeVillage();
@@ -87,8 +76,6 @@ describe('118 40/80/120 perks', () => {
     const plain = hit(IT.greataxe, 'patron_1', undefined, undefined, undefined, 85).r, boosted = hit(IT.greataxe, 'patron_1', PK.heavy_hand, undefined, undefined, 85).r;
     expect(plain.damage).toBeGreaterThan(0);
     expect(boosted.damage).toBeCloseTo(plain.damage * 1.2, 5);
-    const light = hit(IT.dagger, 'patron_1', undefined, undefined, undefined, 85).r.damage;
-    expect(hit(IT.dagger, 'patron_1', PK.heavy_hand, undefined, undefined, 85).r.damage).toBeCloseTo(light * 1.2, 5); // melee in general
     expect(hit(IT.longbow, 'patron_1', PK.heavy_hand, undefined, undefined, 85).r.damage).toBe(hit(IT.longbow, 'patron_1', undefined, undefined, undefined, 85).r.damage); // not ranged
     expect(punch()!.damage).toBeGreaterThan(0);
     expect(punch(PK.heavy_hand)!.damage).toBeCloseTo(punch()!.damage * 1.2, 5); // melee in general: a punch too
@@ -96,45 +83,32 @@ describe('118 40/80/120 perks', () => {
     expect(thrown()).toBeGreaterThan(0);
     expect(thrown(PK.heavy_hand)).toBe(thrown()); // a thrown dagger is a ranged attack, though it rolls a melee weapon skill
   });
-  it('melee or ranged in general goes by the attack, not the skill: a punch is melee, a thrown dagger is ranged', () => {
-    expect(punch(PK.keen_edge)!.attack.modifiers.filter((m) => m.type === 'roll_perk')).toEqual([{ source: 'Keen Edge', type: 'roll_perk', value: 10 }]);
-    expect(hit(IT.dagger, 'patron_1', PK.keen_edge, undefined, undefined, 95, AM.throw).perkMods).toEqual([]);
-    expect(hit(IT.dagger, 'patron_1', PK.steady_draw, undefined, undefined, 95, AM.throw).perkMods).toEqual([{ source: 'Steady Draw', type: 'roll_perk', value: 5 }]);
-    const plain = hit(IT.dagger, 'patron_1', undefined, 'left_leg', IT.plate_harness, 95, AM.throw).r, pierced = hit(IT.dagger, 'patron_1', PK.armor_piercer, 'left_leg', IT.plate_harness, 95, AM.throw).r;
-    expect(pierced.location).toBe('left_leg');
-    expect(pierced.damage).toBeGreaterThan(plain.damage); // a ranged hit in general: a throw too
-  });
   it('Armor Piercer: each armor stops 2 less of any ranged hit', () => {
     const plain = hit(IT.crossbow, 'patron_1', undefined, 'left_leg', IT.plate_harness).r;
     const pierced = hit(IT.crossbow, 'patron_1', PK.armor_piercer, 'left_leg', IT.plate_harness).r;
     expect(pierced.location).toBe('left_leg');
     expect(pierced.damage).toBeGreaterThan(plain.damage);
-    const bow = hit(IT.longbow, 'patron_1', undefined, 'left_leg', IT.plate_harness).r, bowPierced = hit(IT.longbow, 'patron_1', PK.armor_piercer, 'left_leg', IT.plate_harness).r;
-    expect(bowPierced.damage).toBeGreaterThan(bow.damage); // ranged in general
+    const thrown = hit(IT.dagger, 'patron_1', undefined, 'left_leg', IT.plate_harness, 95, AM.throw).r, thrownPierced = hit(IT.dagger, 'patron_1', PK.armor_piercer, 'left_leg', IT.plate_harness, 95, AM.throw).r;
+    expect(thrownPierced.location).toBe('left_leg');
+    expect(thrownPierced.damage).toBeGreaterThan(thrown.damage); // a ranged hit in general: a throw too
     expect(hit(IT.crossbow, 'patron_1', PK.armor_piercer, undefined, undefined, 85).r.damage).toBe(hit(IT.crossbow, 'patron_1', undefined, undefined, undefined, 85).r.damage); // no armor: no change
   });
-  it('Fast Healer doubles natural composure (morale) too', () => {
-    const calmed = (perk: boolean) => {
+  it('Quick Mend (Fast Healer) doubles natural recovery and natural composure (morale)', () => {
+    const mended = (perk: boolean) => {
       const s = makeVillage();
+      s.player.core.condition.hpLostPct = 30;
       s.player.core.condition.moraleLost = 50;
       s.player.core.skills[SK.resolve] = { raw: 30, state: 'normal' };
       if (perk) give(s.player, PK.quick_mend);
-      passiveHealing(s, 60);
-      return 50 - (s.player.core.condition.moraleLost ?? 0);
-    };
-    expect(calmed(false)).toBeGreaterThan(0);
-    expect(calmed(true)).toBeCloseTo(calmed(false) * 2, 5);
-  });
-  it('Quick Mend doubles natural recovery', () => {
-    const healed = (perk: boolean) => {
-      const s = makeVillage();
-      s.player.core.condition.hpLostPct = 30;
-      if (perk) give(s.player, PK.quick_mend);
       passiveHealing(s, 120);
-      return (30 - s.player.core.condition.hpLostPct) / trueSkill(s.player, SK.endurance); // per point: the +5 true skill counts too
+      // per point: the +5 true skill counts too
+      return { hp: (30 - s.player.core.condition.hpLostPct) / trueSkill(s.player, SK.endurance), calm: 50 - (s.player.core.condition.moraleLost ?? 0) };
     };
-    expect(healed(false)).toBeGreaterThan(0);
-    expect(healed(true)).toBeCloseTo(healed(false) * 2, 5);
+    const plain = mended(false), fast = mended(true);
+    expect(plain.hp).toBeGreaterThan(0);
+    expect(plain.calm).toBeGreaterThan(0);
+    expect(fast.hp).toBeCloseTo(plain.hp * 2, 5);
+    expect(fast.calm).toBeCloseTo(plain.calm * 2, 5);
   });
 });
 

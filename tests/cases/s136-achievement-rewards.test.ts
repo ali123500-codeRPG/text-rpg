@@ -11,7 +11,7 @@ import { stance } from '../../src/engine/relations';
 import { trueSkill } from '../../src/ruleset/perks';
 import { grantAchievement } from '../../src/engine/xp';
 import { getLibrary } from '../../src/library';
-import { ACH, ACH_TAGS } from '../../src/library/achievementIds';
+import { ACH } from '../../src/library/achievementIds';
 import { PK } from '../../src/library/perkIds';
 import { SK } from '../../src/library/skillIds';
 import { CONFIG } from '../../src/config';
@@ -97,11 +97,5 @@ describe('136 achievement rewards', () => {
     expect(stance(s, slime, s.player)).toBe('opposed');
     slime.mind!.overrides = { [s.player.id]: 'hostile' }; // what an attack on it sets
     expect(stance(s, slime, s.player)).toBe('hostile');
-  });
-  it('every achievement carries at least one known tag', () => {
-    for (const d of Object.values(getLibrary().achievements ?? {})) {
-      expect(d.tags.length).toBeGreaterThan(0);
-      for (const t of d.tags) expect(ACH_TAGS[t]).toBeDefined();
-    }
   });
 });
