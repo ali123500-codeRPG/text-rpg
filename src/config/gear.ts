@@ -168,6 +168,12 @@ export const GEAR = {
   MAP_DOOR_BADGE_SHARE: 16 / 12,
   /** MAP-14 (OM12 b): the widest a badge is drawn, in screen pixels: its size at the old closest zoom, kept from there in */
   MAP_BADGE_MAX_PX: 40,
+  /** MAP-76 (OM2; placeholder): far out, a settlement's icon covering it, in screen pixels (the World view's size) */
+  MAP_SITE_ICON_PX: 24,
+  /** MAP-76 (OM11 a; placeholder): far out, the plain round mark of a place with no settlement size, in screen pixels */
+  MAP_SITE_DOT_PX: 10,
+  /** MAP-76 (placeholder): a landmark's diamond on the land, in screen pixels across */
+  MAP_LANDMARK_PX: 8,
   /** MAP-14 (RM31 b): how far a badge for a barrier that opens from one side only (a bar) sits off its door's line toward
    *  that side, as a share of the badge's diameter: at 0.5 the whole badge is on that side, its edge on the line */
   MAP_BADGE_LEAN: 0.5,

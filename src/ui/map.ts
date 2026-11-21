@@ -37,7 +37,7 @@ const s = (tag: string, attrs: Record<string, string | number> = {}, ...kids: (N
   return e;
 };
 /** a settlement's icon in the key (MAP-71) */
-const kSite = (size: SiteSize, faint = '') => { const i = h('i', { class: `k-site${faint}` }); i.innerHTML = ICON_ART[size]; return i; };
+export const kSite = (size: SiteSize, faint = '') => { const i = h('i', { class: `k-site${faint}` }); i.innerHTML = ICON_ART[size]; return i; };
 /** an icon of the set, px wide, centred on x, y: a settlement's by its size (MAP-71), a person's (MAP-69) */
 export const iconMark = (name: IconName, x: number, y: number, px: number, cls = 'map-site-icon') => {
   const g = s('g', { class: cls });

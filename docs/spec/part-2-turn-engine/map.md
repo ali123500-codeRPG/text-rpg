@@ -172,8 +172,7 @@ continuous map (D-1558)"). Rules below that still lay marks out zone by zone are
 - **MAP-63** There is one map of everything the character knows, in the one world frame (D-1558): every known zone at
   the height shown, each place inside a top-level place outlined as an area (MAP-13). A road is ground like any other
   and has no outline: it is drawn in its own packed-earth tone with solid edges, its 4 m band to scale, a thin solid
-  line far out (MapZone.road; OM10 a; Ali, 21/11/2026, Questions hub page "One continuous map (D-1558)"). A top-level place (a village) has no outline yet: how it shows from far out comes with the land
-  joining this map (OM2). No exit points to a known zone on the same floor, which is on the map already. The map is
+  line far out (MapZone.road; OM10 a; Ali, 21/11/2026, Questions hub page "One continuous map (D-1558)"). A top-level place (a village) has no outline: far out, its mark covers it (MAP-76). No exit points to a known zone on the same floor, which is on the map already. The map is
   laid out in fixed tiles, the land's regions (CONFIG.REGION_SIZE_M): a place is laid out whole in the tile holding the
   middle of its top-level place's ground, so nothing inside it is cut at a tile's edge, and a person in the tile holding
   their point. Each tile's layout is kept per zoom step, and only the tiles in view are laid out and drawn
@@ -264,8 +263,15 @@ continuous map (D-1558)"). Rules below that still lay marks out zone by zone are
   it goes and the places along it, each with a button that opens its map (RD1-RD3).
 - **MAP-75** Clicking the road in the World shows that card. A town's arrow onto the road, a place's road crumb or the
   road in the places list opens the World on that road (RD1-RD3).
-- **MAP-76** To scale, the World shows your pin wherever you are, and a place too small on screen to hold its name has
-  it just under its south side (RD1-RD3).
+- **MAP-76** Far out, a top-level place (not a road) too small on screen to hold its name (its known ground at every
+  height narrower than its name, or lower than a line of it) is covered by its mark, and everything inside it (zones,
+  places, doors, exits, people) is hidden at that zoom. The mark is its settlement's icon (MAP-71;
+  CONFIG.MAP_SITE_ICON_PX), or a plain round mark (CONFIG.MAP_SITE_DOT_PX) when it has no settlement size, with its
+  name under it; clicking it fits the map to the place. The land's settlements and landmarks seen, and those known by
+  word (faint), that are no place you know show the same way. A mark that would cover another, or lies past the map's
+  edge, is left out (MAP-23); the key names the sizes shown (MAP-30). Far out a road narrower than a pixel is still drawn,
+  as a thin line (src/ui/planView.ts drawSites; OM2 "cover the place with its icon when far away, look at how modern games
+  achieve this.", OM11 a; Ali, 21/11/2026, Questions hub page "One continuous map (D-1558)").
 
 #### Minimap
 

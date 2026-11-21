@@ -1113,6 +1113,16 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-land-mark.feature rect { stroke: var(--faint); }
 .map-land-mark.feature text { fill: var(--faint); font-weight: 600; }
 .map-land-mark.faint { opacity: .55; }
+/* MAP-76 (OM2, OM11 a): far out, a place too small to hold its name is covered by its settlement's icon (a plain round
+   mark with no size) and its name under it; the land's settlements and landmarks seen likewise */
+.map-site text { fill: var(--muted); font-size: 13px; font-weight: 800; paint-order: stroke; stroke: var(--bg); stroke-width: 3px; stroke-linejoin: round; }
+.map-site.town text, .map-site[data-site] text { fill: var(--text); }
+.map-site.here text { fill: var(--accent); }
+.map-site[data-site] { cursor: pointer; }
+.map-site-dot { fill: var(--c15); stroke: var(--bg); stroke-width: 2; }
+.map-site.feature rect { fill: var(--bg); stroke: var(--faint); stroke-width: 1.5; }
+.map-site.feature text { fill: var(--faint); font-weight: 600; }
+.map-site.faint { opacity: .55; }
 .map-tile.plan.here .map-tile-box { stroke: var(--accent); stroke-width: 2; stroke-dasharray: none; }
 .map-tile.plan.heading .map-tile-box { stroke: var(--accent); stroke-width: 2; stroke-dasharray: 6 4; opacity: 1; }
 .map-tile.plan.selected .map-tile-box { stroke: var(--scenario-mark); stroke-width: 2; }

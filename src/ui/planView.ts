@@ -11,9 +11,10 @@ import { CONFIG } from '../config';
 import { rootPlace, type KnownMap, type MapZone } from './mapData';
 import { PX_PER_M, TEXT, WHO_ICON_SHARE, checkReach, checkStage, nameFit, planScene, roughMeasure, type Box, type Measure, type Scene, type TextKind } from './mapPlan';
 import { checkMap } from './mapCheck';
-import { doorGlyph, fogClip, fogMask, iconMark, keyTool, planKeyRows, floorMarks, floorName, pin, wayBadge } from './map';
+import { doorGlyph, fogClip, fogMask, iconMark, keyTool, kSite, planKeyRows, floorMarks, floorName, pin, wayBadge } from './map';
 import { furnIcon } from './furnitureIcons';
-import { landLayer } from './landSvg';
+import { landLabels, landLayer } from './landSvg';
+import { SITE_SIZES, type SiteSize } from '../land/generate';
 import { metresText, planTo, splitAt, zoneAt, type MinimapPlan, type MinimapPoint } from './minimap';
 import { areaOf } from '../plan/geom';
 import { distText } from '../views';
@@ -96,8 +97,8 @@ export function planView(api: GameApi, opts: PlanOpts) {
   const fogId = `pv-fog-${++fogIds}`;
   const gLand = s('g', { class: 'map-land', 'aria-hidden': 'true' }), landNodes = new Map<string, Element>();
   const world = s('g'), gFog = s('defs'), gUnder = s('g', { class: 'map-under', 'clip-path': `url(#${fogId}-under)`, 'aria-hidden': 'true' }), gAreas = s('g'), gFaces = s('g', { class: 'map-faces', 'aria-hidden': 'true' }), gZones = s('g', { class: 'map-zones', 'clip-path': `url(#${fogId})`, mask: `url(#${fogId}-now)` }), gNames = s('g', { class: 'map-names', 'aria-hidden': 'true' });
-  const gScale = s('g', { class: 'map-scale', 'aria-hidden': 'true' }), gRing = s('g'), gMarks = s('g', { class: 'map-marks' }), gPath = s('g'), gTokens = s('g');
-  world.append(gFog, gLand, gUnder, gAreas, gZones, gFaces, gNames, gRing, gMarks, gPath, gTokens);
+  const gScale = s('g', { class: 'map-scale', 'aria-hidden': 'true' }), gRing = s('g'), gMarks = s('g', { class: 'map-marks' }), gSites = s('g', { class: 'map-sites' }), gPath = s('g'), gTokens = s('g');
+  world.append(gFog, gLand, gUnder, gAreas, gZones, gFaces, gNames, gRing, gMarks, gSites, gPath, gTokens);
   svg.append(s('defs', {},
     s('marker', { id: `${fogId}-arrow`, viewBox: '0 0 10 10', refX: 8, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }, s('path', { d: 'M0 0 10 5 0 10z', class: 'map-arrowhead' }))),
   s('title', {}, HINT), world, gScale);
@@ -162,11 +163,30 @@ export function planView(api: GameApi, opts: PlanOpts) {
   /** each tile's zones and people, and the ground they cover in metres (a road laid out in one tile may run past it) */
   type Tile = { zones: MapZone[]; people: PlanData['people']; m: Box };
   let scenesOf: PlanData | null = null, tiles = new Map<string, Tile>();
+  /** MAP-76 (OM2, OM11 a): each top-level place but a road, with the ground of all its known zones at every height, its
+   *  name and its settlement's size (from the land's site it stands on, else its kind when that names a size) */
+  type Root = { id: string; name: string; m: Box; size?: SiteSize };
+  let roots = new Map<string, Root>();
+  /** MAP-76: the top-level places too small at zoom kk to hold their name: each is covered by its mark, its inside hidden */
+  const coveredAt = (kk: number) => {
+    const kp = kk * PX_PER_M, out = new Set<string>();
+    for (const r of roots.values()) if ((r.m.x1 - r.m.x0) * kp < measure(r.name, 'title') + 2 * TEXT.title.pad || (r.m.y1 - r.m.y0) * kp < TEXT.title.h) out.add(r.id);
+    return out;
+  };
+  const rootOf = (z: MapZone) => rootPlace(d!.km, z.placeId);
   const tileOf = (q: Pos) => `${Math.floor(q.x / CONFIG.REGION_SIZE_M)},${Math.floor(q.y / CONFIG.REGION_SIZE_M)}`;
   const grow = (b: Box | undefined, x0: number, y0: number, x1: number, y1: number): Box => ({ x0: Math.min(b?.x0 ?? x0, x0), y0: Math.min(b?.y0 ?? y0, y0), x1: Math.max(b?.x1 ?? x1, x1), y1: Math.max(b?.y1 ?? y1, y1) });
   const sceneAt = (kk: number, view?: Box) => {
     if (scenesOf !== d) {
-      scenes.clear(); scenesOf = d; tiles = new Map();
+      scenes.clear(); scenesOf = d; tiles = new Map(); roots = new Map();
+      const sites = (d!.km.land ?? []).flatMap((l) => l.region.sites);
+      for (const z of d!.every) if (z.rect) {
+        const id = rootOf(z), p = d!.km.places.find((x) => x.id === id), q = z.rect;
+        if (!p || p.kind === 'road') continue;
+        const r = roots.get(id) ?? (roots.set(id, { id, name: p.name, m: { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity },
+          size: sites.find((x) => x.placeId && rootPlace(d!.km, x.placeId) === id)?.size ?? SITE_SIZES.find((x) => x === p.kind) }), roots.get(id)!);
+        r.m = grow(r.m, q.x - q.w / 2, q.y - q.d / 2, q.x + q.w / 2, q.y + q.d / 2);
+      }
       const tile = (key: string) => tiles.get(key) ?? (tiles.set(key, { zones: [], people: [], m: { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity } }), tiles.get(key)!);
       const ext = new Map<string, Box>();
       for (const z of d!.floor) if (z.rect) { const r = rootPlace(d!.km, z.placeId), q = z.rect; ext.set(r, grow(ext.get(r), q.x - q.w / 2, q.y - q.d / 2, q.x + q.w / 2, q.y + q.d / 2)); }
@@ -177,14 +197,16 @@ export function planView(api: GameApi, opts: PlanOpts) {
       for (const w of d!.people) { const at = w.at ?? w.lastAt; if (at) { const t = tile(tileOf(at)); t.people.push(w); t.m = grow(t.m, at.x, at.y, at.x, at.y); } }
     }
     const kp = kk * PX_PER_M, pad = 400; // a tile's marks reach past its ground (exit notes, titles)
-    const got: Scene[] = [];
+    const got: Scene[] = [], cov = coveredAt(kk), shut = (q: Pos) => [...cov].some((id) => { const m = roots.get(id)!.m; return q.x >= m.x0 && q.x <= m.x1 && q.y >= m.y0 && q.y <= m.y1; });
     for (const [key, t] of tiles) {
       const b = { x0: (t.m.x0 - org.x) * kp - pad, x1: (t.m.x1 - org.x) * kp + pad, y0: -(t.m.y1 - org.y) * kp - pad, y1: -(t.m.y0 - org.y) * kp + pad };
       if (view && (b.x1 < view.x0 || b.x0 > view.x1 || b.y1 < view.y0 || b.y0 > view.y1)) continue;
       const sk = `${key}|${kk}|${org.x}|${org.y}`;
       let sc = scenes.get(sk);
-      if (!sc) scenes.set(sk, (sc = planScene({ zones: t.zones, every: d!.every, places: d!.places.map((p) => ({ ...p, zones: p.zones.filter((z) => t.zones.includes(z)) })).filter((p) => p.zones.length),
-        people: t.people, k: kk, measure, youWidthM: d!.km.youWidthM, o: org })));
+      // MAP-76: a covered place's zones, and the people inside it, are left out at this zoom
+      const zs = cov.size ? t.zones.filter((z) => !cov.has(rootOf(z))) : t.zones;
+      if (!sc) scenes.set(sk, (sc = planScene({ zones: zs, every: d!.every, places: d!.places.map((p) => ({ ...p, zones: p.zones.filter((z) => zs.includes(z)) })).filter((p) => p.zones.length),
+        people: cov.size ? t.people.filter((w) => !shut((w.at ?? w.lastAt)!)) : t.people, k: kk, measure, youWidthM: d!.km.youWidthM, o: org })));
       got.push(sc);
     }
     return merge(got, kk);
@@ -200,7 +222,7 @@ export function planView(api: GameApi, opts: PlanOpts) {
     const w = b.x1 - b.x0, hh = b.y1 - b.y0;
     // the drawn floor sits a hair inside its walls, so zones that share a wall never measure as overlapping (MAP-11)
     const sc = z.rect!.w ? w / z.rect!.w : PX_PER_M, fm = floorMarks(z, sc, -org.x * sc, org.y * sc), tag = { 'data-role': 'zone', 'data-id': z.id, 'data-parent': z.placeId };
-    const box = (cls2: string, extra = {}) => fm.floor ? s('polygon', { points: fm.floor, class: cls2, ...extra }) : s('rect', { x: b.x0 + 0.5, y: b.y0 + 0.5, width: Math.max(0, w - 1), height: Math.max(0, hh - 1), class: cls2, ...extra });
+    const box = (cls2: string, extra = {}) => fm.floor ? s('polygon', { points: fm.floor, class: cls2, ...extra }) : s('rect', { x: b.x0 + 0.5, y: b.y0 + 0.5, width: Math.max(z.road ? 0.5 : 0, w - 1), height: Math.max(z.road ? 0.5 : 0, hh - 1), class: cls2, ...extra }); // a road far out: a thin line (MAP-63)
     // MAP-50: nothing tagged past the edge: a zone partly in view is tagged by the part in view, drawn whole
     const cut = !same(c, b), g = s('g', { class: cls, 'data-zone': z.id, ...(z.here ? { 'aria-current': 'location' } : {}), 'aria-label': `${z.name}, ${m2} m²${z.id === d?.heading ? ', you are heading here' : ''}` }, box('map-tile-box', cut ? {} : tag),
       ...(cut ? [s('rect', { x: c.x0 + 0.5, y: c.y0 + 0.5, width: Math.max(0, c.x1 - c.x0 - 1), height: Math.max(0, c.y1 - c.y0 - 1), class: 'mm-tag', ...tag })] : []));
@@ -269,7 +291,7 @@ export function planView(api: GameApi, opts: PlanOpts) {
   const exitAttrs = (zoneId: string, label: string) => ({ 'data-exit': label, 'data-exit-from': zoneId, tabindex: 0, role: 'button', 'aria-label': `${label}: unexplored, click for Move to here` });
 
   function render() {
-    for (const g of [gUnder, gAreas, gZones, gFaces, gNames, gRing, gMarks, gTokens]) g.replaceChildren();
+    for (const g of [gUnder, gAreas, gZones, gFaces, gNames, gRing, gMarks, gSites, gTokens]) g.replaceChildren();
     gFog.replaceChildren();
     if (!d) { scene = null; gPath.replaceChildren(); foot(); return; }
     const { w, h: hh } = size();
@@ -294,7 +316,7 @@ export function planView(api: GameApi, opts: PlanOpts) {
     gLand.setAttribute('style', `--px:${1 / K()}`);
     gLand.classList.toggle('faded', d.height !== 0);
     if (d.height !== 0) {
-      const ground = d.every.filter((z) => z.rect && z.height === 0 && (!z.seen || z.seen.length));
+      const cov = coveredAt(k), ground = d.every.filter((z) => z.rect && z.height === 0 && (!z.seen || z.seen.length) && !cov.has(rootOf(z)));
       gFog.append(fogClip(`${fogId}-under`, ground, K(), org));
       for (const z of ground) {
         const r = z.rect!, a = px({ x: r.x - r.w / 2, y: r.y + r.d / 2 }), b: Box = { x0: a.x, y0: a.y, x1: a.x + r.w * K(), y1: a.y + r.d * K() };
@@ -316,7 +338,9 @@ export function planView(api: GameApi, opts: PlanOpts) {
     /** each name as drawn: a name partly out of view is fitted again to the part of its seen room in view (BG-348), so furniture is checked again */
     const names: Box[] = [];
     for (const x of sc.zones) {
-      const c = clip(x.box, vb), z = x.z;
+      // MAP-63 (OM10 a): far out a road is narrower than a pixel and still drawn, as a thin line along its band
+      const z = x.z, c = clip(x.box, vb) ?? (z.road && x.box.x0 < vb.x1 && vb.x0 < x.box.x1 && x.box.y0 <= vb.y1 && vb.y0 <= x.box.y1
+        ? { x0: Math.max(x.box.x0, vb.x0), y0: Math.max(x.box.y0, vb.y0), x1: Math.min(x.box.x1, vb.x1), y1: Math.min(x.box.y1, vb.y1) } : null);
       if (!c) continue;
       gZones.append(planZone(z, x.box, c));
       // MZ2: each zone's name behind every mark, in the part of its seen room in view; none where it does not fit (MAP-20)
@@ -387,17 +411,63 @@ export function planView(api: GameApi, opts: PlanOpts) {
       gTokens.append(g);
     }
     if (you) gTokens.append(you); // RM33: your pin above every other mark
+    const shown = drawSites(sc, inView);
     // MAP-10, OM7 a: the scale bar, fixed at the view's bottom left: the longest round length (1, 2.5 or 5 of a power of ten)
     // up to a fifth of the view's width, and its paces
-    const span = w / 5 / K(), p10 = 10 ** Math.floor(Math.log10(span)), m = p10 * [5, 2.5, 1].find((f) => f * p10 <= span)!;
+    // BG-1683: a power of ten at or under the span; a span a hair under one (999.99… m) takes the one below, as log10 rounds it up
+    const span = w / 5 / K(), p0 = 10 ** Math.floor(Math.log10(span)), p10 = p0 > span ? p0 / 10 : p0, m = p10 * [5, 2.5, 1].find((f) => f * p10 <= span)!;
     const len = m * K(), bx = 12, by = hh - 14;
     gScale.replaceChildren(s('line', { x1: bx, y1: by, x2: bx + len, y2: by }), s('line', { x1: bx, y1: by - 5, x2: bx, y2: by + 5 }),
       s('line', { x1: bx + len, y1: by - 5, x2: bx + len, y2: by + 5 }), s('text', { x: bx + len + 8, y: by + 4 }, m < 1000 ? `${metresText(m)} · ${plural(Math.round(m / CONFIG.PACE_M), 'pace')}` : distText(m)));
     drawPath();
     foot();
     scheduleCheck();
-    key?.set(planKeyRows(sc.used));
+    // MAP-30: a settlement's size, one known by word only and a landmark, when the map shows them
+    key?.set([...planKeyRows(sc.used), ...SITE_SIZES.filter((n) => shown.has(n)).map((n): [Node, string] => [kSite(n), cap(n)]),
+      ...(shown.has('faint') ? [[kSite('village', ' faint'), 'Known by word, not seen'] as [Node, string]] : []),
+      ...(shown.has('feature') ? [[h('i', { class: 'k-mark' }), 'Landmark'] as [Node, string]] : [])]);
     opts.onRender?.();
+  }
+
+  /** a site's mark on screen centred on c: its icon's radius, its name's box under it and the two together */
+  function siteBox(c: Pos, text: string, kind?: SiteSize | 'feature') {
+    const r = (kind === 'feature' ? CONFIG.MAP_LANDMARK_PX : kind ? CONFIG.MAP_SITE_ICON_PX : CONFIG.MAP_SITE_DOT_PX) / 2, tw = measure(text, 'title'), l = measure.line('title');
+    const name: Box = { x0: c.x - tw / 2, y0: c.y + r + 3, x1: c.x + tw / 2, y1: c.y + r + 3 + l.ascent + l.descent };
+    return { r, name, all: { x0: Math.min(c.x - r, name.x0), y0: c.y - r, x1: Math.max(c.x + r, name.x1), y1: name.y1 } as Box };
+  }
+  /** MAP-76 (OM2, OM11 a): far out, each covered place as its settlement's icon (a plain round mark with no size) with its
+   *  name under it, and the land's settlements and landmarks seen that are no place you know; first the places, then the
+   *  land's by size. One that would cover a mark already drawn, or lies past the map's edge, is left out (MAP-23) */
+  function drawSites(sc: Scene, inView: Box): Set<string> {
+    const shown = new Set<string>();
+    const taken: Box[] = [...sc.doors, ...sc.places.map((p) => p.title), ...sc.exits.map((e) => e.note), ...sc.stairs, ...sc.furniture, ...sc.items];
+    const hits = (b: Box) => taken.some((o) => o.x0 < b.x1 && b.x0 < o.x1 && o.y0 < b.y1 && b.y0 < o.y1);
+    const cov = coveredAt(k), here = d!.km.places.some((p) => p.id === d!.km.placeId) ? rootPlace(d!.km, d!.km.placeId) : '';
+    const rank = { town: 0, village: 1, hamlet: 2, feature: 4 } as const;
+    type Site = { id: string; name: string; at: Pos; kind?: SiteSize | 'feature'; faint?: boolean; place?: true };
+    const known = new Set(roots.keys());
+    const list: Site[] = [
+      ...[...cov].map((id) => roots.get(id)!).map((r): Site => ({ id: r.id, name: r.name, at: { x: (r.m.x0 + r.m.x1) / 2, y: (r.m.y0 + r.m.y1) / 2 }, kind: r.size, place: true }))
+        .sort((a, b) => (a.kind ? rank[a.kind] : 3) - (b.kind ? rank[b.kind] : 3)),
+      ...(d!.km.land ?? []).flatMap((l) => landLabels(l.region, l)).filter((x) => x.name && !(x.placeId && known.has(rootPlace(d!.km, x.placeId))))
+        .map((x): Site => ({ id: x.id, name: x.name, at: x.at, kind: x.kind, faint: x.faint })).sort((a, b) => rank[a.kind as SiteSize] - rank[b.kind as SiteSize]),
+    ];
+    const asc = measure.line('title').ascent;
+    for (const x of list) {
+      const c = px(x.at), { r, name, all } = siteBox(c, x.name, x.kind);
+      if (!within(all, inView) || hits(all)) continue;
+      taken.push(all);
+      if (x.kind) shown.add(x.kind);
+      if (x.faint) shown.add('faint');
+      const said = `${x.name}${x.kind && x.kind !== 'feature' ? `, a ${x.kind}` : ''}${x.faint ? ': known by word, not seen' : ''}${x.id === here ? ': you are here' : ''}`;
+      const mark = x.kind === 'feature' ? s('rect', { x: c.x - r * 0.7, y: c.y - r * 0.7, width: r * 1.4, height: r * 1.4, transform: `rotate(45 ${c.x} ${c.y})` })
+        : x.kind ? iconMark(x.kind, c.x, c.y, 2 * r) : s('circle', { cx: c.x, cy: c.y, r: r - 1, class: 'map-site-dot' });
+      for (const [k0, v] of Object.entries({ 'data-role': 'icon', 'data-id': `site:${x.id}` })) mark.setAttribute(k0, v);
+      gSites.append(s('g', { class: `map-site ${x.kind ?? 'plain'}${x.faint ? ' faint' : ''}${x.id === here ? ' here' : ''}`, role: x.place ? 'button' : 'img', 'aria-label': x.place ? `${said}: show it` : said,
+        ...(x.place ? { 'data-site': x.id, tabindex: 0 } : {}) },
+      mark, s('text', { x: c.x, y: name.y0 + asc, 'text-anchor': 'middle', 'data-role': 'label', 'data-id': `site-name:${x.id}`, 'data-placement': 'outside' }, x.name), s('title', {}, said)));
+    }
+    return shown;
   }
 
   /** the hovered walk (dotted, amber past what this turn walks) and the planned one (solid), each with its end */
@@ -458,7 +528,10 @@ export function planView(api: GameApi, opts: PlanOpts) {
     let kk = Math.min(most, aw / (ww * PX_PER_M), ah / (dd * PX_PER_M));
     // the marks round the zones fitted (exit notes, place titles) take room too: shrink until all of it fits
     const ids = new Set((zs.length ? zs : d.floor).map((z) => z.id));
-    const boundsOf = (sc: Scene): Box => { const bs = [...sc.zones.filter((x) => ids.has(x.z.id)).map((x) => x.box), ...sc.exits.filter((e) => ids.has(e.zoneId)).map((e) => e.note),
+    const rectAt = (q: NonNullable<MapZone['rect']>, kk: number): Box => { const kp = kk * PX_PER_M; return { x0: (q.x - q.w / 2 - org.x) * kp, x1: (q.x + q.w / 2 - org.x) * kp, y0: -(q.y + q.d / 2 - org.y) * kp, y1: -(q.y - q.d / 2 - org.y) * kp }; };
+    const marksAt = (kk: number) => { const kp = kk * PX_PER_M, ins = new Set((zs.length ? zs : d!.floor).map(rootOf));
+      return [...coveredAt(kk)].filter((id) => ins.has(id)).map((id) => { const r = roots.get(id)!; return siteBox({ x: ((r.m.x0 + r.m.x1) / 2 - org.x) * kp, y: -((r.m.y0 + r.m.y1) / 2 - org.y) * kp }, r.name, r.size).all; }); };
+    const boundsOf = (sc: Scene): Box => { const bs = [...zb.map((q) => rectAt(q, sc.k)), ...marksAt(sc.k), ...sc.exits.filter((e) => ids.has(e.zoneId)).map((e) => e.note),
       ...sc.places.filter((p) => d!.places.find((q) => q.id === p.id)?.zones.every((z) => ids.has(z.id))).flatMap((p) => [p.box, p.title])];
     return { x0: Math.min(...bs.map((b) => b.x0)), y0: Math.min(...bs.map((b) => b.y0)), x1: Math.max(...bs.map((b) => b.x1)), y1: Math.max(...bs.map((b) => b.y1)) }; };
     let b = boundsOf(sceneAt(kk));
@@ -503,6 +576,8 @@ export function planView(api: GameApi, opts: PlanOpts) {
     if (x) { opts.onExit(x.getAttribute('data-exit-from')!, x.getAttribute('data-exit')!); return true; }
     if (g) { opts.onGoto(g.getAttribute('data-goto')!); return true; }
     if (a && opts.onArea && a.closest('.map-place-title')) { opts.onArea(a.getAttribute('data-area')!); return true; }
+    const site = t.closest?.('[data-site]')?.getAttribute('data-site');
+    if (site && d) { fit((z) => rootOf(z) === site); opts.onArea?.(site); return true; }
     return false;
   }
   const cardAt = (e: MouseEvent) => { if (!d) return; const z = zoneAt(d.floor, metresAt(e)); if (z) opts.onCard(z.id); };
