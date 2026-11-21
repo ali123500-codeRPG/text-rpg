@@ -1858,9 +1858,9 @@ function runStretch(ctx: Ctx, st: Stretch, onLeg?: OnLeg): void {
     const from = ctx.events.length;
     let met: StretchStop | null = null;
     if (st.walk) {
-      const was = spotOf(state, p).pos, dark = darkOut(now(state));
+      const was = spotOf(state, p).pos, wasZone = p.zone, dark = darkOut(now(state));
       walkEnd = walkStep(ctx, st.walk, step);
-      met = wildLeg(ctx, was, dark);
+      met = walkEncounter(ctx, was, wasZone, dark);
       if (walkEnd) { ran += step; stop = met; break; } // AT45: there, or blocked
     }
     passTime(state, step / 60);
@@ -1912,12 +1912,12 @@ function runStretch(ctx: Ctx, st: Stretch, onLeg?: OnLeg): void {
   }
 }
 
-/** BG-1831 (D-245 a): a long walk with no road on its route is no trip, but its minutes on open land off the road count
- * toward a leg as a trip's do (Actor.roadMin), and a full leg rolls at the wild rate (legEncounter). A meeting stops the walk
- * and breaks the scenario as on a trip (encounter) */
-function wildLeg(ctx: Ctx, was: Pos | undefined, dark: boolean): StretchStop | null {
+/** BG-1831 (D-245 a): a long walk that is no trip counts its minutes on a road or on open land off it toward a leg as a
+ * trip does (Actor.roadMin), whatever kept it from being a trip, and a full leg rolls by the road's danger or at the wild
+ * rate (legEncounter). A meeting stops the walk and breaks the scenario as on a trip (encounter) */
+function walkEncounter(ctx: Ctx, was: Pos | undefined, wasZone: string, dark: boolean): StretchStop | null {
   const { state } = ctx, p = state.player, at = spotOf(state, p).pos, v = moveSpeed(state, p).walk;
-  if (!was || !at || v <= 0 || isRoad(zoneById(state, p.zone)) || !wildGround(state, at)) return null;
+  if (!was || !at || v <= 0 || !(isRoad(zoneById(state, wasZone)) || isRoad(zoneById(state, p.zone)) || wildGround(state, at))) return null;
   p.roadMin = Math.min(CONFIG.TRAVEL_LEG_MIN, (p.roadMin ?? 0) + Math.hypot(at.x - was.x, at.y - was.y) / v / 60);
   const met = legEncounter(state, p, ctx.rng, dark, was);
   if (!met) return null;

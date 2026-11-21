@@ -253,7 +253,7 @@ html:has(.build-bar) { scroll-padding-top: 80px; } /* keyboard focus never lands
 .bb-figs small { font-size: 13px; color: var(--muted); font-weight: 400; }
 .bb-figs .mk-i { width: 20px; height: 20px; vertical-align: 0; color: var(--muted); }
 .bb-pts.ok b { color: var(--ok); } .bb-pts.warn b, .bb-pts.warn small { color: var(--warn); }
-.bb-meter { width: 120px; height: 6px; border-radius: var(--r-sm); background: var(--border); overflow: hidden; margin-left: 4px; }
+.bb-meter { width: 80px; height: 6px; border-radius: var(--r-sm); background: var(--border); overflow: hidden; margin-left: 4px; }
 .bb-meter i { display: block; height: 100%; background: var(--ok); }
 .bb-pts.warn .bb-meter i { background: var(--warn); }
 .bb-pips { display: inline-flex; gap: 2px; }
@@ -264,7 +264,9 @@ html:has(.build-bar) { scroll-padding-top: 80px; } /* keyboard focus never lands
 .bb-duel b { text-decoration: underline dotted var(--faint); text-underline-offset: 5px; text-decoration-thickness: 1px; }
 .bb-duel .vs { color: var(--faint); font-size: 20px; font-weight: 700; }
 .bb-duel:is(:hover, :focus-visible) b { color: var(--accent); text-decoration-color: var(--accent); }
-@media (max-width: 1279px) { .build-bar, .bb-figs { column-gap: var(--space-3); } .bb-meter { display: none; } }
+@media (max-width: 1399px) { .build-bar, .bb-figs { column-gap: var(--space-3); } }
+@media (max-width: 1279px) { .bb-meter { display: none; } }
+@media (max-width: 1151px) { .bb-duel small { display: none; } } /* its words stay in its tip and name */
 /* PL14: personality picker on the creation screen */
 .pe { display: grid; gap: var(--space-3); }
 .pe .grp-h .hs-btn-text { min-height: 0; }
