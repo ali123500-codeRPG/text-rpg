@@ -72,10 +72,10 @@ export function objectHidden(state: GameState, body: Actor, zone: Zone, from?: A
 /** PC3: the share of `body` that shows to `from` through the opening it is seen through (a window, a doorway, a gate): the
  * last opening on the line of sight. The opening's sill and top, carried along the sight line to the target, frame a
  * band of its height, and its width carried on the same way bounds how much of the target's width shows (an archer at
- * an arrow slit sees the whole field; a target behind one shows a strip). 1 when it is seen in the
- * same zone or across open ground. */
+ * an arrow slit sees the whole field; a target behind one shows a strip). 1 when the sight line passes no opening, whatever
+ * titles the two stand in (a title only names a space). */
 export function openingShown(state: GameState, body: Actor, zone: Zone, from?: Actor): number {
-  if (!from || from.zone === zone.id) return 1;
+  if (!from) return 1;
   const t = spotOf(state, body).pos, v = spotOf(state, from).pos;
   if (!t || !v) return 1;
   const floorT = body.floor, size = actorBody(state, body).size, h = size.heightM;
