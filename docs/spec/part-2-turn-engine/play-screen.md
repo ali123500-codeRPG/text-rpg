@@ -193,6 +193,11 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
   ("≈ swings : ≈ slams", which opens the estimate's input), and Begin the story at its end. Every explanation is the
   figure's tip; the Starting total against Potential is the points' tip. A "Needs attention" line shows under the bar,
   so the button never moves (option B on the critique page "Creation stat row", picked by the owner).
+- **PS-493** The creation screen's race and gender picks show as icons, the word in each one's tip and accessible name:
+  a race by its ear (Human a round ear, Elf a pointed one; a race with no icon yet shows its name), a gender by its sign
+  (male, female, neutral for Other). The age's life stage shows as an hourglass with one dot lit per stage, from the
+  youngest stage a new character can be to the oldest, the stage's name in its tip (option A, "Signs", on the page
+  "Creation identity icons", picked by the owner).
 - **PS-111** Loot: when the character can see things to take where they stand, a Loot chip shows by the action box with
   how many ("Loot ×7").
 - **PS-112** It opens a large partial pop-up listing them by where they are: each body that is down (what it wears and

@@ -137,6 +137,13 @@ h1 { font-size: 22px; line-height: 1.25; margin: 0; font-weight: 800; letter-spa
 .hs-picker button { background: none; border: 0; padding: 0 10px; min-height: var(--control-h); cursor: pointer; color: var(--muted); font: inherit; border-radius: var(--r-pill); }
 .hs-picker button:hover { color: var(--text); }
 .hs-picker button[aria-pressed="true"] { background: var(--accent); color: var(--on-pill); font-weight: 700; }
+/* the creation screen's race and gender picks show as icons; the age's life stage as an hourglass and dots */
+.who-ic .mk-i { width: 20px; height: 20px; color: inherit; vertical-align: middle; }
+.age-mk { display: inline-flex; align-items: center; gap: 6px; vertical-align: middle; color: var(--text); }
+.age-mk .mk-i { width: 20px; height: 20px; color: inherit; vertical-align: 0; }
+.age-mk .dots { display: inline-flex; gap: 3px; }
+.age-mk .dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--rule); }
+.age-mk .dots i.on { background: var(--text); }
 .hs-btn-main { background: var(--btn-fill); color: var(--on-btn); border: 0; border-radius: var(--r-md); padding: 0 16px; min-height: var(--input-h); font: inherit; font-weight: 700; cursor: pointer; }
 .hs-btn-main:hover { filter: brightness(1.06); }
 .hs-btn-main:disabled { filter: grayscale(.6); opacity: .6; cursor: default; }

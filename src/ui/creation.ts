@@ -19,7 +19,8 @@ import { ICONS, skillMark, startIcon, treeIcon, type IconName } from './itemIcon
 import { preview } from './sheet';
 import { DEFENSE_SKILL, SK } from '../library/skillIds';
 import { ST } from '../library/startIds';
-import { CLASS_TIERS } from '../scales';
+import { CLASS_TIERS, LIFE_STAGES } from '../scales';
+import { RC } from '../library/raceIds';
 
 export { SKILL_NAMES, skillName };
 /** an icon from ICONS as a mark, its meaning in its tip and its accessible name */
@@ -72,7 +73,12 @@ function startFacts(startId: string): { tier: string; classes: string[]; perks: 
 }
 
 // name and gender carry over when the player switches Start
-const GENDERS: [Pronouns, string][] = [['he', 'Man'], ['she', 'Woman'], ['they', 'Other']];
+// each shows as its sign; the word is its tip and accessible name
+const GENDERS: [Pronouns, string, IconName][] = [['he', 'Man', 'gender_he'], ['she', 'Woman', 'gender_she'], ['they', 'Other', 'gender_they']];
+/** a playable race shows as its ear; a race with no icon yet shows its name */
+const RACE_ICON: Record<string, IconName> = { [RC.human]: 'race_human', [RC.elf]: 'race_elf' };
+/** an icon from ICONS as the whole face of a button; the button carries the word */
+const faceIcon = (name: IconName) => { const el = h('span', { class: 'mk-i', 'aria-hidden': 'true' }); el.innerHTML = ICONS[name]; return el; };
 // a new character opens on a random name, gender, age and personality, all editable; Random picks again
 const roll = () => randomIdentity(createRng(Math.floor(Math.random() * 2 ** 31) || 1));
 const first = roll();
@@ -291,14 +297,14 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
     return row;
   }
   function whoRow(): HTMLElement {
-    const gender = h('div', { class: 'hs-picker', role: 'group', 'aria-label': 'Gender' }, GENDERS.map(([p, label]) =>
-      h('button', { type: 'button', 'aria-pressed': String(identity.pronouns === p), title: `Others speak of you as “${p}”`,
-        onclick: (e: Event) => { identity.pronouns = p; (e.currentTarget as HTMLElement).parentElement!.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b === e.currentTarget))); } }, label)));
+    const gender = h('div', { class: 'hs-picker who-ic', role: 'group', 'aria-label': 'Gender' }, GENDERS.map(([p, label, icon]) =>
+      h('button', { type: 'button', 'aria-pressed': String(identity.pronouns === p), title: `${label} · others speak of you as “${p}”`, 'aria-label': label,
+        onclick: (e: Event) => { identity.pronouns = p; (e.currentTarget as HTMLElement).parentElement!.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b === e.currentTarget))); } }, faceIcon(icon))));
     // CC7 a: the playable races; picking one rolls an age in its range and builds the screen again (its trees and ages)
-    const race = h('div', { class: 'hs-picker', role: 'group', 'aria-label': 'Race' }, playableRaces().map((id) =>
-      h('button', { type: 'button', 'aria-pressed': String(identity.raceId === id), title: lib.races?.[id]?.name ?? id,
+    const race = h('div', { class: 'hs-picker who-ic', role: 'group', 'aria-label': 'Race' }, playableRaces().map((id) =>
+      h('button', { type: 'button', 'aria-pressed': String(identity.raceId === id), title: lib.races?.[id]?.name ?? id, 'aria-label': lib.races?.[id]?.name ?? id,
         onclick: () => { if (id === identity.raceId) return; identity.raceId = id; identity.age = randomIdentity(createRng(Math.floor(Math.random() * 2 ** 31) || 1), id).age; keep(); switchTo(startId); } },
-      lib.races?.[id]?.name ?? id)));
+      RACE_ICON[id] ? faceIcon(RACE_ICON[id]) : lib.races?.[id]?.name ?? id)));
     const row: HTMLElement = h('div', { class: 'who-row' },
       h('label', { class: 'hs-label' }, 'Name ', h('input', { class: 'hs-input', type: 'text', maxLength: CONFIG.NAME_CAP, value: identity.name, 'aria-label': 'Name', autocomplete: 'off',
         oninput: (e: Event) => { identity.name = (e.target as HTMLInputElement).value; } })),
@@ -311,14 +317,22 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
       } }, 'Random'));
     return row;
   }
-  /** AG15: whole years from the race's Youth start to its Venerable start, with the life stage it gives */
+  /** AG15: whole years from the race's Youth start to its Venerable start; its life stage shows as an hourglass with one dot
+   * lit per stage, from the youngest a new character can be to the oldest, the stage's name in its tip */
   function ageField(): HTMLElement | null {
     const raceId = who.core.raceId, range = creationAgeRange(raceId);
     if (!range) return null;
-    const word = (n: number) => { const s = lifeStage(raceId, n); return s ? stageName(s) : ''; };
-    const stage = h('span', { class: 'hs-note' }, word(identity.age ?? creationAge(startId)));
+    const keys = LIFE_STAGES.keys as readonly string[];
+    const from = keys.indexOf(lifeStage(raceId, range.min)?.key ?? keys[0]), to = keys.indexOf(lifeStage(raceId, range.max)?.key ?? keys[keys.length - 1]);
+    const stage = h('span', { class: 'age-mk', role: 'img' });
+    const paint = (n: number) => {
+      const s = lifeStage(raceId, n), at = s ? keys.indexOf(s.key) : -1, word = s ? stageName(s) : '';
+      stage.title = word; stage.setAttribute('aria-label', word);
+      stage.replaceChildren(faceIcon('life_stage'), h('span', { class: 'dots' }, keys.slice(from, to + 1).map((_, i) => h('i', { class: from + i <= at ? 'on' : '' }))));
+    };
+    paint(identity.age ?? creationAge(startId));
     return h('label', { class: 'hs-label' }, 'Age ', h('input', { class: 'hs-input', type: 'number', min: range.min, max: range.max, step: 1, value: identity.age ?? creationAge(startId), 'aria-label': 'Age', style: 'width:5em',
-      oninput: (e: Event) => { const n = Math.round(Number((e.target as HTMLInputElement).value)); if (Number.isFinite(n)) { identity.age = Math.max(range.min, Math.min(range.max, n)); stage.textContent = word(identity.age); } } }), ' ', stage);
+      oninput: (e: Event) => { const n = Math.round(Number((e.target as HTMLInputElement).value)); if (Number.isFinite(n)) { identity.age = Math.max(range.min, Math.min(range.max, n)); paint(identity.age); } } }), ' ', stage);
   }
   const root = h('main', {},
     stopped ? h('div', { class: 'hs-hl bad', role: 'status' }, h('span', { class: 'hs-hl-b', 'data-kind': 'Play stopped' }, stopped.text)) : null,
