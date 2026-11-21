@@ -14,10 +14,10 @@ import { personalityPicker } from './personality';
 import { createRng } from '../rng';
 import { SKILL_NAMES, skillName } from '../library/skillNames';
 import { classTree, skillOpen, treeOpen } from '../ruleset/access';
-import { h, openPanel, readouts, type Readout } from './kit';
+import { h, openPanel } from './kit';
 import { ICONS, skillMark, startIcon, treeIcon, type IconName } from './itemIcons';
 import { preview } from './sheet';
-import { SK } from '../library/skillIds';
+import { DEFENSE_SKILL, SK } from '../library/skillIds';
 import { ST } from '../library/startIds';
 import { CLASS_TIERS } from '../scales';
 
@@ -107,7 +107,7 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
   const keep = () => { kept.b = { startId, skills: { ...st.v }, tagged: [...st.tags], flawed: [...st.flaws] }; };
   const setVal = (k: string, n: number) => { st.v[k] = Math.max(floors[k] ?? 0, Math.min(cap(k), st.v[k] + left(), Math.round(n))); render(); };
 
-  const tilesHost = h('div');
+  const figs = h('div', { class: 'bb-figs' }); // the build bar's figures, redrawn by render()
   const msg = h('p', { class: 'msg', role: 'status' });
   const rows = new Map<string, HTMLElement>();
   const sums = new Map<string, HTMLElement>();
@@ -161,26 +161,34 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
     if (before && buildKey() !== afterKey) { before = null; undoBtn.hidden = true; }
     const L = left(), b = build(), p = preview(b, st.swings);
     const dash = (n: number | null, d = 0) => (n === null ? '—' : n.toFixed(d));
-    const tiles: Readout[] = [
-      { label: 'Points left', value: String(L), unit: `of ${total()}`, sub: L ? 'Spend them all to begin' : 'All spent', tone: L ? 'warn' : 'ok',
-        how: `Spend ${total()} points. Your class sets floors, an untagged skill starts at most ${CONFIG.CREATION_MAX_UNTAGGED}, a tagged one ${CONFIG.CREATION_MAX_TAGGED} (its tag adds ${CONFIG.CREATION_TAG_BONUS} on top) and a flawed one ${CONFIG.CREATION_MAX_FLAWED}, and you tag ${maxTags()} skills and flaw ${maxFlaws()}.` },
-      { label: 'HP', value: dash(p.hp), unit: 'HP', sub: `${CONFIG.HP_BASE} + endurance`, how: 'Total HP from the ruleset: the base plus endurance, times the body’s HP multiplier.' },
-      { label: 'Attack', value: dash(p.attack), unit: 'skill', sub: p.weapon ? `${p.weapon.skill} · ${p.weapon.name}` : '—',
-        how: 'Effective skill of your starting attack: the first weapon in your starting kit, or bare hands when the kit has none (raw skill plus gear).' },
-      { label: 'Standing defense', value: dash(p.defense?.value ?? null), unit: p.defense?.kind ?? 'skill',
-        sub: p.defense ? (p.guard ? `${p.defense.kind} + ${p.guard}` : p.defense.kind) : 'block, parry or dodge, the highest',
-        how: 'The highest of effective block (needs a starting shield), parry (needs a starting melee weapon) and dodge.' },
-      { label: 'Vs one slime', value: p.swingsToKill === null ? '—' : '≈ ' + dash(p.swingsToKill, 1), unit: 'swings to kill',
-        sub: p.slamsToDown === null ? 'Its slams to down you: —' : `It downs you in about ${Math.round(p.slamsToDown)} slams`,
-        how: `≈ an estimate from ${st.swings} practice swings each way with the game’s attack rules: the slime’s HP (${dash(p.slimeHp)}) over your average damage per swing.` },
-      { label: 'Potential', value: String(CONFIG.POTENTIAL), unit: 'pts',
-        sub: `StartingTotal ${+burdenTotal(Object.fromEntries(open.map((k) => [k, { raw: startRaw(b, k), state: buildState(b, k) }]))).toFixed(2)} · ${st.tags.size} of ${maxTags()} tagged · ${st.flaws.size} of ${maxFlaws()} flawed`,
-        how: `Tagged: ${[...st.tags].map(skillName).join(', ') || 'none yet'}. Flawed: ${[...st.flaws].map(skillName).join(', ') || 'none yet'}. StartingTotal is the sum of your skills when the story starts, each tag taking ${CONFIG.TAG_BURDEN_GROUP_PCT}% off every skill in its group (a lone tag counts 0) and each flaw adding ${CONFIG.FLAW_BURDEN_GROUP_PCT}% to every skill in its group. Tagged skills ignore Burden. A flawed skill learns slower and stops at ${CONFIG.SKILL_CAP - CONFIG.FLAW_CAP_PENALTY}.` },
-    ];
-    tilesHost.replaceChildren(readouts(tiles));
-    // HS6: the estimate's input is set here, by its tile
-    tilesHost.querySelectorAll('.hs-readout')[tiles.findIndex((t) => t.label === 'Vs one slime')]?.append(
-      h('button', { class: 'hs-btn-text swings', type: 'button', onclick: editSwings }, 'Change the estimate'));
+    // the build bar: what is left to spend, then what the build does; every word is in a figure's tip (show, don't tell)
+    const icon = (name: IconName) => { const el = h('span', { class: 'mk-i', 'aria-hidden': 'true' }); el.innerHTML = ICONS[name]; return el; };
+    const fig = (cls: string, tip: string, ...kids: (Node | string | null)[]) => h('span', { class: cls, role: 'img', title: tip, 'aria-label': tip }, ...kids);
+    const pips = (n: number, of: number, name: IconName, cls: string, tip: string) =>
+      fig('bb-pips', tip, ...Array.from({ length: of }, (_, i) => { const el = icon(name); el.classList.add(i < n ? cls : 'off'); return el; }));
+    const startTotal = +burdenTotal(Object.fromEntries(open.map((k) => [k, { raw: startRaw(b, k), state: buildState(b, k) }]))).toFixed(2);
+    const names = (s: Set<string>) => [...s].map(skillName).join(', ') || 'none yet';
+    const defIcon = (() => { // the defense that wins shows as its own skill's icon; its name is in the tip
+      if (!p.defense) return icon('fig_defense');
+      const el = skillMark(DEFENSE_SKILL[p.defense.kind]); ['title', 'role', 'aria-label'].forEach((a) => el.removeAttribute(a)); el.setAttribute('aria-hidden', 'true');
+      return el;
+    })();
+    const slime = `≈ an estimate from ${st.swings} practice swings each way with the game’s attack rules: the slime’s HP (${dash(p.slimeHp)}) over your average damage per swing, and its slam’s average damage against your HP.`;
+    figs.replaceChildren(
+      fig(`bb-pts ${L ? 'warn' : 'ok'}`, `${L} of ${total()} points left. Spend ${total()} points. Your class sets floors, an untagged skill starts at most ${CONFIG.CREATION_MAX_UNTAGGED}, a tagged one ${CONFIG.CREATION_MAX_TAGGED} (its tag adds ${CONFIG.CREATION_TAG_BONUS} on top) and a flawed one ${CONFIG.CREATION_MAX_FLAWED}. Starting total ${startTotal} of Potential ${CONFIG.POTENTIAL}: the sum of your skills when the story starts, each tag taking ${CONFIG.TAG_BURDEN_GROUP_PCT}% off every skill in its group (a lone tag counts 0) and each flaw adding ${CONFIG.FLAW_BURDEN_GROUP_PCT}% to every skill in its group.`,
+        h('b', {}, String(L)), h('small', {}, `of ${total()} left`), h('span', { class: 'bb-meter' }, h('i', { style: `width:${((total() - L) / total()) * 100}%` }))),
+      pips(st.tags.size, maxTags(), 'tagged', 'tag', `${st.tags.size} of ${maxTags()} tagged: ${names(st.tags)}. Tagged skills ignore Burden.`),
+      pips(st.flaws.size, maxFlaws(), 'flawed', 'flaw', `${st.flaws.size} of ${maxFlaws()} flawed: ${names(st.flaws)}. A flawed skill learns slower and stops at ${CONFIG.SKILL_CAP - CONFIG.FLAW_CAP_PENALTY}.`),
+      h('span', { class: 'bb-sep' }),
+      fig('bb-fig', `HP ${dash(p.hp)}: the base ${CONFIG.HP_BASE} plus endurance, times the body’s HP multiplier`, h('b', {}, dash(p.hp)), h('small', {}, 'HP')),
+      fig('bb-fig', `Standing attack ${dash(p.attack)}${p.weapon ? ` · ${p.weapon.skill} · ${p.weapon.name}` : ''}: the effective skill of your starting weapon, or bare hands when the kit has none (raw skill plus gear)`, icon('fig_attack'), h('b', {}, dash(p.attack))),
+      fig('bb-fig', `Standing defense ${dash(p.defense?.value ?? null)} · ${p.defense ? (p.guard ? `${p.defense.kind} + ${p.guard}` : p.defense.kind) : 'none'}: the highest of effective block (needs a starting shield), parry (needs a starting melee weapon) and dodge`, defIcon, h('b', {}, dash(p.defense?.value ?? null))),
+      h('span', { class: 'bb-sep' }),
+      // HS6: the estimate's input is set from the estimate itself
+      h('button', { class: 'hs-btn-text bb-duel', type: 'button', title: slime, onclick: editSwings,
+        'aria-label': `Vs one slime: about ${dash(p.swingsToKill, 1)} swings to kill it, about ${dash(p.slamsToDown)} of its slams to down you. Change the estimate` },
+        icon('slime'), h('b', {}, p.swingsToKill === null ? '—' : '≈ ' + dash(p.swingsToKill, 1)), h('small', {}, 'swings'),
+        h('span', { class: 'vs' }, ':'), h('b', {}, p.slamsToDown === null ? '—' : '≈ ' + dash(p.slamsToDown)), h('small', {}, 'its slams')));
     for (const k of open) {
       const row = rows.get(k)!, v = st.v[k], f = floors[k] ?? 0, on = st.tags.has(k), bad = st.flaws.has(k);
       const add = on ? CONFIG.CREATION_TAG_BONUS : 0; // YB1: a tag's +10 shows like any point added; its points are in the tip
@@ -324,10 +332,11 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
       h('div', { class: 'actions' },
         h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { snap(); recommended(); afterKey = buildKey(); render(); } }, 'Use recommended build'),
         h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { snap(); reset(); afterKey = buildKey(); render(); } }, 'Reset'),
-        undoBtn,
-        h('button', { class: 'hs-btn-main', type: 'button', id: 'btn-go', onclick: go, disabled: !!stopped, title: stopped ? 'The story can’t start until Claude and the save database are available' : null }, 'Begin the story'))),
-    h('div', { class: 'sec' }, tilesHost),
-    msg, groups,
+        undoBtn)),
+    // the build bar stays in view while the points are spent, with the button they gate
+    h('div', { class: 'build-bar' }, figs, msg,
+      h('button', { class: 'hs-btn-main', type: 'button', id: 'btn-go', onclick: go, disabled: !!stopped, title: stopped ? 'The story can’t start until Claude and the save database are available' : null }, 'Begin the story')),
+    groups,
     h('div', { class: 'key', 'aria-label': 'Colour key' },
       h('span', {}, h('i', { class: 'sw', style: 'background:var(--accent)' }), 'Points you spent'),
       h('span', {}, h('i', { class: 'sw', style: 'background:var(--faint)' }), 'Class floor'),
