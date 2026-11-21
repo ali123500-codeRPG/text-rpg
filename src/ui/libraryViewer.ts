@@ -591,7 +591,7 @@ function races(): HTMLElement[] {
         row('Intelligence', INTELLIGENCE.name(r.intelligence)),
         r.speed ? row('Speed', `walk ${r.speed.walk} m/s · run ${r.speed.run} m/s`) : null,
         r.naturalAttacks?.length ? row('Own natural attacks', val(r.naturalAttacks.map((a) => `${a.name ?? a.id} (${skillName(a.skill ?? '')})`))) : null,
-        r.naturalArmor ? row('Natural armor', val(r.naturalArmor)) : null,
+        r.naturalArmor ? row('Natural armor', val({ ...r.naturalArmor, covers: r.naturalArmor.covers.map((p) => (p === 'general' && ct ? ct.general.name : label(p))) })) : null,
         r.fallback ? row('Fallback attack', skillName(r.fallback.attackSkill)) : null,
         row('Innate perks', perkList(r.innatePerks)), row('Innate quirks', perkList(r.innateQuirks)),
         row('NPC templates', usedBy((t) => t.raceId === r.id)))),
