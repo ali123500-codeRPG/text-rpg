@@ -1084,6 +1084,7 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
   --land-meadow: color-mix(in srgb, var(--c13) 24%, var(--bg)); --land-water: color-mix(in srgb, var(--c9) 60%, var(--bg));
   --land-road: color-mix(in srgb, var(--c15) 50%, var(--muted)); --land-contour: color-mix(in srgb, var(--text) 10%, transparent); }
 .map-land { pointer-events: none; }
+.map-land.faded { opacity: .3; }
 /* names over the land keep a rim of the night behind them, so a line or field under one never cuts it */
 .map-world-name text { paint-order: stroke; stroke: var(--bg); stroke-width: 3px; stroke-linejoin: round; }
 .lc { stroke: none; }

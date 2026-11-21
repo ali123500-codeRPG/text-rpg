@@ -13,6 +13,7 @@ import { PX_PER_M, TEXT, WHO_ICON_SHARE, checkReach, checkStage, nameFit, planSc
 import { checkMap } from './mapCheck';
 import { doorGlyph, fogClip, fogMask, iconMark, keyTool, planKeyRows, floorMarks, floorName, pin, wayBadge } from './map';
 import { furnIcon } from './furnitureIcons';
+import { landLayer } from './landSvg';
 import { metresText, planTo, splitAt, zoneAt, type MinimapPlan, type MinimapPoint } from './minimap';
 import { areaOf } from '../plan/geom';
 import { distText } from '../views';
@@ -93,9 +94,10 @@ export function planView(api: GameApi, opts: PlanOpts) {
   // SD4: how to use it is the map's tip and name, not a line under it
   const svg = s('svg', { class: `mm-svg${full ? ' map-svg' : ''}`, tabindex: 0, role: 'group', 'aria-label': `${full ? 'Map' : 'Minimap'}. ${HINT}` }) as SVGSVGElement;
   const fogId = `pv-fog-${++fogIds}`;
+  const gLand = s('g', { class: 'map-land', 'aria-hidden': 'true' }), landNodes = new Map<string, Element>();
   const world = s('g'), gFog = s('defs'), gUnder = s('g', { class: 'map-under', 'clip-path': `url(#${fogId}-under)`, 'aria-hidden': 'true' }), gAreas = s('g'), gFaces = s('g', { class: 'map-faces', 'aria-hidden': 'true' }), gZones = s('g', { class: 'map-zones', 'clip-path': `url(#${fogId})`, mask: `url(#${fogId}-now)` }), gNames = s('g', { class: 'map-names', 'aria-hidden': 'true' });
   const gScale = s('g', { class: 'map-scale', 'aria-hidden': 'true' }), gRing = s('g'), gMarks = s('g', { class: 'map-marks' }), gPath = s('g'), gTokens = s('g');
-  world.append(gFog, gUnder, gAreas, gZones, gFaces, gNames, gRing, gMarks, gPath, gTokens);
+  world.append(gFog, gLand, gUnder, gAreas, gZones, gFaces, gNames, gRing, gMarks, gPath, gTokens);
   svg.append(s('defs', {},
     s('marker', { id: `${fogId}-arrow`, viewBox: '0 0 10 10', refX: 8, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }, s('path', { d: 'M0 0 10 5 0 10z', class: 'map-arrowhead' }))),
   s('title', {}, HINT), world, gScale);
@@ -279,6 +281,18 @@ export function planView(api: GameApi, opts: PlanOpts) {
     gFog.append(fogClip(fogId, sc.zones.map((x) => x.z), K(), org), fogMask(`${fogId}-now`, sc.zones.map((x) => x.z), K(), org)); // BG-313: only ground the character has seen; MAP-33: in sight now full, the rest faded
     // OM9 b: off the ground, the ground level lies faded under the height shown (its floors and walls only, no marks), so
     // you keep your bearings upstairs or down a cellar
+    // WZ4: the land the character has made out, under every zone, each region's markup drawn once (in metres, y north)
+    // and moved with the view; faded off the ground like the ground's floors (OM9 b). --px keeps its lines a set width
+    const land = d.km.land ?? [], keep = new Set(land.map((l) => l.key));
+    for (const key of [...landNodes.keys()]) if (!keep.has(key)) landNodes.delete(key);
+    gLand.replaceChildren(...land.map((l) => {
+      let n = landNodes.get(l.key);
+      if (!n) { n = s('g'); n.innerHTML = landLayer(l.region, l); landNodes.set(l.key, n); }
+      return n;
+    }));
+    gLand.setAttribute('transform', `translate(${-org.x * K()} ${org.y * K()}) scale(${K()})`);
+    gLand.setAttribute('style', `--px:${1 / K()}`);
+    gLand.classList.toggle('faded', d.height !== 0);
     if (d.height !== 0) {
       const ground = d.every.filter((z) => z.rect && z.height === 0 && (!z.seen || z.seen.length));
       gFog.append(fogClip(`${fogId}-under`, ground, K(), org));
