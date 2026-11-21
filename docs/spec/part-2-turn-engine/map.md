@@ -1,6 +1,6 @@
 ### Map
 
-The game rules for the full-screen Map, its World view and roads, and the minimap on the Play screen. Each rule starts
+The game rules for the full-screen Map, places and roads far out, and the minimap on the Play screen. Each rule starts
 with a stable ID (MAP-nn) that code, tests and reviews cite; a number is never reused. The `rpg-map` skill
 (`.agents/skills/rpg-map/SKILL.md`) holds the working method: stage data, then layout, then render, then check, then
 look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md) (M-01 to M-74).
@@ -176,9 +176,9 @@ continuous map (D-1558)"). Rules below that still lay marks out zone by zone are
   laid out in fixed tiles, the land's regions (CONFIG.REGION_SIZE_M): a place is laid out whole in the tile holding the
   middle of its top-level place's ground, so nothing inside it is cut at a tile's edge, and a person in the tile holding
   their point. Each tile's layout is kept per zoom step, and only the tiles in view are laid out and drawn
-  (src/ui/planView.ts; OM8; Ali, 21/11/2026, Questions hub page "One continuous map (D-1558)"). The World view and its
-  crumbs stay until the land and roads join this map (MAP-70 to MAP-76).
-- **MAP-64** The map has pan, zoom, find me, show the whole known world (MAP-26) and, until the World view goes, place crumbs. Right-clicking a zone (or an exit,
+  (src/ui/planView.ts; OM8; Ali, 21/11/2026, Questions hub page "One continuous map (D-1558)"). There is no separate World
+  view and no place crumbs: the places list picks a place (OM5 a; MAP-70, MAP-75).
+- **MAP-64** The map has pan, zoom, find me, show the whole known world (MAP-26). Right-clicking a zone (or an exit,
   MAP-62) opens its card (look, exits with a go button, people, items) beside the map, with the places list;
   on a touch screen a long press does. A left click on the ground plans a walk, as on the minimap (MAP-81) (MQ3, MQ7 a;
   Ali, 20/11/2026, Questions hub page "Map and minimap: one map, doors").
@@ -242,27 +242,21 @@ continuous map (D-1558)"). Rules below that still lay marks out zone by zone are
   (glimpsed, heard, or out of sight now) shows a hooded figure (personIcon, src/ui/mapData.ts; RACE_ICON,
   src/ui/itemIcons.ts; RM12 b; RM15 c, RM16 a; Ali, 20/11/2026, Questions hub page "Map rules revision").
 
-#### World view and roads
+#### Places and roads far out
 
-- **MAP-70** A World crumb, first in the crumbs, shows every top-level place you know as one tile, joined by the roads
-  you know between them (drawn where they lie). Clicking a place opens its map.
-- **MAP-71** The World view draws each top-level place as the box around all its known zones, still joined by the roads
-  you know. Place names sit on a fixed-size layer so they stay readable when a road's kilometres zoom the World far out:
-  it zooms out as far as the whole World needs, with room kept for the names. A scale bar of 10 m, 100 m or 1 km is
-  drawn to suit. A settlement shows the icon for its size beside its name (a house for a hamlet, a cluster of houses for
-  a village, a walled gate for a town), from the site it stands on, and the land's settlements seen but not yet a place
-  show the same icon; the size is in its tip and accessible name (extentOf, src/ui/mapData.ts; Ali, 14/11/2026, CO9;
-  Ali, 20/11/2026).
-- **MAP-72** A road that is a place of its own (kind road) has no map of its own. It is one dashed line in the World
-  along its length, whatever the zoom, with its name and length centred above its middle, and the World card lists it
-  once as that road between the places at its ends (RD1-RD3).
-- **MAP-73** A place along a road (a waystation inside the road place) is a World place and a map of its own: a mark
-  beside the road that opens its map (rootPlace, src/ui/mapData.ts; RD1-RD3).
-- **MAP-74** On a road outside any town the map opens on the World zoomed to that road with the places at its ends, your
-  pin at your own point on it, and the road's card: its length, "You are here · 1 km from its west end", its look, where
-  it goes and the places along it, each with a button that opens its map (RD1-RD3).
-- **MAP-75** Clicking the road in the World shows that card. A town's arrow onto the road, a place's road crumb or the
-  road in the places list opens the World on that road (RD1-RD3).
+- **MAP-70** Retired (D-1558; OM5 a): the World view and its crumbs are gone. The one map (MAP-63) shows every place you
+  know, far out by its mark (MAP-76), and the places list picks one.
+- **MAP-71** A settlement's mark is the icon for its size (a house for a hamlet, a cluster of houses for a village, a
+  walled gate for a town), from the land's site it stands on, else from its place kind when that names a size; the
+  size is in its tip and accessible name (MAP-76; Ali, 14/11/2026, CO9; Ali, 20/11/2026).
+- **MAP-72** A road that is a place of its own (kind road) is ground like any other on the one map (MAP-63), and where
+  it goes is its card's exits (RD1-RD3; OM6 "roads should act like a more normal space in the map"; Ali, 21/11/2026,
+  Questions hub page "One continuous map (D-1558)").
+- **MAP-73** A place along a road (a waystation inside the road place) is a place of its own on the map, listed under
+  its road's card's "Along it" (rootPlace, src/ui/mapData.ts; RD1-RD3).
+- **MAP-74** A road's zone card adds the road's own facts: its length, "You are here · 1 km from its west end" while you
+  are on it, and the places along it, each with a button that shows it (roadLines, src/ui/map.ts; RD1-RD3; OM6).
+- **MAP-75** Retired (D-1558): a road is picked like any zone (MAP-64), and the places list shows it on the one map.
 - **MAP-76** Far out, a top-level place (not a road) too small on screen to hold its name (its known ground at every
   height narrower than its name, or lower than a line of it) is covered by its mark, and everything inside it (zones,
   places, doors, exits, people) is hidden at that zoom. The mark is its settlement's icon (MAP-71;
@@ -290,7 +284,7 @@ continuous map (D-1558)"). Rules below that still lay marks out zone by zone are
   runs: the move time walked, then the main time run. The view fits the dash ring (BF91 a).
 - **MAP-84** The minimap and the Map are one map component in two sizes: every mark, click and rule lives once. Both
   show everything (exits and their notes, the walk and dash rings, the planned path and its footer); only the frame
-  differs, the Map adding the crumbs, key, places list and cards. Both draw the one map (MAP-63), the minimap your floor
+  differs, the Map adding the key, places list and cards. Both draw the one map (MAP-63), the minimap your floor
   of it. On both the pin's point shows the way you face, from
   which left and right are taken (BG-18; Ali, 20/11/2026; MQ2 a, MQ4 a; Ali, 20/11/2026, Questions hub page "Map and minimap: one map, doors").
 - **MAP-85** A click on any thing drawn on either map (a door, a stretch of wall, furniture, an item, a person) opens a

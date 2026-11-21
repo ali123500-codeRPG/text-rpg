@@ -19,7 +19,6 @@ import { seenRuns, type SeenRun } from '../plan/fog';
 import { OP } from '../library/tableIds';
 import { barrierOn, barrierView } from '../engine/barriers';
 import { landSeen } from '../land/sight';
-import { plural } from './kit';
 import { actorBody, itemDef } from '../library';
 import { CONFIG } from '../config';
 import { LIFE_STAGES } from '../scales';
@@ -281,35 +280,4 @@ export function rootPlace(m: KnownMap, id: string): string {
   let p = byId.get(id);
   for (let n = 0; p?.parentId && byId.has(p.parentId) && byId.get(p.parentId)!.kind !== 'road' && n < 20; n++) p = byId.get(p.parentId);
   return p?.id ?? id;
-}
-
-/** CO9: a place's real extent, the box around its known zones' rectangles (every floor), in metres; none when code has not
- *  placed all of them */
-export function extentOf(zones: MapZone[]): import('../types').Rect | undefined {
-  if (!zones.length || !zones.every((z) => z.rect)) return undefined;
-  const x0 = Math.min(...zones.map((z) => z.rect!.x - z.rect!.w / 2)), x1 = Math.max(...zones.map((z) => z.rect!.x + z.rect!.w / 2));
-  const y0 = Math.min(...zones.map((z) => z.rect!.y - z.rect!.d / 2)), y1 = Math.max(...zones.map((z) => z.rect!.y + z.rect!.d / 2));
-  return { x: (x0 + x1) / 2, y: (y0 + y1) / 2, w: x1 - x0, d: y1 - y0 };
-}
-
-/** the World view: one tile per top-level place you know (a village, a field, a road, a waystation along a road), joined by
- *  the roads you know between them. Each tile is a MapZone whose id is the place's id, so the map's layout and drawing serve both views. */
-export function worldTiles(m: KnownMap): MapZone[] {
-  const roots = m.places.filter((p) => rootPlace(m, p.id) === p.id);
-  const zoneRoot = new Map(m.places.flatMap((p) => p.zones.map((z) => [z.id, rootPlace(m, p.id)] as const)));
-  const here = rootPlace(m, m.placeId);
-  return roots.map((r) => {
-    const inner = m.places.filter((p) => rootPlace(m, p.id) === r.id);
-    const zones = inner.flatMap((p) => p.zones);
-    const links: MapLink[] = [];
-    for (const z of zones) for (const l of z.links) {
-      const to = zoneRoot.get(l.to);
-      if (to && to !== r.id && !links.some((x) => x.to === to)) links.push({ to, label: l.label, sight: false, frontier: false, known: true });
-    }
-    const n = zones.length;
-    const along = zones.find((z) => z.along)?.along, line = zones.find((z) => z.line)?.line;
-    const rect = extentOf(zones);
-    return { id: r.id, placeId: r.id, name: r.name, look: n ? `${plural(n, 'zone')} known` : 'no zones known', outdoor: true,
-      here: r.id === here, inView: r.id === here, height: 0, links, items: [], ...(along ? { along } : {}), ...(line ? { line } : {}), ...(rect ? { rect } : {}) };
-  });
 }

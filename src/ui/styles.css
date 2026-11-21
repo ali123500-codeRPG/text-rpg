@@ -1019,27 +1019,13 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
   background: radial-gradient(ellipse at 50% 40%, color-mix(in srgb, var(--accent-soft) 70%, transparent), color-mix(in srgb, var(--bg) 85%, transparent) 75%); }
 .map-svg { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; touch-action: none; user-select: none; font-family: var(--font-round); }
 .map-svg.grabbing { cursor: grabbing; }
-.map-dot { fill: var(--rule); opacity: .55; }
-.map-link { stroke: color-mix(in srgb, var(--faint) 70%, transparent); stroke-width: 2.5; stroke-linecap: round; }
-.map-link.hidden-view { stroke-dasharray: 7 6; stroke: color-mix(in srgb, var(--faint) 55%, transparent); }
-.map-link.hot { stroke: var(--scenario-mark); stroke-width: 3; }
-.map-link.road { stroke: var(--accent); stroke-width: 3; stroke-dasharray: 10 7; }
-.map-tile.world-place .map-tile-name { font-size: 16px; }
-.map-pill.away { cursor: pointer; pointer-events: auto; }
-.map-pill.away rect { stroke: var(--accent); }
 .map-arrowhead { fill: color-mix(in srgb, var(--faint) 70%, transparent); }
-.map-pill rect { fill: var(--bg); stroke: color-mix(in srgb, var(--scenario-mark) 60%, transparent); }
-.map-pill.unknown rect { stroke: var(--rule); stroke-dasharray: 3 3; }
-.map-pill text { fill: var(--text); font-size: 13px; font-weight: 700; }
-.map-pill.unknown text { fill: var(--muted); font-weight: 600; }
 .map-area { cursor: pointer; outline: none; }
 .map-area path { fill: color-mix(in srgb, var(--c15) 6%, transparent); stroke: color-mix(in srgb, var(--c15) 40%, transparent); stroke-width: 1.5; stroke-dasharray: 10 6; }
 .map-area.mine path { fill: color-mix(in srgb, var(--scenario-mark) 6%, transparent); }
 .map-area.on path, .map-area:hover path, .map-area:focus-visible path { stroke: var(--scenario-mark); stroke-dasharray: none; }
 .map-area.real path { fill: none; stroke-dasharray: none; stroke-width: 2; }
 .map-world-names { pointer-events: none; }
-.map-world-name .map-tile-name { font-size: 14px; }
-.map-world-name.here .map-tile-sub { fill: var(--scenario-mark); }
 .map-tile { cursor: pointer; outline: none; }
 .map-tile-box { fill: var(--surface); stroke: var(--border); stroke-width: 1.5; }
 .map-tile.outdoor .map-tile-box { fill: color-mix(in srgb, var(--c9) 22%, var(--surface)); stroke: color-mix(in srgb, var(--c9) 55%, var(--border)); }
@@ -1058,21 +1044,11 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-tile.remembered .map-tile-box { stroke-dasharray: 5 4; }
 .map-tile.here .map-tile-box { stroke: var(--accent); stroke-width: 3; }
 .map-tile.heading .map-tile-box { stroke: var(--accent); stroke-width: 2; stroke-dasharray: 6 4; } /* AT49: the walk's goal */
-.map-tile.heading .map-tile-sub { fill: var(--accent); }
 .map-tile.selected .map-tile-box { stroke: var(--scenario-mark); stroke-width: 3; }
 .map-tile:hover .map-tile-box, .map-tile:focus-visible .map-tile-box { stroke: var(--scenario-mark); }
-.map-tile-name { fill: var(--text); font-size: 15px; font-weight: 800; }
-.map-tile-sub { fill: var(--muted); font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
-.map-tile.here .map-tile-sub { fill: var(--accent); }
 .map-who :is(circle, rect) { fill: var(--c4); stroke: var(--bg); stroke-width: 2; }
 /* To scale (CO1): zones as rectangles in metres; each side drawn by its edge kind */
 .map-tile.plan .map-tile-box { stroke: none; }
-.map-tile.world-place.plan .map-tile-box { stroke: color-mix(in srgb, var(--c9) 55%, var(--border)); stroke-width: 2; }
-.map-tile.world-place.plan.road .map-tile-box { stroke: var(--muted); stroke-width: 3; stroke-dasharray: 10 6; stroke-linecap: round; }
-.map-tile.world-place.plan.road.here .map-tile-box { stroke: var(--accent); }
-.map-tile.world-place.plan.road.selected:not(.here) .map-tile-box { stroke: var(--scenario-mark); }
-.map-tile.world-place.plan.road .map-road-hit { stroke: transparent; stroke-width: 18; cursor: pointer; }
-.map-tile.world-place.plan.road polyline { fill: none; stroke-linejoin: round; }
 /* WZ4 the land you have made out, under the World's places and roads (map.ts drawLand, landSvg.ts). The one land palette,
    muted for Sky diary Night and mixed from the tokens (HISAB has no land colours). The land is drawn in metres; --px
    (metres per screen pixel, set on zoom) keeps its lines a set width on screen. No glow, shadow or motion. */
@@ -1086,7 +1062,6 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-land { pointer-events: none; }
 .map-land.faded { opacity: .3; }
 /* names over the land keep a rim of the night behind them, so a line or field under one never cuts it */
-.map-world-name text { paint-order: stroke; stroke: var(--bg); stroke-width: 3px; stroke-linejoin: round; }
 .lc { stroke: none; }
 .lc-LC1 { fill: var(--land-farmland); } .lc-LC2 { fill: var(--land-pasture); } .lc-LC3 { fill: var(--land-woods); }
 .lc-LC4 { fill: var(--land-heath); } .lc-LC5 { fill: var(--land-moor); } .lc-LC6 { fill: var(--land-marsh); }
@@ -1099,20 +1074,11 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .land-path { stroke-width: calc(var(--px, 8) * 1px); stroke-dasharray: calc(var(--px, 8) * 4px) calc(var(--px, 8) * 3px); }
 .land-bridge { fill: var(--land-road); r: max(30px, calc(var(--px, 8) * 2.5px)); }
 .land-ford { fill: none; stroke: var(--land-road); stroke-width: calc(var(--px, 8) * 1px); r: max(30px, calc(var(--px, 8) * 3px)); }
-/* the land's settlements and landmarks, on the name layer at a set size: under the places' names in weight and colour */
-.map-land-mark rect { fill: var(--bg); stroke: var(--c15); stroke-width: 1.5; }
 /* MAP-71: a settlement's icon by its size, with a halo so it reads over the land */
 .map-site-icon { color: var(--c15); }
 .map-site-icon path { stroke: var(--bg); stroke-width: 40px; stroke-linejoin: round; paint-order: stroke; }
-.map-land-mark.town .map-site-icon, .map-world-name .map-site-icon { color: var(--text); }
-/* the names layer ignores the pointer; its icons take it, for their tips (and a place's, a click) */
+.map-site.town .map-site-icon, .map-site[data-site] .map-site-icon { color: var(--text); }
 .map-world-names .map-site-icon { pointer-events: auto; }
-.map-world-name .map-site-icon { cursor: pointer; }
-.map-land-mark text { fill: var(--muted); font-size: 13px; font-weight: 700; paint-order: stroke; stroke: var(--bg); stroke-width: 3px; stroke-linejoin: round; }
-.map-land-mark.town text { fill: var(--text); font-size: 13px; }
-.map-land-mark.feature rect { stroke: var(--faint); }
-.map-land-mark.feature text { fill: var(--faint); font-weight: 600; }
-.map-land-mark.faint { opacity: .55; }
 /* MAP-76 (OM2, OM11 a): far out, a place too small to hold its name is covered by its settlement's icon (a plain round
    mark with no size) and its name under it; the land's settlements and landmarks seen likewise */
 .map-site text { fill: var(--muted); font-size: 13px; font-weight: 800; paint-order: stroke; stroke: var(--bg); stroke-width: 3px; stroke-linejoin: round; }
@@ -1126,7 +1092,6 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-tile.plan.here .map-tile-box { stroke: var(--accent); stroke-width: 2; stroke-dasharray: none; }
 .map-tile.plan.heading .map-tile-box { stroke: var(--accent); stroke-width: 2; stroke-dasharray: 6 4; opacity: 1; }
 .map-tile.plan.selected .map-tile-box { stroke: var(--scenario-mark); stroke-width: 2; }
-.map-tile.plan .map-tile-name { font-size: 13px; }
 .map-edge { stroke: var(--text); stroke-linecap: square; }
 .map-edge.wall { stroke-width: 3; }
 .map-edge.open { stroke-width: 1; stroke-dasharray: 1 5; opacity: .5; }
@@ -1158,14 +1123,6 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-pin circle { fill: var(--scenario-mark); stroke: var(--bg); stroke-width: 2.5; }
 .map-pin circle.core { fill: var(--bg); stroke: none; }
 .map-pin .face { fill: var(--scenario-mark); stroke: var(--bg); stroke-width: 1.5; stroke-linejoin: round; }
-.map-crumbs { position: absolute; left: 12px; top: 12px; right: 64px; display: flex; flex-wrap: nowrap; align-items: center; gap: 4px;
-  white-space: nowrap; overflow-x: auto; scrollbar-width: none; pointer-events: none; }
-.map-crumbs .crumb, .map-crumbs .sep { flex: none; }
-.map-crumbs .crumb { pointer-events: auto; border: 1px solid var(--border); background: color-mix(in srgb, var(--bg) 85%, transparent); color: var(--muted);
-  border-radius: var(--r-pill); padding: 4px 12px; font: inherit; font-weight: 700; font-size: 13px; cursor: pointer; }
-.map-crumbs .crumb.on { color: var(--text); border-color: var(--accent); }
-.map-crumbs .sep { color: var(--faint); }
-.map-tools { position: absolute; right: 12px; bottom: 12px; display: flex; gap: 6px; }
 .map-floors { position: absolute; left: 12px; bottom: 76px; display: grid; justify-items: start; gap: 4px; padding: 6px; z-index: 1;
   border: 1px solid var(--border); border-radius: var(--r-md); background: color-mix(in srgb, var(--bg) 85%, transparent); }
 .map-floors[hidden] { display: none; }
@@ -1207,9 +1164,6 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-stair.unknown circle { stroke: var(--faint); stroke-dasharray: 3 3; }
 .map-stair.unknown text { fill: var(--faint); }
 .map-stair.hot circle { stroke: var(--scenario-mark); }
-.map-btn { width: 38px; height: 38px; border-radius: var(--r-md); border: 1px solid var(--border); background: color-mix(in srgb, var(--surface) 92%, transparent);
-  color: var(--text); font: inherit; font-size: 18px; font-weight: 800; cursor: pointer; }
-.map-btn:hover { border-color: var(--accent); }
 .map-empty { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: var(--muted); pointer-events: none; }
 .map-side { display: grid; gap: var(--space-6); align-content: start; overflow-y: auto; min-height: 0; padding-right: 4px; }
 .map-side section { display: grid; gap: var(--space-2); }
@@ -1240,9 +1194,9 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-key[hidden] { display: none; }
 .map-key li { display: contents; white-space: nowrap; }
 .map-key li > :first-child { justify-self: center; display: inline-flex; gap: 3px; }
-.map-key-btn, .mm-tools .mm-key-btn { width: auto; padding: 0 10px; font-size: 13px; font-weight: 700; }
-.map-key-btn[aria-expanded="true"], .mm-key-btn[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
-.map-key-btn[hidden], .mm-key-btn[hidden] { display: none; }
+.mm-tools .mm-key-btn { width: auto; padding: 0 10px; font-size: 13px; font-weight: 700; }
+.mm-key-btn[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
+.mm-key-btn[hidden] { display: none; }
 .k-tile { width: 18px; height: 12px; border-radius: 3px; border: 1.5px solid var(--border); background: var(--surface); }
 .k-line { width: 20px; height: 0; border-top: 2.5px solid color-mix(in srgb, var(--faint) 70%, transparent); }
 .k-line.stub { border-top: 2px dotted color-mix(in srgb, var(--faint) 60%, transparent); }
@@ -1277,7 +1231,7 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-note.away rect { stroke: var(--accent); stroke-dasharray: none; }
 .map-note.away text { fill: var(--text); }
 /* an unexplored exit is clickable too: its card has Move to here; the picked one is marked like a picked zone */
-.map-exit.open, .map-note.open, .map-stair.unknown, .map-pill.unknown[data-exit] { cursor: pointer; }
+.map-exit.open, .map-note.open, .map-stair.unknown { cursor: pointer; }
 .map-note.open:hover rect, .map-note.picked rect { stroke: var(--scenario-mark); }
 .map-note.picked text { fill: var(--text); }
 .map-exit.picked line { stroke: var(--scenario-mark); }
@@ -1290,7 +1244,7 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-who.plan-who .map-who-label { display: none; }
 .map-who.plan-who:hover .map-who-label { display: inline; opacity: 1; }
 .k-tile.faded { opacity: .62; }
-@media (max-width: 1000px) { main.map-page { height: auto; } .map-body { grid-template-columns: minmax(0, 1fr); } .map-stage { height: 70vh; } .map-crumbs { pointer-events: auto; } }
+@media (max-width: 1000px) { main.map-page { height: auto; } .map-body { grid-template-columns: minmax(0, 1fr); } .map-stage { height: 70vh; } }
 
 /* a skill rolled but not on the sheet yet (fists: Strike), and the tagged mark's hover */
 .tag { cursor: help; }
