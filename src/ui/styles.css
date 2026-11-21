@@ -243,11 +243,11 @@ pre.json { margin: 0; font: 13px/1.45 var(--font-mono); color: var(--muted); whi
 .pe .hs-picker button:disabled { opacity: .45; cursor: default; }
 .pe-tierline { color: var(--muted); font-size: 13px; }
 .pe-tierline b { color: var(--text); }
-.pe-axes { display: grid; grid-template-columns: repeat(auto-fill, minmax(520px, 1fr)); gap: 0 var(--space-8); } /* B4: an axis needs about 504px (name 11rem, ends 2 × 7.5rem, bar), so a column never runs past the page at 125% zoom */
-.pe-axis { display: grid; grid-template-columns: minmax(130px, 11rem) minmax(0, 1fr); align-items: center; gap: var(--space-3); border-bottom: 1px solid var(--border); min-height: 44px; }
+.pe-axes { display: grid; grid-template-columns: repeat(auto-fill, minmax(520px, 1fr)); gap: 0 var(--space-8); } /* B4: an axis needs about 504px (name 176px, ends 2 × 120px, bar), so a column never runs past the page at 125% zoom; px like the 13px text, BG-1745 */
+.pe-axis { display: grid; grid-template-columns: minmax(130px, 176px) minmax(0, 1fr); align-items: center; gap: var(--space-3); border-bottom: 1px solid var(--border); min-height: 44px; }
 .pe-axis .nm b { font-weight: 700; display: block; }
 .pe-word { font-size: 13px; color: var(--accent); font-weight: 600; }
-.pe-ends { display: grid; grid-template-columns: 7.5rem minmax(60px, 1fr) 7.5rem; align-items: center; gap: var(--space-2); font-size: 13px; color: var(--muted); }
+.pe-ends { display: grid; grid-template-columns: 120px minmax(60px, 1fr) 120px; align-items: center; gap: var(--space-2); font-size: 13px; color: var(--muted); }
 .pe-ends > span:first-child { text-align: right; }
 .cs-pe .cs-pe-v { color: var(--text); }
 
