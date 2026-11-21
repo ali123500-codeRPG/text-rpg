@@ -13,7 +13,8 @@ import { waysOut } from '../../src/plan/where';
 const judged: PlanEnding[] = [{ when: { kind: 'judged' }, as: 'resolved', text: 'x' }, { when: { kind: 'judged' }, as: 'lost', text: 'y' }];
 const setup = () => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
-  s.stage.scenario = frameOf(s, { question: 'q', scale: 'situation', endings: judged }, 'success', (_k, r) => r);
+  // BG-1775: a ground, as every scenario started from a plan keeps one
+  s.stage.scenario = { ...frameOf(s, { question: 'q', scale: 'situation', endings: judged }, 'success', (_k, r) => r), ground: ['tav_common'] };
   return s;
 };
 const riders = (zone: string): CheckinAnswer['arrivals'] => ({
@@ -34,6 +35,7 @@ describe('188 what a check-in may change (SC12)', () => {
     go(s, { verdict: 'continue', arrivals: riders('street_square') });
     const hal = s.actors.find((a) => a.names.current === 'Hal')!;
     expect(hal.zone).toBe('street_square');
+    expect(s.stage.scenario!.people).toContain(hal.id); // D-217 a: an arrival is someone the scenario brought
     expect(codes(s)).toContain('checkin_continue');
   });
   it('a change rewrites the question, scale and endings and keeps the scenario running', () => {

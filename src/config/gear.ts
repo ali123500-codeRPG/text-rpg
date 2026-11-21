@@ -145,6 +145,9 @@ export const GEAR = {
   SCENARIO_HAPPENED_MAX: 30,
   /** CH7/SC18/AT31: a chase is lost when no pursuer has seen or heard the player for this many game seconds (placeholder) */
   CHASE_LOST_S: 60,
+  /** D-217 a: the player has left a scenario's ground after this many turns in a row outside its outlines with nobody it
+   * brought perceiving them, nor they anyone of it (the owner's number, D-217) */
+  GROUND_APART_TURNS: 3,
   /** CH5: the chase range of a code-run NPC whose band and template give none (a CHASE_RANGES key; placeholder) */
   CHASE_RANGE_DEFAULT: 'ground',
   /** ZR12: how far past the edge of the scenario's ground, by the walking path, a pursuer with chase range near follows the
