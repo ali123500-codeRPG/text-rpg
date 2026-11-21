@@ -12,8 +12,8 @@ import { groupsOf } from '../library/functionNames';
 import { SENSE_SKILL } from '../library/skillIds';
 import { levelMaxPct } from './body';
 
-type Reward = 'unawareShift' | 'quieter' | 'deathsDoor' | 'renown' | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels' | 'searchArea' | 'searchReach' | 'maxMorale' | 'aimEase' | 'safeBreak' | 'sellPct' | 'questPayPct' | 'essenceSlots' | 'defenseRoll' | 'spotRoll';
-const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'eventRoll', 'freeLevels', 'bonusLevels', 'personality', 'personalityByKind', 'tierUnlocks', 'searchArea', 'searchReach', 'maxMorale', 'aimEase', 'safeBreak', 'skillAddByKind', 'sellPct', 'questPayPct', 'essenceSlots', 'defenseRoll', 'spotRoll', 'fearFrom'];
+type Reward = 'unawareShift' | 'quieter' | 'deathsDoor' | 'renown' | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels' | 'searchArea' | 'searchReach' | 'maxMorale' | 'aimEase' | 'safeBreak' | 'sellPct' | 'questPayPct' | 'essenceSlots' | 'defenseRoll' | 'spotRoll' | 'maxHpPct';
+const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'eventRoll', 'freeLevels', 'bonusLevels', 'personality', 'personalityByKind', 'tierUnlocks', 'searchArea', 'searchReach', 'maxMorale', 'aimEase', 'safeBreak', 'skillAddByKind', 'sellPct', 'questPayPct', 'essenceSlots', 'defenseRoll', 'spotRoll', 'fearFrom', 'maxHpPct'];
 
 /** the actor's current achievements (not replaced), with their library rows */
 export function currentAchievements(a: Actor): { key: string; of?: string; d: AchievementDef }[] {
@@ -130,10 +130,10 @@ export function rallyMods(state: GameState, ally: Actor, besidePlayer: boolean):
   return r ? [{ source: `rally: ${r.name}`, type: 'achievement', value: r.value }] : [];
 }
 
-/** renown (MB24): every morale roll of a foe fighting the player takes off the player's best renown */
+/** renown (MB24): every morale roll of a foe fighting the player takes off the player's renown, every chain's added (DI22 a) */
 export function renownMods(state: GameState, foe: Actor, fightingPlayer: boolean): Mod[] {
-  const r = fightingPlayer ? bestReward(state.player, 'renown') : undefined;
-  return r ? [{ source: `renown: ${r.name}`, type: 'achievement', value: -r.value }] : [];
+  const r = fightingPlayer ? achievementSum(state.player, 'renown') : 0;
+  return r ? [{ source: `renown: ${achievementSumNames(state.player, 'renown')}`, type: 'achievement', value: -r }] : [];
 }
 
 /** a tier unlock as a reward line */
@@ -154,6 +154,14 @@ export function tierReach(a: Actor, roll: RollKind | undefined, contest = false)
   const sum = (side: TierUnlock['side']) => all.filter((u) => u.side === side).reduce((n, u) => n + u.steps, 0);
   return { up: sum('up'), down: sum('down') };
 }
+/** DI22 a: a number reward that adds up over every current achievement (each along its chain), not only the best chain:
+ * renown, rest healing, quest pay, event roll and max HP % */
+export function achievementSum(a: Actor, f: 'renown' | 'restPct' | 'questPayPct' | 'eventRoll' | 'maxHpPct'): number {
+  return currentAchievements(a).reduce((n, x) => n + rewardOf(x.d, f), 0);
+}
+/** the names of the current achievements that give some of an achievementSum reward, for a modifier's source */
+export const achievementSumNames = (a: Actor, f: Parameters<typeof achievementSum>[1]): string =>
+  currentAchievements(a).filter((x) => rewardOf(x.d, f)).map((x) => x.d.name).join(', ');
 /** a reward that adds up over every source: every current achievement's along its chain, plus every active owned perk's.
  * Free levels are level-ups that cost no XP (into a class); bonus levels are character levels no class gets; searchArea
  * and searchReach widen a search (SE24). */
@@ -190,6 +198,7 @@ function linesOf(d: AchievementDef, f: AchievementReward): string[] {
     case 'skillAddByKind': return [`+${d.skillAddByKind} true skill in ${d.by === 'group' ? 'every skill of that group' : d.by === 'function' ? 'that sense\'s skill' : 'that skill'}`];
     case 'sellPct': return [`traders pay you +${d.sellPct}% for what you sell`];
     case 'questPayPct': return [`+${d.questPayPct}% on the coin a quest giver promises you`];
+    case 'maxHpPct': return [`+${d.maxHpPct}% max HP`];
     case 'defenseRoll': return [`+${d.defenseRoll} on your defense rolls (dodge, block, parry)`];
     case 'spotRoll': return [`+${d.spotRoll} on your spotting rolls (sight, hearing, smell)`];
     case 'fearFrom': { const f = getLibrary().fears?.[d.fearFrom!.fear];
@@ -224,7 +233,7 @@ function personalityLines(add?: Record<string, number>): string[] {
 const kindLabel = (d: AchievementDef, kind: string): string => (d.by === 'skill' ? skillName(kind) : kind);
 /** number rewards that add up along a chain: shown as one total with its parts (BG-256) */
 const SUMMED: Reward[] = ['unawareShift', 'quieter', 'renown', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'eventRoll', 'freeLevels', 'bonusLevels',
-  'searchArea', 'searchReach', 'maxMorale', 'aimEase', 'safeBreak', 'sellPct', 'questPayPct', 'essenceSlots', 'defenseRoll', 'spotRoll'];
+  'searchArea', 'searchReach', 'maxMorale', 'aimEase', 'safeBreak', 'sellPct', 'questPayPct', 'essenceSlots', 'defenseRoll', 'spotRoll', 'maxHpPct'];
 const SUMMED_BY_KIND: AchievementReward[] = ['skillAddByKind'];
 /** the rewards of one achievement row beyond XP and roll bonuses, as plain lines for display. A number reward the row
  * carries up from lower levels (chain linkage) shows as one total, then its parts: "+15 max morale in all (+5 from

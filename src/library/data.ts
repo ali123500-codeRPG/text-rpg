@@ -1013,8 +1013,8 @@ export function prototypeLibrary(): Library {
       [ACH.unaware_50]: { id: ACH.unaware_50, name: 'Shadow\'s Edge', level: 'ii', rule: 'unaware_defeats', tags: ['combat', 'stealth'], count: 50, after: ACH.unaware_10, personality: ap({ [PA.honesty]: -1 }) },
       [ACH.unaware_100]: { id: ACH.unaware_100, name: 'The Unseen Death', level: 'iii', rule: 'unaware_defeats', tags: ['combat', 'stealth'], count: 100, after: ACH.unaware_50, unawareShift: 1, quieter: 1, personality: ap({ [PA.honesty]: -1 }) },
       [ACH.yielded_1]: { id: ACH.yielded_1, name: 'Yield or Fall', level: 'i', rule: 'yielded', tags: ['combat', 'social'], count: 1, personality: ap({ [PA.pride]: 1 }) },
-      [ACH.yielded_10]: { id: ACH.yielded_10, name: 'Breaker of Wills', level: 'ii', rule: 'yielded', tags: ['combat', 'social'], count: 10, after: ACH.yielded_1, skillAdd: { [SK.intimidation]: 5 }, personality: ap({ [PA.pride]: 1 }) },
-      [ACH.yielded_50]: { id: ACH.yielded_50, name: 'The Name That Ends Fights', level: 'iii', rule: 'yielded', tags: ['combat', 'social'], count: 50, after: ACH.yielded_10, renown: 10, personality: ap({ [PA.pride]: 1 }) },
+      [ACH.yielded_10]: { id: ACH.yielded_10, name: 'Breaker of Wills', level: 'iii', rule: 'yielded', tags: ['combat', 'social'], count: 10, after: ACH.yielded_1, skillAdd: { [SK.intimidation]: 5 }, personality: ap({ [PA.pride]: 1 }) },
+      [ACH.yielded_50]: { id: ACH.yielded_50, name: 'The Name That Ends Fights', level: 'iv', rule: 'yielded', tags: ['combat', 'social'], count: 50, after: ACH.yielded_10, renown: 10, personality: ap({ [PA.pride]: 1 }) },
       // TM9: 1 / 10 / 50 / 100 per group (the first row's name is a placeholder)
       [ACH.crits_1]: { id: ACH.crits_1, name: 'First Clean Stroke ({group})', level: 'zero', rule: 'crits', tags: ['skill'], count: 1, by: 'group' },
       [ACH.crits_10]: { id: ACH.crits_10, name: 'Sure Hand ({group})', level: 'i', rule: 'crits', tags: ['skill'], count: 10, by: 'group', after: ACH.crits_1 },
@@ -1053,9 +1053,9 @@ export function prototypeLibrary(): Library {
       [ACH.every_last_1]: { id: ACH.every_last_1, name: 'Every Last One', level: 'i', rule: 'every_last', tags: ['combat'], count: 1, maxMorale: 1 },
       [ACH.every_last_10]: { id: ACH.every_last_10, name: 'None Left for Them', level: 'ii', rule: 'every_last', tags: ['combat'], count: 10, after: ACH.every_last_1, renown: 5 }, // placeholder name
       [ACH.crippled_quests_1]: { id: ACH.crippled_quests_1, name: 'Paid in Bone', level: 'i', rule: 'crippled_quests', tags: ['social', 'survival'], count: 1, maxMorale: 1 },
-      [ACH.crippled_quests_5]: { id: ACH.crippled_quests_5, name: 'Bought with Blood', level: 'ii', rule: 'crippled_quests', tags: ['social', 'survival'], count: 5, after: ACH.crippled_quests_1, restPct: 10 }, // placeholder name
-      [ACH.crippled_parts_1]: { id: ACH.crippled_parts_1, name: 'Something Gave', level: 'zero', rule: 'crippled_parts', tags: ['survival'], count: 1, branchOf: ACH_HEADS.wounds, maxMorale: 1 },
-      [ACH.crippled_parts_10]: { id: ACH.crippled_parts_10, name: 'Held Together', level: 'i', rule: 'crippled_parts', tags: ['survival'], count: 10, after: ACH.crippled_parts_1, maxMorale: 1 }, // placeholder name
+      [ACH.crippled_quests_5]: { id: ACH.crippled_quests_5, name: 'Bought with Blood', level: 'ii', rule: 'crippled_quests', tags: ['social', 'survival'], count: 5, after: ACH.crippled_quests_1, restPct: 10, maxHpPct: 2 }, // placeholder name
+      [ACH.crippled_parts_1]: { id: ACH.crippled_parts_1, name: 'Something Gave', level: 'zero', rule: 'crippled_parts', tags: ['survival'], count: 1, branchOf: ACH_HEADS.wounds, maxMorale: 1, maxHpPct: 1 },
+      [ACH.crippled_parts_10]: { id: ACH.crippled_parts_10, name: 'Held Together', level: 'i', rule: 'crippled_parts', tags: ['survival'], count: 10, after: ACH.crippled_parts_1, maxMorale: 1, maxHpPct: 1 }, // placeholder name
       [ACH.threat_deals_1]: { id: ACH.threat_deals_1, name: 'Terms Under Threat', level: 'i', rule: 'threat_deals', tags: ['social', 'combat'], count: 1, personality: ap({ nerve: 1 }) },
       [ACH.threat_deals_10]: { id: ACH.threat_deals_10, name: 'Danger Money', level: 'ii', rule: 'threat_deals', tags: ['social', 'combat'], count: 10, after: ACH.threat_deals_1, questPayPct: 10 }, // placeholder name
       [ACH.quests_1]: { id: ACH.quests_1, name: 'Job Done', level: 'zero', rule: 'quests_done', tags: ['social'], count: 1, personality: ap({ [PA.discipline]: 1 }) },
@@ -1108,7 +1108,7 @@ export function prototypeLibrary(): Library {
       [ACH.mended_1]: { id: ACH.mended_1, name: 'Mended', level: 'zero', rule: 'mended', tags: ['survival'], count: 1 },
       [ACH.mended_10]: { id: ACH.mended_10, name: 'Patched and Stitched', level: 'i', rule: 'mended', tags: ['survival'], count: 10, after: ACH.mended_1 },
       [ACH.mended_50]: { id: ACH.mended_50, name: 'Hard to Keep Down', level: 'ii', rule: 'mended', tags: ['survival'], count: 50, after: ACH.mended_10 },
-      [ACH.back_from_down_1]: { id: ACH.back_from_down_1, name: 'Not Done Yet', level: 'i', rule: 'back_from_down', tags: ['survival'], count: 1, maxMorale: 5 },
+      [ACH.back_from_down_1]: { id: ACH.back_from_down_1, name: 'Not Done Yet', level: 'iii', rule: 'back_from_down', tags: ['survival'], count: 1, maxMorale: 5 },
       // the deepest of the near-death depths (Critical, Down and back, the survival roll): depth pays more than count
       [ACH.survival_roll_1]: { id: ACH.survival_roll_1, name: 'Woke Up Anyway', level: 'ii', rule: 'survival_rolls', tags: ['combat', 'survival'], count: 1, maxMorale: 10 },
       // D-292: one time; your contest rolls can go one tier past Critical Success (name and reward level are placeholders)

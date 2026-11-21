@@ -199,9 +199,10 @@ question IDs, BG/D numbers) sits in one trailing parenthesis.
   branches at CONFIG.HELD_GROUND_FOES, DI2, DI20; a solo stand also earns Stand Against Many, DI21 b), Finishing Stroke
   (DI3 a), Every Last One (DI4 b, DI12 a), Paid in Bone (DI13 d), Something Gave (a branch of Wounds lived through, DI14 d)
   and Terms Under Threat (DI7 a, DI15 a). Existing rows changed: Still Swinging pays max morale (DI13), the morale-lost
-  chain pays by level (DI18 a), the quest chain pays quest pay from level II (DI19 a). Dropped: DI8 to DI11. Health
-  rewards for Paid in Bone and Something Gave (DI5, DI6), rewards across chains (DI22), and the levels of Not Done Yet and
-  Breaker of Wills (DI14, DI17) wait on round 4 of the same page.
+  chain pays by level (DI18 a), the quest chain pays quest pay from level II (DI19 a). Dropped: DI8 to DI11. Round 4: renown,
+  rest healing, quest pay and event roll add up across chains, as max morale does (DI22 a, achievementSum); a new reward,
+  max HP %, on Bought with Blood and each Something Gave level (DI23 a); Not Done Yet moves to III (DI24 b); Breaker of
+  Wills to III and The Name That Ends Fights to IV (DI25 a).
 - **PROG-119** Earned achievements are listed on the Achievements page (the rail's Achievements tab), not on the
   character card: grouped by reward level with every group open (a heading the player closes stays closed), and clicking
   a chain opens its side panel: its current row with how it is earned, the turn it was earned and its reward, the

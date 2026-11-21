@@ -527,7 +527,7 @@ export type AchievementTag = 'combat' | 'stealth' | 'social' | 'exploration' | '
 /** a reward field of AchievementDef */
 export type AchievementReward = 'perk' | 'unawareShift' | 'quieter' | 'readsHealth' | 'skillAdd' | 'renown' | 'deathsDoor' | 'firstSight'
   | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels' | 'personality' | 'personalityByKind' | 'tierUnlocks'
-  | 'searchArea' | 'searchReach' | 'maxMorale' | 'aimEase' | 'safeBreak' | 'skillAddByKind' | 'sellPct' | 'questPayPct' | 'essenceSlots' | 'defenseRoll' | 'spotRoll' | 'fearFrom';
+  | 'searchArea' | 'searchReach' | 'maxMorale' | 'aimEase' | 'safeBreak' | 'skillAddByKind' | 'sellPct' | 'questPayPct' | 'essenceSlots' | 'defenseRoll' | 'spotRoll' | 'fearFrom' | 'maxHpPct';
 /** X6/X11: a library achievement, keyed by its fixed id (ACH in src/library/achievementIds.ts), with a name. 'defeats' is
  * earned at `count` defeats (first defeat = count 1). With `by`, it is earned once per kind (body type, race …): the granted
  * id is <id>:<kind> and {body_type}/{race} in the name become what was defeated. 'mastery' once per tree when enough of its
@@ -560,6 +560,7 @@ export type AchievementDef = { id: string; name: string; level: string; rule: Ac
   skillAddByKind?: number;
   sellPct?: number; // XR2: + this % on what traders pay the owner (the mirror of pricePct)
   questPayPct?: number; // XR2: + this % on the coin a quest giver promises the owner
+  maxHpPct?: number; // DI23: + this % on the owner's total HP
   essenceSlots?: number; // XR2: this many more essence slots
   defenseRoll?: number; // XR7: + this on the owner's defense rolls (dodge, block, parry)
   spotRoll?: number; // XR37: + this on the owner's spotting rolls (sight, hearing and smell perception rolls)

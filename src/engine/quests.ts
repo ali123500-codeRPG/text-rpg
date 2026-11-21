@@ -9,7 +9,7 @@ import { TIME_OF_DAY } from '../scales';
 import { DAY_MINUTES, dayOf, now } from '../time';
 import { IT } from '../library/itemIds';
 import { healthLevel, partStates, working } from '../ruleset/body';
-import { bestReward, questLevelXp } from '../ruleset/achRewards';
+import { achievementSum, questLevelXp } from '../ruleset/achRewards';
 import { buildLeakContext, leakScan } from '../agents/narration';
 import { actorById, allActors, zoneById } from './relations';
 import { applyMemoryOps } from './memory';
@@ -57,7 +57,7 @@ export function readGoal(state: GameState, g: JobOffer['goal']): QuestGoal {
 /** QT10/QT23: a definite promise as data; an instance id reads as its library item. Promised coin rises by the player's
  * questPayPct achievement reward (XR2): givers pay a proven hand more */
 function readPay(state: GameState, p: JobOffer['pay']): Quest['pay'] {
-  const coin = Math.max(0, Math.floor((p?.coin ?? 0) * (1 + (bestReward(state.player, 'questPayPct')?.value ?? 0) / 100) + 1e-9));
+  const coin = Math.max(0, Math.floor((p?.coin ?? 0) * (1 + achievementSum(state.player, 'questPayPct') / 100) + 1e-9));
   const item = p?.item ? (instances(state).find((i) => i.id === p.item)?.itemId ?? (safe(() => itemDef(state, p.item!)) ? p.item : undefined)) : undefined;
   if (p?.item && !item) logCode(state, 'invalid_quest_pay', { item: p.item });
   return coin || item ? { ...(coin ? { coin } : {}), ...(item ? { item, qty: whole(p?.qty) } : {}) } : undefined;

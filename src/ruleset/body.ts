@@ -14,6 +14,7 @@ import { fatigueMods } from './fatigue';
 import { HEALTH_LEVELS, ITEM_STATES, PART_STATES, TIERS, type IntelligenceKey, type ItemStateKey } from '../scales';
 import { gripsOf } from './slots';
 import { cap } from '../words';
+import { achievementSum } from './achRewards';
 
 /** the Strike parts a natural attack uses: one part, or either part of a pair (BV7 a) */
 export function attackParts(mode: AttackMode | undefined): readonly string[] {
@@ -36,7 +37,9 @@ export function totalHp(state: GameState, actor: Actor, parts?: FigPart[]): numb
   parts?.push({ label: 'Base', adds: CONFIG.HP_BASE }, { label: `Endurance ${raw} × ${per}`, adds: per * raw },
     ...(fromResolve ? [{ label: `Mind Over Body: Resolve ${res!.raw} × ${CONFIG.MIND_OVER_BODY_SHARE} × ${CONFIG.HP_PER_END}`, adds: CONFIG.HP_PER_END * fromResolve }] : []),
     ...(body.hpMultiplier !== 1 ? [{ label: `Body: ${body.name}`, times: body.hpMultiplier }] : []), ...(prefix !== 1 ? [{ label: pre?.name ?? 'Prefix', times: prefix }] : []));
-  return (CONFIG.HP_BASE + per * raw + CONFIG.HP_PER_END * fromResolve) * body.hpMultiplier * prefix;
+  const ach = 1 + achievementSum(actor, 'maxHpPct') / 100; // DI23: achievements' max HP %
+  if (ach !== 1) parts?.push({ label: 'Achievements', times: ach });
+  return (CONFIG.HP_BASE + per * raw + CONFIG.HP_PER_END * fromResolve) * body.hpMultiplier * prefix * ach;
 }
 
 export function healthLevel(actor: Actor): HealthLevel {
