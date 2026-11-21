@@ -6,6 +6,8 @@ export const RL = { sense: 'RL1', grip: 'RL2', move: 'RL3', fly: 'RL4', strike: 
 export const HL = { rest: 'HL1', clinic: 'HL2', bandage: 'HL3', passive: 'HL4', perk: 'HL6', draught: 'HL7', heal: 'HL8' } as const;
 /** FT7 the stamina recovery table: Sleep, Rest, Catching your breath, and Perks (a counting row) */
 export const RV = { sleep: 'RV1', rest: 'RV2', breath: 'RV3', perk: 'RV4' } as const;
+/** D-141 VW14: reward tables, weighted and nestable: a row gives an item or rolls another table (reward types) */
+export const RW = { vow_kept: 'RW1', vow_items: 'RW2' } as const;
 /** composure sources: what restores morale, a table of its own so morale tunes apart from health (an action like rest names a row in each) */
 export const CP = { rest: 'CP1', clinic: 'CP2', natural: 'CP3', danger_passed: 'CP4', perk: 'CP5', steady: 'CP6', foe_downed: 'CP7', rallied: 'CP8' } as const;
 /** D-17 FIGHT_RULES rows (TC17-TC23): the code-run fight list's skilled rows (src/library/fightRules.ts) */

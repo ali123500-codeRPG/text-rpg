@@ -1444,6 +1444,14 @@ export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView,
     const d = l.detail as { actorId: string; why: DefeatWhy };
     changes.push({ kind: 'condition', text: `${who(views.callName(s, 'player', d.actorId), true)} ${d.why === 'surrendered' ? 'surrenders' : 'breaks and yields'} to you` });
   }
+  // D-141 VW12 a: a vow kept or broken this turn says so plainly, with what it gave or took
+  for (const l of s.log) {
+    if (l.turn !== s.turn || (l.code !== 'vow_kept' && l.code !== 'vow_broken')) continue;
+    const v = s.vows?.find((x) => x.id === (l.detail as { id: string }).id);
+    if (!v) continue;
+    const got = (v.items ?? []).map((r) => { try { return countWords(r.item, getLibrary().items[r.item].name, r.qty); } catch { return r.item; } });
+    changes.push({ kind: 'condition', text: l.code === 'vow_kept' ? `Vow kept: ${v.text} (+${v.xp} Thread${got.length ? `; ${got.join(', ')} in your pack` : ''})` : `Vow broken: ${v.text} (−${v.xp} Thread)` });
+  }
   if (changes.length) out.changes = changes;
   return out;
 }

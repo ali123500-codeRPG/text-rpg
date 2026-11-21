@@ -13,6 +13,10 @@ import { now } from '../time';
 import { trueSkill } from '../ruleset/perks';
 import { rewardXp } from '../ruleset/achRewards';
 import { freshId } from '../ids';
+import type { Rng } from '../types';
+import { RW } from '../library/tableIds';
+import { boon } from '../scenario/validate';
+import { IT } from '../library/itemIds';
 import { actorById } from './relations';
 import { logCode } from './effects';
 import { awardXp, charLevel, xpToNext } from './xp';
@@ -99,18 +103,60 @@ export function swearVow(state: GameState, f: VowForm): string | null {
   return null;
 }
 
-function endVow(state: GameState, v: Vow, to: Exclude<VowState, 'active'>, why: string): void {
+/** VW14: one pick from a reward table by weight; a row naming another table rolls that one (a reward type) */
+function drawReward(table: string, rng: Rng, depth = 0): { item: string; qty: number } | undefined {
+  const rows = (getLibrary().rewardTables?.[table]?.rows ?? []).filter((r) => r.weight > 0);
+  const sum = rows.reduce((n, r) => n + r.weight, 0);
+  if (!sum || depth > 8) return undefined;
+  let at = rng.next() * sum;
+  const row = rows.find((r) => (at -= r.weight) < 0) ?? rows[rows.length - 1];
+  return row.table ? drawReward(row.table, rng, depth + 1) : row.item ? { item: row.item, qty: Math.max(1, row.qty ?? 1) } : undefined;
+}
+
+/** VW10/VW15: a kept vow's items: draws from the kept-vow table until their Boon reaches the stake's band budget. A draw
+ * may pass the budget by up to VOW_REWARD_MARGIN; one that would pass more is put back, and drawing stops if the total
+ * is already within the margin below. At most VOW_REWARD_DRAWS_MAX draws. */
+export function vowRewards(state: GameState, stake: VowStake, rng: Rng): { item: string; qty: number }[] {
+  const budget = CONFIG.BOON_BUDGET[CONFIG.VOW_STAKE_GAIN[stake]] ?? 0, m = CONFIG.VOW_REWARD_MARGIN;
+  const out: { item: string; qty: number }[] = [];
+  let total = 0;
+  for (let n = 0; n < CONFIG.VOW_REWARD_DRAWS_MAX && total < budget; n++) {
+    const r = drawReward(RW.vow_kept, rng);
+    if (!r) break;
+    const b = boon(state, r.item, r.qty);
+    if (total + b > budget * (1 + m)) { if (total >= budget * (1 - m)) break; continue; } // close enough, or put it back and draw again
+    total += b;
+    const had = out.find((x) => x.item === r.item);
+    if (had) had.qty += r.qty; else out.push({ ...r });
+  }
+  return out;
+}
+
+/** VW12 a: the items go to the player's pack at once */
+function giveRewards(state: GameState, v: Vow, items: { item: string; qty: number }[]): void {
+  if (!items.length) return;
+  const p = state.player, ids = new Set(p.core.inventory.map((i) => i.id));
+  for (const [k, r] of items.entries()) {
+    const id = freshId(`vw_${v.id}_${k}`, ids);
+    ids.add(id);
+    p.core.inventory.push(...(getLibrary().items[r.item]?.stackable || r.item === IT.coin ? [{ id, itemId: r.item, qty: r.qty }]
+      : Array.from({ length: r.qty }, (_, n) => ({ id: n ? `${id}_${n}` : id, itemId: r.item }))));
+  }
+  v.items = items;
+}
+
+function endVow(state: GameState, v: Vow, to: Exclude<VowState, 'active'>, why: string, rng?: Rng): void {
   v.state = to;
   v.endTurn = state.turn;
   v.why = why;
   v.xp = vowXp(state, v.stake);
-  if (to === 'kept') awardXp(state, v.xp, `vow:${v.id}`);
+  if (to === 'kept') { awardXp(state, v.xp, `vow:${v.id}`); if (rng) giveRewards(state, v, vowRewards(state, v.stake, rng)); }
   else {
     // VW5 a: the stake's Thread is lost, into debt if need be; new Thread pays the debt first
     const pr = state.player.progression;
     if (pr) { pr.xp -= v.xp; (pr.xpLog ??= []).push({ source: `vow broken:${v.id}`, amount: -v.xp, turn: state.turn }); }
   }
-  logCode(state, to === 'kept' ? 'vow_kept' : 'vow_broken', { id: v.id, why, xp: v.xp });
+  logCode(state, to === 'kept' ? 'vow_kept' : 'vow_broken', { id: v.id, why, xp: v.xp, ...(v.items ? { items: v.items } : {}) });
 }
 
 /** VW8 a: renouncing a vow breaks it */
@@ -125,7 +171,7 @@ const vowNeed = (g: VowGoal) => (g.kind === 'skill' || g.kind === 'level' ? g.to
 
 /** per turn, after the quests: progress, a restraint broken by this turn's act, goals met, and deadlines. `act` is the
  * player's action type this turn, when they acted; `defeated`, whom they defeated (a kill: one now dead). */
-export function updateVows(state: GameState, events: GameEvent[], defeated: Actor[], act?: string): void {
+export function updateVows(state: GameState, events: GameEvent[], defeated: Actor[], act: string | undefined, rng: Rng): void {
   const p = state.player;
   for (const v of activeVows(state)) {
     const g = v.goal;
@@ -136,13 +182,13 @@ export function updateVows(state: GameState, events: GameEvent[], defeated: Acto
     v.progress = g.kind === 'skill' ? Math.floor(trueSkill(p, g.skill)) : g.kind === 'level' ? charLevel(p)
       : g.kind === 'achievement' ? Number(hasAchievement(state, g.key)) : g.kind === 'essence' ? Number(taken(state) > g.from)
         : goalProgress(state, g, v.progress, events, defeated);
-    if (v.progress >= vowNeed(g)) { v.progress = vowNeed(g); endVow(state, v, 'kept', 'met'); continue; }
+    if (v.progress >= vowNeed(g)) { v.progress = vowNeed(g); endVow(state, v, 'kept', 'met', rng); continue; }
     const target = g.kind === 'skill' || g.kind === 'level' || g.kind === 'achievement' || g.kind === 'essence' ? undefined : goalTarget(g);
     if (target && dead(actorById(state, target))) endVow(state, v, 'broken', 'target_dead');
     else if ((g.kind === 'deliver') && goalItemGone(state, g)) endVow(state, v, 'broken', 'item_gone');
   }
   // VW6 a: at the deadline a restraint is kept and a goal not met is broken
-  for (const v of activeVows(state)) if (now(state) > v.due) endVow(state, v, v.goal.kind === 'restraint' ? 'kept' : 'broken', 'deadline');
+  for (const v of activeVows(state)) if (now(state) > v.due) endVow(state, v, v.goal.kind === 'restraint' ? 'kept' : 'broken', 'deadline', rng);
 }
 
 // ---------- what screens and the Witness show ----------

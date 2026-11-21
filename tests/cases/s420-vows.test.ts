@@ -5,7 +5,11 @@ import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { CONFIG } from '../../src/config';
 import { DAY_MINUTES, now } from '../../src/time';
-import { readVow, renounceVow, swearVow, vowXp, type VowForm } from '../../src/engine/vows';
+import { readVow, renounceVow, swearVow, vowRewards, vowXp, type VowForm } from '../../src/engine/vows';
+import { getLibrary } from '../../src/library';
+import { RW } from '../../src/library/tableIds';
+import { IT } from '../../src/library/itemIds';
+import { createRng } from '../harness';
 import { charLevel } from '../../src/engine/xp';
 import { checkWitness } from '../../src/agents/schema';
 import { xpParts } from '../../src/engine/growth';
@@ -62,6 +66,25 @@ describe('420 vows', () => {
     play(s, { intent: intent({ action: { type: 'wait' } }) });
     expect(s.vows![0]).toMatchObject({ state: 'kept', why: 'met', progress: 1 });
     expect(s.player.progression!.xpLog!.find((x) => x.source === `vow:${s.vows![0].id}`)?.amount).toBe(s.vows![0].xp);
+  });
+
+  it('VW10/VW14/VW15: a kept vow draws through the nested table until the band\'s Boon is filled, within the margin', () => {
+    const s = makeVillage();
+    const tables = getLibrary().rewardTables!, kept = tables[RW.vow_items].rows;
+    try {
+      tables[RW.vow_items].rows = [{ weight: 1, item: IT.healing_draught }]; // Boon 0.5 each
+      const n = (stake: 'i' | 'ii' | 'iii') => vowRewards(s, stake, createRng(7)).reduce((t, r) => t + r.qty, 0) * 0.5;
+      expect(n('i')).toBeCloseTo(CONFIG.BOON_BUDGET[CONFIG.VOW_STAKE_GAIN.i]);
+      expect(n('ii')).toBeCloseTo(CONFIG.BOON_BUDGET[CONFIG.VOW_STAKE_GAIN.ii]);
+      tables[RW.vow_items].rows = [{ weight: 1, item: IT.varos_loop }]; // far over any band: put back every time
+      expect(vowRewards(s, 'iii', createRng(7))).toEqual([]);
+      tables[RW.vow_items].rows = [{ weight: 1, item: IT.healing_draught }];
+      swearVow(s, { line: 'Stand at the counter', goal: { kind: 'reach', target: 'tav_counter' }, stake: 'I', days: 2 });
+      s.player.zone = 'tav_counter';
+      play(s, { intent: intent({ action: { type: 'wait' } }) });
+      expect(s.vows![0].items).toEqual([{ item: IT.healing_draught, qty: 4 }]);
+      expect(s.player.core.inventory.filter((i) => i.id.startsWith(`vw_${s.vows![0].id}`)).length).toBeGreaterThan(0);
+    } finally { tables[RW.vow_items].rows = kept; }
   });
 
   it('VW2: the Witness answer schema keeps the vow form', () => {
