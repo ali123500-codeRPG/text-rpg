@@ -385,7 +385,7 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
     id: opts.id,
     storyId: opts.storyId ?? state?.storyId ?? 'story',
     kind: 'npc',
-    names: { current: opts.name ?? opts.label ?? t.label, past: [] },
+    names: { current: opts.name || opts.label || t.label, past: [] }, // a blank name (a group's follower) is no name: the label stands in
     label: opts.label ?? t.label,
     placeId: opts.placeId,
     zone: opts.zone,
