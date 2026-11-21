@@ -16,7 +16,7 @@ import { partName } from '../ruleset/body';
 
 export const ICONS = ICON_ART;
 /** IC5: the credit the icons' licence asks for, shown on the GM page */
-export const ICON_CREDIT = 'Icon credits: game-icons.net by Lorc, Delapouite and contributors (CC BY 3.0); Fluent Emoji High Contrast by Microsoft (MIT); Material Symbols by Google (Apache-2.0).';
+export const ICON_CREDIT = 'Icon credits: game-icons.net by Lorc, Delapouite and contributors (CC BY 3.0); Fluent Emoji High Contrast by Microsoft (MIT); Material Symbols by Google (Apache-2.0); Health Icons by Resolve to Save Lives (MIT).';
 export type { IconName };
 
 /** a library item's own drawing; items not listed fall back on their kind (BY_KIND) */
@@ -118,6 +118,7 @@ export const skillMark = (skillId: string, name = skillName(skillId)): HTMLEleme
 };
 const PART_ICON: Record<string, IconName> = {
   head: 'pt_head', neck: 'pt_neck', arm: 'pt_arm', leg: 'pt_leg', wing: 'pt_wing', foreleg: 'pt_foreleg', hind_leg: 'pt_hind_leg', tail: 'pt_tail', coils: 'pt_coils',
+  leg_n: 'pt_jointed_leg', // a numbered leg: one of an eight-legged body's
 };
 const namedMark = (icon: IconName, name: string, side?: string, n?: string): HTMLElement => {
   const el = itemIcon(icon, undefined, 'ptico');
@@ -130,7 +131,8 @@ const namedMark = (icon: IconName, name: string, side?: string, n?: string): HTM
  *  with its number after it; the name itself for a part with no icon yet */
 export const partMark = (id: string, name = partName(id)): HTMLElement => {
   const [, side, base, n] = /^(?:(left|right)_)?(.+?)(?:_(\d+))?$/.exec(id)!;
-  return PART_ICON[base] ? namedMark(PART_ICON[base], name, side, n) : Object.assign(document.createElement('b'), { textContent: name });
+  const icon = PART_ICON[n ? `${base}_n` : base];
+  return icon ? namedMark(icon, name, side, n) : Object.assign(document.createElement('b'), { textContent: name });
 };
 /** the whole-body pool's icon in place of its name: a humanoid's torso, else what the body is (a slime, a snake) */
 export const generalMark = (bodyTypeId: string, name: string): HTMLElement => namedMark(BODY_ICON[bodyTypeId] ?? 'pt_torso', name);

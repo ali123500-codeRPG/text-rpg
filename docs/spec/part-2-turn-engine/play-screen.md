@@ -533,7 +533,8 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 
 - **PS-300** Things in the world are filled silhouettes; screen controls stay line drawings (Ali, 14/11/2026, IC1–IC5).
 - **PS-301** Sources are mixed: game-icons.net (CC BY 3.0) first, Fluent Emoji High Contrast (MIT) where it draws a
-  subject better, and more filled sets may join.
+  subject better, Material Symbols (Apache-2.0) and Health Icons (MIT) where neither has the subject, and more filled
+  sets may join.
 - **PS-302** `scripts/icons.mjs` (npm run icons) copies only the picked icons into `src/ui/iconArt.ts` as SVG text: no
   network calls, no base64.
 - **PS-303** Every library item, container and loot thing has an icon (items sharing a type share one), tinted by item
@@ -552,7 +553,9 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
   figure readout, the Aim pick, healing and wound cards, Read Wounds in Who's here, gear Compare), its icon stands in
   place of its name; the name is its tip and accessible name, and any state word stays beside it. A left part shows
   its icon mirrored; a numbered leg has its number after the icon. The whole-body pool shows a torso for a humanoid,
-  else what the body is. The library viewer keeps the words (issue #1474).
+  else what the body is. A beast's fore and hind legs and a spider's legs, which no set draws alone, are framed out of
+  a whole figure (a deer's foreleg and hindquarters, one jointed spider leg). The library viewer keeps the words
+  (issues #1474, #1496).
 - **PS-307** Scales past 100: game-icons.net has supernatural subjects (rune blades, auras, creatures) for gear and
   beings above the human range.
 
