@@ -600,7 +600,7 @@ trigger = {"id","ownerId":actor id,"when":{"type":"quiet_turns","turns":number}|
 A beat's then: ${gradeRule('its owner')}
 orderType = ${ORDER_TYPES.map((t) => `"${t}"`).join("|")}`;
 
-/** D-108: the Chronicler proposes achievements at a scenario's end; the owner approves, code grants (PROG-118) */
+/** AA-108: the Chronicler proposes achievements at a scenario's end; the owner approves, code grants (PROG-118) */
 export const CHRONICLER_INSTRUCTIONS = `You are the Chronicler of a text RPG. A scenario has just ended. In this game achievements are earned only
 through code rules that count what the player did (defeats, places reached, deals made, foes who yielded, and so on). You
 never grant anything and never narrate: you propose new achievements to the game's designer, who decides which become rules.

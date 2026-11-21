@@ -187,7 +187,7 @@ export function gmPage(api: GameApi) {
 
       // NG15: who the Weaver wanted and couldn't field (templateGap), so a template can be made; composed presets are under "Made this story".
       // D-53 a: the routines it wanted and no set gave (routineGap), so the routine bank can grow
-      // D-108: the Chronicler's deed ideas at each scenario's end (name, deed), for the owner to approve as achievements
+      // AA-108: the Chronicler's deed ideas at each scenario's end (name, deed), for the owner to approve as achievements
       h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'Wanted · who, which routines and which deeds the game lacks'),
         s?.hidden.templateWants?.length ? h('table', { class: 'hs-tbl' },
           h('thead', {}, h('tr', {}, ['Scenario', 'Cast as / name', 'For', 'Wanted', 'Used instead'].map((t) => h('th', {}, t)))),

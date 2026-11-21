@@ -291,7 +291,7 @@ const checkin = obj<CheckinAnswer>({
 export const checkCheckin = run(checkin);
 /** WB6: the Weaver's answer to a scenario window */
 export const checkWindow = run(obj<WindowAnswer>({ start: bool, note: str }, ['note']));
-/** D-108: the Chronicler's deed ideas, any number */
+/** AA-108: the Chronicler's deed ideas, any number */
 export type ChroniclerIdea = { name: string; deed: string; turn: number; seen?: string };
 export const checkChronicler = run(obj<{ ideas: ChroniclerIdea[] }>({ ideas: arr(obj<ChroniclerIdea>({ name: str, deed: str, turn: num, seen: str }, ['seen'])) }));
 /** WZ2 the region brief: only its shape is checked here; src/land/brief.ts tidyBrief drops unknown words */

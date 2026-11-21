@@ -188,7 +188,7 @@ question IDs, BG/D numbers) sits in one trailing parenthesis.
   morale and one Nerve step; the fight still counts as lost for the Loser scars, as a break always does (D-294).
 - **PROG-117** The reward fits the deed, as a guide for whoever proposes a row: an ordeal pays what would have carried
   you through it (max morale, death's door, rest), and a feat done with a skill may pay that skill (D-278).
-- **PROG-118** New achievements come only from Ali-approved proposals (D-108); Weaver-seeded scenario achievements (X7)
+- **PROG-118** New achievements come only from Ali-approved proposals (AA-108); Weaver-seeded scenario achievements (X7)
   are dropped (Ali, 07/11/2026).
 - **PROG-119** Earned achievements are listed on the Achievements page (the rail's Achievements tab), not on the
   character card: grouped by reward level with every group open (a heading the player closes stays closed), and clicking
