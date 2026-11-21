@@ -320,8 +320,6 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void, onWalk?:
     }
     return out;
   }
-  // names are sized from measured text: once the map's own font has loaded, measure and lay the plan out again
-  document.fonts?.ready.then(() => { if (planMap()) pv.render(); });
   function zoomBy(f: number, at?: Pt) {
     const v = view(), r = svg.getBoundingClientRect();
     const c = at ?? { x: r.width / 2, y: r.height / 2 };
