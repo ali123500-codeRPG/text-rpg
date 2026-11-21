@@ -29,7 +29,10 @@ export type HiddenStore = {
   /** NR28: each composition whose wanted skills the closest role lacks from its High or Moderate bands (GM view "Roles wanted") */
   roleWants?: { turn: number; scenario: number; actorId: string; label: string; skills: string[]; role: string; missing: string[] }[];
   /** NG16 b: each scenario's hostile cast power against the player's, with the challenge grade's band; logged only */
-  castPower?: { turn: number; scenario: number; challenge: string; hostile: number; player: number; ratio: number; band?: [number, number]; off: boolean }[];
+  /** NG16 b, CK6 a: readings beside the declared challenge grade: ratio is danger to the player (hostile ÷ player power); usual
+   * the place's usual hostile group power and local the hostile cast over it (both absent where the place has no threat
+   * table, CK9 a); exceptional the ranks the strongest hostile stands above anything the place can roll (CK10 a) */
+  castPower?: { turn: number; scenario: number; challenge: string; hostile: number; player: number; ratio: number; usual?: number; local?: number; exceptional?: number }[];
   /** SC6: how each scenario went, oldest first (CONFIG.SCENARIO_RECORDS_SAVED kept); the next Weaver gets the last few */
   scenarios?: ScenarioRecord[];
 };

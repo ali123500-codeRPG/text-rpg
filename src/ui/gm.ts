@@ -210,13 +210,14 @@ export function gmPage(api: GameApi) {
             return h('tr', {}, h('td', {}, site.name || site.id), h('td', {}, site.size), h('td', {}, es.map((e) => e.who).join(', ')), h('td', { class: 'hs-num' }, `${done.length} of ${es.length}`)); })))
           : h('p', { class: 'empty' }, 'No land drawn yet.')),
 
-      // NG16 b: the hostile cast's power against the player's, by the challenge grade's band; logged only while the bands are tuned
-      h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'Cast power · against the challenge grade'),
+      // NG16 b, CK6 a: readings beside the declared challenge grade, none of them a verdict
+      h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'Cast power · beside the challenge grade'),
         s?.hidden.castPower?.length ? h('table', { class: 'hs-tbl' },
-          h('thead', {}, h('tr', {}, ['Scenario', 'Challenge', 'Hostile power', 'Player power', 'Ratio', 'Band', ''].map((t) => h('th', {}, t)))),
+          h('thead', {}, h('tr', {}, ['Scenario', 'Challenge', 'Hostile power', 'Player power', 'Danger to you', 'Usual here', 'Local pressure', 'Exceptional'].map((t) => h('th', {}, t)))),
           h('tbody', {}, [...s.hidden.castPower].reverse().map((c) => h('tr', {}, h('td', { class: 'hs-num' }, `${c.scenario} · turn ${c.turn}`), h('td', {}, c.challenge),
-            h('td', { class: 'hs-num' }, String(c.hostile)), h('td', { class: 'hs-num' }, String(c.player)), h('td', { class: 'hs-num' }, c.ratio.toFixed(2)),
-            h('td', {}, c.band ? `${c.band[0]}–${c.band[1]}` : '–'), h('td', {}, c.off ? h('span', { class: 'hs-chip' }, 'Off band') : '')))))
+            h('td', { class: 'hs-num' }, String(c.hostile)), h('td', { class: 'hs-num' }, String(c.player)), h('td', { class: 'hs-num' }, `${c.ratio.toFixed(2)}×`),
+            h('td', { class: 'hs-num' }, c.usual === undefined ? 'unknown' : String(c.usual)), h('td', { class: 'hs-num' }, c.local === undefined ? '–' : `${c.local.toFixed(2)}×`),
+            h('td', {}, c.exceptional ? h('span', { class: 'hs-chip' }, `+${c.exceptional} rank${c.exceptional === 1 ? '' : 's'}`) : '')))))
           : h('p', { class: 'empty' }, 'No scenario has opened yet.')),
 
       madeSection(s),

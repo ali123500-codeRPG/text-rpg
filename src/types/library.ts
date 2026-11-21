@@ -74,7 +74,9 @@ export type HookKindDef = { id: LibraryRef; name: string; gives: string; roles?:
 /** NR27: one part of a group: its role (or a template), race when fixed (else rolled: NR31), label, and rank steps above the group's */
 export type GroupPart = { role?: LibraryRef; roles?: readonly LibraryRef[]; template?: LibraryRef; race?: LibraryRef; label: string; step?: number; class?: LibraryRef };
 /** NR27 (D-308): a group recipe: a leader and its followers, of one theme */
-export type GroupDef = { id: LibraryRef; name: string; theme: LibraryRef; lead: GroupPart; follow?: GroupPart & { count: [number, number] } };
+export type GroupDef = { id: LibraryRef; name: string; theme: LibraryRef; lead: GroupPart; follow?: GroupPart & { count: [number, number] };
+  /** CK6 a: a group that comes as a threat, so it counts toward a place's usual hostile group */
+  threat?: true };
 /** NR18 to NR20: a group that may be met, its weight, and the time of day it is out (both when left out) */
 export type MeetRow = { group: LibraryRef; weight: number; when?: 'day' | 'night' };
 /** NG1: an NPC theme (TH): skills its world adds, its personality lean (NG14), its rank-trait pool (NG12) and its own rank

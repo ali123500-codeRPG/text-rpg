@@ -6,8 +6,10 @@ import { describe, expect, it } from 'vitest';
 import { makeVillage, createRng } from '../harness';
 import type { StagePlan } from '../../src/types';
 import { applyStagePlan, validateStagePlan, type PlanContext } from '../../src/scenario';
+import { usualThreat } from '../../src/scenario/apply';
+import { withRoad } from '../harness/road';
 import { toStoryStart, villageStagePlan } from '../../src/scenario/fixtures';
-import { composeTemplate, composedId, rankKeyOf, refreshCopies, templateLoadout, templateSkills } from '../../src/library/spawn';
+import { composeTemplate, composedId, rankKeyOf, rankPos, refreshCopies, templateLoadout, templateSkills } from '../../src/library/spawn';
 import { getLibrary, hasTemplate, itemDef, npcTemplate } from '../../src/library';
 import { TP } from '../../src/library/templateIds';
 import { RC } from '../../src/library/raceIds';
@@ -16,7 +18,6 @@ import { IT } from '../../src/library/itemIds';
 import { RO, TH } from '../../src/library/npcLayerIds';
 import { EQUIP_LEVELS, equipPos } from '../../src/scales';
 import { itemLevel } from '../../src/ruleset/requirements';
-import { CONFIG } from '../../src/config';
 import { buildWeaverView } from '../../src/views';
 
 const ctx: PlanContext = { tier: 'success', kind: 'scenario', placeId: 'tavern' };
@@ -87,7 +88,7 @@ describe('306 NPC gear, compositions and the cast check', () => {
     expect(v.catalogs.compose.ranks[3]).toEqual({ key: 'rank_3', name: 'Veteran', level: 12 });
   });
 
-  it('NG16 b: the hostile cast\'s power over the player\'s is logged against the grade\'s band, and never refused', () => {
+  it('NG16 b, CK6 a: readings beside the declared grade (danger to you, local pressure, exceptional), never a verdict', () => {
     const s = toStoryStart(makeVillage());
     const p = villageStagePlan();
     expect(validateStagePlan(s, p, ctx)).toEqual([]);
@@ -95,8 +96,17 @@ describe('306 NPC gear, compositions and the cast check', () => {
     const c = s.hidden.castPower!.at(-1)!;
     expect(c.challenge).toBe(p.event.challenge);
     expect(c.ratio).toBeCloseTo(c.hostile / c.player, 1);
-    expect(c.band).toEqual(CONFIG.CAST_POWER_BANDS[p.event.challenge]);
-    expect(s.log.some((l) => l.code === 'cast_power_off_band')).toBe(c.off);
     expect(c.hostile).toBeGreaterThan(0); // the field's slimes are hostile
+    expect(c.usual).toBeUndefined(); // CK9 a: the test village stands on no land site, so no threat table: unknown
   });
+
+  it('CK6 a, CK9 a: the usual threat on a road comes from its own table; a safe road has none', () => {
+    const at = (danger: 'safe' | 'wild') => { const s = withRoad(2, danger); s.stage.encounter = { zone: 'north_road', at: { x: 0, y: 0 }, eventRoll: {} as never }; return s; };
+    const wild = usualThreat(at('wild'), 'gate')!;
+    expect(wild.power).toBeGreaterThan(0);
+    expect(wild).toEqual(usualThreat(at('wild'), 'gate')); // one fixed roll per pair: the same every time
+    expect(wild.top).toBe(rankPos('rank_4') + 2); // Elite at most, the pack leader one up, Dire one more
+    expect(usualThreat(at('safe'), 'gate')).toBeUndefined();
+  });
+
 });

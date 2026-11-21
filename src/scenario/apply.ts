@@ -16,7 +16,14 @@ import { FU, ZK } from '../library/tableIds';
 import { distOrNull, entryPoint, placeAll, startAtDoor } from '../engine/position';
 import { clockSet, now, startClock } from '../time';
 import { activity, getLibrary, itemDef, npcTemplate, routine, routineSet } from '../library';
-import { composeTemplate, roleMissing, presetPersonality, spawnNpc } from '../library/spawn';
+import { composeTemplate, rankPos, roleMissing, presetPersonality, spawnNpc, templateRank } from '../library/spawn';
+import type { MeetRow } from '../types/library';
+import type { RankKey } from '../scales';
+import { groupMembers } from '../land/roster';
+import { cellAt, regionAt } from '../land/sight';
+import { topPlace } from './stage';
+import { HK } from '../library/npcLayerIds';
+import { createRng } from '../rng';
 import { personalityFrom } from '../ruleset/personality';
 import { installRoutines, desiredState, detectPlayer, headTo, knownFromTheStart } from '../minds';
 import { perceivesNow } from '../engine/yield';
@@ -46,14 +53,64 @@ function composedBlueprint(state: GameState, c: NonNullable<StagePlan['cast'][nu
   return t;
 }
 
-/** NG16 b: the hostile cast's power (those hostile or opposed to the player) over the player's, against the challenge
- * grade's band (CONFIG.CAST_POWER_BANDS). Logged only: nothing is refused and no NPC changes. */
-function logCastPower(state: GameState, challenge: string, cast: Actor[]): void {
-  const hostile = cast.filter((a) => ['hostile', 'opposed'].includes(stance(state, a, state.player))).reduce((n, a) => n + power(state, a), 0);
-  const player = power(state, state.player), ratio = player > 0 ? hostile / player : 0, band = CONFIG.CAST_POWER_BANDS[challenge];
-  const off = !!band && (ratio < band[0] || ratio > band[1]);
-  (state.hidden.castPower ??= []).push({ turn: state.turn, scenario: state.stage.scenarioNumber, challenge, hostile: Math.round(hostile), player: Math.round(player), ratio: Math.round(ratio * 100) / 100, ...(band ? { band } : {}), off });
-  if (off) state.log.push({ turn: state.turn, code: 'cast_power_off_band', detail: { challenge, ratio: Math.round(ratio * 100) / 100, band } });
+/** CK6 a, CK9 a: the threats a scenario's place rolls from: an encounter on a road by the road's danger, else the land cover at the
+ * encounter point, else the settlement's threat hook; only groups marked threat. Undefined where the place has none. */
+function threatTable(state: GameState, placeId: string): { rows: MeetRow[]; ranks: Record<string, number>; dire: boolean } | undefined {
+  const lib = getLibrary(), R = CONFIG.ROSTER_RANKS, enc = state.stage.encounter;
+  const only = (rows: MeetRow[] | undefined) => (rows ?? []).filter((m) => lib.groups?.[m.group]?.threat);
+  let t: { rows: MeetRow[]; ranks: Record<string, number>; dire: boolean } | undefined;
+  if (enc) {
+    const z = zoneById(state, enc.zone), r = regionAt(state, enc.at), i = r ? cellAt(r, enc.at) : -1;
+    if (z?.danger) t = { rows: only(lib.roadPeople?.[z.danger]?.rows), ranks: R.road[z.danger], dire: z.danger !== 'safe' && z.danger !== 'quiet' };
+    else if (r && i >= 0) t = { rows: only(lib.wildPeople?.[`LC${parseInt(r.cover[i], 36)}`]), ranks: R.wild, dire: true };
+  } else {
+    const top = topPlace(state, placeId), site = (state.regions ?? []).flatMap((r) => r.sites).find((s) => s.placeId === top);
+    if (site) t = { rows: only((lib.hookKinds?.[HK.threat]?.groups ?? []).map((g) => ({ group: g, weight: 1 }))), ranks: R.threat[site.size], dire: true };
+  }
+  return t?.rows.length && t.ranks ? t : undefined;
+}
+
+/** CK6 a: the place's usual hostile group power (the weighted median over its threat groups and rank weights, one fixed
+ * roll per pair, no Dire) and the highest rank its table can bring (a leader's step and Dire included); undefined where
+ * the place has no threat table (CK9 a). Probes are built on a copy of the state's blueprint list, never stored. */
+export function usualThreat(state: GameState, placeId: string): { power: number; top: number } | undefined {
+  const t = threatTable(state, placeId);
+  if (!t) return undefined;
+  const lib = getLibrary(), memo = new Map<string, number>();
+  const one = (m: ReturnType<typeof groupMembers>[number]): number => {
+    const tpl = m.compose ? composeTemplate(m.compose, m.label) : npcTemplate(state, m.template!);
+    if (!memo.has(tpl.id)) {
+      const s = m.compose ? { ...state, blueprints: [...state.blueprints, { storyId: state.storyId, id: tpl.id, kind: 'npcTemplate' as const, data: tpl as unknown as Record<string, unknown> }] } : state;
+      memo.set(tpl.id, power(s, spawnNpc(s, tpl.id, { id: `probe_${tpl.id}`, zone: '', placeId: '', bandId: '' }, createRng(1))));
+    }
+    return memo.get(tpl.id)!;
+  };
+  const cells = t.rows.flatMap((row) => Object.entries(t.ranks).map(([rank, w]) => ({
+    weight: row.weight * w, power: groupMembers(lib.groups![row.group], rank, `usual:${row.group}:${rank}`).reduce((n, m) => n + one(m), 0) })))
+    .sort((a, b) => a.power - b.power);
+  const half = cells.reduce((n, c) => n + c.weight, 0) / 2;
+  let acc = 0;
+  const median = cells.find((c) => (acc += c.weight) >= half)!.power;
+  const maxRank = Math.max(...Object.keys(t.ranks).map((k) => rankPos(k as RankKey)));
+  const top = Math.max(...t.rows.map((row) => {
+    const g = lib.groups![row.group], beast = [g.lead, g.follow].some((p) => [p?.role, ...(p?.roles ?? [])].some((r) => r && lib.npcRoles?.[r]?.kind === 'beast'));
+    return maxRank + (g.lead.step ?? 0) + (t.dire && beast ? 1 : 0);
+  }));
+  return { power: median, top };
+}
+
+/** NG16 b, CK6 a: three readings logged beside the Weaver's declared challenge grade, none of them a verdict: danger to the
+ * player (the hostile cast's power, those hostile or opposed, over the player's), local pressure (over the place's usual
+ * hostile group; unknown where the place has no threat table, CK9 a) and exceptional (ranks the strongest hostile stands
+ * above anything the place can roll, CK10 a). Nothing is refused and no NPC changes. */
+function logCastPower(state: GameState, challenge: string, cast: Actor[], placeId: string): void {
+  const foes = cast.filter((a) => ['hostile', 'opposed'].includes(stance(state, a, state.player)));
+  const hostile = foes.reduce((n, a) => n + power(state, a), 0), player = power(state, state.player), r2 = (x: number) => Math.round(x * 100) / 100;
+  const usual = usualThreat(state, placeId);
+  const ranks = foes.map((a) => { const t = a.core.templateId ? npcTemplate(state, a.core.templateId) : undefined, k = t && templateRank(t); return k ? rankPos(k) : -Infinity; });
+  const above = usual && ranks.length ? Math.max(...ranks) - usual.top : 0;
+  (state.hidden.castPower ??= []).push({ turn: state.turn, scenario: state.stage.scenarioNumber, challenge, hostile: Math.round(hostile), player: Math.round(player),
+    ratio: player > 0 ? r2(hostile / player) : 0, ...(usual ? { usual: Math.round(usual.power), local: usual.power > 0 ? r2(hostile / usual.power) : 0 } : {}), ...(above > 0 ? { exceptional: above } : {}) });
 }
 
 /** every settlement site of the world's land */
@@ -529,7 +586,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   plan.cast.forEach((c, i) => { if (c.templateGap) (state.hidden.templateWants ??= []).push({ turn: state.turn, scenario: state.stage.scenarioNumber, actorId: castActors[i].id, label: c.label, wanted: c.templateGap, template: castActors[i].core.templateId ?? '' }); });
   // D-53 a: a routine the Weaver wanted and no set gave, in the same GM list
   plan.cast.forEach((c, i) => { if (c.routineGap) (state.hidden.templateWants ??= []).push({ turn: state.turn, scenario: state.stage.scenarioNumber, actorId: castActors[i].id, label: c.label, wanted: c.routineGap, template: c.routineSetId, of: 'routine' }); });
-  if (ctx.kind === 'scenario') logCastPower(state, plan.event.challenge, castActors); // NG16 b
+  if (ctx.kind === 'scenario') logCastPower(state, plan.event.challenge, castActors, ctx.placeId); // NG16 b, CK6 a
   // UG3: goal holders: the template's standing goal, then the Weaver's goals, their keys read as ids
   const aboutRef = (r: string) => castMap.get(r) ?? placeMap.get(r) ?? zoneMap.get(r) ?? r;
   plan.cast.forEach((c, i) => {

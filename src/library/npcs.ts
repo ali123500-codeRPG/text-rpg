@@ -91,15 +91,15 @@ export const GROUPS: Record<string, GroupDef> = Object.fromEntries(([
   { id: GP.traveller, name: 'Traveller', theme: TH.travellers, lead: { role: RO.talker, label: 'a traveller with news or a job' } },
   { id: GP.caravan, name: 'Caravan', theme: TH.travellers, lead: { role: RO.talker, label: 'a caravan master', class: CL.trader }, follow: { role: RO.soldier, label: 'a hired guard', count: [2, 2] } },
   { id: GP.pilgrims, name: 'Pilgrims', theme: TH.travellers, lead: { role: RO.worker, label: 'a pilgrim' }, follow: { role: RO.worker, label: 'a pilgrim', count: [1, 4] } },
-  { id: GP.bandit_gang, name: 'Bandit gang', theme: TH.road_bandits, lead: { role: RO.brute, label: 'a bandit chief', step: 1 }, follow: { roles: [RO.skirmisher, RO.sneak], label: 'a bandit', count: [2, 4] } },
+  { id: GP.bandit_gang, threat: true, name: 'Bandit gang', theme: TH.road_bandits, lead: { role: RO.brute, label: 'a bandit chief', step: 1 }, follow: { roles: [RO.skirmisher, RO.sneak], label: 'a bandit', count: [2, 4] } },
   { id: GP.watch_patrol, name: 'Watch patrol', theme: TH.town_watch, lead: { role: RO.soldier, label: 'a watch sergeant', step: 1 }, follow: { role: RO.soldier, label: 'a watchman', count: [1, 2] } },
   { id: GP.watch_post, name: 'Watch post', theme: TH.town_watch, lead: { role: RO.watcher, label: 'a lookout' }, follow: { role: RO.soldier, label: 'a guard', count: [1, 1] } },
-  { id: GP.wolf_pack, name: 'Wolf pack', theme: TH.wild_beasts, lead: { role: RO.beast, race: RC.wolf, label: 'the pack leader', step: 1 }, follow: { role: RO.beast, race: RC.wolf, label: 'a wolf', count: [2, 5] } },
-  { id: GP.boar, name: 'Wild boar', theme: TH.wild_beasts, lead: { role: RO.beast, race: RC.boar, label: 'a wild boar' } },
-  { id: GP.bear, name: 'Bear', theme: TH.wild_beasts, lead: { role: RO.beast, race: RC.bear, label: 'a bear' } },
+  { id: GP.wolf_pack, threat: true, name: 'Wolf pack', theme: TH.wild_beasts, lead: { role: RO.beast, race: RC.wolf, label: 'the pack leader', step: 1 }, follow: { role: RO.beast, race: RC.wolf, label: 'a wolf', count: [2, 5] } },
+  { id: GP.boar, threat: true, name: 'Wild boar', theme: TH.wild_beasts, lead: { role: RO.beast, race: RC.boar, label: 'a wild boar' } },
+  { id: GP.bear, threat: true, name: 'Bear', theme: TH.wild_beasts, lead: { role: RO.beast, race: RC.bear, label: 'a bear' } },
   { id: GP.hunter, name: 'Hunter', theme: TH.village_folk, lead: { role: RO.hunter, label: 'a hunter (a guide, or a poacher)' } },
   { id: GP.dog, name: 'Dog at the fold', theme: TH.wild_beasts, lead: { role: RO.beast, race: RC.dog, label: 'a dog at the fold' } },
-  { id: GP.slimes, name: 'Slimes', theme: TH.wild_beasts, lead: { template: TP.slime, label: 'a slime' }, follow: { template: TP.slime, label: 'a slime', count: [1, 4] } },
+  { id: GP.slimes, threat: true, name: 'Slimes', theme: TH.wild_beasts, lead: { template: TP.slime, label: 'a slime' }, follow: { template: TP.slime, label: 'a slime', count: [1, 4] } },
 ] as GroupDef[]).map((d) => [d.id, d]));
 export const meet = (group: string, weight: number, when?: 'day' | 'night'): MeetRow => ({ group, weight, ...(when ? { when } : {}) });
 
