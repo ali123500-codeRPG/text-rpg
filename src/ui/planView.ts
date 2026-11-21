@@ -1,6 +1,6 @@
 // MAP-84 (MQ2 a): the map of a place, one component in two sizes. The minimap (Play's right column) and the Map pop-up are
 // this same view: every mark, click and rule lives here once (MQ4 a), only the frame around it differs (the pop-up adds
-// crumbs, key, places list, cards and the height slider). Code lays every mark out (planScene, rpg-map), this draws it
+// the key, places list, cards and the height slider). Code lays every mark out (planScene, rpg-map), this draws it
 // to scale from what the character knows, and dev views check it (MAP-51). A click on the ground plans a walk to that
 // exact point (MAP-81, AD16); a double-click, Enter or Just go walks; a right-click, or a long press on touch, opens the
 // zone's card (MAP-64, MQ3, MQ7 a). In a fight the rings show how far a move slot walks and a dash runs (AD9, BF91).

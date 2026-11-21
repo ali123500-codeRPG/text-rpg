@@ -1,12 +1,12 @@
-// The World map draws the land the character has seen (WZ4) under its places and roads, and a road bound to a region's
-// road line (WZ1) runs along that line, with your pin at your point along it.
+// The map draws the land the character has seen (WZ4) under its places and roads, and a road bound to a region's road
+// line (WZ1) runs along that line, with your pin at your point along it.
 import { describe, expect, it } from 'vitest';
-import { knownMap, pointAlong, worldTiles } from '../../src/ui/mapData';
+import { knownMap, pointAlong } from '../../src/ui/mapData';
 import { landLabels, landLayer } from '../../src/ui/landSvg';
 import { createFakeGame } from '../../src/ui/fakeGame';
 import { CONFIG } from '../../src/config';
 
-describe('the land on the World map', () => {
+describe('the land on the map', () => {
   it('whole turn: the land drawn is only the cells seen, and on the mill road your pin sits on its line', async () => {
     CONFIG.REGION_SIZE_M = 5000; // what is drawn, not how big: a 10 km region is about 4x slower to draw
     const g = createFakeGame({ autoStart: true });
@@ -34,10 +34,9 @@ describe('the land on the World map', () => {
     const cellOf = (p: { x: number; y: number }) => Math.floor(p.y / r.cell) * N + Math.floor(p.x / r.cell);
     expect(landLabels(r, land).every((l) => land.seen(cellOf(l.at)))).toBe(true);
 
-    // the mill road: its zone and its World tile carry the road line, and your pin is the point along it
+    // the mill road: its zone carries the road line, and your pin is the point along it
     const road = m.places.find((p) => p.id === 'mill_road')!.zones[0], line = r.roads.find((x) => x.id === s.places.find((p) => p.id === 'mill_road')!.zones[0].road)!;
     expect(road.line).toEqual(line.pts);
-    expect(worldTiles(m).find((t) => t.id === 'mill_road')!.line).toEqual(line.pts);
     expect(road.along!.m).toBeCloseTo(line.length * 0.45, 0);
     expect(road.along!.len).toBeCloseTo(line.length, 0);
     const pin = pointAlong(road.line!, road.along!.m);
