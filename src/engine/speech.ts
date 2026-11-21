@@ -7,6 +7,7 @@ import { CONFIG } from '../config';
 import { hasPerk, markUse, ruleset, tierAtLeast, toContest } from '../ruleset';
 import { getLibrary, perkName } from '../library';
 import { allActors, isActive, isAsleep, isEngaged, nameBook, stance, wary } from './relations';
+import { strengthOf } from './regard';
 import { usableThisEngagement, useThisEngagement } from './engagement';
 import { bribeMod, OFFER_WORDS, playerOffer, speaks } from './offer';
 import { distM, type Located } from './position';
@@ -298,7 +299,8 @@ export function sizeUp(state: GameState, looker: Actor, them: Actor, rng: Rng): 
   markUse(state, them, contest.b.skill, contest);
   if (contest.winner !== 'a') return { contest };
   const lied = [...(state.recentEvents ?? []), ...state.events].some((e) => e.actorId === them.id && (e.kind === 'deceive' || e.push?.type === 'deceive'));
-  const read: PersonRead = { turn: state.turn, mood: MORALE_LEVELS.name(moraleLevel(them)), feels: stance(state, them, looker), hiding: lied || state.hidden.secrets.some((s) => s.holderId === them.id) };
+  const strength = strengthOf(state, them, looker.id); // D-206 BN5 a: how strongly they feel it
+  const read: PersonRead = { turn: state.turn, mood: MORALE_LEVELS.name(moraleLevel(them)), feels: stance(state, them, looker), ...(strength ? { strength } : {}), hiding: lied || state.hidden.secrets.some((s) => s.holderId === them.id) };
   const b = looker.mind?.knowledge[them.id];
   if (b) b.read = read;
   return { contest, read };

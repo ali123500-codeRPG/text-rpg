@@ -20,7 +20,7 @@ import { breakInside, breakLine, fragilityOf } from '../../src/engine/breakage';
 import { mint } from '../../src/scenario/apply';
 import { itemValue } from '../../src/ruleset/value';
 import { tierLevel } from '../../src/ruleset';
-import { STANCES } from '../../src/scales';
+import { midOf, regardOf } from '../../src/engine/regard';
 import { CONFIG } from '../../src/config';
 import { layAll } from '../harness';
 import { groundIn } from '../../src/engine/ground';
@@ -104,13 +104,13 @@ it('BK4: a rolled open counts toward the chain; each level moves every line one 
 it('BK6: breaking a container its owner guards, under their eyes, is theft seen: no contest, the owner two steps colder and remembering', () => {
   const s = village(), c = box(s, { owner: 'patron_1' });
   const wim = actor(s, 'patron_1');
-  const before = STANCES.pos(stance(s, wim, s.player) as never);
+  const before = midOf(stance(s, wim, s.player));
   s.player.core.skills[SK.unarmed_improvised] = { raw: 400 } as never;
   for (const i of s.player.core.inventory) if (i.equippedIn?.some((g) => g.startsWith('grip:'))) i.equippedIn = [];
   const evs = play(s, { intent: intent({ action: { type: 'break', target: 'box' } }) });
   expect(evs.some((e) => e.kind === 'filch' || e.kind === 'wasted')).toBe(false);
   expect(c.open).toBe(true);
-  expect(STANCES.pos(stance(s, wim, s.player) as never)).toBe(Math.max(0, before - CONFIG.FILCH_CAUGHT_OWNER_STEPS));
+  expect(regardOf(s, wim, 'player')).toBe(Math.max(-100, before - CONFIG.FILCH_CAUGHT_OWNER_STEPS * CONFIG.REGARD_STEP)); // D-206 BN1 a: each step is REGARD_STEP on the score
   expect(s.hidden.memory.patron_1?.some((m) => /caught .* trying to steal my chest/.test(m.text))).toBe(true);
 });
 
@@ -120,8 +120,8 @@ it('BK6 (searches): letting someone search you does not let them break your lock
   s.ground = s.ground.filter((i) => i.id !== 'box');
   wim.core.inventory.push({ id: 'box', itemId: IT.sack, contents: inside(), lock: { locked: true }, grade: 'minor' });
   wim.letsSearch = { by: s.player.id, until: s.turn + 2 };
-  const before = STANCES.pos(stance(s, wim, s.player) as never);
+  const before = midOf(stance(s, wim, s.player));
   const evs = play(s, { intent: intent({ action: { type: 'break', target: 'box' } }) });
   expect(evs.find((e) => e.kind === 'break_open')?.breakOpen).toEqual({ opened: true, cut: true });
-  expect(STANCES.pos(stance(s, wim, s.player) as never)).toBe(Math.max(0, before - CONFIG.FILCH_CAUGHT_OWNER_STEPS));
+  expect(regardOf(s, wim, 'player')).toBe(Math.max(-100, before - CONFIG.FILCH_CAUGHT_OWNER_STEPS * CONFIG.REGARD_STEP)); // D-206 BN1 a: each step is REGARD_STEP on the score
 });

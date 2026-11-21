@@ -15,7 +15,7 @@ export const GRADES = GRADE_LEVELS.keys.slice(0, GRADE_LEVELS.pos(WEAVER_GRADE_T
 /** a tier's display name, only in text for people and for Claude */
 export type TierName = string;
 
-import type { AWARENESS, COVER, LIGHT, NoiseKey, STANCES, TACTICS, TIERS, VisibilityKey } from '../scales';
+import type { AWARENESS, COVER, LIGHT, NoiseKey, RegardStrength, STANCES, TACTICS, TIERS, VisibilityKey } from '../scales';
 /** keys of the ordered scales in src/scales.ts (code and saves use only keys) */
 export type Light = (typeof LIGHT.keys)[number];
 export type Cover = (typeof COVER.keys)[number];
@@ -244,7 +244,7 @@ export type Belief = {
 };
 
 /** BF97 a: a won Insight look at a person: their mood, how they feel about the one looking, and whether they hide something (never what) */
-export type PersonRead = { turn: number; mood: string; feels: Stance; hiding: boolean };
+export type PersonRead = { turn: number; mood: string; feels: Stance; strength?: RegardStrength; hiding: boolean }; // strength: D-206 BN5 a
 
 export type Fact = { id: string; text: string };
 

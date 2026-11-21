@@ -4,7 +4,7 @@ import type { ActorId, BeliefStatus, Cue, Perception, Stance, Tactics, TierName,
 import type { Plan, Secret } from './hidden';
 import type { Volume } from './agents';
 import type { DefenseKind, Pronouns } from './actor';
-import type { HealthLevelKey, PartStateKey } from '../scales';
+import type { HealthLevelKey, PartStateKey, RegardStrength } from '../scales';
 
 /** keys of the HEALTH_LEVELS and PART_STATES scales (scales.ts); views show their display names */
 export type HealthLevel = HealthLevelKey;
@@ -33,6 +33,7 @@ export type BeliefView = {
   source: 'seen' | 'heard' | 'told';
   revealed: string[];
   stance: Stance; // RS5: self's stance toward this actor; yielded (Q1/Q4): self broke or surrendered before it, and still flees from it
+  strength?: RegardStrength; // D-206 BN5 a: how deep a personal stance sits in its step (none for neutral or a band's stance)
   hostile: boolean; // hostile(self, about): attacks on sight
   sparring?: true; // SP1: self and this actor are on different sides of a live spar
   lost?: true; // CH7: self chased this actor and lost them; it has not seen or heard them since
@@ -40,7 +41,7 @@ export type BeliefView = {
   label: string; // public label or known name
   name?: string; // BG-95: the player's name, once self has heard it (label stays 'player')
   title?: string; // T18: the title the player wears, only once self has seen them (not heard of or told about them)
-  read?: { turn: number; mood: string; feels: Stance; hiding: boolean }; // BF97 a: the last time self sized them up with Insight and won
+  read?: { turn: number; mood: string; feels: Stance; strength?: RegardStrength; hiding: boolean }; // BF97 a: the last time self sized them up with Insight and won
 };
 
 export type EventView = {
@@ -332,7 +333,7 @@ export type NarrationEvent = {
   breakThrough?: { what: string; to?: string; share: number; state?: 'crippled' | 'destroyed'; toolBroke?: true; walked?: true }; // BW8-BW26: a wall or barrier broken into (what: its name), the share through, its state reached this turn
   beyond?: true; // OD1 b: an act on a thing past the actor's reach: it comes to nothing, with no roll
   graded?: true; // OD5: an act on something with a grade, whose tier says what it did
-  read?: { mood: string; feels: Stance; hiding: boolean }; // BF97 a: the player sized someone up and won: what they made out
+  read?: { mood: string; feels: Stance; strength?: RegardStrength; hiding: boolean }; // BF97 a: the player sized someone up and won: what they made out (strength: D-206 BN5 a)
   mishap?: { kind: 'tool' | 'fall' | 'noise'; item?: string }; // OD5: a graded act's Critical Failure: the tool that broke (its name), a fall, or a loud noise
   mentallySteady?: true; // SY1: it left them Mentally steady
   extract?: { essence: string }; // DX3: an essence pulled out of the target: its name (the target is left Hollowed)

@@ -348,6 +348,7 @@ Speech rolls, offers and standing down, trade and paying, relations, personality
   [history-personality-and-uniques.md](memory/history-personality-and-uniques.md)
 - Code:
   - `src/engine/offer.ts`
+  - `src/engine/regard.ts`
   - `src/engine/relations.ts`
   - `src/engine/speech.ts`
   - `src/engine/trade.ts`

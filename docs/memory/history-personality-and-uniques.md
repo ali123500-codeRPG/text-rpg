@@ -28,6 +28,12 @@ archetypes are library tables.
   not insults unless the character is touchy; an insult to a top drive cuts anyone; only a false accusation
   provokes the honest. Built as one stance rule shared by the agents, in the prompts only, after a test
   round passed (#931). Fading of grudges is folded into D-206.
+- **Attachment and stance strength (21/11/2026; BN1-BN5; D-206).** Stances felt rigid and binary and a grudge
+  never faded. Built: a regard score under each personal stance, so a deep bond or grudge takes a move without
+  changing step; personal grudges fade back to the band's stance after a pause, an attack's grudge only to
+  unfriendly, and bonds never fade; Attachment and Forgivingness axes scale moves on bonds and the fading; agents and
+  the Insight read see how strong a stance is (slight, plain, strong). Code still acts on the step only. Moves keep
+  their size from a step's middle, so several moves in a row now cover fewer steps than before (#1744).
 - **Heroes into NPCs (12-13/11/2026; HF1-HF34).** A fallen character on the Hall of fame can be sent to the
   NPC templates as a unique: one specific saved character, kept in the code library and added by a PR.
   They return as echoes: they cannot train, their gear is soulbound copies, and they always drop an essence.

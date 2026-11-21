@@ -80,6 +80,9 @@ export const LIGHT = scale([['bright', 'bright'], ['lamplit', 'lamplit'], ['dim'
  * loyal = takes the other's side: anyone hostile to them it treats as hostile too) */
 export const STANCES = scale([['hostile', 'hostile'], ['opposed', 'opposed'], ['unfriendly', 'unfriendly'], ['neutral', 'neutral'], ['friendly', 'friendly'], ['friend', 'friend'], ['loyal', 'loyal']]);
 export type StanceKey = (typeof STANCES.keys)[number];
+/** D-206 BN5 a: how deep a personal stance sits in its step on the regard score, by thirds from the side nearer neutral */
+export const REGARD_STRENGTH = scale([['slight', 'slight'], ['plain', 'plain'], ['strong', 'strong']]);
+export type RegardStrength = (typeof REGARD_STRENGTH.keys)[number];
 /** how much a race thinks, least first: an achievement's first-sight reward covers races up to one of these */
 export const INTELLIGENCE = scale([['unintelligent', 'Unintelligent'], ['semi', 'Semi-intelligent'], ['intelligent', 'Intelligent']]);
 export type IntelligenceKey = (typeof INTELLIGENCE.keys)[number];

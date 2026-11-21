@@ -10,6 +10,7 @@ import { attended, attentionSteps } from './attention';
 export { hearingOf, openAirReachM, soundDb } from './noise';
 import { isDark, now, pitchBlack, turnTime, zoneLight } from '../time';
 import { actorById, allActors, atLeast, isActive, isAsleep, zoneById } from '../engine/relations';
+import { setStanceWhole } from '../engine/regard';
 import { actorBody, getLibrary, itemDef, resolveAlias } from '../library';
 import { maxSightFactor } from '../library/bodySize';
 import { hasPerk, perkSum } from '../ruleset/perks';
@@ -386,7 +387,7 @@ export function updateBeliefs(state: GameState, update: BeliefUpdate): void {
     });
     if (e.kind === 'attack' && e.target) {
       const target = actorById(state, e.target);
-      if (target && !e.spar && (target.id === o.id || target.bandId === o.bandId)) (o.mind.overrides ??= {})[e.actorId] = 'hostile'; // SP1: not a sparring blow
+      if (target && !e.spar && (target.id === o.id || target.bandId === o.bandId)) setStanceWhole(state, o, e.actorId, 'hostile', target.id === o.id); // SP1: not a sparring blow; D-206 BN2 a: an attack on itself
       const inst = e.attack?.weaponId ?? e.itemId;
       const item = inst ? sender.core.inventory.find((i) => i.id === inst) : undefined;
       if (p.level === 'full' && item && itemDef(state, item.itemId).concealed) write(o, e.actorId, { revealed: [`item:${item.id}`] });

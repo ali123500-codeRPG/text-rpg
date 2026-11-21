@@ -301,6 +301,7 @@ export function repairReferences(pages: Pages, lib: Library, r: CheckReport): vo
       if (a.mind) {
         for (const id of Object.keys(a.mind.knowledge)) if (id !== a.id && !actorIds.has(id)) { delete a.mind.knowledge[id]; fix(k, `dropped belief about ${id}`); }
         for (const id of Object.keys(a.mind.overrides ?? {})) if (!actorIds.has(id)) { delete a.mind.overrides![id]; fix(k, `dropped stance toward ${id}`); }
+        for (const id of Object.keys(a.mind.regard ?? {})) if (!a.mind.overrides?.[id]) delete a.mind.regard![id]; // D-206: a score with no stance left
         // a routine the library no longer has would make every view of this actor throw: drop it
         if (a.mind.routines) a.mind.routines = keep(k, a.mind.routines, (id) => !!lib.routines[id], 'unknown routines');
         if (a.mind.routine && !lib.routines[a.mind.routine.id]) { fix(k, `dropped current routine ${a.mind.routine.id}`); delete a.mind.routine; }

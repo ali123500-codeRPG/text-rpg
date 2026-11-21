@@ -253,6 +253,9 @@ export type XpAward = { source: string; amount: number; turn: Turn; levelUp?: { 
 /** BG-199: how a foe was beaten: down, or still up but broken or surrendered to the player */
 export type DefeatWhy = 'down' | 'broken' | 'surrendered';
 
+/** D-206: the regard score behind a personal stance (Mind.regard) */
+export type Regard = { v: number; at: number; step: import('../scales').StanceKey; attacked?: true };
+
 export type Mind = {
   control: 'agent' | 'code';
   /** PM6: code-made lines about perceived events that fell out of its recent window; upTo = last summarized event id */
@@ -271,6 +274,10 @@ export type Mind = {
   heardOf?: ActorId[]; // NM2, as Journal.heardOf
   aliases?: Record<ActorId, string>; // NM3, as Journal.aliases
   overrides?: Record<ActorId, Stance>;
+  /** D-206 BN1 a: the regard score under an override (src/engine/regard.ts): v at game minute `at`, the last move between
+   * the two; step: the override it was kept for (another writer that changes the override leaves it unread); attacked:
+   * the grudge is over an attack on itself (BN2 a) */
+  regard?: Record<ActorId, Regard>;
   knows: Fact[];
   /** at (NW10): the game minute the routine started; its steps run on the clock from there */
   routine?: RoutineRun;
