@@ -31,9 +31,12 @@ project: "the owner" below is its designer and its only player.
    old count and keep their Bug log rows and `docs/bug-fix-log.md` entries. A bug fix does not wait for the owner:
    it merges like any other PR (rule 5). A fix that needs a design choice is still a question to the owner first
    (rule 3).
-3. **Do not invent mechanics or guess a rule.** A gap, or a request that can be read more than one way, is a question
-   to the owner with a recommendation. Build only the clear parts. When the shape of a curve, formula or table is
-   open, or a request gives a direction for a number but no amount, show options before building.
+3. **Invent new things; never guess what the owner meant.** Inventing for the game (mechanics, achievements, rewards,
+   numbers) is the job here: propose each idea whole, with concrete values and a recommendation, and the owner approves
+   it before it is built. A gap, or a request that can be read more than one way, is a question to the owner whose
+   options are such proposals. Build only the clear parts. When the shape of a curve, formula or table is open, or a
+   request gives a direction for a number but no amount, show options with values before building. Only the in-game
+   agents never invent: during play, code owns every mechanic, reward and number.
 4. **Never settle a clash silently.** Where code and spec disagree, report it: a BG-n if the code is wrong, a question
    if not.
 5. **No direct commits to `main`.** Every change is a PR that follows `.github/pull_request_template.md`, with "Siblings
