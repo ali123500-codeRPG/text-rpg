@@ -1220,7 +1220,7 @@ export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverV
   const templates = new Map<string, { id: string; label: string; raceId: string; classId?: string; youngestStage?: string }>(Object.values(lib.templates).filter((t) => t.generation !== 'unique').map((t) => [t.id, { id: t.id, label: t.label, raceId: t.raceId, ...(t.classId ? { classId: t.classId } : {}), ...youngest(t) }]));
   for (const b of bp('npcTemplate')) templates.set(b.id, { id: b.id, label: String(b.data.label ?? ''), raceId: String(b.data.raceId ?? '') });
   const worth = (i: ItemDef) => i.boon ?? itemValue(state, i) / CONFIG.BOON_COIN; // loot V8
-  // D-220: the Weaver placing Threadbound items is parked, so they stay out of its catalog
+  // TI-220: the Weaver placing Threadbound items is open, so they stay out of its catalog
   const box = (i: ItemDef) => (i.container ? { container: i.container.worn ? 'worn' : i.container.fixed ? 'fixed' : 'carried' } : {}); // CT2
   const items = new Map<string, { id: string; name: string; kind: string; boon: number; container?: string }>(Object.values(lib.items).filter((i) => !i.threadbound).map((i) => [i.id, { id: i.id, name: i.name, kind: i.kind, boon: worth(i), ...box(i) }]));
   for (const b of bp('item')) items.set(b.id, { id: b.id, name: String(b.data.name ?? ''), kind: String(b.data.kind ?? ''), boon: worth(itemDef(state, b.id)) });

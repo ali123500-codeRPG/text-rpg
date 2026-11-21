@@ -43,7 +43,7 @@ edge cases. Where a section repeats a rule from `AGENTS.md`, it is there to add 
 - **Parked ideas by subject.** A parked idea is sorted by subject when it is parked, so a thread on that subject
   can take its list together. Which ID holds which kind of parked idea, and in which file, is the table at the top of
   `docs/spec/deferred-items.md`: perks (PP-n), achievements (AA-n), vows and pledges (VP-n), classes (CI-n),
-  essences (EI-n), and anything else (D-n). A new PP-n, AA-n, VP-n, CI-n or EI-n is numbered as a new D-n is (`title='PP: <item>'`, and so on); a
+  essences (EI-n), Threadbound items (TI-n), and anything else (D-n). A new PP-n, AA-n, VP-n, CI-n, EI-n or TI-n is numbered as a new D-n is (`title='PP: <item>'`, and so on); a
   row moved from the Deferred items table keeps its number (D-189 became PP-189), and its D-n row in the archive says
   where it went.
 - **Active and archive.** The Deferred items table and the Bug log keep open rows only. A row moves unchanged to

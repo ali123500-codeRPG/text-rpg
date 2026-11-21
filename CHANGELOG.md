@@ -3,6 +3,10 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bugs/`.
 
+- 21/11/2026: `AGENTS.md` rule 12 and `docs/instructions.md` section 2: parked Threadbound item ideas get TI-n rows
+  in `docs/spec/threadbound-ideas.md`; D-218 and D-220 moved there. The owner, Questions hub page "Open parked items
+  3", D-218: "I want some threadbound items to level up. give threadbound items a unique parked item ID, and confirm to
+  me explicitly in the question hub what the current table IDs are for parked items before closing this question."
 - 21/11/2026: `AGENTS.md` rule 12 and `docs/instructions.md` section 2: parked essence ideas get EI-n rows in
   `docs/spec/essence-ideas.md`; the parked essence rows D-227, D-228, D-249, D-250, D-262, D-263, D-265
   and D-313 moved there. The owner, Questions

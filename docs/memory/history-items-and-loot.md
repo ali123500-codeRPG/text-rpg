@@ -17,7 +17,9 @@ Kind: context. What was asked, what was decided and which PR built it, oldest fi
   Threadbound. Names are grand. Its actives are not moves: they fire by themselves on the essence quality
   roll (#584, #594). An end-to-end test found item abilities arriving late (BG-209, #707). The item became a
   charm that works from the pack and adds nothing to the rating (#881). Parked: the Weaver placing them
-  (D-220), more special loot (D-167).
+  (TI-220), more special loot (D-167). 21/11/2026: Threadbound ideas got their own list (TI-n,
+  threadbound-ideas.md); the Weaver's rewards got a table of their own (RW6) drawn as a kept vow's, and some
+  Threadbound items will level up (TI-1764).
 - **Accessories (14/11/2026; AX1-AX7; D-95).** More accessory slots, spectacles and a charmed ring whose
   skill is rolled once, seeded and never stored, and shown in its name (#837). An accessory's bonus comes
   from its item level by one factor; ring skills are weighted by tree; every accessory worn adds in full,
