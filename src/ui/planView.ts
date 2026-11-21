@@ -575,6 +575,8 @@ export function planView(api: GameApi, opts: PlanOpts) {
   /** a zone inside the focused place (the Map fits that place) */
   const isIn = (z: MapZone) => !!d?.places.find((p) => p.id === d!.focus)?.zones.some((x) => x.id === z.id);
 
-  return { el, svg, update, render, fit, clear, planned: () => (plan ? point(plan) : null), scene: () => scene, centreOn: (q: Pos) => { const { w, h: hh } = size(), y = px(q); off = { x: w / 2 - y.x, y: hh / 2 - y.y }; render(); } };
+  /** the view's box in metres (TD3 a: the height ruler's stops are what lies in it) */
+  const viewM = () => { const { w, h: hh } = size(); return { x0: org.x - off.x / K(), x1: org.x + (w - off.x) / K(), y0: org.y - (hh - off.y) / K(), y1: org.y + off.y / K() }; };
+  return { el, svg, update, render, fit, clear, viewM, planned: () => (plan ? point(plan) : null), scene: () => scene, centreOn: (q: Pos) => { const { w, h: hh } = size(), y = px(q); off = { x: w / 2 - y.x, y: hh / 2 - y.y }; render(); } };
 }
 export type PlanView = ReturnType<typeof planView>;
