@@ -76,7 +76,10 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   A piece of furniture is placed clear of the names at its zoom and of the name each closer set zoom shows, at its own
   size, so zooming in never covers it (src/ui/mapPlan.ts). Zoomed out past where a piece or a thing on the ground was
   placed, it shows only where it covers nothing, after the ones placed at that zoom or wider. Furniture is also left off when its zone has no free spot, so in a very small zone it shows only in the card (RM20 a). The player and people are never hidden; they step aside
-  only then (BG-216; WF10 a; RM6 a, RM7 a; Ali, 20/11/2026, Questions hub page "Map rules revision").
+  only then (BG-216; WF10 a; RM6 a, RM7 a; Ali, 20/11/2026, Questions hub page "Map rules revision"). A person stays
+  inside their room at their point even where your pin's facing tip reaches: their disc may touch or overlap the pin's
+  tip, never the pin's disc, and the checker (MAP-22, MAP-31) measures only the pin's disc against a person (RM26 b;
+  Ali, 21/11/2026, Questions hub page "Map rules revision").
 - **MAP-26** To scale, a place's map is laid out by code at the zoom shown and drawn on one screen-pixel layer. No mark
   covers another at any zoom, and the first view fits the whole map with everything inside it (src/ui/mapPlan.ts).
 - **MAP-27** Merged into MAP-13, MAP-25 and MAP-68 (RM7 a).

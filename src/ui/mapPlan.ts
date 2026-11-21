@@ -85,7 +85,7 @@ export type PlanInput = {
 };
 
 const WAY_R = 8, STAIR_R = 10, FURN_R = 9, ITEM_R = 8, WHO_R = 7;
-/** your pin's disc, and how far its facing point reaches from its centre: other marks keep clear of the point too */
+/** your pin's disc, and how far its facing point reaches from its centre: other marks keep clear of the point too, people of the disc only (RM26 b) */
 export const PIN_R = 9, PIN_TIP = 15;
 /** gap between a mark and anything near it, a label and its zone's walls (MAP-20) */
 const GAP = 2, PAD = 7; // PAD: 6 px (MAP-20) plus the hair the drawn zone sits inside its walls
@@ -219,8 +219,10 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
     if (z.seen && z.sight && runsArea(z.sight) < runsArea(z.seen) - 1e-6) used.add('remembered'); // MAP-33: seen ground out of sight now
   }
   // every mark placed so far, with its role: later marks keep clear of them
-  const taken: { box: Box; role: 'label' | 'token' | 'icon' | 'exit' | 'title' }[] = [];
+  const taken: { box: Box; role: 'label' | 'token' | 'icon' | 'exit' | 'title' | 'tip' }[] = [];
   const free = (b: Box) => !taken.some((t) => hit(t.box, b, GAP));
+  /** MAP-25 (RM26 b): people may touch or overlap your pin's facing tip, never its disc */
+  const freeOfTip = (b: Box) => !taken.some((t) => t.role !== 'tip' && hit(t.box, b, GAP));
   const overZone = (b: Box, except?: string) => zones.some((x) => x.z.id !== except && hit(x.box, b));
   const take = (box: Box, role: typeof taken[number]['role']) => { taken.push({ box, role }); return box; };
   const textBox = (text: string, kind: TextKind) => ({ w: Math.ceil(measure(text, kind)) + 2 * TEXT[kind].pad, h: TEXT[kind].h });
@@ -252,7 +254,7 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
     return { cx: fromShare(shareOf(m.cx, rb.x0, rb.x1, inset), zb.x0, zb.x1, inset), cy: fromShare(shareOf(m.cy, rb.y0, rb.y1, inset), zb.y0, zb.y1, inset) };
   };
   /** you and people are never hidden: their own spot when it is free, else the nearest free one, only when zoomed far out */
-  const keep = (p: { cx: number; cy: number } | undefined, r: number, zb: Box, ry = r) => (!p ? undefined : free(disc(p.cx, p.cy, r, ry)) ? p : nearFree(p.cx, p.cy, r, zb, r + 2, ry) ?? outsideNear(p.cx, p.cy, r, ry));
+  const keep = (p: { cx: number; cy: number } | undefined, r: number, zb: Box, ry = r, ok = free) => (!p ? undefined : ok(disc(p.cx, p.cy, r, ry)) ? p : nearFree(p.cx, p.cy, r, zb, r + 2, ry, ok) ?? outsideNear(p.cx, p.cy, r, ry, ok));
   // ---- doors (MAP-14, BG-313): each doorway the character has seen, drawn where it stands on the floor plan (Opening.at),
   // across the wall it is in: a door's leaf, a gap between posts for a way with no door, or its barrier's mark. Both titles
   // of a doorway read the same opening, drawn once.
@@ -283,7 +285,8 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
     const b = here.box, at = here.z.you ? { x: here.z.you.x * PX_PER_M * k, y: -here.z.you.y * PX_PER_M * k } : { x: b.x1 - PIN_R - 4, y: b.y0 + PIN_R + 4 };
     const p = keep(spotOf('you', b, PIN_R + 2), PIN_R, b) ?? nearFree(at.x, at.y, PIN_R, b) ?? { cx: Math.min(b.x1, Math.max(b.x0, at.x)), cy: Math.min(b.y1, Math.max(b.y0, at.y)) };
     tokens.push({ id: 'you', zoneId: here.z.id, ...p, r: PIN_R, ...disc(p.cx, p.cy, PIN_R), you: true, title: 'You are here' });
-    take(disc(p.cx, p.cy, PIN_TIP), 'token');
+    take(disc(p.cx, p.cy, PIN_R), 'token');
+    take(disc(p.cx, p.cy, PIN_TIP), 'tip'); // its facing point, whichever way you face
     used.add('you');
   }
 
@@ -335,16 +338,17 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
     const zb = x.box, row = x.z.people.filter((p) => !p.at), at = x.z.people.filter((p) => p.at);
     for (const who of at) {
       const cap = capsule(who, k), [hx, hy] = cap ? half(hitCap(cap)) : [WHO_R, WHO_R], [dx, dy] = cap ? half(cap) : [WHO_R, WHO_R];
-      // MAP-25 (BG-350): placed at the first of PLACE_KS with room in their zone; only the zoom drawn steps them aside
+      // MAP-25 (BG-350): placed at the first of PLACE_KS with room in their zone; only the zoom drawn steps them aside.
+      // RM26 b: a person may stand on your pin's facing tip, never on its disc
       const own = { x: who.at!.x * PX_PER_M * k, y: -who.at!.y * PX_PER_M * k };
-      const p = keep(spotOf(`who:${who.id}`, zb, hx + 2), hx, zb, hy) ?? nearFree(own.x, own.y, hx, zb, hx + 2, hy) ?? (final ? outsideNear(own.x, own.y, hx, hy) : null);
+      const p = keep(spotOf(`who:${who.id}`, zb, hx + 2), hx, zb, hy, freeOfTip) ?? nearFree(own.x, own.y, hx, zb, hx + 2, hy, freeOfTip) ?? (final ? outsideNear(own.x, own.y, hx, hy, freeOfTip) : null);
       if (p) { tokens.push({ id: `who:${who.id}`, zoneId: x.z.id, ...p, r: WHO_R, ...disc(p.cx, p.cy, dx, dy), who, title: who.name, ...(cap ? { cap } : {}) }); take(disc(p.cx, p.cy, hx, hy), 'token'); }
     }
     const band = row.filter((p) => !p.lastAt);
     row.forEach((who) => {
       const i = band.indexOf(who), pt = who.lastAt && { x: who.lastAt.x * PX_PER_M * k, y: -who.lastAt.y * PX_PER_M * k };
       const cx = pt ? pt.x : (zb.x0 + zb.x1) / 2 + (i - (band.length - 1) / 2) * (2 * WHO_R + 4), cy = pt ? pt.y : zb.y1 - WHO_R - 4;
-      const p = keep(spotOf(`who:${who.id}`, zb, WHO_R + 2), WHO_R, zb) ?? nearFree(cx, cy, WHO_R, zb) ?? outsideNear(cx, pt ? cy : zb.y1 + WHO_R + 4, WHO_R);
+      const p = keep(spotOf(`who:${who.id}`, zb, WHO_R + 2), WHO_R, zb, WHO_R, freeOfTip) ?? nearFree(cx, cy, WHO_R, zb, WHO_R + 2, WHO_R, freeOfTip) ?? outsideNear(cx, pt ? cy : zb.y1 + WHO_R + 4, WHO_R, WHO_R, freeOfTip);
       tokens.push({ id: `who:${who.id}`, zoneId: x.z.id, ...p, r: WHO_R, ...disc(p.cx, p.cy, WHO_R), who,
         title: pt ? `${who.name}: somewhere here` : who.now ? `${who.name}: somewhere in here` : `${who.name} (last seen)`,
         ...(pt ? { ring: { cx: pt.x, cy: pt.y, r: CONFIG.LAST_SEEN_RADIUS_M * PX_PER_M * k } } : {}) });
@@ -354,10 +358,10 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
     if (x.z.people.some((p) => p.now)) used.add('who');
   }
   /** a free spot for a disc near (cx, cy), searching outward without a zone to stay in */
-  function outsideNear(cx: number, cy: number, r: number, ry = r): { cx: number; cy: number } {
+  function outsideNear(cx: number, cy: number, r: number, ry = r, ok = free): { cx: number; cy: number } {
     for (let ring = 0; ring < 20; ring++) for (let i = 0; i < Math.max(1, 8 * ring); i++) {
       const a = (i / Math.max(1, 8 * ring)) * Math.PI * 2, x = cx + Math.cos(a) * ring * (r + GAP), y = cy + Math.sin(a) * ring * (r + GAP);
-      if (free(disc(x, y, r, ry))) return { cx: x, cy: y };
+      if (ok(disc(x, y, r, ry))) return { cx: x, cy: y };
     }
     return { cx, cy };
   }
