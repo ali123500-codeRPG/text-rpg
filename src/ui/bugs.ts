@@ -44,7 +44,7 @@ export function bugsPage(api: GameApi) {
   const report = h('button', { type: 'button', class: 'hs-btn-main' }, 'Report bug');
   const claudeNote = h('span', { class: 'hs-note', role: 'status' });
   const toClaude = h('button', { type: 'button', class: 'hs-btn-main', hidden: true }, 'Send open bugs to Claude');
-  const copy = h('button', { type: 'button', class: 'hs-btn', title: 'Copy the bugs as text to paste into a Claude chat' }, 'Copy for Claude');
+  const copy = h('button', { type: 'button', class: 'hs-btn-text', title: 'Copy the bugs as text to paste into a Claude chat' }, 'Copy for Claude');
   copy.onclick = async () => {
     const open = rows ?? [], unsent = note.value.trim();
     if (!open.length && !unsent) { claudeNote.textContent = 'No bugs to copy.'; return; }

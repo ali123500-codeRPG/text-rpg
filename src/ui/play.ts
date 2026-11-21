@@ -234,7 +234,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const hint = h('p', { class: 'hs-note in-hint', id: 'cmd-hint' });
   const send = h('button', { class: 'hs-btn-main', type: 'submit' }, 'Send');
   // AD5: the quick heal slot sits on the health strip; a click treats your wounds with it at once (AD7)
-  const healBtn = h('button', { type: 'button', class: 'itm heal-slot' });
+  const healBtn = h('button', { type: 'button', class: 'hs-icon-btn itm heal-slot' });
   let open: 'commands' | null = null;
   let suggestion = ''; // Q16: what the player put off last turn, offered in the box until used or cleared
   let queued = false; // D-20 b: the suggestion is the next step of the player's order, and Enter in the empty box plays it
