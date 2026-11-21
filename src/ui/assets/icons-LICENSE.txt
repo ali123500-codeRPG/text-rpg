@@ -22,6 +22,11 @@ Fluent Emoji High Contrast
   COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
   OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+Health Icons
+  Copyright (c) Resolve to Save Lives. https://github.com/resolvetosavelives/healthicons
+  Licence: MIT (the same terms as Fluent Emoji High Contrast above)
+  Used as published (via @iconify-json/healthicons), framed to one part; the game tints them with CSS colour.
+
 Material Symbols
   Copyright Google LLC. https://github.com/google/material-design-icons
   Licence: Apache License 2.0, https://www.apache.org/licenses/LICENSE-2.0
