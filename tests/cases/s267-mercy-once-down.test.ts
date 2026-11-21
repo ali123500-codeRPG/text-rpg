@@ -10,6 +10,7 @@ import { buildActorView } from '../../src/views';
 import { plannerActors } from '../../src/agents/game';
 import { ACH } from '../../src/library/achievementIds';
 import { finishers } from '../../src/engine/yield';
+import { unplace } from '../../src/engine/position';
 
 const codes = (s: GameState) => s.log.map((l) => l.code);
 const earned = (s: GameState) => (s.player.progression!.achievements ?? []).filter((a) => !a.replacedBy).map((a) => a.key!);
@@ -20,7 +21,7 @@ const downed = (control: 'agent' | 'code' = 'agent', lethal = true) => {
   const g = actor(s, 'guard_1');
   g.zone = 'tav_common';
   g.placeId = 'tavern';
-  delete g.pos;
+  unplace(s, g);
   s.bands.find((b) => b.id === g.bandId)!.lethal = lethal;
   g.mind!.control = control;
   g.mind!.overrides = { player: 'hostile' };

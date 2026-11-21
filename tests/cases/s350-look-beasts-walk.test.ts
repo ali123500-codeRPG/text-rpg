@@ -10,6 +10,7 @@ import { lookAround, noteSightings } from '../../src/perception';
 import { makeOut } from '../../src/engine/makeOut';
 import type { GameEvent } from '../../src/types';
 import { setTitleLight } from '../../src/plan/draw';
+import { standingAt } from '../../src/engine/position';
 
 
 it('BG-279: a good look keeps a moving slime seen for the rest of the turn', () => {
@@ -20,7 +21,7 @@ it('BG-279: a good look keeps a moving slime seen for the rest of the turn', () 
   expect(buildPlayerView(s).actors.find((a) => a.id === 'slime_1')?.level).toBe('partial');
   expect(lookAround(s)).toContain('slime_1');
   const sl = actor(s, 'slime_1');
-  const step: GameEvent = { id: `t${s.turn}.9`, turn: s.turn, actorId: sl.id, kind: 'move', zone: sl.zone, pos: sl.pos, effects: [], noise: 'quiet',
+  const step: GameEvent = { id: `t${s.turn}.9`, turn: s.turn, actorId: sl.id, kind: 'move', zone: sl.zone, pos: standingAt(sl), effects: [], noise: 'quiet',
     visibility: 'normal', perception: { player: { level: 'partial', cue: 'sight' } } } as GameEvent;
   makeOut(s, step, createRng(1));
   expect(step.perception.player.level).toBe('full'); // no fresh roll: the look already made it out this turn

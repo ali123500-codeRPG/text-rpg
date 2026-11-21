@@ -14,6 +14,7 @@ import { headTo, routineOrder } from '../../src/minds';
 import { zoneById } from '../../src/engine/relations';
 import { waysOut } from '../../src/plan/where';
 import { addFrontier } from '../../src/plan/draw';
+import { unplace } from '../../src/engine/position';
 
 const idle: Intent = { move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null, action: null };
 const go = (to: string): Intent => ({ ...idle, move: { toZone: to } });
@@ -22,7 +23,7 @@ const village = (playerZone: string) => makeVillage({ playerZone, without: ['sli
 /** the guard stands at the field's far edge, heading into the woods */
 const guardToWoods = (s: GameState) => {
   const g = s.actors.find((a) => a.id === 'guard_1')!;
-  g.zone = 'field_far'; g.placeId = 'field'; delete g.pos;
+  g.zone = 'field_far'; g.placeId = 'field'; unplace(s, g);
   headTo(s, g, 'woods');
   return g;
 };
@@ -60,7 +61,7 @@ describe('208 NPCs and unbuilt frontiers (NW3, NW8)', () => {
     addFrontier(s, zoneById(s, 'gate_inner')!, 'east_road', 'the east road');
     const g = guardToWoods(s);
     const t = s.actors.find((a) => a.id === 'trader')!;
-    t.zone = 'gate_inner'; t.placeId = 'gate'; delete t.pos;
+    t.zone = 'gate_inner'; t.placeId = 'gate'; unplace(s, t);
     headTo(s, t, 'east_road');
     turn(s);
     expect((s.scratch?.frontierWaits as unknown[]).length).toBe(2);

@@ -9,13 +9,14 @@ import { grovePlan, VirtualClock } from '../../src/scenario/fixtures';
 import { headTo } from '../../src/minds';
 import { applyCheckinPlan } from '../../src/scenario/checkin';
 import { waysOut } from '../../src/plan/where';
+import { unplace } from '../../src/engine/position';
 
 const idle: Intent = { move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null, action: null };
 /** the guard waits at the field's far edge, heading into the unbuilt woods: its wait asks for the ground beyond */
 function waiting(): GameState {
   const s = makeVillage({ playerZone: 'tav_cellar', without: ['slime_1', 'slime_2', 'patron_1'] });
   const g = s.actors.find((a) => a.id === 'guard_1')!;
-  g.zone = 'field_far'; g.placeId = 'field'; delete g.pos;
+  g.zone = 'field_far'; g.placeId = 'field'; unplace(s, g);
   headTo(s, g, 'woods');
   s.turn += 1;
   resolveTurn(s, { intent: idle, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(1));

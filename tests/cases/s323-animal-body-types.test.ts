@@ -20,6 +20,7 @@ import { naturalReduction } from '../../src/ruleset';
 import { perceptionOf, smells } from '../../src/perception';
 import { CONFIG } from '../../src/config';
 import type { GameEvent } from '../../src/types';
+import { unplace } from '../../src/engine/position';
 
 const ctx: PlanContext = { tier: 'success', kind: 'scenario', placeId: 'tavern' };
 const ANIMALS = [RC.dog, RC.wolf, RC.tiger, RC.bear, RC.boar, RC.horse, RC.lizard, RC.python, RC.spider, RC.lion, RC.leopard, RC.hyena, RC.crocodile];
@@ -70,7 +71,7 @@ describe('323 animal body types', () => {
 
   it('AB18: a nose finds someone unseen and unheard within Scent metres along the open ways, in any light', () => {
     const s = makeVillage(), dog = s.player, patron = s.actors.find((x) => x.id === 'patron_1')!;
-    patron.zone = 'tav_cellar'; delete patron.pos; // 11 m away by the stairs, out of sight
+    patron.zone = 'tav_cellar'; unplace(s, patron); // 11 m away by the stairs, out of sight
     const ev = { id: 'e1', turn: 1, actorId: patron.id, kind: 'wait', zone: 'tav_cellar', effects: [], noise: 'silent', visibility: 'low', perception: {} } as unknown as GameEvent;
     expect(perceptionOf(ev, s, dog)).toBeNull(); // a person neither sees, hears nor smells it
     Object.assign(dog.core, { raceId: RC.dog, bodyTypeId: BT.quadruped });

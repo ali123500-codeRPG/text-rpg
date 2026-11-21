@@ -13,6 +13,7 @@ import { achievementMaxMorale, rewardLines } from '../../src/ruleset/achRewards'
 import type { AttackRequest, AttackResult, GameState, RollResult, Tier } from '../../src/types';
 import { actor, makeVillage, place } from '../harness';
 import { act, intent, play, plannerOut } from './w4-kit';
+import { unplace } from '../../src/engine/position';
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -92,7 +93,7 @@ describe('291 kills and the survival roll', () => {
       const g = actor(s, 'guard_1');
       g.zone = 'tav_common';
       g.placeId = 'tavern';
-      delete g.pos;
+      unplace(s, g);
       s.bands.find((b) => b.id === g.bandId)!.lethal = false; // no one left to finish the job: the survival roll decides
       g.mind!.overrides = { player: 'hostile' };
       g.mind!.knowledge.player = { status: 'engaged', lastKnownZone: 'tav_common', lastSeenTurn: s.turn, source: 'seen', revealed: [] };

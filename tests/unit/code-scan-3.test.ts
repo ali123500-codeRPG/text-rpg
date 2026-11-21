@@ -75,7 +75,8 @@ describe('CS11: NPCs use their own keys while time skips', () => {
     startClock(s, 'morning');
     const g = s.actors.find((a) => a.id === 'guard_1')!;
     g.zone = 'gate_inner';
-    delete g.pos;
+    const { unplace } = await import('../../src/engine/position');
+    unplace(s, g);
     installRoutines(g, 'gate_guard', { post: 'street_square' }, undefined, s.turn, createRng(1), now(s)); // its post is past the door
     expect(desiredState(buildActorView(s, g.id))!.zone).toBe('street_square');
     const b = { id: 'gate_door', kind: BK.door, grade: 'minor' as const, lock: { locked: true },

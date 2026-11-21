@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fit, forcedRng, makeVillage, place } from '../harness';
 import { CONFIG } from '../../src/config';
 import { ruleset } from '../../src/ruleset';
-import { floorGap, placeAll } from '../../src/engine/position';
+import { floorGap, placeAll, standingAt, unplace } from '../../src/engine/position';
 import { noteFighting } from '../../src/engine/engagement';
 import { perkMoveBlock } from '../../src/engine/perkMoves';
 import { selectSpokespeople } from '../../src/engine/speech';
@@ -53,7 +53,7 @@ describe('213 zones are not distances', () => {
     f2.mind!.overrides = { player: 'hostile' };
     const was = { ...f2.pos! };
     f2.pos = { x: was.x + 5, y: was.y };
-    noteFighting(s2, [{ ...step, zone: f2.zone, pos: { ...f2.pos }, fromPos: was }]);
+    noteFighting(s2, [{ ...step, zone: f2.zone, pos: standingAt(f2), fromPos: was }]);
     expect(f2.mind!.knowledge.player.status).toBe('aware');
   });
 
@@ -110,7 +110,7 @@ describe('213 zones are not distances', () => {
     expect(perkMoveBlock(s, s.player, PK.bluff, foe.id)).toBeNull();
     foe.zone = 'tav_counter'; // through the tavern's shut door
     foe.placeId = s.places.find((p) => p.zones.some((z) => z.id === 'tav_counter'))!.id;
-    delete foe.pos;
+    unplace(s, foe);
     placeAll(s);
     expect(perkMoveBlock(s, s.player, PK.bluff, foe.id)).toBe('no_target');
   });
@@ -160,7 +160,7 @@ describe('213 zones are not distances', () => {
       return mate.mind!.knowledge.player.status;
     };
     expect(run((s) => besidePlayer(s, 'patron_1', 5))).toBe('suspicious');
-    expect(run((s) => { const m = place(s, 'patron_1', 'tav_cellar'); delete m.pos; placeAll(s); })).toBe('unaware');
+    expect(run((s) => { const m = place(s, 'patron_1', 'tav_cellar'); unplace(s, m); placeAll(s); })).toBe('unaware');
   });
 
 });

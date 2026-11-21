@@ -22,6 +22,7 @@ import { perceptionOf } from '../../src/perception';
 import { buildActorView, buildPlayerView } from '../../src/views';
 import { fatigueOf } from '../../src/ruleset/fatigue';
 import { HL } from '../../src/library/tableIds';
+import { unplace } from '../../src/engine/position';
 
 const act = (type: ParserActionType, target: string | null = null): Intent => ({
   move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null,
@@ -120,7 +121,7 @@ describe('214 sleeping and keeping watch', () => {
     const s = quiet('tav_common');
     const b = s.actors.find((a) => a.id === 'trader')!;
     b.mind!.slots = { ...b.mind!.slots, bed: 'tav_cellar' };
-    b.zone = 'tav_cellar'; delete b.pos;
+    b.zone = 'tav_cellar'; unplace(s, b);
     s.clocks.time = CONFIG.TIME_OF_DAY_FROM.night + 30;
     turn(s, act('observe'));
     expect(b.asleep).toBeDefined();
@@ -138,7 +139,7 @@ describe('214 sleeping and keeping watch', () => {
     const g = s.actors.find((a) => a.id === 'guard_1')!;
     expect(wakeCalls(s)).toEqual([]);
     (g.mind!.overrides ??= {}).player = 'hostile';
-    g.zone = 'tav_cellar'; delete g.pos;
+    g.zone = 'tav_cellar'; unplace(s, g);
     c.mind!.knowledge.guard_1 = { status: 'aware', lastKnownZone: 'tav_cellar', lastSeenTurn: s.turn, source: 'seen', revealed: [] };
     expect(wakeCalls(s)).toEqual([expect.objectContaining({ actorId: 'comp', type: 'call_help' })]);
   });

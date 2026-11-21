@@ -15,6 +15,7 @@ import { checkIntent } from '../../src/agents/schema';
 import { buildPlayerView } from '../../src/views';
 import { WAIT_SOMEONE } from '../../src/scales';
 import type { GameState } from '../../src/types';
+import { unplace } from '../../src/engine/position';
 
 const tavern = () => makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'trader'] });
 const alone = () => makeVillage({ playerZone: 'field_far', without: ['slime_1', 'slime_2', 'guard_1', 'trader', 'patron_1'] });
@@ -26,7 +27,7 @@ describe('BG-231: wait until someone appears', () => {
     const s = tavern();
     const w = s.actors.find((a) => a.id === 'patron_1')!;
     w.zone = 'street_square';
-    delete w.pos;
+    unplace(s, w);
     headTo(s, w, 'tav_common', 'weaver'); // a walker coming in, not after the player: a plain wait lets them pass (AT56)
     s.player.posture = 'stealthy';
     const t = now(s);

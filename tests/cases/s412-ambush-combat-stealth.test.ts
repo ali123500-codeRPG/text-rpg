@@ -8,6 +8,7 @@ import { resolveAmbush } from '../../src/minds';
 import { SK } from '../../src/library/skillIds';
 import { FN } from '../../src/library/functionIds';
 import type { ContestResult, GameEvent, GameState, Intent, RollRequest } from '../../src/types';
+import { standingAt } from '../../src/engine/position';
 
 const stab = (target: string): Intent => ({
   move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null,
@@ -28,7 +29,7 @@ function rig(gaps: Record<string, number[]> = {}) {
   return calls;
 }
 const unawareGuard = (s: GameState) => { place(s, 'player', 'gate_inner'); beside(s, 'guard_1'); delete s.actors.find((a) => a.id === 'guard_1')!.mind!.knowledge.player; };
-const attackOn = (s: GameState, target: string): GameEvent => ({ id: 'e1', turn: s.turn, actorId: 'player', kind: 'attack', zone: s.player.zone, pos: s.player.pos, target, effects: [], noise: 'normal', visibility: 'normal', perception: {} });
+const attackOn = (s: GameState, target: string): GameEvent => ({ id: 'e1', turn: s.turn, actorId: 'player', kind: 'attack', zone: s.player.zone, pos: standingAt(s.player), target, effects: [], noise: 'normal', visibility: 'normal', perception: {} });
 const against = (calls: [RollRequest, RollRequest][], id: string) => calls.filter(([, b]) => b.actorId === id).map(([a, b]) => `${a.skill} ${b.fn}`);
 
 afterEach(() => vi.restoreAllMocks());

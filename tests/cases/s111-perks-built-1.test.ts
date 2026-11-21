@@ -9,6 +9,7 @@ import type { Actor, GameEvent, GameState } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
 import { PK } from '../../src/library/perkIds';
 import { IT } from '../../src/library/itemIds';
+import { standingAt } from '../../src/engine/position';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const npc = (s: GameState, id: string) => s.actors.find((a) => a.id === id)!;
@@ -94,13 +95,13 @@ describe('111 coded perks, batch 1', () => {
     const s = makeVillage();
     place(s, 'player', 'field_edge');
     const far = beside(s, 'slime_2', 'player', 19.5); // SZ5: between bodies, inside the 40 m field; quiet (40 dB) fades under the floor by 10 m, with Keen Ear by about 32 m
-    const ev: GameEvent = { id: 'e', turn: 1, actorId: far.id, kind: 'move', zone: far.zone, pos: far.pos, effects: [], noise: 'quiet', visibility: 'unseen', perception: {} };
+    const ev: GameEvent = { id: 'e', turn: 1, actorId: far.id, kind: 'move', zone: far.zone, pos: standingAt(far), effects: [], noise: 'quiet', visibility: 'unseen', perception: {} };
     const before = perceptionOf(ev, s, s.player);
     give(s.player, PK.keen_ear);
     const after = perceptionOf(ev, s, s.player);
     expect(before).toBeNull();
     expect(after).toMatchObject({ level: 'partial', cue: 'sound' });
-    const here: GameEvent = { ...ev, zone: s.player.zone, pos: s.player.pos, noise: 'silent' };
+    const here: GameEvent = { ...ev, zone: s.player.zone, pos: standingAt(s.player), noise: 'silent' };
     expect(perceptionOf(here, s, s.player)).toBeNull(); // no sound at all: nothing to hear
   });
 });

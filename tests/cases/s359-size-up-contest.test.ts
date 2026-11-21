@@ -11,6 +11,7 @@ import { bindTemplate } from '../../src/minds/routines';
 import { buildActorView, buildNarrationView } from '../../src/views';
 import { SK } from '../../src/library/skillIds';
 import { intent } from './w4-kit';
+import { unplace } from '../../src/engine/position';
 
 const village = (): GameState => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'trader'] });
@@ -69,7 +70,7 @@ describe('359 sizing someone up is Insight against Guile (BF97 a, BG-320)', () =
   it('someone out of clear sight cannot be read: the look comes to nothing, with no roll', () => {
     const s = village();
     wim(s).zone = 'gate_inner';
-    wim(s).pos = undefined;
+    unplace(s, wim(s));
     const evs = lookAt(s);
     expect(evs.find((e) => e.kind === 'observe')).toBeUndefined();
     expect(evs.find((e) => e.kind === 'wasted')).toMatchObject({ target: 'patron_1', reason: 'out_of_sight' });

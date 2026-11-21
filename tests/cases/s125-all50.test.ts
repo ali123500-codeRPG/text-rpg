@@ -23,6 +23,7 @@ import { setTitleLight } from '../../src/plan/draw';
 import { LC } from '../../src/library/tableIds';
 import { landUnder } from '../harness';
 import { lightAll } from '../harness';
+import { unplace } from '../../src/engine/position';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'mastery', gainedTurn: 0 });
 const set = (a: Actor, skills: string[], raw: number) => { for (const k of skills) a.core.skills[k] = { raw, state: 'normal' }; };
@@ -131,7 +132,7 @@ describe('125 All-50 parts', () => {
     const s = makeVillage();
     const zone = zoneById(s, s.player.zone)!;
     lightAll(s, 'dim');
-    delete s.player.pos; // read the room's own light word, not the light where they stand
+    unplace(s, s.player); // read the room's own light word, not the light where they stand
     const mod = (skill: string) => situational(s, skill, { light: zone, actor: s.player }).modifiers[0]?.value ?? 0;
     const before = [mod(SK.sneaking), mod(SK.eyesight)];
     give(s.player, PK.child_of_night);

@@ -159,6 +159,14 @@ export function placeAll(state: GameState, withPlayer: readonly string[] = []): 
   }
 }
 
+/** ZP1, D-1623: `a` was put in title `a.zone` with no spot there yet: it stands at the title's middle on its floor until
+ * placeAll gives it a free spot */
+export function unplace(state: GameState, a: Actor): void {
+  const z = zoneById(state, a.zone);
+  if (z?.outline?.length) { const m = titleMiddle(z); a.pos = { x: m.x, y: m.y }; a.floor = m.floor; }
+  a.unplaced = true;
+}
+
 /** where placeAll starts looking in a title: the player's point for one who arrived with the player (GSM-51); an
  * encounter's point on the road (TV4); on a road, the player's point; else the title's middle */
 function anchor(state: GameState, z: Zone, withPlayer: boolean): Pos {
