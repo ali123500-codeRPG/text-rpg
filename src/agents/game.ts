@@ -1045,6 +1045,7 @@ export function createGame(deps: GameDeps): Game {
     renounceVow(id) { if (state && !busy && renounceVow(state, id)) { amend((x) => { renounceVow(x, id); }); emit(); } },
     setSignatures(lines) { if (state && !busy) { setSignatures(state.player, lines); amend((x) => setSignatures(x.player, lines)); emit(); } },
     setDefense(kind) { if (state && !busy) { state.player.core.standingDefense = kind; amend((x) => { x.player.core.standingDefense = kind; }); emit(); } },
+    cancelReady() { if (state?.player.readied && !busy) { delete state.player.readied; amend((x) => { delete x.player.readied; }); emit(); } },
     adopt(s) {
       abortBackground();
       state = s;

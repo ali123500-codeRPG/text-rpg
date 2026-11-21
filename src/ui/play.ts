@@ -57,12 +57,21 @@ const CHANGE_WORD: Record<string, [string, string]> = { combat: ['Combat', 'c10'
 const SPEAKER_COLOURS = ['c15', 'c12', 'c4', 'c5', 'c1', 'c7', 'c14'];
 /** A5: the keys the play screen answers (the keydown handlers below), listed under the commands */
 const KEYS: [string, string][] = [
-  ['Esc', 'Skips what is moving, then closes what is open: a panel, the Say box, a planned move, the suggestion'],
+  ['Esc', 'Skips what is moving, then closes what is open: a panel, the Say box, a planned move, the suggestion, a readied order'],
   ['Enter', 'Sends what is in the box; in an empty box, walks to the move planned on the map, else plays the next step of your order'],
   ['Tab', 'Takes the suggestion into an empty box'],
   ['PageUp', 'Scrolls the story up while the box has focus'],
   ['PageDown', 'Scrolls the story down while the box has focus'],
 ];
+/** AE6 (RQ1 a): the readied order in words: "Waiting to strike the slime · when it comes within reach" */
+const READY_WHEN: Record<string, string> = { comes: 'comes into view', attacks: 'attacks', down: 'goes down, yields or runs', closes: 'comes within reach', draws: 'draws a weapon', moves: 'moves', leaves: 'leaves' };
+function readyWords(pv: PlayerView, r: NonNullable<PlayerView['player']['readied']>): string {
+  const name = (id: string | null | undefined) => { const a = id ? pv.actors.find((x) => x.id === id) : undefined; return a ? a.name ?? a.label : undefined; };
+  const verb = r.type === 'attack' ? 'strike' : r.type.replace(/_/g, ' ');
+  const who = r.when.who === 'anyone' ? 'someone' : name(r.when.who) ?? 'one of them';
+  const at = r.when.on === 'attacks' ? ` ${name(r.when.at) ?? 'you'}` : '';
+  return `Waiting to ${verb}${name(r.target) ? ` ${name(r.target)}` : ''} · when ${who} ${READY_WHEN[r.when.on]}${at}`;
+}
 const COMMANDS: [string, string][] = [
   ['/help', 'what you can type, and a recap of the last turns'], ['/stats', 'your character sheet'], ['/inv', 'what you carry'],
   ['/quests', 'your quests'], ['/achievements', 'your achievements and scars'], ['/title', 'wear an achievement as your title'], ['/essence', 'essences on offer and held: take, pass, give, sell or remove one'], ['/yield', 'give up the fight you are in'], ['/stuck', 'the scenario can go nowhere: the story finds a way forward'], ['/strike ', 'a blow at someone: /strike the guard at his left arm'], ['/shoot ', 'shoot at someone, by part if you like'], ['/throw ', 'throw something at someone'], ['/aim ', 'aim this attack at the body part it names: /aim /strike the guard at his leg'], ['/undo', 'rewind one turn (dice are not rolled back)'],
@@ -239,6 +248,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   let open: 'commands' | null = null;
   let suggestion = ''; // Q16: what the player put off last turn, offered in the box until used or cleared
   let queued = false; // D-20 b: the suggestion is the next step of the player's order, and Enter in the empty box plays it
+  let readying = false; // AE6 (RQ1 a): a readied order waits; the empty box says so, and Esc or Cancel drops it
   const pick = (text: string) => { input.value = text; open = null; update(); input.focus(); };
   const cmdBtn = h('button', { type: 'button', class: 'hs-btn-text', onclick: () => { open = open ? null : 'commands'; update(); } }, 'Commands');
   // BG-190: the last order that played out (a clarify or a command doesn't count), offered back to carry on with it
@@ -337,6 +347,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       else if (sayFor) dk.cancelSay();
       else if (mm.planned()) { mm.clear(); update(); } // AD12: Esc drops the planned move
       else if (suggestion && document.activeElement === input && !input.value) { suggestion = ''; update(); }
+      else if (readying && document.activeElement === input && !input.value) api.cancelReady(); // RQ1 a
     }
     if ((e.key === 'PageUp' || e.key === 'PageDown') && document.activeElement === input) {
       e.preventDefault(); story.scrollBy({ top: (e.key === 'PageUp' ? -0.9 : 0.9) * story.clientHeight });
@@ -698,7 +709,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     if (sayFor) sayChip.textContent = `${sayFor.action.label}${sayFor.to && !sayFor.action.label.includes(sayFor.to) ? ` ${sayFor.to}` : ''} ✕`;
     input.placeholder = sayFor ? `What do you say${sayFor.to ? ` to ${sayFor.to}` : ''}? Enter plays it` : offering ? suggestion : PLACEHOLDER;
     input.classList.toggle('suggest', offering);
-    const hintNow = offering ? (queued ? 'queue' : 'offer') : '';
+    const ready = pv?.player.readied;
+    readying = !!ready && !input.value && !sayFor && !offering;
+    const hintNow = offering ? (queued ? 'queue' : 'offer') : readying ? `ready:${readyWords(pv!, ready!)}` : '';
     if (hint.dataset.now !== hintNow) {
       hint.dataset.now = hintNow;
       hint.replaceChildren(...(offering && queued ? ['Next step of your order · Enter plays it, Esc drops the rest ',
@@ -706,7 +719,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
         h('button', { type: 'button', class: 'hs-btn-text in-clear', 'data-chip': 'drop-queue', onclick: () => { suggestion = ''; update(); input.focus(); } }, 'Drop the rest')]
         : offering ? ['From last turn · click it or Tab to use, Esc to clear ',
         h('button', { type: 'button', class: 'hs-btn-text in-use', 'data-chip': 'use-suggestion', onclick: takeSuggestion }, 'Use it'),
-        h('button', { type: 'button', class: 'hs-btn-text in-clear', 'data-chip': 'clear-suggestion', onclick: () => { suggestion = ''; update(); input.focus(); } }, 'Clear')] : []));
+        h('button', { type: 'button', class: 'hs-btn-text in-clear', 'data-chip': 'clear-suggestion', onclick: () => { suggestion = ''; update(); input.focus(); } }, 'Clear')]
+        : readying ? [`${readyWords(pv!, ready!)} · Esc cancels `,
+        h('button', { type: 'button', class: 'hs-btn-text in-clear', 'data-chip': 'cancel-ready', onclick: () => { api.cancelReady(); input.focus(); } }, 'Cancel')] : []));
     }
 
     const stick = story.scrollHeight - story.scrollTop - story.clientHeight < 40;

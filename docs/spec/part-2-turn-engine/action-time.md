@@ -278,8 +278,7 @@ resolve.ts).
   included), or something new stops it by the queued order's rule (orderQueue.ts orderStops).
 - **ACT-345** **Outside a fight** the readied order is the wait until someone appears (BG-231, WAIT\_SOMEONE\_MAX\_H at
   most), and the stretch also stops when the condition comes true: the step plays there with fresh pools, as a walk's
-  action does on arrival (actThere). A wait that runs out drops it; one stopped for anything else keeps it (RQ4 a,
-  [Proposed]).
+  action does on arrival (actThere). A wait that runs out drops it; one stopped for anything else keeps it (RQ4 a).
 
 #### Initiative (stage 2)
 
