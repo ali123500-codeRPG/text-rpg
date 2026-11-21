@@ -232,6 +232,10 @@ The source of truth for every design decision.
   already has: a skill's tree, a roll tier, a grade, perks violet, achievements gold, scars red. The gray fallback
   (`hs-tg` with no `--tg`) is only for a value that has no meaning yet, and the PR names it. Reason: the Hall of fame
   card was a wall of gray tags.
+- **One hover tip.** Hover text is a `title` (or `data-tip`) on the element; the page's one tip (`mountTip` in
+  `src/ui/kit.ts`, PS-80 to PS-82) shows it with the game's look and timing, never the browser's tooltip. A richer tip
+  (an item card) registers with `tipFor`. Never build another tip, its own listeners or a CSS hover tip. Reason: some
+  labels were the browser's and some the game's, with different looks and waits.
 - If a skill is missing for the job, look for one online before going without.
 - Play and creation pages are PC only: no phone rules, checks at desktop widths. The library viewer must also work on
   phones, with nothing scrolling sideways.

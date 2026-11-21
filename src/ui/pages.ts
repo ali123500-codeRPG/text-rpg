@@ -19,7 +19,7 @@ import { othersHealthWord } from '../ruleset';
 import { buildPlayerView, callName, factText, questGoalText } from '../views';
 import { ESSENCE_ABOUT, essencesBody, essencesSummary } from './essences';
 import { chainCard, chainViews, foldAll, type ChainView } from './achievementThreads';
-import { tipOff, tipOn, boxOf, fitInView, closePanel, groupedTable, playDraft, type PanelRow, h, viewSize, natural, openPanel, plural, unitOf, visPass, visTiles, iconMark, rowKey, type Col, type TGroup, type TRow, type VisState, type VisTile, safe, ended } from './kit';
+import { tipFor, boxOf, fitInView, closePanel, groupedTable, playDraft, type PanelRow, h, viewSize, natural, openPanel, plural, unitOf, visPass, visTiles, iconMark, rowKey, type Col, type TGroup, type TRow, type VisState, type VisTile, safe, ended } from './kit';
 import { charCard, charFocus, gearNote, invFocus, treeBars } from './charsheet';
 import { closePop, fullOpen, openFull, openPop } from './pop';
 import { personalityBlock, signaturesBox } from './personality';
@@ -283,13 +283,7 @@ function equipment(api: GameApi, s: GameState, openItem: (it: InvItem) => void, 
     onclick: async () => { hideTip(); status.textContent = `${w.text}…`; await api.submit(w.text, { aimed: false }); },
   }, w.label);
   // hover or keyboard focus shows the stats
-  const hover = (el: HTMLElement, it: InvItem) => {
-    el.addEventListener('pointerenter', () => tipOn(() => showTip(s, it, el)));
-    el.addEventListener('pointerleave', () => tipOff(hideTip));
-    el.addEventListener('focusin', () => tipOn(() => showTip(s, it, el), true));
-    el.addEventListener('focusout', () => tipOff(hideTip));
-    return el;
-  };
+  const hover = (el: HTMLElement, it: InvItem) => tipFor(el, () => showTip(s, it, el), hideTip);
   const icon = (it: InvItem) => itemIcon(iconName(s, it.itemId), kindOf(it));
   const blank = (n: IconName) => { const el = h('span', { class: 'iico blank' }); el.innerHTML = ICONS[n]; return el; };
 

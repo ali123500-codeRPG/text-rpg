@@ -219,22 +219,85 @@ function dataRow(r: TRow, cols: Col[], onField: (row: TRow, key: string) => void
     h('span', { class: 'fld' + (r.tones?.[c.key] ? ' tone-' + r.tones[c.key] : ''), onclick: () => onField(r, c.key) }, r.cells[c.key] ?? '–'))));
 }
 
-// ---------- Side panel ----------
+// ---------- Hover tip ----------
 /** A7: a hover tip waits --m-tip-delay (75 ms); keyboard focus (`now`) shows it at once, and so does hovering while
  *  another tip is open or has just closed, so moving along a row of items doesn't wait each time. Leaving hides at once */
 let tipUp = false, tipDown = -1e9, tipWait = 0;
 const tipDelay = () => ms('--m-tip-delay'); // BG-326: ms() reads the unit; the minified build writes 75ms as .075s
-export function tipOn(show: () => void, now = false): void {
+function tipOn(show: () => void, now = false): void {
   clearTimeout(tipWait);
   const go = () => { tipUp = true; show(); };
   if (now || tipUp || performance.now() - tipDown < 2 * tipDelay()) go();
   else tipWait = window.setTimeout(go, tipDelay());
 }
-export function tipOff(hide: () => void): void {
+function tipOff(hide: () => void): void {
   clearTimeout(tipWait);
   if (tipUp) tipDown = performance.now();
   tipUp = false;
   hide();
+}
+/** el's tip is its own (an item card): the page's tip (mountTip) runs show and hide in place of a text tip */
+const ownTips = new WeakMap<Element, { show: () => void; hide: () => void }>();
+export function tipFor<E extends HTMLElement>(el: E, show: () => void, hide: () => void): E {
+  ownTips.set(el, { show, hide });
+  return el;
+}
+
+/** the element whose tip shows for `from`: the nearest with a tip of its own (tipFor), a title, a data-tip or an SVG <title>. A title or
+ *  <title> moves to data-tip here, before the browser's own tooltip can show; screen readers keep it, as the element's
+ *  name when it has none, otherwise as its description */
+function tipSource(from: EventTarget | null): Element | null {
+  for (let n = from instanceof Element ? from : null; n; n = n.parentElement) {
+    const kid = n.querySelector(':scope > title'), text = n.getAttribute('title') ?? kid?.textContent;
+    if (text != null) {
+      n.removeAttribute('title'); kid?.remove();
+      const was = n.getAttribute('data-tip');
+      if (was !== null && n.getAttribute('aria-label') === was) n.removeAttribute('aria-label'); // the name given last time
+      n.removeAttribute('aria-description');
+      if (!text) n.removeAttribute('data-tip');
+      else {
+        n.setAttribute('data-tip', text);
+        const name = n.getAttribute('aria-label');
+        if (name === null && !n.hasAttribute('aria-labelledby') && !n.textContent?.trim()) n.setAttribute('aria-label', text);
+        else if (name !== text) n.setAttribute('aria-description', text);
+      }
+    }
+    if (ownTips.has(n) || n.getAttribute('data-tip')) return n;
+  }
+  return null;
+}
+/** A7: the page's one hover tip, for every element with hover text (tipSource): beside a small or focused element,
+ *  otherwise beside the pointer; left of the point where the window's right edge is near (BG-357). Call once per page */
+let tipMounted = false;
+const TIP_BESIDE_PX = 80;
+export function mountTip(): void {
+  if (tipMounted) return;
+  tipMounted = true;
+  const box = h('div', { class: 'game-tip', role: 'tooltip', hidden: true });
+  let shown: Element | null = null, pt = { x: 0, y: 0 };
+  const conceal = (t: Element | null) => { if (t) { box.hidden = true; ownTips.get(t)?.hide(); } };
+  const hide = () => { if (shown) { const was = shown; shown = null; tipOff(() => conceal(was)); } };
+  const show = (t: Element, focus: boolean) => {
+    if (t === shown) return;
+    conceal(shown);
+    shown = t;
+    const own = ownTips.get(t);
+    tipOn(own ? own.show : () => {
+      if (!box.isConnected) document.body.append(box); // a page that rebuilds the body takes it out
+      box.textContent = t.getAttribute('data-tip');
+      box.hidden = false;
+      const r = boxOf(t), w = box.offsetWidth;
+      // beside a small control, or a focused one; beside the pointer over anything wide (a map room, a long button)
+      const beside = focus || r.width <= TIP_BESIDE_PX;
+      const right = beside ? r.right + 8 : pt.x + 14, left = beside ? r.left - 8 : pt.x - 14, y = beside ? r.top + r.height / 2 : pt.y;
+      fitInView(box, right + w + 16 > viewSize().w ? left - w : right, y - box.offsetHeight / 2);
+    }, focus);
+  };
+  document.addEventListener('pointermove', (e) => { pt = pointOf(e); if (shown && !shown.isConnected) hide(); }, { passive: true });
+  document.addEventListener('pointerover', (e) => { pt = pointOf(e); const t = tipSource(e.target); if (t) show(t, false); else hide(); });
+  document.addEventListener('pointerout', (e) => { if (!e.relatedTarget) hide(); }); // left the window
+  document.addEventListener('focusin', (e) => { const t = tipSource(e.target); if (t?.matches(':focus-visible')) show(t, true); });
+  for (const ev of ['pointerdown', 'focusout', 'wheel', 'scroll']) document.addEventListener(ev, hide, { capture: true, passive: true });
 }
 
 /** A6: a choice that can't be undone asks once, in place: `host`'s contents give way to a row saying what is lost, with
@@ -247,6 +310,7 @@ export function askInPlace(host: HTMLElement, lost: string, yes: string, onYes: 
   back.focus();
 }
 
+// ---------- Side panel ----------
 export type PanelRow = { k: string; skill?: string /* drawn as the skill's icon, k its tip */; part?: string /* the body part's icon, drawn after k */; v: string | Node; picked?: boolean /* the field the player clicked, highlighted */; tone?: string /* a class for the value, e.g. tone-good */; split?: true /* starts a new block of rows, set apart by a rule */ };
 let panelHost: HTMLElement | null = null;
 export function setPanelHost(el: HTMLElement) { panelHost = el; }

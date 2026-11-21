@@ -5,7 +5,7 @@
 import type { GearOp, PlayerView } from '../types';
 import { isDownLevel } from '../ruleset';
 import { cap, listWords, theItem, theOf } from '../words';
-import { h, tipOff, tipOn } from './kit';
+import { h, tipFor } from './kit';
 import { closePop, openPop } from './pop';
 
 export type LootItem = { id: string; name: string; qty?: number };
@@ -75,11 +75,7 @@ export function openLoot(pv: PlayerView, opener: HTMLElement | null, onOrder: (o
     const b = h('button', { type: 'button', class: 'loot-item', 'data-item': i.id, 'aria-pressed': 'false', onclick: () => { if (picked.has(i.id)) picked.delete(i.id); else picked.add(i.id); sync(); } },
       h('span', { class: 'loot-box', 'aria-hidden': 'true' }), iconOf?.(i.id) ?? '', h('span', {}, i.name), i.qty && i.qty > 1 ? h('span', { class: 'loot-qty' }, `×${i.qty}`) : '');
     chips.push(b as HTMLButtonElement);
-    if (tipOf) {
-      b.addEventListener('pointerenter', () => tipOn(() => tipOf(i.id, b)));
-      b.addEventListener('focusin', () => tipOn(() => tipOf(i.id, b), true));
-      for (const ev of ['pointerleave', 'focusout']) b.addEventListener(ev, () => tipOff(() => tipOf(i.id, null)));
-    }
+    if (tipOf) tipFor(b, () => tipOf(i.id, b), () => tipOf(i.id, null));
     return b;
   };
   allBtn.onclick = () => { if (picked.size === all.length) picked.clear(); else for (const id of all) picked.add(id); sync(); };

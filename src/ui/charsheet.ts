@@ -339,11 +339,10 @@ export function openSkillPop(p: Actor, id: string, opener?: HTMLElement | null):
   ] });
 }
 
-/** the skill's true value; when raw differs it shows only on hover or keyboard focus, as a small card beside the number */
+/** the skill's true value; when raw differs it shows only on hover or keyboard focus, as the number's tip */
 function skillNum(value: number, raw: number): HTMLElement {
   if (value === raw) return h('div', { class: 'num' }, String(value));
-  return h('div', { class: 'num has-raw', tabindex: '0', 'aria-label': `${value}, raw ${raw}` }, String(value),
-    h('span', { class: 'raw-tip', 'aria-hidden': 'true' }, `Raw ${raw}`));
+  return h('div', { class: 'num has-raw', tabindex: '0', 'aria-label': `${value}, raw ${raw}`, title: `Raw ${raw}` }, String(value));
 }
 
 const partOpen = { on: false, autoTurn: -1 }; // body-part list under the health bar, kept open across turns; opens once on a turn that healed a part (H2 a)
@@ -441,10 +440,8 @@ export const NERVE_PASSES = () => `That is once no one has fought you for ${enga
 export const NERVE_STILL = 'You can still talk, beg, yield, give, hide, use an item such as a bandage, pick something up, or open a door or container within reach.';
 /** NB2: a bar's label that carries its level and what it costs as a tip, shown on hover or keyboard focus (dotted underline as the cue);
  * screen readers get it as the word's description */
-function tipped(word: string, tip: string, m: string, tm: string): HTMLElement {
-  const id = `tip-${m}`;
-  return h('span', { class: 'cs-tipped', tabindex: '0', 'aria-describedby': id }, h('span', { 'data-m': m }, word),
-    h('span', { class: 'cs-tip', role: 'tooltip', id, 'data-m': tm }, tip));
+function tipped(word: string, tip: string, m: string): HTMLElement {
+  return h('span', { class: 'cs-tipped', tabindex: '0', title: tip }, h('span', { 'data-m': m }, word));
 }
 /** the stakes under the morale level, from CONFIG.MORALE_HINT_FROM down (a tip above Broken, a line at Broken); null above it */
 export function moraleHint(k: MoraleLevel): string | null {
@@ -466,7 +463,7 @@ export function moraleBar(p: Actor, full: boolean): HTMLElement[] {
   return [
     h('span', { class: 'cs-row' }, h('span', {},
       // NB2: above Broken the stakes are a tip on the label (hover or focus), never a line of their own
-      hint && !isBrokenLevel(key) ? tipped('Morale', `${level}: ${hint}`, 'morale-label', 'morale-hint') : 'Morale',
+      hint && !isBrokenLevel(key) ? tipped('Morale', `${level}: ${hint}`, 'morale-label') : 'Morale',
       // SY1: a Great Success or better at steadying yourself halves the next morale loss, then it is gone
       p.core.condition.mentallySteady ? h('span', { class: 'cs-steady', 'data-m': 'steady', title: 'Mentally steady: your next morale loss is halved' }, 'Mentally steady') : null),
       h('b', {}, full ? figBtn('cs-figlink', 'What makes up your max morale', (el) => openMoralePop(p, el), h('span', { 'data-m': 'morale-left' }, String(left)), ` / ${max}`) : null)),
@@ -487,7 +484,7 @@ export function staminaBar(p: Actor, full: boolean): HTMLElement[] {
   const ticks = full ? CONFIG.FATIGUE_TRACK.slice(1, -1).map(([, at]) => h('i', { style: `left:${100 - Math.min(100, at)}%` })) : [];
   const breath = `Breath ${fmt1(v.lineLeft)} / ${fmt1(v.lineMax)}: strain spends it first, then eats into sleep debt; it comes back once you stop for a while`;
   return [
-    h('span', { class: 'cs-row' }, h('span', {}, pen < 0 ? tipped('Stamina', `${v.level}: −${Math.abs(pen)}% to rolls`, 'stamina-label', 'stamina-hint') : 'Stamina',
+    h('span', { class: 'cs-row' }, h('span', {}, pen < 0 ? tipped('Stamina', `${v.level}: −${Math.abs(pen)}% to rolls`, 'stamina-label') : 'Stamina',
       v.spent ? h('span', { class: 'cs-spent', 'data-m': 'spent', title: 'Spent: nothing harder than a Light effort until you sleep' }, 'Spent') : null),
       h('b', {}, full ? [h('span', { 'data-m': 'stamina-left' }, fmt1(v.left)), ` / ${fmt1(v.max)}`] : null)),
     h('span', { class: 'cs-hptrack cs-stam', title: `Stamina: ${v.level}. Sleep debt; only sleep clears it`, role: 'img', 'aria-label': `Stamina: ${v.level}`, 'data-m': 'stamina-track' },

@@ -131,11 +131,15 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 #### Tips, choice states and risky choices
 
 - **PS-80** Tips: a hover tip waits --m-tip-delay (75 ms); keyboard focus shows it at once. Once one tip is open (or
-  closed within twice the delay), the next shows at once; leaving hides it at once (A7; tipOn/tipOff in src/ui/kit.ts
-  for item cards, Loot, the rail and the minimap; a transition-delay for the CSS tips).
+  closed within twice the delay), the next shows at once; leaving hides it at once (A7). One tip serves the whole page
+  (`mountTip` in src/ui/kit.ts): an element's `title`, `data-tip` or SVG `<title>` is its text, and an item card or Loot
+  chip registers its own card with `tipFor`. The nearest element with a tip wins. It sits beside a small or focused
+  control, otherwise beside the pointer, and flips left near the window's right edge.
 - **PS-81** The minimap's hover text (rooms, rings, doors, stairs, furniture, people, its buttons) is this tip, not the
   browser's (Ali, 20/11/2026).
-- **PS-82** Elsewhere the browser's own title tips keep the browser's timing (A7).
+- **PS-82** Every hover label in the game and the library viewer is this tip; the browser's own tooltip never shows. A
+  `title` moves to `data-tip` on first hover; screen readers keep it as the element's name, or its description when it
+  has a name.
 - **PS-83** Choice states: Available (normal, with its verb button), Can't afford (shows the shortfall: "needs 1 more
   point", "12 copper short"), Locked (a known requirement not met, shown), Sealed (unknown: a number only) (P5; K4).
 - **PS-84** Each says its word or shape; none is colour alone, and Locked is never used on a sealed perk (P5).

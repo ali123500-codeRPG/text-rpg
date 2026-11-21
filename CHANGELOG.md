@@ -3,6 +3,10 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bugs/`.
 
+- 21/11/2026: `docs/instructions.md` section 7: every hover label goes through the page's one tip (`mountTip`), never
+  the browser's tooltip or a tip of its own. The owner: "reduce the amount of by hand items, and go ahead and change it
+  all to game for consistency, it's weird now that some are browser and some are by game. make sure to log this
+  somewhere in the instructions".
 - 21/11/2026: `AGENTS.md` rule 12 and `docs/instructions.md` section 2: parked achievement ideas get their own list, AA-n
   in `docs/spec/achievement-ideas.md`, and every parked idea is sorted by subject when parked (perks PP-n,
   achievements AA-n, anything else D-n). The owner: "similar to the perks, have a separate ID for parked ideas related
