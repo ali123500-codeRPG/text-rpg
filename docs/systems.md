@@ -343,7 +343,9 @@ filching.
 
 Speech rolls, offers and standing down, trade and paying, relations, personality, gods, blessings.
 
-- Spec: [architecture-one-turn.md](spec/part-2-turn-engine/architecture-one-turn.md)
+- Spec: [architecture-one-turn.md](spec/part-2-turn-engine/architecture-one-turn.md),
+  [hierarchy-and-belonging.md](spec/part-2-turn-engine/hierarchy-and-belonging.md) (BEL-nn: organizations, ties, groups
+  and orders; decided, not built, D-1768)
 - History: [history-speech-and-trade.md](memory/history-speech-and-trade.md),
   [history-personality-and-uniques.md](memory/history-personality-and-uniques.md)
 - Code:
@@ -459,7 +461,8 @@ NPC minds, routines and goals, memory, templates and spawning, uniques and echoe
 - Spec: [who-thinks-for-each-actor.md](spec/part-2-turn-engine/who-thinks-for-each-actor.md),
   [goal-driven-uniques.md](spec/part-2-turn-engine/goal-driven-uniques.md),
   [explore-mode.md](spec/part-2-turn-engine/explore-mode.md),
-  [actor-sheet.md](spec/part-4-save/actor-sheet.md) (SHEET-nn: templates, guards, NPC fields)
+  [actor-sheet.md](spec/part-4-save/actor-sheet.md) (SHEET-nn: templates, guards, NPC fields),
+  [hierarchy-and-belonging.md](spec/part-2-turn-engine/hierarchy-and-belonging.md) (BEL-nn: what the band becomes)
 - History: [history-npc-generation-and-roles.md](memory/history-npc-generation-and-roles.md),
   [history-personality-and-uniques.md](memory/history-personality-and-uniques.md)
 - Code:
