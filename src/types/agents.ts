@@ -51,6 +51,7 @@ export type Intent = {
   /** AE5/AE8: an owned perk move by perk id (a free one resolves beside the main action) */
   perkMove?: { perk: string; target: string | null } | null;
   warn?: string | null; // WN9 a: a warning shouted to the player's allies about this foe (one of player.warnable)
+  defense?: import('./actor').DefenseKind | null; // RY7: the defence the player names becomes their standing defense, as the buttons do (PS-400)
   /** BA3/BA4: lock or unlock the way to toZone with a key, or slide its bar across or back; it takes the move slot */
   way?: { toZone: string; op: import('../engine/barriers').WayOp } | null;
   gear: GearOp[] | null;
