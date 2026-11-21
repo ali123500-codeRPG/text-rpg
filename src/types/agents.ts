@@ -50,6 +50,8 @@ export type Intent = {
   } | null;
   /** AE5/AE8: an owned perk move by perk id (a free one resolves beside the main action) */
   perkMove?: { perk: string; target: string | null } | null;
+  /** BB7 a: the player's words order an addressee to do something, of this kind (BEL-34) */
+  order?: import('../library/npcs').OrderKind | null;
   warn?: string | null; // WN9 a: a warning shouted to the player's allies about this foe (one of player.warnable)
   /** AE6: the action is readied: the player holds (after any move) and it plays by itself when this comes true */
   when?: import('../scales').ReadyWhen | null;
@@ -233,7 +235,9 @@ export type StagePlan = {
     groupOf?: string;
     /** code only (NF7 a): spawned from a group part marked notable, so it is a notable foe */
     notable?: true;
-    /** code only (BEL-09): a recipe's lead is its group's leader, its seconds the officers */
+    /** BB6 a: the Weaver marks the one entry that leads its band (a group entry leads its own already) */
+    leads?: boolean;
+    /** code only (BEL-09): a recipe's lead is its group's leader, its seconds the officers; BB6 a: an entry marked leads */
     seat?: 'leader' | 'officer';
     /** code only (BEL-17): the cast recipe (GP…) it was spawned from, so code can give it its tie */
     recipe?: string;

@@ -41,7 +41,7 @@ export function knownTies(state: GameState, a: Actor, b: Actor): Tie[] {
 
 /** the organizations `a` knows `b` to be in, each followed by the ones it is a unit of (BEL-03: a member of a unit is a
  * member of its parent), nearest first */
-function knownOrgs(state: GameState, a: Actor, b: Actor): string[] {
+export function knownOrgs(state: GameState, a: Actor, b: Actor): string[] {
   const out: string[] = [];
   for (const t of knownTies(state, a, b)) { const o = orgOf(t); if (o) for (const x of orgChain(state, o)) if (!out.includes(x.id)) out.push(x.id); }
   return out;

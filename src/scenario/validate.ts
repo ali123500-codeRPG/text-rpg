@@ -160,6 +160,7 @@ function fillRosterAndGroups(state: GameState, plan: StagePlan, err: (code: stri
     else if (e.compose) c.compose = c.compose ? { ...c.compose, race: e.compose.race, rank: e.compose.rank, ...(e.compose.grandeur ? { grandeur: e.compose.grandeur } : {}) } : { ...e.compose };
   }
   const lib = getLibrary(), out: StagePlan['cast'] = [];
+  for (const c of plan.cast) if (c?.leads && !c.seat) c.seat = 'leader'; // BB6 a: its band's leader (the first one marked)
   for (const c of plan.cast) {
     out.push(c);
     if (!c?.group || c.groupOf) continue;

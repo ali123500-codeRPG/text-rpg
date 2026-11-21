@@ -150,4 +150,6 @@ export const ACTORS = {
   /** MG2: a save older than this is refused (the prototype keeps no old saves, D-116); OLDEST_SAVE_REASON ends "this save was made …" */
   OLDEST_SAVE_SCHEMA: 10,
   OLDEST_SAVE_REASON: 'before zones became titles on a floor plan (walls, doors and light at points)',
+  /** BB8 a (placeholder): a receiver whose power is at least this many times the order giver's refuses it, unless devoted */
+  ORDER_DEFY_POWER: 2,
 };

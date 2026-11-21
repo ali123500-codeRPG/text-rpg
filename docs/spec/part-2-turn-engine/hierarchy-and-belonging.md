@@ -1,6 +1,6 @@
 ### Hierarchy and belonging
 
-**Decided; steps 1 and 2 of 4 built, step 3 in part (D-1768).** Step 1 (BEL-61, PR #1774 and issue #1788): the organization,
+**Decided; steps 1 to 4 built (D-1768).** Step 1 (BEL-61, PR #1774 and issue #1788): the organization,
 link and tie records (`Organization`, `OrgLink`, `Tie` in src/types/core.ts; `GameState.organizations` and `orgLinks`,
 `Actor.ties`, `Place.holder` and `law`), the group's new fields on the band (`purpose`, `leaderId`, `officerIds`,
 `backer`, `parentId`), the names tables `TIE_STATUS`, `COMMITMENT`, `TIE_COVER` and `LINK_KINDS` (src/scales.ts), the
@@ -51,8 +51,39 @@ is parked, so its members know each other while in it; crew-mates know each othe
 Planner's own side (NV1 b). A stealthy ally is no longer seen through (BB9 b, the owner, "Belonging build", 21/11/2026:
 "a hidden character is hidden, allies can get a +2 at most"): its group and crew roll to notice it and search for it
 like anyone else, CONFIG.ALLY_NOTICE_TIERS easier (explore-mode NS rules), and learn of its acts only once they
-notice it. Command from orders (TC7, BEL-54) is step 4. The organization's lasting
+notice it. The organization's lasting
 aims (BEL-53) wait for the Weaver to name organizations (BEL-55).
+
+**Step 4 built** (BEL-30 to BEL-34, BEL-54; the owner, Questions hub page "Belonging build", 21/11/2026, BB6 a, BB7
+a, BB8 a; src/engine/orders.ts, the kinds and bases `ORDER_KINDS` and `ORDER_BASES` in src/library/npcs.ts):
+
+- **Kinds** (BB7 a): fight (attack someone, hold, fall back, pick a target), move (go, come, stay, follow), conduct
+  (stop, lower or sheathe a weapon, leave this place, keep quiet), task (a job: guard, fetch, deliver, search). Command
+  and Link cover all four, Lead fight, move and task, Ground conduct only. The strongest basis that covers the kind is
+  the one used: Command, then Link, then Lead, then Ground.
+- **Bases as built.** Command: a seat (head or officer) in an organization the receiver holds a tie to, or one it is a
+  unit of; the tie behind it is that tie. Link: the receiver holds a seat in an organization that a vassal_of or
+  hired_by link puts under one the giver holds a seat in (or under the giver in person); the tie behind it is the
+  receiver's to its own organization. BEL-30 names only liege and client, so the other link kinds give no direction.
+  Lead: the giver leads, or is an officer of, a group the receiver is in or one it sits inside; the tie behind it is the
+  receiver's tie to the giver in person, or to the group's backer, or none. Ground: the giver is, or is known to act for
+  (a known tie, or a seat), whoever holds a place the receiver stands in or whose law runs there.
+- **Clash** (step 4): a tie of the receiver's of higher commitment than the one behind the order, to the one the order
+  is against or to an organization the receiver knows them to be in, takes the right away; if that tie is secret, the
+  receiver pretends (BEL-33). Standing orders are not stored yet, so a clash with one is not checked.
+- **Will** (BB8 a, first match wins): pretends when the tie behind it is feigned (or the secret clash above); refuses
+  openly when its morale is Afraid or worse and the order is a fight (or a move into one), when its regard for the giver
+  is opposed or colder, or when its power is at least CONFIG.ORDER_DEFY_POWER times the giver's and its tie behind the
+  order is below devoted (none counts as below); obeys the letter when that tie is bound, its regard is unfriendly, or
+  the basis is Ground; otherwise obeys. A yielded stance counts as neutral regard. Further review of this system is
+  parked (INP-1823).
+- **Orders the player gives.** The Parser tags spoken words that order an addressee with the kind (`order`). Each
+  addressed listener who heard the words is told, in its impression, whether the player has the right and the verdict;
+  a code-run listener's agent is told to do so, an agent-run one that it chooses. NPCs giving each other spoken orders
+  are not tagged yet.
+- **Command from orders** (TC7, BEL-54, BB6 a): in a group with a leader, a fighter borrows the Command only of those it
+  hears whose basis over it covers a fight order. A group with no leader keeps the old rule (any bandmate's) until it has
+  one. The Weaver may mark one cast entry `leads`, making it its band's leader (a recipe's lead already is).
 
 **Shown to the player** (PS-492 to PS-495; the owner, Questions hub page "Show belonging to the player", 21/11/2026,
 OW1 to OW4 a): src/views/belonging.ts reads only the ties the player knows (BEL-20) and never a commitment (BEL-08). It

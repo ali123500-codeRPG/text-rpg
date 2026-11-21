@@ -3,6 +3,7 @@ export * from './types';
 export { computePending, engagedActors } from './mode';
 export { fillSpeech, quickWord, selectSpokespeople, unclearAddressee, resolveSpeech, impressionWords, NO_WORDS, MUFFLED, BEAT_OPENING, SPEECH_SKILL, TELL, tellFor } from './speech';
 export { offerNote } from './offer';
+export { orderNote } from './orders';
 export { resolveTurn, isMajorAction, nerveTurnsBack } from './resolve';
 export { farBelow, finishFight, type FinishStop } from './finish';
 export { achievementInfo, achievementName, earnedAtText, awardXp, charLevel, grantAchievement, defeatXp, xpToNext } from './xp';
