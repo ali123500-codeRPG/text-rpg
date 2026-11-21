@@ -5,11 +5,11 @@
 import { wayTo } from '../plan/where';
 import { alongLine, keepInside, pointAlong } from '../plan/geom';
 import { CONFIG } from '../config';
-import { zoneById, allActors, atLeast, hostile, isActive, isEngaged } from './relations';
+import { zoneById, allActors, foesAfter, hostile, isActive } from './relations';
 import { moveSpeed } from './speed';
 import { walkLeg, routeOf, spotOf, distM, frontierPoint, spotPoint, withinM, M_EPS, placeAll, type Located, type Pos } from './position';
 export { frontierPoint };
-import { eachPerceives, together } from './yield';
+import { eachPerceives, perceivesNow, together } from './yield';
 import { minutesUntil, now, timeOfDay } from '../time';
 import { advanceAging } from '../ruleset/age';
 import { logCode } from './effects';
@@ -48,11 +48,13 @@ export const darkOut = (t: number) => CONFIG.ROAD_DARK.includes(timeOfDay(t));
 export const travelSpeed = (state: GameState, a: Actor, dark = false): number => moveSpeed(state, a).walk * (dark ? CONFIG.TRAVEL_DARK_SPEED_SHARE : CONFIG.TRAVEL_SPEED_SHARE);
 
 /** TV1: travel mode, or null for normal turns. A move with no main action along a route that uses a road, outside a
- * fight, with nobody hostile engaged with the player or perceiving them. The goal is the move's zone, or for a frontier off
+ * fight, with nobody hostile to the player, or fighting it, in its senses now (sight or a faint sound). A foe it can't
+ * perceive is met on the way by the trip's world-clock checks (RE5), never by what the foe knows. The goal is the move's zone, or for a frontier off
  * the road, the road's end (crossing it comes after). */
 export function tripGoal(state: GameState, a: Actor, o: Order): { goal: Located; frontier?: string } | null {
-  if (a !== state.player || !o.move || o.type !== 'hold' || o.perkMove || o.moveAfter || state.mode === 'tactical' || isEngaged(state, a)) return null;
-  if (allActors(state).some((x) => x !== a && isActive(x) && hostile(state, x, a) && atLeast(x.mind?.knowledge?.[a.id]?.status, 'suspicious'))) return null;
+  if (a !== state.player || !o.move || o.type !== 'hold' || o.perkMove || o.moveAfter || state.mode === 'tactical') return null;
+  const foes = [...allActors(state).filter((x) => x !== a && isActive(x) && hostile(state, x, a)), ...foesAfter(state, a)];
+  if (foes.some((x) => perceivesNow(state, a, x, 'faint'))) return null;
   const here = zoneById(state, a.zone);
   const link = here ? wayTo(state, here.id, o.move) : undefined;
   if (link?.frontier) {
