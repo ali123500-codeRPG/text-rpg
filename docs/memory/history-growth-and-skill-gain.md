@@ -10,12 +10,15 @@ essences and scenario-end growth, kept as history.
 - **Scaling past 100 (11-12/11/2026; CR1-CR13).** The owner prefers perks to carry supernatural scaling: base
   sight, hearing, damage and health do not grow with skill by formula (CR5, CR6, CR8, CR9 turned down). Task
   grades go past Extreme (#479), on one ladder past 100 shared with NPC ranks and equip levels (#903). A
-  natural edge moves one tier only, and no natural roll forces a skill gain (#525). Parked: D-213, D-214,
-  D-215, D-219.
+  natural edge moves one tier only, and no natural roll forces a skill gain (#525). Parked: D-214, D-215,
+  D-219 (D-213 closed, below).
 - **Tier unlocks (11-14/11/2026; D-211, D-292).** A perk or an achievement can open tiers past Critical (#451,
   #457, #727). Two rules, never merged: a skill roll gets an extra margin band, because skill can reach it; an
   event roll widens its natural range, because nothing raises an event roll. A first reading, a doubled
   natural edge, was taken back (#456).
+- **The roll ceiling past 100 is closed (21/11/2026; D-213).** The owner: "I WILL GRANT MORE WAYS TO OPEN BANDS PAST
+  CRITICAL, STOP ASKING THIS." Contests between very high skills get no frame or ceiling rule; more bands past
+  Critical open only by ways the owner grants. Never ask about a roll ceiling or contest frame again.
 - **Growth at scenario end and essences (12/11/2026; EG1-EG17, SG1-SG3; D-226).** A review found growth landing
   in the middle of fights; the aim became rare, chosen packages into limited room. Achievements, All-X perks,
   skill raises and level-ups wait for the scenario's end (#536, #545). Essences came in #550, and the
