@@ -24,7 +24,7 @@ export function copyText(text: string): Promise<boolean> {
 /** what a Send to Claude press sends: the comment's text and the status line once sent; null when there is nothing to send */
 export type ClaudeSendOut = { text: string; done: string; after?: () => unknown } | null;
 /** a "Send … to Claude" button, shown only where this viewer can send from here (a comment sent to Claude wakes a thread), and
- * its "Copy for Claude" fallback, with one status line. The Bugs page and the GM view's deed ideas share it. */
+ * its "Copy for Claude" fallback, with one status line. The Bugs page's bugs and deed ideas share it. */
 export function claudeSend(o: { label: string; copyTip: string; none: string; send(): ClaudeSendOut; copy(): string | null }) {
   const note = h('span', { class: 'hs-note', role: 'status' });
   const button = h('button', { type: 'button', class: 'hs-btn-main', hidden: true }, o.label);

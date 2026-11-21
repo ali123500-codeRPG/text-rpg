@@ -3,7 +3,9 @@
 // then sends every open bug to Claude (BG-27: pressing it sends them), the same as "Send open bugs to
 // Claude": a comment sent to Claude (the comments capability), which wakes the thread that triages them. The send
 // button stays for sending again; it is hidden, and a report is only saved, when the page can't send to Claude.
-import type { GameApi } from '../types';
+// AA-108: below them, the Chronicler's deed ideas, sent to Claude the same way for review with the owner.
+import type { GameApi, GameState } from '../types';
+import { deedSendId, type DeedSend } from '../save/sends';
 import { isNewReport, type FiledBug } from '../save/bugs';
 import { claudeSend, h, plural } from './kit';
 import { cap } from '../words';
@@ -26,6 +28,66 @@ export function bugsForClaude(open: FiledBug[], unsent: string): string {
   return `Bugs from the Echoes of the Thread Bugs page, to triage and fix in ali123500-codeRPG/text-rpg. Open a GitHub issue labelled \`bug\` for each real one (its number is its BG-n), then find the root cause and fix it by PR. These are the full records from the game's db bugs collection.${fresh}\n\n\`\`\`json\n${JSON.stringify(open, null, 2)}\n\`\`\``;
 }
 
+type Want = NonNullable<GameState['hidden']['templateWants']>[number];
+/** AA-108: the text sent to Claude (or copied) with the Chronicler's deed ideas, for review with the owner (PROG-118), each
+ * with the db document its verdict goes on */
+export function deedsForClaude(storyId: string, ideas: readonly Want[]): string {
+  return `Deed ideas from the Chronicler (AA-108), from the Bugs page of story ${storyId} in ali123500-codeRPG/text-rpg. `
+    + 'Review them with the owner, and write each one the owner approves as an achievement code rule by PR (PROG-118). '
+    + 'Once the owner rules on one, record it in the game page\'s db on its document in deed_sends (keep id, storyId, name and at) '
+    + 'with verdict "approved" or "turned_down", so the Bugs page shows it.\n\n'
+    + ideas.map((w) => `- ${w.label}: ${w.wanted} (scenario ${w.scenario}, turn ${w.turn}; deed_sends/${deedSendId(storyId, w)})`).join('\n');
+}
+const VERDICT_WORD = { approved: 'Approved', turned_down: 'Turned down' } as const;
+
+/** AA-108: the Chronicler's deed ideas of this story, each sent to Claude once (deed_sends marks it) or copied where sending
+ * isn't available (a copy marks nothing, so it holds every idea still waiting for a verdict); Clear list takes the ruled ones off */
+function deedIdeas(api: GameApi, redraw: () => void) {
+  let marks = new Map<string, DeedSend>(), at = 0;
+  const mark = (s: GameState, w: Want) => marks.get(deedSendId(s.storyId, w));
+  function refresh() {
+    if (Date.now() - at < REFRESH_MS) return;
+    at = Date.now();
+    api.deedSends().then((xs) => { marks = new Map(xs.map((x) => [x.id, x])); redraw(); }).catch(() => undefined);
+  }
+  const of = (keep: (m: DeedSend | undefined) => boolean) => {
+    const s = api.gm().state;
+    return s ? (s.hidden.templateWants ?? []).filter((w) => w.of === 'deed' && keep(mark(s, w))) : [];
+  };
+  const send = claudeSend({
+    label: 'Send deed ideas to Claude', copyTip: 'Copy the deed ideas still waiting for a verdict, to paste into a Claude chat', none: 'No new deed ideas.',
+    send: () => {
+      const s = api.gm().state, ds = of((m) => !m);
+      return s && ds.length ? { text: deedsForClaude(s.storyId, ds), done: `Sent ${plural(ds.length, 'deed idea')} to Claude.`,
+        after: () => api.markDeedsSent(ds).then(() => { at = 0; redraw(); }, () => undefined) } : null;
+    },
+    copy: () => { const s = api.gm().state, ds = of((m) => !m?.verdict); return s && ds.length ? deedsForClaude(s.storyId, ds) : null; },
+  });
+  const clear = h('button', { type: 'button', class: 'hs-btn-text', title: 'Take the deed ideas you have approved or turned down off this list' }, 'Clear list');
+  clear.onclick = async () => {
+    clear.disabled = true;
+    const n = await api.clearRuledDeeds().catch(() => -1);
+    send.note.textContent = n < 0 ? 'The list couldn’t be cleared. Try again.' : `Cleared ${plural(n, 'deed idea')}.`;
+    clear.disabled = false;
+    at = 0; redraw();
+  };
+  /** the section: the ideas not cleared, newest first, each with Sent or the owner's verdict */
+  return () => {
+    const s = api.gm().state;
+    if (!s) return '';
+    refresh();
+    const rows = of((m) => !m?.cleared);
+    return h('section', {},
+      h('div', { class: 'bug-bar' }, h('h2', {}, `Deed ideas (${rows.length})`),
+        ...(rows.length ? [send.button, send.copy, rows.some((w) => mark(s, w)?.verdict) ? clear : null, send.note] : [])),
+      rows.length ? h('table', { class: 'bug-table' }, h('thead', {}, h('tr', {}, ['Idea', 'Deed', 'Scenario', 'Status'].map((t) => h('th', {}, t)))),
+        h('tbody', {}, [...rows].reverse().map((w) => { const m = mark(s, w);
+          return h('tr', {}, h('td', { class: 'bug-id' }, w.label), h('td', {}, w.wanted), h('td', { class: 'hs-note' }, `${w.scenario} · turn ${w.turn}`),
+            h('td', {}, m ? (m.verdict ? VERDICT_WORD[m.verdict] : 'Sent') : h('span', { class: 'hs-note' }, 'New'))); })))
+        : h('p', { class: 'empty' }, 'No deed ideas. The Chronicler proposes deeds no achievement counts yet at each scenario\'s end.'));
+  };
+}
+
 export function bugsPage(api: GameApi) {
   const el = h('main', { class: 'bugs' });
   let rows: FiledBug[] | null = null, failed = false, fetchedAt = 0;
@@ -39,6 +101,7 @@ export function bugsPage(api: GameApi) {
     const parts = [fresh.length ? `new reports to number: ${list(fresh)}` : '', numbered.length ? `open bugs: ${list(numbered)}` : ''].filter(Boolean);
     return `Bugs to triage and hand to the right threads (read them from the db bugs collection). ${parts.join('; ')}`;
   }
+  const deeds = deedIdeas(api, () => draw());
   const claude = claudeSend({
     label: 'Send open bugs to Claude', copyTip: 'Copy the bugs as text to paste into a Claude chat', none: 'No bugs to send.',
     send: () => (rows?.length ? { text: openText(rows), done: `Sent ${plural(rows.length, 'bug')} to Claude.` } : null),
@@ -76,7 +139,8 @@ export function bugsPage(api: GameApi) {
       rows === null ? h('p', { class: 'empty', role: 'status' }, failed ? 'The bug list couldn’t be read from the save.' : 'Reading the save…')
         : rows.length ? h('table', { class: 'bug-table' }, h('thead', {}, h('tr', {}, ['Bug', 'Kind', 'Turn', 'What went wrong', 'Filed'].map((t) => h('th', {}, t)))),
           h('tbody', {}, rows.map(row)))
-          : h('p', { class: 'empty' }, 'No new or open bugs.'));
+          : h('p', { class: 'empty' }, 'No new or open bugs.'),
+      deeds());
   }
   function update() {
     draw();
