@@ -68,9 +68,9 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   been through, locked, where it leads) is in its tip and the zone card: the dotted arrow already shows an exit not been
   through, and the badge a barrier (MAP-36) (RM2 a; Ali, 20/11/2026, Questions hub page "Map rules revision").
 - **MAP-25** On a place's map your pin is placed first and furniture last. A mark inside a zone (furniture, stairs,
-  the player, people) is placed once, at the widest of a few set
+  and the player or a person with no point of their own) is placed once, at the widest of a few set
   zooms that has room for it (PLACE_KS), and every zoom keeps it at the same share of its zone (inside the room its size
-  leaves). A stair is placed once at its own end, nudged then only if another mark already sits there. After that,
+  leaves). You and anyone with a known point (MAP-68) are placed from that point at each zoom drawn (BG-356). A stair is placed once at its own end, nudged then only if another mark already sits there. After that,
   furniture and stairs never move at any zoom: zoomed out, where one would cover another mark, or a piece of furniture
   the zone's name, it is left off in its own spot (listed in the zone's card) and comes back there when you zoom in.
   A piece of furniture is placed clear of the names at its zoom and of the name each closer set zoom shows, at its own

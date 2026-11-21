@@ -359,3 +359,4 @@ Closed rows of the "Bug log" (`bug-log.md`): fixed, won't fix or duplicate. A ro
 | BG-353 | The Character page's level bar showed no progress: its fill had no colour outside a skill tree | Thread | Fixed | #1434 |
 | BG-354 | Over bright backdrops (snow, sky) the veil's top was too thin (62%), so muted and faint text and the stat icons fell below WCAG AA at the top | Owner | Fixed | #1444 |
 | BG-355 | Plain doors on the Map test stages had no barrier record, so they drew as open gaps and acted as doorways (MAP-52) | Thread | Fixed | #1447 |
+| BG-356 | On the Map a person's disc and your pin drifted off their own point as you zoomed in, so a last-seen disc sat off its ring's centre (MAP-68) | Owner | Fixed | #1449 |
