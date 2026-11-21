@@ -21,7 +21,8 @@ import { actorBody, getLibrary, perkName } from '../library';
 import type { TierRoll } from '../types';
 import { fellFacts, fellLine } from './fell';
 import { autopilotBar } from './autopilot';
-import { boxOf, h, dragScroll, lineIcon, playDraft, viewSize, safe, turnShown } from './kit';
+import { boxOf, h, tint, tipPlain, dragScroll, lineIcon, playDraft, viewSize, safe, turnShown } from './kit';
+import { healthTone, perkIdTone, TONE } from './tipTones';
 import { perkSeries } from './perks';
 import { drawnBadge, stealthBadge, stealthyTip } from './stealth';
 import { dayOf, now, timeOfDay, timeView } from '../time';
@@ -656,7 +657,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     // the heading is where you are now (the zone), not the story's premise; the place it sits in follows the turn below it
     const here = s ? placeHead(s, pv) : null;
     const titleKids = [h('div', {}, h('h1', {}, here?.here || 'Play', mh('tod', s ? todBadge(timeView(s).day, timeOfDay(now(s)), now(s)) : null), mh('stealth', stealthy ? stealthBadge() : null), mh('drawn', drawn ? drawnBadge() : null), mh('deals', dealChip)),
-      h('p', {}, s ? [`Turn ${lastTurn}`, here?.where ? ' · ' : '', here?.where ? (bv?.rule ? h('span', { title: ruleText(bv.rule) }, here.where) : here.where) : ''] : 'No story yet'), mh('quest', s ? questLine(s, (id) => { questFocus.id = id; nav('quests'); }) : null)), h('div', { class: 'title-tools' }, openerSlot ?? '', rollsBtn ?? '', lengthBtn ?? '', skipBtn ?? '', soundBtn)];
+      h('p', {}, s ? [`Turn ${lastTurn}`, here?.where ? ' · ' : '', here?.where ? (bv?.rule ? h('span', { title: ruleText(bv.rule, (x) => tint('tie', x)) }, here.where) : here.where) : ''] : 'No story yet'), mh('quest', s ? questLine(s, (id) => { questFocus.id = id; nav('quests'); }) : null)), h('div', { class: 'title-tools' }, openerSlot ?? '', rollsBtn ?? '', lengthBtn ?? '', skipBtn ?? '', soundBtn)];
     const titleNow = titleKids.map((k) => k.outerHTML).join('');
     if (!frozen && titleNow !== titleHtml) { openerSlot?.replaceWith(auto.opener); title.replaceChildren(...titleKids); titleHtml = titleNow; }
     story.classList.toggle('no-rolls', !show);
@@ -671,7 +672,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     // PS-172: how far, if your weapon reaches, and the life stage they look unless adult (AG16, SD3) live in the cell's tip
     // BEL-20: the organizations (and people) the player knows them to be tied to follow, one line each
     const tipOf = (a: PlayerView['actors'][number]) => [[whoDistance(a, pv!), a.age && a.age !== LIFE_STAGES.name('stage_2') ? `looks ${a.age.toLowerCase()}` : ''].filter(Boolean).join(' · '),
-      ...(bv?.people[a.id] ?? []).map(tieText)].filter(Boolean).join('\n') || 'What you can do to or with them';
+      ...(bv?.people[a.id] ?? []).map((t) => tieText(t, (x) => tint('tie', x)))].filter(Boolean).join('\n') || 'What you can do to or with them';
     // BEL-09: one who heads an organization the player knows them to be in carries a laurel, the seat in its tip
     const heads = (id: string) => bv?.orgs.filter((o) => o.people.some((x) => x.id === id && x.head)).map((o) => theName(o.name)) ?? [];
     const headMark = (id: string) => { const of = heads(id); if (!of.length) return null; const m = itemIcon('head', undefined, 'head-mark'); m.setAttribute('role', 'img'); m.title = `Heads ${of.join(' and ')}`; m.setAttribute('aria-label', `, heads ${of.join(' and ')}`); return m; };
@@ -685,12 +686,12 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       // FT17: others' fatigue, only from Exhausted down, as the level word (never points or the breath line)
       a.fatigue ? h('span', { class: 'st tired', 'data-st': 'fatigue', title: 'How worn out they look' }, a.fatigue) : null,
       // A13 Read Wounds: their Damaged parts
-      ...(a.damaged ?? []).map((pt) => h('span', { class: 'st warn', title: perkName(PK.read_wounds) }, partMark(pt), ' damaged')));
+      ...(a.damaged ?? []).map((pt) => h('span', { class: 'st warn', title: tint(perkIdTone(PK.read_wounds), perkName(PK.read_wounds)) }, partMark(pt), ' damaged')));
     // YB3 c: a band-mate in sight shows its health and morale as two thin bars, the level words in their tips
     const fill = (pos: number, end: number) => Math.max(0, Math.round(100 * (1 - pos / end)));
     const mateBars = (a: PlayerView['actors'][number]) => h('span', { class: 'mate-bars' },
-      a.health ? h('span', { class: 'cs-hptrack', role: 'img', title: `Health: ${HEALTH_LEVELS.name(a.health)}`, 'aria-label': `Health: ${HEALTH_LEVELS.name(a.health)}` }, h('b', { style: `width:${fill(HEALTH_LEVELS.pos(a.health), HEALTH_LEVELS.pos('incapacitated'))}%` })) : null,
-      a.morale ? h('span', { class: 'cs-hptrack cs-morale', role: 'img', title: `Morale: ${a.morale}`, 'aria-label': `Morale: ${a.morale}` }, h('b', { style: `width:${fill(MORALE_LEVELS.pos(MORALE_LEVELS.keyOf(a.morale) ?? 'calm'), MORALE_LEVELS.pos('broken'))}%` })) : null);
+      a.health ? h('span', { class: 'cs-hptrack', role: 'img', title: `Health: ${tint(healthTone(a.health), HEALTH_LEVELS.name(a.health))}`, 'aria-label': `Health: ${HEALTH_LEVELS.name(a.health)}` }, h('b', { style: `width:${fill(HEALTH_LEVELS.pos(a.health), HEALTH_LEVELS.pos('incapacitated'))}%` })) : null,
+      a.morale ? h('span', { class: 'cs-hptrack cs-morale', role: 'img', title: `Morale: ${tint(TONE.morale, a.morale)}`, 'aria-label': `Morale: ${a.morale}` }, h('b', { style: `width:${fill(MORALE_LEVELS.pos(MORALE_LEVELS.keyOf(a.morale) ?? 'calm'), MORALE_LEVELS.pos('broken'))}%` })) : null);
     const cell = (a: PlayerView['actors'][number]) => h('div', { class: 'pp' + (foe(a) ? ' foe' : '') + (pins.has(a.id) ? ' pinned' : ''), role: 'listitem button', 'data-who': cap(a.name ?? a.label), 'data-id': a.id, tabindex: '0', title: tipOf(a) },
       h('span', { class: 'dot', 'aria-hidden': 'true' }),
       h('b', {}, cap(a.name ?? a.label), headMark(a.id), handIn.has(a.id) ? h('span', { class: 'q-ready', title: 'A quest for them is ready to hand in', 'aria-label': ', a quest for them is ready to hand in' }, ' ✓') : null), // the name (BG-30's edit had put it inside the comment, so the row lost every name)
@@ -848,7 +849,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     return {
       who: Object.fromEntries(Array.from(who.querySelectorAll('[data-who]')).map((x) => [x.getAttribute('data-who')!, text(x)])),
       // the sun's tip carries the clock, which moves every turn: only a new day or time of day gives it a beat
-      head: Object.fromEntries(Array.from(title.querySelectorAll('[data-mh]')).map((x) => [x.getAttribute('data-mh')!, x.getAttribute('data-mh') === 'tod' ? (x.getAttribute('data-tip') ?? '').replace(/ · [0-9:]+$/, '') : text(x)])),
+      head: Object.fromEntries(Array.from(title.querySelectorAll('[data-mh]')).map((x) => [x.getAttribute('data-mh')!, x.getAttribute('data-mh') === 'tod' ? tipPlain(x.getAttribute('data-tip') ?? '').replace(/ · [0-9:]+$/, '') : text(x)])),
       heal: healBtn.hidden ? '' : text(healBtn),
     };
   }

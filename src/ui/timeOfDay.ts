@@ -2,7 +2,8 @@
 // time of day are in its tip), T2 b a divider in the story when a wait or sleep moves the clock, T3 b natural recovery as
 // a quiet green line (src/ui/healing.ts). Icons and colours are keyed by TIME_OF_DAY key; names come from that table.
 import { TIME_OF_DAY } from '../scales';
-import { h, lineIcon, plural } from './kit';
+import { h, lineIcon, plural, tint } from './kit';
+import { todTone } from './tipTones';
 import type { TimeOfDay } from '../scales';
 import { clockSecondsText } from '../time';
 
@@ -18,11 +19,11 @@ const PATHS: Record<string, string[]> = {
 
 export const todIcon = (key: string): SVGSVGElement => lineIcon('tod-i', PATHS[key] ?? PATHS.afternoon);
 
-const words = (day: number, key: string) => `Day ${day} · ${TIME_OF_DAY.name(key as TimeOfDay)}`;
+const words = (day: number, key: string, mark = (x: string) => x) => `Day ${day} · ${mark(TIME_OF_DAY.name(key as TimeOfDay))}`;
 
 /** T1: the header's icon, coloured by time of day; the words and the clock to the second are its tip and its label */
 export const todBadge = (day: number, key: string, at?: number) => {
-  const tip = at === undefined ? words(day, key) : `${words(day, key)} · ${clockSecondsText(at)}`;
+  const said = words(day, key, (x) => tint(todTone(key), x)), tip = at === undefined ? said : `${said} · ${clockSecondsText(at)}`;
   // its own tip, shown at once on hover or focus: the header is rebuilt often, which cancels the browser's slow title tip
   return h('span', { class: `tod tod-${key}`, 'data-tip': tip, tabindex: '0', role: 'img', 'aria-label': tip }, todIcon(key));
 };

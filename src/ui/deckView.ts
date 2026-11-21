@@ -10,7 +10,8 @@ import { isBrokenLevel, isCoweringLevel, moraleLevel } from '../ruleset/morale';
 import { buildPlayerView, findInstance } from '../views';
 import { cap } from '../words';
 import { hideTip, showTip } from './pages';
-import { h, safe, type boxOf } from './kit';
+import { h, safe, tint, tipPlain, type boxOf } from './kit';
+import { skillTone, TONE } from './tipTones';
 import { closePop, openPop } from './pop';
 import { deck, thingActions, type Choice, type DeckAction, type DeckCtx, type MapThing, type Order, type Pick } from './deck';
 import { openLoot } from './loot';
@@ -26,10 +27,12 @@ export type SayMode = { action: DeckAction; choice: Choice; to: string };
 
 /** the Defense row: each standing defense, what it does, and what it needs when it can't be used now */
 const DEFENSES: { kind: DefenseKind; tip: string; needs?: string }[] = [
-  { kind: 'dodge', tip: 'Dodge: get out of the way of every blow and missile' },
-  { kind: 'parry', tip: "Parry: turn melee blows with your weapon. It can't stop missiles: against those you use your best other defense", needs: 'a melee weapon in hand' },
-  { kind: 'block', tip: 'Block: catch blows and missiles on your shield', needs: 'a shield in hand' },
+  { kind: 'dodge', tip: 'get out of the way of every blow and missile' },
+  { kind: 'parry', tip: "turn melee blows with your weapon. It can't stop missiles: against those you use your best other defense", needs: 'a melee weapon in hand' },
+  { kind: 'block', tip: 'catch blows and missiles on your shield', needs: 'a shield in hand' },
 ];
+/** a defense's tip: its skill's name in its tree's colour, then what it does */
+const defTip = (d: (typeof DEFENSES)[number]) => `${tint(skillTone(DEFENSE_SKILL[d.kind]), cap(d.kind))}: ${d.tip}`;
 const figure = (n: number) => String(+n.toFixed(2)); // fractions shown, as the Character page does
 
 /** the order with the move planned on the minimap first (a way op takes the move itself, so it plays alone) */
@@ -88,7 +91,7 @@ export function deckView(api: GameApi, o: {
     if (picks.length === 1 && next.key !== 'target') { run(a, { ...c, [next.key]: picks[0].id }, opener); return; }
     openPop({ title: next.title, opener, cls: 'deck-pick', body: [h('div', { class: 'dk-picks', role: 'list' }, picks.map((p: Pick) =>
       h('button', { type: 'button', class: 'dk-pick' + (p.hot ? ' hot' : ''), role: 'listitem', onclick: () => run(a, { ...c, [next.key]: p.id }, opener) },
-        p.part ? partMark(p.id, p.label) : h('b', {}, p.label), p.note ? h('small', {}, p.note) : null)))] });
+        p.part ? partMark(p.id, p.label) : h('b', {}, p.label), p.note ? h('small', {}, tipPlain(p.note)) : null)))] });
   }
 
   /** AD14, MAP-85: a click on someone in Who's here, or on a thing on either map: every deck action for it, the thing
@@ -124,7 +127,9 @@ export function deckView(api: GameApi, o: {
       b.replaceChildren(skillMark(DEFENSE_SKILL[d.kind], cap(d.kind)), can ? h('span', { class: 'dv' }, v === null ? '' : figure(v)) : lockMark(d.needs!));
       b.setAttribute('aria-pressed', String(d.kind === chosen));
       if (can) b.removeAttribute('aria-disabled'); else b.setAttribute('aria-disabled', 'true');
-      b.title = can ? d.tip : `Needs ${d.needs}`;
+      // set as data-tip (not title) so screen readers get the plain words, never the tint marks
+      const tip = can ? defTip(d) : `Needs ${d.needs}`;
+      b.removeAttribute('title'); b.setAttribute('data-tip', tip); b.setAttribute('aria-description', tipPlain(tip));
     });
     const why = DEFENSES.find((d) => d.kind === chosen)?.needs;
     defNote.hidden = used === chosen;
@@ -211,7 +216,7 @@ function freeMark(a: DeckAction): HTMLElement | null {
 /** a cracked mask after the name of an action the character is pulled away from; its name says so on hover and to a screen reader */
 function natureMark(a: DeckAction): HTMLElement | null {
   if (!a.against) return null;
-  const el = h('span', { class: 'dk-mk', role: 'img', title: AGAINST_NATURE, 'aria-label': AGAINST_NATURE });
+  const el = h('span', { class: 'dk-mk', role: 'img', title: tint(TONE.caution, AGAINST_NATURE), 'aria-label': AGAINST_NATURE });
   el.innerHTML = ICONS.against_nature;
   return el;
 }

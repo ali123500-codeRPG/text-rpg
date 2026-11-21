@@ -68,6 +68,10 @@ const PICKS = {
   // a plain person by what is seen of them (MAP-69, RM15 c): a man or a woman (the sign figures without their frame), an elder (a stooped
   // figure with a walking stick, the priority-seat sign)
   man: 'fe:mens-room@4.5 4.5 23 23', woman: 'fe:womens-room@4.5 4.5 23 23', elder: 'ms:elderly',
+  // the creation screen's identity picks in place of their words: a race by its ear, a gender by its sign, the life stage's
+  // hourglass (its stage is the dots beside it)
+  race_human: 'gi:human-ear', race_elf: 'gi:elf-ear', gender_he: 'ms:male', gender_she: 'ms:female', gender_they: 'ms:agender',
+  life_stage: 'gi:hourglass',
 };
 
 const sets = {};

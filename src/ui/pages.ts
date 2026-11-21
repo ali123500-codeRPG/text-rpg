@@ -21,7 +21,8 @@ import { belongingView } from '../views/belonging';
 import { ESSENCE_ABOUT, essencesBody, essencesSummary } from './essences';
 import { vowsSection } from './vows';
 import { chainCard, chainViews, foldAll, type ChainView } from './achievementThreads';
-import { tipFor, boxOf, fitInView, closePanel, groupedTable, playDraft, type PanelRow, h, viewSize, natural, openPanel, plural, unitOf, visPass, visTiles, iconMark, rowKey, type Col, type TGroup, type TRow, type VisState, type VisTile, safe, ended } from './kit';
+import { tipFor, boxOf, fitInView, closePanel, groupedTable, playDraft, type PanelRow, h, viewSize, natural, openPanel, plural, unitOf, visPass, visTiles, iconMark, rowKey, type Col, type TGroup, type TRow, type VisState, type VisTile, safe, ended, tint } from './kit';
+import { TONE } from './tipTones';
 import { charCard, charFocus, gearNote, invFocus, treeBars } from './charsheet';
 import { closePop, fullOpen, openFull, openPop } from './pop';
 import { personalityBlock, signaturesBox } from './personality';
@@ -172,9 +173,9 @@ function charTiles(s: GameState, open: { essences: (b: HTMLElement) => void; per
   };
   const gearNames = gear.map((i) => cap(safe(() => pieceName(s, i)) ?? i.itemId)).join(', ');
   return h('nav', { class: 'cs-tiles', 'aria-label': 'Character sections' },
-    tile('essences', 'Essences', ess.used, `Essences: ${ess.used}${ess.waiting ? `, ${ess.waiting} on offer` : ''}`,
+    tile('essences', 'Essences', ess.used, `Essences: ${ess.used}${ess.waiting ? `, ${tint(TONE.essence, `${ess.waiting} on offer`)}` : ''}`,
       ess.waiting ? h('span', { class: 'ess-waiting', 'aria-hidden': 'true' }, `◆ ${ess.waiting}`) : null, open.essences, false, !!ess.waiting),
-    tile('perks', 'Perks', pts ? `✦ ${pts}` : String(owned), pts ? `Perks: ${pts} point${pts === 1 ? '' : 's'} to spend` : `Perks: ${owned} held`, null, open.perks, true, pts > 0),
+    tile('perks', 'Perks', pts ? `✦ ${pts}` : String(owned), pts ? `Perks: ${tint('perk-40', `${pts} point${pts === 1 ? '' : 's'} to spend`)}` : `Perks: ${owned} held`, null, open.perks, true, pts > 0),
     tile('gear', 'Gear', String(gear.length), gear.length ? `Gear: ${gearNames}` : 'Gear: nothing held or worn', null, (b) => openGearPop(s, b)),
     tile('personality', 'Personality', archetypeOf(pe).name, `Personality: ${archetypeOf(pe).name}, ${nerveTier(p, pe)} · ${cap(nerveLine(pe))} nerve`, null,
       (b) => openPop({ title: 'Personality', cls: 'pe-pop', opener: b, body: [personalityBlock(p), ended(s) ? null : signaturesBox(p, open.sign)] })),
