@@ -93,6 +93,9 @@ export type ThemeDef = { id: LibraryRef; name: string; bands?: SkillBands; leans
 export type EssenceBounds = Record<string, number | Past100Key>;
 /** growth proposal 2.2: an essence row. A beaten foe of its race or body type, or a scenario's deeds, can offer it; its points
  * are true skill split over `skills` by weight; a deed row (deed: true) puts its points on the scenario's most-marked skill */
+/** D-141 VW14: a reward table: one row is picked by weight; a row naming another table rolls that table instead (a
+ * reward type), else it gives its item (qty, default 1) */
+export type RewardTableDef = { id: string; name: string; rows: { weight: number; table?: string; item?: string; qty?: number }[] };
 export type EssenceDef = {
   id: string; name: string;
   /** echo: one echo's own essence, on its template's hand-set list only (EN3 b), never on a worked-out list; role: only NPCs
@@ -212,6 +215,7 @@ export type Library = {
   values?: Record<string, { id: string; name: string; hint: string }>; // PL19: VL…, what a character cares about
   personalityTypes?: Record<string, PersonalityTypeDef>; // PL10: PY…, archetypes; the nearest is the character's
   tensions?: Record<string, TensionDef>; // TN…, shown in row order
+  rewardTables?: Record<string, RewardTableDef>; // D-141 VW14: RW…, what kept vows pay besides Thread
   essences?: Record<string, EssenceDef>; // growth proposal: ES…, packages a beaten foe or a scenario's deeds can offer
   npcRoles?: Record<string, NpcRoleDef>; // NG1: RO…, what an NPC does for a living
   themes?: Record<string, ThemeDef>; // NG1: TH…, the world an NPC belongs to

@@ -6,6 +6,8 @@ import { dueText } from '../engine/quests';
 import { VOW_STATE_NAME, activeVows, vowOwnGoalText, vowXp } from '../engine/vows';
 import type { WitnessLine, WitnessReply } from '../agents/witness';
 import { questGoalText } from '../views';
+import { getLibrary } from '../library';
+import { countWords } from '../engine/trade';
 import { closePanel, groupedTable, h, openPanel, type Col, type TGroup } from './kit';
 import { closePop, openPop } from './pop';
 
@@ -44,6 +46,7 @@ export function vowsSection(api: GameApi, s: GameState, redraw: () => void): HTM
         const v = vows.find((x) => x.id === row.id);
         if (!v) return;
         openPanel('Vow', [...COLS.map((c) => ({ k: c.title, v: row.cells[c.key] || '–', picked: c.key === key })),
+          ...(v.items?.length ? [{ k: 'Gave', v: v.items.map((r) => countWords(r.item, getLibrary().items[r.item]?.name ?? r.item, r.qty)).join(', ') }] : []),
           ...(v.state === 'active' ? [{ k: '', v: renounceButton(api, v, s) }] : [])]);
       } }));
 }

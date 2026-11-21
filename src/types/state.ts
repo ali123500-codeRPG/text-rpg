@@ -120,6 +120,7 @@ export type Vow = {
   id: string; text: string; goal: VowGoal; progress: number; stake: VowStake; state: VowState;
   startTurn: number; startAt: number; due: number; dueBy?: TimeOfDay; // VW6: game clock minutes, as quests (QT25)
   endTurn?: number; why?: string; xp?: number; // xp: what keeping paid, or breaking took
+  items?: { item: string; qty: number }[]; // VW14: what keeping it gave, besides Thread
 };
 
 /** SP1/SP3: a spar between sides (one actor each for one against one; every actor on its own side for a free-for-all).

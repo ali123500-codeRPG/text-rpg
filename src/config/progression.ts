@@ -111,4 +111,10 @@ export const PROGRESSION = {
   /** VW6 a: a vow's deadline in game days, from this to this (placeholders) */
   VOW_DAYS_MIN: 1,
   VOW_DAYS_MAX: 30,
+  /** VW10 a: the scenario band (gain grade) each stake pays in; its BOON_BUDGET is what a kept vow's items fill */
+  VOW_STAKE_GAIN: { i: 'minor', ii: 'moderate', iii: 'major' } as Record<VowStake, string>,
+  /** VW15: a kept vow draws items until their Boon is within this share either side of the band's budget (placeholder) */
+  VOW_REWARD_MARGIN: 0.1,
+  /** draws a kept vow makes at most, so a table of items too dear (or worth nothing) cannot draw for ever (placeholder) */
+  VOW_REWARD_DRAWS_MAX: 20,
 };

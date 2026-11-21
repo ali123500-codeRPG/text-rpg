@@ -21,6 +21,7 @@ import {
   RK,
   RL,
   RV,
+  RW,
   TN,
   VL,
   WK,
@@ -431,6 +432,12 @@ export function prototypeLibrary(): Library {
       [SV.clinic]: { id: SV.clinic, name: 'clinic care', price: 20, heals: HL.clinic },
       [SV.repair]: { id: SV.repair, name: 'repair', price: 0, repairs: true }, // D-89 RP6 a: priced by the job, only at a forge (RP8 b)
       [SV.forge]: { id: SV.forge, name: 'use of the forge', price: 5, forge: true }, // RP17 b
+    },
+    // D-141 VW14: a kept vow rolls RW1 for a reward type, then that type's table, until the stake's band is filled
+    // (VW15). The items table waits for its content (VW16).
+    rewardTables: {
+      [RW.vow_kept]: { id: RW.vow_kept, name: 'Kept vow', rows: [{ weight: 1, table: RW.vow_items }] },
+      [RW.vow_items]: { id: RW.vow_items, name: 'Kept vow: items', rows: [] },
     },
     // growth proposal 2.2: essences. Placeholder rows for the engine; the content round (one table per race and body type,
     // with traits) belongs to the lore and loot threads (D-228). EG11 b: never numbers. NM2: an essence is a small foreign addition

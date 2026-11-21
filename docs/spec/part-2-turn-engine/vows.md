@@ -30,5 +30,12 @@ already names how a turn is settled (VW1 a). Pledges, things given up for power,
   the cap, its tip says why), then one row per vow: the vow, its goal and progress, its stake and Thread, when it is due
   and its state. A row opens the vow's panel, with Renounce vow on an active one, which asks once. A kept or broken vow
   is its own row in the scenario's Thread sum (XpPart kind vow), plus for kept and minus for broken.
-- **Still open.** VW10 a: stake I pays in the minor band, II moderate, III major; VW12 a: an item reward goes to the
-  pack at once. What the item is waits for VW11. The lore of vows is parked (VP-1637); Forsworn too (VP-1632).
+- **What a kept vow gives besides Thread** (VW10 a, VW11 b, VW12 a, VW14, VW15). Each stake pays in a scenario band
+  (CONFIG.VOW_STAKE_GAIN), whose BOON_BUDGET the reward fills. A kept vow draws from the library's reward tables
+  (`rewardTables`, RW ids): one row of a table is picked by weight; a row naming another table rolls that one, so the
+  first pick chooses a reward type and the next the actual reward. RW1 "Kept vow" holds the types (today only items,
+  RW2). Drawing goes on until the items' Boon (Part 5 §7's boon) reaches the band's budget; a draw may pass the budget
+  by CONFIG.VOW_REWARD_MARGIN; one that would pass more is put back, and drawing stops once the total is within that
+  margin below the budget. At most CONFIG.VOW_REWARD_DRAWS_MAX draws. The items go to the pack at once, and the turn's
+  changes say so ("Vow kept: … in your pack"; a broken vow says what it took). The vow's panel lists what it gave.
+- **Still open.** What RW2 holds waits for VW16. The lore of vows is parked (VP-1637); Forsworn too (VP-1632).
