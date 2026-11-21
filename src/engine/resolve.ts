@@ -2531,7 +2531,7 @@ function step(ctx: Ctx, id: string): void {
   // MQ8: the player's action on a thing (a door, a wall, an item, a container, a bed) out of reach waits for the walk to it
   const then = thenOf(ctx, a, o, later), bed = bedOf(state, o), walkO = then && !thingInReach(state, a, o, then, bed) ? walkTo(state, a, o) : undefined;
   const waits = (gear?: GearOp[]): boolean => {
-    if (!then || !walkO || thingInReach(state, a, o, then, bed) || walkThere(state, a, walkO)) return false;
+    if (!then || !walkO || (!ran && (thingInReach(state, a, o, then, bed) || walkThere(state, a, walkO)))) return false;
     ctx.then = { then: gear ? { ...then, gear } : then, walk: walkO };
     return true;
   };
@@ -2567,17 +2567,22 @@ function step(ctx: Ctx, id: string): void {
   // CO13/ZP2: a move slot walks slotMetres(…'move') toward the move's zone, and with no main action planned (hold) a main
   // slot runs slotMetres(…'main') more once the move slots run out: a dash (AE2), which a lame actor can't make
   // BG-12: a move to a spot walks to that point of the zone (beside someone, by a way out, the far side, a compass side)
+  // MQ20 a: in a fight a walk to an action beyond this turn's walk dashes as a move does (the move time walked, then the
+  // main time run); the action then waits for a later turn (ran)
+  const dashTo = !!walkO && state.mode === 'tactical';
+  let ran = false;
+  const running = (f: () => void) => { const m = slotsOf(ctx, a).main; f(); ran ||= dashTo && slotsOf(ctx, a).main < m - T_EPS; };
   const move = (mainToo: boolean) => {
     if (!o.move) return;
     const { goal, opts } = moveGoal(state, a, o);
-    if (o.move && !walk(ctx, a, goal, o, (n) => useMoveSlot(ctx, a, mainToo && n > 0), opts)) logCode(state, 'move_dropped', { actorId: id, to: o.move });
+    running(() => { if (o.move && !walk(ctx, a, goal, o, (n) => useMoveSlot(ctx, a, mainToo && n > 0), opts)) logCode(state, 'move_dropped', { actorId: id, to: o.move }); });
   };
   const from = { zone: a.zone, pos: a.pos && { ...a.pos } };
   // BG-284 (BF91 a): a take with nothing else to do (hold) walks over as a dash does, on the dash's own payment (the move
   // time, then the main time), so a body across the zone is reached in one turn when a run gets there. Only within the
-  // zone ("Take things here"): a thing in another zone is still walked to at walking pace (BG-85)
+  // zone ("Take things here"); a thing in another zone is walked to at walking pace (BG-85), in a fight dashed to (MQ20 a)
   const takeDash = o.type === 'hold' && !o.way && later.length > 0 && near?.at.zone === a.zone;
-  const closer = () => { if (closeIn && !near!.ok()) closeInOn(ctx, a, o, near!, behind, false, takeDash); };
+  const closer = () => { if (closeIn && !near!.ok()) running(() => closeInOn(ctx, a, o, near!, behind, false, takeDash || dashTo)); };
   // BA3/BA4: the key or the bar takes the move slot; BG-54: a way op that can't be done leaves the move to happen.
   // BG-86: out of reach of the door, the move slot walks to it, and the op takes the main action if that is free
   let turned = false, wayLater = false;
@@ -2587,7 +2592,7 @@ function step(ctx: Ctx, id: string): void {
     closer();
     // BG-172: a step up to the way (a step at most) is part of working it, so the op still has the move time
     if (walked && was && near?.ok() && distM(state, a, was) <= CONFIG.ENTER_M) slotsOf(ctx, a).move = moveLeft;
-    if (near?.ok()) turned = doWayOp(ctx, a, o.way, o.type === 'hold'); // BG-165: a way not out of this zone (null) is out of reach too
+    if (near?.ok() && !ran) turned = doWayOp(ctx, a, o.way, o.type === 'hold'); // BG-165: a way not out of this zone (null) is out of reach too
     else if (walkO) wayLater = true; // MQ8: done if the walk gets there this turn, else it waits for the walk
     else { // BG-144: the walk did not reach the way, so the op comes to nothing this turn, and the story says why
       logCode(state, 'way_op_dropped', { actorId: id, to: o.way.toZone, op: o.way.op, reason: 'out_of_reach' });
@@ -2597,9 +2602,9 @@ function step(ctx: Ctx, id: string): void {
   }
   // BF36: words the NPC says as it sets off are heard from where it stands, before the walk
   if (o.wordsFirst && o.line && o.move && !turned && !o.moveAfter) { emit(ctx, bark(mk(ctx, a, 'hold'), o)); o.line = null; }
-  if (!turned && !o.moveAfter) move(o.type === 'hold' && !walkO); // MQ8: a walk to an action walks, as closing in does
+  if (!turned && !o.moveAfter) move((o.type === 'hold' && !walkO) || dashTo); // MQ8: a walk to an action walks, as closing in does; MQ20 a: in a fight it dashes
   if (!o.way) closer();
-  if (wayLater && reachOf(state, a, o)?.ok()) doWayOp(ctx, a, o.way!, o.type === 'hold');
+  if (wayLater && !ran && reachOf(state, a, o)?.ok()) doWayOp(ctx, a, o.way!, o.type === 'hold');
   else if (wayLater && !waits()) {
     logCode(state, 'way_op_dropped', { actorId: id, to: o.way!.toZone, op: o.way!.op, reason: 'out_of_reach' });
     emit(ctx, mk(ctx, a, 'wasted', { target: o.way!.toZone, reason: 'out_of_reach' }));
