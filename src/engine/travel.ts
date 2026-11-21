@@ -133,7 +133,7 @@ export function travel(state: GameState, a: Actor, goal: Located, o: Order, rng:
     }
   }
   for (const c of group.slice(1)) { c.zone = a.zone; c.placeId = a.placeId; delete c.pos; }
-  if (group.length > 1) placeAll(state); // ZP1: placed at once, as at a turn's start (beside the player on a road)
+  if (group.length > 1) placeAll(state, group.slice(1).map((c) => c.id)); // GSM-51: placed beside the player at once
   return trip;
 }
 
