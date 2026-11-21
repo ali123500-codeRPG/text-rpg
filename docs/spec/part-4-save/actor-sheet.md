@@ -503,7 +503,8 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
   `templateGap`.
 - **SHEET-319** Every such gap is kept in hidden.templateWants and listed in the GM view (Wanted), so a
   template can be made. A routineGap (no routine set fits) joins the same list, marked Routine, with the set used
-  instead, so the routine bank can grow (D-53 a).
+  instead, so the routine bank can grow (D-53 a). The Chronicler's deed ideas join it too, marked Deed (AA-108, Agent
+  Chronicler).
 - **SHEET-320** This settles the NPC half of D-11.
 - **SHEET-321** **Theme role kinds**: each theme lists the role kinds that fit its world (`roleKinds`): Road bandits and
   Town watch take fighting roles only, Wild beasts and Monsters beast roles only, the folk themes (village, town,

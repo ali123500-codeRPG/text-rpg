@@ -187,12 +187,13 @@ export function gmPage(api: GameApi) {
 
       // NG15: who the Weaver wanted and couldn't field (templateGap), so a template can be made; composed presets are under "Made this story".
       // D-53 a: the routines it wanted and no set gave (routineGap), so the routine bank can grow
-      h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'Wanted · who and which routines the Weaver could not field'),
+      // AA-108: the Chronicler's deed ideas at each scenario's end (name, deed), for the owner to approve as achievements
+      h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'Wanted · who, which routines and which deeds the game lacks'),
         s?.hidden.templateWants?.length ? h('table', { class: 'hs-tbl' },
-          h('thead', {}, h('tr', {}, ['Scenario', 'Cast as', 'For', 'Wanted', 'Used instead'].map((t) => h('th', {}, t)))),
+          h('thead', {}, h('tr', {}, ['Scenario', 'Cast as / name', 'For', 'Wanted', 'Used instead'].map((t) => h('th', {}, t)))),
           h('tbody', {}, [...s.hidden.templateWants].reverse().map((w) => h('tr', {}, h('td', { class: 'hs-num' }, `${w.scenario} · turn ${w.turn}`),
-            h('td', {}, w.label), h('td', {}, w.of === 'routine' ? 'Routine' : 'Template'), h('td', {}, w.wanted), h('td', {}, w.template || '–')))))
-          : h('p', { class: 'empty' }, 'Nothing wanted yet. The Weaver writes templateGap when no template or composition gives who it means, and routineGap when no routine set fits.')),
+            h('td', {}, w.label), h('td', {}, w.of === 'routine' ? 'Routine' : w.of === 'deed' ? 'Deed' : 'Template'), h('td', {}, w.wanted), h('td', {}, w.template || '–')))))
+          : h('p', { class: 'empty' }, 'Nothing wanted yet. The Weaver writes templateGap when no template or composition gives who it means, and routineGap when no routine set fits; the Chronicler proposes deeds at each scenario\'s end.')),
 
       // NR28: compositions by wanted skills whose closest role lacks some of them, grouped by who was wanted
       h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'Roles wanted · people no role covers yet'),

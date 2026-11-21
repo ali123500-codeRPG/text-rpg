@@ -12,6 +12,8 @@ import type { AgentName, StoryOwner, TierRoll, DefeatWhy, XpAward, TierShift,
 } from '../types';
 import { SCENARIO_ENDING_NAMES, SPEECH_ACTIONS, type HitNote, type ScenarioEndNote } from '../types';
 import { pendingEnding } from '../engine/scenarioEnd';
+import type { ScenarioRecord } from '../types';
+import { callChronicler } from './chronicler';
 import { barrierName } from '../engine/barriers';
 import { scenarioGainsNow } from '../engine/growth';
 import { CONFIG, defaultSettings } from '../config';
@@ -234,6 +236,23 @@ export function createGame(deps: GameDeps): Game {
       })();
       background.set(actorId, bg);
     }
+  }
+
+  /** AA-108: the Chronicler's deed ideas for an ended scenario, added to the Wanted list when they come; no turn waits on it */
+  const chronicles = new Set<Promise<void>>();
+  function chronicle(s: GameState, r: ScenarioRecord): void {
+    if (rateLimited || stopped) return;
+    const { storyId } = s;
+    const p: Promise<void> = callChronicler(s, r, lines, { ...ctxFor(s.turn, []), background: true })
+      .then((wants) => {
+        if (!wants.length || !state || state.storyId !== storyId) return;
+        (state.hidden.templateWants ??= []).push(...wants);
+        amend((x) => { (x.hidden.templateWants ??= []).push(...wants); });
+        emit();
+      })
+      .catch((e) => { if (e instanceof StopPlay) stop(e.code); else codeError('chronicler', e); })
+      .finally(() => { chronicles.delete(p); });
+    chronicles.add(p);
   }
 
   /** a call that can no longer be used: abort it and log it once, as unused (dialogue cancel) or late (window passed) */
@@ -553,6 +572,8 @@ export function createGame(deps: GameDeps): Game {
       length: { band, words: wordCount(narr.output.text), top: views.lengthTop(s, band) } }); // LN7: measured, never re-asked
     lastLog = narrLog;
     lastDisplayAt = clock.now();
+    // AA-108: each scenario that ended this turn gets one Chronicler call in the background, once its last line is in
+    for (const r of s.hidden.scenarios?.filter((x) => x.endTurn === turn) ?? []) chronicle(s, r);
     // BG-337: the story text follows the commit; a turn the save does not hold keeps its lines in memory for the next good turn
     if (committed) await storeHistory(s.storyId);
   }
@@ -1000,6 +1021,7 @@ export function createGame(deps: GameDeps): Game {
     },
     async settle() {
       await Promise.all([...background.values()].map((b) => b.promise));
+      await Promise.all([...chronicles]);
     },
   };
   return api;

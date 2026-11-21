@@ -600,6 +600,27 @@ trigger = {"id","ownerId":actor id,"when":{"type":"quiet_turns","turns":number}|
 A beat's then: ${gradeRule('its owner')}
 orderType = ${ORDER_TYPES.map((t) => `"${t}"`).join("|")}`;
 
+/** AA-108: the Chronicler proposes achievements at a scenario's end; the owner approves, code grants (PROG-118) */
+export const CHRONICLER_INSTRUCTIONS = `You are the Chronicler of a text RPG. A scenario has just ended. In this game achievements are earned only
+through code rules that count what the player did (defeats, places reached, deals made, foes who yielded, and so on). You
+never grant anything and never narrate: you propose new achievements to the game's designer, who decides which become rules.
+
+You receive SCENARIO (what it turned on and how it ended), TURNS (what the player typed and what the story told, oldest
+first), LIBRARY (what the existing achievements count, each followed by the names that count it) and PROPOSED (deeds already
+proposed earlier).
+
+Propose deeds the player did in this scenario that no achievement in LIBRARY counts and that PROPOSED does not already name.
+A good deed is something code could count from what happened (a kind of act, a circumstance, a number), not a mood or a
+judgement of the story, and it is worth a player's pride or regret. Give as many ideas as the scenario truly offers, and
+none if it offers nothing new: there is no set number.
+
+For each idea:
+- name: a short achievement title that fits a grounded dark fantasy world.
+- deed: what code would count, in plain words, with a count where one fits ("3 foes disarmed without being struck").
+- turn: the turn in TURNS that showed it.
+- seen: one short line on what happened there.`;
+const CHRONICLER_SHAPE = '{"ideas":[{"name":string,"deed":string,"turn":number,"seen":string}]}';
+
 /** no children: every agent's world holds no one younger than a Youth */
 const NO_CHILDREN = 'There are no children in this world: everyone is a teenager or older. Never cast, describe or mention a child.';
 const fixed = (instr: string, shape: string) => `${instr}\n\n${NO_CHILDREN}\n\nSCHEMA:\n${shape}`;
@@ -617,4 +638,5 @@ export const FIXED = {
   region: withLore(fixed(WORLD_BUILDER_REGION_INSTRUCTIONS, REGION_SHAPE)),
   world: withLore(fixed(WORLD_BUILDER_INSTRUCTIONS, WEAVER_SHAPE)),
   window: withLore(fixed(WEAVER_WINDOW_INSTRUCTIONS, '{"start":boolean,"note"?:string}')),
+  chronicler: fixed(CHRONICLER_INSTRUCTIONS, CHRONICLER_SHAPE),
 } as const;

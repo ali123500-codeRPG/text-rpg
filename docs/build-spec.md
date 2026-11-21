@@ -48,6 +48,7 @@ game system to its topics, code and tests. A new topic is a new file here plus i
 - [World, tone and the power ladder](spec/part-2-turn-engine/world-tone-and-the-power-ladder.md)
 - [Agent World builder](spec/part-2-turn-engine/agent-world-builder.md)
 - [Agent Weaver](spec/part-2-turn-engine/agent-weaver.md)
+- [Agent Chronicler](spec/part-2-turn-engine/agent-chronicler.md)
 - [Opening narration](spec/part-2-turn-engine/opening-narration.md)
 - [Explore mode](spec/part-2-turn-engine/explore-mode.md)
 - [Latency and cost](spec/part-2-turn-engine/latency-and-cost.md)

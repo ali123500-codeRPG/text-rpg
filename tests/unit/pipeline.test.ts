@@ -53,6 +53,7 @@ vi.mock('../../src/views', async () => {
 vi.mock('../../src/save', () => ({
   saveTurn: vi.fn(async () => ({})),
   saveHistory: vi.fn(async () => {}),
+  amendHead: vi.fn(async () => {}),
   loadHistory: vi.fn(async () => []),
   loadStory: vi.fn(),
   undoTurn: vi.fn(),
@@ -276,5 +277,26 @@ describe('SD1 scenario ending moment', () => {
     expect(game.lines().at(-1)).toMatchObject({ kind: 'narration', text: narr.text, scenarioEnd: { as: 'escaped', name: 'escaped', closing: 'The cellar door slams behind you.' } });
     expect(sentText(claude.calls.at(-1)!)).toContain('"scenarioEnded":"escaped"');
     expect(sentText(claude.calls.at(-1)!)).not.toContain('hidden');
+  });
+
+  it('AA-108: an ended scenario gets one background Chronicler call, whose deed ideas join the Wanted list after the turn', async () => {
+    start();
+    H.onResolve = (s) => {
+      s.stage.scenario = { number: 1 } as NonNullable<GameState['stage']['scenario']>; s.stage.ended = { as: 'resolved', text: 'hidden' }; s.stage.breakCause = 'scenario_end';
+      (s.hidden.scenarios ??= []).push({ number: 1, question: 'q', scale: 'minor', tier: 'T1', ending: 'resolved', text: 'done', startTurn: 1, endTurn: s.turn, fallen: [], gained: [] } as never);
+    };
+    claude.push('parser', intentOf()).push('narrator', narr).push('chronicler', { ideas: [{ name: 'Mug Breaker', deed: '1 foe struck with a drinking vessel', turn: 1, seen: 'smashed a mug' }] });
+    let release = () => {};
+    const held = new Promise<void>((r) => { release = r; });
+    const call = claude.call.bind(claude);
+    claude.call = async (req) => { if (req.agent === 'chronicler') await held; return call(req); };
+    await game.submit('smash the mug on his head', { aimed: false });
+    expect(state.hidden.templateWants ?? []).toEqual([]); // the turn did not wait for it
+    release();
+    await game.settle();
+    const sent = sentText(claude.callsFor('chronicler')[0]);
+    expect(sent).toContain('smash the mug on his head');
+    expect(sent).toContain(narr.text);
+    expect(state.hidden.templateWants).toEqual([{ turn: 1, scenario: 1, actorId: state.player.id, label: 'Mug Breaker', wanted: '1 foe struck with a drinking vessel (smashed a mug)', template: '', of: 'deed' }]);
   });
 });
