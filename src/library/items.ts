@@ -257,6 +257,8 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
     effects: [{ kind: 'rollMod', roll: 'event', value: 5, active: 'carried', scope: 'any' }] },
   { id: IT.lockpicks, kind: 'tool', name: 'lockpicks', look: 'a roll of lockpicks', bulk: 0, grips: 1,
     effects: [{ kind: 'skill', skill: SK.filching, value: 25, active: 'inUse', scope: 'withItem' }] }, // only while picking a lock with them
+  { id: IT.bent_wire_picks, kind: 'tool', tags: [CRUDE_KIT_TAG], name: 'bent-wire picks', look: 'a twist of bent wires', bulk: 0, grips: 1,
+    effects: [{ kind: 'skill', skill: SK.filching, value: 10, active: 'inUse', scope: 'withItem' }] }, // CG1 b: half the lockpicks' bonus, only while picking
   // BW22 a: breaking tools. In use (held in both grips) each adds CONFIG.BREAK_TOOL_KG to the breaker's force (src/ruleset/breaking.ts)
   { id: IT.sledgehammer, kind: 'tool', name: 'sledgehammer', look: 'a long-hafted iron sledgehammer', bulk: 2, grips: 2, tags: [BREAK_TOOL_TAG] },
   { id: IT.pick, kind: 'tool', name: 'pick', look: 'a heavy iron pick on an ash haft', bulk: 2, grips: 2, tags: [BREAK_TOOL_TAG] },

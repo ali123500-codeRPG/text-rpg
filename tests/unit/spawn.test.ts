@@ -34,11 +34,12 @@ describe('player creation', () => {
     for (const i of p.core.inventory) expect(shortBy(p, itemDef(null, i.itemId))).toBe(0); // EQ13: the build meets its starting gear
     expect(() => createPlayer({ ...recommendedBuild(), tagged: [] }, 's1')).toThrow(/invalid build/);
   });
-  it('CG1-CG3: a gear-class skill with CRUDE_KIT_MIN_SKILL own points and no piece met gives its Crude piece', () => {
+  it('CG1-CG3: a gear-class skill with CRUDE_KIT_MIN_SKILL own points and no piece met gives its Crude piece; Filching and Medicine theirs', () => {
     const b = recommendedBuild();
-    const p = createPlayer({ ...b, skills: { ...b.skills, [SK.ranged_light]: 10, [SK.block]: 5, [SK.medium_armor]: 3, [SK.unarmed_strike]: 1 } }, 's1', { preview: true });
+    const p = createPlayer({ ...b, skills: { ...b.skills, [SK.ranged_light]: 10, [SK.block]: 5, [SK.medium_armor]: 3, [SK.unarmed_strike]: 1, [SK.filching]: 3, [SK.healing]: 2 } }, 's1', { preview: true });
     const kit = p.core.inventory.map((i) => i.itemId);
-    expect(kit).toEqual(expect.arrayContaining([IT.stick_bow, IT.plank_shield, IT.patched_mail, IT.crude_clothes, IT.arming_sword]));
+    expect(kit).toEqual(expect.arrayContaining([IT.stick_bow, IT.plank_shield, IT.patched_mail, IT.crude_clothes, IT.arming_sword, IT.bent_wire_picks]));
+    expect(p.core.inventory.find((i) => i.itemId === IT.bandage)?.qty).toBe(CONFIG.STARTING_BANDAGES + CONFIG.CRUDE_KIT_BANDAGES); // CG1 b: Medicine
     // CG2: stand-ins do not count (no green-wood bow from Light Ranged); 1 point is not enough; CG3: Medium Weapons met the
     // Fine sword, so no cudgel
     for (const id of [IT.green_wood_bow, IT.rickety_crossbow, IT.rag_wraps, IT.cudgel]) expect(kit).not.toContain(id);

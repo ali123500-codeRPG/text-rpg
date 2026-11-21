@@ -267,13 +267,15 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
   meets no weapon (none of its weapon skills at 25) starts in them with no weapon (Ali, 09/11/2026).
 - **SHEET-167** **Crude pieces for skills put in** (CG1-CG4): a gear class with no starter piece met gives its Crude
   piece (tag CRUDE\_KIT\_TAG) when the build put at least CRUDE\_KIT\_MIN\_SKILL (`src/config/gear.ts`) points into that
-  class's own skill; stand-ins do not count (CG2). Only the gear-class skills give one (CG1); a met Common or Fine piece
-  replaces it, one piece per class as SHEET-163 (CG3). Improvised and rough clothes are unchanged (clothes come to
+  class's own skill; stand-ins do not count (CG2). A met Common or Fine piece replaces it, one piece per class as SHEET-163
+  (CG3). Two tool skills give theirs the same way (CG1 b): Filching gives bent-wire picks (a Filching bonus while
+  picking, half the lockpicks'), Medicine gives CRUDE\_KIT\_BANDAGES (`src/config/clock.ts`) more bandages. Improvised and rough clothes are unchanged (clothes come to
   everyone). The Crude pieces: light melee rusty knife, medium melee cudgel, heavy melee splitting maul, light ranged
   stick bow, medium ranged green-wood bow, heavy ranged rickety crossbow, medium armor patched mail shirt, heavy armor
   rusted scale coat, shield plank shield, gauntlets rag hand wraps (CG4). Like every Crude piece they add no bonus, stop
   nothing and cost no Dodge (SHEET-166, SHEET-168). Owner's ask (21/11/2026): "grant crude equipment on character
-  creation for skills above 1".
+  creation for skills above 1"; answers CG1 b, CG2 a, CG3 a, CG4 a (Questions hub, "Crude starting gear",
+  21/11/2026).
 - **SHEET-168** **Equipment balance lever**: a standard-kit piece's bonus is EQUIP\_FACTOR × its need (EQUIP\_FACTOR 0.4
   for now; it replaces the flat KIT\_BONUS 25), so all equipment is rebalanced with one number: Crude 0, Common +10,
   Fine +20, Superior +30, Masterwork +40 (Ali, 09/11/2026).

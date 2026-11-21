@@ -33,6 +33,7 @@ export const IT = {
   // CG4: Crude pieces for the gear classes that had none
   splitting_maul: 'IT89', stick_bow: 'IT90', green_wood_bow: 'IT91', rickety_crossbow: 'IT92', patched_mail: 'IT93',
   rusted_scale_coat: 'IT94', plank_shield: 'IT95', rag_wraps: 'IT96',
+  bent_wire_picks: 'IT97', // CG1 b: Filching's Crude tool
 } as const;
 /** BW22 a: the tag that makes an item a breaking tool (a sledgehammer, a pick) */
 export const BREAK_TOOL_TAG = 'break_tool';

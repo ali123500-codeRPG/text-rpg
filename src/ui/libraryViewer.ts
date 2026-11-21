@@ -295,7 +295,7 @@ function gear(): HTMLElement[] {
   const rule = h('article', { class: 'lv-card lv-fixed' }, h('header', {}, h('h3', {}, 'How the starter kit is given'), chip('starterKit · src/library/spawn.ts')),
     h('ol', { class: 'lv-steps' },
       h('li', {}, `After creation the player gets, for each gear class, the highest-level item tagged starter whose equip requirement the build meets (shortBy = 0; a stand-in skill counts at its share). Every class has a ${CONFIG.EQUIP_NEED.common} and a ${CONFIG.EQUIP_NEED.fine} piece.`),
-      h('li', {}, `A class with no piece met gives its Crude piece when the build put at least ${CONFIG.CRUDE_KIT_MIN_SKILL} points into that class's own skill (stand-ins do not count). Rough clothes come to everyone.`),
+      h('li', {}, `A class with no piece met gives its Crude piece when the build put at least ${CONFIG.CRUDE_KIT_MIN_SKILL} points into that class's own skill (stand-ins do not count). Filching gives bent-wire picks, and Medicine ${CONFIG.CRUDE_KIT_BANDAGES} more bandages, the same way. Rough clothes come to everyone.`),
       h('li', {}, 'Held: the met weapon whose required skill is highest, then the higher item level. A met shield goes in another grip unless that weapon takes two grips.'),
       h('li', {}, 'Worn: the highest-level armor met.'),
       h('li', {}, 'Everything else met is carried in the pack.')));
