@@ -7,6 +7,8 @@ import { PK } from '../library/perkIds';
 import { SK } from '../library/skillIds';
 import { skillName } from '../library/skillNames';
 import { CONFIG } from '../config';
+import { tint } from './kit';
+import { skillTone } from './tipTones';
 import type { GameState, Intent, Personality, PlayerView } from '../types';
 import { HEALTH_LEVELS } from '../scales';
 import { isDownLevel, othersHealthWord } from '../ruleset';
@@ -177,7 +179,7 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
       (c) => order(c.words!, { action: act(type, { target: c.target!, ...(demand ? { demand: 'yield' as const } : {}) }), spoken: c.words!, addressees: [c.target!] }), { note });
     speech('persuade', 'persuade', 'Persuade', up.some((a) => a.talkDown) ? 'talk a foe down · easier once they are hurt or scared' : 'your words, Persuasion');
     speech('deceive', 'deceive', 'Lie to', up.some((a) => a.talkDown) ? `a lie to end it · ${skillName(SK.falsehood)} against their Insight` : `${skillName(SK.falsehood)} against their Insight`);
-    speech('intimidate', 'intimidate', 'Threaten', 'Intimidation', up); // BF86: a threat needs no words, so beasts too
+    speech('intimidate', 'intimidate', 'Threaten', tint(skillTone(SK.intimidation), 'Intimidation'), up); // BF86: a threat needs no words, so beasts too
     speech('barter', 'barter', 'Haggle with', up.some((a) => a.talkDown) ? 'pay a foe to stop: name the coin' : 'Barter');
     const demandable = talkers.filter((a) => a.demandYield);
     if (demandable.length) speech('demand', 'persuade', 'Demand surrender', 'Persuasion; a bigger win', demandable, true);

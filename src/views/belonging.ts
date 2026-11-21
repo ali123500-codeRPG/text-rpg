@@ -66,12 +66,13 @@ const up = (x: string) => x.charAt(0).toUpperCase() + x.slice(1);
 export const theName = (n: string): string => (/^the\b/i.test(n) ? n : `the ${n}`);
 
 /** a tie in a few words: "Millbrook Watch · watch captain"; a tie to a person reads "hired by Osric" */
-export const tieText = (t: TieView): string => (t.org ? [up(t.name), t.title].filter(Boolean).join(' · ') : `${t.status === TIE_STATUS.name('hired') ? 'hired by' : `${t.status} of`} ${t.name}`);
+/** `mark` wraps each name (the screen tints them) */
+export const tieText = (t: TieView, mark = (x: string) => x): string => (t.org ? [mark(up(t.name)), t.title].filter(Boolean).join(' · ') : `${t.status === TIE_STATUS.name('hired') ? 'hired by' : `${t.status} of`} ${mark(t.name)}`);
 
 /** BEL-15 in one line: "Held by the Millbrook council, whose law runs here"; a different law-giver gets its own clause */
-export function ruleText(r: NonNullable<BelongingView['rule']>): string {
+export function ruleText(r: NonNullable<BelongingView['rule']>, mark = (x: string) => x): string {
   const the = (x: RuleEnd) => (x.org ? theName(x.name) : x.name);
-  if (r.holder && r.law && r.holder.name === r.law.name) return `Held by ${the(r.holder)}, whose law runs here`;
+  if (r.holder && r.law && r.holder.name === r.law.name) return `Held by ${mark(the(r.holder))}, whose law runs here`;
   const law = r.law && the(r.law);
-  return [r.holder ? `Held by ${the(r.holder)}` : '', law ? `${law === 'you' ? 'Your' : `${up(law)}’s`} law runs here` : ''].filter(Boolean).join(' · ');
+  return [r.holder ? `Held by ${mark(the(r.holder))}` : '', law ? `${law === 'you' ? 'Your' : mark(`${up(law)}’s`)} law runs here` : ''].filter(Boolean).join(' · ');
 }

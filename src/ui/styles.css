@@ -22,6 +22,7 @@
   --accent: #9ecbff; --accent-soft: #1f2c3d; --ok: #5cc97a; --warn: #f2b552; --warn-soft: #2e2a22; --danger: #ff6b6b; --danger-soft: #3a1c26;
   --on-btn: #0c1118; --on-pill: #0c1118; --scenario-mark: #ffd36e; --perk-20: var(--scenario-mark); --perk-40: #c49bff; --essence: var(--perk-40); /* the two perk series: 20/60/100/140 gold, 40/80/120 violet */ --deco-1: #1c2025; --deco-2: #9ecbff; --deco-3: #9ecbff;
   --c1: #689ce2; --c2: #72ae75; --c3: #8d99a5; --c4: #e97aac; --c5: #af80dc; --c7: #e29568; --c10: #df7369; --c12: #6cadae; --c14: #b4786a; --c15: #caad69;
+  --tie: var(--c13); /* a person's ties: organizations and titles */
   --c6: #c7a5e4; --c8: #f19e94; --c9: #72bed3; --c11: #6474b0; --c13: #a2ad67; --c16: #628c71; --c17: #bf6895; --c18: #9865b7; --c19: #7c7bde; --c20: #92adff; --c21: #c18a9a; --c22: #8e6f8a;
   --btn-fill: var(--accent);
   --grad-deco: var(--accent);
@@ -91,8 +92,9 @@ html { caret-color: var(--accent); scrollbar-color: var(--rule) var(--bg); }
 /* C7: a quest ready to hand in: a gold dot on the rail's Quests item */
 .hs-rail .rail-dot { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--scenario-mark); outline: 2px solid var(--bg); }
 .rail-label, .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.game-tip { position: fixed; z-index: 90; width: max-content; max-width: 320px; padding: 4px 10px; border-radius: var(--r-md); background: var(--text); color: var(--bg);
-  font-size: 13px; font-weight: 600; line-height: 1.4; white-space: pre-line; pointer-events: none; }
+.game-tip { position: fixed; z-index: 90; width: max-content; max-width: 320px; padding: 4px 10px; border-radius: var(--r-md); background: var(--surface); color: var(--text);
+  border: 1px solid var(--rule); box-shadow: var(--shadow-toast); font-size: 13px; font-weight: 600; line-height: 1.4; white-space: pre-line; pointer-events: none; }
+.game-tip .tip-tint { font-weight: 800; }
 .hs-rail button[aria-pressed="true"] { color: var(--accent); }
 
 main { padding: 20px var(--space-8) 48px; display: grid; gap: var(--space-6); align-content: start; min-width: 0; }
@@ -793,8 +795,10 @@ button.cs-sigil:hover, button.cs-sigil:focus-visible { box-shadow: 0 0 0 4px var
 .htag { display: inline-block; padding: 1px 9px; border-radius: 999px; font-size: 13px; line-height: 18px; border: 1px solid; --c: var(--faint); color: var(--c);
   border-color: color-mix(in oklch, var(--c) 60%, transparent); background: color-mix(in oklch, var(--c) 12%, transparent); }
 /* Built from the semantic tokens: ok → warn → danger, then grey for gone. Mixes stay in token space. */
-.lv0, .ps0 { --c: var(--ok); } .lv1 { --c: color-mix(in oklch, var(--ok), var(--warn)); } .lv2, .ps1 { --c: var(--warn); } .lv3 { --c: var(--c7); }
-.lv4 { --c: color-mix(in oklch, var(--c7), var(--danger)); } .lv5, .ps2 { --c: var(--danger); } .lv6 { --c: color-mix(in oklch, var(--danger) 75%, var(--bg)); } .lv7, .ps3 { --c: var(--c3); }
+:root { --lv0: var(--ok); --lv1: color-mix(in oklch, var(--ok), var(--warn)); --lv2: var(--warn); --lv3: var(--c7); --lv4: color-mix(in oklch, var(--c7), var(--danger));
+  --lv5: var(--danger); --lv6: color-mix(in oklch, var(--danger) 75%, var(--bg)); --lv7: var(--c3); }
+.lv0, .ps0 { --c: var(--lv0); } .lv1 { --c: var(--lv1); } .lv2, .ps1 { --c: var(--lv2); } .lv3 { --c: var(--lv3); }
+.lv4 { --c: var(--lv4); } .lv5, .ps2 { --c: var(--lv5); } .lv6 { --c: var(--lv6); } .lv7, .ps3 { --c: var(--lv7); }
 .hseg { display: inline-flex; gap: 3px; margin-left: auto; flex: none; }
 .hseg i { width: 14px; height: 8px; border-radius: 2px; background: var(--border); }
 .hseg i[class^="lv"] { background: var(--c); }

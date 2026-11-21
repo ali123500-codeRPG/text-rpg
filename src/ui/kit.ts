@@ -96,10 +96,13 @@ export function h<K extends keyof HTMLElementTagNameMap>(tag: K, attrs: Attrs = 
     if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2), v as EventListener);
     else if (k === 'class') el.className = String(v);
     else if (k === 'style') el.setAttribute('style', String(v));
+    else if (k.startsWith('aria-') && typeof v === 'string') el.setAttribute(k, tipPlain(v)); // a tinted tip passed as the name too
     else if (k in el && typeof v !== 'string') (el as unknown as Record<string, unknown>)[k] = v;
     else el.setAttribute(k, v === true ? '' : String(v));
   }
   for (const c of kids.flat()) if (c !== null && c !== undefined && c !== false) el.append(c instanceof Node ? c : String(c));
+  const tip = el.getAttribute('title');
+  if (tip && tip !== tipPlain(tip)) setTip(el, tip); // tinted: never the browser's tooltip, and screen readers get the plain words
   return el;
 }
 
@@ -243,28 +246,45 @@ export function tipFor<E extends HTMLElement>(el: E, show: () => void, hide: () 
   return el;
 }
 
+/** a hover tip's coloured words: tint('ok', 'Healthy') marks words that name something with a colour of its own (a skill's
+ *  tree, a health level, a perk series, a tie) with that colour's token from :root, without the dashes. Plain words
+ *  and controls stay untinted. The page's tip draws the colour; screen readers get the words alone (tipPlain) */
+const TINT = /\u27e6([\w-]+)\|([^\u27e7]*)\u27e7/g;
+export const tint = (tone: string | null | undefined, words: string): string => (tone && words ? `\u27e6${tone}|${words}\u27e7` : words);
+export const tipPlain = (text: string): string => text.replace(TINT, '$2');
+function tipNodes(text: string): (Node | string)[] {
+  const out: (Node | string)[] = []; let at = 0;
+  for (const m of text.matchAll(TINT)) {
+    out.push(text.slice(at, m.index), h('span', { class: 'tip-tint', style: `color:var(--${m[1]})` }, m[2]));
+    at = m.index! + m[0].length;
+  }
+  out.push(text.slice(at));
+  return out.filter((x) => x !== '');
+}
+
 /** the element whose tip shows for `from`: the nearest with a tip of its own (tipFor), a title, a data-tip or an SVG <title>. A title or
  *  <title> moves to data-tip here, before the browser's own tooltip can show; screen readers keep it, as the element's
  *  name when it has none, otherwise as its description */
 function tipSource(from: EventTarget | null): Element | null {
   for (let n = from instanceof Element ? from : null; n; n = n.parentElement) {
     const kid = n.querySelector(':scope > title'), text = n.getAttribute('title') ?? kid?.textContent;
-    if (text != null) {
-      n.removeAttribute('title'); kid?.remove();
-      const was = n.getAttribute('data-tip');
-      if (was !== null && n.getAttribute('aria-label') === was) n.removeAttribute('aria-label'); // the name given last time
-      n.removeAttribute('aria-description');
-      if (!text) n.removeAttribute('data-tip');
-      else {
-        n.setAttribute('data-tip', text);
-        const name = n.getAttribute('aria-label');
-        if (name === null && !n.hasAttribute('aria-labelledby') && !n.textContent?.trim()) n.setAttribute('aria-label', text);
-        else if (name !== text) n.setAttribute('aria-description', text);
-      }
-    }
+    if (text != null) { kid?.remove(); setTip(n, text); }
     if (ownTips.has(n) || n.getAttribute('data-tip')) return n;
   }
   return null;
+}
+/** n's tip becomes `text` (tinted words and all), in data-tip; screen readers keep the plain words, as n's name when it
+ *  has none, otherwise as its description */
+function setTip(n: Element, text: string): void {
+  n.removeAttribute('title');
+  const was = n.getAttribute('data-tip');
+  if (was !== null && n.getAttribute('aria-label') === tipPlain(was)) n.removeAttribute('aria-label'); // the name given last time
+  n.removeAttribute('aria-description');
+  if (!text) { n.removeAttribute('data-tip'); return; }
+  n.setAttribute('data-tip', text);
+  const name = n.getAttribute('aria-label'), plain = tipPlain(text);
+  if (name === null && !n.hasAttribute('aria-labelledby') && !n.textContent?.trim()) n.setAttribute('aria-label', plain);
+  else if (name !== plain) n.setAttribute('aria-description', plain);
 }
 /** A7: the page's one hover tip, for every element with hover text (tipSource): beside a small or focused element,
  *  otherwise beside the pointer; left of the point where the window's right edge is near (BG-357). Call once per page */
@@ -284,7 +304,7 @@ export function mountTip(): void {
     const own = ownTips.get(t);
     tipOn(own ? own.show : () => {
       if (!box.isConnected) document.body.append(box); // a page that rebuilds the body takes it out
-      box.textContent = t.getAttribute('data-tip');
+      box.replaceChildren(...tipNodes(t.getAttribute('data-tip') ?? ''));
       box.hidden = false;
       const r = boxOf(t), w = box.offsetWidth;
       // beside a small control, or a focused one; beside the pointer over anything wide (a map room, a long button)

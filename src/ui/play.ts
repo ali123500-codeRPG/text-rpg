@@ -21,7 +21,7 @@ import { actorBody, getLibrary, perkName } from '../library';
 import type { TierRoll } from '../types';
 import { fellFacts, fellLine } from './fell';
 import { autopilotBar } from './autopilot';
-import { boxOf, h, dragScroll, lineIcon, playDraft, viewSize, safe, turnShown } from './kit';
+import { boxOf, h, tint, dragScroll, lineIcon, playDraft, viewSize, safe, turnShown } from './kit';
 import { perkSeries } from './perks';
 import { drawnBadge, stealthBadge, stealthyTip } from './stealth';
 import { dayOf, now, timeOfDay, timeView } from '../time';
@@ -656,7 +656,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     // the heading is where you are now (the zone), not the story's premise; the place it sits in follows the turn below it
     const here = s ? placeHead(s, pv) : null;
     const titleKids = [h('div', {}, h('h1', {}, here?.here || 'Play', mh('tod', s ? todBadge(timeView(s).day, timeOfDay(now(s)), now(s)) : null), mh('stealth', stealthy ? stealthBadge() : null), mh('drawn', drawn ? drawnBadge() : null), mh('deals', dealChip)),
-      h('p', {}, s ? [`Turn ${lastTurn}`, here?.where ? ' · ' : '', here?.where ? (bv?.rule ? h('span', { title: ruleText(bv.rule) }, here.where) : here.where) : ''] : 'No story yet'), mh('quest', s ? questLine(s, (id) => { questFocus.id = id; nav('quests'); }) : null)), h('div', { class: 'title-tools' }, openerSlot ?? '', rollsBtn ?? '', lengthBtn ?? '', skipBtn ?? '', soundBtn)];
+      h('p', {}, s ? [`Turn ${lastTurn}`, here?.where ? ' · ' : '', here?.where ? (bv?.rule ? h('span', { title: ruleText(bv.rule, (x) => tint('tie', x)) }, here.where) : here.where) : ''] : 'No story yet'), mh('quest', s ? questLine(s, (id) => { questFocus.id = id; nav('quests'); }) : null)), h('div', { class: 'title-tools' }, openerSlot ?? '', rollsBtn ?? '', lengthBtn ?? '', skipBtn ?? '', soundBtn)];
     const titleNow = titleKids.map((k) => k.outerHTML).join('');
     if (!frozen && titleNow !== titleHtml) { openerSlot?.replaceWith(auto.opener); title.replaceChildren(...titleKids); titleHtml = titleNow; }
     story.classList.toggle('no-rolls', !show);
@@ -671,7 +671,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     // PS-172: how far, if your weapon reaches, and the life stage they look unless adult (AG16, SD3) live in the cell's tip
     // BEL-20: the organizations (and people) the player knows them to be tied to follow, one line each
     const tipOf = (a: PlayerView['actors'][number]) => [[whoDistance(a, pv!), a.age && a.age !== LIFE_STAGES.name('stage_2') ? `looks ${a.age.toLowerCase()}` : ''].filter(Boolean).join(' · '),
-      ...(bv?.people[a.id] ?? []).map(tieText)].filter(Boolean).join('\n') || 'What you can do to or with them';
+      ...(bv?.people[a.id] ?? []).map((t) => tieText(t, (x) => tint('tie', x)))].filter(Boolean).join('\n') || 'What you can do to or with them';
     // BEL-09: one who heads an organization the player knows them to be in carries a laurel, the seat in its tip
     const heads = (id: string) => bv?.orgs.filter((o) => o.people.some((x) => x.id === id && x.head)).map((o) => theName(o.name)) ?? [];
     const headMark = (id: string) => { const of = heads(id); if (!of.length) return null; const m = itemIcon('head', undefined, 'head-mark'); m.setAttribute('role', 'img'); m.title = `Heads ${of.join(' and ')}`; m.setAttribute('aria-label', `, heads ${of.join(' and ')}`); return m; };
