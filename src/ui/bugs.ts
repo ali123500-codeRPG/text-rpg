@@ -20,6 +20,22 @@ export function bugSummary(b: FiledBug): string {
 /** SD14: a bug's kind in plain words (agent_fallback → Agent fallback); the code itself is the cell's tip */
 export const bugKind = (code: string): string => (code === 'player_report' ? 'Your report' : cap(code.replace(/_/g, ' ')));
 
+/** the text "Copy for Claude" puts on the clipboard: full records, since a thread on another account can't read the db */
+export function bugsForClaude(open: FiledBug[], unsent: string): string {
+  const fresh = unsent ? `\n\nA report not yet saved in the game:\n${unsent}` : '';
+  return `Bugs from the Echoes of the Thread Bugs page, to triage and fix in ali123500-codeRPG/text-rpg. Open a GitHub issue labelled \`bug\` for each real one (its number is its BG-n), then find the root cause and fix it by PR. These are the full records from the game's db bugs collection.${fresh}\n\n\`\`\`json\n${JSON.stringify(open, null, 2)}\n\`\`\``;
+}
+
+/** copies text; the artifact frame may block the clipboard API, so try execCommand first (as the Questions hub does) */
+function copyText(text: string): Promise<boolean> {
+  const t = h('textarea', { readonly: '', style: 'position:fixed;top:0;left:0;opacity:0' });
+  t.value = text; document.body.append(t); t.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch { /* falls back below */ }
+  t.remove();
+  return ok ? Promise.resolve(true) : navigator.clipboard?.writeText(text).then(() => true, () => false) ?? Promise.resolve(false);
+}
+
 export function bugsPage(api: GameApi) {
   const el = h('main', { class: 'bugs' });
   let rows: FiledBug[] | null = null, failed = false, fetchedAt = 0;
@@ -28,6 +44,12 @@ export function bugsPage(api: GameApi) {
   const report = h('button', { type: 'button', class: 'hs-btn-main' }, 'Report bug');
   const claudeNote = h('span', { class: 'hs-note', role: 'status' });
   const toClaude = h('button', { type: 'button', class: 'hs-btn-main', hidden: true }, 'Send open bugs to Claude');
+  const copy = h('button', { type: 'button', class: 'hs-btn', title: 'Copy the bugs as text to paste into a Claude chat' }, 'Copy for Claude');
+  copy.onclick = async () => {
+    const open = rows ?? [], unsent = note.value.trim();
+    if (!open.length && !unsent) { claudeNote.textContent = 'No bugs to copy.'; return; }
+    claudeNote.textContent = (await copyText(bugsForClaude(open, unsent))) ? 'Copied. Paste it into a Claude chat.' : 'Couldn’t copy from here.';
+  };
   let comments: CommentsApi | null = null;
   /** sends the open bugs to Claude; true when sent */
   async function sendOpen(open: FiledBug[], anchorEl: Element): Promise<boolean> {
@@ -51,7 +73,7 @@ export function bugsPage(api: GameApi) {
     rows = open; fetchedAt = Date.now();
     const sent = await sendOpen(open, report).catch(() => false);
     sendNote.textContent = sent ? 'Saved and sent to Claude, who gives it a bug number once it has been looked at.'
-      : 'Saved, but it couldn’t be sent to Claude from here. Leave a comment on this page and send it to Claude.';
+      : 'Saved, but it couldn’t be sent to Claude from here. Use Copy for Claude and paste it into a Claude chat.';
     report.disabled = false;
     draw();
   };
@@ -65,7 +87,7 @@ export function bugsPage(api: GameApi) {
       toClaude.disabled = true;
       claudeNote.textContent = 'Sending…';
       const sent = await sendOpen(open, toClaude).catch(() => false);
-      claudeNote.textContent = sent ? `Sent ${plural(open.length, 'bug')} to Claude.` : 'Couldn’t reach Claude from here. Leave a comment and send it to Claude instead.';
+      claudeNote.textContent = sent ? `Sent ${plural(open.length, 'bug')} to Claude.` : 'Couldn’t reach Claude from here. Use Copy for Claude instead.';
       toClaude.disabled = false;
     };
   }).catch(() => undefined);
@@ -80,7 +102,7 @@ export function bugsPage(api: GameApi) {
     el.replaceChildren(
       h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Bugs'))),
       h('section', { class: 'bug-report' }, note, h('div', { class: 'bug-actions' }, report, sendNote)),
-      h('div', { class: 'bug-bar' }, h('h2', {}, rows ? `New and open bugs (${rows.length})` : 'New and open bugs'), toClaude, claudeNote),
+      h('div', { class: 'bug-bar' }, h('h2', {}, rows ? `New and open bugs (${rows.length})` : 'New and open bugs'), toClaude, copy, claudeNote),
       rows === null ? h('p', { class: 'empty', role: 'status' }, failed ? 'The bug list couldn’t be read from the save.' : 'Reading the save…')
         : rows.length ? h('table', { class: 'bug-table' }, h('thead', {}, h('tr', {}, ['Bug', 'Kind', 'Turn', 'What went wrong', 'Filed'].map((t) => h('th', {}, t)))),
           h('tbody', {}, rows.map(row)))
