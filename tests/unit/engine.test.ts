@@ -382,7 +382,7 @@ describe('gear and combat', () => {
     F.init = { player: 90, patron_1: 80, guard_1: 10 };
     F.damage = 20;
     F.morale = 'broken';
-    for (const i of s.player.core.inventory) delete i.equippedIn; // fists (2 s): the player's blow lands in the same round as the patron's
+    s.player.core.inventory = s.player.core.inventory.filter((i) => !i.equippedIn?.some((e) => e.startsWith('grip:'))); // fists (2 s): the player's blow lands in the same round as the patron's (stowed steel is drawn to fight, DS7)
     actor(s, 'guard_1').core.condition.moraleLost = 96; // near Broken: the new health level's fear (5 × 1.5) breaks it
     resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'guard_1' } }), agentOutputs: [planner('patron_1', npcAction('attack', 'guard_1'))] }), createRng(1));
     expect(F.attacks.map((a) => a.context?.defensesThisTurn)).toEqual([0, 1]); // AT50: two blows in the same round; the break stops the repeats

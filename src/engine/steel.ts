@@ -34,9 +34,10 @@ export function drawToFight(state: GameState, a: Actor, named?: string | null): 
   else readied(state, a, true);
 }
 
-/** DS7: an attack that takes up steel: one naming a weapon it carries, or naming no weapon and no blow of the body (a punch
+/** DS7 (drawing is social, never a gate): an order that takes up steel: a break, or an attack naming a weapon it carries, or naming no weapon and no blow of the body (a punch
  * names its body mode: it keeps the hands empty) */
 export function attackDraws(state: GameState, a: Actor, o: Order): boolean {
+  if (o.type === 'break') return true; // breaking or forcing open uses the blade or heavy weapon it carries (a cut, Shield Breaker)
   if (o.type !== 'attack' || o.item === 'unarmed' || o.item?.startsWith('natural:')) return false;
   if (o.item || (!o.mode && !o.skill)) return true;
   return a.core.inventory.some((i) => itemDef(state, i.itemId).weapon?.modes.some((m) => (!o.mode || m.id === o.mode) && (!o.skill || modeSkill(m) === o.skill)));
@@ -69,7 +70,7 @@ export function noteChoice(state: GameState, a: Actor, ops: GearOp[]): void {
  * or the actor attacks this turn */
 export function steelEvent(state: GameState, a: Actor, o: Order, before: ItemInstance[]): Pick<GameEvent, 'kind' | 'itemId' | 'target'> | undefined {
   const now = heldWeapons(state, a);
-  if (!now.length === !before.length || o.type === 'attack') return undefined;
+  if (!now.length === !before.length || o.type === 'attack' || o.type === 'break') return undefined;
   const t = o.target && o.target !== a.id ? o.target : undefined;
   return { kind: now.length ? 'draw_weapon' : 'sheathe_weapon', itemId: (now[0] ?? before[0]).itemId, ...(t ? { target: t } : {}) };
 }

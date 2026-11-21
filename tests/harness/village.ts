@@ -161,6 +161,7 @@ function buildVillage(opts: VillageOpts): GameState {
   // PZ1: titles on a floor plan, so everyone stands at a point in metres, as in every world the game builds
   drawTitles(state, titles);
   placeAll(state);
+  if (!opts.sheathed) for (const a of state.actors) if (a.mind) a.mind.drawnOnPurpose = true; // the fixture's NPCs keep their steel drawn unless a test puts it away
   return state;
 }
 

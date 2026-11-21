@@ -100,7 +100,7 @@ describe('333 breaking a box open on the gate (OD13 a)', () => {
   };
   const bare = (s: GameState, raw: number) => {
     s.player.core.skills[SK.unarmed_improvised] = { raw, state: 'normal' };
-    for (const i of s.player.core.inventory) if (i.equippedIn?.some((g) => g.startsWith('grip:'))) i.equippedIn = [];
+    s.player.core.inventory = s.player.core.inventory.filter((i) => !i.equippedIn?.some((g) => g.startsWith('grip:'))); // gone, not stowed: stowed steel is drawn to break (DS7)
   };
   const brk = (s: GameState, seed?: number) => play(s, { intent: intent({ action: { type: 'break', target: 'box' } }) }, seed).find((e) => e.kind === 'break_open')!;
   it('out of reach: no roll, it stays shut and nothing inside breaks', () => {

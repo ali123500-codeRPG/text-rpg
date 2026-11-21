@@ -42,8 +42,8 @@ it('DS1/DS7: an attack draws at no cost and with no event; the one attacked draw
 });
 
 it('DS2: a calm NPC puts away what code drew for it, and that is seen', () => {
-  const s = makeVillage({ playerZone: 'tav_common' }); // the fixture's NPCs stand drawn, not by choice
-  place(s, 'guard_1', 'tav_common');
+  const s = makeVillage({ playerZone: 'tav_common' });
+  delete place(s, 'guard_1', 'tav_common').mind!.drawnOnPurpose; // drawn, not by its own choice
   const ev = play(s);
   expect(ev.find((e) => e.kind === 'sheathe_weapon' && e.actorId === 'guard_1')).toBeTruthy();
   expect(armed(s, actor(s, 'guard_1'))).toBe(false);

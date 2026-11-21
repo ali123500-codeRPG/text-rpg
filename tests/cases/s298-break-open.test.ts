@@ -20,7 +20,7 @@ const box = (s: GameState, itemId: string = IT.chest, extra: object = {}) => {
   layAll(s, 'tav_common', { id: 'box', itemId, contents: [{ id: 'cup', itemId: IT.curio }], lock: { locked: true }, grade: 'minor', ...extra });
   return groundIn(s, 'tav_common').find((i) => i.id === 'box')!;
 };
-const bare = (s: GameState) => { for (const i of s.player.core.inventory) if (i.equippedIn?.some((g) => g.startsWith('grip:'))) i.equippedIn = []; };
+const bare = (s: GameState) => { s.player.core.inventory = s.player.core.inventory.filter((i) => !i.equippedIn?.some((g) => g.startsWith('grip:'))); }; // gone, not stowed: stowed steel is drawn to break (DS7)
 
 it('BF31: breaking a locked chest is a loud roll; Success opens it and breaks its lock for good, else it stays locked', () => {
   for (const seed of [1]) { // seeds 1-6 all opened it: more seeds reached no other branch
