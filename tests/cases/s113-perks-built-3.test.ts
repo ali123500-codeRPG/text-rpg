@@ -44,6 +44,7 @@ describe('113 coded perks, batch 3', () => {
     const s = makeVillage({ playerZone: 'tav_counter' });
     s.player.core.skills[SK.persuasion] = { ...s.player.core.skills[SK.persuasion], raw: 10 };
     s.player.core.skills[SK.intimidation] = { ...s.player.core.skills[SK.intimidation], raw: 60 };
+    for (const i of s.player.core.inventory) if (i.equippedIn?.some((e) => e.startsWith('grip:'))) delete i.equippedIn; // sheathed: no Steel in hand on the talk (DS6)
     const t = npc(s, 'trader');
     t.mind = { ...t.mind, overrides: { ...t.mind?.overrides, player: stance } } as never;
     s.hidden.secrets.push({ id: 'informant', holderId: 'trader', fact: 'the captain is the informant', leakTerms: ['informant'],
