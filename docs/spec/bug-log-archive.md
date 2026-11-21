@@ -361,3 +361,4 @@ Closed rows of the "Bug log" (`bug-log.md`): fixed, won't fix or duplicate. A ro
 | BG-355 | Plain doors on the Map test stages had no barrier record, so they drew as open gaps and acted as doorways (MAP-52) | Thread | Fixed | #1447 |
 | BG-356 | On the Map a person's disc and your pin drifted off their own point as you zoomed in, so a last-seen disc sat off its ring's centre (MAP-68) | Owner | Fixed | #1449 |
 | BG-357 | A pop-up opened from the minimap could end up off screen: placed once for the window's size at opening and never moved back in when the window narrowed, and the minimap's tip ran off the right edge (PS-490) | Owner | Fixed | #1463 |
+| BG-358 | The Questions hub home list showed a questionnaire as all read while it had open questions: one future `updated` froze its change check | Owner | Fixed | #1469 |

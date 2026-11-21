@@ -10,6 +10,16 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the spec's bug log, docs/spec/bug-log.md, has one. Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-358
+
+**What was wrong:** The Questions hub's home list said nothing was waiting, but opening a questionnaire showed open questions. On 21/11/2026 "map-one" was listed as "All answered and read" while MQ22 and MQ23 were open.
+
+**Root cause:** `loadRows` in `tools/questions-hub/hub.html` read only the pages whose `updated` was later than the shared `hub/index`'s `seen`, the highest `updated` it had ever counted. `updated` is the writer's own time, not the database's. map-one's page once carried `2026-11-21T09:00:00Z`, five hours ahead, so `seen` became 09:00Z. Every later write had an earlier `updated` and was skipped. A completed questionnaire's row is not counted again on the home list, so map-one's new round (written at 02:38Z) never showed. Four open questionnaires (repair-d89, npc-scalability, open-parked-items, map-rules-revision) also kept their old question lists. An outbox that runs after a later write from the other account causes the same miss without a wrong clock.
+
+**What was done:** The home list now reads each page's `updated` on its own (a small query, `stamps`) and reads again every questionnaire whose `updated` differs from its index row. It no longer compares times, so a clock that runs ahead or a late write cannot hide a change. New, copied-in and deleted questionnaires come out of the same check, so the separate id read is gone. The time cursor stays only for a page with no Supabase, which reads its own database alone. Checked against the live table: the new check picks out map-one and the four above, and nothing else. `checks/stores.mjs` passes.
+
+**Fixed by:** #1469
+
 ## BG-357
 
 **What was wrong:** A box opened from the minimap could sit off screen where the player could not find it. Reproduced on the built page (`?fake=1`): a door's menu opened at 1400 px wide sat at x 780–1162; after the window narrowed to 700 px it stayed there, wholly outside the window. The minimap's hover and click tip (`rail-tip`) for a mark near the right edge ran past it (x 1151–1425 in a 1280 px window).
