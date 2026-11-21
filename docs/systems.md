@@ -438,6 +438,7 @@ The scenario director, stages and triggers, quests and vows, scenario setup and 
   - `src/engine/pacing.ts`
   - `src/engine/quests.ts`
   - `src/engine/vows.ts`
+  - `src/engine/rewards.ts`
   - `src/engine/scenarioEnd.ts`
   - `src/engine/loot.ts`
   - `src/engine/triggers.ts`

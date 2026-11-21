@@ -104,7 +104,10 @@ export type EssenceBounds = Record<string, number | Past100Key>;
  * are true skill split over `skills` by weight; a deed row (deed: true) puts its points on the scenario's most-marked skill */
 /** D-141 VW14: a reward table: one row is picked by weight; a row naming another table rolls that table instead (a
  * reward type), else it gives its item (qty, default 1) */
-export type RewardTableDef = { id: string; name: string; rows: { weight: number; table?: string; item?: string; qty?: number }[] };
+/** TI-220: where a reward table row can show: a kept vow's draw or the Weaver's (a scenario's rewards) */
+export type RewardSource = 'vow' | 'weaver';
+/** showsIn: the draws this row can show in; left out, it shows in every draw */
+export type RewardTableDef = { id: string; name: string; rows: { weight: number; table?: string; item?: string; qty?: number; showsIn?: RewardSource[] }[] };
 export type EssenceDef = {
   id: string; name: string;
   /** echo: one echo's own essence, on its template's hand-set list only (EN3 b), never on a worked-out list; role: only NPCs

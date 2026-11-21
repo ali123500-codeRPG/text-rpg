@@ -466,6 +466,11 @@ export function prototypeLibrary(): Library {
       ] },
       [RW.vow_threadbound]: { id: RW.vow_threadbound, name: 'Kept vow: Threadbound items', rows: [{ weight: 1, table: RW.threadbound }] },
       [RW.threadbound]: { id: RW.threadbound, name: 'Threadbound items', rows: [{ weight: 1, item: IT.varos_loop }] },
+      // TI-220: the Weaver's rewards draw as a kept vow's do, from a table of their own with the same weights. A row's
+      // showsIn says which draws it can show in (left out: every draw), so a reward type can be for vows only.
+      [RW.weaver]: { id: RW.weaver, name: 'Scenario reward', rows: [{ weight: 3, table: RW.weaver_items }, { weight: 1, table: RW.weaver_threadbound }] },
+      [RW.weaver_items]: { id: RW.weaver_items, name: 'Scenario reward: items', rows: [{ weight: 1, table: RW.items }] },
+      [RW.weaver_threadbound]: { id: RW.weaver_threadbound, name: 'Scenario reward: Threadbound items', rows: [{ weight: 1, table: RW.threadbound }] },
     },
     // growth proposal 2.2: essences. Placeholder rows for the engine; the content round (one table per race and body type,
     // with traits) belongs to the lore and loot threads (D-228). EG11 b: never numbers. NM2: an essence is a small foreign addition

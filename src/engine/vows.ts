@@ -15,9 +15,8 @@ import { rewardXp } from '../ruleset/achRewards';
 import { freshId } from '../ids';
 import type { Rng } from '../types';
 import { RW } from '../library/tableIds';
-import { boon } from '../scenario/validate';
+import { drawRewards } from './rewards';
 import { IT } from '../library/itemIds';
-import { threadboundInWorld } from '../ruleset/threadboundItems';
 import { actorById } from './relations';
 import { logCode } from './effects';
 import { awardXp, charLevel, xpToNext } from './xp';
@@ -104,36 +103,10 @@ export function swearVow(state: GameState, f: VowForm): string | null {
   return null;
 }
 
-/** VW14: one pick from a reward table by weight; a row naming another table rolls that one (a reward type) */
-function drawReward(table: string, rng: Rng, depth = 0): { item: string; qty: number } | undefined {
-  const rows = (getLibrary().rewardTables?.[table]?.rows ?? []).filter((r) => r.weight > 0);
-  const sum = rows.reduce((n, r) => n + r.weight, 0);
-  if (!sum || depth > 8) return undefined;
-  let at = rng.next() * sum;
-  const row = rows.find((r) => (at -= r.weight) < 0) ?? rows[rows.length - 1];
-  return row.table ? drawReward(row.table, rng, depth + 1) : row.item ? { item: row.item, qty: Math.max(1, row.qty ?? 1) } : undefined;
-}
-
-/** VW10/VW15: a kept vow's items: draws from the kept-vow table until their Boon reaches the stake's band budget. A draw
- * may pass the budget by up to VOW_REWARD_MARGIN; one that would pass more is put back, and drawing stops if the total
- * is already within the margin below. At most VOW_REWARD_DRAWS_MAX draws. */
+/** VW10/VW15: a kept vow's items: drawn from the kept-vow table until their Boon reaches the stake's band budget
+ * (drawRewards, src/engine/rewards.ts) */
 export function vowRewards(state: GameState, stake: VowStake, rng: Rng): { item: string; qty: number }[] {
-  const budget = CONFIG.BOON_BUDGET[CONFIG.VOW_STAKE_GAIN[stake]] ?? 0, m = CONFIG.VOW_REWARD_MARGIN;
-  const out: { item: string; qty: number }[] = [];
-  const taken = threadboundInWorld(state);
-  let total = 0;
-  for (let n = 0; n < CONFIG.VOW_REWARD_DRAWS_MAX && total < budget; n++) {
-    const r = drawReward(RW.vow_kept, rng);
-    if (!r) break;
-    const b = boon(state, r.item, r.qty);
-    if (!(b > 0)) continue; // an item with no worth set can't be measured against the band: put back
-    if (getLibrary().items[r.item]?.threadbound && (taken.includes(r.item) || out.some((x) => x.item === r.item))) continue; // one of a kind (D-218)
-    if (total + b > budget * (1 + m)) { if (total >= budget * (1 - m)) break; continue; } // close enough, or put it back and draw again
-    total += b;
-    const had = out.find((x) => x.item === r.item);
-    if (had) had.qty += r.qty; else out.push({ ...r });
-  }
-  return out;
+  return drawRewards(state, RW.vow_kept, 'vow', CONFIG.BOON_BUDGET[CONFIG.VOW_STAKE_GAIN[stake]] ?? 0, rng);
 }
 
 /** VW12 a: the items go to the player's pack at once */

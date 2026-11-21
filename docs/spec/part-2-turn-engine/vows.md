@@ -43,4 +43,10 @@ already names how a turn is settled (VW1 a). Pledges, things given up for power,
   margin below the budget. At most CONFIG.VOW_REWARD_DRAWS_MAX draws. The items go to the pack at once, and the turn's
   changes say so ("Vow kept: … in your pack"; a broken vow says what it took). The vow's panel lists what it gave.
   An item with no worth set is put back, as is a Threadbound item already in the world or already drawn (one of a kind).
+  The draw is `drawRewards` (src/engine/rewards.ts), shared with the Weaver's table (TI-220, the owner, Questions hub page
+  "Open parked items 3", 21/11/2026: "create a similar table for the weaver (same weights, but each item has a trigger for
+  where it can show, for example skill rewards will be an option for vows, but not weaver rewards)"): RW6 "Scenario
+  reward" holds items (RW7, weight 3) and Threadbound items (RW8, weight 1), which draw from the same RW3 and RW5. A row's
+  `showsIn` lists the draws it can show in (vow, weaver); left out, it shows in every draw. How the Weaver's draw reaches
+  its plan is open (TI-220), so the Weaver still chooses its rewards within the Boon budget for now.
 - **Parked.** The lore of vows (VP-1637); Forsworn (VP-1632); pledges (VP-266).
