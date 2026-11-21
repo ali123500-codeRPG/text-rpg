@@ -37,6 +37,13 @@ export function boxOf(el: Element): { left: number; top: number; right: number; 
   return { left: r.left / z, top: r.top / z, right: r.right / z, bottom: r.bottom / z, width: r.width / z, height: r.height / z };
 }
 export const pointOf = (e: { clientX: number; clientY: number }): { x: number; y: number } => { const z = pageZoom(); return { x: e.clientX / z, y: e.clientY / z }; };
+/** BG-357: places a floating box (pop-up, card, tip) at left and top, moved just enough to stay inside the window, 16 px
+ * clear of its edges where it fits. Every floating box is placed through this, so none opens or is left off screen. */
+export function fitInView(el: HTMLElement, left: number, top: number): { left: number; top: number } {
+  const v = viewSize(), at = { left: Math.max(16, Math.min(v.w - el.offsetWidth - 16, left)), top: Math.max(16, Math.min(v.h - el.offsetHeight - 16, top)) };
+  el.style.left = `${at.left}px`; el.style.top = `${at.top}px`;
+  return at;
+}
 
 /** f's value, or null when it throws (a view that can't be built yet shows nothing) */
 export const safe = <T>(f: () => T): T | null => { try { return f(); } catch { return null; } };

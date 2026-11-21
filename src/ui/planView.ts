@@ -6,7 +6,7 @@
 // zone's card (MAP-64, MQ3, MQ7 a). In a fight the rings show how far a move slot walks and a dash runs (AD9, BF91).
 // Nothing changes while a turn runs (M-06).
 import type { GameApi } from '../types';
-import { boxOf, h, tipOff, tipOn } from './kit';
+import { boxOf, fitInView, h, pointOf, tipOff, tipOn, viewSize } from './kit';
 import { CONFIG } from '../config';
 import type { KnownMap, MapZone } from './mapData';
 import { MAX_K, PX_PER_M, TEXT, checkReach, checkStage, hitCap, nameFit, planScene, roughMeasure, type Box, type Measure, type Scene, type TextKind } from './mapPlan';
@@ -111,12 +111,17 @@ export function planView(api: GameApi, opts: PlanOpts) {
   el.append(tipEl);
   let at = { x: 0, y: 0 };
   const tipped = (e: Event) => { const t = (e.target as Element).closest?.('[data-tip]'); return t && el.contains(t) ? t : null; };
-  const showTip = (t: Element, x: number, y: number) => { tipEl.textContent = t.getAttribute('data-tip'); tipEl.style.left = `${x + 14}px`; tipEl.style.top = `${y}px`; tipEl.hidden = false; };
+  // right of the point, or left of it where the window's edge is near (the minimap sits at the right edge, BG-357)
+  const showTip = (t: Element, x: number, y: number) => {
+    tipEl.textContent = t.getAttribute('data-tip'); tipEl.hidden = false;
+    const w = tipEl.offsetWidth;
+    fitInView(tipEl, x + 14 + w + 16 > viewSize().w ? x - 14 - w : x + 14, y - tipEl.offsetHeight / 2);
+  };
   const hideTip = () => tipOff(() => { tipEl.hidden = true; });
-  el.addEventListener('pointermove', (e) => { at = { x: e.clientX, y: e.clientY }; });
+  el.addEventListener('pointermove', (e) => { at = pointOf(e); });
   el.addEventListener('pointerover', (e) => {
     const t = tipped(e);
-    at = { x: e.clientX, y: e.clientY };
+    at = pointOf(e);
     if (t) tipOn(() => showTip(t, at.x, at.y)); else hideTip();
   });
   el.addEventListener('focusin', (e) => { const t = tipped(e); if (t) tipOn(() => { const r = boxOf(t); showTip(t, r.right, r.top + r.height / 2); }, true); });

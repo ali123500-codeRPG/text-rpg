@@ -197,7 +197,7 @@ export type FameEntry = {
   perks: string[]; achievements: string[]; scars: string[];
   defeats: number; turn: number; day: number; place: string;
   downedBy?: import('./game').DownedBy;
-  /** TS1: the report card, a rank key per line (letters come from GRADE_LETTERS) */
+  /** TS1: the report card, a grade key per line: a rank row, or grade_fff / grade_ff below F (letters come from GRADE_LETTERS) */
   card: { combat: string; achievements: string; reputation: string };
   fellAt: string; // ISO time the story was archived
 };

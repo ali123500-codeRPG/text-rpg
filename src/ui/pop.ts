@@ -3,7 +3,10 @@
 // opening another replaces it. A full-screen pop-up covers the page for a board too big for a panel (Perks); partial
 // pop-ups and the perk card still open on top of it. Both close with ✕ or Esc, focus goes back to what opened them, and
 // each opens and closes with one short fade (exit faster than entrance, M-51; none with motion off, M-72).
-import { boxOf, h, pointOf, viewSize } from './kit';
+import { boxOf, fitInView, h, iconMark, pointOf, viewSize } from './kit';
+import { ICONS } from './itemIcons';
+
+type Box = ReturnType<typeof boxOf>;
 import { arrive, ms, moving, play } from './motion';
 
 let current: { el: HTMLElement; opener?: HTMLElement | null; back?: true } | null = null;
@@ -74,37 +77,38 @@ if (typeof document !== 'undefined') {
   // Back closes it (BG-220); leaving the page closes it
   addEventListener('popstate', () => { if (current?.back) closePop(true); closeFull(true); });
   addEventListener('hashchange', () => { if (current?.back) closePop(true); closeFull(true); });
+  // BG-357: a pop-up placed for one window size is moved back into view when the window changes size
+  addEventListener('resize', () => { document.querySelectorAll<HTMLElement>('.dpop, .pk-card').forEach((el) => fitInView(el, parseFloat(el.style.left) || 0, parseFloat(el.style.top) || 0)); });
 }
 
-/** opens a details pop-up near its opener; tone names a colour token for its edge (scenario-mark, danger…) */
-export function openPop(o: { title: string; body: (Node | string | null)[]; opener?: HTMLElement | null; tone?: string; cls?: string; back?: true }): HTMLElement {
+/** moves a floating box by its head, which gets a grip at its left; the box stays inside the window (fitInView).
+ *  moved hears where it was left */
+export function dragBy(el: HTMLElement, head: HTMLElement, moved?: (at: { left: number; top: number }) => void): void {
+  head.prepend(iconMark(ICONS.drag, 'Drag to move', 'grip'));
+  head.addEventListener('pointerdown', (ev) => {
+    if ((ev.target as Element).closest('a, button')) return;
+    const b = boxOf(el), p0 = pointOf(ev), dx = p0.x - b.left, dy = p0.y - b.top;
+    const move = (m: PointerEvent) => { const p = pointOf(m); const at = fitInView(el, p.x - dx, p.y - dy); moved?.(at); };
+    const up = () => { removeEventListener('pointermove', move); removeEventListener('pointerup', up); };
+    addEventListener('pointermove', move);
+    addEventListener('pointerup', up);
+  });
+}
+
+/** opens a details pop-up near its opener, or beside a map mark's box; tone names a colour token for its edge (scenario-mark, danger…) */
+export function openPop(o: { title: string; body: (Node | string | null)[]; opener?: HTMLElement | null; beside?: Box; tone?: string; cls?: string; back?: true }): HTMLElement {
   closePop(!!(o.back && current?.back)); // one Back pop-up replacing another keeps the history step
   const tid = `dpop-t${Date.now()}`;
   const x = h('button', { type: 'button', class: 'hs-icon-btn dpop-x', 'aria-label': 'Close', title: 'Close (Esc)', onclick: () => closePop() }, '✕');
   const head = h('div', { class: 'dpop-head' }, h('span', { class: 'hs-label', id: tid }, o.title), x);
   const el = h('aside', { class: `dpop ${o.cls ?? ''}`, role: 'dialog', 'aria-modal': 'false', 'aria-labelledby': tid, tabindex: '-1', style: o.tone ? `--pc: var(--${o.tone})` : undefined },
     head, h('div', { class: 'dpop-body' }, ...o.body));
-  // beside the opener when there is room, else near the top right
-  const r = o.opener ? boxOf(o.opener) : undefined, v = viewSize();
+  dragBy(el, head);
+  // beside a map mark (left of it, else right), else above the opener (below where the top has no room), else near the top right
   document.body.append(el);
-  const w = el.offsetWidth || 360, hgt = el.offsetHeight || 200;
-  const left = r ? Math.min(v.w - w - 16, Math.max(16, r.left + r.width / 2 - w / 2)) : v.w - w - 32;
-  const top = r ? (r.top - hgt - 12 > 16 ? r.top - hgt - 12 : Math.min(v.h - hgt - 16, r.bottom + 12)) : 96;
-  el.style.left = `${left}px`; el.style.top = `${Math.max(16, top)}px`;
-  // drag by the head
-  head.addEventListener('pointerdown', (ev) => {
-    if ((ev.target as Element).closest('a, button')) return;
-    const b = boxOf(el), p0 = pointOf(ev);
-    const dx = p0.x - b.left, dy = p0.y - b.top;
-    const move = (m: PointerEvent) => {
-      const p = pointOf(m), v = viewSize();
-      el.style.left = `${Math.max(0, Math.min(v.w - 80, p.x - dx))}px`;
-      el.style.top = `${Math.max(0, Math.min(v.h - 40, p.y - dy))}px`;
-    };
-    const up = () => { removeEventListener('pointermove', move); removeEventListener('pointerup', up); };
-    addEventListener('pointermove', move);
-    addEventListener('pointerup', up);
-  });
+  const r = o.opener ? boxOf(o.opener) : undefined, b = o.beside, v = viewSize(), w = el.offsetWidth, hgt = el.offsetHeight;
+  fitInView(el, b ? (b.left - w - 8 >= 16 ? b.left - w - 8 : b.right + 8) : r ? r.left + r.width / 2 - w / 2 : v.w - w - 32,
+    b ? b.top : r ? (r.top - hgt - 12 >= 16 ? r.top - hgt - 12 : r.bottom + 12) : 96);
   current = { el, opener: o.opener, ...(o.back ? { back: true as const } : {}) };
   if (o.back && !history.state?.dpop) history.pushState({ dpop: true }, ''); // Back closes it
   arrive(el, 0, 6);
