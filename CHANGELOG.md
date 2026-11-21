@@ -3,6 +3,9 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bugs/`.
 
+- 21/11/2026: `docs/instructions.md` section 2: parked ideas about perks specifically get their own list, PP-n in
+  `docs/spec/perk-ideas.md`, for a perks thread; rows moved there keep their D-n number. The owner: "for parked
+  ideas related to perks specifically, make a new ID for them so we can tackle them in a perks thread later."
 - 21/11/2026: `docs/providers/claude.md` and `codex.md`: an agent that cannot publish the game page or the library
   viewer no longer says in PRs or reports that they need a republish; the owner republishes when they choose. The
   owner: "the publishing is none of your concern, and if a rule says it is adjust the rule".
