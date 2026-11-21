@@ -169,7 +169,7 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
   for (const o of pv.player.standDownOffers ?? []) add('stand_down', 'talk', `Take ${o.name}'s offer to stop`, [], () => order(`I take ${o.name}'s offer to stop`, { standDown: o.id }), { note: 'ends your fight with them' });
 
   // ---- Talk: a plain talk opens a conversation at once; the rest need your words (typed in the Say box) ----
-  const listeners = [...talkers, ...(pv.lastSeen ?? []).filter((x) => !x.gone && !x.mute).map((x) => ({ id: x.id, label: x.name, zone: x.zone, level: 'partial' } as unknown as PlayerView['actors'][number]))];
+  const listeners = [...talkers, ...(pv.lastSeen ?? []).filter((x) => !x.gone && !x.mute && !seen.some((y) => y.id === x.id)).map((x) => ({ id: x.id, label: x.name, zone: x.zone, level: 'partial' } as unknown as PlayerView['actors'][number]))];
   if (listeners.length) {
     add('talk', 'talk', 'Talk to', [{ key: 'target', title: 'Talk to whom?', picks: () => listeners.map((a) => talkers.includes(a) ? person(a) : { id: a.id, label: cap(nameOf(a.id)), note: `last seen in ${pv.lastSeen?.find((x) => x.id === a.id)?.zoneName ?? zoneName(a.zone)}` }) }],
       (c) => order(`Talk to ${them(c)}`, { action: act('talk', { target: c.target! }), addressees: [c.target!] }));
