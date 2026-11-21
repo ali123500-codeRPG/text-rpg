@@ -83,7 +83,8 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 - **PS-43** Tiles: a page leads with tiles only where it has figures worth leading with (HS9).
 - **PS-44** Every tile has a label and one figure with its unit; a sub-line only for the exception, and what the figure
   means is the tile's tip. The GM page keeps ⓘ (HS9; SD4).
-- **PS-45** Coin always shows in coin words, never as a decimal amount (HS9).
+- **PS-45** Coin always shows in coin words, never as a decimal amount (HS9). The short sheet on Play shows it as a count
+  beside a gold, silver or copper coin icon instead, each coin's name in its tip and accessible name (PS-410).
 - **PS-46** Every figure has three depths: glance (the figure on the page), hover or keyboard focus (a card with its
   exact rows), click (a pop-up with every part). Nothing is only on hover (A2).
 
@@ -681,7 +682,8 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 
 - **PS-410** The right column holds the folded health strip (a click opens the full condition), the minimap (map.md,
   Minimap), Who's here as rows (foes first, pins, scrolling; a click lists what you can do to or with them) and the
-  short sheet (held, coin, level; skills on the Character page) (AD1–AD16).
+  short sheet (held, coin, level; skills on the Character page) (AD1–AD16). The short sheet has no link of its own: a
+  click (or Enter) anywhere on it opens the Character page, with "Skills and full sheet" as its tip.
 
 #### After /yield
 

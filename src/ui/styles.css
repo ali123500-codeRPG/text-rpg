@@ -45,11 +45,11 @@ body { margin: 0; font: 14px/1.4 var(--font-round); font-variant-numeric: tabula
   background: var(--bg); }
 /* PS-486, M-75: the play screen's backdrop, two stacked layers behind everything (src/ui/backdrop.ts); each carries the
    veil over its picture, so the text sits on the same darkness whichever picture shows */
-.backdrop { position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: 0; transition: opacity var(--m-backdrop) var(--m-ease);
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--bg) var(--veil0), transparent) 0%, color-mix(in srgb, var(--bg) var(--veil0), transparent) 10%,
-      color-mix(in srgb, var(--bg) var(--veil1), transparent) 55%, color-mix(in srgb, var(--bg) var(--veil1), transparent) 100%),
-    var(--backdrop, none) center top / cover no-repeat; }
+.backdrop { position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: 0; transition: opacity var(--m-backdrop) var(--m-ease); }
+.backdrop > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center top; }
+.backdrop::after { content: ''; position: absolute; inset: 0;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg) var(--veil0), transparent) 0%, color-mix(in srgb, var(--bg) var(--veil0), transparent) 10%,
+    color-mix(in srgb, var(--bg) var(--veil1), transparent) 55%, color-mix(in srgb, var(--bg) var(--veil1), transparent) 100%); }
 .backdrop.on { opacity: 1; } .backdrop.top { z-index: -1; } .backdrop:not(.top) { z-index: -2; }
 .hs-label, .hs-section { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--faint); margin: 0; }
 .hs-section { font-weight: 800; letter-spacing: .08em; }
@@ -1709,7 +1709,13 @@ button.eq-name:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .who .pp .sts:empty { display: none; }
 .short-wrap { flex: none; display: grid; gap: var(--space-2); border-top: 1px solid var(--border); padding-top: var(--space-3); font-size: 13px; }
 .short { display: grid; gap: var(--space-1); }
-.short-wrap > .hs-btn-text { justify-self: start; }
+.short-wrap { cursor: pointer; border-radius: var(--r-md); margin-inline: calc(-1 * var(--space-2)); padding-inline: var(--space-2); padding-bottom: var(--space-2); }
+.short-wrap:hover { background: color-mix(in srgb, var(--accent) 7%, transparent); } /* lighter than the XP track, so the track still shows */
+.short-wrap:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* coin as icons: a count beside each coin, tinted by its metal; the metal's name is the icon's tip */
+.coin-ic { display: inline-grid; width: 16px; height: 16px; margin-left: 3px; vertical-align: -3px; color: var(--scenario-mark); }
+.coin-ic svg { width: 100%; height: 100%; display: block; }
+.coin-ic[data-coin="silver"] { color: #d7dce2; } .coin-ic[data-coin="copper"] { color: #d98c5f; }
 
 
 /* ---- the play screen's minimap (AD8–AD16, src/ui/minimap.ts), the mock-up's look; its doors, stairs, furniture, people

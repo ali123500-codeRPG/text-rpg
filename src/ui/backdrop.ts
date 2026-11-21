@@ -1,5 +1,6 @@
 // PS-486 to PS-489, M-75: the picture behind the play screen. The page starts plain; a picture is fetched only when a
-// shown turn names it, decoded, then faded in over the one before it (which stays until the new one is ready).
+// shown turn names it, decoded, then faded in over the one before it (which stays until the new one is ready). The layer
+// shows that same decoded image, so the file is downloaded once whatever cache headers the host sends.
 // Two fixed layers sit behind everything; each carries the veil over its picture, so text contrast never changes.
 
 const URL_OF = (id: string) => `assets/backdrops/${id}.webp`;
@@ -27,7 +28,8 @@ export function showBackdrop(id: string | undefined): void {
   img.decode().then(() => {
     if (wanted !== id || shown === id) return; // a later turn asked for another picture meanwhile
     const next = front === 0 ? b : a, prev = front === 0 ? a : b;
-    next.style.setProperty('--backdrop', `url("${img.src}")`);
+    img.alt = '';
+    next.replaceChildren(img); // the decoded picture itself is shown: a CSS url() would fetch the file again (BG-352)
     next.classList.add('on', 'top'); // the new one fades in on top; the old one goes only once it is covered
     prev.classList.remove('top');
     next.addEventListener('transitionend', () => { if (next.classList.contains('top')) prev.classList.remove('on'); }, { once: true });

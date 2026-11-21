@@ -25,7 +25,7 @@ import { perkSeries } from './perks';
 import { stealthBadge, stealthyTip } from './stealth';
 import { dayOf, now, timeOfDay, timeView } from '../time';
 import { timePassedRow, todBadge } from './timeOfDay';
-import { charFocus, stateToken, NERVE_PASSES, NERVE_STILL, NERVE_UNTIL, shortSheet, shownValues, sideSheet, statusStrip, tag, type ShownValues } from './charsheet';
+import { charFocus, stateToken, NERVE_PASSES, NERVE_STILL, NERVE_UNTIL, coinIcons, shortSheet, shownValues, sideSheet, statusStrip, tag, type ShownValues } from './charsheet';
 import { figurePulse } from './figure3d';
 import { isBrokenLevel, moraleLevel } from '../ruleset/morale';
 import { cantSteady } from '../engine/steady';
@@ -307,11 +307,13 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   healBtn.onclick = () => healNow(healBtn);
   const vitals = h('div', { class: 'vitals' }, strip, healBtn);
   const shortEl = h('div', { class: 'short' });
-  const sheetLink = h('button', { type: 'button', class: 'hs-btn-text', onclick: () => nav('stats') }, 'Skills and full sheet ›');
+  // the short sheet is one control: a click or Enter anywhere on it opens the Character page (its words are the tip)
+  const shortWrap = h('div', { class: 'short-wrap', role: 'button', tabindex: '0', title: 'Skills and full sheet', onclick: () => nav('stats') }, shortEl);
+  shortWrap.addEventListener('keydown', (e) => { if (e.target === shortWrap && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); nav('stats'); } });
   const whoBox = h('section', { class: 'here', 'aria-label': 'Who’s here' }, h('p', { class: 'hs-label' }, 'Who’s here'), who);
   const solo = h('span', { class: 'solo', role: 'status' }, 'Solo');
   const bandBox = h('section', { class: 'here band', 'aria-label': 'Your band' }, h('p', { class: 'hs-label' }, 'Your band', solo), band);
-  const sheet = h('aside', { class: 'cs-side', 'aria-label': 'Your character and surroundings' }, vitals, mm.el, bandBox, whoBox, h('div', { class: 'short-wrap' }, shortEl, sheetLink));
+  const sheet = h('aside', { class: 'cs-side', 'aria-label': 'Your character and surroundings' }, vitals, mm.el, bandBox, whoBox, shortWrap);
   const wrap = h('div', { class: 'play-wrap sheet-open' }, body, sheet);
   // Watch an agent play: it types each command into the box, then sends it like Send
   const auto = autopilotBar(api, async (text) => {
@@ -1112,11 +1114,11 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       barMove(q('[data-m="xp-track"]'), q('[data-m="xp-track"] > b'), b.xpPct ?? 0, a.xpPct ?? 0, d, levelled);
       if (levelled) stamp(q('[data-m="lvl"]'), d + ms('--m-trail'), `Level ${b.lvl}`);
     }
-    // coin: the words change, with the difference in coin words in the colour of the change, then a pulse
+    // coin: the coins change, with the difference in coins in the colour of the change, then a pulse
     if (a.coin !== b.coin) {
       const d = at(stagger);
-      stamp(q('[data-m="coin"]'), d, coinWords(b.coin));
-      delta(q('[data-m="coin"]'), (a.coin > b.coin ? '+' : '−') + coinWords(Math.abs(a.coin - b.coin)), a.coin > b.coin ? 'scenario-mark' : 'danger', d);
+      stamp(q('[data-m="coin"]'), d, h('span', {}, ...coinIcons(b.coin)));
+      delta(q('[data-m="coin"]'), h('span', {}, a.coin > b.coin ? '+' : '−', ...coinIcons(Math.abs(a.coin - b.coin))), a.coin > b.coin ? 'scenario-mark' : 'danger', d);
       pulse(q('[data-m="coin"]'), d + ms('--m-beat'), 2);
     }
   }
