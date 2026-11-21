@@ -491,14 +491,18 @@ export function startAtDoor(state: GameState, placeId?: string): void {
   p.pos = { x: out.x + (c.x - out.x) * k, y: out.y + (c.y - out.y) * k };
 }
 
-/** BG-47: metres still to walk from `a` to where its walk toward `goal` leaves its title (undefined without a way) */
-export function wayLeftM(state: GameState, a: Located, goal: string, walker?: Actor): number | undefined {
+/** BG-47: metres still to walk from `a` to where its walk toward `goal` leaves its title; `enter` (AT49, BG-1545): to where it
+ * gets into `goal`, where a walk to a title ends (walkThere), a climb up into it included (undefined without a way) */
+export function wayLeftM(state: GameState, a: Located, goal: string, walker?: Actor, enter = false): number | undefined {
   const A = spotOf(state, a);
   if (!A.pos || A.zone === goal || !zoneById(state, goal)?.outline?.length) return undefined;
   const w = walkFor(state, pointAt(state, a), { ...centreOf(state, goal), floor: floorOf(state, { zone: goal }) }, walker);
   if (!w) return undefined;
   let m = 0;
-  for (const pc of piecesOf(state, w.pts, a.zone)) { if (pc.climb || (pc.zone && pc.zone !== a.zone)) return m; m += pc.m; }
+  for (const pc of piecesOf(state, w.pts, a.zone)) {
+    if (enter ? pc.zone === goal : pc.climb || (pc.zone && pc.zone !== a.zone)) return enter && pc.climb ? m + pc.m : m;
+    m += pc.m;
+  }
   return undefined;
 }
 

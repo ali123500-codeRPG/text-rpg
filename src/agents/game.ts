@@ -494,6 +494,7 @@ export function createGame(deps: GameDeps): Game {
   /** save → NarrationView → advance → Narrator → display (shared by every turn and by story start) */
   async function finishTurn(s: GameState, events: GameEvent[], rec: { playerInput: string; rngBefore: number; aimed: boolean; intent: Intent | null; gearBefore?: GearSnap; coinBefore?: number; brokenBefore?: boolean; doingBefore?: DoingSnap; queue?: string[]; queueStops?: boolean; partsBefore?: { id: string; state: PartState }[]; zonesBefore?: string[]; ended?: import('../types').ScenarioEnding; opening?: true }, dialogueSubmitAt: number | null): Promise<void> {
     s.events = events;
+    views.keepClearSight(s, events); // BG-1545: before the save, so a reloaded story starts the next turn the same
     // saved with the engine page, so a reloaded story resolves the next turn exactly as continuous play would
     s.recentEvents = pruneRecent(s, [...(s.recentEvents ?? []), ...events]);
     s.agentLog = [...turnLog];
