@@ -71,7 +71,7 @@ export function gmPage(api: GameApi) {
   function verdict(list: WantList, key: string, turnedDown?: true) {
     if (turnedDown) return h('span', { class: 'hs-note' }, 'Turned down');
     const btn = (v: WantVerdict, text: string, title: string) => h('button', { class: 'hs-btn-text', type: 'button', title, onclick: () => api.ruleWant(list, key, v) }, text);
-    return h('span', {}, btn('approved', 'Approve', 'Approved: it leaves the list'), btn('turned_down', 'Turn down', 'Turned down: only its count is kept'));
+    return h('span', { style: 'white-space:nowrap' }, btn('approved', 'Approve', 'Approved: it leaves the list'), btn('turned_down', 'Turn down', 'Turned down: only its count is kept'));
   }
   /** NG15, D-53 a: the Wanted list (WT9: counted groups, last wanted first); the Chronicler's deed ideas (AA-108) are on the Bugs page */
   function wantedSection(s: GameState | null) {
