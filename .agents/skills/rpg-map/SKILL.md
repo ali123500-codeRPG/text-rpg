@@ -1,6 +1,6 @@
 ---
 name: "rpg-map"
-description: "Working method for the text-rpg artifact app's stage map; the map's rules (MAP-nn) are in docs/spec/part-2-turn-engine/map.md: zone layout, labels, tokens, door/exit symbols, fog of what the player knows, plus a mandatory render-and-check pass. Use whenever building, changing, reviewing or debugging the game map, even small fixes, and whenever a builder prompt for the map is being written."
+description: "Working method for the text-rpg artifact app's stage map; the map's rules (MAP-nn) are in docs/spec/part-2-turn-engine/map.md: layout by geometry (a zone only names a space, AGENTS.md rule 8), labels, tokens, door/exit symbols, fog of what the player knows, plus a mandatory render-and-check pass. Use whenever building, changing, reviewing or debugging the game map, even small fixes, and whenever a builder prompt for the map is being written."
 ---
 
 # RPG map
@@ -13,6 +13,9 @@ working method. When the owner asks for something that a rule blocks, follow `do
 holds that rule.
 
 ## Before starting
+
+Lay out, place, group and hide marks by geometry only: points in metres, walls, and outlines as shapes. A zone
+(title) is a name and never decides where a mark goes or what it is grouped with (AGENTS.md rule 8).
 
 Read `docs/spec/part-2-turn-engine/map.md`. Use the design skills `docs/instructions.md` section 7 requires for any UI
 change, and, for any map motion, the spec's Play screen motion rules

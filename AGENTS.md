@@ -49,6 +49,8 @@ project: "the owner" below is its designer and its only player.
    marked. Never hard-code one in logic, and never copy one into `docs/memory/`: name the setting and where it lives.
 8. **Distance is real metres.** Reach, range, sight, hearing, movement and room sizes use real-life metres with a
    cited reference. Nearness is never "same zone", zone hops or link counts: zones are only titles for places.
+   A zone (title) only names a space. It never decides where something is or is drawn, how marks are placed,
+   grouped, merged or hidden, who is near, or what can be reached: points, walls and outlines as shapes do.
 9. **Keep secrets and personal details out of the repo.** Never commit secrets, tokens, passwords, account or ID
    numbers, or personal details about the owner (name, email, quotes, devices).
 10. **Questions go where the owner answers them.** One question at a time or a numbered list, each with options and a
