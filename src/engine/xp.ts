@@ -434,7 +434,7 @@ export function achievementName(state: GameState, a: { id: string; key?: string;
   const d = a.key ? lib.achievements?.[a.key] : undefined;
   if (!d) return a.id;
   if (a.of && d.names?.[a.of]) return d.names[a.of]; // a name of its own for this earning
-  return d.name.replace(/\{(body_type|race|tree|group|class|tier|level|function|skill|size|giver|source|place_kind|health_level)\}/g, title(kindName(state, d, a.of)));
+  return d.name.replace(/\{(body_type|race|tree|group|class|tier|level|function|skill|size|giver|source|place_kind|health_level|foes)\}/g, title(kindName(state, d, a.of)));
 }
 
 /** what a per-kind achievement was earned for, by name (a body type, race, tree, group, class, tier, skill, giver…) */
@@ -474,7 +474,8 @@ export function earnedAtText(state: GameState, d: AchievementDef, of?: string): 
   const end = d.rule === 'event_crits' ? TIERS.keys[TIERS.keys.length - 1] : d.rule === 'event_crit_fails' ? TIERS.keys[0] : null;
   if (end && n !== undefined && !d.every) return `an event roll at ${tierName({ tier: end, beyond: (end === TIERS.keys[0] ? -1 : 1) * Math.max(0, n - 1) })}`;
   let what = (n === 1 ? ACH_RULE_ONE[d.rule] : undefined) ?? ACH_RULE_TEXT[d.rule] ?? d.rule;
-  if (d.only) what = what.replace(/ \(.*\)$/, '').replace(/\bone source$/, sourceRowName(d, d.only));
+  if (d.by === 'foes' && d.only) what = what.replace(`${CONFIG.OUTNUMBERED_FOES}+`, `${d.only}+`); // a Not One Step branch
+  else if (d.only) what = what.replace(/ \(.*\)$/, '').replace(/\bone source$/, sourceRowName(d, d.only));
   if (d.every) what = what.replace(/, again at every multiple$/, '');
   const kind = d.by && !d.only && of ? ` (${title(kindName(state, d, of))})` : d.rule === 'mastery' && of ? ` (${kindName(state, d, of)})` : '';
   return `${n !== undefined ? `${fmtCount(n)} ` : ''}${what}${kind}`;

@@ -1034,15 +1034,35 @@ export function prototypeLibrary(): Library {
       [ACH.brink_1]: { id: ACH.brink_1, name: 'Not Today', level: 'i', rule: 'brink', tags: ['combat', 'survival'], count: 1 },
       [ACH.brink_3]: { id: ACH.brink_3, name: 'Not Yet', level: 'i', rule: 'brink', tags: ['combat', 'survival'], count: 3, after: ACH.brink_1, deathsDoor: 7 },
       [ACH.brink_5]: { id: ACH.brink_5, name: 'Death Keeps Waiting', level: 'ii', rule: 'brink', tags: ['combat', 'survival'], count: 5, after: ACH.brink_3, deathsDoor: 1, excludes: ['deathsDoor'] },
-      [ACH.crippled_1]: { id: ACH.crippled_1, name: 'Still Swinging', level: 'i', rule: 'crippled_defeats', tags: ['combat', 'survival'], count: 1 },
+      [ACH.crippled_1]: { id: ACH.crippled_1, name: 'Still Swinging', level: 'i', rule: 'crippled_defeats', tags: ['combat', 'survival'], count: 1, maxMorale: 1 },
       [ACH.crippled_10]: { id: ACH.crippled_10, name: 'Bones Heal Later', level: 'ii', rule: 'crippled_defeats', tags: ['combat', 'survival'], count: 10, perk: PK.past_the_pain, after: ACH.crippled_1 },
       [ACH.held_line_1]: { id: ACH.held_line_1, name: 'Few Against Many', level: 'i', rule: 'held_line', tags: ['combat', 'social'], count: 1, personality: ap({ nerve: 1 }) },
       [ACH.held_line_10]: { id: ACH.held_line_10, name: 'Hold the Line', level: 'ii', rule: 'held_line', tags: ['combat', 'social'], count: 10, after: ACH.held_line_1, rally: 10, personality: ap({ nerve: 1 }) },
+      // AA-108 deed ideas (DI1-DI7, DI12-DI15, DI20): rows approved from the Chronicler's ideas
+      [ACH.counter_kills_1]: { id: ACH.counter_kills_1, name: 'Answer in Steel', level: 'zero', rule: 'counter_kills', tags: ['combat'], count: 1 },
+      [ACH.counter_kills_10]: { id: ACH.counter_kills_10, name: 'Every Thrust Returned', level: 'i', rule: 'counter_kills', tags: ['combat'], count: 10, after: ACH.counter_kills_1 }, // placeholder name
+      [ACH.counter_kills_50]: { id: ACH.counter_kills_50, name: 'Strike Me and Die', level: 'ii', rule: 'counter_kills', tags: ['combat'], count: 50, after: ACH.counter_kills_10 }, // placeholder name
+      [ACH.held_ground_1]: { id: ACH.held_ground_1, name: 'Not One Step', level: 'i', rule: 'held_ground', tags: ['combat'], count: 1, personality: ap({ nerve: 1 }) },
+      [ACH.held_ground_10]: { id: ACH.held_ground_10, name: 'Rooted', level: 'ii', rule: 'held_ground', tags: ['combat'], count: 10, after: ACH.held_ground_1, personality: ap({ nerve: 1 }) }, // placeholder name
+      [ACH.held_ground_more_1]: { id: ACH.held_ground_more_1, name: 'Not One Step ({foes}+)', level: 'ii', rule: 'held_ground', by: 'foes', only: String(CONFIG.HELD_GROUND_FOES[0]), tags: ['combat'], count: 1, branchOf: ACH.held_ground_1, personality: ap({ nerve: 1 }) },
+      [ACH.held_ground_more_10]: { id: ACH.held_ground_more_10, name: 'Rooted ({foes}+)', level: 'iii', rule: 'held_ground', by: 'foes', only: String(CONFIG.HELD_GROUND_FOES[0]), tags: ['combat'], count: 10, after: ACH.held_ground_more_1, personality: ap({ nerve: 1 }) },
+      [ACH.held_ground_most_1]: { id: ACH.held_ground_most_1, name: 'Not One Step ({foes}+)', level: 'iii', rule: 'held_ground', by: 'foes', only: String(CONFIG.HELD_GROUND_FOES[1]), tags: ['combat'], count: 1, branchOf: ACH.held_ground_1, personality: ap({ nerve: 1 }) },
+      [ACH.held_ground_most_10]: { id: ACH.held_ground_most_10, name: 'Rooted ({foes}+)', level: 'iv', rule: 'held_ground', by: 'foes', only: String(CONFIG.HELD_GROUND_FOES[1]), tags: ['combat'], count: 10, after: ACH.held_ground_most_1, personality: ap({ nerve: 1 }) },
+      [ACH.finishing_1]: { id: ACH.finishing_1, name: 'Finishing Stroke', level: 'zero', rule: 'finishing_blows', tags: ['combat'], count: 1 },
+      [ACH.finishing_10]: { id: ACH.finishing_10, name: 'Last Word', level: 'i', rule: 'finishing_blows', tags: ['combat'], count: 10, after: ACH.finishing_1 }, // placeholder name
+      [ACH.every_last_1]: { id: ACH.every_last_1, name: 'Every Last One', level: 'i', rule: 'every_last', tags: ['combat'], count: 1, maxMorale: 1 },
+      [ACH.every_last_10]: { id: ACH.every_last_10, name: 'None Left for Them', level: 'ii', rule: 'every_last', tags: ['combat'], count: 10, after: ACH.every_last_1, renown: 5 }, // placeholder name
+      [ACH.crippled_quests_1]: { id: ACH.crippled_quests_1, name: 'Paid in Bone', level: 'i', rule: 'crippled_quests', tags: ['social', 'survival'], count: 1, maxMorale: 1 },
+      [ACH.crippled_quests_5]: { id: ACH.crippled_quests_5, name: 'Bought with Blood', level: 'ii', rule: 'crippled_quests', tags: ['social', 'survival'], count: 5, after: ACH.crippled_quests_1, restPct: 10 }, // placeholder name
+      [ACH.crippled_parts_1]: { id: ACH.crippled_parts_1, name: 'Something Gave', level: 'zero', rule: 'crippled_parts', tags: ['survival'], count: 1, branchOf: ACH_HEADS.wounds, maxMorale: 1 },
+      [ACH.crippled_parts_10]: { id: ACH.crippled_parts_10, name: 'Held Together', level: 'i', rule: 'crippled_parts', tags: ['survival'], count: 10, after: ACH.crippled_parts_1, maxMorale: 1 }, // placeholder name
+      [ACH.threat_deals_1]: { id: ACH.threat_deals_1, name: 'Terms Under Threat', level: 'i', rule: 'threat_deals', tags: ['social', 'combat'], count: 1, personality: ap({ nerve: 1 }) },
+      [ACH.threat_deals_10]: { id: ACH.threat_deals_10, name: 'Danger Money', level: 'ii', rule: 'threat_deals', tags: ['social', 'combat'], count: 10, after: ACH.threat_deals_1, questPayPct: 10 }, // placeholder name
       [ACH.quests_1]: { id: ACH.quests_1, name: 'Job Done', level: 'zero', rule: 'quests_done', tags: ['social'], count: 1, personality: ap({ [PA.discipline]: 1 }) },
       [ACH.quests_5]: { id: ACH.quests_5, name: 'Reliable Hand', level: 'i', rule: 'quests_done', tags: ['social'], count: 5, after: ACH.quests_1, personality: ap({ [PA.discipline]: 1 }) },
-      [ACH.quests_10]: { id: ACH.quests_10, name: 'Hand for Hire', level: 'ii', rule: 'quests_done', tags: ['social'], count: 10, after: ACH.quests_5, personality: ap({ [PA.discipline]: 1 }) },
-      [ACH.quests_25]: { id: ACH.quests_25, name: 'Sought After', level: 'iii', rule: 'quests_done', tags: ['social'], count: 25, after: ACH.quests_10, personality: ap({ [PA.discipline]: 1 }) },
-      [ACH.quests_50]: { id: ACH.quests_50, name: 'The One They Send For', level: 'iv', rule: 'quests_done', tags: ['social'], count: 50, after: ACH.quests_25, personality: ap({ [PA.discipline]: 1 }) },
+      [ACH.quests_10]: { id: ACH.quests_10, name: 'Hand for Hire', level: 'ii', rule: 'quests_done', tags: ['social'], count: 10, after: ACH.quests_5, questPayPct: 5, personality: ap({ [PA.discipline]: 1 }) },
+      [ACH.quests_25]: { id: ACH.quests_25, name: 'Sought After', level: 'iii', rule: 'quests_done', tags: ['social'], count: 25, after: ACH.quests_10, questPayPct: 5, personality: ap({ [PA.discipline]: 1 }) },
+      [ACH.quests_50]: { id: ACH.quests_50, name: 'The One They Send For', level: 'iv', rule: 'quests_done', tags: ['social'], count: 50, after: ACH.quests_25, questPayPct: 10, personality: ap({ [PA.discipline]: 1 }) },
       [ACH.quests_abandoned_1]: { id: ACH.quests_abandoned_1, name: 'Left Undone', level: 'zero', rule: 'quests_abandoned', tags: ['social'], count: 1, scar: true }, // TM29: the first one (placeholder name)
       [ACH.quests_abandoned_5]: { id: ACH.quests_abandoned_5, name: 'Word Not Kept', level: 'i', rule: 'quests_abandoned', tags: ['social'], count: 5, after: ACH.quests_abandoned_1, scar: true, personality: ap({ [PA.honesty]: -1 }) },
       // TM8: 1 / 10 / 100 / 500 (the first of an act is an achievement; the first row's name is a placeholder)
@@ -1184,9 +1204,9 @@ export function prototypeLibrary(): Library {
       [ACH.hp_lost_100]: { id: ACH.hp_lost_100, name: 'Bled For It', level: 'zero', rule: 'hp_lost', tags: ['survival'], count: 100 },
       [ACH.hp_lost_1000]: { id: ACH.hp_lost_1000, name: 'Hard to Count the Wounds', level: 'i', rule: 'hp_lost', tags: ['survival'], count: 1000, after: ACH.hp_lost_100, fearFrom: { fear: FR.own_level, steps: 1 } },
       [ACH.hp_lost_10000]: { id: ACH.hp_lost_10000, name: 'Made of Old Wounds', level: 'ii', rule: 'hp_lost', tags: ['survival'], count: 10000, after: ACH.hp_lost_1000, fearFrom: { fear: FR.own_level, steps: 1 } },
-      [ACH.morale_lost_100]: { id: ACH.morale_lost_100, name: 'Nerves Worn Thin', level: 'zero', rule: 'morale_lost', tags: ['survival'], count: 100, maxMorale: 5 },
-      [ACH.morale_lost_1000]: { id: ACH.morale_lost_1000, name: 'Seen Too Much', level: 'i', rule: 'morale_lost', tags: ['survival'], count: 1000, after: ACH.morale_lost_100, maxMorale: 5 },
-      [ACH.morale_lost_10000]: { id: ACH.morale_lost_10000, name: 'Fear Is an Old Friend', level: 'ii', rule: 'morale_lost', tags: ['survival'], count: 10000, after: ACH.morale_lost_1000, maxMorale: 5 },
+      [ACH.morale_lost_100]: { id: ACH.morale_lost_100, name: 'Nerves Worn Thin', level: 'zero', rule: 'morale_lost', tags: ['survival'], count: 100, maxMorale: 1 },
+      [ACH.morale_lost_1000]: { id: ACH.morale_lost_1000, name: 'Seen Too Much', level: 'i', rule: 'morale_lost', tags: ['survival'], count: 1000, after: ACH.morale_lost_100, maxMorale: 2 },
+      [ACH.morale_lost_10000]: { id: ACH.morale_lost_10000, name: 'Fear Is an Old Friend', level: 'ii', rule: 'morale_lost', tags: ['survival'], count: 10000, after: ACH.morale_lost_1000, maxMorale: 3 },
       // D-177: fights against a hostile foe stronger than you (power = rating + gear rating); gaps are placeholders
       [ACH.survived_above_100]: { id: ACH.survived_above_100, name: 'Lived to Tell It', level: 'i', rule: 'survived_above', tags: ['combat', 'survival'], count: 100 },
       [ACH.survived_above_250]: { id: ACH.survived_above_250, name: 'Walked Away From That', level: 'ii', rule: 'survived_above', tags: ['combat', 'survival'], count: 250, after: ACH.survived_above_100 },

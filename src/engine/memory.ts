@@ -2,7 +2,8 @@
 // code keeps the list to CONFIG.MEMORY_ENTRIES and records a deal only when the other party heard it said this turn.
 import type { Actor, AgreementEnd, AgreementMade, GameState, MemoryOps } from '../types';
 import { CONFIG } from '../config';
-import { actorById, isActive } from './relations';
+import { actorById, allActors, hostile, isActive } from './relations';
+import { fightingWith } from './engagement';
 import { tally } from './xp';
 import { freshId } from '../ids';
 
@@ -38,7 +39,11 @@ export function makeAgreement(state: GameState, a: Actor, made: AgreementMade, h
   const id = freshId(`deal_${state.turn}_${a.id}`, new Set(list.map((g) => g.id)));
   list.push({ id, parties: [a.id, other.id], text, madeTurn: state.turn, madeBy: a.id });
   logCode(state, 'agreement_made', { id, parties: [a.id, other.id] });
-  if (a === state.player || other === state.player) tally(state, 'deals');
+  if (a === state.player || other === state.player) {
+    tally(state, 'deals');
+    // DI7: struck while a hostile foe is in a fight with you
+    if (allActors(state).some((x) => x !== state.player && hostile(state, x, state.player) && fightingWith(state, x, state.player))) tally(state, 'threat_deals');
+  }
   return id;
 }
 

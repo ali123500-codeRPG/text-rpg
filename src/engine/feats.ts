@@ -82,7 +82,7 @@ function stateFeats(state: GameState, events: GameEvent[]): void {
   const parts = partStates(state, p);
   const crippled = (pr.crippled ??= []);
   for (const x of parts) {
-    if (!working(x.state)) { if (!crippled.includes(x.id)) crippled.push(x.id); }
+    if (!working(x.state)) { if (!crippled.includes(x.id)) { crippled.push(x.id); tally(state, 'crippled_parts'); } } // DI6: each part, each time
     else if (x.state === 'healthy' && crippled.includes(x.id)) { crippled.splice(crippled.indexOf(x.id), 1); tally(state, 'mended'); }
   }
   // TM23: the first time the player's health reaches each wound level (and every milder one on the way)
@@ -153,6 +153,19 @@ export function killedSurrenderedFeat(state: GameState, t: Actor): void {
   if (state.player.progression?.gaveUpStruck?.surrendered.includes(t.id)) tally(state, 'killed_surrendered');
 }
 
+/** a blow landed on `t`: who took it Down and who killed it are kept on it; the player's kill on a strike back (DI1), and
+ * the player's kill of a foe an ally had put Down (DI3) */
+export function killFeats(state: GameState, a: Actor, t: Actor, before: { level: string; active: boolean }, after: string, strikeBack: boolean): void {
+  if (before.active && !isActive(t)) t.downedBy = a.id;
+  if (after !== 'dead' || before.level === 'dead') return;
+  t.killedBy = a.id;
+  const p = state.player;
+  if (a !== p) return;
+  if (strikeBack) tally(state, 'counter_kills');
+  const downer = !before.active && t.downedBy && t.downedBy !== p.id ? actorById(state, t.downedBy) : undefined;
+  if (downer && !hostile(state, downer, p)) tally(state, 'finishing_blows');
+}
+
 /** D-292: the player and the other side of a contest both landed on the same tier, Critical Success or past it */
 export function matchedCritFeat(state: GameState, c: ContestResult): void {
   const p = state.player.id;
@@ -200,6 +213,7 @@ function noteBlows(state: GameState, f: FightLog, events: GameEvent[]): void {
   if (events.some((v) => v.attack?.targetId === p.id && v.attack.damage > 0)) f.hurt = true;
   if (events.some((v) => v.attack?.targetId === p.id && v.attack.defense)) f.defended = true;
   if (events.some((v) => v.attack?.attackerId === p.id)) f.struck = true;
+  if (events.some((v) => v.actorId === p.id && v.kind === 'move')) f.moved = true; // DI2: Not One Step asks you never moved
 }
 
 /** the player's fight has ended: won = every foe is down, fled or yielded. The last turn's blows count too. */
@@ -223,5 +237,11 @@ export function fightEnded(state: GameState, f: FightLog, events: GameEvent[] = 
   if (!f.hurt && f.defended) tally(state, 'flawless');
   if (f.most >= CONFIG.OUTNUMBERED_FOES && !f.helped) tally(state, 'outnumbered');
   if (f.heldLine) tally(state, 'held_line');
+  if (f.most >= CONFIG.OUTNUMBERED_FOES && !f.moved) { // DI2, DI20: held your ground, allies or not; a branch per larger crowd
+    tally(state, 'held_ground');
+    for (const n of CONFIG.HELD_GROUND_FOES) if (f.most >= n) tally(state, 'held_ground', { by: 'foes', of: String(n) });
+  }
+  // DI4: beside an ally against a crowd, and every foe of the fight died by your blow
+  if (f.helped && f.most >= CONFIG.OUTNUMBERED_FOES && f.foes.every((id) => actorById(state, id)?.killedBy === state.player.id)) tally(state, 'every_last');
   if (!f.struck && f.foes.length) tally(state, 'won_without_blow'); // the fight was won without the player attacking
 }

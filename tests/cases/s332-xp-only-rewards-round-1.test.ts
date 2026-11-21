@@ -40,12 +40,12 @@ describe('332 XP-only rewards, round 1', () => {
     expect(rewardLines(L()[ACH.spotted_10])).toEqual([]);
   });
 
-  it('XR11 and XR30: won while panicking and morale lost each pay +5 max morale per level', () => {
+  it('XR11 and XR30: won while panicking pays +5 max morale per level; morale lost pays +1, +2, +3 (DI18)', () => {
     const s = makeVillage();
     give(s, ACH.won_panicking_1, ACH.won_panicking_10, ACH.won_panicking_25);
     expect(achievementMaxMorale(s.player)).toBe(15);
     give(s, ACH.morale_lost_100, ACH.morale_lost_1000);
-    expect(achievementMaxMorale(s.player)).toBe(25);
+    expect(achievementMaxMorale(s.player)).toBe(18);
   });
 
   it('XR2: selling price and quest pay fields reach the trade and quest equations', () => {

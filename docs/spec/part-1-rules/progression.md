@@ -193,6 +193,15 @@ question IDs, BG/D numbers) sits in one trailing parenthesis.
   you through it (max morale, death's door, rest), and a feat done with a skill may pay that skill (D-278).
 - **PROG-118** New achievements come only from Ali-approved proposals (AA-108); Weaver-seeded scenario achievements (X7)
   are dropped (Ali, 07/11/2026).
+  The first approved round (Ali, Questions hub page "Chronicler deed ideas: which become achievements (AA-108)",
+  21/11/2026; rows in src/library/data.ts, counted in src/engine/feats.ts, quests.ts and memory.ts): Answer in Steel
+  (kills on a strike back, XP only, DI1), Not One Step (fights won against OUTNUMBERED_FOES+ foes without moving, with
+  branches at CONFIG.HELD_GROUND_FOES, DI2, DI20; a solo stand also earns Stand Against Many, DI21 b), Finishing Stroke
+  (DI3 a), Every Last One (DI4 b, DI12 a), Paid in Bone (DI13 d), Something Gave (a branch of Wounds lived through, DI14 d)
+  and Terms Under Threat (DI7 a, DI15 a). Existing rows changed: Still Swinging pays max morale (DI13), the morale-lost
+  chain pays by level (DI18 a), the quest chain pays quest pay from level II (DI19 a). Dropped: DI8 to DI11. Health
+  rewards for Paid in Bone and Something Gave (DI5, DI6), rewards across chains (DI22), and the levels of Not Done Yet and
+  Breaker of Wills (DI14, DI17) wait on round 4 of the same page.
 - **PROG-119** Earned achievements are listed on the Achievements page (the rail's Achievements tab), not on the
   character card: grouped by reward level with every group open (a heading the player closes stays closed), and clicking
   a chain opens its side panel: its current row with how it is earned, the turn it was earned and its reward, the
