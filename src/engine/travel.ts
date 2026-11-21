@@ -5,9 +5,9 @@
 import { wayTo } from '../plan/where';
 import { alongLine, keepInside, pointAlong } from '../plan/geom';
 import { CONFIG } from '../config';
-import { zoneById, allActors, atLeast, hostile, isActive, isEngaged, shortestPath } from './relations';
+import { zoneById, allActors, atLeast, hostile, isActive, isEngaged } from './relations';
 import { moveSpeed } from './speed';
-import { walkLeg, spotOf, distM, frontierPoint, spotPoint, withinM, M_EPS, placeAll, type Located, type Pos } from './position';
+import { walkLeg, routeOf, spotOf, distM, frontierPoint, spotPoint, withinM, M_EPS, placeAll, type Located, type Pos } from './position';
 export { frontierPoint };
 import { eachPerceives, together } from './yield';
 import { minutesUntil, now, timeOfDay } from '../time';
@@ -51,7 +51,7 @@ export function tripGoal(state: GameState, a: Actor, o: Order): { goal: Located;
     const at = isRoad(here) ? frontierPoint(state, here!.id, o.move) : null;
     return at ? { goal: { zone: here!.id, pos: at }, frontier: o.move } : null;
   }
-  const path = shortestPath(state, a.zone, o.move);
+  const path = routeOf(state, a, { zone: o.move });
   if (!path || ![a.zone, ...path].some((id) => isRoad(zoneById(state, id)))) return null;
   // BG-12: a spot on the way (a road's far end, the north side) is where the trip ends; one that names nothing is no trip
   if (o.moveSpot) {
