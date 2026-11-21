@@ -124,7 +124,7 @@ function flush(state: GameState, f: ScenarioFrame, as: ScenarioEnding, rng?: Rng
 }
 
 /** where a scenario's XP came from, for the gains moment's sum: every foe defeated in one row, each
- * achievement and quest in its own, anything else by its source; in the order each was first earned */
+ * achievement, quest and vow in its own, anything else by its source; in the order each was first earned */
 export function xpParts(state: GameState, since: XpAward[], achs: AchievementNote[]): XpPart[] {
   const out: XpPart[] = [];
   let foes = 0;
@@ -138,6 +138,7 @@ export function xpParts(state: GameState, since: XpAward[], achs: AchievementNot
     if (kind === 'defeat') { foes++; add('defeat', '', x.amount); }
     else if (kind === 'achievement') add('achievement', achs.find((a) => a.id === id)?.name ?? 'An achievement', x.amount);
     else if (kind === 'quest') add('quest', state.quests.find((q) => q.id === id)?.text ?? 'A quest', x.amount);
+    else if (kind === 'vow' || kind === 'vow broken') add('vow', state.vows?.find((v) => v.id === id)?.text ?? 'A vow', x.amount); // VW9 a: kept (+) or broken (−)
     else add('other', cap(kind), x.amount);
   }
   const f = out.find((x) => x.kind === 'defeat');
@@ -147,7 +148,7 @@ export function xpParts(state: GameState, since: XpAward[], achs: AchievementNot
 
 /** anything worth the moment: a scenario that gave nothing opens no panel and is not kept */
 export const anyGains = (g: ScenarioGains | undefined): g is ScenarioGains =>
-  !!g && (g.skills.length + g.perks.length + g.allPerks.length + g.achievements.length + g.levelUps.length + (g.essences?.length ?? 0) > 0 || g.xp.gained > 0);
+  !!g && (g.skills.length + g.perks.length + g.allPerks.length + g.achievements.length + g.levelUps.length + (g.essences?.length ?? 0) > 0 || g.xp.gained > 0 || !!g.xp.parts?.some((x) => x.kind === 'vow'));
 
 /** the scenario that just ended goes on the character's gains log (the Gains page), if it gave anything */
 export function keepGains(state: GameState, as: ScenarioEnding): void {

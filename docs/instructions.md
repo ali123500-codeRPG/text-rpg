@@ -42,8 +42,9 @@ edge cases. Where a section repeats a rule from `AGENTS.md`, it is there to add 
 - **Perk and achievement ideas.** A parked idea is sorted by subject when it is parked, so a thread on that subject
   can take its list together. About perks specifically (a perk, a kind of perk, an All-X part): a PP-n row in
   `docs/spec/perk-ideas.md`. About achievements specifically (an achievement, a chain, a kind of reward, who proposes
-  them): an AA-n row in `docs/spec/achievement-ideas.md`. Anything else: a D-n. A new PP-n or AA-n is numbered as a new
-  D-n is (`title='PP: <item>'` or `'AA: <item>'`); a row moved from the Deferred items table keeps its number (D-189
+  them): an AA-n row in `docs/spec/achievement-ideas.md`. About vows or pledges (D-141's vows, things given up for
+  power): a VP-n row in `docs/spec/vow-ideas.md`. Anything else: a D-n. A new PP-n, AA-n or VP-n is numbered as a new
+  D-n is (`title='PP: <item>'`, `'AA: <item>'` or `'VP: <item>'`); a row moved from the Deferred items table keeps its number (D-189
   became PP-189), and its D-n row in the archive says where it went.
 - **Active and archive.** The Deferred items table and the Bug log keep open rows only. A row moves unchanged to
   `deferred-items-archive.md` or `bug-log-archive.md` (beside them in `docs/spec/`) in the PR that finishes it: built,

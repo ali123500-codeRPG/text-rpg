@@ -31,6 +31,8 @@ const client: ClaudeClient = {
   async call(req: ClaudeRequest): Promise<ClaudeResponse> {
     if (req.agent === 'parser') return { ok: true, value: parse(req) };
     if (req.agent === 'narrator') return narrate(req);
+    // D-141: the Witness always offers the same restraint vow
+    if (req.agent === 'witness') return { ok: true, value: { reply: 'Then swear it.', vow: { line: 'Steal nothing for three days', goal: { kind: 'restraint', act: 'filch' }, stake: 'II', days: 3 } } };
     return { ok: false, error: 'upstream_error', message: 'smoke test: no Claude' };
   },
 };

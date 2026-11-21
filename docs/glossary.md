@@ -13,6 +13,8 @@ with where its full meaning lives. A term's rules are never defined here.
 - **AA-n**: a parked achievement idea. One row each in the "Achievement ideas" table
   (`docs/spec/achievement-ideas.md`; finished ones in the Deferred items archive). A row moved from the Deferred items
   table keeps its number (D-124 became AA-124).
+- **VP-n**: a parked vow or pledge idea. One row each in the "Vow and pledge ideas" table (`docs/spec/vow-ideas.md`;
+  finished ones in the Deferred items archive). A row moved from another list keeps its number (PP-266 became VP-266).
 - **BG-n**: a bug. n is its claim issue's number (label `bug`); the issue is its register entry and its story is
   `docs/bugs/BG-n.md`. Below 1000, the old count: a row in the spec's "Bug log" (`docs/spec/bug-log.md`; closed ones in
   `bug-log-archive.md`) and a story in `docs/bug-fix-log.md`.

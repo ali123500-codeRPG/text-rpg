@@ -1761,3 +1761,15 @@ button.eq-name:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .ptico { display: inline-flex; align-items: center; gap: 1px; height: 20px; vertical-align: -5px; color: inherit; }
 .ptico svg { width: 20px; height: 20px; flex: none; display: block; }
 .ptico[data-side="left"] svg { transform: scaleX(-1); }
+/* D-141: the Vows section on the Quests page and the Witness chat */
+.vows > .head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.wit-pop { width: min(440px, calc(100vw - 32px)); }
+.wit-pop .dpop-body { display: grid; gap: var(--space-3); }
+.wit-log { display: grid; gap: var(--space-2); max-height: 40vh; overflow-y: auto; }
+.wit-log p { margin: 0; }
+.wit-witness { font-family: var(--font-story, inherit); }
+.wit-player { color: var(--muted); }
+.wit-card { display: grid; gap: var(--space-2); border: 1px solid var(--rule); border-radius: var(--r-md); padding: var(--space-3); }
+.wit-card[hidden] { display: none; }
+.wit-row { display: flex; gap: var(--space-2); align-items: end; }
+.wit-in { flex: 1; resize: vertical; }

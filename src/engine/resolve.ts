@@ -501,6 +501,7 @@ import {
   unpaidQuests,
   updateQuests,
 } from './quests';
+import { updateVows } from './vows';
 import {
   type ActContest,
   contestFeat,
@@ -3429,6 +3430,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   runSteps(state); // UG16: a goal holder's finished step gives way to its next
   noticeGoals(state); // UG7 moment 3: a goal holder that perceives what a goal names thinks next
   updateQuests(state, ctx.events, defeated);
+  updateVows(state, ctx.events, defeated, ctx.acted.has(state.player.id) ? playerOrder.type : undefined); // D-141
   noteZonesSeen(state);
   if (playerUp && !isActive(state.player)) playerDown(state, rng);
   else if (state.mercy && state.mercy.turn < state.turn) (settleMercy(state) && healthLevel(state.player) !== 'dead' ? wakeUp(state, 'player_spared') : logCode(state, 'player_fell', { lethal: true })); // D-239

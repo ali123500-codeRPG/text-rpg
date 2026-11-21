@@ -5,7 +5,7 @@ import type { DefenseKind } from './actor';
 import type { TimeOfDay } from '../scales';
 import type { Plan, Secret, Trigger } from './hidden';
 
-export type AgentName = 'parser' | 'planner' | 'responder' | 'voice' | 'narrator' | 'weaver' | 'world' | 'autopilot' | 'chronicler';
+export type AgentName = 'parser' | 'planner' | 'responder' | 'voice' | 'narrator' | 'weaver' | 'world' | 'autopilot' | 'chronicler' | 'witness';
 
 export type Volume = 'whisper' | 'normal' | 'shout';
 /** every action the Parser can give (schema and completeness tests read this list) */

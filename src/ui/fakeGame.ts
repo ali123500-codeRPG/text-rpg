@@ -14,6 +14,7 @@ import { maxMorale, isBrokenLevel, moraleLevel, setMoraleLost } from '../ruleset
 import { getLibrary } from '../library';
 import { takePerk, undoPerk } from '../ruleset';
 import { abandonQuest, pinQuest } from '../engine/quests';
+import { readVow, renounceVow, swearVow, type VowForm } from '../engine/vows';
 import { setSignatures } from '../ruleset/personality';
 import { newInstanceId, spawnNpc, validateBuild } from '../library/spawn';
 import { zoneById } from '../engine/relations';
@@ -544,6 +545,16 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     undoPerk(id) { if (state) { undoPerk(state, state.player, id); emit(); } },
     abandonQuest(id) { if (state && abandonQuest(state, id)) emit(); },
     pinQuest(id) { if (state) { pinQuest(state, id); emit(); } },
+    // D-141, the stand-in Witness: its first answer asks, every later one offers the same restraint vow
+    async witness(chat) {
+      if (!state) return null;
+      if (chat.filter((l) => l.by === 'player').length < 2) return { reply: 'What do you mean to hold yourself to, and by when?' };
+      const form: VowForm = { line: 'Steal nothing for three days', goal: { kind: 'restraint', act: 'filch' }, stake: 'II', days: 3 };
+      const r = readVow(state, form);
+      return 'vow' in r ? { reply: 'Then swear it: no stealing for three days, at stake II.', form, vow: r.vow } : { reply: `That cannot be sworn: ${r.error}.` };
+    },
+    swearVow(form) { if (!state) return 'No story.'; const err = swearVow(state, form); if (!err) emit(); return err; },
+    renounceVow(id) { if (state && renounceVow(state, id)) emit(); },
     setSignatures(lines) { if (state) { setSignatures(state.player, lines); emit(); } },
     setDefense(kind) { if (state) { state.player.core.standingDefense = kind; emit(); } },
   };

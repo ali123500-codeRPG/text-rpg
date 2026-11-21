@@ -18,6 +18,7 @@ import { skillName } from '../library/skillNames';
 import { othersHealthWord } from '../ruleset';
 import { buildPlayerView, callName, factText, questGoalText } from '../views';
 import { ESSENCE_ABOUT, essencesBody, essencesSummary } from './essences';
+import { vowsSection } from './vows';
 import { chainCard, chainViews, foldAll, type ChainView } from './achievementThreads';
 import { tipFor, boxOf, fitInView, closePanel, groupedTable, playDraft, type PanelRow, h, viewSize, natural, openPanel, plural, unitOf, visPass, visTiles, iconMark, rowKey, type Col, type TGroup, type TRow, type VisState, type VisTile, safe, ended } from './kit';
 import { charCard, charFocus, gearNote, invFocus, treeBars } from './charsheet';
@@ -497,7 +498,8 @@ function abandonButton(api: GameApi, id: string): HTMLElement {
 /** QT14/QT24: one row per quest; linked quests fold under one head row, numbered by start; tiles by state */
 export function questsPage(api: GameApi) {
   const quest = (s: GameState, id: string) => s.quests.find((q) => q.id === id);
-  return listPage(api, {
+  // D-141 VW9 a: the Vows section sits under the quests
+  const page = listPage(api, {
     title: 'Quests', noun: ['quest', 'quests'], panelTitle: 'Quest', empty: 'No quests yet. Talk to people in the village.',
     focus: () => { const id = questFocus.id; questFocus.id = null; return id; },
     cols: [{ key: 'text', title: 'Quest' }, { key: 'giver', title: 'Giver' }, { key: 'goal', title: 'Goal' }, { key: 'reward', title: 'Reward' },
@@ -551,6 +553,8 @@ export function questsPage(api: GameApi) {
       return `${plural(done.length, 'quest')} done · ${(s.player.progression?.xpLog ?? []).filter((x) => x.source.startsWith('quest:')).reduce((n, x) => n + x.amount, 0)} XP from quests`;
     },
   });
+  const update = () => { page.update(); const s = api.state(); if (s) page.el.append(vowsSection(api, s, update)); };
+  return { el: page.el, update };
 }
 
 // ---------- Achievements and Scars ----------

@@ -2,7 +2,7 @@
 // (deny-by-default: an unknown key such as a Parser "aimed" never survives) plus the error list.
 // A missing nullable field reads as null; only a missing required field fails the answer (CS9).
 import type { GoalOps, GoalStep, StepEnd, PlanFurniture, AgreementMade, CheckinAnswer, WindowAnswer, Grade, Intent, MoveSpot, NarratorOutput, PlanBarrier, QuestEnd, SparMade, Stance, PlannerOutput, ResponderOutput, StagePlan, VoiceOutput, WayKind } from '../types';
-import { GEAR_OPS, OFFERED_GOAL_KINDS, GRADES, IMPROVISED_BASES, NPC_ACTIONS, PARSER_ACTIONS, PRONOUNS, type GearOp, type ImprovisedBase } from '../types';
+import { GEAR_OPS, OFFERED_GOAL_KINDS, VOW_GOAL_KINDS, GRADES, IMPROVISED_BASES, NPC_ACTIONS, PARSER_ACTIONS, PRONOUNS, type GearOp, type ImprovisedBase } from '../types';
 import { skillIdOf } from '../library/skillIds';
 import { SKILL_NAMES } from '../library/skillNames';
 import { CHASE_RANGES, COVER, FRAGILITY, LIGHT, QUALITY_LEVELS, STANCES, TIERS, TIME_OF_DAY, type FragilityKey, type QualityKey, type Scale, type TimeOfDay } from '../scales';
@@ -297,3 +297,9 @@ export const checkChronicler = run(obj<{ ideas: ChroniclerIdea[] }>({ ideas: arr
 /** WZ2 the region brief: only its shape is checked here; src/land/brief.ts tidyBrief drops unknown words */
 export const checkRegionBrief = run(obj<Record<string, unknown>>({ kind: str, name: str, look: str, settlements: arr(any), features: arr(any), river: any, exits: any, beyond: any, danger: any },
   ['river', 'exits', 'beyond', 'danger', 'features']));
+/** D-141 VW2: the Witness's answer: what it says, and the vow form once a vow has taken shape (code reads and checks it) */
+export type WitnessAnswer = { reply: string; vow: import('../engine/vows').VowForm | null };
+const VOW_GOAL = obj<import('../engine/vows').VowForm['goal']>({ kind: oneOf(VOW_GOAL_KINDS), target: nul(str), count: nul(num), item: nul(str), qty: nul(num),
+  to: nul((v, p, e) => (typeof v === 'number' || typeof v === 'string' ? v : (e.push(`${p}: expected number or string`), null))), skill: nul(str), act: nul(str) },
+['target', 'count', 'item', 'qty', 'to', 'skill', 'act']);
+export const checkWitness = run(obj<WitnessAnswer>({ reply: str, vow: nul(obj<import('../engine/vows').VowForm>({ line: str, goal: VOW_GOAL, stake: str, days: num, by: nul(oneOf(TIME_OF_DAY.keys)) }, ['by'])) }));

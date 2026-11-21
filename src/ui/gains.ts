@@ -15,7 +15,7 @@ import { cap, termAttrs } from '../words';
 
 /** one way to write a number in the moment, counting or still, so a count never ends in a jump (XP can be fractional) */
 const num = (v: number) => String(+v.toFixed(1));
-const plus = (v: number) => `+${num(v)}`;
+const plus = (v: number) => `${v < 0 ? '−' : '+'}${num(Math.abs(v))}`; // a broken vow or a given-up essence takes Thread
 
 export { anyGains } from '../engine/growth'; // one test for "the scenario gave something", shared with the gains log
 
@@ -97,7 +97,7 @@ function gainsSpine(g: ScenarioGains, achCard: (a: AchievementNote) => HTMLEleme
   if (g.essences?.length) secs.push(sec('ess', g.essences.length === 1 ? 'An essence is offered' : 'Essences are offered', ...g.essences.map((e) =>
     h('div', { class: 'perk-new g-ess' }, star('◆'), h('div', {}, e.name, h('small', {}, live ? `${cap(e.grade)} grade. Take it or let it go when this closes` : `${cap(e.grade)} grade`))))));
   const levelled = g.xp.toLevel > g.xp.fromLevel;
-  const KIND: Record<XpPart['kind'], string> = { defeat: 'Defeats', achievement: 'Achievement', quest: 'Quest', other: 'Other' };
+  const KIND: Record<XpPart['kind'], string> = { defeat: 'Defeats', achievement: 'Achievement', quest: 'Quest', vow: 'Vow', other: 'Other' };
   const parts = (g.xp.parts ?? []).filter((x) => x.amount);
   if (g.xp.gained || levelled) secs.push(sec('xp', 'The Thread', h('div', { class: 'g-xp' },
     // the sum: where the XP came from, row by row, above the total it adds up to
