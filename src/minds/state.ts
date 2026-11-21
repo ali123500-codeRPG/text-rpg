@@ -146,8 +146,7 @@ export function isCalm(state: GameState, a: Actor): boolean {
   return !isEngaged(state, a) && !alarm?.armed && secondsSince(state, last) >= CONFIG.DECAY_AWARE_S;
 }
 
-// PQ11 a: a call for help or a warning is an alert in itself, so hearing one raises the alarm; being told is not
-const ALARM_KINDS = new Set(['attack', 'alarm', 'call_help', 'warn', 'struck', 'found_body', 'impact']);
+const ALARM_KINDS = new Set(['attack', 'alarm', 'struck', 'found_body', 'impact']);
 /** BF65: kinds that alarm their own actor too: the one struck unseen, the one who finds a body; BG-251: the one a missile lands by */
 const SELF_ALARM = new Set(['struck', 'found_body', 'impact']);
 
@@ -167,11 +166,11 @@ export function raiseAlarm(state: GameState, a: Actor): void {
   }
 }
 
-/** it believes (suspicious or more), from its own sight or hearing, in someone it is wary of: leaving unaware of them is what
- * raises the alarm. PQ11 a: a belief it was only told never does (W1: no alarm from hearsay) */
+/** it believes (suspicious or more) in someone it is wary of: leaving unaware of them is what raises the alarm. PQ11 a: a belief
+ * picked up only from talk (hearsay) never does (W1); one passed on by an alert (a call for help, an alarm, a warning) still does */
 const knowsWary = (state: GameState, a: Actor): boolean => Object.entries(a.mind?.knowledge ?? {}).some(([id, b]) => {
   const o = actorById(state, id);
-  return !!o && b.source !== 'told' && wary(state, a, o) && atLeast(b.status, 'suspicious');
+  return !!o && !(b.source === 'told' && b.hearsay) && wary(state, a, o) && atLeast(b.status, 'suspicious');
 });
 
 /** BF1 (BG-114): knowing someone from a scenario's start is not noticing them: an actor that starts out knowing someone it

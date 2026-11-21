@@ -102,7 +102,7 @@ describe('updateBeliefs', () => {
     const s = makeVillage();
     actor(s, 'trader').mind!.knowledge.slime_1 = { status: 'tracking', lastKnownZone: 'field_mid', lastSeenTurn: 0, source: 'seen', revealed: ['has_acid'] };
     run(s, ev({ actorId: 'trader', kind: 'speak', zone: 'tav_counter', noise: 'normal', line: { text: 'Slimes!', volume: 'normal' } })); // a normal voice: clear one link away
-    expect(actor(s, 'patron_1').mind!.knowledge.slime_1).toEqual({ status: 'suspicious', source: 'told', lastKnownZone: 'field_mid', lastSeenTurn: 0, revealed: ['has_acid'] });
+    expect(actor(s, 'patron_1').mind!.knowledge.slime_1).toEqual({ status: 'suspicious', source: 'told', lastKnownZone: 'field_mid', lastSeenTurn: 0, revealed: ['has_acid'], hearsay: true }); // PQ11 a: talk is hearsay
   });
   it('a concealed item used in a perceived attack is revealed', () => {
     const s = makeVillage();
