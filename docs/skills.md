@@ -26,6 +26,11 @@ Each is in `.agents/skills/<name>/SKILL.md`, in full. Change one only through a 
   examples. Condensed from dylantarre/animation-principles (MIT); licence kept beside it.
 - **motion-sequencing**: timelines, staggers, overwrite and cleanup, FLIP and reduced motion without a library.
   Borrows principles from greensock/gsap-skills (MIT); licence kept beside it.
+- **design-spatial**: for any UI change. Render the built page, run its layout audit (`scripts/layout-audit.js`:
+  overflow, collisions, contrast, tap size as gates; balance, alignment and spacing as signals only), look at the
+  annotated screenshot, and measure what the change is about (an icon against what it labels, the gap to a
+  neighbour). From connerkward/ckw-design-skill (MIT); the source's text and script are kept whole, with a part for
+  this project on top, and its licence beside it.
 
 The three motion skills are general craft. The game's own motion rules are in `docs/build-spec.md`, "### Play screen
 motion", and win over them.
