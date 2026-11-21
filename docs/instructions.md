@@ -118,7 +118,8 @@ The source of truth for every design decision.
 - **Stay in scope.** Out-of-scope work becomes its own task. Do not widen the current one.
 - **Read by ID, not by file.** `npm run spec -- <ID>` or a line range. Never read a file over 50 KB whole.
 - **Balancing levers.** Every balancing number lives in one easy-to-edit place (`src/config.ts`, whose parts are in
-  `src/config/`, or a library table), with a clear name, placeholders marked, and the lever named in the spec. Use names
+  `src/config/`, or a library table), with a clear name, placeholders marked, and the lever named in the spec by its setting, never copied as a number
+  (PQ15 a: a copy drifts from the code). Use names
   tables for ordered scales, so a level can be inserted. Reason: the owner balances by playing and tunes numbers without touching logic.
 - **One equation per concept.** Before writing a formula, search for an existing one that measures the same thing and
   reuse it. Two features that measure the same quantity call one shared function.
