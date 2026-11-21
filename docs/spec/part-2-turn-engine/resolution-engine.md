@@ -123,7 +123,7 @@ Rules for simultaneous orders, because the Parser and the Planner worked without
 **First-build ruleset.** Build TIERS, eventRoll(), roll() and attack() as Parts 1 and 3 define them, and contested() as Part 1 §4 sets out. The rest works like this:
 
 - initiative(): d100 + SKILL\_WEIGHT × the best skill with the Initiative function (full value, like a function roll; 0 when none) + roll modifiers naming initiative (rollMod roll `initiative`). No skill has the function yet, so it is a plain d100 for now (Dodge joins the Speed group directly, without the function). Higher acts first. An actor unaware of anyone attacking it this turn takes INIT\_UNAWARE (placeholder), so it acts last. Ties go to the seeded RNG.
-- applyEffects(): attacks as Part 3 sets out. A check or a contest only changes beliefs (through updateBeliefs) and reveals secrets; it never changes an object or a place (OQ-22).
+- applyEffects(): attacks as Part 3 sets out. A check or a contest changes beliefs (through updateBeliefs) and reveals secrets. Objects and places change through their own actions, each with its own rules: picking a lock and breaking through a barrier or wall (Scenarios; BA2, BW8–BW26) and filching (FL1–FL7). A new way to change a thing is its own question (OQ-22, closed 21/11/2026).
 - recordUse(): writes the use to the agent log and changes nothing, so no skill changes in the first build.
 - The morale roll (Part 3, Morale) is moraleRoll(): roll() on Resolve with renown and rally; morale lost is saved in Condition.moraleLost and a break in Mind.moraleState until the scenario ends. No new interface method.
 
