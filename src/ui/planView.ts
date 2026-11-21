@@ -93,9 +93,9 @@ export function planView(api: GameApi, opts: PlanOpts) {
   // SD4: how to use it is the map's tip and name, not a line under it
   const svg = s('svg', { class: `mm-svg${full ? ' map-svg' : ''}`, tabindex: 0, role: 'group', 'aria-label': `${full ? 'Map' : 'Minimap'}. ${HINT}` }) as SVGSVGElement;
   const fogId = `pv-fog-${++fogIds}`;
-  const world = s('g'), gFog = s('defs'), gAreas = s('g'), gFaces = s('g', { class: 'map-faces', 'aria-hidden': 'true' }), gZones = s('g', { class: 'map-zones', 'clip-path': `url(#${fogId})`, mask: `url(#${fogId}-now)` }), gNames = s('g', { class: 'map-names', 'aria-hidden': 'true' });
+  const world = s('g'), gFog = s('defs'), gUnder = s('g', { class: 'map-under', 'clip-path': `url(#${fogId}-under)`, 'aria-hidden': 'true' }), gAreas = s('g'), gFaces = s('g', { class: 'map-faces', 'aria-hidden': 'true' }), gZones = s('g', { class: 'map-zones', 'clip-path': `url(#${fogId})`, mask: `url(#${fogId}-now)` }), gNames = s('g', { class: 'map-names', 'aria-hidden': 'true' });
   const gScale = s('g', { class: 'map-scale', 'aria-hidden': 'true' }), gRing = s('g'), gMarks = s('g', { class: 'map-marks' }), gPath = s('g'), gTokens = s('g');
-  world.append(gFog, gAreas, gZones, gFaces, gNames, gRing, gMarks, gPath, gTokens);
+  world.append(gFog, gUnder, gAreas, gZones, gFaces, gNames, gRing, gMarks, gPath, gTokens);
   svg.append(s('defs', {},
     s('marker', { id: `${fogId}-arrow`, viewBox: '0 0 10 10', refX: 8, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }, s('path', { d: 'M0 0 10 5 0 10z', class: 'map-arrowhead' }))),
   s('title', {}, HINT), world, gScale);
@@ -193,7 +193,7 @@ export function planView(api: GameApi, opts: PlanOpts) {
   /** a zone to scale: its floor at its real size, each side drawn as its edge kind; no zone state (MAP-33): the fog's
    *  two tones say what is in sight now, and the zone you stand in has no outline, even when its card is open */
   function planZone(z: MapZone, b: Box, c: Box) {
-    const cls = ['map-tile', 'plan', z.outdoor ? 'outdoor' : 'indoor', z.id === d?.heading ? 'heading' : '', z.id === d?.selected && !z.here ? 'selected' : '', z.light === 'dark' ? 'dark' : ''].filter(Boolean).join(' ');
+    const cls = ['map-tile', 'plan', z.outdoor ? 'outdoor' : 'indoor', z.road ? 'road' : '', z.id === d?.heading ? 'heading' : '', z.id === d?.selected && !z.here ? 'selected' : '', z.light === 'dark' ? 'dark' : ''].filter(Boolean).join(' ');
     const m2 = Math.round(z.outline?.length ? areaOf(z.outline) : z.rect!.w * z.rect!.d);
     const w = b.x1 - b.x0, hh = b.y1 - b.y0;
     // the drawn floor sits a hair inside its walls, so zones that share a wall never measure as overlapping (MAP-11)
@@ -267,7 +267,7 @@ export function planView(api: GameApi, opts: PlanOpts) {
   const exitAttrs = (zoneId: string, label: string) => ({ 'data-exit': label, 'data-exit-from': zoneId, tabindex: 0, role: 'button', 'aria-label': `${label}: unexplored, click for Move to here` });
 
   function render() {
-    for (const g of [gAreas, gZones, gFaces, gNames, gRing, gMarks, gTokens]) g.replaceChildren();
+    for (const g of [gUnder, gAreas, gZones, gFaces, gNames, gRing, gMarks, gTokens]) g.replaceChildren();
     gFog.replaceChildren();
     if (!d) { scene = null; gPath.replaceChildren(); foot(); return; }
     const { w, h: hh } = size();
@@ -277,6 +277,19 @@ export function planView(api: GameApi, opts: PlanOpts) {
     const vb: Box = { x0: -off.x, y0: -off.y, x1: w - off.x, y1: hh - off.y }, inView: Box = { x0: vb.x0 + 1, y0: vb.y0 + 1, x1: vb.x1 - 1, y1: vb.y1 - 1 };
     const sc = (scene = sceneAt(k, vb));
     gFog.append(fogClip(fogId, sc.zones.map((x) => x.z), K(), org), fogMask(`${fogId}-now`, sc.zones.map((x) => x.z), K(), org)); // BG-313: only ground the character has seen; MAP-33: in sight now full, the rest faded
+    // OM9 b: off the ground, the ground level lies faded under the height shown (its floors and walls only, no marks), so
+    // you keep your bearings upstairs or down a cellar
+    if (d.height !== 0) {
+      const ground = d.every.filter((z) => z.rect && z.height === 0 && (!z.seen || z.seen.length));
+      gFog.append(fogClip(`${fogId}-under`, ground, K(), org));
+      for (const z of ground) {
+        const r = z.rect!, a = px({ x: r.x - r.w / 2, y: r.y + r.d / 2 }), b: Box = { x0: a.x, y0: a.y, x1: a.x + r.w * K(), y1: a.y + r.d * K() };
+        if (!clip(b, vb)) continue;
+        const fm = floorMarks(z, K(), -org.x * K(), org.y * K());
+        gUnder.append(s('g', { class: `map-tile plan ${z.outdoor ? 'outdoor' : 'indoor'}${z.road ? ' road' : ''}` },
+          fm.floor ? s('polygon', { points: fm.floor, class: 'map-tile-box' }) : s('rect', { x: b.x0, y: b.y0, width: b.x1 - b.x0, height: b.y1 - b.y0, class: 'map-tile-box' }), ...fm.walls.filter((e) => !e.hasAttribute('data-thing'))));
+      }
+    }
     for (const p of sc.places) {
       const c = clip(p.box, vb);
       if (!c) continue;

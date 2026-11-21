@@ -1044,6 +1044,12 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-tile-box { fill: var(--surface); stroke: var(--border); stroke-width: 1.5; }
 .map-tile.outdoor .map-tile-box { fill: color-mix(in srgb, var(--c9) 22%, var(--surface)); stroke: color-mix(in srgb, var(--c9) 55%, var(--border)); }
 .map-tile.indoor .map-tile-box { fill: color-mix(in srgb, var(--c15) 12%, var(--surface)); stroke: color-mix(in srgb, var(--c15) 45%, var(--border)); }
+/* OM10 a: a road is ground like any other, in its own packed-earth tone with solid edges; far out its edges meet in a
+   thin solid line */
+.map-tile.plan.road .map-tile-box { fill: color-mix(in srgb, var(--land-road) 45%, var(--surface)); stroke: var(--land-road); stroke-width: 1.5; }
+.map-tile.plan.road .map-edge.open { display: none; }
+/* OM9 b: the ground level under a floor above or below it, faded, nothing on it to click */
+.map-under { opacity: .3; pointer-events: none; }
 .map-tile.dark .map-tile-box { fill: color-mix(in srgb, var(--bg) 60%, var(--surface)); }
 .map-tile.remembered { opacity: .62; }
 /* MAP-33: the fog's two tones, a mask over a place map's ground: seen and out of sight now faded, in sight now full */
@@ -1070,7 +1076,7 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 /* WZ4 the land you have made out, under the World's places and roads (map.ts drawLand, landSvg.ts). The one land palette,
    muted for Sky diary Night and mixed from the tokens (HISAB has no land colours). The land is drawn in metres; --px
    (metres per screen pixel, set on zoom) keeps its lines a set width on screen. No glow, shadow or motion. */
-.map-page {
+.map-page, .mm {
   --land-farmland: color-mix(in srgb, var(--c15) 24%, var(--bg)); --land-pasture: color-mix(in srgb, var(--c2) 22%, var(--bg));
   --land-woods: color-mix(in srgb, var(--c16) 40%, var(--bg)); --land-heath: color-mix(in srgb, var(--c22) 32%, var(--bg));
   --land-moor: color-mix(in srgb, var(--c14) 26%, var(--bg)); --land-marsh: color-mix(in srgb, var(--c12) 24%, var(--bg));

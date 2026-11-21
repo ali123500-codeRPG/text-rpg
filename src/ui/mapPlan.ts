@@ -285,7 +285,7 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
     // MAP-14 (RM28 a): at its own width along its wall and the wall's thickness across, at every zoom, no smallest size; a
     // way with no width of its own a doorway's, as a frontier way takes (addFrontier)
     const len = (l.widthM || CONFIG.DOORWAY_M[0]) * PX_PER_M * k, [hw, hh] = dir === 'h' ? [len / 2, WALL_PX / 2] : [WALL_PX / 2, len / 2];
-    const r = (len * CONFIG.MAP_DOOR_BADGE_SHARE) / 2;
+    const r = Math.min(len * CONFIG.MAP_DOOR_BADGE_SHARE, CONFIG.MAP_BADGE_MAX_PX) / 2; // OM12 b: to scale, up to a set size
     // RM31 b: a bar's badge off the line toward the side its bolt is on (l.out leads out of x; screen y runs down)
     const lean = way?.shut === 'barred' && way.side ? (way.side === x.z.id ? -1 : 1) * CONFIG.MAP_BADGE_LEAN * 2 * r : 0;
     const badge = way?.shut ? { cx: c.x + l.out[0] * lean, cy: c.y - l.out[1] * lean, r } : undefined;

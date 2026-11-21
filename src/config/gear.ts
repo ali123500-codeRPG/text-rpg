@@ -166,6 +166,8 @@ export const GEAR = {
   /** MAP-14 (RM28 a): a barrier badge's diameter over its door's drawn width, both to scale at every zoom: the 16 px badge
    *  that sat on a 1 m door at zoom 1 (12 px a metre) */
   MAP_DOOR_BADGE_SHARE: 16 / 12,
+  /** MAP-14 (OM12 b): the widest a badge is drawn, in screen pixels: its size at the old closest zoom, kept from there in */
+  MAP_BADGE_MAX_PX: 40,
   /** MAP-14 (RM31 b): how far a badge for a barrier that opens from one side only (a bar) sits off its door's line toward
    *  that side, as a share of the badge's diameter: at 0.5 the whole badge is on that side, its edge on the line */
   MAP_BADGE_LEAN: 0.5,
