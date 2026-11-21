@@ -1,5 +1,5 @@
 // 422 NPC readied orders (AE6, RQ3 a): an NPC's agent readies a step as the player does ("when"), the engine watches it
-// with the same check and plays it the moment it comes true (on the player's walk in, the moment they cross into the
+// with the same check and plays it the moment it comes true, in a fight and outside one (on the player's walk in, the moment they cross into the
 // spear's reach), it holds through turns with no new order from its agent, and drops after READY_MAX_S or a new order.
 import { describe, expect, it } from 'vitest';
 import { actor, createRng, fit, makeVillage, place } from '../harness';
@@ -83,5 +83,24 @@ describe('422 NPC readied orders', () => {
     expect(v.errors).toEqual([]);
     expect(v.value.when).toEqual({ on: 'comes', who: 'anyone' });
     expect(checkPlanner({ ...out, when: { on: 'speaks', who: 'player' } }).errors.length).toBeGreaterThan(0);
+  });
+  it('outside a fight it holds its ground across turns, fires as the player closes, and lasts WAIT_SOMEONE_MAX_H', () => {
+    const s = setup(6);
+    s.mode = 'explore';
+    turn(s, waiting, [plan({ on: 'closes', who: 'player' })], 5);
+    const p = actor(s, 'patron_1'), at = { ...p.pos! };
+    turn(s, waiting, [], 6);
+    expect(p.readied?.order.type).toBe('attack'); // kept from turn to turn
+    expect(p.pos).toEqual(at); // its routine does not walk it off (catchUp)
+    p.readied!.since! -= CONFIG.WAIT_SOMEONE_MAX_H * 60;
+    turn(s, waiting, [], 7);
+    expect(p.readied).toBeUndefined();
+    expect(s.log.some((l) => l.code === 'ready_expired' && l.detail?.actorId === 'patron_1')).toBe(true);
+    const t = setup(6);
+    t.mode = 'explore';
+    turn(t, waiting, [plan({ on: 'closes', who: 'player' })], 5);
+    turn(t, waiting, [], 6);
+    turn(t, strike, [], 7);
+    expect(t.log.find((l) => l.code === 'ready_fired')?.detail?.actorId).toBe('patron_1');
   });
 });
