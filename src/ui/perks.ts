@@ -113,11 +113,14 @@ function textToggle() {
   return h('div', { class: 'hs-picker pk-vt', role: 'group', 'aria-label': 'Perk write-up' }, tt('story', 'Story'), tt('rules', 'Effect'));
 }
 
+/** a perk's Effect write-up as labelled rows */
+export const perkRuleRows = (r: NonNullable<PerkDef['rules']>): [string, string][] =>
+  [['Kind', r.kind], ['Trigger', r.trigger], ...(r.conditions.length ? [['Conditions', r.conditions.join(' ')] as [string, string]] : []), ['Effect', r.effect], ['Lasts', r.lasts], ...(r.cooldown ? [['Cooldown', r.cooldown] as [string, string]] : [])];
+
 function writeup(d: PerkDef) {
   const r = d.rules;
   if (ui.text === 'rules' && r) {
-    const rows: [string, string][] = [['Kind', r.kind], ['Trigger', r.trigger], ...(r.conditions.length ? [['Conditions', r.conditions.join(' ')] as [string, string]] : []), ['Effect', r.effect], ['Lasts', r.lasts], ...(r.cooldown ? [['Cooldown', r.cooldown] as [string, string]] : [])];
-    return [h('dl', { class: 'pk-rules' }, rows.flatMap(([k, v]) => [h('dt', {}, k), h('dd', {}, v)]))];
+    return [h('dl', { class: 'pk-rules' }, perkRuleRows(r).flatMap(([k, v]) => [h('dt', {}, k), h('dd', {}, v)]))];
   }
   const t = d.story ?? d.text;
   return t ? [h('p', {}, t)] : [];
