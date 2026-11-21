@@ -10,6 +10,16 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the spec's bug log, docs/spec/bug-log.md, has one. Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-355
+
+**What was wrong:** On the Map test stages (`?fake=1&stage=bent-nail|one-room|long-names`, MAP-52), every plain door's opening named a barrier record that did not exist: 4 of 6 doors on bent-nail and all 9 on long-names. Those doors drew as open gaps, their exits in the zone card did not say "door", and walking and door actions treated them as doorways. So the Map's automated check never looked at a shut plain door.
+
+**Root cause:** `placed()` (`src/ui/fakeStages.ts`) draws each stage with `drawTitles` on a scratch state, and `plainDoor` (`src/plan/draw.ts`) writes a record for each plain door into that state's `barriers` and sets the opening's `barrier` id. `placed()` returned the zones, walls, openings and the rest of the plan but not `barriers`, and `useStage` (`src/ui/fakeGame.ts`) then set `st.barriers = {}` and added only the stage's own locked or barred doors. Every other opening kept an id with no record behind it.
+
+**What was done:** The stage plan now carries the drawn `barriers`, `useStage` keeps them, and a stage's own door replaces the plain record on its way instead of leaving it unused. The default fake page (`fakeBarriers`) and real games keep their records already. Checked with a temporary test (deleted): every door on the four stages has its record and none is left over, against 4 missing on bent-nail before. The Map smoke test passes, and screenshots before and after show the plain doors now drawn shut, with "· door" on their exits.
+
+**Fixed by:** #1447
+
 ## BG-354
 
 **What was wrong:** Text and icons at the top of the play screen were hard to read over bright backdrops. Over the snow, sky and field paintings, --muted text (stat ranges, the character subtitle) fell to 3.4:1, --faint labels to 2.8:1 and the stat icons (--c1, --c10, --c12) to under 2:1 in the top tenth of the screen, all below WCAG AA (4.5:1 text, 3:1 icons). A screenshot over a dark tavern picture measured fine, so it showed only in some places.
