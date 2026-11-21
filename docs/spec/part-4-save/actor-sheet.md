@@ -405,7 +405,7 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
 - **SHEET-260** An NPC with a class takes its class level; an echo or other unique keeps its own level.
 - **SHEET-261** **Grandeur**: every role and theme has one, and an NPC takes the higher of the two (scale GRANDEUR
   mundane, ordinary, grand; `grandeur`; NR40 a).
-- **SHEET-262** A seat of the Great (its roster entry) and a unique are always grand.
+- **SHEET-262** A seat of the Great or a village's warden (its roster entry) and a unique are always grand.
 - **SHEET-263** The level from skills is multiplied by CONFIG.GRANDEUR\_LEVEL\_MULT (mundane ×0.75, ordinary ×1, grand
   ×1.25, placeholders).
 - **SHEET-264** Mundane: Worker, Hunter, Healer, and the Village folk, Town folk and Travellers themes; grand: Knight;
@@ -527,8 +527,8 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
   looks (src/land/roster.ts; NR17 a, NR18 a, NR19 a, NR20 a, NR31 a).
 - **SHEET-331** Code rolls the hooks each settlement holds by size, seeded by the land's own ids, so a roll never
   changes (library `rosters`).
-- **SHEET-332** Hamlet 1 to 2 from a person in need or a threat; village 3 to 5, always a leader, a service and the seat
-  of the Great; town 6 to 10, always a leader, a service, the seat, a trader, the watch and a rival.
+- **SHEET-332** Hamlet 1 to 2 from a person in need or a threat; village 3 to 5, always a leader, a service and its warden
+  (the lord's posted warden, the strongest person there but not one of the Great; PQ13 a2); town 6 to 10, always a leader, a service, the seat, a trader, the watch and a rival.
 - **SHEET-333** City 10 to 16, the town's must-haves plus a threat; court 5 to 8, Lord's household theme, always the
   ruler (a leader), the seat, the watch and a rival.
 - **SHEET-334** The land draws no cities or courts yet, so those two rows wait for a region that holds one.
@@ -539,7 +539,7 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
 - **SHEET-338** Ranks come from CONFIG.ROSTER_RANKS: services, traders, the watch and people in need Trained 50 /
   Veteran 40 / Elite 10; the crowd Novice 70 / Trained 30; leaders and rivals one step up; threats by settlement size
   (city and court up to Beyond); roads by danger (NR21 a).
-- **SHEET-339** The seat is at least its minimum (village Veteran or Elite, town Paragon, city Beyond, court Mythic),
+- **SHEET-339** The seat (a village's warden) is at least its minimum (village Veteran or Elite, town Paragon, city Beyond, court Mythic),
   one step higher on SEAT_STEP_UP_PCT (TL24).
 - **SHEET-340** The World builder's view (`land`) lists each unfilled entry beside its site, road or landmark (`roster`,
   `travellers`, `people`: key, who, what it gives, and who code rolled). The Weaver's view at story start lists them too,
