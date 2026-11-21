@@ -310,9 +310,10 @@ export class ScenarioDirector {
       if (w.frontier !== key || !a || !isActive(a)) continue;
       a.zone = here.id;
       a.placeId = here.placeId;
-      delete a.pos; // ZP1: placed in its new zone at the next turn's start
+      delete a.pos; // its point lay in the title it left
       out.push(a.id);
     }
+    if (out.length) placeAll(state); // ZP1: placed in its new title at once, so its follow event has its point
     if (state.scratch?.frontierWaits) state.scratch.frontierWaits = (state.scratch.frontierWaits as FrontierWait[]).filter((w) => w.frontier !== key);
     return out;
   }

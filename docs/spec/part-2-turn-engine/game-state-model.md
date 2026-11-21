@@ -117,9 +117,12 @@ type Band = {                   // a small group: a guard post, a gang, a househ
 - **GSM-50** Everyone stands at a point in metres (Actor.pos) on their title's floor; a ground item lies at a point
   with its floor (ItemInstance.at); a belief keeps the point and floor where the other was last made out
   (Belief.lastKnownAt) with its title for words (lastKnownZone) (PZ7 a).
-- **GSM-51** Placement (placeAll, at scenario setup and each turn's start): anyone with no point, or one outside their
-  title, gets the nearest free point to the title's middle on a half-PLACE_SPACING_M grid whose body keeps
-  PLACE_SPACING_M (0.75 m) from every other body (SZ6).
+- **GSM-51** Placement (placeAll, at scenario setup and each turn's start, and at once when a move puts someone in a
+  new title with no point there: an NPC following the player through a frontier, the player's companions at a trip's
+  end): anyone with no point, or one outside their title, gets the nearest free point to the title's middle (on a road,
+  to the player's point) on a half-PLACE_SPACING_M grid whose body keeps PLACE_SPACING_M (0.75 m) from every other body
+  (SZ6). So everyone always has a point, and every event carries its maker's (GameEvent.pos); an event with no point
+  never erases where the player last perceived someone (BG-1528).
 - **GSM-52** A point asked for outside a title (a minimap move, a spot past its walls) is kept a step in from every
   wall it is past (keepInside: from the nearest wall, then the next, so a point past a corner ends that far from both
   walls).
@@ -348,7 +351,7 @@ type GameEvent = {
   tier?: Tier;                  // absent for actions with no check, such as a plain move or speech
   effects: Effect[];            // structured; text is built per view, never stored
   noise: NoiseKey; visibility: VisibilityKey;   // NOISE / VISIBILITY keys (src/scales.ts); hearing: perception/noise.ts hearingOf (CONFIG.NOISE_DB, real metres, losses, background), CONFIG.SIGHT_M metres from the maker's body while it still stands at `pos`, else from `pos` (perception/index.ts madeAt)
-  pos?: { x: number; y: number };               // where it happened (the actor's point, step 2); absent = the zone's centre
+  pos?: { x: number; y: number };               // where it happened: the actor's point (GSM-51: everyone always has one)
   perception: Record<string, { level: Perception; cue: Cue }>;   // absent = not perceived
   bark?: boolean;               // words beside a deed: copy no belief, but are real speech (BF67): listeners who hear them get the words, and the speaker's said list has them
 };

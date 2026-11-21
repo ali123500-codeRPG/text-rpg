@@ -7,7 +7,7 @@ import { alongLine, keepInside, pointAlong } from '../plan/geom';
 import { CONFIG } from '../config';
 import { zoneById, allActors, atLeast, hostile, isActive, isEngaged, shortestPath } from './relations';
 import { moveSpeed } from './speed';
-import { walkLeg, spotOf, distM, frontierPoint, spotPoint, withinM, M_EPS, type Located, type Pos } from './position';
+import { walkLeg, spotOf, distM, frontierPoint, spotPoint, withinM, M_EPS, placeAll, type Located, type Pos } from './position';
 export { frontierPoint };
 import { eachPerceives, together } from './yield';
 import { minutesUntil, now, timeOfDay } from '../time';
@@ -132,7 +132,8 @@ export function travel(state: GameState, a: Actor, goal: Located, o: Order, rng:
       }
     }
   }
-  for (const c of group.slice(1)) { c.zone = a.zone; c.placeId = a.placeId; delete c.pos; } // placed beside the player next
+  for (const c of group.slice(1)) { c.zone = a.zone; c.placeId = a.placeId; delete c.pos; }
+  if (group.length > 1) placeAll(state); // ZP1: placed at once, as at a turn's start (beside the player on a road)
   return trip;
 }
 
