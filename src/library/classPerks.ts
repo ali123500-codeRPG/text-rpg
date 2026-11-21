@@ -54,10 +54,10 @@ export const CLASS_PERKS: Record<string, PerkDef> = {
     rules: { kind: 'Active (your action)', trigger: 'You take the action against someone within arm\'s reach.', conditions: ['They are Down, or have surrendered.', 'Their essence is still theirs: it has not been rolled for, at a death or by an earlier pull.'],
       effect: 'No roll: their essence is offered to you, from their own list. Its grade comes from a quality roll that never fades it (below Success it is Common). They are left Hollowed.', lasts: 'once per person' },
   },
-  // Imbra's Tier I blessing, given at Blessed by Imbra level 1 (ClassDef.levelBlessings); name and story placeholders
-  [PK.imbras_measure]: {
-    id: PK.imbras_measure, name: 'Imbra\'s Measure', built: true, blessing: { god: GD.imbra, tier: 'tier_1' }, essenceBoost: CONFIG.IMBRA_ESSENCE_BOOST,
-    story: 'Imbra has shown you how an essence settles into a Thread, and the ones you carry sit a little deeper in yours.',
+  // Imbra's Tier I blessing, given at Blessed by Imbra level 1 (ClassDef.levelBlessings)
+  [PK.passing_glance]: {
+    id: PK.passing_glance, name: 'A Passing Glance', built: true, blessing: { god: GD.imbra, tier: 'tier_1' }, essenceBoost: CONFIG.IMBRA_ESSENCE_BOOST,
+    story: 'Imbra glanced your way once, not for long. Since then the essences you carry sit a little better on you, and give a little more.',
     rules: { kind: 'Always on (blessing)', trigger: 'Any use of true skill.', conditions: ['The owner holds an essence.'],
       effect: `The true skill every held essence gives is raised by ${CONFIG.IMBRA_ESSENCE_BOOST * 100}%.`, lasts: 'always' },
   },

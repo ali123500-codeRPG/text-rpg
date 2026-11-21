@@ -170,9 +170,9 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
 - **SHEET-537** A Blessed class gives, at class level 1, a random Tier I blessing of its god (ClassDef.levelBlessings,
   rolled in classPerks: seeded by the story id at creation, by the character and turn on a level up) (domp,
   21/11/2026). While a god has no Tier I blessing, its Blessed class gives none at level 1.
-- **SHEET-538** Imbra's Tier I blessing is Imbra's Measure (PK185; name and story placeholders): the true skill every
-  held essence gives is raised by CONFIG.IMBRA_ESSENCE_BOOST (PerkDef.essenceBoost, read by essenceSkill; several
-  boosts add in full) (domp, 21/11/2026: "increase stats from essence by 10%").
+- **SHEET-538** Imbra's Tier I blessing is A Passing Glance (PK185): the true skill every held essence gives is raised
+  by CONFIG.IMBRA_ESSENCE_BOOST (PerkDef.essenceBoost, read by essenceSkill; several boosts add in full) (domp,
+  21/11/2026: "increase stats from essence by 10%"). Its name is tame, as a Tier I blessing is weak (domp, 21/11/2026).
 - **SHEET-109** A character's stranger label is its start class's label (ClassDef.label).
 
 #### Class perks, IDs, tiers and unlocks

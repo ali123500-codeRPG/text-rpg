@@ -27,10 +27,10 @@ describe('308 Starts and the blessed start', () => {
 
   it('a Blessed class gives a random Tier I blessing of its god at level 1; Imbra\'s raises what essences give by 10%', () => {
     const p = createPlayer(recommendedBuild(ST.blessed), 's2');
-    expect(p.core.perks).toContainEqual({ perkId: PK.imbras_measure, source: 'class', gainedTurn: 0 });
+    expect(p.core.perks).toContainEqual({ perkId: PK.passing_glance, source: 'class', gainedTurn: 0 });
     p.progression!.essences = [{ essence: 'x', grade: 'common', points: { [SK.dodge]: 10 }, turn: 0 }];
     expect(essenceSkill(p, SK.dodge)).toBeCloseTo(11);
-    p.core.perks = p.core.perks.filter((x) => x.perkId !== PK.imbras_measure);
+    p.core.perks = p.core.perks.filter((x) => x.perkId !== PK.passing_glance);
     expect(essenceSkill(p, SK.dodge)).toBe(10);
   });
 
