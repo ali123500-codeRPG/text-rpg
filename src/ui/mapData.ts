@@ -203,7 +203,8 @@ export function knownMap(s: GameState): KnownMap {
     people.push({ id: a.id, name: a.name ?? a.label, now: true, icon: personIcon(s, a), zone: a.zone,
       ...(b ? { at: { x: b.x, y: b.y }, height: heightOf(zoneById(s, a.zone)), body: { lengthM: b.lengthM, widthM: b.widthM, facing: b.facing } } : lastAt(a.id, a.zone)) });
   }
-  for (const a of pv?.lastSeen ?? []) people.push({ id: a.id, name: a.name, now: false, icon: 'someone', zone: a.zone, ...lastAt(a.id, a.zone) });
+  // BG-1555: someone perceived now is drawn from actors; lastSeen also holds the half seen (BG-155: their known wares)
+  for (const a of (pv?.lastSeen ?? []).filter((x) => !pv?.actors.some((y) => y.id === x.id))) people.push({ id: a.id, name: a.name, now: false, icon: 'someone', zone: a.zone, ...lastAt(a.id, a.zone) });
 
   const byPlace = new Map<string, MapZone[]>();
   for (const id of known) {
