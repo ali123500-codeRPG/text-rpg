@@ -231,6 +231,8 @@ const wayBetween = (st: GameState, a: string, b: string) => st.openings.find((o)
  *  village and along that road, so the World shows land, roads and you */
 let fakeRegion: import('../types').Region | undefined;
 function fakeLand(st: GameState): void {
+  // BG-1699: drawn again when the region size changed (a test draws it small), as test files share one module load
+  if (fakeRegion && fakeRegion.size !== CONFIG.REGION_SIZE_M) fakeRegion = undefined;
   const r = structuredClone(fakeRegion ??= drawRegion('rg_fake', 0, 0, 2007, {
     kind: RK.river_valley, name: 'the Wend valley', look: '', river: { name: 'the Wend' },
     settlements: [{ size: 'village', name: 'Millbrook', look: '', where: 'river' }, { size: 'town', name: 'Marbury', look: '', where: 'crossing' },
