@@ -273,8 +273,11 @@ type Band = {                   // a small group: a guard post, a gang, a househ
 #### Metres
 
 - **GSM-150** The range unit is the pace, CONFIG.PACE_M (1 m, about one stride) (CO1-CO19, Ali, 11/11/2026).
-- **GSM-151** A title's area is m²: the Weaver gives a size word (ZONE_SIZES cramped 9, small 25, room 60, hall 225,
-  yard 400, open 1,600, vast 10,000; CONFIG.ZONE_SIZE_M2, placeholders) or area in m², else the kind's default size.
+- **GSM-151** A title's area is m²: the Weaver gives a size word (ZONE_SIZES, smallest first: cramped, small, room,
+  hall, yard, open, vast, immense, sprawling, endless; each word's m² is CONFIG.ZONE_SIZE_M2, placeholders) or area in
+  m², else the kind's default size. The three words past vast are for farmland and open land (FZ1 a, Ali, 21/11/2026,
+  Questions hub page "Field sizes": "a, we can add more later as we go"); a field and a wood default to immense (FZ2 a,
+  FZ3 a), and a field keeps adding its outline to a scenario's ground, unlike a road (FZ4 a).
 - **GSM-152** Each library zoneSizes row names a real or fantasy reference.
 - **GSM-153** The narration and views carry metres (a move's `metres`, a seen actor's distanceM).
 

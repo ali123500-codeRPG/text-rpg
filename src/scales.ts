@@ -236,7 +236,7 @@ export const equipName = (k: EquipLevelKey): string => (EQUIP_LEVELS.has(k) ? EQ
 /** zone cover (V1, CV1), least first: each level hides CONFIG.COVER_HIDDEN of a standing person */
 export const COVER = scale([['none', 'none'], ['light', 'light'], ['some', 'some'], ['heavy', 'heavy'], ['dense', 'dense']]);
 /** CO16 zone sizes, smallest first; the m² of each is CONFIG.ZONE_SIZE_M2 and its real or fantasy reference is the library's zoneSizes row */
-export const ZONE_SIZES = scale([['cramped', 'cramped'], ['small', 'small'], ['room', 'room'], ['hall', 'hall'], ['yard', 'yard'], ['open', 'open'], ['vast', 'vast']]);
+export const ZONE_SIZES = scale([['cramped', 'cramped'], ['small', 'small'], ['room', 'room'], ['hall', 'hall'], ['yard', 'yard'], ['open', 'open'], ['vast', 'vast'], ['immense', 'immense'], ['sprawling', 'sprawling'], ['endless', 'endless']]);
 export type ZoneSizeKey = (typeof ZONE_SIZES.keys)[number];
 /** TV3 how long a road is, shortest first; the km of each is CONFIG.ROAD_LENGTH_KM */
 export const ROAD_LENGTHS = scale([['short_walk', 'a short walk'], ['half_hour', 'half an hour'], ['hour', "an hour's walk"], ['half_day', 'half a day'], ['day', "a day's walk"], ['two_days', 'two days']]);

@@ -791,8 +791,8 @@ export function prototypeLibrary(): Library {
     zoneKinds: Object.fromEntries(([
       [ZK.room, 'Room', true, 'lamplit', 'room', 1], [ZK.corridor, 'Corridor', true, 'dim', 'small', 4], [ZK.stairs, 'Stairs', true, 'dim', 'cramped', 2],
       [ZK.cellar, 'Cellar or cave', true, 'dark', 'room', 1], [ZK.street, 'Street', false, 'dark', 'yard', 4], [ZK.square, 'Square', false, 'dark', 'open', 1],
-      [ZK.gate, 'Gate', false, 'dark', 'small', 2], [ZK.yard, 'Yard', false, 'dark', 'yard', 1], [ZK.field, 'Field', false, 'dark', 'open', 1],
-      [ZK.woods, 'Woods', false, 'dark', 'open', 1],
+      [ZK.gate, 'Gate', false, 'dark', 'small', 2], [ZK.yard, 'Yard', false, 'dark', 'yard', 1], [ZK.field, 'Field', false, 'dark', 'immense', 1],
+      [ZK.woods, 'Woods', false, 'dark', 'immense', 1],
     ] as const).map(([id, name, roof, light, size, aspect]) => [id, { id, name, roof, light, size, aspect, wall: roof ? WK.wall : WK.open,
       ...(ONWARD_KINDS.has(id) ? { onward: true as const } : {}),
       ...(KIND_FURNITURE[id] ? { furniture: KIND_FURNITURE[id] } : {}) }])),
@@ -913,6 +913,9 @@ export function prototypeLibrary(): Library {
       yard: 'An inn yard with stables, a castle courtyard (about 20 × 20 m)',
       open: 'A village green or small market (about 40 × 40 m)',
       vast: 'A city market square (Kraków\'s is about 200 × 200 m, four of these)',
+      immense: 'An ordinary hedged field or a wood (about 200 × 200 m; an acre, a day\'s ploughing, is 201 × 20 m, and enclosed fields commonly ran to a few hectares)',
+      sprawling: 'A big pasture or a village common (about 500 × 500 m)',
+      endless: 'One of a village\'s great open fields, a stretch of moor (about 1 × 1 km; a village\'s farmland reaches about 1 km from its middle)',
     } as Record<string, string>)[k] }])),
     noiseLevels: Object.fromEntries(NOISE.keys.map((k) => [k, { id: k, name: NOISE.name(k), decibels: CONFIG.NOISE_DB[k], clearTo: inOpen(openAirReachM(k)?.[0]), heardTo: inOpen(openAirReachM(k)?.[1]), like: ({
       silent: 'No sound at all: standing still and holding your breath',
