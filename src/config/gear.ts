@@ -157,11 +157,11 @@ export const GEAR = {
   ARMOR_SPEED: { light: { flat: 0, pct: 0 }, medium: { flat: 0.1, pct: 0.05 }, heavy: { flat: 0.2, pct: 0.15 } } as Record<string, { flat: number; pct: number }>,
   /** CO14 the range unit: one pace in metres, the one lever every range and move scales by (about one stride) */
   PACE_M: 1,
-  /** AD8/AD9 the play screen's minimap: how many metres across it shows at first, the widths its zoom steps through
-   * (closest first; the widest also bounds the reach ring, past it the ring is a note), and the nearest point a click
-   * plans a move to (closer is where you stand) */
+  /** AD8/AD9 the play screen's minimap: how many metres across it shows at first; the widths the minimap and the Map zoom
+   * through (closest first; OM7 a, D-1558; the Map's fitted width joins them; the widest also bounds the reach ring); and
+   * the nearest point a click plans a move to (closer is where you stand) */
   MINIMAP_VIEW_M: 25,
-  MINIMAP_ZOOM_M: [10, 15, 25, 40, 60, 100],
+  MINIMAP_ZOOM_M: [10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000],
   MINIMAP_MIN_M: 0.5,
   /** MAP-14 (RM28 a): a barrier badge's diameter over its door's drawn width, both to scale at every zoom: the 16 px badge
    *  that sat on a 1 m door at zoom 1 (12 px a metre) */

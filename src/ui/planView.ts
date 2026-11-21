@@ -6,10 +6,10 @@
 // zone's card (MAP-64, MQ3, MQ7 a). In a fight the rings show how far a move slot walks and a dash runs (AD9, BF91).
 // Nothing changes while a turn runs (M-06).
 import type { GameApi } from '../types';
-import { boxOf, h } from './kit';
+import { boxOf, h, plural } from './kit';
 import { CONFIG } from '../config';
 import type { KnownMap, MapZone } from './mapData';
-import { MAX_K, PX_PER_M, TEXT, WHO_ICON_SHARE, checkReach, checkStage, nameFit, planScene, roughMeasure, type Box, type Measure, type Scene, type TextKind } from './mapPlan';
+import { PX_PER_M, TEXT, WHO_ICON_SHARE, checkReach, checkStage, nameFit, planScene, roughMeasure, type Box, type Measure, type Scene, type TextKind } from './mapPlan';
 import { checkMap } from './mapCheck';
 import { doorGlyph, fogClip, fogMask, iconMark, keyTool, planKeyRows, floorMarks, floorName, pin, wayBadge } from './map';
 import { furnIcon } from './furnitureIcons';
@@ -76,8 +76,9 @@ let fogIds = 0;
 export function planView(api: GameApi, opts: PlanOpts) {
   const full = opts.size === 'full';
   let d: PlanData | null = null, scene: Scene | null = null;
-  /** the view: the zoom (k, the layout's scale) and where the layout's origin sits in the svg, in pixels */
-  let k = 1, off = { x: 0, y: 0 }, placed = false, fitW = 0;
+  /** the view: the zoom (k, the layout's scale) and where the layout's origin sits in the svg, in pixels; org: the point
+   *  (metres) the layout draws at its origin (D-1558), kept near the view so screen numbers stay small kilometres out */
+  let k = 1, off = { x: 0, y: 0 }, org: Pos = { x: 0, y: 0 }, placed = false, fitW = 0;
   let lastAt = '', lastRing: number | null = null;
   let hover: MinimapPlan | null = null, plan: Extract<MinimapPlan, { pts: Pos[] }> | null = null;
 
@@ -85,11 +86,11 @@ export function planView(api: GameApi, opts: PlanOpts) {
   const svg = s('svg', { class: `mm-svg${full ? ' map-svg' : ''}`, tabindex: 0, role: 'group', 'aria-label': `${full ? 'Map' : 'Minimap'}. ${HINT}` }) as SVGSVGElement;
   const fogId = `pv-fog-${++fogIds}`;
   const world = s('g'), gFog = s('defs'), gAreas = s('g'), gZones = s('g', { class: 'map-zones', 'clip-path': `url(#${fogId})`, mask: `url(#${fogId}-now)` }), gNames = s('g', { class: 'map-names', 'aria-hidden': 'true' });
-  const gRing = s('g'), gMarks = s('g', { class: 'map-marks' }), gPath = s('g'), gTokens = s('g');
+  const gScale = s('g', { class: 'map-scale', 'aria-hidden': 'true' }), gRing = s('g'), gMarks = s('g', { class: 'map-marks' }), gPath = s('g'), gTokens = s('g');
   world.append(gFog, gAreas, gZones, gNames, gRing, gMarks, gPath, gTokens);
   svg.append(s('defs', {},
     s('marker', { id: `${fogId}-arrow`, viewBox: '0 0 10 10', refX: 8, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }, s('path', { d: 'M0 0 10 5 0 10z', class: 'map-arrowhead' }))),
-  s('title', {}, HINT), world);
+  s('title', {}, HINT), world, gScale);
   const floorEl = h('span', { class: 'mm-floor' });
   const tool = (label: string, title: string, on: () => void, open?: string) => h('button', { type: 'button', 'data-tip': title, 'aria-label': title, 'data-open': open, onclick: on }, label);
   const key = full ? keyTool('mm-key-btn') : null; // MAP-30: the Map's key, beside its zoom buttons
@@ -107,7 +108,16 @@ export function planView(api: GameApi, opts: PlanOpts) {
   const size = () => ({ w: svg.clientWidth || 420, h: svg.clientHeight || 360 });
   /** screen pixels per metre */
   const K = () => k * PX_PER_M;
-  const px = (q: Pos) => ({ x: q.x * K(), y: -q.y * K() });
+  const px = (q: Pos) => ({ x: (q.x - org.x) * K(), y: -(q.y - org.y) * K() });
+  /** D-1558: the view's middle as the origin, once the view has moved this many pixels from it (float precision) */
+  const ORIGIN_PX = 20000;
+  function reorigin() {
+    const { w, h: hh } = size(), c = { x: org.x + (w / 2 - off.x) / K(), y: org.y - (hh / 2 - off.y) / K() };
+    if (Math.hypot(c.x - org.x, c.y - org.y) * K() < ORIGIN_PX) return;
+    const n = { x: Math.round(c.x), y: Math.round(c.y) };
+    off = { x: off.x + (n.x - org.x) * K(), y: off.y - (n.y - org.y) * K() };
+    org = n;
+  }
 
   // a text's width and line height measured in the browser (MAP-51: real sizes, so the layout and the check agree)
   let ctx: CanvasRenderingContext2D | null | undefined;
@@ -126,12 +136,13 @@ export function planView(api: GameApi, opts: PlanOpts) {
     return m ? { ascent: m.fontBoundingBoxAscent, descent: m.fontBoundingBoxDescent } : roughMeasure.line(kind);
   } });
   // D-1558: the scene is laid out once per zoom for the data taken at update(); panning only redraws it
-  const scenes = new Map<number, Scene>();
+  const scenes = new Map<string, Scene>();
   let scenesOf: PlanData | null = null;
   const sceneAt = (kk: number) => {
     if (scenesOf !== d) { scenes.clear(); scenesOf = d; }
-    let sc = scenes.get(kk);
-    if (!sc) scenes.set(kk, (sc = planScene({ zones: d!.floor, every: d!.every, places: d!.places, people: d!.people, k: kk, measure, awayName: d!.awayName, youWidthM: d!.km.youWidthM })));
+    const key = `${kk}|${org.x}|${org.y}`;
+    let sc = scenes.get(key);
+    if (!sc) scenes.set(key, (sc = planScene({ zones: d!.floor, every: d!.every, places: d!.places, people: d!.people, k: kk, measure, awayName: d!.awayName, youWidthM: d!.km.youWidthM, o: org })));
     return sc;
   };
   // names are sized from measured text: once the map's own font has loaded, lay the scene out again
@@ -144,7 +155,7 @@ export function planView(api: GameApi, opts: PlanOpts) {
     const m2 = Math.round(z.outline?.length ? areaOf(z.outline) : z.rect!.w * z.rect!.d);
     const w = b.x1 - b.x0, hh = b.y1 - b.y0;
     // the drawn floor sits a hair inside its walls, so zones that share a wall never measure as overlapping (MAP-11)
-    const fm = floorMarks(z, z.rect!.w ? w / z.rect!.w : PX_PER_M, 0, 0), tag = { 'data-role': 'zone', 'data-id': z.id, 'data-parent': z.placeId };
+    const sc = z.rect!.w ? w / z.rect!.w : PX_PER_M, fm = floorMarks(z, sc, -org.x * sc, org.y * sc), tag = { 'data-role': 'zone', 'data-id': z.id, 'data-parent': z.placeId };
     const box = (cls2: string, extra = {}) => fm.floor ? s('polygon', { points: fm.floor, class: cls2, ...extra }) : s('rect', { x: b.x0 + 0.5, y: b.y0 + 0.5, width: Math.max(0, w - 1), height: Math.max(0, hh - 1), class: cls2, ...extra });
     // MAP-50: nothing tagged past the edge: a zone partly in view is tagged by the part in view, drawn whole
     const cut = !same(c, b), g = s('g', { class: cls, 'data-zone': z.id, ...(z.here ? { 'aria-current': 'location' } : {}), 'aria-label': `${z.name}, ${m2} m²${z.id === d?.heading ? ', you are heading here' : ''}` }, box('map-tile-box', cut ? {} : tag),
@@ -167,10 +178,11 @@ export function planView(api: GameApi, opts: PlanOpts) {
     if (!d) { scene = null; gPath.replaceChildren(); foot(); return; }
     const { w, h: hh } = size();
     svg.setAttribute('viewBox', `0 0 ${w} ${hh}`);
+    reorigin();
     world.setAttribute('transform', `translate(${off.x} ${off.y})`);
     const vb: Box = { x0: -off.x, y0: -off.y, x1: w - off.x, y1: hh - off.y }, inView: Box = { x0: vb.x0 + 1, y0: vb.y0 + 1, x1: vb.x1 - 1, y1: vb.y1 - 1 };
     const sc = (scene = sceneAt(k));
-    gFog.append(fogClip(fogId, sc.zones.map((x) => x.z), K()), fogMask(`${fogId}-now`, sc.zones.map((x) => x.z), K())); // BG-313: only ground the character has seen; MAP-33: in sight now full, the rest faded
+    gFog.append(fogClip(fogId, sc.zones.map((x) => x.z), K(), org), fogMask(`${fogId}-now`, sc.zones.map((x) => x.z), K(), org)); // BG-313: only ground the character has seen; MAP-33: in sight now full, the rest faded
     for (const p of sc.places) {
       const c = clip(p.box, vb);
       if (!c) continue;
@@ -253,10 +265,12 @@ export function planView(api: GameApi, opts: PlanOpts) {
       gTokens.append(g);
     }
     if (you) gTokens.append(you); // RM33: your pin above every other mark
-    // the scale bar under the plan: 10 m and its paces
-    const len = 10 * K(), bx = Math.max(sc.bounds.x0, sc.bounds.x1 - len - 120), by = sc.bounds.y1 + 22;
-    if (within({ x0: bx, y0: by - 6, x1: bx + len + 90, y1: by + 6 }, inView)) gMarks.append(s('g', { class: 'map-scale' }, s('line', { x1: bx, y1: by, x2: bx + len, y2: by }), s('line', { x1: bx, y1: by - 5, x2: bx, y2: by + 5 }),
-      s('line', { x1: bx + len, y1: by - 5, x2: bx + len, y2: by + 5 }), s('text', { x: bx + len + 8, y: by + 4 }, `${distText(10)} · ${Math.round(10 / CONFIG.PACE_M)} paces`)));
+    // MAP-10, OM7 a: the scale bar, fixed at the view's bottom left: the longest round length (1, 2.5 or 5 of a power of ten)
+    // up to a fifth of the view's width, and its paces
+    const span = w / 5 / K(), p10 = 10 ** Math.floor(Math.log10(span)), m = p10 * [5, 2.5, 1].find((f) => f * p10 <= span)!;
+    const len = m * K(), bx = 12, by = hh - 14;
+    gScale.replaceChildren(s('line', { x1: bx, y1: by, x2: bx + len, y2: by }), s('line', { x1: bx, y1: by - 5, x2: bx, y2: by + 5 }),
+      s('line', { x1: bx + len, y1: by - 5, x2: bx + len, y2: by + 5 }), s('text', { x: bx + len + 8, y: by + 4 }, m < 1000 ? `${metresText(m)} · ${plural(Math.round(m / CONFIG.PACE_M), 'pace')}` : distText(m)));
     drawPath();
     foot();
     scheduleCheck();
@@ -292,9 +306,9 @@ export function planView(api: GameApi, opts: PlanOpts) {
     floorEl.textContent = d ? floorName(d.height) : '';
   }
 
-  // MQ5 a: both sizes zoom through the same steps (metres across the view); the Map's fitted view is its widest
-  const steps = () => [...CONFIG.MINIMAP_ZOOM_M, ...(fitW > CONFIG.MINIMAP_ZOOM_M[CONFIG.MINIMAP_ZOOM_M.length - 1] ? [fitW] : [])];
-  const kOf = (m: number) => Math.max(0.2, Math.min(MAX_K, size().w / m / PX_PER_M));
+  // MQ5 a, OM7 a: both sizes zoom through the same steps (metres across the view), and the Map's fitted width among them
+  const steps = () => [...CONFIG.MINIMAP_ZOOM_M, ...(fitW ? [fitW] : [])].sort((a, b) => a - b);
+  const kOf = (m: number) => size().w / m / PX_PER_M;
   function setK(nk: number, c = { x: size().w / 2, y: size().h / 2 }) {
     off = { x: c.x - ((c.x - off.x) * nk) / k, y: c.y - ((c.y - off.y) * nk) / k }; // the point under c stays put
     k = nk;
@@ -302,10 +316,9 @@ export function planView(api: GameApi, opts: PlanOpts) {
   }
   function zoom(dir: number) {
     if (api.busy() || !d) return; // M-06
-    const across = size().w / K(), st = steps();
-    const i = st.reduce((b, x, j) => (Math.abs(x - across) < Math.abs(st[b] - across) ? j : b), 0);
-    const nk = kOf(st[Math.max(0, Math.min(st.length - 1, i + dir))]);
-    if (Math.abs(nk - k) > 1e-9) setK(nk);
+    // the next step wider (dir 1) or closer (dir -1) than the view now
+    const across = size().w / K(), st = steps(), to = dir > 0 ? st.find((x) => x > across * 1.01) : [...st].reverse().find((x) => x < across * 0.99);
+    if (to) setK(kOf(to));
   }
   /** you in the middle of the view */
   function onYou() { if (!d?.you) return; const { w, h: hh } = size(), y = px(d.you); off = { x: w / 2 - y.x, y: hh / 2 - y.y }; }
@@ -317,13 +330,16 @@ export function planView(api: GameApi, opts: PlanOpts) {
     const zs = d.floor.filter((z) => z.rect && (!only || only(z))), zb = (zs.length ? zs : d.floor.filter((z) => z.rect)).map((z) => z.rect!);
     if (!zb.length) return;
     const ww = Math.max(...zb.map((q) => q.x + q.w / 2)) - Math.min(...zb.map((q) => q.x - q.w / 2)), dd = Math.max(...zb.map((q) => q.y + q.d / 2)) - Math.min(...zb.map((q) => q.y - q.d / 2));
-    let kk = Math.max(0.2, Math.min(MAX_K, aw / (ww * PX_PER_M), ah / (dd * PX_PER_M)));
+    org = { x: Math.round((Math.max(...zb.map((q) => q.x + q.w / 2)) + Math.min(...zb.map((q) => q.x - q.w / 2))) / 2), y: Math.round((Math.max(...zb.map((q) => q.y + q.d / 2)) + Math.min(...zb.map((q) => q.y - q.d / 2))) / 2) };
+    // no closer than the closest zoom step (OM7 a)
+    const most = kOf(CONFIG.MINIMAP_ZOOM_M[0]);
+    let kk = Math.min(most, aw / (ww * PX_PER_M), ah / (dd * PX_PER_M));
     let sc = sceneAt(kk);
     // the marks around the zones (labels outside, exit notes, titles) take room too: shrink until all of it fits
     for (let i = 0; i < 8; i++) {
       const bw = sc.bounds.x1 - sc.bounds.x0, bh = sc.bounds.y1 - sc.bounds.y0 + 34;
       if (bw <= aw && bh <= ah) break;
-      kk = Math.max(0.2, kk * Math.min(aw / bw, ah / bh) * 0.96);
+      kk *= Math.min(aw / bw, ah / bh) * 0.96;
       sc = sceneAt(kk);
     }
     k = kk; fitW = w / K(); placed = true;
@@ -341,7 +357,7 @@ export function planView(api: GameApi, opts: PlanOpts) {
 
   // pointing, clicking, dragging the view, the wheel and keys; none of it while a turn runs (M-06)
   const svgAt = (e: MouseEvent) => { const r = svg.getBoundingClientRect(), { w, h: hh } = size(); return { x: ((e.clientX - r.left) * w) / (r.width || w), y: ((e.clientY - r.top) * hh) / (r.height || hh) }; };
-  const metresAt = (e: MouseEvent) => { const a = svgAt(e); return { x: (a.x - off.x) / K(), y: -(a.y - off.y) / K() }; };
+  const metresAt = (e: MouseEvent) => { const a = svgAt(e); return { x: org.x + (a.x - off.x) / K(), y: org.y - (a.y - off.y) / K() }; };
   function pointAt(e: MouseEvent): MinimapPlan | null {
     const st = api.state();
     if (!d || !st || api.busy()) return null;

@@ -244,7 +244,12 @@ continuous map (D-1558)"). Rules below that still lay marks out zone by zone are
 
 - **MAP-80** The minimap sits in the Play screen's right column ([play-screen.md](play-screen.md), "The action deck and
   minimap") and shows only what the character knows (src/ui/minimap.ts; AD1–AD16). It starts centred on you, about
-  25 m across; the Map starts fitted to the whole place. Both use the same zoom steps, pan and recentre (MQ5 a).
+  25 m across; the Map starts fitted to the whole place. Both use the same zoom steps, pan and recentre (MQ5 a): 10, 25,
+  50, 100, 250 and 500 m, 1, 2.5, 5, 10, 25 and 50 km across the view (CONFIG.MINIMAP_ZOOM_M), plus the Map's fitted
+  width, fitted no closer than the closest step. Both show a scale bar fixed at the view's bottom left: the longest round
+  length (1, 2.5 or 5 times a power of ten) up to a fifth of the view's width, with its paces under 1 km. Marks are drawn
+  from a view origin kept near the view, so screen numbers stay small kilometres out (OM7 a; Ali, 21/11/2026, Questions
+  hub page "One continuous map (D-1558)"; src/ui/planView.ts).
 - **MAP-81** A click on the ground of either map plans a move to an exact point (MQ3). Enter, Just go or a double-click walks there
   (MoveSpot.at).
 - **MAP-82** A move planned on the minimap rides along with the next clicked action.

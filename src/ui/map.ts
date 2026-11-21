@@ -50,16 +50,16 @@ export const iconMark = (name: IconName, x: number, y: number, px: number, cls =
 /** PZ12 a, BG-313: the fog as a clip path: the squares the character has seen of each title, in the map's screen pixels at
  *  `pxPerM` (y down), each a hair wider so the walls on a seen edge keep their whole stroke. A title with no fog record
  *  (none yet kept) shows whole. Clipping also stops a click on ground never seen. */
-export function fogClip(id: string, zones: MapZone[], pxPerM: number): SVGElement {
+export function fogClip(id: string, zones: MapZone[], pxPerM: number, o: Pt = { x: 0, y: 0 }): SVGElement {
   const pad = 1.5, rects = zones.flatMap((z) => (z.seen ?? (z.rect ? [{ x0: z.rect.x - z.rect.w / 2, x1: z.rect.x + z.rect.w / 2, y0: z.rect.y - z.rect.d / 2, y1: z.rect.y + z.rect.d / 2 }] : []))
-    .map((r) => s('rect', { x: r.x0 * pxPerM - pad, y: -r.y1 * pxPerM - pad, width: (r.x1 - r.x0) * pxPerM + 2 * pad, height: (r.y1 - r.y0) * pxPerM + 2 * pad })));
+    .map((r) => s('rect', { x: (r.x0 - o.x) * pxPerM - pad, y: -(r.y1 - o.y) * pxPerM - pad, width: (r.x1 - r.x0) * pxPerM + 2 * pad, height: (r.y1 - r.y0) * pxPerM + 2 * pad })));
   return s('clipPath', { id, clipPathUnits: 'userSpaceOnUse' }, ...rects);
 }
 /** MAP-33: the fog's two tones as a mask: the seen ground faded, the ground in sight now (a title with no fog record:
  *  all of it) drawn full over it, each square a hair wider as in fogClip */
-export function fogMask(id: string, zones: MapZone[], pxPerM: number): SVGElement {
+export function fogMask(id: string, zones: MapZone[], pxPerM: number, o: Pt = { x: 0, y: 0 }): SVGElement {
   const pad = 1.5, whole = (z: MapZone) => (z.rect ? [{ x0: z.rect.x - z.rect.w / 2, x1: z.rect.x + z.rect.w / 2, y0: z.rect.y - z.rect.d / 2, y1: z.rect.y + z.rect.d / 2 }] : []);
-  const rect = (cls: string) => (r: { x0: number; x1: number; y0: number; y1: number }) => s('rect', { class: cls, x: r.x0 * pxPerM - pad, y: -r.y1 * pxPerM - pad, width: (r.x1 - r.x0) * pxPerM + 2 * pad, height: (r.y1 - r.y0) * pxPerM + 2 * pad });
+  const rect = (cls: string) => (r: { x0: number; x1: number; y0: number; y1: number }) => s('rect', { class: cls, x: (r.x0 - o.x) * pxPerM - pad, y: -(r.y1 - o.y) * pxPerM - pad, width: (r.x1 - r.x0) * pxPerM + 2 * pad, height: (r.y1 - r.y0) * pxPerM + 2 * pad });
   return s('mask', { id, maskUnits: 'userSpaceOnUse', x: -1e6, y: -1e6, width: 2e6, height: 2e6 },
     ...zones.flatMap((z) => (z.seen ?? whole(z)).map(rect('map-fog-faded'))), ...zones.flatMap((z) => (z.sight ?? z.seen ?? whole(z)).map(rect('map-fog-now'))));
 }
