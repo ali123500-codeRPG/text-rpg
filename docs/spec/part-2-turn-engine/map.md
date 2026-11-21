@@ -34,7 +34,7 @@ continuous map (D-1558)"). Rules below that still lay marks out zone by zone are
   the top-left corner (a title wider than the place may run out past that corner) (CO9; WF8 a; RM5 a, RM7 a; Ali, 20/11/2026, Questions hub page "Map rules revision").
 - **MAP-14** Each doorway, gap, window or stair is drawn once, at its own point on its wall, never at the middle of a
   shared edge and never by a compass word: one mark per opening, with a barrier's padlock, bolt or cross in its place.
-  An exit to somewhere not on the map is an arrow straight out of its own doorway, turned a little either way only when
+  An exit to somewhere not on the map (no known zone on that floor there) is an arrow straight out of its own doorway, turned a little either way only when
   that spot is taken. There are no connector lines between titles (Opening.at). Every opening is drawn at its own width
   along its wall (Opening.widthM; a way with none, a doorway's, CONFIG.DOORWAY_M) and at a wall's drawn thickness across
   it, to scale at every zoom as walls are, with no smallest size; a gap's dark fill cuts its wall's line. Open ground
@@ -48,7 +48,7 @@ continuous map (D-1558)"). Rules below that still lay marks out zone by zone are
   and never pixels. The layout and the checker measure the door and its badge together (src/ui/mapPlan.ts; RM28 a; Ali,
   21/11/2026, Questions hub page "Map rules revision"; RM31 b, RM34 b, RM35 a; Ali, 21/11/2026, Questions hub page "Map rules
   revision").
-- **MAP-15** Every zone is reachable from the player's zone through links (flood fill over the stage data). An
+- **MAP-15** Every known zone is reachable from the player's zone through links (flood fill over the stage data). An
   unreachable zone is a finding, not a style choice (checkReach, src/ui/mapPlan.ts).
 - **MAP-16** Fog: the map and the minimap draw a title's floor, walls and furniture only where the fog says the player
   has seen (journal.seenSquares; over the land, the land's cells). Unseen ground stays dark. A title seen none of shows
@@ -86,10 +86,10 @@ continuous map (D-1558)"). Rules below that still lay marks out zone by zone are
 - **MAP-24** An exit's note is its target's name only, attached to its exit ("the gate to the lane"). Its state (not
   been through, locked, where it leads) is in its tip and the zone card: the dotted arrow already shows an exit not been
   through, and the badge a barrier (MAP-36) (RM2 a; Ali, 20/11/2026, Questions hub page "Map rules revision").
-- **MAP-25** On a place's map your pin is placed first and furniture last. A mark inside a zone (furniture, stairs,
+- **MAP-25** On the map your pin is placed first and furniture last. A mark inside a zone (furniture, stairs,
   and the player with no point of their own) is placed once, at the widest of a few set
-  zooms that has room for it (PLACE_KS), and every zoom keeps it at the same share of its zone (inside the room its size
-  leaves). You and anyone with a known point (MAP-68) are placed from that point at each zoom drawn (BG-356). A stair is placed once at its own end, nudged then only if another mark already sits there. After that,
+  zooms that has room for it (PLACE_KS), and every zoom keeps it at the same point on the ground (inside the room its size
+  leaves; D-1558). You and anyone with a known point (MAP-68) are placed from that point at each zoom drawn (BG-356). A stair is placed once at its own end, nudged then only if another mark already sits there. After that,
   furniture and stairs never move at any zoom: zoomed out, where one would cover another mark, or a piece of furniture
   the zone's name, it is left off in its own spot (listed in the zone's card) and comes back there when you zoom in.
   A piece of furniture is placed clear of the names at its zoom and of the name each closer set zoom shows, at its own
@@ -103,16 +103,18 @@ continuous map (D-1558)"). Rules below that still lay marks out zone by zone are
   drawn shape; to click on someone small, you zoom in. Your pin is a disc as wide as your body (KnownMap.youWidthM), its
   facing tip, core and outline in proportion (pin in src/ui/map.ts) (OM4b a; Ali, 21/11/2026, Questions hub page "One continuous map (D-1558)": "a, I really like a. if I want to click on
   someone I will zoom in"; this replaces RM26 b, RM27 b, RM29 c and RM30 b).
-- **MAP-26** To scale, a place's map is laid out by code at the zoom shown and drawn on one screen-pixel layer. No mark
-  covers another at any zoom, people and your pin aside (MAP-25), and the first view fits the whole map with everything
-  inside it (src/ui/mapPlan.ts).
+- **MAP-26** To scale, the map is laid out by code at the zoom shown, tile by tile (MAP-63), and drawn on one
+  screen-pixel layer. No mark covers another at any zoom, people and your pin aside (MAP-25). The Map opens centred on
+  you at the minimap's zoom; ⤢ fits the whole known world, and a place picked in the places list fits that place and the
+  marks round it (src/ui/mapPlan.ts, src/ui/planView.ts; OM1 b; Ali, 21/11/2026, Questions hub page "One continuous map
+  (D-1558)").
 - **MAP-27** Merged into MAP-13, MAP-25 and MAP-68 (RM7 a).
 
 #### Symbols and states
 
 - **MAP-30** One icon has one meaning. The key is a short list behind a Key button beside the Map's zoom buttons, and
   lists only the unusual marks the current map shows, in short words: out of sight now, low wall or
-  counter, locked (and with your key), barred, blocked, not been through yet, opens another map, stairs, last seen here.
+  counter, locked (and with your key), barred, blocked, not been through yet, stairs, last seen here.
   The usual marks (walls, indoors, outdoors, doors, furniture, someone there now, your pin, the current zone's outline)
   are left out: each names itself when you point at it. The pin's tip says "You are here", and the card names where you
   are once. The Key button shows only when the map has an unusual mark. The World's key, beside its own zoom buttons,
@@ -167,10 +169,16 @@ continuous map (D-1558)"). Rules below that still lay marks out zone by zone are
 - **MAP-62** Unexplored exits have a card too: an exit's arrow or its note, or unexplored stairs. The
   card names the way and the zone it leaves, with **Move to here**, which types "I go <the way>": "I go back out to the
   road", "I go to the hut door" (exitOrder, src/ui/map.ts).
-- **MAP-63** There is one map per top-level place (a village, say), with each inner place outlined as an area. A road to
-  a known zone on another map is a stub naming that place, and clicking it opens that map. To change: one continuous map
-  (D-1558).
-- **MAP-64** The map has pan, zoom, find me, show the whole map and place crumbs. Right-clicking a zone (or an exit,
+- **MAP-63** There is one map of everything the character knows, in the one world frame (D-1558): every known zone at
+  the height shown, each place inside a top-level place outlined as an area (MAP-13). A road is ground like any other
+  and has no outline. A top-level place (a village) has no outline yet: how it shows from far out comes with the land
+  joining this map (OM2). No exit points to a known zone on the same floor, which is on the map already. The map is
+  laid out in fixed tiles, the land's regions (CONFIG.REGION_SIZE_M): a place is laid out whole in the tile holding the
+  middle of its top-level place's ground, so nothing inside it is cut at a tile's edge, and a person in the tile holding
+  their point. Each tile's layout is kept per zoom step, and only the tiles in view are laid out and drawn
+  (src/ui/planView.ts; OM8; Ali, 21/11/2026, Questions hub page "One continuous map (D-1558)"). The World view and its
+  crumbs stay until the land and roads join this map (MAP-70 to MAP-76).
+- **MAP-64** The map has pan, zoom, find me, show the whole known world (MAP-26) and, until the World view goes, place crumbs. Right-clicking a zone (or an exit,
   MAP-62) opens its card (look, exits with a go button, people, items) beside the map, with the places list;
   on a touch screen a long press does. A left click on the ground plans a walk, as on the minimap (MAP-81) (MQ3, MQ7 a;
   Ali, 20/11/2026, Questions hub page "Map and minimap: one map, doors").
@@ -196,8 +204,8 @@ continuous map (D-1558)"). Rules below that still lay marks out zone by zone are
   full sight that scales with the zoom; someone never seen clearly is a dashed disc of a set size (14 px) that does not
   scale (RX1 a; Ali, 21/11/2026, Questions hub page "One continuous map (D-1558)"). Like everyone, they never shrink, merge or step aside (MAP-25).
   A zone's card names the people whose point lies in the title whose outline holds it (the smallest, MAP-11), found from
-  the point and the outlines, never from the title listing them. The map of a place shows the people listed in it or in a place
-  inside it (MapPerson.root), on the floor their point is on (MapPerson.height). Every actor has a point (BG-1528);
+  the point and the outlines, never from the title listing them. The map shows everyone on the floor their point is on (MapPerson.height), wherever they
+  are listed (D-1558). Every actor has a point (BG-1528);
   someone the map still gets with no point (an old save) is not drawn, and only the card of the title listing them names
   them. How the circle should grow or change is parked (D-424) (Actor.pos, KnownMap.people, MapPerson.at and
   MapPerson.lastAt; Ali, 13/11/2026; RM4 a, RM7 a; Ali, 20/11/2026, Questions hub page "Map rules revision"; Ali,
@@ -244,7 +252,7 @@ continuous map (D-1558)"). Rules below that still lay marks out zone by zone are
 
 - **MAP-80** The minimap sits in the Play screen's right column ([play-screen.md](play-screen.md), "The action deck and
   minimap") and shows only what the character knows (src/ui/minimap.ts; AD1–AD16). It starts centred on you, about
-  25 m across; the Map starts fitted to the whole place. Both use the same zoom steps, pan and recentre (MQ5 a): 10, 25,
+  25 m across, and so does the Map (MAP-26). Both use the same zoom steps, pan and recentre (MQ5 a): 10, 25,
   50, 100, 250 and 500 m, 1, 2.5, 5, 10, 25 and 50 km across the view (CONFIG.MINIMAP_ZOOM_M), plus the Map's fitted
   width, fitted no closer than the closest step. Both show a scale bar fixed at the view's bottom left: the longest round
   length (1, 2.5 or 5 times a power of ten) up to a fifth of the view's width, with its paces under 1 km. Marks are drawn
@@ -257,7 +265,8 @@ continuous map (D-1558)"). Rules below that still lay marks out zone by zone are
   runs: the move time walked, then the main time run. The view fits the dash ring (BF91 a).
 - **MAP-84** The minimap and the Map are one map component in two sizes: every mark, click and rule lives once. Both
   show everything (exits and their notes, the walk and dash rings, the planned path and its footer); only the frame
-  differs, the Map adding the crumbs, key, places list and cards. On both the pin's point shows the way you face, from
+  differs, the Map adding the crumbs, key, places list and cards. Both draw the one map (MAP-63), the minimap your floor
+  of it. On both the pin's point shows the way you face, from
   which left and right are taken (BG-18; Ali, 20/11/2026; MQ2 a, MQ4 a; Ali, 20/11/2026, Questions hub page "Map and minimap: one map, doors").
 - **MAP-85** A click on any thing drawn on either map (a door, a stretch of wall, furniture, an item, a person) opens a
   small list beside it of every action the action deck has for that thing, under the deck's own names (MQ6 a). A thing

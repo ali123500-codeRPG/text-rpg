@@ -84,6 +84,8 @@ export const mapHeights = (zones: { height: number }[]): number[] => [...new Set
 const mode = (xs: number[]) => { const c = new Map<number, number>(); for (const x of xs) c.set(x, (c.get(x) ?? 0) + 1); return [...c.entries()].sort((a, b) => b[1] - a[1])[0][0]; };
 /** the `world` key of the World view (every top-level place as one tile) */
 const WORLD = '*world*';
+/** D-1558: the one map of everything known, in the world's frame */
+const ONE = '*one*';
 type Pt = { x: number; y: number };
 
 /** a barrier on an exit in words: "door, locked", "gate, locked: you hold its key", "door, standing open" */
@@ -134,7 +136,7 @@ export function planKeyRows(u: Set<string>): [Node, string][] {
     ...row('edge:low', () => h('i', { class: 'k-edge low' }), 'Low wall or counter'),
     ...row('way:locked', () => wayKey('locked'), 'Locked'), ...row('way:locked-key', () => wayKey('locked key'), 'Locked, your key'),
     ...row('way:barred', () => wayKey('barred'), 'Barred'), ...row('way:blocked', () => wayKey('blocked'), 'Blocked'),
-    ...row('exit', () => h('i', { class: 'k-line stub' }), 'Not been through yet'), ...row('exit-away', () => h('i', { class: 'k-line away' }), 'Opens another map'),
+    ...row('exit', () => h('i', { class: 'k-line stub' }), 'Not been through yet'),
     ...row(stairs.length > 0, () => h('span', {}, ...stairs.map((x) => h('i', { class: 'k-stair' }, x === 'stairs-up' ? '▲' : '▼'))), 'Stairs'),
     ...row('who-last', () => h('i', { class: 'k-who last' }), 'Last seen here'),
   ];
@@ -162,8 +164,8 @@ export const mapPick = (at?: MapPick) => { pick0 = at ?? null; };
 /** onMove: "Move to here" on a zone's or an unexplored exit's card hands its order to Play's action box (typed, not sent) */
 export function mapPage(api: GameApi, onMove?: (order: string) => void, onWalk?: (p: MinimapPoint) => void, onThing?: PlanOpts['onThing']) {
   const el = h('main', { class: 'map-page' });
-  // one map per top-level place (a "world"): the village, the tavern in it and the field beside it share one layout,
-  // each inner place drawn as an outlined area. `focus` is the place picked in the list or the crumbs.
+  // D-1558: one map of everything known (ONE), each place drawn as an outlined area; the World view stays beside it for
+  // now. `focus` is the place picked in the list or the crumbs.
   let focus = '', selected = '', lastHere = '';
   /** an unexplored exit picked on the map: its card offers Move to here */
   let exitSel: { zoneId: string; label: string } | null = null;
@@ -225,13 +227,12 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void, onWalk?:
     if (!cur || !st || !planMap()) return null;
     const zs = floorZones().filter((z) => z.rect), here = zs.find((z) => z.here && z.you);
     const ring = here ? ringMetres(st) : null;
-    const people = cur.people.filter((w) => w.root === world && Math.abs(w.height - floor()) < 0.01);
+    const people = cur.people.filter((w) => Math.abs(w.height - floor()) < 0.01);
     return { km: cur, every: worldZones().filter((z) => z.rect), floor: zs, height: floor(), places: innerPlaces(zs), people,
       you: here ? { ...here.you! } : null, ...(here?.along ? { youTitle: alongText(here.along) } : {}), ...(facing ? { facing } : {}),
       ring, dash: here ? dashMetres(st) : null, carried: here ? carriedS(st, st.player, 'move') : 0,
       focus, selected, ...(walk?.toZone ? { heading: walk.toZone } : {}), exitSel,
-      awayName: (id) => { const z = allZones().find((x) => x.id === id); return z ? placeOf(rootOf(z.placeId))?.name : undefined; },
-      check: { place: placeOf(world)?.name, floor: floor() } };
+      check: { place: placeOf(focus)?.name, floor: floor() } };
   }
   /** the stage holds the shared view for a place's map, the World's own drawing for the World */
   const mountStage = () => { const want = planMap() ? [pv.el, crumbs, floorBar, empty] : [svg, crumbs, tools, floorBar, empty]; if (want.some((x, i) => stage.children[i] !== x) || stage.children.length !== want.length) stage.replaceChildren(...want); };
@@ -241,8 +242,6 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void, onWalk?:
   // RD2: a road is only a line on the World map, never a map of its own; a place along it (a waystation) is its own map
   const isRoad = (id: string) => placeOf(id)?.kind === 'road';
   const rootOf = (id: string) => (cur ? rootPlace(cur, id) : id);
-  /** the map a place is drawn on: its top-level place's, or the World zoomed to the road when it is a road (RD1) */
-  const mapOf = (id: string) => (isRoad(rootOf(id)) ? WORLD : rootOf(id));
   /** Move to here's order for a zone; a zone in another town or building than the one you are in names it, so the order
    *  can't be read as a spot nearby ("I go to the village square in Thornbury") */
   const moveHere = (z: MapZone): string => {
@@ -251,12 +250,12 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void, onWalk?:
   };
   const inside = (id: string, anc: string) => { for (let p = placeOf(id), n = 0; p && n < 20; p = p.parentId ? placeOf(p.parentId) : undefined, n++) if (p.id === anc) return true; return false; };
   const allZones = () => (cur?.places ?? []).flatMap((p) => p.zones);
-  // WORLD: every top-level place as one tile, joined by the roads you know (worldTiles); any other `world` is a place's own map
+  // WORLD: every top-level place as one tile, joined by the roads you know (worldTiles); ONE: every zone known
   let tilesOfWorld: MapZone[] = [];
   const floor = () => floors.get(world) ?? 0;
   /** the zones drawn now: the world's zones at the shown height */
   const floorZones = () => worldZones().filter((z) => world === WORLD || z.height === floor());
-  const worldZones = () => (world === WORLD ? tilesOfWorld : (cur?.places ?? []).filter((p) => rootOf(p.id) === world).flatMap((p) => p.zones));
+  const worldZones = () => (world === WORLD ? tilesOfWorld : allZones());
 
   // ---------- pan and zoom
   const view = () => views.get(world) ?? { x: 0, y: 0, k: 1 };
@@ -457,7 +456,9 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void, onWalk?:
     landNames = land.flatMap((l) => landLabels(l.region, l)).filter((x) => x.name && !(x.placeId && tiled.has(rootOf(x.placeId)))).sort((a, b) => rank[a.kind] - rank[b.kind]);
     return g;
   }
-  const innerPlaces = (zones: MapZone[]) => (cur?.places ?? []).filter((p) => rootOf(p.id) === world && p.id !== world).sort((a, b) => a.depth - b.depth)
+  /** the places inside a top-level place, outer first, as each place's own map drew them; a top-level place (a village,
+   *  an estate) and a road (D-1558: ground like any other) have no outline here */
+  const innerPlaces = (zones: MapZone[]) => (cur?.places ?? []).filter((p) => p.depth > 0 && p.kind !== 'road').sort((a, b) => a.depth - b.depth)
     .map((p) => ({ id: p.id, name: p.name, depth: p.depth, zones: zones.filter((z) => inside(z.placeId, p.id)) })).filter((p) => p.zones.length);
   /** To scale: a 10 m bar under the plan, with the same length in paces */
   function scaleBar(zs: MapZone[], sp: Map<string, Pt>) {
@@ -608,13 +609,12 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void, onWalk?:
   function goTo(zoneId: string) {
     const z = cur!.places.flatMap((p) => p.zones).find((x) => x.id === zoneId);
     if (!z) return;
-    const w = rootOf(z.placeId);
-    if (isRoad(w)) { showRoad(w); return; } // RD3: a road arrow opens the World on that road
     selected = zoneId; focus = z.placeId;
-    floors.set(w, z.height);
-    if (w !== world) { world = w; draw(); requestAnimationFrame(() => fit(w)); } else { draw(); centre(zoneId); }
+    floors.set(ONE, z.height);
+    world = ONE; draw();
+    if (z.rect) pv.centreOn(z.rect);
   }
-  function setFloorOf(zoneId: string) { const z = allZones().find((x) => x.id === zoneId); if (z) floors.set(rootOf(z.placeId), z.height); }
+  function setFloorOf(zoneId: string) { const z = allZones().find((x) => x.id === zoneId); if (z) floors.set(ONE, z.height); }
   /** the height slider: one stop per height this map has, lowest at the bottom; hidden when it has one */
   function drawFloors() {
     const hs = mapHeights(world === WORLD ? [] : worldZones());
@@ -633,14 +633,8 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void, onWalk?:
     world = WORLD; selected = ''; draw();
     requestAnimationFrame(() => fit(WORLD));
   }
-  /** RD1, RD3: the World zoomed to a road, with its card */
-  function showRoad(id: string) {
-    world = WORLD; selected = focus = id; draw();
-    requestAnimationFrame(() => fit(id));
-  }
   function show(id: string) {
-    if (isRoad(id)) { showRoad(id); return; }
-    const w = rootOf(id);
+    const w = ONE;
     focus = id;
     const here = worldZones().find((z) => z.here && inside(z.placeId, id));
     selected = here?.id ?? (selected && inside(worldZones().find((z) => z.id === selected)?.placeId ?? '', id) ? selected : '');
@@ -660,11 +654,10 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void, onWalk?:
     worldNames = []; landNames = []; landG = null; // set again when the World draws to scale
     nameLayer.replaceChildren();
     tilesOfWorld = worldTiles(cur);
-    if (world !== WORLD && !placeOf(world)) world = mapOf(cur.placeId);
+    if (world !== WORLD) world = ONE;
     if (!placeOf(focus)) focus = cur.placeId;
-    if (world !== WORLD && !placeOf(world)) { empty.hidden = false; empty.textContent = 'You know no places yet.'; vp.replaceChildren(bg); return; }
     drawCrumbs();
-    if (!worldZones().length) { drawSide(); vp.replaceChildren(bg); empty.hidden = false; empty.textContent = world === WORLD ? 'You know no places yet.' : `You know of ${placeOf(world)!.name}, but none of its zones yet.`; return; }
+    if (!worldZones().length) { drawSide(); vp.replaceChildren(bg); empty.hidden = false; empty.textContent = 'You know no places yet.'; return; }
     empty.hidden = true;
     mountStage();
     drawMap();
@@ -684,18 +677,17 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void, onWalk?:
       h('div', { class: 'map-body' }, stage, side));
     const moved = cur.zoneId !== lastHere, was = world;
     if (moved) {
-      lastHere = cur.zoneId; world = mapOf(cur.placeId); focus = cur.placeId; setFloorOf(cur.zoneId);
-      selected = world === WORLD ? rootOf(cur.placeId) : cur.zoneId; // RD1: on a road, its card
+      lastHere = cur.zoneId; world = ONE; focus = cur.placeId; setFloorOf(cur.zoneId);
+      selected = cur.zoneId;
     }
     // MQ3: opened from the minimap at a zone's card, an exit's card or another map
     const pk = pick0; pick0 = null;
     if (pk?.go) { draw(); goTo(pk.go); return; }
     const pz = pk?.zone ? allZones().find((x) => x.id === pk.zone) : undefined;
-    if (pz) { world = mapOf(pz.placeId); focus = pz.placeId; selected = pz.id; setFloorOf(pz.id); exitSel = pk!.exit ? { zoneId: pz.id, label: pk!.exit } : null; }
-    const fresh = !views.has(world) || world !== was; // a new map (onto a road, into a town) opens fitted
+    if (pz) { world = ONE; focus = pz.placeId; selected = pz.id; setFloorOf(pz.id); exitSel = pk!.exit ? { zoneId: pz.id, label: pk!.exit } : null; }
     draw();
-    if (fresh) requestAnimationFrame(() => fit(planMap() ? world : focus)); // to scale, the whole map first: nothing past its edge (MAP-50)
-    else if (moved) requestAnimationFrame(() => centre(cur!.zoneId));
+    // the one map opens on you at the minimap's zoom (planView); after a move it keeps its zoom and centres on you again
+    if (moved && was === ONE && hereZone()?.you) pv.centreOn(hereZone()!.you!);
   }
   return { el, update };
 }
