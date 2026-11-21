@@ -637,6 +637,16 @@ export function gateAhead(state: GameState, a: Actor, goal: string): { b: Barrie
   return { b: g.b, to: g.o.joins[i === 1 ? 0 : 1], pass: g.pass, opening: g.o };
 }
 
+/** BF12: the way next on `a`'s walk to `b` when it is not simply open to `a` (SD3–SD5): its point on a's side and on the
+ * far side; null when nothing shut stands next between them */
+export function gateToward(state: GameState, a: Actor, b: Located): { near: Located; far: Located } | null {
+  const w = walkFor(state, pointAt(state, a), pointAt(state, b), a);
+  const g = w ? gateOf(state, a, w) : null;
+  if (!g) return null;
+  const to = g.o.joins[sideOfOpening(g.o, g.from) === 1 ? 0 : 1];
+  return { near: { zone: g.from, pos: endOn(g.o, g.from) }, far: { zone: to, pos: endOn(g.o, to) } };
+}
+
 /** FR2: `at` is within the actor's grip reach, plus `extra` metres (the receiver's own reach when handing over) */
 export function withinGrip(state: GameState, actor: Actor, at: Located, extra = 0): boolean {
   const r = gripReachM(state, actor);

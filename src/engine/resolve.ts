@@ -154,6 +154,7 @@ import {
   faceToward,
   floorGap,
   gateAhead,
+  gateToward,
   type Located,
   M_EPS,
   placeAll,
@@ -1428,7 +1429,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
   // BF71: hemmed in on every side, there was no room to get at them; else simply too far
   if (!m || !withinM(dist, m.mode.reach)) {
     const r = (m ?? defaultMode(state, a, 0))?.mode.reach;
-    return wasted(r !== undefined && t.zone === a.zone && !roomAround(state, a, t, r) ? 'no_room' : 'out_of_reach');
+    return wasted(r !== undefined && dist < Infinity && !roomAround(state, a, t, r) ? 'no_room' : 'out_of_reach'); // BG-1671: in sight, whatever the title
   }
   const fromHiding = a.posture === 'stealthy'; // All-50 Strike and Fade
   const sawBefore = fromHiding ? allActors(state).filter((x) => x !== a && atLeast(beliefStatus(state, x, a), 'aware')).map((x) => x.id) : null; // VS3
@@ -3349,15 +3350,17 @@ function runOn(ctx: Ctx, a: Actor, o: Order, near: NonNullable<ReturnType<typeof
   return true;
 }
 
-/** BF12: handing something across a way (bars, a grate, a doorway): the giver holds it out there, and the one it is for, if
- * willing (awake, not hostile, a move slot left), steps up to the way on their side to take it, as their move this turn */
+/** BF34: a give or take still out of reach (metres, whatever the title: BG-1671): the other side, if willing (awake, not
+ * hostile, a move slot left), steps up as their move this turn: until the two grips meet, or (BF12) to their side of a way
+ * not open to them on the way (bars, a grate, a shut door) when the giver's grip is at its far side */
 function stepUpToTake(ctx: Ctx, a: Actor, o: Order): boolean {
   const { state } = ctx;
   const t = o.target ? actorById(state, o.target) : undefined;
-  if (!t || t === a || t.zone === a.zone || !isActive(t) || isAsleep(t) || hostile(state, t, a)) return false;
-  const mine = wayPoint(state, a.zone, t.zone, a), theirs = wayPoint(state, t.zone, a.zone, t);
-  if (!mine || !theirs || !withinGrip(state, a, { zone: a.zone, pos: mine }) || slotsOf(ctx, t).move <= T_EPS) return false;
-  walk(ctx, t, { zone: t.zone, pos: theirs }, nullOrder(t.id), (n) => (n === 0 ? useMoveSlot(ctx, t, false) : null), { stopShort: Math.max(0, gripReachM(state, t) - M_EPS), toward: a.id });
+  if (!t || t === a || !isActive(t) || isAsleep(t) || hostile(state, t, a) || slotsOf(ctx, t).move <= T_EPS) return false;
+  const gate = gateToward(state, t, a);
+  if (gate && !withinGrip(state, a, gate.far)) return false;
+  const short = gripReachM(state, t) + (gate ? 0 : gripReachM(state, a));
+  walk(ctx, t, gate?.near ?? a, nullOrder(t.id), (n) => (n === 0 ? useMoveSlot(ctx, t, false) : null), { stopShort: Math.max(0, short - M_EPS), toward: a.id });
   return true;
 }
 
@@ -3367,7 +3370,7 @@ function doTake(ctx: Ctx, a: Actor, o: Order): void {
   const { state } = ctx;
   const t = o.target ? actorById(state, o.target) : undefined;
   let r = takeBlock(state, a, t, o.item);
-  if ('why' in r && r.why === 'out_of_reach' && t && t.zone !== a.zone && stepUpToTake(ctx, a, o)) r = takeBlock(state, a, t, o.item);
+  if ('why' in r && r.why === 'out_of_reach' && t && stepUpToTake(ctx, a, o)) r = takeBlock(state, a, t, o.item);
   if ('why' in r) return emit(ctx, bark(mk(ctx, a, r.why === 'refused' ? 'take_refused' : 'wasted', { target: o.target ?? undefined, ...(o.item ? { itemId: o.item } : {}), reason: r.why }), o));
   const offered = r.how === 'offered';
   const got = transfer(state, t!, a, o.item!, offered ? t!.offer!.qty : o.qty);
