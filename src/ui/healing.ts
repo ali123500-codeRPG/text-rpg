@@ -51,7 +51,7 @@ export function woundCard(w: { id: string; from: PartState; to: PartState }): HT
 // ---------------- quick slot (H3) ----------------
 
 export type HealItem = { itemId: string; name: string; count: number; row: HealingDef };
-const strength = (r: HealingDef) => r.hpPct + r.partPct;
+const strength = (r: HealingDef) => r.hpPct;
 
 /** healing items carried, grouped by item, strongest first (ties: the one carried most) */
 export function healItems(s: GameState, p: Actor): HealItem[] {

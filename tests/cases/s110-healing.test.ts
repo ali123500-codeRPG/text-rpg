@@ -18,19 +18,29 @@ const use = (item: string): Intent => ({
 const turn = (s: GameState, intent: Intent) => { s.turn += 1; return resolveTurn(s, { intent, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(1)); };
 
 describe('110 healing', () => {
-  it('rest heals HP and working parts but leaves a Crippled part alone; a clinic lifts it', () => {
+  it('D-114: a heal mends every wound it reaches by the same share; a Crippled part is left out until a clinic', () => {
     const s = makeVillage();
     const c = s.player.core.condition;
-    c.hpLostPct = 40;
-    c.parts.left_leg = -30; // Crippled
-    c.parts.right_leg = 20; // Damaged
+    // humanoid legs are normal parts (PART_SHARE 0.3 of HP): Crippled left leg 39% of HP, right leg 9%, torso (general) 20%
+    c.parts.left_leg = -30;
+    c.parts.right_leg = 70;
+    c.hpLostPct = 68;
     applyHealing(s, s.player, HL.rest);
-    expect(c.hpLostPct).toBeCloseTo(40 - CONFIG.REST_HEAL_PCT, 0);
+    const share = CONFIG.REST_HEAL_PCT / (20 + 9); // HD3: the Crippled leg is out of the share
+    expect(c.hpLostPct).toBeCloseTo(68 - CONFIG.REST_HEAL_PCT, 6);
     expect(c.parts.left_leg).toBe(-30);
-    expect(c.parts.right_leg).toBe(20 + CONFIG.REST_HEAL_PCT);
+    expect(c.parts.right_leg).toBeCloseTo(70 + share * 30, 6);
     applyHealing(s, s.player, HL.clinic);
     expect(c.hpLostPct).toBe(0);
-    expect(c.parts.left_leg).toBe(Math.min(100, CONFIG.CLINIC_HEAL_PCT));
+    expect(c.parts.left_leg).toBeCloseTo(100, 6);
+    // HD4: no jump to 0 first: the Crippled leg mends the share of its whole wound
+    c.hpLostPct = 140; c.parts.left_leg = -60; c.parts.right_leg = -60; // 48% each, torso 44%
+    applyHealing(s, s.player, HL.clinic);
+    expect(c.parts.left_leg).toBeCloseTo(-60 + (CONFIG.CLINIC_HEAL_PCT / 140) * 160, 6);
+    // HD5: a part still hurt with health full mends from the row's amount
+    c.hpLostPct = 0; c.parts.left_leg = 90; c.parts.right_leg = 100;
+    applyHealing(s, s.player, HL.rest);
+    expect(c.parts.left_leg).toBe(100);
   });
   it('a healing item is not used up when there is nothing to heal (Q3); hurt, a bandage heals its row, is used up, and shows a line', () => {
     const s = makeVillage();

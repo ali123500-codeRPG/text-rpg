@@ -115,7 +115,7 @@ describe('111 game clock', () => {
 });
 
 describe('111 natural recovery', () => {
-  it('heals endurance × 0.01 % an hour of HP and working parts, never a Crippled part', () => {
+  it('heals endurance × 0.01 % an hour of HP, working parts by their share, never a Crippled part', () => {
     const s = makeVillage();
     s.player.core.skills[SK.endurance].raw = 50;
     const c = s.player.core.condition;
@@ -124,7 +124,7 @@ describe('111 natural recovery', () => {
     c.parts.right_leg = 20; // Damaged
     passiveHealing(s, 120);
     expect(c.hpLostPct).toBeCloseTo(29); // 0.5% an hour for 2 hours
-    expect(c.parts.right_leg).toBeCloseTo(21);
+    expect(c.parts.right_leg).toBeCloseTo(20 + 80 / 24); // D-114: 1% of HP over the 24% the right leg adds (0.3 × 80), of its 80% missing
     expect(c.parts.left_leg).toBe(-30);
   });
   it('runs during fights too, a little each fight turn', () => {
