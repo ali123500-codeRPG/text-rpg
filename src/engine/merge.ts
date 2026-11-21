@@ -105,6 +105,7 @@ export function fromIntent(state: GameState, intent: Intent | null, aimed: boole
     ...(mv?.jump ? { jump: true as const } : {}),
     ...(intent?.perkMove ? { perkMove: intent.perkMove } : {}),
     ...(intent?.warn ? { warn: intent.warn } : {}), // WN9 a
+    ...(intent?.when && a ? { ready: intent.when } : {}), // AE6: a readied action
     ...(intent?.defense ? { defense: intent.defense } : {}), // RY7: set at the step's start, as an NPC's (an unusable one falls back when rolled)
     ...(intent?.way ? { way: intent.way } : {}),
     targetPart: a?.targetPart ?? null,

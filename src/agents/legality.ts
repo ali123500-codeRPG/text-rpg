@@ -140,6 +140,13 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
   }
   // WN9 a: a warning about a foe the player can't warn about now (not in player.warnable) is dropped
   if (out.warn && !view.player.warnable?.some((w) => w.id === out.warn)) { gearErrors.push(`warn ${out.warn}`); out.warn = null; }
+  // AE6: a readied action waits on someone the player knows of (in view or last seen), a band, or anyone; never a wait, a
+  // sleep or words, which have no moment to wait for
+  if (out.when) {
+    const who = (x: string | undefined) => !x || x === 'anyone' || actors.has(x) || bandIds.includes(x) || !!view.lastSeen?.some((l) => l.id === x);
+    if (!out.action || ['wait', 'sleep', 'rest'].includes(out.action.type)) out.when = null;
+    else if (!who(out.when.who) || !who(out.when.at)) illegal.push(`when ${JSON.stringify(out.when)}`);
+  }
   if (out.addressees) {
     const okAddr = (x: string) => x === 'everyone' || talking.has(x) || bandIds.includes(x);
     for (const x of out.addressees) if (!okAddr(x)) illegal.push(`addressee ${x}`);

@@ -40,6 +40,8 @@ export const CLOCK = {
   ACTIVITY_TIERS: true,
   /** BG-231: a wait until someone appears stops after this many hours if no one comes */
   WAIT_SOMEONE_MAX_H: 8,
+  /** AE6 (RY4 a): in a fight the game plays a readied order's held turns by itself for at most this many seconds (placeholder: three fight turns) */
+  READY_MAX_S: 18,
   TIME_OF_DAY_FROM: { dawn: 5 * 60, morning: 7 * 60, afternoon: 12 * 60, dusk: 18 * 60, evening: 20 * 60, night: 23 * 60 } as Record<string, number>, // minute of the day each starts (placeholders)
   SKY_LIGHT: { dawn: 'dim', morning: 'bright', afternoon: 'bright', dusk: 'dim', evening: 'moonlit', night: 'moonlit' } as Record<string, string>, // T3a: outdoor light by time of day (LIGHT keys); LT3: one flat night level until moon phases (parked)
   // NW12–NW22 sleeping (src/engine/sleep.ts). Placeholders: WAKE_GRADE, FALL_ASLEEP_MIN, SLEEP_STEP_MIN

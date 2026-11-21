@@ -668,6 +668,7 @@ export function buildPlayerView(state: GameState): PlayerView {
       ...(doingOf(p) ? { doing: doingOf(p)! } : {}),
       ...walkingOf(state, p, actors),
       ...followingOf(state, p),
+      ...(p.readied ? { readied: { type: p.readied.order.type, target: p.readied.order.target, when: p.readied.when } } : {}),
       ...reachesOf(state, p),
       ...bodyAttacks(state, p),
       ...(summonableThreadboundItems(state, p).length ? { summonable: summonableThreadboundItems(state, p).map((i) => ({ id: i.id, name: itemDef(state, i.itemId).name })) } : {}),

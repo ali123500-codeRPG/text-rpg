@@ -5,7 +5,7 @@ import type { GoalOps, GoalStep, StepEnd, PlanFurniture, AgreementMade, CheckinA
 import { GEAR_OPS, OFFERED_GOAL_KINDS, VOW_GOAL_KINDS, GRADES, IMPROVISED_BASES, NPC_ACTIONS, PARSER_ACTIONS, PRONOUNS, type GearOp, type ImprovisedBase } from '../types';
 import { skillIdOf } from '../library/skillIds';
 import { SKILL_NAMES } from '../library/skillNames';
-import { CHASE_RANGES, COVER, FRAGILITY, LIGHT, QUALITY_LEVELS, STANCES, TIERS, TIME_OF_DAY, type FragilityKey, type QualityKey, type Scale, type TimeOfDay } from '../scales';
+import { CHASE_RANGES, COVER, FRAGILITY, LIGHT, QUALITY_LEVELS, READY_ON, STANCES, TIERS, TIME_OF_DAY, type FragilityKey, type ReadyWhen, type QualityKey, type Scale, type TimeOfDay } from '../scales';
 import { qualityOf } from '../ruleset/quality';
 import { WAY_OPS } from '../engine/barriers';
 
@@ -82,6 +82,7 @@ const intent = obj<Intent>({
   }, ['qty', 'for', 'demand', 'aimed', 'noSkillFits', 'grade', 'fall'])),
   perkMove: nul(obj<{ perk: string; target: string | null }>({ perk: str, target: nul(str) })),
   warn: nul(str),
+  when: (v, p, e) => (v === undefined ? undefined : nul(obj<ReadyWhen>({ on: oneOf(READY_ON), who: str, at: str }, ['at']))(v, p, e)) as Intent['when'], // AE6
   defense: (v, p, e) => (v === undefined ? undefined : nul(oneOf(['dodge', 'block', 'parry'] as const))(v, p, e)) as Intent['defense'], // RY7
   way: nul(obj<NonNullable<Intent['way']>>({ toZone: str, op: oneOf(WAY_OPS) })),
   gear: GEAR,
@@ -96,7 +97,7 @@ const intent = obj<Intent>({
   letsSearch: (v, p, e) => (v === undefined ? undefined : nul(str)(v, p, e)) as string | null,
   standDown: (v, p, e) => (v === undefined ? undefined : nul(str)(v, p, e)) as string | null, // TF11
   look: (v, p, e) => (v === undefined || v === null ? undefined : oneOf(['stats', 'inv'] as const)(v, p, e)) as 'stats' | 'inv',
-}, ['perkMove', 'warn', 'defense', 'yields', 'finish', 'letsSearch', 'standDown', 'way', 'volume', 'look', 'answers']);
+}, ['perkMove', 'warn', 'when', 'defense', 'yields', 'finish', 'letsSearch', 'standDown', 'way', 'volume', 'look', 'answers']);
 
 const npcAction = obj<PlannerOutput['action']>({
   type: oneOf(NPC_ACTIONS),

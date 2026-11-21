@@ -92,6 +92,7 @@ turn checker, and what happened in a scenario.
   - `src/engine/merge.ts`
   - `src/engine/mode.ts`
   - `src/engine/orderQueue.ts`
+  - `src/engine/ready.ts`
   - `src/engine/resolve.ts`
   - `src/engine/types.ts`
   - `src/save/turnCheck.ts`

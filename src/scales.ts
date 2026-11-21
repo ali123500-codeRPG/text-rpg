@@ -158,6 +158,12 @@ export const TIME_OF_DAY = scale([['dawn', 'Dawn'], ['morning', 'Morning'], ['af
 export type TimeOfDay = (typeof TIME_OF_DAY.keys)[number];
 /** BG-231: a wait's target besides a time of day: until anyone new comes into the player's senses (CONFIG.WAIT_SOMEONE_MAX_H at most) */
 export const WAIT_SOMEONE = 'someone';
+/** AE6 (RY3 b): what a readied step waits for: someone comes into view; attacks; goes down, yields or runs (down); closes to
+ * reach, or comes in range for a shot (closes); draws a weapon; moves; leaves. Speech and facing are parked (D-1644) */
+export const READY_ON = ['comes', 'attacks', 'down', 'closes', 'draws', 'moves', 'leaves'] as const;
+export type ReadyOn = (typeof READY_ON)[number];
+/** AE6: a readied step's condition: what happens, and who must do it (an actor, a band, or "anyone"); for attacks, whom (the player when left out) */
+export type ReadyWhen = { on: ReadyOn; who: string; at?: string };
 /** body-part states, best first; ruleset/body.ts poolState names them (H12: healing reach is a key here, so perks shift it by steps) */
 export const PART_STATES = scale([['healthy', 'Healthy'], ['damaged', 'Damaged'], ['crippled', 'Crippled'], ['destroyed', 'Destroyed']]);
 export type PartStateKey = (typeof PART_STATES.keys)[number];

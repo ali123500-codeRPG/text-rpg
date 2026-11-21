@@ -253,6 +253,34 @@ BG/D numbers) sits in one trailing parenthesis.
 - **ACT-172** In a fight the clock is already paused, so a wait or a sleep ordered there does nothing ("not while a
   fight is going on around you").
 
+#### Readied orders
+
+AE6 (RY1–RY5, #1645): the rules are in Action economy, AE6; this is how the turn engine plays them (src/engine/ready.ts,
+resolve.ts).
+
+- **ACT-340** **The hold.** A readied order is a hold that spends no main time, so the step has the turn's time when it
+  fires. It is watched from where the player stands after the turn's move; on later held turns, from the turn's start.
+- **ACT-341** **In a fight: the check.** A fight turn is not played second by second: each actor's walk is applied whole,
+  then its action. The condition is checked after each actor's walk and after each action (and each repeat blow). Its
+  moment is when that walk or action ended, by the turn's end at most (a dash pays move and main seconds side by side, so
+  its walked seconds can pass the turn's). For "closes" on a walk, the moment is when the walker crossed into the step's
+  reach, on a straight line from where it stood at the last check: a longer weapon (meleeReachM: the longest held weapon
+  that is not thrown, or a bow's range) meets it sooner (RY2 a). Answering RY5's question, "how is the game coded to
+  accommodate a movement reaching at second 5": that crossing second is worked out from the walk's start and end.
+- **ACT-342** **Placing the step.** It starts at that moment and is placed by its finish second against the triggering
+  actor's own action: sooner plays it before that action, level goes to the one earlier in the initiative order, later
+  plays it right after (RY2 a: never a cut-in before the trigger itself). Something an action sets off (an attack, someone
+  down, yielding or running) plays right after that action.
+- **ACT-343** **Carry-over (RY5 b).** A step with too little of the turn left starts at once as a long action (ACT-160)
+  and finishes first thing next turn, on its seconds still to go, before whatever the player orders then.
+- **ACT-344** **Held turns (RY4 a).** While a readied order waits in a fight, the game plays the player's turns by itself
+  (src/agents/game.ts) until the step fires, CONFIG.READY\_MAX\_S has passed (counted in fight turns, the readying turn
+  included), or something new stops it by the queued order's rule (orderQueue.ts orderStops).
+- **ACT-345** **Outside a fight** the readied order is the wait until someone appears (BG-231, WAIT\_SOMEONE\_MAX\_H at
+  most), and the stretch also stops when the condition comes true: the step plays there with fresh pools, as a walk's
+  action does on arrival (actThere). A wait that runs out drops it; one stopped for anything else keeps it (RQ4 a,
+  [Proposed]).
+
 #### Initiative (stage 2)
 
 - **ACT-180** A reaction time, rolled once when a fight starts for the actor: CONFIG.REACT\_BASE\_S (2 s) at a total of

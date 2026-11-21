@@ -26,11 +26,11 @@ const outsiders = (state: GameState, w: Actor): Actor[] =>
 /** asleep, the watcher notices only contact (what would wake it, AT61/AT71) */
 const perceived = (state: GameState, w: Actor, x: Actor): boolean => !isAsleep(w) && perceivesNow(state, w, x, 'faint');
 /** weapons held in a Grip part */
-const armed = (state: GameState, x: Actor): number =>
+export const armedCount = (state: GameState, x: Actor): number =>
   x.core.inventory.filter((i) => isHeld(i) && itemDef(state, i.itemId).kind === 'weapon').length;
 /** someone whose path ends at the watcher: it is tracking, hunting or engaging them */
 const comingFor = (x: Actor, w: Actor): boolean => atLeast(x.mind?.knowledge?.[w.id]?.status, 'tracking');
-const seen = (state: GameState, x: Actor, closing = false): Seen => ({ sneaking: x.posture === 'stealthy', closing, armed: armed(state, x) });
+const seen = (state: GameState, x: Actor, closing = false): Seen => ({ sneaking: x.posture === 'stealthy', closing, armed: armedCount(state, x) });
 /** metres between two spots; Infinity where an old map's zone has no rectangle */
 const safeDistM = (state: GameState, a: Located, b: Located): number => distOrNull(state, a, b) ?? Infinity;
 /** metres from where the watcher stands at which someone closing at `speed` m/s fires the check: near enough to strike
