@@ -4,7 +4,7 @@ Agent Narrator writes the prose the player reads, on the strongest model availab
 
 **Seen actors in the dark (P3, 07/11/2026).** An actor in a dark zone is perceived partially, unless it shares the viewer's zone and the viewer fully perceived one of its events since the scenario began (for example it spoke face to face): then it stays fully seen.
 
-Partial events reach the Narrator without actor names or intent, with the zone link's label and the cue, e.g. `{ kind: 'move', where: 'left of the gate', perception: 'partial', cue: 'sound' }`, so it can write "boots scrape somewhere to your left" and nothing more. Actors whose names the player doesn't know reach it by their public label.
+Partial events reach the Narrator without actor names or intent, with the zone link's label and the cue, e.g. `{ kind: 'move', where: 'left of the gate', perception: 'partial', cue: 'sound' }`, so it can write "boots scrape somewhere to your left" and nothing more. One exception (PQ10 a): "A half-seen event names its actor when the player sees that actor in full at the turn's end." Its `actor` (and a heard line's speaker, and a long turn's came-and-went line) is then that person's name or label, the same one they have in actors, so the Narrator never makes them a second person; anyone the player does not see in full at the turn's end stays unnamed. Actors whose names the player doesn't know reach it by their public label.
 
 Output shape:
 

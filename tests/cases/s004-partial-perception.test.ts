@@ -3,7 +3,7 @@ import { expect, it } from 'vitest';
 import type { GameEvent } from '../../src/types';
 import { makeVillage, place, createRng } from '../harness';
 import { computePerception, updateBeliefs } from '../../src/perception';
-import { buildNarrationView } from '../../src/views';
+import { buildNarrationView, callName } from '../../src/views';
 
 it('4 Partial perception', () => {
   const s = makeVillage({ playerZone: 'street_door' });
@@ -15,4 +15,9 @@ it('4 Partial perception', () => {
   expect(v.events).toEqual([{ id: 'e1', kind: 'move', level: 'partial', cue: 'sound', where: 'inside the tavern' }]);
   const text = JSON.stringify(v);
   for (const w of ['slime_1', 'a slime', '"slime"', 'tav_counter', 'behind the bar']) expect(text).not.toContain(w);
+  // PQ10 a: a half-seen event names its actor once the player sees that actor in full at the turn's end
+  place(s, 'slime_1', 'street_door');
+  const named = buildNarrationView(s, [e], null);
+  expect(named.events[0]).toMatchObject({ level: 'partial', actor: callName(s, s.player.id, 'slime_1') });
+  expect(named.actors.some((a) => a.label === named.events[0].actor)).toBe(true);
 });
