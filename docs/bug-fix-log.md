@@ -10,6 +10,16 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the spec's bug log, docs/spec/bug-log.md, has one. Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-352
+
+**What was wrong:** The level bar on the Character page stayed empty however much XP the player had, while the level bar in the Play page's short sheet filled to the same share.
+
+**Root cause:** Both bars took their share from `xpFill` (`src/engine/xp.ts`), but the Character page drew its own bar in `xpTrack` (`src/ui/charsheet.ts`) as a plain `.cs-bar`. A `.cs-bar`'s fill takes its colour from `--t` (`src/ui/styles.css`, `.cs-bar > b`), the skill-tree colour that is set only on a tree's band. The level bar sits outside every band, so its fill had no colour and could not be seen. The Play bar showed because `xpLine` wraps it in `.cs-xp`, whose rule paints the fill gold.
+
+**What was done:** `xpTrack` now builds its row and bar with `xpLine`, the Play sheet's builder, and only adds the banked-XP note under it. The two bars are one piece of code, so they show the same fill, colour and XP figure. Checked in the browser on the fake page: the Character page's fill now computes gold (`rgb(255, 211, 110)`), as on Play.
+
+**Fixed by:** #1434
+
 ## BG-351
 
 **What was wrong:** A rank-5 sergeant composed from Soldier and Town folk spawned with its two rank traits (Second Wind, Insomniac). After one perk was added to the Soldier trait pool and the story was loaded again, it held three: the new draw's Hidden Strike was added and nothing was taken away. Raising a rank's count in RANK_TRAITS did the same; lowering it removed nothing.

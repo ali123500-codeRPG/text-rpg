@@ -84,11 +84,11 @@ export function count(el: HTMLElement | null | undefined, from: number, to: numb
 
 /** a small "+3" or "−12" that rises from a number and fades (M-36); tone is a colour token. It sits on the number's
  * parent, so a count rewriting the number's text never removes it. */
-export function delta(num: HTMLElement | null | undefined, text: string, tone: string, delay: number): void {
+export function delta(num: HTMLElement | null | undefined, text: string | Node, tone: string, delay: number): void {
   const host = num?.parentElement;
   if (!host || !canAnimate(host)) return;
   const d = document.createElement('span');
-  d.className = 'm-delta'; d.textContent = text; d.setAttribute('aria-hidden', 'true'); d.style.setProperty('--tone', `var(--${tone})`);
+  d.className = 'm-delta'; d.append(text); d.setAttribute('aria-hidden', 'true'); d.style.setProperty('--tone', `var(--${tone})`);
   host.classList.add('m-host'); host.append(d);
   const hold = ms('--m-count');
   play(d, [{ opacity: 0, transform: 'translateY(4px)' }, { opacity: 1, transform: 'translateY(-2px)', offset: 0.2 }, { opacity: 1, transform: 'translateY(-6px)', offset: 0.7 }, { opacity: 0, transform: 'translateY(-10px)' }],
@@ -137,16 +137,16 @@ export function bar(track: HTMLElement | null | undefined, fill: HTMLElement | n
 
 /** a word that changed: the old word stays until its beat, then the new one lands with a short drop and fade (level words,
  * coin); no overshoot (M-71). Skipping shows the new word at once. */
-export function stamp(el: HTMLElement | null | undefined, delay: number, old?: string): void {
+export function stamp(el: HTMLElement | null | undefined, delay: number, old?: string | Node): void {
   if (!el || !canAnimate(el)) return;
-  const final = el.textContent ?? '';
+  const final = Array.from(el.childNodes); // nodes, not text, so icons inside (coin) come back too
   const beat = ms('--m-beat');
   const land = () => play(el, [{ opacity: 0, transform: 'translateY(-6px)' }, { opacity: 1, transform: 'none' }], { dur: beat });
   if (delay <= 0) { land(); return; }
   // until its beat the old word stays readable; skipping shows the new one at once
-  if (old !== undefined) el.textContent = old;
+  if (old !== undefined) el.replaceChildren(old);
   const timer = setTimeout(() => { done(); land(); }, delay);
-  const done = () => { clearTimeout(timer); el.textContent = final; running.delete(r); };
+  const done = () => { clearTimeout(timer); el.replaceChildren(...final); running.delete(r); };
   const r: Running = { finish: done };
   running.add(r);
 }

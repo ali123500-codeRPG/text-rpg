@@ -16,7 +16,7 @@ import { essenceSlots } from '../engine/essence';
 import { treeBlock } from '../ruleset/access';
 import { augmentWindow, burdenOf, burdenParts, groupRollBonus, learningWindow } from '../ruleset/improve';
 import { ended, h, safe } from './kit';
-import { classIcon, skillIcon, treeIcon } from './itemIcons';
+import { classIcon, itemIcon, skillIcon, treeIcon } from './itemIcons';
 import { classMaxLevel } from '../library/spawn';
 import { figIcon } from './power';
 import { openPop } from './pop';
@@ -171,7 +171,7 @@ export function charCard(s: GameState, p: Actor, openClasses?: (opener: HTMLElem
         boxes.map((l) => h('i', { class: at <= levels.indexOf(l) ? 'on' : '' }))),
       // morale and stamina under health, as on the play screen's full sheet (PS-340)
       h('div', { class: 'cs-mbar' }, ...moraleBar(p, true)), h('div', { class: 'cs-mbar cs-sbar' }, ...staminaBar(p, true))),
-    xpTrack(s, p),
+    xpTrack(p),
     capstoneChoice(s, p),
     // the body figure beside the figures (CP5: a click opens each part in a pop-up); gear and personality are tiles under the page
     h('div', { class: 'cs-bodyrow' }, bodyButton(s, p),
@@ -240,15 +240,11 @@ function classSigil(p: Actor, openClasses?: (opener: HTMLElement) => void): HTML
 
 /** X9: one XP bar. A class at its top level (classMaxLevel, by tier) takes no levels; while no class can take one, XP
  * banks and a line asks for a class (chosen in the class tree, from the circle by the name). */
-function xpTrack(s: GameState, p: Actor): HTMLElement | null {
-  const pr = p.progression;
-  if (!pr) return null;
-  const need = xpToNext(p);
-  const target = levelTarget(p);
-  return h('div', { class: 'cs-track' },
-    h('div', { class: 'cs-row' }, h('span', {}, `Level ${charLevel(p)}`), h('b', {}, `${+pr.xp.toFixed(6)} / ${need} XP`)),
-    h('div', { class: 'cs-bar' }, h('b', { style: `width:${xpFill(p).pct}%` })),
-    !target ? h('small', { class: 'cs-bank' }, `Your class is at its top level. XP${freeLevelsOwed(p) ? ` and ${freeLevelsOwed(p)} free level${freeLevelsOwed(p) === 1 ? '' : 's'} are` : ' is'} banked until you pick a class for the next level in the class tree.`) : null);
+function xpTrack(p: Actor): HTMLElement | null {
+  const line = xpLine(p); // BG-352: the same bar as the play sheet's, so it keeps the play sheet's fill colour
+  if (!line) return null;
+  return h('div', { class: 'cs-track' }, line,
+    !levelTarget(p) ? h('small', { class: 'cs-bank' }, `Your class is at its top level. XP${freeLevelsOwed(p) ? ` and ${freeLevelsOwed(p)} free level${freeLevelsOwed(p) === 1 ? '' : 's'} are` : ' is'} banked until you pick a class for the next level in the class tree.`) : null);
 }
 
 /** 2.7 on the play sheet: the essences held by name, and any offer still waiting, both opening the Character page's Essences pop-up */
@@ -570,10 +566,27 @@ export function shortSheet(s: GameState, p: Actor): HTMLElement[] {
   const g = [...gearLine(s, p, true), ...gearLine(s, p, false)];
   return [
     h('div', { class: 'cs-row' }, h('span', {}, 'Held / worn'), h('b', { class: 'cs-hw' }, ...(g.length ? g.map((x, k) => (k && !x.textContent?.startsWith(' · ') ? [' · ', x] : x)) : ['Nothing']))),
-    h('div', { class: 'cs-row' }, h('span', {}, 'Coin'), h('b', {}, h('span', { 'data-m': 'coin' }, coinWords(coins(p))))),
+    h('div', { class: 'cs-row' }, h('span', {}, 'Coin'), h('b', {}, h('span', { 'data-m': 'coin' }, ...coinIcons(coins(p))))),
     ...[xpLine(p)].filter((x): x is HTMLElement => !!x),
   ];
 }
+
+/** a coin amount as counts beside gold, silver and copper coin icons, largest first; each coin's name is its tip */
+export function coinIcons(n: number): (string | HTMLElement)[] {
+  let left = Math.max(0, Math.floor(n));
+  const out: (string | HTMLElement)[] = [];
+  for (const [name, worth] of CONFIG.COIN_NAMES) {
+    const k = Math.floor(left / worth);
+    left -= k * worth;
+    if (k || (!out.length && worth === CONFIG.COIN_NAMES.at(-1)![1])) out.push(`${out.length ? ' ' : ''}${k}`, coinIcon(name));
+  }
+  return out;
+}
+const coinIcon = (name: string): HTMLElement => {
+  const el = itemIcon('coin', undefined, 'coin-ic');
+  Object.assign(el, { title: name }); el.dataset.coin = name; el.setAttribute('role', 'img'); el.setAttribute('aria-label', name);
+  return el;
+};
 
 /** Compact sheet beside the story: health, morale, gear, coin and skills above 0 (standing attack and defense live on the Character page). */
 export function sideSheet(s: GameState, p: Actor, last?: LogLine, changed?: Set<string>): HTMLElement[] {
