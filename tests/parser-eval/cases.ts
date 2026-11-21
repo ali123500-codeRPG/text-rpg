@@ -60,4 +60,7 @@ export const CASES: { line: string; bug?: string; check: Check }[] = [
   { line: 'I say nothing and keep my eyes on the patron.', check: all(noClarify, (p) => need(!i(p)?.spoken, 'no words')) },
   { line: 'Ask the patron, then the barkeep, if they have seen a wolf.', bug: 'BG-122', check: says() },
   { line: 'Duck out the front door before anyone notices.', check: moves(['street_door']) },
+  { line: 'When the patron comes at me, I parry his strike and riposte.', bug: 'RY6', check: all(noClarify, noMove, (p) => need(!i(p)?.action, 'no action: hold ground'),
+    (p) => need(!(i(p)?.deferred ?? []).some((d) => /\bwhen\b|parry|riposte/i.test(d)), 'no defence and no "when" deferred')) },
+  { line: 'I\'ll parry his blows from now on.', bug: 'RY7', check: all(nothingDeferred, (p) => need(i(p)?.defense === 'parry', 'defense parry')) },
 ];

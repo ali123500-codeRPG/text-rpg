@@ -697,7 +697,8 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 #### Defense row
 
 - **PS-400** Beside Aim, Dodge, Parry and Block pick the player's standing defense, free and with no turn. Until then
-  only the creation default was ever used (Ali, 18/11/2026; GameApi.setDefense).
+  only the creation default was ever used (Ali, 18/11/2026; GameApi.setDefense). Words that name a defence set it too
+  (RY7, Agent Parser).
 - **PS-401** Each shows its effective skill, the figure the defense roll uses (defenseValue in src/ruleset/gear.ts). Its
   skill icon (DEFENSE_SKILL) stands in place of its name, the name its tip and accessible name (issue #1516).
 - **PS-402** One that can't be used now (Block without a shield in hand, Parry without a melee weapon or Open-Hand
