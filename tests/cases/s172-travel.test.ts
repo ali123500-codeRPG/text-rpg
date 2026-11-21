@@ -140,10 +140,20 @@ describe('172 travel', () => {
     expect(s.scratch?.frontierCrossed).toBe('onward');
   });
 
-  it('TV6: a bandmate together with the player travels along, at the slower of the two speeds', () => {
+  it('TV6 (D-202 b): a bandmate who is not following stays behind', () => {
     const s = withRoad(9);
     const mate = s.actors.find((a) => a.id === 'patron_1')!;
     mate.bandId = s.player.bandId; mate.zone = 'gate_inner'; mate.placeId = 'gate'; unplace(s, mate); placeAll(s);
+    go(s, 'ashford_gate');
+    expect(trip(s)!.companions).toEqual([]);
+    expect(mate.zone).not.toBe('ashford_gate');
+  });
+
+  it('TV6 (D-202 b): someone following the player travels along, at the slower of the two speeds', () => {
+    const s = withRoad(9);
+    const mate = s.actors.find((a) => a.id === 'patron_1')!;
+    mate.bandId = s.player.bandId; mate.zone = 'gate_inner'; mate.placeId = 'gate'; unplace(s, mate); placeAll(s);
+    mate.mind!.routine = { id: 'follow', anchorTurn: s.turn, at: 0 };
     mate.core.inventory = []; // no armor: the same speed
     go(s, 'ashford_gate');
     expect(trip(s)!.companions).toEqual(['patron_1']);

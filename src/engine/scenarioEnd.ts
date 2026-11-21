@@ -81,7 +81,7 @@ function bandOut(state: GameState, band: string): boolean {
 export const foesIn = (state: GameState, place: string) => state.actors.filter((a) => actorIn(state, a, place) && isActive(a) && !a.mind?.moraleState
   && !!zoneById(state, a.zone) && stance(state, a, state.player) === 'hostile');
 
-/** BG-1508: your side: you, your bandmates and anyone following you (as companions travel, travel.ts) */
+/** BG-1508: your side: you, your bandmates and anyone following you (as travel.ts companions) */
 const yourSide = (state: GameState, a: Actor): boolean => a === state.player || a.bandId === state.player.bandId
   || (a.mind?.routine?.id !== undefined && getLibrary().routines?.[a.mind.routine.id]?.kind === 'follow');
 /** BG-1508: someone named by a reach ending (the person, or any of the band) up, unbroken and in the place */
