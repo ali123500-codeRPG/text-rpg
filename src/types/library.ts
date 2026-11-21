@@ -70,7 +70,9 @@ export type NpcRoleDef = { id: LibraryRef; name: string; kind: 'combat' | 'civil
 export type PrefixDef = { id: LibraryRef; name: string; text: string; rankStep: number; hpMult: number; /** NR46: every banded skill × this, after the rank step */ skillMult?: number };
 /** NR17: a kind of hook: what the person gives play, who can fill it (roles, or a group), and its rank kind (CONFIG.ROSTER_RANKS) */
 export type HookKindDef = { id: LibraryRef; name: string; gives: string; roles?: readonly LibraryRef[]; groups?: readonly LibraryRef[]; theme?: LibraryRef; class?: LibraryRef;
-  rank: 'face' | 'lead' | 'threat' | 'seat'; goals?: true };
+  rank: 'face' | 'lead' | 'threat' | 'seat'; goals?: true;
+  /** NF4 b: whoever fills this hook in a roster is a notable foe (an essence always appears when they die) */
+  notable?: true };
 /** NR27: one part of a group: its role (or a template), race when fixed (else rolled: NR31), label, and rank steps above the group's */
 export type GroupPart = { role?: LibraryRef; roles?: readonly LibraryRef[]; template?: LibraryRef; race?: LibraryRef; label: string; step?: number; class?: LibraryRef };
 /** NR27 (D-308): a group recipe: a leader and its followers, of one theme */
@@ -515,6 +517,8 @@ export type RaceDef = {
   intelligence: IntelligenceKey; // an INTELLIGENCE key (src/scales.ts)
   /** AG4: the age in years at which each life stage starts; left out = ageless (Slime) */
   ageStages?: Partial<Record<import('../scales').LifeStageKey, number>>;
+  /** NF5 a: a creature that matters by what it is: every one of this race is a notable foe */
+  notable?: true;
 };
 
 /** what an achievement counts (unordered: names are the ids); its text lives in ACH_RULE_TEXT (achievementIds.ts) */

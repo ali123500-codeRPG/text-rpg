@@ -7,7 +7,7 @@ and `src/config.ts`. How essences began is in [history-growth-and-skill-gain.md]
 - **Passing on essences (13/11/2026; ES1-ES7).** Asked to be able to sell or give them. An offer can be given
   to someone in reach or sold to any seller who buys items, at a value from the one value equation; a unique
   NPC takes it into its own slots; a gift cannot be refused and a sale can (#648). Parked: essences as
-  carried items (D-249), NPCs selling or giving them to the player (D-250).
+  carried items (EI-249), NPCs selling or giving them to the player (EI-250).
 - **Template essences (13-14/11/2026; EN1-EN7).** Each NPC template carries an essence list worked out in
   code from its skills and race, with a hand-set list allowed; an echo carries only its own (#701). An
   essence that adds true skill opens that skill whatever its requirements (#704; BG-208). The loot rule: the
@@ -22,7 +22,7 @@ and `src/config.ts`. How essences began is in [history-growth-and-skill-gain.md]
   roll, leaves a lasting quirk on them, and counts as an attack (#778, #781). Gods and blessing tiers came
   with the Starts (#776); gods are not described in the wording used for the Thread. Offers were tuned to be
   generous (#835). Parked: blessings and gods (D-311), extraction from the willing (D-312), merging essences
-  (D-313).
+  (EI-313).
 - **Extraction from the surrendered (21/11/2026; #1462).** Asked to extract from surrendered foes who are still up.
   The condition became Down or surrendered, where it had been Down and broken or surrendered.
 - **Every NPC has an essence (16-17/11/2026; NE1-NE5).** An audit found elves, some human roles and nearly

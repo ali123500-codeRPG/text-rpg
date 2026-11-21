@@ -146,11 +146,13 @@ export function offerExtracted(state: GameState, row: EssenceDef, roll: { grade:
   offer(state, row, row.skills, roll, 'extract', from, measure);
 }
 
-/** 2.3, NF1, NF2: a beaten foe is notable when it is unique (an echo too) or its template is tagged notable; never by its
- * power, and never only for being rolled */
+/** 2.3, NF1, NF2, NF4 b, NF5 a: a beaten foe is notable when it is unique (an echo too), its template or race is tagged
+ * notable, or it filled a notable roster hook (Leader, Rival, Seat of the Great, Warden); never by its power, and never only
+ * for being rolled */
 export function notable(state: GameState, foe: Actor): boolean {
   const id = foe.core.templateId, t = id ? (() => { try { return npcTemplate(state, id); } catch { return undefined; } })() : undefined;
-  return !!t?.notable || foe.core.generation === 'unique';
+  const r = foe.core.raceId ? getLibrary().races?.[foe.core.raceId] : undefined;
+  return !!t?.notable || !!r?.notable || !!foe.core.notable || foe.core.generation === 'unique';
 }
 
 /** 2.3: an essence comes only from a death, never a defeat (BG-199): a foe the player hurt who now lies dead rolls once,

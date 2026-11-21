@@ -19,7 +19,7 @@ import { activity, getLibrary, itemDef, npcTemplate, routine, routineSet } from 
 import { composeTemplate, rankPos, roleMissing, presetPersonality, spawnNpc, templateRank } from '../library/spawn';
 import type { MeetRow } from '../types/library';
 import type { RankKey } from '../scales';
-import { groupMembers } from '../land/roster';
+import { groupMembers, rosterEntry } from '../land/roster';
 import { cellAt, regionAt } from '../land/sight';
 import { topPlace } from '../engine/relations';
 import { HK } from '../library/npcLayerIds';
@@ -398,6 +398,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
       state.actors.push(a);
     }
     a.bandId = bandRef(c.band);
+    if (c.roster && rosterEntry(state, c.roster)?.notable) a.core.notable = true; // NF4 b
     const unique = a.core.generation === 'unique'; // HF15: a unique's looks and pronouns are its own
     if (!unique || !a.appearance) a.appearance = c.appearance;
     if (c.pronouns && (!unique || !a.pronouns)) a.pronouns = c.pronouns;

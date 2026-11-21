@@ -137,6 +137,8 @@ export type Core = {
   /** NR37: a beast's prefix (PF…): Dire = one rank up (in its sheet) and more health (prefixes table) */
   prefix?: LibraryRef;
   generation?: 'rolled' | 'copy' | 'unique';
+  /** NF4 b: filled a notable roster hook (Leader, Rival, Seat of the Great, Warden), so it is a notable foe */
+  notable?: true;
   /** HF21: where a unique came from; an echo (a fallen hero from the Hall of fame) keeps its sheet and never learns (D-243) */
   origin?: 'echo';
   skills: Record<LibraryRef, SkillEntry>;
