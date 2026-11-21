@@ -920,6 +920,9 @@ export function prototypeLibrary(): Library {
       loud: 'A shout, steel ringing on steel (about 88 dB)',
       blaring: 'A scream, a hammer on an anvil, a war horn (about 100 dB)',
       deafening: 'A thunderclap overhead, a church bell up close, an alarm bell (about 120 dB)',
+      thunderous: 'A gunshot or a firework bursting close by, the threshold of pain (about 140 dB)',
+      shattering: 'A volcano blowing apart: Krakatoa still measured 172 dB 160 km away (about 170 dB)',
+      cataclysmic: 'The loudest true sound air can carry; anything louder is a shockwave (about 194 dB)',
     } as Record<string, string>)[k] }])),
     visibilityLevels: Object.fromEntries(VISIBILITY.keys.map((k) => [k, { id: k, name: VISIBILITY.name(k), clearM: CONFIG.SIGHT_M[k]?.[0] ?? null, glimpsedM: CONFIG.SIGHT_M[k]?.[1] ?? null, like: ({
       unseen: 'Nothing to see: keeping still out of sight',

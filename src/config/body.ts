@@ -152,8 +152,10 @@ export const BODY = {
   OBJECT_COVER_M: 1,
   /** CV8 b: Past the Cover counts the target as showing 2^this times as much (two halvings back) */
   PAST_THE_COVER_HALVINGS: 2,
+  /** D-214: a step louder (armor, a mishap, breaking through) climbs no higher than this; the levels past it are for what names them */
+  NOISE_STEP_TOP: 'deafening' as import('../scales').NoiseKey,
   /** loudness of each NOISE level in decibels at 1 m, from real references (the library's noiseLevels rows); null = no sound */
-  NOISE_DB: { silent: null, faint: 20, hushed: 30, quiet: 40, murmur: 50, normal: 60, raised: 70, loud: 88, blaring: 100, deafening: 120 } as Record<string, number | null>,
+  NOISE_DB: { silent: null, faint: 20, hushed: 30, quiet: 40, murmur: 50, normal: 60, raised: 70, loud: 88, blaring: 100, deafening: 120, thunderous: 140, shattering: 170, cataclysmic: 194 } as Record<string, number | null>,
   /** BG-251: how loud a missile's impact is where it lands: on armour, a shield or a hard surface like an axe biting wood
    * (3M Noise Navigator: chopping wood 66-71 dBA at 5 m, pounding tent stakes 66 dBA at 15.2 m, about 80-90 dB at 1 m);
    * on flesh, clothing or soft ground some 20 dB less (Brüel: soft-material impacts peak 20-25 dB below metal; an estimate) */

@@ -48,7 +48,7 @@ export const CLOCK = {
   WAKE_NOISE: 'loud' as import('../scales').NoiseKey, // NW18: a sound this loud or louder wakes a sleeper who hears it (a shout is loud)
   WAKE_CONTACT: ['attack'] as string[], // NW14: a blow wakes the one it is aimed at, hit or miss
   /** NW19: the difficulty of a light sleeper's hearing check against someone moving openly, by their noise (louder is easier) */
-  WAKE_GRADE: { faint: 'extreme', hushed: 'major', quiet: 'moderate', murmur: 'minor', normal: 'none', raised: 'none', loud: 'none', blaring: 'none', deafening: 'none' } as Record<string, import('../scales').GradeLevel>,
+  WAKE_GRADE: { faint: 'extreme', hushed: 'major', quiet: 'moderate', murmur: 'minor', normal: 'none', raised: 'none', loud: 'none', blaring: 'none', deafening: 'none', thunderous: 'none', shattering: 'none', cataclysmic: 'none' } as Record<string, import('../scales').GradeLevel>,
   BED_NEAR_M: 30, // BF68, BG-303: a real bed this many metres or less away by the walking path from one's own spots is one's bed when none was given (placeholder: about across a house and up its stairs)
   FALL_ASLEEP_MIN: 30, // NW20: an NPC woken falls asleep again by its routine no sooner than this
   NIGHT_MAX_MIN: 12 * 60, // NW22 b: a night shared out in watches lasts at most 12 hours

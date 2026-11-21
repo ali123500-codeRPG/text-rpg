@@ -225,6 +225,7 @@ import {
 } from '../ruleset';
 import {
   VOLUME_NOISE,
+  stepNoise,
 } from '../perception/noise';
 import {
   makeOut,
@@ -853,7 +854,7 @@ function armorNoise(state: GameState, a: Actor, kind: string, noise: NoiseKey): 
   const steps = loud ? Math.max(0, loud - (hasPerk(a, PK.quiet_mail) ? 1 : 0)) : 0;
   const soft = kind === 'move' && a.posture === 'stealthy' && hasPerk(a, PK.soft_tread) ? 1 : 0;
   const quiet = kind === 'move' ? bestReward(a, 'quieter')?.value ?? 0 : 0; // an achievement reward
-  return NOISE.at(NOISE.pos(noise) + steps - soft - quiet);
+  return stepNoise(noise, steps - soft - quiet);
 }
 
 function withActivity(ctx: Ctx, a: Actor, ev: GameEvent, id: string | undefined): GameEvent {
@@ -1276,7 +1277,7 @@ function walkThrough(ctx: Ctx, a: Actor, goal: Located, metres: number): void {
     if ('wall' in x) { cutHole(state, x.wall, holeSpot(state, x.wall, x.at) ?? x.at, x.from, false); to = x.to?.id; }
     else { x.barrier.state = 'destroyed'; delete x.barrier.wear; delete x.barrier.wornTurn; to = x.opening.joins.find((j) => j !== a.zone); }
     emit(ctx, mk(ctx, a, 'break_through', {
-      ...(to ? { target: to } : {}), noise: NOISE.at(NOISE.pos(stuff?.material.noise ?? 'loud') + 1),
+      ...(to ? { target: to } : {}), noise: stepNoise(stuff?.material.noise ?? 'loud', 1),
       breakThrough: { ...('wall' in x ? { wall: x.wall.id } : { barrier: x.barrier.id }), ...(to ? { to } : {}), share: 1, state: 'destroyed', walked: true },
     }));
   }
@@ -2150,7 +2151,7 @@ function doGeneric(ctx: Ctx, a: Actor, o: Order): void {
  * thing that keeps a record. Near Miss: not yet. Success: done. Great Success: done, one noise step quieter. Critical
  * Success: done, and the Narrator may add one small extra the act opens up. */
 function tierResult(ctx: Ctx, a: Actor, o: Order, ev: GameEvent, r: RollResult, thing: { beyond?: Record<string, number> } | undefined, key: string, eff: number, tool: string | undefined): void {
-  const louder = (n: number) => NOISE.keys[Math.max(0, Math.min(NOISE.keys.length - 1, NOISE.pos(ev.noise) + n))];
+  const louder = (n: number) => stepNoise(ev.noise, n); // D-214: no higher than NOISE_STEP_TOP
   if (r.tier === 'failure' && thing) (thing.beyond ??= {})[key] = eff;
   if (r.tier === 'great_success') ev.noise = louder(-1);
   if (r.tier !== 'critical_failure') return;
@@ -2388,7 +2389,7 @@ function doBreakThrough(ctx: Ctx, a: Actor, o: Order, spent?: number): void {
   if (s <= T_EPS) return wasted('no_time_left');
   const r = addWear(state, a, job, s / f);
   const check = s >= CONFIG.BREAK_SPELL_S - T_EPS ? toolCheck(state, a, ctx.rng) : {}; // BW23 a: a full spell is one breakage check
-  const noise = r.reached === 'destroyed' ? NOISE.at(NOISE.pos(job.stuff.material.noise) + 1) : job.stuff.material.noise;
+  const noise = r.reached === 'destroyed' ? stepNoise(job.stuff.material.noise, 1) : job.stuff.material.noise;
   const left = Math.max(0, secondsLeft(state, a, job));
   emit(ctx, bark(mk(ctx, a, 'break_through', {
     target: o.target ?? undefined, noise,
