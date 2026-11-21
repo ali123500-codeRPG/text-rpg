@@ -23,7 +23,7 @@ const codes = (s: GameState) => s.log.filter((l) => l.code.startsWith('essence_'
 it('D-274: a notable foe always leaves an essence; only its quality roll can make it fade', () => {
   for (const q of [100, 1]) {
     const s = makeVillage(), foe = slime(s);
-    foe.core.generation = 'rolled'; // notable
+    foe.core.generation = 'unique'; // notable
     offersFromDefeats(s, [slain(foe)], dice(100, q)); // the worst appearance die still appears
     expect(codes(s)).toEqual(q === 100 ? ['essence_appeared', 'essence_offered'] : ['essence_appeared', 'essence_faded']);
   }
@@ -60,20 +60,12 @@ it('FP8: the same trait held twice counts once; its points add; it goes only wit
   }
 });
 
-it('a foe is notable by power only at ESSENCE_NOTABLE_SHARE (2) times the player\'s power or more', () => {
+it('NF1, NF2: a foe is notable only as a unique or a template tagged notable, never by power or for being rolled', () => {
   const s = makeVillage(), guard = s.actors.find((a) => a.id === 'guard_1')!;
-  expect(power(s, guard) / power(s, s.player)).toBeGreaterThanOrEqual(2);
-  expect(notable(s, guard)).toBe(true);
-  // the player grows until the guard is under twice its power (but still well over the old 0.75 share)
-  const ids = Object.keys(s.player.core.skills);
-  // the fewest steps of 3 points on every skill that bring the guard under twice its power, found by halving (each step
-  // count is a new sheet, so a new combat level, and working one out takes a while)
-  const base = Object.fromEntries(ids.map((id) => [id, s.player.core.skills[id].raw]));
-  const grow = (k: number) => { for (const id of ids) s.player.core.skills[id].raw = base[id] + 3 * k; return power(s, guard) / power(s, s.player); };
-  let lo = 0, hi = 200;
-  expect(grow(hi)).toBeLessThan(2);
-  while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (grow(mid) >= 2) lo = mid; else hi = mid; }
-  grow(hi);
-  expect(power(s, guard) / power(s, s.player)).toBeGreaterThan(1.5);
+  expect(power(s, guard) / power(s, s.player)).toBeGreaterThanOrEqual(2); // far stronger than a new character
   expect(notable(s, guard)).toBe(false);
-}, 20000); // about ten new sheets, each with a combat level worked out afresh (about 0.15 s each, slower on CI)
+  guard.core.generation = 'rolled';
+  expect(notable(s, guard)).toBe(false);
+  guard.core.generation = 'unique';
+  expect(notable(s, guard)).toBe(true);
+});

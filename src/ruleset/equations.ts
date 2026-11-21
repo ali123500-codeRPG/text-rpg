@@ -283,7 +283,7 @@ export function equations(lib: Library): EquationGroup[] {
     ] },
     { key: 'essences', title: 'Essences', about:'Where an essence comes from: one rule for every essence of each kind.', equations: [
       { name: 'Foe essence', at: 'notable · offersFromDefeats · src/engine/essence.ts',
-        formula: `beating a notable foe of the essence's race or body type offers it; notable = power at least ${Math.round(CONFIG.ESSENCE_NOTABLE_SHARE * 100)}% of yours, or a notable or rolled NPC`,
+        formula: `a foe you hurt that dies may offer an essence from its list: a notable foe's always appears, any other foe's ${CONFIG.ESSENCE_APPEAR_CHANCE.mob}% of the time, and then its quality roll decides; notable = a unique (an echo too) or a template tagged notable, never by power`,
         notes: ['Each such foe rolls once, ever.', 'A scenario you resolve at Great Success or better can also offer one from the foes you beat in it.'] },
       { name: 'Deed essence', at: 'offerAtEnding · src/engine/essence.ts',
         formula: 'a scenario you resolve at Great Success or better, in which you beat no foe whose race or body type has essences, offers a deed essence',
