@@ -57,7 +57,7 @@ export type SStair = Box & { id: string; zoneId: string; cx: number; cy: number;
 export type SFurn = Box & { id: string; zoneId: string; kind: string; name: string; cx: number; cy: number };
 /** MAP-86: a thing on the ground; of: its item instance id (MAP-85's deck target), icon and kind as in MapThingMark */
 export type SItem = Box & { id: string; of: string; zoneId: string; name: string; icon: MapThingMark['icon']; kind?: string; cx: number; cy: number };
-/** `cap` (GSM-193; OM4b a): someone in full sight is drawn as their body's own capsule at the zoom shown, `len` px along
+/** `cap` (GSM-193; OM4b a): someone in full sight (or out of it, as last seen clearly: RX1 a) is drawn as their body's own capsule at the zoom shown, `len` px along
  *  the way they face (`deg`, screen degrees) and `wide` px across, with no smallest size; the box is the turned capsule's */
 export type SToken = Box & { id: string; zoneId: string; cx: number; cy: number; r: number; you?: true; who?: MapPerson; title: string; cap?: { len: number; wide: number; deg: number };
   /** MAP-68: the faint "somewhere here" circle round the point someone out of full sight was last perceived at */
@@ -350,7 +350,7 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
 
   // ---- other people (MAP-68; OM4b a): each at their own point, whether or not seen ground or any zone is there, and never
   // moved: they may overlap each other and any mark. In full sight, their body's own capsule at this zoom, with no smallest
-  // size; out of full sight, at the point they were last seen or heard, in a "somewhere here" circle
+  // size; out of full sight, at the point they were last seen or heard, in a "somewhere here" circle, dashed
   // RM26 b: the room a person stands in is the zone on this floor whose outline holds their point (the smallest: MAP-11
   // zones nest), whatever title lists them; over the void (no zone there) none
   const roomOf = (q: { x: number; y: number }) => zones.filter((x) => x.z.outline?.length && inOutline(q, x.z.outline, 0.01)).sort((a, b) => areaOf(a.z.outline!) - areaOf(b.z.outline!))[0];
@@ -358,16 +358,12 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
     const q = who.at ?? who.lastAt;
     if (!q) continue;
     const cx = q.x * PX_PER_M * k, cy = -q.y * PX_PER_M * k, zoneId = roomOf(q)?.z.id ?? '';
-    if (who.at && who.body) {
-      const cap = capsule(who.body, k), [dx, dy] = half(cap);
-      tokens.push({ id: `who:${who.id}`, zoneId, cx, cy, r: Math.min(cap.len, cap.wide) / 2, ...disc(cx, cy, dx, dy), who, title: who.name, cap });
-      take(disc(cx, cy, dx, dy), 'token');
-    } else {
-      // shortcut: out of full sight the view gives no body size, so the disc keeps its set size; a size for them is a question to the owner
-      const rings = [{ cx, cy, r: CONFIG.LAST_SEEN_RADIUS_M * PX_PER_M * k }];
-      tokens.push({ id: `who:${who.id}`, zoneId, cx, cy, r: WHO_R, ...disc(cx, cy, WHO_R), who, title: `${who.name}: somewhere here`, rings });
-      take(disc(cx, cy, WHO_R), 'token');
-    }
+    // RX1 a: out of full sight, the body last seen clearly (MapPerson.body); never seen clearly, a disc of a set size
+    const cap = who.body && capsule(who.body, k), [dx, dy] = cap ? half(cap) : [WHO_R, WHO_R];
+    const rings = who.at ? undefined : [{ cx, cy, r: CONFIG.LAST_SEEN_RADIUS_M * PX_PER_M * k }];
+    tokens.push({ id: `who:${who.id}`, zoneId, cx, cy, r: cap ? Math.min(cap.len, cap.wide) / 2 : WHO_R, ...disc(cx, cy, dx, dy), who,
+      title: who.at ? who.name : `${who.name}: somewhere here`, ...(cap ? { cap } : {}), ...(rings ? { rings } : {}) });
+    take(disc(cx, cy, dx, dy), 'token');
     if (!who.at) used.add('who-last');
     if (who.now) used.add('who');
   }

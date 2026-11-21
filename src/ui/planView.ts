@@ -233,12 +233,12 @@ export function planView(api: GameApi, opts: PlanOpts) {
       // (OM4b a); its icon (MAP-69) sits inside it
       const shape = c ? s('rect', { x: t.cx - c.len / 2, y: t.cy - c.wide / 2, width: c.len, height: c.wide, rx: Math.min(c.len, c.wide) / 2, transform: `rotate(${c.deg} ${t.cx} ${t.cy})`, ...tok })
         : s('circle', { cx: t.cx, cy: t.cy, r: t.r, ...tok });
-      // MAP-69 (OM4b a): the icon scales with the body, fitted inside its narrower side however it is turned
+      // MAP-69 (OM4b a): the icon scales with the body, fitted inside its narrower side however it is turned; too small, left off
       const turn = c ? Math.abs(Math.cos((c.deg * Math.PI) / 180)) + Math.abs(Math.sin((c.deg * Math.PI) / 180)) : 1;
       const iconPx = ((c ? Math.min(c.len, c.wide) / turn : 2 * t.r)) * WHO_ICON_SHARE;
       const g = s('g', { class: `map-who plan-who${who.now && !who.lastAt ? '' : ' last'}${who.at ? ' at' : ''}`, ...(t.zoneId ? { 'data-zone': t.zoneId } : {}), 'data-thing': 'person', 'data-of': who.id, tabindex: 0, role: 'button', 'aria-label': `${t.title}: what to do` },
         ...(t.rings ?? []).map((q) => s('circle', { class: 'map-who-ring', cx: q.cx, cy: q.cy, r: q.r })),
-        shape, iconMark(who.icon, t.cx, t.cy, iconPx, 'map-who-icon'),
+        shape, ...(iconPx >= CONFIG.MAP_WHO_ICON_MIN_PX ? [iconMark(who.icon, t.cx, t.cy, iconPx, 'map-who-icon')] : []), // RX2 b
         s('text', { x: t.x1 + 4, y: t.cy + 4, class: 'map-who-label' }, who.name), s('title', {}, t.title));
       gTokens.append(g);
     }

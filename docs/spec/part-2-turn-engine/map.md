@@ -191,9 +191,10 @@ continuous map (D-1558)"). Rules below that still lay marks out zone by zone are
   (GSM-193), with no smallest size (MAP-25; OM4b a; Ali, 21/11/2026, Questions hub page "One continuous map (D-1558)"). Someone only heard or
   glimpsed, or last seen, is their dashed disc at the point where the character last saw or heard them (the journal's
   last spot, BG-125), inside a faint dashed 2 m "somewhere here" circle (2 m its radius, as the question's picture
-  measured it: CONFIG.LAST_SEEN_RADIUS_M, a placeholder), with "somewhere here" on hover. The view gives no size for
-  someone out of full sight, so their dashed disc keeps its set size (14 px) for now and does not scale; what size they
-  take is an open question (see "Open discrepancies"). Like everyone, they never shrink, merge or step aside (MAP-25).
+  measured it: CONFIG.LAST_SEEN_RADIUS_M, a placeholder), with "somewhere here" on hover. They are drawn dashed at the
+  size and facing of their body when the character last saw them clearly (journal.lastBody, GSM-105), a capsule as in
+  full sight that scales with the zoom; someone never seen clearly is a dashed disc of a set size (14 px) that does not
+  scale (RX1 a; Ali, 21/11/2026, Questions hub page "One continuous map (D-1558)"). Like everyone, they never shrink, merge or step aside (MAP-25).
   A zone's card names the people whose point lies in the title whose outline holds it (the smallest, MAP-11), found from
   the point and the outlines, never from the title listing them. The map of a place shows the people listed in it or in a place
   inside it (MapPerson.root), on the floor their point is on (MapPerson.height). Every actor has a point (BG-1528);
@@ -201,12 +202,12 @@ continuous map (D-1558)"). Rules below that still lay marks out zone by zone are
   them. How the circle should grow or change is parked (D-424) (Actor.pos, KnownMap.people, MapPerson.at and
   MapPerson.lastAt; Ali, 13/11/2026; RM4 a, RM7 a; Ali, 20/11/2026, Questions hub page "Map rules revision"; Ali,
   21/11/2026, this thread).
-- **MAP-69** Each person's mark (their body's capsule, or a dashed disc out of full sight) shows an icon for what the character can see on them first: what they hold or wear
+- **MAP-69** Each person's mark (their body's capsule, dashed out of full sight, or a dashed disc for someone never seen clearly) shows an icon for what the character can see on them first: what they hold or wear
   that stands out (a weapon, armour, a tool of their trade), else what they are (a person, a beast, a slime). It uses
   only what is seen, never a hidden role, and the set of icons has enough variety that people in one scene differ.
   The icon scales with the body, fitted inside its narrower side (WHO_ICON_SHARE in src/ui/mapPlan.ts, the share the icon
-  took of the old disc), so far out it is too small to make out; when it should be left off is an open question (see
-  "Open discrepancies"; OM4b a; Ali, 21/11/2026, Questions hub page "One continuous map (D-1558)"). Pointing at it shows the name or description they are known by beside it. These marks sit above every tile, so a
+  took of the old disc). It is left off where it would be drawn smaller than CONFIG.MAP_WHO_ICON_MIN_PX (6 px, a
+  placeholder), measured on the icon's drawn size, so far out a body shows without it (OM4b a; RX2 b; Ali, 21/11/2026, Questions hub page "One continuous map (D-1558)"). Pointing at it shows the name or description they are known by beside it. These marks sit above every tile, so a
   neighbouring zone never hides one. In order: what they hold (a weapon or tool), a shield, armour past plain clothes,
   wares they offer; else their race or body (a person, a dog, a wolf, a bear, a boar, a horse, a big cat, a lion, a
   hyena, a lizard, a snake, a spider, a dragon, a slime). A plain person follows what the screen already shows of them
@@ -315,8 +316,5 @@ continuous map (D-1558)"). Rules below that still lay marks out zone by zone are
 
 #### Open discrepancies
 
-- Out of full sight, someone's size: the view gives a body size only for someone seen clearly (SeenActor.body), and
-  neither their race nor their size for someone glimpsed, heard or last seen, so their dashed disc keeps its set 14 px
-  and does not scale (MAP-68; OM4b a; Ali, 21/11/2026, Questions hub page "One continuous map (D-1558)"). A question to the owner.
-- A person's icon too small to read: no rule sets when an icon is left off, so it scales down with no limit (MAP-69;
-  OM4b a; Ali, 21/11/2026, Questions hub page "One continuous map (D-1558)"). A question to the owner.
+
+None.
