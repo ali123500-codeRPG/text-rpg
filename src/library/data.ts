@@ -478,7 +478,7 @@ export function prototypeLibrary(): Library {
     essences: {
       [ES.gel_patience]: { id: ES.gel_patience, name: 'Gel Patience', from: { race: RC.slime }, skills: [{ skill: SK.slam, weight: 2 }, { skill: SK.scent, weight: 1 }], // EN5: slimes have no Endurance; AB19: Scent, not Tremor
         story: 'The slime\'s slow patience comes with you and settles in your gut like a swallowed stone. Who passed by reaches you as a smell before your eyes find them, and your body starts to feel like the weapon.' },
-      // NE2 a: people rows come from the humanoid body type, so elves carry them as humans do (a row for one race can come later, D-229)
+      // NE2 a: people rows come from the humanoid body type, so elves carry them as humans do (a row for one race can come later, IEI-229)
       [ES.gate_habit]: { id: ES.gate_habit, name: 'Gate-Warden\'s Habit', from: { bodyType: BT.humanoid }, skills: [{ skill: SK.block, weight: 2 }, { skill: SK.earshot, weight: 1 }],
         story: 'You catch yourself turning a shoulder toward the door before you decide to, as if you had brought someone else\'s long watches home with you.' },
       [ES.street_instinct]: { id: ES.street_instinct, name: 'Street Instinct', from: { bodyType: BT.humanoid }, skills: [{ skill: SK.dodge, weight: 2 }, { skill: SK.insight, weight: 1 }],

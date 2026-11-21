@@ -36,7 +36,7 @@ import { pieceOn } from './worn';
 import { damageGrowth } from '../library/gearScale';
 
 export { totalHp, healthLevel, isDownLevel, othersHealthWord, SHOWN_LEVELS, shownLevel, partStates, roleOff, woundsMods, hitTable } from './body';
-export { improveMarked, payRolls, growthRoll, skillCap, owedBySkill, burdenOf, burdenParts, groupRollBonus, clearMarkCounts, markEndurance, markStamina, markUse } from './improve';
+export { improveMarked, payRolls, growthRoll, talentChance, skillCap, owedBySkill, burdenOf, burdenParts, groupRollBonus, clearMarkCounts, markEndurance, markStamina, markUse } from './improve';
 export { meltAwayHere } from './perks';
 export { MILESTONES, ALL_STEPS, milestonesUpTo, allStepsUpTo, perksNeeded, PERK_MOVES, ownPerkMoves, hasPerk, boostMult, boostAdd, recoveryMult, ladderPerksIn, trueSkill, milestonePerk, milestoneState, canTake, takePerk, canUndo, undoPerk } from './perks';
 export type { MilestoneState } from './perks';

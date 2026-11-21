@@ -17,6 +17,7 @@ import { groupsOf } from '../library/functionNames';
 import { PK } from '../library/perkIds';
 import { isEcho } from '../library/echo';
 import { pieceOn } from './worn';
+import { talentMult } from './age';
 
 function mark(actor: Actor, skill: string): void {
   const pr = actor.progression;
@@ -148,12 +149,25 @@ export { skillCap } from './skillCap';
 /** SG1 C: one improvement roll. margin = d100 + (cap − raw − burden + bonus) − GROWTH_ROLL_NEEDED; the gain is the margin ÷
  * GROWTH_MARGIN_PER_POINT, rounded up, and nothing at margin 0 or below (D-383). Every state rolls one d100: a
  * tag or a flaw only moves the cap. The room left below the cap is the bonus, so the roll gets harder smoothly near the
- * cap. No hard limit (D-374 TB7): past the cap the room is negative and the roll runs out on its own. A tagged skill carries no burden. `bonus` is what tagged group-mates add (groupRollBonus, D-374 TB5). SG3 a (GROWTH_CAP_IN_ROLL): the room counts from the skill's own cap. */
-export function growthRoll(d: number, s: Pick<SkillEntry, 'raw' | 'state'>, burden: number, bonus = 0): { margin: number; gain: number } {
+ * cap. No hard limit (D-374 TB7): past the cap the room is negative and the roll runs out on its own. A tagged skill carries no burden. `bonus` is what tagged group-mates add (groupRollBonus, D-374 TB5). SG3 a (GROWTH_CAP_IN_ROLL): the room counts from the skill's own cap.
+ * D-224 a: `chance` multiplies how often the roll gains (the d100s that gain, rounded, never past all 100), never how
+ * much: a gaining roll is mapped back onto the plain roll's own gaining range, so the sizes keep their spread. */
+export function growthRoll(d: number, s: Pick<SkillEntry, 'raw' | 'state'>, burden: number, bonus = 0, chance = 1): { margin: number; gain: number } {
   const cap = CONFIG.GROWTH_CAP_IN_ROLL ? skillCap(s) : CONFIG.SKILL_CAP;
-  const margin = d + (cap - s.raw - (s.state === 'tagged' ? 0 : burden) + bonus) - CONFIG.GROWTH_ROLL_NEEDED;
+  const x = cap - s.raw - (s.state === 'tagged' ? 0 : burden) + bonus - CONFIG.GROWTH_ROLL_NEEDED;
+  const gaining = Math.min(100, Math.max(0, 100 - Math.floor(Math.max(0, -x)))); // the d100s with d + x > 0
+  const scaled = Math.min(100, Math.round(gaining * chance));
+  let margin = d + x;
+  if (chance !== 1 && gaining > 0) {
+    const cut = 100 - scaled; // d at or under it fails; a d over it is mapped onto the plain roll's gaining d100s
+    margin = d <= cut ? d - cut : 100 - gaining + Math.ceil(((d - cut) * gaining) / scaled) + x;
+  }
   return { margin, gain: margin > 0 ? Math.ceil(margin / CONFIG.GROWTH_MARGIN_PER_POINT) : 0 };
 }
+
+/** D-224 a: how a character's talent scales the chance an improvement roll gains, 1 ÷ its training-years multiplier
+ * (talentMult: Common ×3 learns at a third of the chance, Prodigy ×0.5 at twice it); no talent (the player, AG27) is 1 */
+export const talentChance = (a: Actor): number => (a.core.talent ? 1 / talentMult(a.core.talent) : 1);
 
 /** improvement rolls a marked skill at `raw` gets: 1, or more from a perk's improveRolls while raw is below its limit
  * (a fixed `below`, or `belowShare` of the owner's highest raw skill) */
@@ -199,7 +213,7 @@ export function payRolls(state: GameState, rng: Rng, rolls: [string, number][]):
       if (n <= 1) left.delete(id); else left.set(id, n - 1);
       const s = a.core.skills[id] ?? { raw: 0, state: 'normal' as const }; // not on the sheet yet: it joins with its first gain
       for (let k = improveRolls(a, s.raw); k > 0; k--) { // Quick Study: two rolls below 15, each with its own gain
-        const { gain } = growthRoll(rng.d100(), s, burden, groupRollBonus(a, id)); // one d100 for every state: a flaw only lowers the cap
+        const { gain } = growthRoll(rng.d100(), s, burden, groupRollBonus(a, id), talentChance(a)); // one d100 for every state: a flaw only lowers the cap
         if (!gain) continue;
         const from = s.raw, trueBefore = trueSkill(a, id);
         s.raw += gain;

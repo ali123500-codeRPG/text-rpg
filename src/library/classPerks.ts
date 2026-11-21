@@ -74,7 +74,7 @@ export const CLASS_PERKS: Record<string, PerkDef> = {
     rules: { kind: 'Always on (quirk)', trigger: 'Anyone outside the owner\'s band sees the owner for the first time.', conditions: ['Once per person, for good.', 'The owner\'s bandmates are never affected.'],
       effect: 'They pay the fear "You set eyes on someone dreaded" (15 morale, scaled by their morale roll), in a fight or out of one. From then on their stance toward the owner reads one step colder than their band\'s (neutral becomes unfriendly, opposed becomes hostile), until play gives them a stance of their own toward the owner. The player holds no stances, so a player who sees the owner only pays the fear.', lasts: 'The colder stance lasts until that person\'s own stance toward the owner is set.' },
   },
-  // the first essence trait (Tavern Brawler), and the first trade augment (D-276); a placeholder until the D-229 content round
+  // the first essence trait (Tavern Brawler), and the first trade augment (D-276); a placeholder until the IEI-229 content round
   [PK.fists_do_the_talking]: {
     id: PK.fists_do_the_talking, name: 'Fists Do the Talking', built: true, augments: [{ from: SK.unarmed_strike, skill: SK.intimidation, kind: 'trade' }],
     story: 'Someone\'s brawls taught your fists to speak for you. Half your Strike now stands behind every threat you make, and your punches give that much up to do it.',
