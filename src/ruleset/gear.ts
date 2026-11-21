@@ -160,7 +160,7 @@ const clutterOf = (state: GameState, zone: Zone, p?: Pt) => (zone.outline?.lengt
  * standing person (COVER_HIDDEN); a smaller body shows less in proportion to its height, with no top; a taller one shows
  * more, but only for its height above what the clutter stands (the zone kind's coverM: trees still hide a giant). */
 export function coverShown(state: GameState, body: Actor | undefined, zone: Zone, from?: Actor): number {
-  const objects = body ? Math.min(1 - objectHidden(state, body, zone, from), openingShown(state, body, zone, from)) : 1;
+  const objects = body ? Math.min(1 - objectHidden(state, body, from), openingShown(state, body, zone, from)) : 1;
   const c = clutterOf(state, zone, body?.zone === zone.id ? body.pos : undefined);
   const hidden = CONFIG.COVER_HIDDEN[c.cover] ?? 0;
   if (hidden <= 0) return objects;
