@@ -46,8 +46,11 @@ export type SPlace = { id: string; name: string; box: Box; outline: string; titl
 export type SText = Box & { text: string; full: string; cut: boolean; lines: string[] };
 /** a zone's name, drawn behind every mark inside its zone (MZ2); `base`: its first line's baseline */
 export type SLabel = SText & { zoneId: string; placement: 'inside'; base: number; room: Box };
-/** zones: the two titles the doorway joins, the far one too when it is not on this map (MAP-85: its deck target) */
-export type SDoor = Box & { id: string; cx: number; cy: number; dir: 'h' | 'v'; kind: 'door' | 'opening'; way?: MapWay; title: string; zones: string[] };
+/** zones: the two titles the doorway joins, the far one too when it is not on this map (MAP-85: its deck target); len: its
+ *  width along its wall and thick: the wall's across it, to scale (MAP-14, RM28 a); badge: its barrier's disc on it (RM31 b:
+ *  a bar's off the door's line toward the side it opens from); the box is the door's and the badge's together */
+export type SDoor = Box & { id: string; cx: number; cy: number; dir: 'h' | 'v'; len: number; thick: number; kind: 'door' | 'opening'; wall: boolean; way?: MapWay;
+  badge?: { cx: number; cy: number; r: number }; title: string; zones: string[] };
 export type SExit = { id: string; zoneId: string; target: string; state: string; x1: number; y1: number; x2: number; y2: number; note: SText; goto?: string; way?: MapWay; title: string };
 export type SStair = Box & { id: string; zoneId: string; cx: number; cy: number; up: boolean; goto?: string; title: string; label: string };
 export type SFurn = Box & { id: string; zoneId: string; kind: string; name: string; cx: number; cy: number };
@@ -89,11 +92,13 @@ export type PlanInput = {
   awayName: (zoneId: string) => string | undefined;
 };
 
-const WAY_R = 8, STAIR_R = 10, FURN_R = 9, ITEM_R = 8, WHO_R = 7, BADGE_PAD = 4;
+const STAIR_R = 10, FURN_R = 9, ITEM_R = 8, WHO_R = 7, BADGE_PAD = 4;
 /** your pin's disc at its full size (RM29 c: it shrinks as people do), and how far its facing point reaches from its centre: other marks keep clear of the point too, people of the disc only (RM26 b) */
 export const PIN_R = 9, PIN_TIP = 15;
 /** gap between a mark and anything near it, a label and its zone's walls (MAP-20) */
 const GAP = 2, PAD = 7; // PAD: 6 px (MAP-20) plus the hair the drawn zone sits inside its walls
+/** a wall's drawn thickness, as styles.css strokes .map-edge.wall: a door is as thick across its wall (MAP-14) */
+const WALL_PX = 3;
 const ARROWS = [22, 40, 60, 84, 112, 144, 180];
 const hit = (a: Box, b: Box, m = 0) => a.x0 < b.x1 + m && b.x0 < a.x1 + m && a.y0 < b.y1 + m && b.y0 < a.y1 + m;
 const disc = (cx: number, cy: number, r: number, ry = r): Box => ({ x0: cx - r, y0: cy - ry, x1: cx + r, y1: cy + ry });
@@ -132,9 +137,6 @@ function cut(text: string, kind: TextKind, max: number, measure: Measure): strin
   return text.slice(0, Math.max(1, n)).trimEnd() + '…';
 }
 
-/** a door's box: a short gap across its wall (12 × 6 px), or a disc when it shows its barrier's mark */
-const doorBox = (cx: number, cy: number, dir: 'h' | 'v', way?: MapWay): Box =>
-  way?.shut ? disc(cx, cy, WAY_R) : dir === 'h' ? { x0: cx - 6, y0: cy - 3, x1: cx + 6, y1: cy + 3 } : { x0: cx - 3, y0: cy - 6, x1: cx + 3, y1: cy + 6 };
 
 /** a text broken at spaces into the fewest lines (up to `most`) no wider than `max` pixels, balanced; null when a word alone
  *  is wider */
@@ -278,7 +280,15 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
     const c = px(l.at), dir: 'h' | 'v' = Math.abs(l.out[1]) >= Math.abs(l.out[0]) ? 'h' : 'v';
     const kind = way ? 'door' as const : 'opening' as const;
     const title = `${l.label}: ${x.z.name} ↔ ${other?.z.name ?? l.label}${way ? ` · ${shutWord(way) || way.kind}` : ''}`;
-    const d: SDoor = { id: `door:${key}`, cx: c.x, cy: c.y, ...doorBox(c.x, c.y, dir, way), dir, kind, ...(way ? { way } : {}), title, zones: [x.z.id, l.to] };
+    // MAP-14 (RM28 a): at its own width along its wall and the wall's thickness across, at every zoom, no smallest size; a
+    // way with no width of its own a doorway's, as a frontier way takes (addFrontier)
+    const len = (l.widthM || CONFIG.DOORWAY_M[0]) * PX_PER_M * k, [hw, hh] = dir === 'h' ? [len / 2, WALL_PX / 2] : [WALL_PX / 2, len / 2];
+    const r = (len * CONFIG.MAP_DOOR_BADGE_SHARE) / 2;
+    // RM31 b: a bar's badge off the line toward the side its bolt is on (l.out leads out of x; screen y runs down)
+    const lean = way?.shut === 'barred' && way.side ? (way.side === x.z.id ? -1 : 1) * CONFIG.MAP_BADGE_LEAN * 2 * r : 0;
+    const badge = way?.shut ? { cx: c.x + l.out[0] * lean, cy: c.y - l.out[1] * lean, r } : undefined;
+    const box = union([{ x0: c.x - hw, y0: c.y - hh, x1: c.x + hw, y1: c.y + hh }, ...(badge ? [disc(badge.cx, badge.cy, r)] : [])]);
+    const d: SDoor = { id: `door:${key}`, cx: c.x, cy: c.y, ...box, dir, len, thick: WALL_PX, kind, wall: !!l.wall, ...(way ? { way } : {}), ...(badge ? { badge } : {}), title, zones: [x.z.id, l.to] };
     drawnDoor.set(key, d); doors.push(d); take(d, 'icon');
     used.add(way?.shut ? 'door' : kind);
     if (way?.shut) used.add(wayKey(way));
@@ -435,7 +445,9 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
     if (!l.at || !l.out) { lost.push(id); continue; }
     const state = [st.away ? `to ${st.away}` : st.other ? 'known' : 'unexplored', shutWord(l.way)].filter(Boolean).join(', ');
     const full = l.label; // RM2 a: the name only; the state is in its title and the zone card
-    const c = px(l.at), foot = st.door ? Math.max(st.door.x1 - st.door.cx, st.door.y1 - st.door.cy) + 2 : 2;
+    // the arrow starts clear of its door's mark on the way out: the door's box reaches that far from its doorway
+    const c = px(l.at), foot = 2 + (!st.door ? 0 : l.out[0] > 0 ? st.door.x1 - c.x : l.out[0] < 0 ? c.x - st.door.x0 : 0) * Math.abs(l.out[0])
+      + (!st.door ? 0 : l.out[1] > 0 ? c.y - st.door.y0 : l.out[1] < 0 ? st.door.y1 - c.y : 0) * Math.abs(l.out[1]);
     const base = Math.atan2(-l.out[1], l.out[0]); // screen y runs down
     const tryAll = (avoidZones: boolean, lines: string[]) => {
       const { w: tw, h } = linesBox(lines, 'note');
@@ -445,9 +457,10 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
         // the note stands NOTE_GAP clear of the arrow's tip, so the arrowhead never runs into its words
         const nb: Box = side ? { x0: dx > 0 ? x2 + NOTE_GAP : x2 - NOTE_GAP - tw, y0: y2 - h / 2, x1: dx > 0 ? x2 + NOTE_GAP + tw : x2 - NOTE_GAP, y1: y2 + h / 2 }
           : { x0: x2 - tw / 2, y0: dy < 0 ? y2 - NOTE_GAP - h : y2 + NOTE_GAP, x1: x2 + tw / 2, y1: dy < 0 ? y2 - NOTE_GAP : y2 + NOTE_GAP + h };
-        const shaft: Box = { x0: Math.min(sx, x2) - 3, y0: Math.min(sy, y2) - 3, x1: Math.max(sx, x2) + 3, y1: Math.max(sy, y2) + 3 };
+        // padded round the shaft but not back past its start, where nothing is drawn (the door's mark is, and is to scale)
+        const bx = sx + dx * 3, by = sy + dy * 3, shaft: Box = { x0: Math.min(bx, x2) - 3, y0: Math.min(by, y2) - 3, x1: Math.max(bx, x2) + 3, y1: Math.max(by, y2) + 3 };
         if (!free(nb) || taken.some((t) => t.box !== st.door && hit(t.box, shaft, GAP)) || (avoidZones && (overZone(nb) || overZone(shaft, st.x.z.id)))) continue;
-        return { x1: sx, y1: sy, x2, y2, nb, lines };
+        return { x1: sx, y1: sy, x2, y2, nb, lines, shaft };
       }
       return null;
     };
@@ -458,7 +471,7 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
       note: { ...got.nb, text: got.lines.join(' '), lines: got.lines, full, cut: got.lines.join(' ') !== full }, ...(st.away || st.other ? { goto: l.to } : {}), ...(l.way ? { way: l.way } : {}), title: `${l.label}: ${state}` };
     exits.push(made);
     take(made.note, 'exit');
-    take({ x0: Math.min(made.x1, made.x2) - 3, y0: Math.min(made.y1, made.y2) - 3, x1: Math.max(made.x1, made.x2) + 3, y1: Math.max(made.y1, made.y2) + 3 }, 'exit');
+    take(got.shaft, 'exit');
     used.add(st.away ? 'exit-away' : 'exit');
   }
 

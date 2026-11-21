@@ -25,12 +25,15 @@ import { LIFE_STAGES } from '../scales';
 
 /** a barrier on an exit as the character knows it: what it is, and whether it stops them (locked or barred only once they
  *  have tried it, or hold its key, or see the bolt on their side; blocked rubble shows to anyone) */
-export type MapWay = { kind: string; shut?: 'locked' | 'barred' | 'blocked'; open?: true; key?: true };
+export type MapWay = { kind: string; shut?: 'locked' | 'barred' | 'blocked'; open?: true; key?: true;
+  /** barred: the title its bolt is on, the side it opens from (Barrier.bar.side, BA4) */
+  side?: string };
 /** at (BG-313): the way's doorway on the floor plan (Opening.at, metres), and out: the unit step from this title out
  *  through it (metres, y up), so the map draws its door and its exit arrow where the doorway really is; opening: its id,
- *  shared by both titles' links; stairs: a way up or down (OP stairs), up when its other end is higher */
+ *  shared by both titles' links; widthM: its width along its wall (Opening.widthM); wall: a wall stands where it is cut; stairs: a way up or down (OP stairs), up
+ *  when its other end is higher */
 export type MapLink = { to: string; label: string; sight: boolean; frontier: boolean; known: boolean; otherPlace?: string; way?: MapWay;
-  at?: Pt; out?: [number, number]; opening?: string; stairs?: true; up?: boolean };
+  at?: Pt; out?: [number, number]; opening?: string; widthM?: number; wall?: true; stairs?: true; up?: boolean };
 /** at: where they stand (SeenActor.body, metres in the map's frame), only for someone in full sight on a zone with a rectangle;
  * lastAt (MAP-68): for someone only heard or glimpsed, or last seen, the point where the character last perceived them
  * (the journal's last spot, BG-125), when it lies in the zone they are listed in; without either, the player can't tell
@@ -206,12 +209,12 @@ export function knownMap(s: GameState): KnownMap {
       const otherPlace = to && to.placeId !== z.placeId ? s.places.find((x) => x.id === to.placeId)?.names.current : undefined;
       const b = barrierOn(s, l), w = b ? barrierView(b, p, z.id) : undefined;
       const way: MapWay | undefined = w && { kind: w.kind, ...(w.blocked ? { shut: 'blocked' as const } : w.barred ? { shut: 'barred' as const } : w.locked ? { shut: 'locked' as const } : {}),
-        ...(w.open ? { open: true as const } : {}), ...(w.key ? { key: true as const } : {}) };
+        ...(w.open ? { open: true as const } : {}), ...(w.key ? { key: true as const } : {}), ...(w.barred && !w.blocked && b?.bar ? { side: b.bar.side } : {}) };
       // stairs: drawn at their end on this title's floor; up when the other end is higher
       const o = l.opening, stairs = o.kind === OP.stairs, hi = Math.max(o.floor, o.to?.floor ?? o.floor);
       const end = stairs && o.to && Math.abs(o.to.floor - z.floor) < Math.abs(o.floor - z.floor) ? o.to : o.at, out = stairs ? undefined : outOf(z, o.at);
       return { to: l.to, label: l.label, sight: seesAcross(s, l), frontier: !!l.frontier && !to, known: known.has(l.to), ...(otherPlace ? { otherPlace } : {}), ...(way ? { way } : {}),
-        at: { x: end.x, y: end.y }, ...(out ? { out } : {}), opening: o.id, ...(stairs ? { stairs: true as const, up: z.floor < hi - 0.01 } : {}) };
+        at: { x: end.x, y: end.y }, ...(out ? { out } : {}), opening: o.id, widthM: o.widthM, ...(o.wall ? { wall: true as const } : {}), ...(stairs ? { stairs: true as const, up: z.floor < hi - 0.01 } : {}) };
     });
     const placed = !!z.outline?.length, box = placed ? boxOf(z.outline) : undefined;
     const you = id === p.zone && p.pos && placed ? { x: p.pos.x, y: p.pos.y } : undefined;

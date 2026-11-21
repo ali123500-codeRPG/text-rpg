@@ -1228,9 +1228,10 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-note.picked text { fill: var(--text); }
 .map-exit.picked line { stroke: var(--scenario-mark); }
 .map-door .gap { fill: var(--bg); stroke: none; }
+.map-door .gap.bare { fill: none; }
 .map-door.group circle { fill: var(--bg); stroke: var(--text); stroke-width: 1.5; }
 .map-door .leaf { fill: var(--muted); stroke: none; }
-.map-door.opening line { stroke: var(--text); stroke-width: 2.5; stroke-linecap: square; }
+.map-door.opening .post { stroke: var(--text); stroke-width: 2.5; stroke-linecap: square; }
 .map-door.group text { fill: var(--text); font: 800 13px var(--font-round); }
 .map-who.plan-who .map-who-label { display: none; }
 .map-who.plan-who:hover .map-who-label { display: inline; opacity: 1; }
