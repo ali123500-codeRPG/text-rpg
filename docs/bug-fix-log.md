@@ -10,6 +10,16 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the spec's bug log, docs/spec/bug-log.md, has one. Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-354
+
+**What was wrong:** Text and icons at the top of the play screen were hard to read over bright backdrops. Over the snow, sky and field paintings, --muted text (stat ranges, the character subtitle) fell to 3.4:1, --faint labels to 2.8:1 and the stat icons (--c1, --c10, --c12) to under 2:1 in the top tenth of the screen, all below WCAG AA (4.5:1 text, 3:1 icons). A screenshot over a dark tavern picture measured fine, so it showed only in some places.
+
+**Root cause:** The veil over the backdrop (`.backdrop::after`, `src/ui/styles.css`) is a gradient that is weakest at the top: `--veil0` 62% down to 10% of the height, rising to `--veil1` 90% at 55%. The stat strip and the character header sit in that top band, and the picture is pinned there (`object-position: center top`), so the sky, the brightest part of most of the paintings, shows through 38% right behind them. PS-486 promises the text the same darkness whatever shows; a translucent veil only keeps that promise if its weakest point holds over the brightest picture, and 62% does not.
+
+**What was done:** `--veil0` is now 80%, the owner's pick after previews of 62%, 80% and 90% over the three brightest scenes. That is the smallest top veil that keeps --faint text at 4.5:1 and the stat icons (--c1, --c6, --c10, --c12) at 3:1 over a pure white picture, so a picture added later cannot break it. PS-486 says so. Checked by compositing all 24 backdrops under the veil at a 2576x923 viewport and measuring the brightest 1% behind each band: the worst top-band ratio is now 5.2:1 for --faint, 6.5:1 for --muted and 3.3:1 for the red stat icon (was 2.8, 3.4 and under 2). The darker category colours (--c11, --c14, --c16 to --c19, --c22) would need about 83 to 89% over pure white; an icon in one of them (src/ui/iconArt.ts) at the top of the screen can still fall below 3:1 over the brightest pictures, which the owner accepted when picking 80% over 90%.
+
+**Fixed by:** #1444
+
 ## BG-353
 
 **What was wrong:** The level bar on the Character page stayed empty however much XP the player had, while the level bar in the Play page's short sheet filled to the same share.

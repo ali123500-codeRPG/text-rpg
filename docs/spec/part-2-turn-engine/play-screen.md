@@ -38,7 +38,9 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
   accent with dark text (--btn-fill, --on-btn) (LK4 b).
 - **PS-28** Borders are faint see-through lines; placeholders, selection, caret and scrollbars take the theme (LK4 b).
 - **PS-486** Backdrops: a public-domain painting behind the play screen, chosen by where the player stands, under a
-  dark veil so the text sits on the same darkness whatever shows (--veil0, --veil1). The pictures and the zone kinds,
+  dark veil so the text sits on the same darkness whatever shows (--veil0, --veil1). The veil's weakest point (--veil0, at
+  the top, where the stat strip sits) is strong enough that over a pure white picture --faint text keeps 4.5:1 and the
+  stat icons 3:1 (BG-354). The pictures and the zone kinds,
   region kinds and night they suit are the backdrop table, `src/library/backdrops.ts`; each picture is one row plus its
   file, credited in `docs/assets.md`. Ali, 20/11/2026, in the RPG game project chat, on the report "Per-place
   backgrounds: scaling and lazy loading": "all is good, you can proceed with this approach, and add icons according to

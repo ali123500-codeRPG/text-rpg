@@ -25,7 +25,7 @@
   --c6: #c7a5e4; --c8: #f19e94; --c9: #72bed3; --c11: #6474b0; --c13: #a2ad67; --c16: #628c71; --c17: #bf6895; --c18: #9865b7; --c19: #7c7bde; --c20: #92adff; --c21: #c18a9a; --c22: #8e6f8a;
   --btn-fill: var(--accent);
   --grad-deco: var(--accent);
-  --tg-k: 36%; --veil0: 62%; --veil1: 90%;
+  --tg-k: 36%; --veil0: 80%; --veil1: 90%; /* PS-486: --veil0 is the weakest point of the veil; over a pure white picture it still keeps --faint text at 4.5:1 and the stat icons at 3:1 */
   --vh: 100vh;
   /* motion (Motion Rules Review M-50): every duration and easing on the play screen comes from these */
   --m-feedback: 120ms; --m-state: 200ms; --m-beat: 220ms; --m-sentence: 180ms; --m-reveal-cap: 1500ms; --m-stagger: 350ms;
