@@ -74,11 +74,18 @@ export type HookKindDef = { id: LibraryRef; name: string; gives: string; roles?:
   /** NF4 b: whoever fills this hook in a roster is a notable foe (an essence always appears when they die) */
   notable?: true };
 /** NR27: one part of a group: its role (or a template), race when fixed (else rolled: NR31), label, and rank steps above the group's */
-export type GroupPart = { role?: LibraryRef; roles?: readonly LibraryRef[]; template?: LibraryRef; race?: LibraryRef; label: string; step?: number; class?: LibraryRef };
-/** NR27 (D-308): a group recipe: a leader and its followers, of one theme */
-export type GroupDef = { id: LibraryRef; name: string; theme: LibraryRef; lead: GroupPart; follow?: GroupPart & { count: [number, number] };
+export type GroupPart = { role?: LibraryRef; roles?: readonly LibraryRef[]; template?: LibraryRef; race?: LibraryRef; label: string; step?: number; class?: LibraryRef;
+  /** NF7 a: whoever this part spawns is a notable foe (a larger group's head, never a small group's leader) */
+  notable?: true };
+/** NR27 (D-308): a group recipe: a leader, its seconds (NF7 a: a larger group's officers) and its followers, of one theme */
+export type GroupDef = { id: LibraryRef; name: string; theme: LibraryRef; lead: GroupPart; seconds?: GroupPart & { count: [number, number] };
+  follow?: GroupPart & { count: [number, number] };
   /** CK6 a: a group that comes as a threat, so it counts toward a place's usual hostile group */
-  threat?: true };
+  threat?: true;
+  /** NF7 a: the smallest settlement a roster rolls it in (SETTLEMENT_SIZES, src/land/roster.ts); roads and the wild name it in their own rows */
+  minSite?: SettlementSize };
+/** NR17: settlement sizes (library rosters; a Site is a hamlet, village or town) */
+export type SettlementSize = 'hamlet' | 'village' | 'town' | 'city' | 'court';
 /** NR18 to NR20: a group that may be met, its weight, and the time of day it is out (both when left out) */
 export type MeetRow = { group: LibraryRef; weight: number; when?: 'day' | 'night' };
 /** NG1: an NPC theme (TH): skills its world adds, its personality lean (NG14), its rank-trait pool (NG12) and its own rank
@@ -227,7 +234,7 @@ export type Library = {
   hookKinds?: Record<string, HookKindDef>; // NR17: HK…, why a real person stands in a place
   groups?: Record<string, GroupDef>; // NR27 (D-308): GP…, cast as one entry
   /** NR17: the hooks each settlement size holds; code rolls them per site, the World builder fills them */
-  rosters?: Record<'hamlet' | 'village' | 'town' | 'city' | 'court', { count: [number, number]; must: LibraryRef[]; pool: LibraryRef[]; theme: LibraryRef }>;
+  rosters?: Record<SettlementSize, { count: [number, number]; must: LibraryRef[]; pool: LibraryRef[]; theme: LibraryRef }>;
   /** NR18: who travels a road, by its danger: how many groups a stretch holds, and from which rows */
   roadPeople?: Record<string, { count: [number, number]; rows: MeetRow[] }>;
   wildPeople?: Record<string, MeetRow[]>; // NR19: by land cover (LC…), who can be met for danger or gain

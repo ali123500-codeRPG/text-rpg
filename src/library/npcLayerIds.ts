@@ -14,4 +14,4 @@ export const PF = { dire: 'PF1' } as const;
 export const HK = { leader: 'HK1', service: 'HK2', face: 'HK3', threat: 'HK4', rival: 'HK5', trader: 'HK6', watch: 'HK7', seat: 'HK8', warden: 'HK9' } as const;
 /** NR27 (D-308): group recipes, cast as one entry and spawned as a leader and followers */
 export const GP = { pedlar: 'GP1', traveller: 'GP2', caravan: 'GP3', pilgrims: 'GP4', bandit_gang: 'GP5', watch_patrol: 'GP6', watch_post: 'GP7',
-  wolf_pack: 'GP8', boar: 'GP9', bear: 'GP10', hunter: 'GP11', dog: 'GP12', slimes: 'GP13' } as const;
+  wolf_pack: 'GP8', boar: 'GP9', bear: 'GP10', hunter: 'GP11', dog: 'GP12', slimes: 'GP13', bandit_company: 'GP14', watch_garrison: 'GP15' } as const;

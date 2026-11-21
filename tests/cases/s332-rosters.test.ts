@@ -41,7 +41,7 @@ describe('332 rosters and groups', () => {
     for (const h of Object.values(lib.hookKinds!)) { for (const r of h.roles ?? []) expect(lib.npcRoles![r], h.id).toBeDefined(); for (const g of h.groups ?? []) expect(lib.groups![g], h.id).toBeDefined(); expect(h.roles?.length || h.groups?.length).toBeTruthy(); }
     for (const g of Object.values(lib.groups!)) {
       expect(lib.themes![g.theme], g.id).toBeDefined();
-      for (const p of [g.lead, ...(g.follow ? [g.follow] : [])]) {
+      for (const p of [g.lead, ...(g.seconds ? [g.seconds] : []), ...(g.follow ? [g.follow] : [])]) {
         for (const r of [p.role, ...(p.roles ?? [])].filter(Boolean)) expect(lib.npcRoles![r!], g.id).toBeDefined();
         if (p.race) expect(lib.races![p.race], g.id).toBeDefined();
         if (p.template) expect(lib.templates[p.template], g.id).toBeDefined();
@@ -98,7 +98,7 @@ describe('332 rosters and groups', () => {
     const road = { ...region.roads[0], danger: 'dangerous' as const };
     const groups = roadRoster(road);
     expect(groups.length).toBeGreaterThanOrEqual(1); expect(groups.length).toBeLessThanOrEqual(3);
-    for (const g of groups) expect([GP.bandit_gang, GP.wolf_pack, GP.bear]).toContain(g.group!.id);
+    for (const g of groups) expect([GP.bandit_gang, GP.wolf_pack, GP.bear, GP.bandit_company]).toContain(g.group!.id);
     expect(roadRoster({ ...road, danger: 'safe' }).length).toBeLessThanOrEqual(1);
     const tower = region.features.find((f) => f.kind === LM.tower)!, quarry = region.features.find((f) => f.kind === LM.quarry)!;
     expect(landmarkRoster(tower).map((e) => e.group!.id)).toEqual([GP.watch_post]);

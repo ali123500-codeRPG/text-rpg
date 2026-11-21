@@ -231,6 +231,8 @@ export type StagePlan = {
     group?: { id: string; rank: string };
     /** code only: a follower spawned from the group entry with this key (not counted against the cast cap) */
     groupOf?: string;
+    /** code only (NF7 a): spawned from a group part marked notable, so it is a notable foe */
+    notable?: true;
     /** NG15: who the Weaver wanted when no template or composition fits; flagged in the GM view so a template can be made */
     templateGap?: string;
     label: string; name: string; appearance: string; pronouns?: 'he' | 'she' | 'they' | 'it';

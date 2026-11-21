@@ -4,7 +4,7 @@
 import type { GameState, LandFeature, LandView, Pt, Region, RoadLine, Site } from '../types';
 import { cellAt, regionAt } from './sight';
 import type { RosterView } from '../types/views';
-import type { GroupDef, GroupPart, MeetRow } from '../types/library';
+import type { GroupDef, GroupPart, HookKindDef, MeetRow, SettlementSize } from '../types/library';
 import { getLibrary } from '../library';
 import { CONFIG } from '../config';
 import { RANKS, type GrandeurKey, type RankKey } from '../scales';
@@ -37,6 +37,13 @@ const rollRow = (rng: Rng, rows: readonly MeetRow[]) => {
   const g = rollWeights(rng, Object.fromEntries(rows.map((r, i) => [String(i), r.weight])));
   return rows[Number(g)];
 };
+/** NR17: settlement sizes, smallest first */
+export const SETTLEMENT_SIZES: readonly SettlementSize[] = ['hamlet', 'village', 'town', 'city', 'court'];
+/** NF7 a: the groups a hook can roll in a settlement of this size (a group's minSite keeps the larger rung out of villages) */
+export function hookGroups(h: HookKindDef, size: SettlementSize): string[] {
+  const groups = getLibrary().groups ?? {}, at = SETTLEMENT_SIZES.indexOf(size);
+  return (h.groups ?? []).filter((id) => { const min = groups[id]?.minSite; return !min || SETTLEMENT_SIZES.indexOf(min) <= at; });
+}
 const groupEntry = (key: string, g: GroupDef, rank: string, hook?: { name: string; gives: string }): RosterEntry =>
   ({ key, who: hook?.name ?? g.name, gives: hook?.gives ?? g.lead.label, group: { id: g.id, rank } });
 
@@ -54,7 +61,8 @@ export function siteRoster(site: Site): RosterEntry[] {
     const h = lib.hookKinds![id], key = `${site.id}.h${i + 1}`;
     const rank = h.rank === 'seat' ? (() => { const r = rollWeights(rng, R.seat[site.size]); return rng.int(1, 100) <= CONFIG.SEAT_STEP_UP_PCT ? rankUp(r) : r; })()
       : rollWeights(rng, h.rank === 'threat' ? R.threat[site.size] : R[h.rank]);
-    if (h.groups?.length) return groupEntry(key, lib.groups![pick(rng, h.groups)], rank, h);
+    const gs = hookGroups(h, site.size);
+    if (gs.length) return groupEntry(key, lib.groups![pick(rng, gs)], rank, h);
     // NR40 a: a seat of the Great is always grand
     const compose: RosterCompose = { race: rollRace(rng), role: pick(rng, h.roles ?? []), theme: h.theme ?? row.theme, rank, ...(h.class ? { class: h.class } : {}), ...(h.rank === 'seat' ? { grandeur: 'grand' as const } : {}) };
     return { key, who: h.name, gives: h.gives, compose, ...(h.goals ? { goals: true as const } : {}), ...(h.notable ? { notable: true as const } : {}) };
@@ -97,20 +105,23 @@ export function rosterEntry(state: GameState, key: string): RosterEntry | undefi
   return r ? regionRoster(r).get(key) : undefined;
 }
 
-/** NR27 (D-308): a group's members as compositions (or templates): the leader `step` ranks up, followers' races rolled (NR31) */
-export function groupMembers(g: GroupDef, rank: string, seed: string, direPct = 0): { label: string; compose?: RosterCompose; template?: string; lead: boolean }[] {
+/** NR27 (D-308): a group's members as compositions (or templates): the leader and its seconds (NF7 a) `step` ranks up,
+ * followers' races rolled (NR31); notable when its part is (NF7 a) */
+export function groupMembers(g: GroupDef, rank: string, seed: string, direPct = 0): { label: string; compose?: RosterCompose; template?: string; lead: boolean; notable?: true }[] {
   const rng = createRng(textSeed(`group:${seed}`)), lib = getLibrary();
   const one = (p: GroupPart, lead: boolean) => {
-    if (p.template) return { label: p.label, template: p.template, lead };
+    const notable = p.notable ? { notable: true as const } : {};
+    if (p.template) return { label: p.label, template: p.template, lead, ...notable };
     const role = p.role ?? pick(rng, p.roles ?? []);
     // NR38 a: a beast may roll the Dire prefix (one rank up and more health, in composeTemplate); its label says so
     const dire = lib.npcRoles?.[role]?.kind === 'beast' && rng.int(1, 100) <= direPct ? PF.dire : undefined;
     const m = p.label.match(/^(a|an|the) (.*)$/), word = dire ? lib.prefixes![dire].name.toLowerCase() : '';
     const label = !dire ? p.label : m ? `${m[1] === 'the' ? 'the' : 'a'} ${word} ${m[2]}` : `${word} ${p.label}`;
-    return { label, lead, compose: { race: p.race ?? rollRace(rng), role, theme: g.theme, rank: rankUp(rank, p.step ?? 0), ...(p.class ? { class: p.class } : {}), ...(dire ? { prefix: dire } : {}) } };
+    return { label, lead, ...notable, compose: { race: p.race ?? rollRace(rng), role, theme: g.theme, rank: rankUp(rank, p.step ?? 0), ...(p.class ? { class: p.class } : {}), ...(dire ? { prefix: dire } : {}) } };
   };
-  const n = g.follow ? rng.int(g.follow.count[0], g.follow.count[1]) : 0;
-  return [one(g.lead, true), ...Array.from({ length: n }, () => one(g.follow!, false))];
+  const count = (p?: { count: [number, number] }) => (p ? rng.int(p.count[0], p.count[1]) : 0);
+  const n2 = count(g.seconds), n = count(g.follow);
+  return [one(g.lead, true), ...Array.from({ length: n2 }, () => one(g.seconds!, false)), ...Array.from({ length: n }, () => one(g.follow!, false))];
 }
 
 /** the roster entries not yet filled, as a planner sees them (is = who code rolled) */

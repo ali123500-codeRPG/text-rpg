@@ -1259,8 +1259,9 @@ export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverV
         themes: Object.values(lib.themes ?? {}).map((t) => ({ id: t.id, name: t.name, roleKinds: [...t.roleKinds] })), // a theme takes roles of these kinds
         ranks: RANKS.keys.map((k) => ({ key: k, name: rankName(k), level: rankRow(k).level })),
         prefixes: Object.values(lib.prefixes ?? {}).map((p) => ({ id: p.id, name: p.name, text: p.text })), // NR37: beasts only
-        // NR27 (D-308): groups cast as one entry: the leader, and how many follow
-        groups: Object.values(lib.groups ?? {}).map((g) => ({ id: g.id, name: g.name, lead: g.lead.label, ...(g.follow ? { follow: `${g.follow.count[0] === g.follow.count[1] ? g.follow.count[0] : g.follow.count.join(' to ')} × ${g.follow.label}` } : {}) })),
+        // NR27 (D-308): groups cast as one entry: the leader, and how many follow (NF7 a: its seconds first)
+        groups: Object.values(lib.groups ?? {}).map((g) => ({ id: g.id, name: g.name, lead: g.lead.label,
+          ...(g.seconds || g.follow ? { follow: [g.seconds, g.follow].filter((p) => !!p).map((p) => `${p.count[0] === p.count[1] ? p.count[0] : p.count.join(' to ')} × ${p.label}`).join(', ') } : {}) })),
       },
       routineSets: Object.values(lib.routineSets).map((s) => ({
         id: s.id, brief: s.brief, tags: structuredClone(s.tags),

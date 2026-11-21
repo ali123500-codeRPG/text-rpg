@@ -954,7 +954,7 @@ export function prototypeLibrary(): Library {
       safe: { count: [0, 1], rows: [meet(GP.pedlar, 3), meet(GP.watch_patrol, 2), meet(GP.traveller, 2)] },
       quiet: { count: [0, 2], rows: [meet(GP.pedlar, 3), meet(GP.traveller, 3), meet(GP.pilgrims, 1)] },
       wild: { count: [1, 2], rows: [meet(GP.caravan, 3), meet(GP.wolf_pack, 2), meet(GP.traveller, 1)] },
-      dangerous: { count: [1, 3], rows: [meet(GP.bandit_gang, 4), meet(GP.wolf_pack, 2), meet(GP.bear, 1)] },
+      dangerous: { count: [1, 3], rows: [meet(GP.bandit_gang, 4), meet(GP.wolf_pack, 2), meet(GP.bear, 1), meet(GP.bandit_company, 1)] }, // NF7 a: a company (placeholder weight)
     },
     // NR19 a: the wild by land cover (flocks, herds and deer are scenery text); monsters only at their own places
     wildPeople: {
