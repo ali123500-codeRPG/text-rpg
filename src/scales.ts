@@ -154,6 +154,10 @@ export const WAIT_SOMEONE = 'someone';
 /** body-part states, best first; ruleset/body.ts poolState names them (H12: healing reach is a key here, so perks shift it by steps) */
 export const PART_STATES = scale([['healthy', 'Healthy'], ['damaged', 'Damaged'], ['crippled', 'Crippled'], ['destroyed', 'Destroyed']]);
 export type PartStateKey = (typeof PART_STATES.keys)[number];
+/** RP12 (D-89): an item pool's states, best first; ruleset/body.ts itemState names them. Crippled and Broken both do nothing;
+ * a field repair lifts Crippled, only a forge mends Broken; a Destroyed item is lost */
+export const ITEM_STATES = scale([['healthy', 'Healthy'], ['damaged', 'Damaged'], ['crippled', 'Crippled'], ['broken', 'Broken'], ['destroyed', 'Destroyed']]);
+export type ItemStateKey = (typeof ITEM_STATES.keys)[number];
 /** LN2: how long a turn's narration is, shortest first; code picks one per turn (narrationBand), never the Narrator */
 export const NARRATION_BANDS = scale([['quick', 'Quick'], ['normal', 'Normal'], ['big', 'Big']]);
 export type NarrationBand = (typeof NARRATION_BANDS.keys)[number];

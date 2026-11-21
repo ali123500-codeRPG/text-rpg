@@ -8,7 +8,7 @@ import { figureKey, figureUpright } from '../library/figureModels';
 import { BT, RC } from '../library/raceIds';
 import { figure3d } from './figure3d';
 import { defaultMode, effectiveSkill, FLAW_MARK, healthLevel, modeSkill, TAG_MARK, totalHp, trueSkill, usedOffSheet } from '../ruleset';
-import { partName, poolState, SHOWN_LEVELS, shownLevel, type FigPart } from '../ruleset/body';
+import { itemState, partName, poolState, SHOWN_LEVELS, shownLevel, type FigPart } from '../ruleset/body';
 import { augmentsOf, defenseItem, isHeld, tradesOut, usableDefense } from '../ruleset/gear';
 import { hollowedMult, type SkillPart } from '../ruleset/perks';
 import { charLevel, freeLevelsOwed, keepCapstone, levelTarget, swapCapstone, xpFill, xpToNext } from '../engine/xp';
@@ -27,7 +27,7 @@ import { fatigueMods } from '../ruleset/fatigue';
 import { skillCap } from '../ruleset/skillCap';
 import { markIcon, skillName, SKILL_SUB, TREE_VIEW } from './creation';
 import { DEFENSE_SKILL } from '../library/skillIds';
-import { CLASS_TIERS, HEALTH_LEVELS, MORALE_LEVELS, PART_STATES, type MoraleLevel } from '../scales';
+import { CLASS_TIERS, HEALTH_LEVELS, ITEM_STATES, MORALE_LEVELS, PART_STATES, type MoraleLevel } from '../scales';
 import { isBrokenLevel, isCoweringLevel, maxMorale, moraleLevel, moraleLostPct, moralePenalty } from '../ruleset/morale';
 import { coins, coinWords } from '../engine/trade';
 import { engagementEndS } from '../ruleset/actionTime';
@@ -522,7 +522,7 @@ export function pressureChips(s: GameState, p: Actor): HTMLElement {
 export function gearNote(s: GameState, i: Actor['core']['inventory'][number]): { text: string; cls: string } | null {
   const d = safe(() => itemDef(s, i.itemId));
   if (!d) return null;
-  if (d.shield) { const st = poolState(i.pools?.shield ?? 100); return { text: PART_STATES.name(st), cls: `ps-${st}` }; }
+  if (d.shield) { const st = itemState(i.pools?.shield ?? 100); return { text: ITEM_STATES.name(st), cls: `ps-${st}` }; }
   const pools = Object.entries(d.armor?.pools ?? {});
   if (!pools.length) return null;
   const bits = pools.map(([part, pts]) => {

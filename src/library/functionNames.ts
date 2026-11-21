@@ -14,14 +14,15 @@ export const FUNCTION_GROUP: Record<SkillFunction, SkillGroup> = {
   [FN.smell]: GR.notice,
   [FN.healing]: GR.medicine, // NR33: its own group (Medicine)
   [FN.tactics]: GR.tactics, // TC10, TC14: the Tactics group
+  [FN.handiwork]: GR.survival, // D-89: the Survival group
 };
 export const FUNCTION_NAMES: Record<SkillFunction, string> = {
   [FN.arms]: 'Arms', [FN.unarmed]: 'Unarmed', [FN.ranged]: 'Ranged', [FN.defense]: 'Defense', [FN.armor]: 'Armor', [FN.health]: 'Health',
   [FN.sight]: 'Sight', [FN.hearing]: 'Hearing', [FN.stealth]: 'Stealth', [FN.influence]: 'Influence', [FN.initiative]: 'Reaction', [FN.morale]: 'Morale',
-  [FN.engagement_aura]: 'Engagement aura', [FN.projected_aura]: 'Projected aura', [FN.lockpicking]: 'Lockpicking', [FN.filching]: 'Filching', [FN.stamina]: 'Stamina', [FN.smell]: 'Smell', [FN.healing]: 'Healing', [FN.tactics]: 'Tactics',
+  [FN.engagement_aura]: 'Engagement aura', [FN.projected_aura]: 'Projected aura', [FN.lockpicking]: 'Lockpicking', [FN.filching]: 'Filching', [FN.stamina]: 'Stamina', [FN.smell]: 'Smell', [FN.healing]: 'Healing', [FN.tactics]: 'Tactics', [FN.handiwork]: 'Handiwork',
 };
 export const GROUP_NAMES: Record<SkillGroup, string> = {
-  [GR.melee]: 'Melee', [GR.ranged]: 'Ranged', [GR.defense]: 'Defense', [GR.health]: 'Health', [GR.notice]: 'Notice', [GR.stealth]: 'Stealth', [GR.influence]: 'Influence', [GR.speed]: 'Speed', [GR.will]: 'Will', [GR.aura]: 'Aura', [GR.sleight]: 'Sleight', [GR.stamina]: 'Stamina', [GR.medicine]: 'Medicine', [GR.tactics]: 'Tactics',
+  [GR.melee]: 'Melee', [GR.ranged]: 'Ranged', [GR.defense]: 'Defense', [GR.health]: 'Health', [GR.notice]: 'Notice', [GR.stealth]: 'Stealth', [GR.influence]: 'Influence', [GR.speed]: 'Speed', [GR.will]: 'Will', [GR.aura]: 'Aura', [GR.sleight]: 'Sleight', [GR.stamina]: 'Stamina', [GR.medicine]: 'Medicine', [GR.tactics]: 'Tactics', [GR.survival]: 'Survival',
 };
 export const RATING_NAMES: Record<string, string> = {
   [RT.melee_strength]: 'Melee strength', [RT.ranged_strength]: 'Ranged strength', [RT.toughness]: 'Toughness', [RT.agility]: 'Agility', [RT.presence]: 'Presence', [RT.senses]: 'Senses',
@@ -31,6 +32,6 @@ export const functionName = (id: string): string => (FUNCTION_NAMES as Record<st
 export const groupName = (id: string): string => (GROUP_NAMES as Record<string, string>)[id] ?? id;
 /** functions that are rolled as a function: the roll counts every skill with it at full value and the best one
  * rolls (fnRoller, RollRequest.fn), so a sight or hearing roll never uses the stand-in share */
-export const FUNCTION_ROLLS: SkillFunction[] = [FN.sight, FN.hearing, FN.smell, FN.lockpicking, FN.filching];
+export const FUNCTION_ROLLS: SkillFunction[] = [FN.sight, FN.hearing, FN.smell, FN.lockpicking, FN.filching, FN.handiwork];
 /** the broad groups a skill belongs to: from its functions, plus any it joins directly (SkillDef.groups) */
 export const groupsOf = (s?: SkillDef): SkillGroup[] => [...new Set([...(s?.functions ?? []).map((f) => FUNCTION_GROUP[f]), ...(s?.groups ?? [])])];

@@ -12,7 +12,7 @@ import { isActive, wary } from './relations';
 import { PK } from '../library/perkIds';
 import { IT } from '../library/itemIds';
 import { tally } from './xp';
-import { itemValue as benefitValue } from '../ruleset/value';
+import { instanceValue, itemValue as benefitValue } from '../ruleset/value';
 import { hearsClearly } from '../perception';
 import { canSpeak, gripReachM } from '../ruleset/body';
 import { withinGrip } from './position';
@@ -20,6 +20,7 @@ import { listWords } from '../words';
 import { SV } from '../library/serviceIds';
 import { minutesUntil, now } from '../time';
 import { bedToBook } from './sleep';
+import { FU } from '../library/tableIds';
 
 const GOODS = 'goods:';
 const SERVICE = 'service:';
@@ -59,9 +60,15 @@ export function warePrice(state: GameState, buyer: Actor, seller: Actor, wareId:
     if (seller.wares!.items.includes(id)) base = itemValue(state, id);
   } else if (wareId.startsWith(SERVICE)) {
     const id = wareId.slice(SERVICE.length);
-    if (seller.wares!.services.includes(id)) base = getLibrary().services?.[id]?.price;
+    const sv = getLibrary().services?.[id];
+    if (seller.wares!.services.includes(id) && !sv?.repairs) base = sv?.price; // a repair is priced by the job (repairPrice)
   }
   if (base === undefined) return null;
+  return priceFor(buyer, seller, base);
+}
+/** PY4/PY10: what buyer pays seller for something worth `base`: × TRADE_MARKUP × haggle × Hard Bargain × (1 − pricePct %),
+ * rounded up, at least 1. Wares and a smith's repair (D-89 RP6 a) both price through this one equation. */
+export function priceFor(buyer: Actor, seller: Actor, base: number): number {
   const mult = CONFIG.TRADE_MARKUP * (buyer.haggle?.[seller.id] ?? 1) * (hasPerk(buyer, PK.haggler) ? CONFIG.HARD_BARGAIN_BUY : 1)
     * (1 - (bestReward(buyer, 'pricePct')?.value ?? 0) / 100);
   return Math.max(1, Math.ceil(base * mult - 1e-9));
@@ -75,7 +82,7 @@ export function wareList(state: GameState, buyer: Actor, seller: Actor): { id: s
     const s = getLibrary().services?.[id];
     return s ? [{ id: SERVICE + id, name: s.name }] : [];
   });
-  return [...goods, ...services].map((w) => ({ ...w, price: coinWords(warePrice(state, buyer, seller, w.id)!) }));
+  return [...goods, ...services].map((w) => { const p = warePrice(state, buyer, seller, w.id); return { ...w, price: p === null ? 'by the job' : coinWords(p) }; });
 }
 
 /** PY6: a barter contest against a seller: a win lowers the buyer's prices there for the rest of the day (LG13 b), a loss by
@@ -142,6 +149,9 @@ export function buy(state: GameState, buyer: Actor, seller: Actor | undefined, w
   // MQ17 b: the player's bed for the night books a free bed in the seller's place until morning; none free, no sale
   const bed = wareId === SERVICE + SV.bed && buyer === state.player && to === buyer ? bedToBook(state, seller.placeId) ?? null : undefined;
   if (bed === null) return { ok: false, reason: 'no_free_bed' };
+  // RP17 b, RP22 a: use of the forge books the seller's forge for one repair job
+  const forge = wareId === SERVICE + SV.forge ? state.furniture.find((f) => f.kind === FU.forge && f.placeId === seller.placeId) : undefined;
+  if (wareId === SERVICE + SV.forge && !forge) return { ok: false, reason: 'not_offered' };
   const price = each * qty;
   if (coins(buyer) < price) return { ok: false, reason: 'not_enough_coin' };
   if (dry) return { ok: true, price, qty, to }; // AT45: would it go through (before a trade's time is spent)
@@ -152,6 +162,7 @@ export function buy(state: GameState, buyer: Actor, seller: Actor | undefined, w
     const heals = getLibrary().services?.[id]?.heals;
     if (heals && !(to.paid ??= []).includes(heals)) to.paid.push(heals);
     if (bed) bed.booked = { by: to.id, until: now(state) + minutesUntil(now(state), 'morning') };
+    if (forge) forge.booked = { by: to.id };
     return { ok: true, price, qty, service: id, to };
   }
   const itemId = wareId!.slice(GOODS.length);
@@ -183,10 +194,11 @@ const buysKind = (state: GameState, seller: Actor, itemId: string): boolean =>
   isSeller(seller) && seller.wares!.items.some((w) => itemDef(state, w).kind === itemDef(state, itemId).kind);
 
 /** SL1/SL5/SL8/SL10: what seller pays the owner for one of an item, or null when it won't buy it.
- * value × SELL_SHARE, × the haggle turned round (a won haggle pays more), × Hard Bargain; rounded down, at least 1. */
-export function sellPrice(state: GameState, owner: Actor, seller: Actor, itemId: string): number | null {
-  if (itemId === IT.coin || !buysKind(state, seller, itemId)) return null;
-  const value = itemValue(state, itemId);
+ * value × SELL_SHARE, × the haggle turned round (a won haggle pays more), × Hard Bargain; rounded down, at least 1.
+ * RP10 a: worn gear is worth less by the pool points it has lost (instanceValue). */
+export function sellPrice(state: GameState, owner: Actor, seller: Actor, inst: ItemInstance): number | null {
+  if (inst.itemId === IT.coin || !buysKind(state, seller, inst.itemId)) return null;
+  const value = instanceValue(state, inst);
   if (value <= 0) return null; // SL8: worthless items (improvised weapons) can't be sold
   return buyingPrice(owner, seller, value);
 }
@@ -204,7 +216,7 @@ export function buyingPrice(owner: Actor, buyer: Actor, value: number): number {
 export function offerList(state: GameState, owner: Actor, seller: Actor): { id: string; name: string; price: string }[] {
   if (!isSeller(seller)) return [];
   return owner.core.inventory.flatMap((i) => {
-    const p = isWorn(i) || i.soulbound ? null : sellPrice(state, owner, seller, i.itemId); // HF18: soulbound gear can't be sold
+    const p = isWorn(i) || i.soulbound ? null : sellPrice(state, owner, seller, i); // HF18: soulbound gear can't be sold
     return p === null ? [] : [{ id: i.id, name: itemDef(state, i.itemId).name, price: coinWords(p) }];
   });
 }
@@ -220,7 +232,7 @@ export function sell(state: GameState, owner: Actor, seller: Actor | undefined, 
   if (!orderReaches(state, owner, seller)) return { ok: false, reason: canSpeak(state, owner) ? 'out_of_earshot' : 'out_of_reach' };
   if (wary(state, seller, owner)) return { ok: false, reason: 'refuses' };
   const inst = owner.core.inventory.find((i) => i.id === instId);
-  const each = inst ? sellPrice(state, owner, seller, inst.itemId) : null;
+  const each = inst ? sellPrice(state, owner, seller, inst) : null;
   if (!inst || inst.soulbound || each === null) return { ok: false, reason: 'not_bought' }; // HF18
   if (isWorn(inst)) return { ok: false, reason: 'worn' }; // SL7: worn armor and accessories come off first; held gear is stowed and sold
   if (inst.stolenFrom === seller.id) return { ok: false, reason: 'stolen' }; // FL6: its owner knows it and won't buy it back

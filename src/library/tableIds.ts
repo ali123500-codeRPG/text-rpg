@@ -34,6 +34,7 @@ export const DU = {
   rally: 'DU43', // TC39 a Rally (DU42 is held by another thread)
   play_dead: 'DU44', // TC44 a Play Dead
   break_through: 'DU45', // BW13 a: breaking through a wall or a barrier
+  repair: 'DU46', // D-89: mending gear (its seconds: src/engine/repair.ts repairSeconds)
 } as const;
 /** CO17 prebuilt layouts: a building's zones and exits, which the Weaver picks by id; several per building type */
 export const LY = { tavern: 'LY1', cottage: 'LY2', shop: 'LY3', smithy: 'LY4', gatehouse: 'LY5' } as const;

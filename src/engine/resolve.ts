@@ -68,6 +68,7 @@ import {
 } from '../ruleset/gear';
 import {
   canHeal,
+  canSpeak,
   freeGrips,
   healShare,
   levelMaxPct,
@@ -444,8 +445,13 @@ import {
 } from './filch';
 import {
   buy,
+  coins,
+  orderReaches,
+  payCoin,
   sell,
 } from './trade';
+import { applyRepair, repairJob, repairPrice, repairSelf, repairState } from './repair';
+import { createRng } from '../rng';
 import {
   applyAgentEffects,
   learnNames,
@@ -735,6 +741,10 @@ export function orderCost(state: GameState, a: Actor, o: Order): { row: Duration
       return of(heal === HL.bandage ? DU.bandage : heal === HL.draught ? DU.drink : undefined);
     }
     case 'heal': return of(DU.bandage); // NR34: hands-on, as long as binding a wound
+    case 'repair': { // D-89 RP15 b: its seconds come from the job
+      const j = repairJob(state, a, o.item, o.target ? actorById(state, o.target) : undefined), row = actionRow(DU.repair);
+      return 'why' in j || !row ? undefined : { row, seconds: j.seconds * f };
+    }
     case 'break': { // BF31: a container; BW13 a: a wall or a barrier, for as long as the breaker still needs (a spell at most out of a fight)
       const job = findContainer(state, o.target) ? undefined : breakJob(state, a, o.target);
       const row = job && job !== 'open' ? actionRow(DU.break_through) : undefined;
@@ -1998,6 +2008,36 @@ function doHeal(ctx: Ctx, a: Actor, o: Order): void {
   emit(ctx, ev);
 }
 
+/** D-89 (src/engine/repair.ts): mending an item's pools, done when the job's long action (DU46) is. From a smith (target):
+ * paid by the job, never fails (RP16 a). By oneself: Handiwork at a forge one may use (RP17 b) or in the field (RP14 a).
+ * RP24: in a fight too, as picking a lock; broken off, its share done takes effect (shareDone). */
+function doRepair(ctx: Ctx, a: Actor, o: Order): void {
+  const { state, rng } = ctx;
+  const wasted = (reason: string) => emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, ...(o.item ? { itemId: o.item } : {}), reason }), o));
+  const job = repairJob(state, a, o.item, o.target ? actorById(state, o.target) : undefined);
+  if ('why' in job) return wasted(job.why);
+  const { def, inst, smith } = job, from = repairState(def, inst);
+  const extra: Partial<GameEvent> = {};
+  let whole = true;
+  if (smith) {
+    if (!orderReaches(state, a, smith)) return wasted(canSpeak(state, a) ? 'out_of_earshot' : 'out_of_reach');
+    if (wary(state, smith, a)) return wasted('refuses');
+    const price = repairPrice(a, smith, def, inst);
+    if (coins(a) < price) return wasted('not_enough_coin');
+    payCoin(a, smith, price);
+    if (a === state.player) tally(state, 'coin_spent', { add: price }); // N5
+    applyRepair(def, inst, 'success', true);
+    Object.assign(extra, { target: smith.id, price });
+  } else {
+    const t = repairSelf(state, a, job, rng);
+    whole = t.whole;
+    extra.tier = t.tier;
+  }
+  const ev = bark(mk(ctx, a, 'repair', { itemId: inst.itemId, ...extra }), o);
+  ev.effects.push({ kind: 'repaired', actorId: a.id, data: { itemId: inst.id, from, to: whole ? repairState(def, inst) : 'destroyed', ...(smith ? { by: smith.id } : {}) } });
+  emit(ctx, ev);
+}
+
 /** SE23 (the rule lives in the ruleset) */
 export { gradeMod };
 
@@ -2181,7 +2221,7 @@ function doWayOp(ctx: Ctx, a: Actor, w: NonNullable<Order['way']>, mainToo = fal
   return true;
 }
 
-/** BA2: picking the lock on the way to o.target: a Lockpicking function roll (the Lockpicking skill, Filching standing in at 0.3; lockpicks help) at the lock's
+/** BA2: picking the lock on the way to o.target: a Lockpicking function roll (Filching applied to a lock; lockpicks help) at the lock's
  * grade. Success opens it once the picking time is done: out of a fight that time passes at once; in a fight each turn at
  * it adds a fight turn of work (busy until it opens). Near Miss: not yet, keep going. Failure: beyond the picker until its
  * skill or tools get better. Critical Failure: the pick snaps (the lockpicks used are lost). Quiet: a whisper. */
@@ -2199,7 +2239,7 @@ function doPick(ctx: Ctx, a: Actor, o: Order): void {
   const way = (did: WayDid, extra: Partial<GameEvent> = {}) => bark(mk(ctx, a, 'pick', { target: to, way: { to, ...(c ? {} : { barrier: b.id }), did }, ...(c ? { itemId: to } : {}), ...extra }), o);
   const skill = fnRoller(state, a, FN.lockpicking);
   const tool = pickTool(state, a, skill).itemId ?? undefined;
-  const eff = effectiveSkill(state, a, FN.lockpicking, { itemId: tool, fullValue: rollFnSkills(a, FN.lockpicking) }).value; // FL1: Filching stands in at its share
+  const eff = effectiveSkill(state, a, FN.lockpicking, { itemId: tool, fullValue: rollFnSkills(a, FN.lockpicking) }).value; // Filching rolls the lock (D-89 RP20)
   if (b.beyond?.[a.id] !== undefined && eff <= b.beyond[a.id]) return emit(ctx, way('beyond'));
   if (!(b.graded ??= []).includes(a.id)) b.graded.push(a.id); // OD12: trying it shows its grade
   const target = CONFIG.DIFFICULTY[b.grade] ?? CONFIG.DIFFICULTY.moderate;
@@ -2252,7 +2292,7 @@ function doOpen(ctx: Ctx, a: Actor, o: Order): void {
 
 /** BF31: breaking a locked container open, within grip reach: the turn's action, loud (heard like a shout). A soft one (a
  * sack, a pack) is cut open by an edged weapon in hand, with no roll. Otherwise a roll of the melee weapon in hand (bare
- * hands: Improvised) at the lock's grade, the same modifier Lockpicking uses (OD10 a: SE23's grade modifier); Success or better opens it, and its lock is
+ * hands: Improvised) at the lock's grade, the same modifier picking a lock uses (OD10 a: SE23's grade modifier); Success or better opens it, and its lock is
  * broken for good. BK1-BK4: the same roll is checked against everything inside (src/engine/breakage.ts), opened or not, and
  * a rolled open counts toward the broke_open chain. BK6: one someone guards is open theft (theftSeen). */
 function doBreak(ctx: Ctx, a: Actor, o: Order): void {
@@ -2489,6 +2529,8 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
     }
     case 'heal':
       return doHeal(ctx, a, o);
+    case 'repair':
+      return doRepair(ctx, a, o);
     case 'use_item':
       if (doHealItem(ctx, a, o)) return;
       // BG-171: using an item one does not carry (or none named) comes to nothing, and says why
@@ -2724,6 +2766,12 @@ function setAside(state: GameState, a: Actor): void {
 }
 /** AT27/AT28: a long action broken off whose output is a share takes effect by the share done: a rest heals that share */
 function shareDone(state: GameState, a: Actor, b: NonNullable<Actor['busy']>): void {
+  if (b.row === DU.repair && b.done > 0 && !b.order.target) { // RP24: one's own repair broken off: its share done (a smith's is paid only when done)
+    const job = repairJob(state, a, b.order.item), rng = createRng(state.rngState);
+    if (!('why' in job)) repairSelf(state, a, job, rng, Math.min(1, b.done / b.need));
+    state.rngState = rng.state;
+    return;
+  }
   if (b.row !== DU.rest || b.done <= 0) return;
   applyHealing(state, a, restRow(state, a), { share: Math.min(1, b.done / b.need) });
   state.clocks[restClock(a.id)] = now(state);

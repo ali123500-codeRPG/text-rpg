@@ -79,7 +79,7 @@ const WEIGHT = (): ItemEffect[] => [SK.dodge, SK.parry].map((skill) => ({ kind: 
 const ACC = (skill: string): ItemEffect => ({ kind: 'skill', skill, value: 0, active: 'worn', scope: 'any', byLevel: true });
 /** AX4 c: a charmed ring's skill weights by tree (placeholders): fighting and senses most, other common trees next, the rest 1 */
 const RING_WEIGHTS: Record<string, number> = { [TR.melee]: 3, [TR.ranged]: 3, [TR.unarmed]: 3, [TR.defense]: 3, [TR.perception]: 3,
-  [TR.fortitude]: 2, [TR.armor]: 2, [TR.stealth]: 2, [TR.speech]: 2, [TR.trickery]: 2, [TR.tools]: 2 };
+  [TR.fortitude]: 2, [TR.armor]: 2, [TR.stealth]: 2, [TR.speech]: 2, [TR.trickery]: 2 };
 
 export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
   { id: IT.dagger, edge: true, level: 'common', gearClass: GC.melee_light, gearType: GT.knife, tags: ['starter'], kind: 'weapon', name: 'dagger', look: 'a plain dagger', bulk: 1, grips: 1, effects: [KIT()],
@@ -240,7 +240,7 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
   { id: IT.lucky_charm, kind: 'misc', fragility: 'delicate', name: 'lucky charm', look: 'a small knotted charm', bulk: 0,
     effects: [{ kind: 'rollMod', roll: 'event', value: 5, active: 'carried', scope: 'any' }] },
   { id: IT.lockpicks, kind: 'tool', name: 'lockpicks', look: 'a roll of lockpicks', bulk: 0, grips: 1,
-    effects: [{ kind: 'skill', skill: SK.lockpicking, value: 25, active: 'inUse', scope: 'withItem' }] },
+    effects: [{ kind: 'skill', skill: SK.filching, value: 25, active: 'inUse', scope: 'withItem' }] }, // only while picking a lock with them
   // BW22 a: breaking tools. In use (held in both grips) each adds CONFIG.BREAK_TOOL_KG to the breaker's force (src/ruleset/breaking.ts)
   { id: IT.sledgehammer, kind: 'tool', name: 'sledgehammer', look: 'a long-hafted iron sledgehammer', bulk: 2, grips: 2, tags: [BREAK_TOOL_TAG] },
   { id: IT.pick, kind: 'tool', name: 'pick', look: 'a heavy iron pick on an ash haft', bulk: 2, grips: 2, tags: [BREAK_TOOL_TAG] },

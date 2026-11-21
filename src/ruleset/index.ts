@@ -9,11 +9,11 @@ import type {
   PartState, Rng, RollRequest, RollResult, Ruleset, EventRollResult, Tier, TierRoll, TierShift,
 } from '../types';
 import { CONFIG } from '../config';
-import { TIERS } from '../scales';
+import { TIERS, type ItemStateKey } from '../scales';
 import { actorBody, getLibrary, itemDef, perkName } from '../library';
 import { actorById, foe, isActive, hostile, zoneById } from '../engine/relations';
 import { seenSizeFactor, sightDistM, withinM } from '../engine/position';
-import { adjacent, averageRoll, healthLevel, hitTable, partPct, pctMod, poolState, totalHp, woundsMods, woundsOnRoll } from './body';
+import { adjacent, averageRoll, healthLevel, hitTable, itemState, partPct, pctMod, poolState, totalHp, woundsMods, woundsOnRoll } from './body';
 import { markUse } from './improve';
 import { boostAdd, boostMult, boostRollMods, hasPerk, trueSkill } from './perks';
 import { baneMods, defeatsMods } from './bane';
@@ -526,7 +526,7 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
   if (!('outcome' in result) || !result.location || result.damage <= 0) return [];
   const T = mustActor(state, result.targetId);
   const out: Effect[] = [];
-  const changed = (part: string, from: PartState, to: PartState, extra: Record<string, unknown> = {}) => {
+  const changed = (part: string, from: PartState | ItemStateKey, to: PartState | ItemStateKey, extra: Record<string, unknown> = {}) => {
     if (from !== to) out.push({ kind: 'part_state_changed', actorId: T.id, data: { part, from, to, ...extra } });
   };
   const general = result.generalShare ?? 0; // A7 Open-Hand Guard
@@ -539,8 +539,8 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
     const rim = hasPerk(T, PK.iron_rim) ? CONFIG.IRON_RIM_MULT : 1; // All-50 Iron Rim (Block's part)
     const after = before - ((dmg * (result.shieldMult ?? 1) * rim) / itemDef(state, inst.itemId).shield!.pool) * 100; // A3 Shield Breaker
     inst.pools = { ...inst.pools, shield: after };
-    changed('shield', poolState(before), poolState(after), { itemId: inst.id });
-    if (poolState(after) === 'destroyed') T.core.inventory = T.core.inventory.filter((i) => i !== inst); // a Destroyed shield is lost
+    changed('shield', itemState(before), itemState(after), { itemId: inst.id });
+    if (itemState(after) === 'destroyed') T.core.inventory = T.core.inventory.filter((i) => i !== inst); // a Destroyed shield is lost
     return out;
   }
 
@@ -628,7 +628,7 @@ export function fallDamage(metres: number, step = 0): number {
   return at <= 0 ? 0 : bands[Math.min(at, bands.length) - 1].damage;
 }
 
-/** BA2: seconds to pick a lock at effective Lockpicking `skill`: the Action times pick_lock row with its speed function */
+/** BA2: seconds to pick a lock at effective Filching `skill`: the Action times pick_lock row with its speed function */
 export const pickSeconds = (skill: number, factor?: number): number => actionSeconds(actionRow(DU.pick_lock)!, skill, factor);
 /** SD7: how many bands a landing of tier t moves the fall (negative: lighter). Each tier past Critical Success lightens it
  * more; a tier past Critical Failure reads Critical Failure's row */

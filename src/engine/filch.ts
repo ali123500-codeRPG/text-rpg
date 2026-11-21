@@ -1,5 +1,5 @@
 // FL1–FL7, TN1, TN2, TN4, CT4, CT5: filching, taking what someone carries or owns without being caught.
-// One Filching roll F per try (a Filching function roll: Lockpicking stands in at 0.3). Everyone outside the filcher's band
+// One Filching roll F per try (a Filching function roll). Everyone outside the filcher's band
 // who sees the act (CONFIG.FILCH_VISIBILITY, the sight rules: metres, walls, dark) rolls Sight against F, with their
 // attention (CONFIG.FILCH_ATTENTION, from what they are doing) and the item's size (CONFIG.FILCH_SIZE, by bulk) on their
 // side. The act then makes a Hushed sound, one level louder per tier F fell below Near Miss (TN1); everyone it reaches who

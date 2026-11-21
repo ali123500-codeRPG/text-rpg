@@ -67,7 +67,7 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
 - **SHEET-46** **Speaking races**: each race is tagged if it can speak (Human and Elf yes, Slime and Dragon no), and a
   condition can name a race tag (RaceDef.tags 'speaks'; Ali, 08/11/2026, SR1).
 - **SHEET-47** Intimidation is open to anyone with the Speech tree; persuasion and barter must have a speaking race.
-- **SHEET-48** Banked: Tools and lockpicking, and nested groups of conditions (Tools, lockpicking: TA7; nested groups of
+- **SHEET-48** Banked: nested groups of conditions (the Tools tree and Lockpicking are gone, D-89 RP2: TA7 moot; nested groups of
   conditions: TA11; D-113).
 
 #### Classes
@@ -416,14 +416,17 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
 
 - **SHEET-270** **Role**: which skills the NPC is built around, in three bands (library table npcRoles, IDs RO…; NG1,
   NG2).
-- **SHEET-271** Roles today: soldier, skirmisher, brute, shooter, sneak, watcher, talker, worker, beast, hunter and
-  healer.
+- **SHEET-271** Roles today: soldier, skirmisher, brute, shooter, sneak, watcher, talker, worker, beast, hunter,
+  healer and smith.
 - **SHEET-272** **Hunter** (RO11, civilian): High Medium Ranged and Sneaking, Moderate Eyesight, Earshot and Endurance,
   Low Light Weapons and Stamina; gear medium ranged, light melee, light armor; hunters, foresters, trappers and poachers
   by label and theme (NR4 a).
 - **SHEET-273** **Healer** (RO12, civilian): High Healing, Insight and Persuasion, Moderate Resolve and Earshot, Low
   Barter; barber-surgeons, herb-wives and midwives, and the one who sells clinic care where a place has it (the Weaver
   lists SV5 in its wares) (NR6 a).
+- **SHEET-536** **Smith** (RO15, civilian; D-89 RP16 a, 21/11/2026): High Handiwork, Low Barter; the one who mends gear
+  at a forge and sells repair (SV6) and use of the forge (SV7). Template TP21 ("a smith", a Trader), and a choice of the
+  Service hook beside talker and healer.
 - **SHEET-274** Peasant roles take no trade skills and stay in the Commoner class line (Commoner, then A Nobody), so no
   class is added for them (NR2).
 - **SHEET-275** **Leader** (RO13, civilian): High Persuasion and Intimidation, Moderate Insight and Resolve, Low Medium

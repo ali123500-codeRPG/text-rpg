@@ -1,7 +1,7 @@
 // SL12 b: an item's value is the coin its benefit numbers are worth, summed. Every benefit an item gives is read
 // from the item itself (kit bonus, stated skill and roll bonuses, reach, armor, pools), so an item whose benefits
 // don't come from its need is priced right too. Quality multiplies on top (SL8).
-import type { AttackMode, GameState, ItemDef } from '../types';
+import type { AttackMode, GameState, ItemDef, ItemInstance } from '../types';
 import { qualityMult } from './quality';
 import { CONFIG } from '../config';
 import { itemDef } from '../library';
@@ -60,3 +60,15 @@ export function itemValue(state: GameState | null | undefined, def: ItemDef): nu
   if (!priced(def)) return def.value ?? 0;
   return Math.max(1, Math.round(benefits(def).reduce((n, b) => n + b.coin, 0)));
 }
+
+/** D-89: an item's pools and their points: a shield's, or an armor piece's per covered part */
+export const poolsOf = (def: ItemDef): [string, number][] => (def.shield ? [['shield', def.shield.pool]] : Object.entries(def.armor?.pools ?? {}));
+/** D-89: pool points an instance has lost, over all its pools (a pool below 0% has lost more than its size) */
+export const missingPts = (def: ItemDef, inst: ItemInstance): number =>
+  poolsOf(def).reduce((n, [k, pts]) => n + (Math.max(0, 100 - (inst.pools?.[k] ?? 100)) / 100) * pts, 0);
+
+/** RP10 a: what one instance is worth: its value less the coin of the pool points it has lost (ITEM_VALUE.poolPoint), not below 0 */
+export const instanceValue = (state: GameState | null | undefined, inst: ItemInstance): number => {
+  const def = itemDef(state, inst.itemId);
+  return Math.max(0, itemValue(state, def) - missingPts(def, inst) * V().poolPoint);
+};

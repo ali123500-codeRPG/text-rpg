@@ -129,6 +129,18 @@ export const LAND = {
   FRAGILITY_BY_KIND: { weapon: 'solid', armor: 'sturdy', shield: 'sturdy', accessory: 'delicate', tool: 'tough', consumable: 'fragile', misc: 'sturdy' } as Record<string, FragilityKey>,
   /** BK3: a broken item is worth this share of what it was worth whole (scrap; placeholder) */
   BROKEN_VALUE_SHARE: 0.1,
+  /** D-89 repair (RP13 a, RP14 a, RP15 b; src/engine/repair.ts; placeholders). E = effective Handiwork × FORGE_MULT at a
+   * forge (1 elsewhere); r = the item's need ÷ E. r ≤ 1 is a sure Success; past REPAIR_REACH it is not tried; between, the
+   * margin is d100 − REPAIR_RISK × (r − 1) on the usual bands. Time = REPAIR_S × r^REPAIR_TIME_POWER × the share of the
+   * pools put back (1 = empty to full). At a forge Near Miss puts back REPAIR_NEAR_MISS_SHARE of what is missing; in the
+   * field each tier puts back REPAIR_FIELD_SHARE of the full pool */
+  FORGE_MULT: 2,
+  REPAIR_RISK: 100,
+  REPAIR_REACH: 2,
+  REPAIR_S: 30,
+  REPAIR_TIME_POWER: 2,
+  REPAIR_NEAR_MISS_SHARE: 0.5,
+  REPAIR_FIELD_SHARE: { near_miss: 0.1, success: 0.2, great_success: 0.3, critical_success: 0.5 } as Record<string, number>,
   /** BA2: picking a lock (the Action times pick_lock row, about a minute for a common lock at effective skill 50) is halved
    * for every PICK_HALVING_PER points above 50 and doubled for every PICK_HALVING_PER below */
   PICK_HALVING_PER: 25,

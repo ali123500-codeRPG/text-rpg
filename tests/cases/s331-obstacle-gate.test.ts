@@ -17,7 +17,7 @@ const pick = intent({ action: { type: 'pick', skill: '', target: 'street_door', 
 const turn = (s: GameState, rng = createRng(1)) => { s.turn += 1; return resolveTurn(s, { intent: pick, aimed: false, agentOutputs: [], spokespeople: [] }, rng); };
 function setup(grade: Barrier['grade']): { s: GameState; b: Barrier } {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'patron_1', 'trader'] });
-  s.player.core.skills[SK.lockpicking] = { raw: 50, state: 'normal' };
+  s.player.core.skills[SK.filching] = { raw: 50, state: 'normal' };
   const b: Barrier = { id: 'front_door', kind: BK.door, grade, lock: { locked: true } };
   (s.barriers ??= {})[b.id] = b;
   setBarrier(s, 'tav_common', 'street_door', b.id);

@@ -26,9 +26,6 @@ export const RULES = {
     [SK.melee_light]: [{ fn: FN.arms, k: 0.3 }, { fn: FN.unarmed, k: 0.1 }],
     [SK.melee_medium]: [{ fn: FN.arms, k: 0.3 }, { fn: FN.unarmed, k: 0.1 }],
     [SK.melee_heavy]: [{ fn: FN.arms, k: 0.3 }, { fn: FN.unarmed, k: 0.1 }],
-    // FL1: the Sleight group's two skills stand in for each other (a lock or filching roll asks for its function)
-    [FN.lockpicking]: [{ fn: FN.filching, k: 0.3 }],
-    [FN.filching]: [{ fn: FN.lockpicking, k: 0.3 }],
   } as Record<string, { fn: SkillFunction; k: number }[]>,
   /** Pairs of skills that never stand in for each other, even when they share a function (the three defenses) */
   NO_STAND_IN: [[SK.dodge, SK.block], [SK.block, SK.parry], [SK.dodge, SK.parry]] as [string, string][],

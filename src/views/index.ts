@@ -75,7 +75,7 @@ import { itemValue } from '../ruleset/value';
 import { shortShifts } from '../ruleset/requirements';
 import { isCoweringLevel, moraleLevel, moraleShows } from '../ruleset/morale';
 import { barMax, fatigueLevel, fatigueOf, fatigueShows, isSpent, lineMax, lineUsed } from '../ruleset/fatigue';
-import { FATIGUE_LEVELS, HEALTH_LEVELS, MORALE_LEVELS, PART_STATES } from '../scales';
+import { FATIGUE_LEVELS, HEALTH_LEVELS, ITEM_STATES, MORALE_LEVELS, PART_STATES, type ItemStateKey } from '../scales';
 import { inArmorSlot } from '../ruleset/slots';
 
 const moraleWord = (a: Actor): string => MORALE_LEVELS.name(moraleLevel(a));
@@ -492,7 +492,8 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
     }
     if (f.kind === 'part_state_changed') {
       const to = f.data.to as PartState;
-      if (own || PART_STATES.pos(to) >= PART_STATES.pos('crippled') || (sharp && to === 'damaged')) out.push(`${who}'s ${partWords(String(f.data.part ?? f.data.partId ?? 'part'))} is ${PART_STATES.name(to)}`);
+      const name = f.data.part === 'shield' ? ITEM_STATES.name(to as ItemStateKey) : PART_STATES.name(to); // RP12: a shield's states are item states
+      if (own || to !== 'healthy' && to !== 'damaged' || (sharp && to === 'damaged')) out.push(`${who}'s ${partWords(String(f.data.part ?? f.data.partId ?? 'part'))} is ${name}`);
     }
   }
   return out;

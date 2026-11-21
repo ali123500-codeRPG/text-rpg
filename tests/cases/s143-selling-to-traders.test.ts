@@ -59,8 +59,8 @@ it('143c a stack sells in part; haggling and Hard Bargain raise the price', () =
   expect(sell(s, s.player, mags, 'rolls', 3)).toMatchObject({ ok: true, price: 3, qty: 3 }); // value 2 × 0.5 = 1 each
   expect(s.player.core.inventory.find((i) => i.id === 'rolls')!.qty).toBe(1);
   s.player.haggle = { trader: CONFIG.HAGGLE_WIN };
-  expect(sellPrice(s, s.player, mags, IT.arming_sword)).toBe(18); // 30 × 0.5 × 1.2
+  expect(sellPrice(s, s.player, mags, { id: 'x', itemId: IT.arming_sword })).toBe(18); // 30 × 0.5 × 1.2
   s.player.core.perks.push({ perkId: PK.haggler, source: 'level', gainedTurn: 0 });
-  expect(sellPrice(s, s.player, mags, IT.arming_sword)).toBe(19); // 30 × 0.5 × 1.2 × 1.1, rounded down
+  expect(sellPrice(s, s.player, mags, { id: 'x', itemId: IT.arming_sword })).toBe(19); // 30 × 0.5 × 1.2 × 1.1, rounded down
 });
 

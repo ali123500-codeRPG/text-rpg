@@ -162,7 +162,7 @@ HP, the health track, body parts and wounds, healing, body types, races, size an
 ## gear: items, inventory and equipment
 
 Items and their data, inventory, slots and grips, weapons, armor and shields, containers, loot, value and quality,
-breaking things, Threadbound items.
+breaking things, repairing gear (D-89), Threadbound items.
 
 - Spec: [part-5-gear/](spec/part-5-gear/),
   [weapons-armor-and-shields.md](spec/part-3-health/weapons-armor-and-shields.md)
@@ -175,6 +175,7 @@ breaking things, Threadbound items.
   - `src/engine/containers.ts`
   - `src/engine/gear.ts`
   - `src/engine/handover.ts`
+  - `src/engine/repair.ts`
   - `src/library/gearScale.ts`
   - `src/library/itemIds.ts`
   - `src/library/items.ts`

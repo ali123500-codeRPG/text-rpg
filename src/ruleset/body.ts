@@ -11,7 +11,7 @@ import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { moraleMods } from './morale';
 import { fatigueMods } from './fatigue';
-import { HEALTH_LEVELS, PART_STATES, TIERS } from '../scales';
+import { HEALTH_LEVELS, ITEM_STATES, PART_STATES, TIERS, type ItemStateKey } from '../scales';
 import { gripsOf } from './slots';
 import { cap } from '../words';
 
@@ -61,8 +61,12 @@ export function woundsOfLevel(level: HealthLevel): number {
 export function poolState(pct: number): PartState {
   return PART_STATES.keys.find((k) => k === 'destroyed' || pct > CONFIG.PART_STATE_ABOVE[k]) as PartState;
 }
-/** Healthy or Damaged: the part still does its job */
-export const working = (s: PartState) => PART_STATES.pos(s) <= PART_STATES.pos('damaged');
+/** RP12: state of an item pool by % left (CONFIG.ITEM_STATE_ABOVE), else Destroyed */
+export function itemState(pct: number): ItemStateKey {
+  return ITEM_STATES.keys.find((k) => k === 'destroyed' || pct > CONFIG.ITEM_STATE_ABOVE[k]) as ItemStateKey;
+}
+/** Healthy or Damaged: the part or item still does its job */
+export const working = (s: PartState | ItemStateKey) => s === 'healthy' || s === 'damaged';
 export const partPct = (actor: Actor, id: string) => actor.core.condition.parts[id] ?? 100;
 
 export function partStates(state: GameState, actor: Actor): { id: string; state: PartState }[] {
@@ -179,7 +183,7 @@ export function woundsMods(state: GameState, actor: Actor, skill: string, ctx: {
     if (v) out.push({ source: `${lib.roles[role]?.name ?? role} wounds`, type: 'wounds', value: v });
   }
   // a Damaged shield: the Damaged role penalty on Block (wounds type)
-  if (inst && skill === SK.block && itemDef(state, inst.itemId).shield && poolState(inst.pools?.shield ?? 100) === 'damaged') {
+  if (inst && skill === SK.block && itemDef(state, inst.itemId).shield && itemState(inst.pools?.shield ?? 100) === 'damaged') {
     out.push({ source: 'shield damaged', type: 'wounds', value: CONFIG.ROLE_PENALTY.damaged });
   }
   return out;

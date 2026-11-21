@@ -26,6 +26,9 @@ export const BODY = {
   ROLE_PENALTY: { damaged: -13, crippled: -27 }, // % of the average roll (PW1 b, PW3 a)
   /** a part or pool is in a state while its % left is above that state's floor: Healthy >50, Damaged >0, Crippled >−100; else Destroyed */
   PART_STATE_ABOVE: { healthy: 50, damaged: 0, crippled: -100 } as Record<string, number>,
+  /** RP12 (D-89): an item pool (a shield's, an armor piece's) is in a state while its % left is above that state's floor:
+   * Healthy >50, Damaged >0, Crippled >−20, Broken >−50; else Destroyed (placeholders) */
+  ITEM_STATE_ABOVE: { healthy: 50, damaged: 0, crippled: -20, broken: -50 } as Record<string, number>,
   ESSENTIAL_CRIPPLED_PENALTY: -7, // % of the average roll (PW3 a); wounds on every roll while any essential part (head, neck …) is Crippled or worse; once, however many
   SHARED_ROLE_OFF_PCT: 0.6,
   // CS24: a Destroyed part counts this many times a Crippled one, alike for its role penalty and for switching a shared

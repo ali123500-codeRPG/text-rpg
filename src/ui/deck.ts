@@ -32,6 +32,9 @@ import { pathM, spotPoint } from '../engine/position';
 import { zoneById } from '../engine/relations';
 import { furnitureRecord } from '../engine/furniture';
 import { sleepersOn } from '../engine/sleep';
+import { mendable } from '../engine/repair';
+import { missingPts } from '../ruleset/value';
+import { SV } from '../library/serviceIds';
 
 export const DECK_GROUPS = ['getaway', 'fight', 'talk', 'move', 'stealth', 'use', 'perks'] as const;
 export type DeckGroup = (typeof DECK_GROUPS)[number];
@@ -57,7 +60,7 @@ export type DeckCtx = { pv: PlayerView; s?: GameState; aim?: boolean; broken?: b
  * way op the game knows (DECK_LEFT_OUT says why the rest are not listed) */
 export const DECK_KINDS = ['attack', 'finish', 'restrain', 'steady', 'yield', 'stand_down', 'extract', 'heal', 'talk', 'persuade', 'deceive', 'intimidate',
   'barter', 'demand', 'give', 'take', 'buy', 'sell', 'show', 'lets_search', 'go', 'walk_up', 'back_away', 'follow', 'jump', 'stop',
-  'keep_walking', 'way', 'sneak', 'filch', 'stash', 'look_at', 'listen', 'search', 'pat_down', 'use_item', 'equip', 'draw',
+  'keep_walking', 'way', 'sneak', 'filch', 'stash', 'look_at', 'listen', 'search', 'pat_down', 'use_item', 'repair', 'equip', 'draw',
   'stow', 'swap', 'wear_acc', 'remove_acc', 'pick_up', 'set_down', 'summon', 'loot', 'open', 'break', 'pick', 'wait', 'rest',
   'sleep', 'perk', 'warn'] as const;
 export type DeckKind = (typeof DECK_KINDS)[number];
@@ -269,6 +272,11 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
     (c) => order(`Heal ${c.target ? them(c) : 'myself'}`, { action: act('heal', { target: c.target || null }) }), { note: 'a Healing roll' });
   if (heal.length) add('use_item', 'use', 'Treat wounds', [{ key: 'item', title: 'With what?', picks: () => heal.map(invPick) }, { key: 'target', title: 'Treat whom?', picks: () => [{ id: '', label: 'Yourself' }, ...full.map(person)] }],
     (c) => order(`Use ${theItem(item(c.item!)?.name ?? '')} on ${c.target ? them(c) : 'myself'}`, { action: act('use_item', { item: c.item!, target: c.target || null }) }));
+  // D-89: mend a worn shield or armor piece yourself (Handiwork; a forge you may use within reach doubles it) or have a smith do it
+  const worn = s ? inv.filter((i) => { const m = mendable(s, s.player.core.inventory.find((x) => x.id === i.id)); return !!m && missingPts(m.def, m.inst) > 0; }) : [];
+  const smiths = full.filter((a) => a.wares?.some((w) => w.id === `service:${SV.repair}`));
+  if (worn.length) add('repair', 'use', 'Repair', [{ key: 'item', title: 'Repair what?', picks: () => worn.map(invPick) }, { key: 'target', title: 'Who does it?', picks: () => [{ id: '', label: 'Yourself', note: 'a Handiwork roll' }, ...smiths.map(person)] }],
+    (c) => order(c.target ? `Have ${them(c)} repair ${theItem(item(c.item!)?.name ?? '')}` : `Repair ${theItem(item(c.item!)?.name ?? '')}`, { action: act('repair', { item: c.item!, target: c.target || null }) }));
   const stowed = inv.filter((i) => !i.equippedIn.length && i.kind === 'weapon'), held = inv.filter((i) => isHeld(i));
   if (stowed.length) add('draw', 'use', 'Draw', [{ key: 'item', title: 'Draw what?', picks: () => stowed.map(invPick) }], (c) => order(`Draw ${theItem(item(c.item!)?.name ?? '')}`, { gear: [{ op: 'draw', item: c.item! }] }));
   if (held.length) add('stow', 'use', 'Put away', [{ key: 'item', title: 'Put away what?', picks: () => held.map(invPick) }, ...(containers.some((g) => g.container?.open) || inv.some((i) => i.container) ? [{ key: 'target' as const, title: 'Into?', picks: () => [{ id: '', label: 'On you' }, ...inv.filter((i) => i.container).map(invPick), ...containers.filter((g) => g.container?.open).map((g) => ({ id: g.id, label: cap(g.name) }))] }] : [])],

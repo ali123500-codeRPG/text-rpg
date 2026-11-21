@@ -31,6 +31,13 @@ export const MIGRATIONS: Record<number, (pages: Pages) => void> = {
       }
     }
   },
+  // D-89 RP12: item pools got their own bands, Destroyed at −50% (was −100%): a shield kept between them comes back Broken,
+  // 1 point above the Destroyed line, so a saved shield is never lost by the change
+  11: (pages) => {
+    for (const k of actorKeys(pages)) for (const i of (pages[k] as Actor).core.inventory) {
+      if (i.pools?.shield !== undefined && i.pools.shield <= CONFIG.ITEM_STATE_ABOVE.broken) i.pools.shield = CONFIG.ITEM_STATE_ABOVE.broken + 1;
+    }
+  },
 };
 
 /** run steps from → to in order; returns false (and an error) when the save is too old, too new or a step is missing. */

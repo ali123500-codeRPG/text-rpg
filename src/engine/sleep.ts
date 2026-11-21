@@ -39,7 +39,7 @@ export function bedGap(state: GameState, a: Actor, f: Furniture): number {
 export const sleepersOn = (state: GameState, id: string): Actor[] =>
   allActors(state).filter((x) => x.asleep?.bed === id).sort((x, y) => x.asleep!.since - y.asleep!.since || x.id.localeCompare(y.id));
 /** MQ17 b: who a bed is booked for now (SV3), if anyone: a booking ends at its `until` */
-export const bookedFor = (state: GameState, f: Furniture): string | undefined => (f.booked && f.booked.until > now(state) ? f.booked.by : undefined);
+export const bookedFor = (state: GameState, f: Furniture): string | undefined => (f.booked && (f.booked.until === undefined || f.booked.until > now(state)) ? f.booked.by : undefined);
 /** MQ18, MQ17 b: `a` may lie down on bed `f`: fewer than BED_SLEEPERS others asleep on it, and not booked for someone else */
 export const bedHasRoom = (state: GameState, f: Furniture, a: Actor): boolean =>
   sleepersOn(state, f.id).filter((x) => x !== a).length < CONFIG.BED_SLEEPERS && (bookedFor(state, f) ?? a.id) === a.id;

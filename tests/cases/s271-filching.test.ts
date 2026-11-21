@@ -13,8 +13,6 @@ import { CONFIG } from '../../src/config';
 import { sightAt } from '../../src/perception';
 import { IT } from '../../src/library/itemIds';
 import { SK } from '../../src/library/skillIds';
-import { FN } from '../../src/library/functionIds';
-import { effectiveSkill } from '../../src/ruleset/gear';
 import { tierLevel } from '../../src/ruleset';
 import { NOISE } from '../../src/scales';
 import { createRng } from '../../src/rng';
@@ -30,12 +28,6 @@ const village = (): { s: GameState; wim: Actor } => {
   return { s, wim };
 };
 const skill = (a: Actor, id: string, raw: number) => { a.core.skills[id] = { raw, state: 'normal' }; };
-
-it('FL1: Filching and Lockpicking are the Sleight group and stand in for each other at 0.3', () => {
-  const { s } = village();
-  skill(s.player, SK.lockpicking, 50);
-  expect(effectiveSkill(s, s.player, FN.filching, { fullValue: [SK.filching] }).value).toBeCloseTo(15);
-});
 
 it('TN1: the sound is Hushed at Near Miss or better and one level louder per tier below', () => {
   const { s, wim } = village();

@@ -10,6 +10,7 @@ import { LIFE_STAGES, TALENTS, ROAD_DANGERS, ROAD_LENGTHS, TIME_OF_DAY, SCENARIO
 import { WAY_KINDS, addTitles, drawPlan, drawTitles } from '../plan/draw';
 import { dropOnGround } from '../engine/ground';
 import { furnitureIn } from '../engine/furniture';
+import { placeHasForge } from '../engine/repair';
 
 import { FU, ZK } from '../library/tableIds';
 import { distOrNull, entryPoint, placeAll, startAtDoor } from '../engine/position';
@@ -656,7 +657,9 @@ function stockWares(state: GameState, a: Actor, w: NonNullable<StagePlan['cast']
     if (!items.includes(g.item)) items.push(g.item);
   }
   for (const s of w.services ?? []) {
-    if (!getLibrary().services?.[s] || items.length + services.length >= CONFIG.WARES_CAP) dropped.push(String(s));
+    const sv = getLibrary().services?.[s];
+    // RP8 b: repair and use of the forge only where the seller's place has a forge
+    if (!sv || items.length + services.length >= CONFIG.WARES_CAP || ((sv.repairs || sv.forge) && !placeHasForge(state, a.placeId))) dropped.push(String(s));
     else if (!services.includes(s)) services.push(s);
   }
   if (!a.wares) a.core.inventory.push({ id: `purse${turn}_${a.id}`, itemId: IT.coin, qty: CONFIG.TRADER_PURSE }); // SL3: the Trader's purse, once

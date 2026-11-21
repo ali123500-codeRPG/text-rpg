@@ -30,7 +30,7 @@ export function needOf(state: GameState, actor: Actor, type: string): Need | und
   return TRADE_KINDS.includes(type) && !canSpeak(state, actor) ? 'grip' : NEEDS[type];
 }
 export const NEEDS: Record<string, Need> = {
-  ...Object.fromEntries(SPEECH_ACTIONS.map((t) => [t, 'voice' as const])), buy: 'voice', sell: 'voice',
+  ...Object.fromEntries(SPEECH_ACTIONS.map((t) => [t, 'voice' as const])), buy: 'voice', sell: 'voice', repair: 'voice', // repair: D-89, an order to a smith (oneself: no target)
   give: 'grip', take: 'grip', pick: 'grip', open: 'grip', break: 'grip', filch: 'grip', restrain: 'grip', extract: 'grip', heal: 'grip', interact: 'grip', use_item: 'grip', attack: 'weapon', // use_item: BF13, on someone else
 };
 
@@ -58,7 +58,7 @@ export function approachMove(state: GameState, actor: Actor, act: { type: string
   // BG-87: going into their zone ends beside them, not just inside the way in
   return m.spot ? m : { ...m, spot: { near: t.id } };
 }
-const TRADE_KINDS = ['buy', 'sell'];
+const TRADE_KINDS = ['buy', 'sell', 'repair'];
 
 /** the player's move for the Parser's intent (approachMove) */
 export function talkMove(state: GameState, intent: Intent | null): Intent['move'] {

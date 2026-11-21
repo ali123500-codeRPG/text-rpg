@@ -893,7 +893,7 @@ button.cs-sigil:hover, button.cs-sigil:focus-visible { box-shadow: 0 0 0 4px var
 .cs-hw { text-align: right; font-weight: 600; }
 .cs-pchips { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-2); margin: 0; }
 .cs-pchip { padding: 0 var(--space-2); border-radius: var(--r-md); font-size: 13px; font-weight: 700; color: var(--text); background: color-mix(in srgb, var(--pc) 30%, transparent); border: 1px solid color-mix(in srgb, var(--pc) 60%, transparent); }
-.ps-damaged, .ps-pressure { --pc: var(--warn); } .ps-crippled, .ps-destroyed { --pc: var(--danger); }
+.ps-damaged, .ps-pressure { --pc: var(--warn); } .ps-crippled, .ps-broken, .ps-destroyed { --pc: var(--danger); }
 /* Q2: a shield's state or an armor pool's points beside the item on the gear lines; colour carries the state (M-34) */
 .cs-gn { margin-left: .35em; font-weight: 500; font-size: 13px; color: var(--pc, var(--muted)); }
 .cs-gn.ps-pool { --pc: var(--muted); }

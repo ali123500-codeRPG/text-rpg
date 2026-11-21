@@ -103,7 +103,8 @@ export type EssenceDef = {
   story: string;
 };
 /** PY3: a service a seller can offer; heals names the healing row it pays for */
-export type ServiceDef = { id: string; name: string; price: number; heals?: string };
+/** repairs: D-89, a smith's repair: priced by the job (src/engine/repair.ts repairPrice), never by `price`. forge: RP17 b, the smith's leave to use its forge (Furniture.booked) */
+export type ServiceDef = { id: string; name: string; price: number; heals?: string; repairs?: true; forge?: true };
 /** DX1: a Start, one way to begin on the creation screen (ST…). classId: the class it begins in; left out, the class
  * comes from what the start gives (a blessing start: its god's class). points and level: left out = CONFIG.CREATION_POINTS /
  * START_LEVEL; level is the start class's level. age: the age picker's default (AG15). story: shown on the creation screen

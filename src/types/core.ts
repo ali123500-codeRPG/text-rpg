@@ -62,7 +62,7 @@ export type Barrier = {
   tried?: string[]; // actors who found it shut by trying it: they know it is locked or barred
   /** BG-70: standing open: sight (and sound) pass its opening though it is not seen through shut; anyone can shut it again */
   open?: true;
-  /** BA2: a picker's Failure leaves the lock beyond them until their Lockpicking (with tools) is higher than this */
+  /** BA2: a picker's Failure leaves the lock beyond them until their Filching (with tools) is higher than this */
   beyond?: Record<string, number>;
   /** OD12: actors who tried to pick it: they know its grade */
   graded?: string[];
@@ -140,8 +140,9 @@ export type LandFeature = { id: string; kind: string; name: string; look: string
  * (OD3); graded: who has tried it, and sees its grade (OD12). */
 export type Furniture = { id: string; kind: string; name: string; placeId: PlaceId; zone: string; pos: Pt; floor: number; side?: string; edge?: true;
   grade?: Grade; graded?: string[]; beyond?: Record<string, number>;
-  /** MQ17 b: a bed bought for the night (SV3): kept for `by` until game minute `until`; no one else lies down on it */
-  booked?: { by: string; until: number } };
+  /** MQ17 b: a bed bought for the night (SV3): kept for `by` until game minute `until`; no one else lies down on it.
+   * RP22 a: a forge hired from its smith (SV7) has no `until`: it is kept for one repair job */
+  booked?: { by: string; until?: number } };
 /** PZ7: a point with the floor it is on (metres above the ground outside) */
 export type Pt3 = Pt & { floor: number };
 /** PZ1 a: a title: the name of a space. Its space is a footprint of any shape (outline, a polygon in metres, corners

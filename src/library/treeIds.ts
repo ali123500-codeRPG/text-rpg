@@ -3,5 +3,5 @@
 export const TR = {
   melee: 'TR1', ranged: 'TR2', unarmed: 'TR3', natural: 'TR4', defense: 'TR5',
   armor: 'TR6', perception: 'TR7', stealth: 'TR8', speech: 'TR9', swordsman: 'TR10',
-  slime_senses: 'TR11', tools: 'TR12', sword_dancer: 'TR13', trickery: 'TR14', merchant: 'TR15', fortitude: 'TR16', medicine: 'TR18', tactics: 'TR19', // TR17 (Scent) retired: Scent is in Perception
+  slime_senses: 'TR11', sword_dancer: 'TR13', trickery: 'TR14', merchant: 'TR15', fortitude: 'TR16', medicine: 'TR18', tactics: 'TR19', survival: 'TR20', // TR17 (Scent) retired: Scent is in Perception; TR12 (Tools) retired: its one skill, Lockpicking, is now Filching (D-89 RP2)
 } as const;

@@ -27,7 +27,7 @@ describe('106 XP and levels', () => {
     const g = actor(s, 'guard_1');
     expect(power(s, g)).toBeGreaterThan(power(s, slime));
     const before = power(s, s.player);
-    s.player.core.skills[SK.lockpicking] = { raw: 90, state: 'normal' }; // FL1: Lockpicking sits in Sleight, a non-combat group (GR42)
+    s.player.core.skills[SK.filching] = { raw: 90, state: 'normal' }; // FL1: Filching sits in Sleight, a non-combat group (GR42)
     expect(power(s, s.player)).toBeGreaterThan(before);
   });
   it('ten defeats earn defeats_10 and defeats_10:<body type> once each, named for what was defeated', () => {
