@@ -9,6 +9,20 @@ export const PERCEPTION = {
   MAKE_OUT_SIGHT_GRADES: [[0.25, 'minor'], [0.5, 'moderate'], [0.75, 'major'], [1, 'extreme']] as [number, GradeLevel][],
   /** PG4 a: darkness where it happens makes the sight grade this many steps harder (Night Eyes cancels it) */
   MAKE_OUT_DARK_STEPS: 1,
+  // ---- attention (D-200, D-200b b; placeholders) ----
+  /** D-200: past this many degrees off the way someone faces, it sees one rung worse (clear becomes a glimpse, a glimpse a
+   * grade harder). Each eye's field reaches about 60° toward the nose and 100° toward the temple, so both eyes
+   * see the middle 120° (60° each side of the gaze) and the whole field is about 200° (Spector, "Visual Fields", Clinical
+   * Methods, 3rd ed., 1990, ch. 116) */
+  ATTENTION_SIDE_DEG: 60,
+  /** D-200b b: past this many degrees off its facing (behind it, outside the eyes' field) it sees ATTENTION_BACK_STEPS worse */
+  ATTENTION_BACK_DEG: 100,
+  /** D-200: rungs worse to the side (past ATTENTION_SIDE_DEG) */
+  ATTENTION_SIDE_STEPS: 1,
+  /** D-200b b: rungs worse behind (past ATTENTION_BACK_DEG): a glimpse two grades harder, never nothing */
+  ATTENTION_BACK_STEPS: 2,
+  /** D-200: rungs worse while busy: a long action under way, or fighting someone else */
+  ATTENTION_BUSY_STEPS: 1,
   /** PG4 a: a make-out roll's grade for something half heard: by the decibels it reaches above HEARING_FLOOR_DB, the first
    * row it reaches (clear starts at CLEAR_ABOVE_FLOOR_DB, 15) */
   MAKE_OUT_SOUND_GRADES: [[11, 'minor'], [7, 'moderate'], [3, 'major'], [0, 'extreme']] as [number, GradeLevel][],

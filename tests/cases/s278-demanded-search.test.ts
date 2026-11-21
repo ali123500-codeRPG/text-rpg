@@ -6,6 +6,7 @@ import { beside, makeVillage } from '../harness';
 import { intent, play } from './w4-kit';
 import { IT } from '../../src/library/itemIds';
 import { revealedTo } from '../../src/minds/state';
+import { faceToward } from '../../src/engine/position';
 
 const tavern = () => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
@@ -29,6 +30,7 @@ it('BF16: letting someone search you lasts this turn and the next; turning out y
   s.player.core.inventory.push({ id: 'ring_1', itemId: IT.charmed_ring, qty: 1 } as never);
   play(s, { intent: intent({ action: null, letsSearch: 'trader' } as never) }); // the trader takes note of the player first
   expect(s.player.letsSearch).toEqual({ by: 'trader', until: s.turn + 1 });
+  faceToward(t, s.player); // D-200: the trader (walked off on its routine) turns to watch; one facing away only glimpses
   const ev = play(s, { intent: intent({ action: { type: 'show' } as never }) }).find((e) => e.actorId === 'player' && e.kind === 'show')!;
   const shown = ev.effects.find((f) => f.kind === 'shown_items')!.data.items as string[];
   expect(shown).toContain('ring_1');

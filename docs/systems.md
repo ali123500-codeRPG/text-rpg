@@ -332,6 +332,7 @@ filching.
   - `src/engine/warnings.ts`
   - `src/land/sight.ts`
   - `src/minds/state.ts`
+  - `src/perception/attention.ts`
   - `src/perception/index.ts`
   - `src/perception/madeOut.ts`
   - `src/perception/noise.ts`
