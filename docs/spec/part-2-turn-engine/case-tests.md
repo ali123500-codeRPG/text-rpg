@@ -30,7 +30,7 @@ One hundred and three tests: the original eight, updated, eight for the rev. 2 c
 | 24 | Same shape after submit | Explore and Tactical make the same sequence of calls after submit, and resolution never starts before the previous display plus BACKGROUND\_WINDOW |
 | 25 | Late Planner | A Planner call not back by BACKGROUND\_WINDOW gives that actor its type's combat list, discards the whole output and logs planner\_late |
 | 26 | Code minds read ActorView only | Routine and combat-list functions can't receive GameState (type-level test) |
-| 27 | Story start | Turn 0 makes one event roll, one Weaver call and one Narrator call, and is saved as turn 0 |
+| 27 | Story start | Turn 0 makes one event roll, one Weaver call and one Narrator call, and is saved as turn 0; the Weaver's view claims no place for the player, and the plan's arriveAt is where they start (BG-1549) |
 | 28 | Place change is not a scenario | The player walks from the bar's zone to the street's zone (two places, one stage): no event roll, no Weaver call |
 | 29 | The fight spills outside | An engaged NPC follows the player from the bar into the street; its placeId changes with its zone, and the turn stays Tactical |
 | 30 | Background extension | With the player in a zone linked to a frontier, one Weaver call starts after the save, is logged, and is not applied before the player crosses |

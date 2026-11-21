@@ -416,8 +416,8 @@ export type WeaverView = {
   player: { level: number; pronouns?: Pronouns; currentClass: { id: string; name: string } | null; health: HealthLevel;
     /** HF9: rating + gear rating, to set a unique's power against */
     power: number;
-    /** NW6: where the player stands (place and area) */
-    standsIn: { place: string; placeName: string; area: string };
+    /** NW6: where the player stands (place and area); null at story start, where the plan's arriveAt puts them (BG-1549) */
+    standsIn: { place: string; placeName: string; area: string } | null;
     /** WP2: the Threadbound items bound to the player (hidden side) */
     threadbound?: string[] };
   previousNote: string;

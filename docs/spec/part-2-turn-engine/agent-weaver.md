@@ -6,7 +6,7 @@ Agent Weaver plans what a scenario is about and who is in it. It runs at scenari
 
 - the tier and its stakes group;
 - the place or frontier being planned, by id and name, and its ancestors' headlines;
-- where the player stands (player.standsIn: place id, place name, zone);
+- where the player stands (player.standsIn: place id, place name, zone; null at story start, where the plan's arriveAt says where they start, PQ1 a);
 - the ground near the player and the target sorted by place (NW6; WI8 a: every zone of the settlement or road over the target's place and the player's, and every zone within PLAN\_VIEW\_M (200 m, placeholder) of the player's zone and the frontier's edge by the walking path (BG-305); an NPC agent's map is bounded the same way around it): each place by name, kind and parent, with its zones and the actors in them, each actor with its plans and secrets. Nobody there is hidden, so far-off people can turn up when the story fits; sorting by place is what keeps the Weaver planning in the right town (the flat zone and actor lists made it lose the thread in tests);
 - quests; the bands on the stage, with their goals and relations;
 - the player's level, current class and health-track level;

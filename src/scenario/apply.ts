@@ -356,8 +356,9 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   if (ctx.frontierKey && newZones[0] && !ctx.ahead) enterFrontier(state, newZones[0]);
   // at story start the player stands in no built zone yet; it starts in the plan's first zone (CS2)
   const storyStart = !!firstZone && !zoneById(state, state.player.zone);
-  // BG-273: a new character arrives where the plan says (arriveAt: an area on the stage or a new zone), else in its first new zone
-  const arriveAt = ctx.arrive && plan.arriveAt ? zoneRef(plan.arriveAt) : undefined;
+  // BG-273, BG-1549: a new character, and the player at story start, arrives where the plan says (arriveAt: an area on the
+  // stage or a new zone), else in its first new zone
+  const arriveAt = (ctx.arrive || storyStart) && plan.arriveAt ? zoneRef(plan.arriveAt) : undefined;
   if (arriveAt && zoneById(state, arriveAt)) moveTo(state, state.player, arriveAt);
   else if (storyStart) moveTo(state, state.player, firstZone!);
   else if (ctx.wake && firstZone) moveTo(state, state.player, firstZone); // D-54: the player wakes somewhere safe
