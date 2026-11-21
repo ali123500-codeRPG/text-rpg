@@ -143,9 +143,13 @@ import {
   slotMetres,
 } from './speed';
 import {
+  darkOut,
+  isRoad,
+  legEncounter,
   travellers,
   travel,
   tripGoal,
+  wildGround,
   type TripStop,
   type TripWorld,
 } from './travel';
@@ -168,6 +172,8 @@ import {
   standingAt,
   floorOf,
   spotAt,
+  spotOf,
+  type Pos,
   placeOf,
   unplace,
   reachOverFrom,
@@ -842,7 +848,7 @@ type Ctx = {
  * soon the player is ready, AT67), and the event its outcome goes on */
 type Stretch = { kind: 'rest' | 'wait' | 'walk' | 'busy'; seconds: number; pose: BodyPoseKey; ev: GameEvent; ran?: number; stop?: StretchStop; walk?: Order; order?: Order; someone?: true /* BG-231: stops when anyone new comes into the senses */; ready?: true /* AE6: and when the readied step's condition comes true */;
   then?: WalkThen; there?: true /* MQ8: the walk's action, and that the walk got there */ };
-type StretchStop = NearStop | { why: 'fight' | 'ready'; by: string[] };
+type StretchStop = NearStop | { why: 'fight' | 'ready' | 'encounter'; by: string[] };
 
 function mk(ctx: Ctx, a: Actor, kind: string, extra: Partial<GameEvent> = {}): GameEvent {
   const [noise, visibility] = SENSE[kind] ?? ['quiet', 'normal'];
@@ -1850,7 +1856,13 @@ function runStretch(ctx: Ctx, st: Stretch, onLeg?: OnLeg): void {
     const step = Math.min(stepS(state, watch), fighting ? CONFIG.ROUND_S : Infinity, st.seconds - ran);
     const before = new Map<string, Located>(allActors(state).map((x) => [x.id, placeOf(x)]));
     const from = ctx.events.length;
-    if (st.walk) { walkEnd = walkStep(ctx, st.walk, step); if (walkEnd) { ran += step; break; } } // AT45: there, or blocked
+    let met: StretchStop | null = null;
+    if (st.walk) {
+      const was = spotOf(state, p).pos, dark = darkOut(now(state));
+      walkEnd = walkStep(ctx, st.walk, step);
+      met = wildLeg(ctx, was, dark);
+      if (walkEnd) { ran += step; stop = met; break; } // AT45: there, or blocked
+    }
     passTime(state, step / 60);
     catchUp(state, step / 60, first, onLeg); // the turn's own walks count once
     if (first) { state.scratch!.agentRun = []; firstS = step; } // AT63: an agent's order covers the first step; then everyone runs on code
@@ -1862,7 +1874,7 @@ function runStretch(ctx: Ctx, st: Stretch, onLeg?: OnLeg): void {
     const came = appeared(); // run each step, so the senses stay current
     readyStretchNpcs(ctx); // AE6 (RQ3 a): an NPC's readied step plays on the world clock as it comes true
     const ready = st.ready ? readyStretch(ctx) : null; // AE6: its condition first: the step plays where the wait stops for it
-    stop = ready ?? near ?? came;
+    stop = met ?? ready ?? near ?? came;
   }
   (state.scratch ??= {}).caughtUp = ((state.scratch.caughtUp as number | undefined) ?? 0) + (now(state) - t0);
   noteMeanwhile(state, ran - firstS);
@@ -1898,6 +1910,20 @@ function runStretch(ctx: Ctx, st: Stretch, onLeg?: OnLeg): void {
     logCode(state, 'time_passed', { actorId: p.id, minutes: ran / 60, from: t0, to: now(state) });
     st.ev.effects.push({ kind: 'time_passed', actorId: p.id, data: { minutes: ran / 60 } });
   }
+}
+
+/** BG-1831 (D-245 a): a long walk with no road on its route is no trip, but its minutes on open land off the road count
+ * toward a leg as a trip's do (Actor.roadMin), and a full leg rolls at the wild rate (legEncounter). A meeting stops the walk
+ * and breaks the scenario as on a trip (encounter) */
+function wildLeg(ctx: Ctx, was: Pos | undefined, dark: boolean): StretchStop | null {
+  const { state } = ctx, p = state.player, at = spotOf(state, p).pos, v = moveSpeed(state, p).walk;
+  if (!was || !at || v <= 0 || isRoad(zoneById(state, p.zone)) || !wildGround(state, at)) return null;
+  p.roadMin = Math.min(CONFIG.TRAVEL_LEG_MIN, (p.roadMin ?? 0) + Math.hypot(at.x - was.x, at.y - was.y) / v / 60);
+  const met = legEncounter(state, p, ctx.rng, dark, was);
+  if (!met) return null;
+  state.stage.encounter = { eventRoll: met.eventRoll, zone: p.zone, at: met.at };
+  state.stage.breakCause = 'encounter';
+  return { why: 'encounter', by: [] };
 }
 
 /** NW18: what a sleeper does on its turn: nothing, asleep */
