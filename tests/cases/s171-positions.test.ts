@@ -7,7 +7,7 @@ import { intent, play } from './w4-kit';
 import { inTitle, middle, wayTo } from '../../src/plan/where';
 import { boxOf, sharedSides } from '../../src/plan/geom';
 import { verticalOf } from '../../src/scenario/heights';
-import { distM, sightDistM } from '../../src/engine/position';
+import { distM, sightDistM, walkLeg } from '../../src/engine/position';
 import { ruleset } from '../../src/ruleset';
 import { forcedRng } from '../harness';
 import { CONFIG } from '../../src/config';
@@ -52,6 +52,18 @@ describe('171 positions', () => {
     expect(here.length).toBeGreaterThan(1);
     for (const a of here) expect(inTitle(z, a.pos!)).toBe(true);
     expect(distM(s, here[0], here[1])).toBeGreaterThanOrEqual(CONFIG.PLACE_GAP_M - 0.01);
+  });
+
+  it('BG-1616: spacing counts everyone on the floor, across an open title edge too', () => {
+    const s = mapped();
+    zoneOf(s, 'street_square').outline = [{ x: 10, y: -15 }, { x: 12, y: -15 }, { x: 12, y: -13 }, { x: 10, y: -13 }];
+    const g = place(s, 'guard_1', 'street_door');
+    g.pos = { x: 9.9, y: -14 };
+    const p = place(s, 'patron_1', 'street_square'); // its title's middle is 0.6 m from the guard's body
+    expect(distM(s, p, g)).toBeGreaterThanOrEqual(CONFIG.PLACE_SPACING_M - 0.01);
+    Object.assign(s.player, { zone: 'street_square', placeId: g.placeId, pos: { x: 11.5, y: -14.5 }, floor: 0 });
+    walkLeg(s, s.player, { zone: 'street_square', pos: { x: 10.1, y: -14 } }, 10, 0, s.player);
+    expect(distM(s, s.player, g)).toBeGreaterThanOrEqual(CONFIG.PLACE_GAP_M - 0.01);
   });
 
   it('ZP4: a straight line with sight between the zones, else the walking path through the doorways', () => {
