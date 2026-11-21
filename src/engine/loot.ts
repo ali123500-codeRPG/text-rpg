@@ -47,10 +47,12 @@ export function takesFrom(state: GameState, a: Actor, body: Actor): boolean {
 /** D-253 b: at a scenario's end every NPC standing that found a body (down or dead) and takes by its personality loots
  * it, nearest first. The player's body is not looted here (the rest of D-253 is parked). */
 export function lootFoundBodies(state: GameState): void {
-  for (const body of state.actors.filter((b) => !isActive(b))) {
-    const d = (x: Actor) => { const m = distM(state, x, body); return Number.isFinite(m) ? m : Infinity; };
-    const looters = state.actors.filter((a) => a !== body && a.mind && isActive(a) && a.mind.bodiesFound?.includes(body.id) && takesFrom(state, a, body))
-      .sort((a, b) => d(a) - d(b) || 0);
-    stripBody(state, body, looters);
-  }
+  for (const body of state.actors.filter((b) => !isActive(b))) stripBody(state, body, lootersOf(state, body, (a) => takesFrom(state, a, body)));
+}
+
+/** who may loot `body`: everyone standing who found it or saw it fall (bodiesFound) and `takes`, nearest by distM first */
+export function lootersOf(state: GameState, body: Actor, takes: (a: Actor) => boolean): Actor[] {
+  const d = (x: Actor) => { const m = distM(state, x, body); return Number.isFinite(m) ? m : Infinity; };
+  return state.actors.filter((a) => a !== body && a.mind && isActive(a) && a.mind.bodiesFound?.includes(body.id) && takes(a))
+    .sort((a, b) => d(a) - d(b) || 0);
 }

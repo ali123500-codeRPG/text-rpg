@@ -139,6 +139,7 @@ describe('272 carrying a world on', () => {
     const world = fallenWorld();
     const [patron, trader] = ['patron_1', 'trader'].map((id) => world.actors.find((a) => a.id === id)!);
     (patron.mind!.overrides ??= {})[world.player.id] = 'hostile'; // it downed them, in the same zone
+    patron.mind!.bodiesFound = [world.player.id]; // and saw them fall
     world.player.core.inventory.push({ id: 'loop', itemId: IT.varos_loop, boundTo: world.player.id });
     const kit = world.player.core.inventory.map((i) => i.id);
     const s = carryOn(world, { ...world, storyId: 'story_b', player: createPlayer(build, 'story_b', { world }), actors: [], bands: [], hidden: { ...world.hidden, plans: {} } });
@@ -149,6 +150,18 @@ describe('272 carrying a world on', () => {
     expect(p.core.inventory.every((i) => !i.equippedIn?.length || !kit.includes(i.id))).toBe(true);
     expect(past.core.inventory).toEqual([]);
     expect(t.core.inventory).toEqual([]); // not a foe: takes nothing
+  });
+
+  it('BG-1617: only hostile foes who saw the fall loot, the nearest by metres first, whatever their title', () => {
+    const world = fallenWorld();
+    const [patron, trader, guard] = ['patron_1', 'trader', 'guard_1'].map((id) => world.actors.find((a) => a.id === id)!);
+    for (const a of [patron, trader, guard]) (a.mind!.overrides ??= {})[world.player.id] = 'hostile';
+    for (const a of [trader, guard]) a.mind!.bodiesFound = [world.player.id]; // the patron, in the same zone, never saw it
+    const s = carryOn(world, { ...world, storyId: 'story_b', player: createPlayer(build, 'story_b', { world }), actors: [], bands: [], hidden: { ...world.hidden, plans: {} } });
+    const [p, t, g] = [patron.id, trader.id, guard.id].map((id) => s.actors.find((a) => a.id === id)!);
+    expect(t.core.inventory.find((i) => i.itemId === IT.coin)?.qty).toBe(20); // the nearer witness, in the next zone, takes the coin
+    expect(g.core.inventory.some((i) => i.itemId === IT.coin)).toBe(false);
+    expect(p.core.inventory).toEqual(patron.core.inventory); // the one who never saw it takes nothing
   });
 
   it('WP6 a: with no foe standing, everything stays on the body', () => {
@@ -164,6 +177,7 @@ describe('272 carrying a world on', () => {
     if (race) foe.core.raceId = race;
     Object.assign(foe, { zone: world.player.zone, placeId: world.player.placeId });
     (foe.mind!.overrides ??= {})[world.player.id] = 'hostile';
+    foe.mind!.bodiesFound = [world.player.id];
     const kit = world.player.core.inventory.map((i) => i.id);
     const s = carryOn(world, { ...world, storyId: 'story_b', player: createPlayer(build, 'story_b', { world }), actors: [], bands: [], hidden: { ...world.hidden, plans: {} } });
     expect(s.actors.find((a) => a.id === pastCharacterId('story_a'))!.core.inventory.map((i) => i.id)).toEqual(kit);
