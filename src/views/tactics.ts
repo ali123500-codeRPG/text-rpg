@@ -9,6 +9,7 @@ import { trueSkill } from '../ruleset/perks';
 import { allActors, countsInFight, hostile, isActive, zoneById } from '../engine/relations';
 import { fightingWith } from '../engine/engagement';
 import { ofOurs } from '../engine/belonging';
+import { orderRight } from '../engine/orders';
 import { distM, entryPoint, seeingM, walkRoute, placeOf } from '../engine/position';
 import { clutterCover, hostileNearM } from '../ruleset/gear';
 import { middle } from '../plan/where';
@@ -31,12 +32,14 @@ export const tacticsWord = (a: Actor): Tactics => {
   return [...TACTICS.keys].reverse().find((k) => bs >= CONFIG.TACTICS_FROM[k]) ?? TACTICS.keys[0];
 };
 
-/** TC7 a: the best Command among `a`'s bandmates whose shouted orders it hears clearly (a broken commander counts until
- * it is down or gone) */
+/** TC7 a, BEL-54, BB6 a: the best Command among those whose shouted orders `a` hears clearly and who hold a basis over it
+ * that covers a fight order (the order check, BEL-30); in a group with no leader yet, any bandmate, as before (a broken
+ * commander counts until it is down or gone) */
 export function commandLent(state: GameState, a: Actor): number {
   let best = 0;
+  const led = !!state.bands.find((g) => g.id === a.bandId)?.leaderId;
   for (const b of allActors(state)) {
-    if (b === a || b.bandId !== a.bandId || !isActive(b)) continue;
+    if (b === a || !isActive(b) || (led ? !orderRight(state, b, a, 'fight') : b.bandId !== a.bandId)) continue;
     if (!hearsClearly(state, placeOf(b), a, VOLUME_NOISE.shout)) continue;
     best = Math.max(best, trueSkill(b, SK.command));
   }

@@ -52,3 +52,6 @@ are library data, and every number is in `src/config.ts`.
   day; on "Belonging build" (BB1 a, BB2 a, BB3 a) the owner chose what spawning fills: a watch per settlement under a
   council per settlement, a new gang, company or pack per group, a caravan's guards hired by its master in person.
   Shared or contested control of a city is parked (D-1784).
+  Steps 3 and 4 built the same day (BB4 b, BB5 a, BB6 a, BB7 a, BB8 a, BB9 b): readers moved to group or crew and the
+  fight's side; a hidden character is hidden from its own too ("allies can get a +2 at most"); the order check with four
+  kinds of order and a will step. Further review of the will step is parked (INP-1823).

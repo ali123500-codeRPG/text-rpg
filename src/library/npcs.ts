@@ -91,6 +91,22 @@ export const HOOK_KINDS: Record<string, HookKindDef> = Object.fromEntries(([
 /** BB2 a: the body for a settlement's rule: one per settlement, seated there, holding the place, its law running there */
 export const SETTLEMENT_COUNCIL = { kind: 'council', commitment: 'sworn' } as const;
 
+/** BB7 a: the kinds of order (BEL-34): fight (attack someone, hold, fall back, pick a target), move (go, come, stay,
+ * follow), conduct (stop, lower or sheathe a weapon, leave this place, keep quiet), task (a job: guard, fetch, deliver,
+ * search) */
+export const ORDER_KINDS = ['fight', 'move', 'conduct', 'task'] as const;
+export type OrderKind = (typeof ORDER_KINDS)[number];
+/** BEL-30, BB7 a: the four bases of a right to order, strongest first, and the kinds each covers */
+export const ORDER_BASES = [
+  { id: 'command', covers: ['fight', 'move', 'conduct', 'task'] }, // its organization's business
+  { id: 'link', covers: ['fight', 'move', 'conduct', 'task'] }, // what Command covers, seat to seat
+  { id: 'lead', covers: ['fight', 'move', 'task'] }, // inside the group's purpose
+  { id: 'ground', covers: ['conduct'] }, // in that place
+] as const satisfies readonly { id: string; covers: readonly OrderKind[] }[];
+export type OrderBasis = (typeof ORDER_BASES)[number]['id'];
+/** BEL-30: a link's kinds that give one end direction over the other: `a` of a vassal_of or hired_by link is directed by `b` */
+export const DIRECTING_LINKS = ['vassal_of', 'hired_by'] as const;
+
 export const CAST_RECIPES: Record<string, CastRecipe> = Object.fromEntries(([
   { id: GP.pedlar, name: 'Pedlar', theme: TH.travellers, lead: { role: RO.talker, label: 'a pedlar', class: CL.trader } },
   { id: GP.traveller, name: 'Traveller', theme: TH.travellers, lead: { role: RO.talker, label: 'a traveller with news or a job' } },

@@ -8,6 +8,7 @@ import { SKILL_NAMES } from '../library/skillNames';
 import { CHASE_RANGES, COVER, FRAGILITY, LIGHT, QUALITY_LEVELS, READY_ON, STANCES, TIERS, TIME_OF_DAY, type FragilityKey, type ReadyWhen, type QualityKey, type Scale, type TimeOfDay } from '../scales';
 import { qualityOf } from '../ruleset/quality';
 import { WAY_OPS } from '../engine/barriers';
+import { ORDER_KINDS } from '../library/npcs';
 
 type V<T = unknown> = (v: unknown, path: string, errs: string[]) => T;
 export type Checked<T> = { value: T; errors: string[] };
@@ -83,6 +84,7 @@ const intent = obj<Intent>({
   }, ['qty', 'for', 'demand', 'aimed', 'noSkillFits', 'grade', 'fall'])),
   perkMove: nul(obj<{ perk: string; target: string | null }>({ perk: str, target: nul(str) })),
   warn: nul(str),
+  order: (v, p, e) => (v === undefined ? undefined : nul(oneOf(ORDER_KINDS))(v, p, e)) as Intent['order'], // BB7 a
   when: readyWhen, // AE6
   defense: (v, p, e) => (v === undefined ? undefined : nul(oneOf(['dodge', 'block', 'parry'] as const))(v, p, e)) as Intent['defense'], // RY7
   way: nul(obj<NonNullable<Intent['way']>>({ toZone: str, op: oneOf(WAY_OPS) })),
@@ -240,7 +242,8 @@ const weaver = obj<StagePlan>({
     talent: str, // AG25
     goals: arr(obj<GoalOps['add'][number]>({ text: str, about: arr(str) }, ['about'])), // UG3
     roster: str, group: obj<NonNullable<Cast['group']>>({ id: str, rank: str }), // NR17, NR27
-  }, ['roster', 'group', 'template', 'actor', 'compose', 'templateGap', 'pronouns', 'knownOnSight', 'knownAs', 'knows', 'startAt', 'routineGap', 'awarenessOfBands', 'overrides', 'wares', 'personality', 'age', 'talent', 'goals'])),
+    leads: bool, // BB6 a
+  }, ['leads', 'roster', 'group', 'template', 'actor', 'compose', 'templateGap', 'pronouns', 'knownOnSight', 'knownAs', 'knows', 'startAt', 'routineGap', 'awarenessOfBands', 'overrides', 'wares', 'personality', 'age', 'talent', 'goals'])),
   seeds: obj<StagePlan['seeds']>({ plans: arr(any) as V<StagePlan['seeds']['plans']>, triggers: arr(any) as V<StagePlan['seeds']['triggers']>, secrets: arr(any) as V<StagePlan['seeds']['secrets']> }),
   rewards: arr(obj<StagePlan['rewards'][number]>({
     item: (v, p, e) => (typeof v === 'string' ? v : obj<{ base: string; quality: QualityKey; boosts: string; name: string; look: string; fragility?: FragilityKey }>(
