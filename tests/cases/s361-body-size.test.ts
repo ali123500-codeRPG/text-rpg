@@ -9,11 +9,11 @@ import { CONFIG } from '../../src/config';
 import { actorBody, getLibrary } from '../../src/library';
 import { BT, RC } from '../../src/library/raceIds';
 import { AM, LC } from '../../src/library/tableIds';
-import { entryPoint, floorGap, placeAll, seeingM, seenSizeFactor, unplace, withinM } from '../../src/engine/position';
+import { entryPoint, floorGap, placeAll, routeOf, seeingM, seenSizeFactor, unplace, withinM } from '../../src/engine/position';
 import { sightFactor } from '../../src/library/bodySize';
 import { ruleset } from '../../src/ruleset';
 import { IT } from '../../src/library/itemIds';
-import { fitsThrough, wayPath, zoneById } from '../../src/engine/relations';
+import { fitsThrough, zoneById } from '../../src/engine/relations';
 import { coverMod, coverShown, hostileNearM, meleeReachM, usableModes } from '../../src/ruleset/gear';
 import { gripReachM } from '../../src/ruleset/body';
 
@@ -162,10 +162,11 @@ it('SZ7: a body goes through a doorway sideways and ducking; too big a body take
   expect(fitsThrough(s, s.player, link)).toBe(true);
   expect(fitsThrough(s, h, link)).toBe(true); // nose first: 0.65 m wide, 1.6 m ducks to 0.8
   getLibrary().races![OGRE] = { ...getLibrary().races![s.player.core.raceId!], id: OGRE, sizeMult: { length: 2, width: 2, height: 6 / 1.75 } };
-  const giant = { ...s.player, zone: 'street_door', core: { ...s.player.core, raceId: OGRE } };
+  place(s, 'player', 'street_door');
+  const giant = { ...s.player, core: { ...s.player.core, raceId: OGRE } };
   expect(fitsThrough(s, giant, link)).toBe(false); // 1 m wide, and 6 m ducks only to 3
-  expect(wayPath(s, 'street_door', 'tav_common', giant)).toBeNull();
-  expect(wayPath(s, 'street_door', 'tav_common', s.player)).toEqual(['tav_common']);
+  expect(routeOf(s, giant, { zone: 'tav_common' })).toBeNull();
+  expect(routeOf(s, s.player, { zone: 'tav_common' })).toEqual(['tav_common']);
   expect(fitsThrough(s, giant, wayTo(s, 'field_edge', 'field_mid')!)).toBe(true); // open ground: as wide as the ground they share
   delete getLibrary().races![OGRE];
 });

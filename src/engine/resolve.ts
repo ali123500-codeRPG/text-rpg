@@ -168,6 +168,7 @@ import {
   spotAt,
   placeOf,
   unplace,
+  routeOf,
   walkLeg,
   wayLeftM,
   wayPoint,
@@ -364,11 +365,9 @@ import {
   isEngaged,
   knowsShut,
   reachesAcross,
-  shortestPath,
   sparBetween,
   stance,
   wary,
-  wayPath,
   zoneById,
 } from './relations';
 import {
@@ -1156,7 +1155,7 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
 /** BG-148: the way straight into `goal` that the walker knows is shut, when its walk goes round it instead: never silent */
 function roundShut(state: GameState, a: Actor, goal: string): { way: string; shut: 'blocked' | 'barred' | 'locked' } | undefined {
   const l = wayTo(state, a.zone, goal), b = l && barrierOn(state, l.opening);
-  if (!l || !b || passage(b, a, a.zone) !== 'shut' || !knowsShut(state, b, a, a.zone) || wayPath(state, a.zone, goal, a)?.[0] === goal) return undefined;
+  if (!l || !b || passage(b, a, a.zone) !== 'shut' || !knowsShut(state, b, a, a.zone) || routeOf(state, a, { zone: goal })?.[0] === goal) return undefined;
   return { way: l.label, shut: shutBy(b, a.zone) };
 }
 
@@ -3403,7 +3402,7 @@ function settleOffers(ctx: Ctx): void {
 /** AE1: the attack would be ranged from here, or (out of reach here) from where the move leads */
 const rangedHere = (state: GameState, a: Actor, o: Order) => {
   const here = attackMode(state, a, o);
-  const next = o.move ? shortestPath(state, a.zone, o.move)?.[0] : undefined;
+  const next = o.move ? routeOf(state, a, { zone: o.move })?.[0] : undefined;
   const m = here.m && reachesM(here.dist, here.m.mode.reach) ? here.m : next ? attackMode(state, a, o, { zone: next }).m : here.m;
   return m?.mode.tree === 'ranged';
 };

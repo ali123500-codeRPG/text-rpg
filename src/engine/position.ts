@@ -310,6 +310,11 @@ export function walkRoute(state: GameState, a: Located, b: Located, walker?: Act
   // the walker's own walk, centre to point (no body's edge taken off: what the walk walks)
   return { path: titlesOf(pieces, a.zone), pts: w.pts.map((p) => ({ x: p.x, y: p.y })), metres: walkGap(state, { zone: a.zone, pos: w.pts[0] }, { zone: b.zone, pos: B }, w) };
 }
+/** BG-1708: the titles `a`'s walk to `goal` passes after its own, as walkLeg walks it (walked metres, round the ways it
+ * knows are shut; never the fewest ways); null with no way, or where a title on the way has no footprint */
+export function routeOf(state: GameState, a: Actor, goal: Located): string[] | null {
+  try { return walkRoute(state, a, goal, a)?.path ?? null; } catch { return null; }
+}
 const centreOf = (state: GameState, zoneId: string): Pos => { const z = zoneById(state, zoneId); if (!z?.outline?.length) throw noOutline({ id: zoneId }); return centre(z); };
 /** the point a walk to `goal` heads for: its spot, else its title's centre */
 export const goalPoint = (state: GameState, goal: Located): Pt3 => (goal.pos ? pointAt(state, goal) : { ...centreOf(state, goal.zone), floor: floorOf(state, goal) });
