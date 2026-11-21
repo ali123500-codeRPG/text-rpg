@@ -3,6 +3,9 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bugs/`.
 
+- 21/11/2026: `docs/instructions.md` section 8 and `docs/providers/claude.md`, Skills: a merged change to a skill hands
+  the owner the zip of each changed skill (`npm run skills-zip`, `dist/skills/<name>.zip`) in its report. The owner:
+  "give me zip for the skill and make is a standing project rule for any change that updates skills".
 - 21/11/2026: `docs/providers/claude.md` "Playtests and model-backed tests": the signed-in `claude` client is on the
   main account only; threads on the other account follow the "Other agents" line. The owner answered PQ14 "a."
   ("Note that it holds on the main account only").

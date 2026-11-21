@@ -251,6 +251,9 @@ The source of truth for every design decision.
 
 - Start from the latest `main`: `git fetch origin main`, then branch from `origin/main`. A session's checkout can
   start on an old branch.
+- **A skill change hands the owner its zip.** When a merged PR changed a skill in `.agents/skills/`, run
+  `npm run skills-zip` on the latest `main` and give the owner `dist/skills/<name>.zip` for each skill it changed, in
+  the report on that PR. Reason: project threads load the account copy, which the owner installs from the zip.
 - Every change is a PR into `main` that follows `.github/pull_request_template.md`. The full CI runs on it: type
   check, unit and scenario tests, build, browser smoke, and the PR rule. The template's terms (completeness rows,
   whole-turn test) are in `docs/glossary.md`.
