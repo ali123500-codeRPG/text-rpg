@@ -16,6 +16,7 @@ import { markIcon } from './creation';
 import { ended, h } from './kit';
 import { classIcon, skillMark } from './itemIcons';
 import { openPop, closePop } from './pop';
+import { perkButton } from './perks';
 
 /** a class opening another: `via` says how ("its capstone", "level 5") */
 export type ClassLink = { from: string; to: string; via: string };
@@ -213,7 +214,7 @@ export function openClassCard(s: GameState, id: string, opener: HTMLElement | nu
   const n = classTree(p).nodes.find((x) => x.id === id);
   const links = classLinks();
   const name = (cid: string) => lib.classes[cid]?.name ?? cid;
-  const perkNames = (ids: string[] = []) => ids.map((x) => lib.perks[x]?.name ?? x).join(', ');
+  const perkNames = (ids: string[] = []): Bit[] => joined(ids.map((x) => [perkButton(x)]), ', ');
   const hidden = (cid: string) => !p.core.classes.some((x) => x.classId === cid) && !classTree(p).nodes.some((x) => x.id === cid);
   const from = links.filter((l) => l.to === id), to = links.filter((l) => l.from === id);
   const row = (k: string, v: string | Bit[]) => [h('dt', {}, k), h('dd', {}, v)];
@@ -223,7 +224,7 @@ export function openClassCard(s: GameState, id: string, opener: HTMLElement | nu
       ...row('Tier', CLASS_TIERS.name(c.tier)),
       ...(n ? row('Level', statusText(n)) : []),
       ...Object.entries(c.levelPerks ?? {}).flatMap(([lv, ids]) => row(`Level ${lv} perk`, perkNames(ids))),
-      ...(c.capstone?.length ? row('Capstone', `${perkNames(c.capstone)} at level ${classMaxLevel(id)}`) : []),
+      ...(c.capstone?.length ? row('Capstone', [...perkNames(c.capstone), ` at level ${classMaxLevel(id)}`]) : []),
       ...row('Opens from', ((o: Bit[][]) => (o.length ? joined(o, '; ') : 'Only where a start begins'))([...from.map((l) => [`${name(l.from)} (${l.via})`]), ...(n?.source ? [n.source] : [])])),
       ...row('Leads to', to.length ? to.map((l) => (hidden(l.to) ? `a class not shown yet (${l.via})` : `${name(l.to)} (${l.via})`)).join('; ')
         : opensAll(c) ? 'Its capstone can open every class' : 'Nothing: a dead end')),

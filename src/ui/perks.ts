@@ -7,7 +7,7 @@ import type { Actor, GameApi, GameState, OwnedPerk, PerkDef } from '../types';
 import { getLibrary } from '../library';
 import { allStepsUpTo, canUndo, milestonesUpTo, milestonePerk, milestoneState, trueSkill, type MilestoneState } from '../ruleset';
 import { boxOf, ended, fitInView, h, viewSize } from './kit';
-import { dragBy } from './pop';
+import { dragBy, openPop } from './pop';
 import { CONFIG } from '../config';
 import { skillName, TREE_VIEW } from './creation';
 import { PK } from '../library/perkIds';
@@ -116,6 +116,17 @@ function textToggle() {
 /** a perk's Effect write-up as labelled rows */
 export const perkRuleRows = (r: NonNullable<PerkDef['rules']>): [string, string][] =>
   [['Kind', r.kind], ['Trigger', r.trigger], ...(r.conditions.length ? [['Conditions', r.conditions.join(' ')] as [string, string]] : []), ['Effect', r.effect], ['Lasts', r.lasts], ...(r.cooldown ? [['Cooldown', r.cooldown] as [string, string]] : [])];
+
+/** a perk's name; clicking it opens its story and effect in a details pop-up, above any page or full-screen pop-up */
+export function perkButton(id: string): HTMLElement {
+  const d = getLibrary().perks[id];
+  if (!d) return h('span', {}, id);
+  const story = d.story ?? d.text;
+  return h('button', { class: 'hs-btn-text perk-link', type: 'button', title: 'What it does', onclick: (e: Event) => openPop({ title: d.name, tone: 'perk-40', opener: e.currentTarget as HTMLElement, body: [
+    story ? h('p', {}, story) : null,
+    d.rules ? h('dl', { class: 'gp-rows' }, perkRuleRows(d.rules).flatMap(([k, v]) => [h('dt', {}, k), h('dd', {}, v)])) : null,
+  ] }) }, d.name);
+}
 
 function writeup(d: PerkDef) {
   const r = d.rules;

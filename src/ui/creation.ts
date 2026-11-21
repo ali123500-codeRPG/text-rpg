@@ -7,7 +7,7 @@ import { CONFIG } from '../config';
 import { burdenTotal } from '../ruleset/burdenTotal';
 import { getLibrary } from '../library';
 import { classFloors, classlessStart, creationCap, startRaw, defaultClass, createPlayer, playableRaces, raceStartBlock, randomIdentity, creationAge, creationAgeRange, creationPoints, buildState, newPlayer, recommendedBuild, startGives, startLevel, classMaxLevel, classPerks } from '../library/spawn';
-import { perkRuleRows } from './perks';
+import { perkButton } from './perks';
 import { blessedClass, blessingGods } from '../ruleset/blessings';
 import { lifeStage, stageName } from '../ruleset/age';
 import { personalityPicker } from './personality';
@@ -69,16 +69,6 @@ function startFacts(startId: string): { tier: string; classes: string[]; perks: 
     classes, perks: b ? ['a random god’s blessing', ...perks] : perks, byLevel,
     blocked: b && !blessingGods(b.tier).length ? 'no god gives this blessing yet.' : '',
   };
-}
-
-/** a perk's name; clicking it opens its story and effect in the movable panel */
-function perkButton(id: string): HTMLElement {
-  const d = getLibrary().perks[id];
-  if (!d) return h('span', {}, id);
-  return h('button', { class: 'hs-btn-text', type: 'button', title: 'What it does', onclick: () => openPanel(d.name, [
-    ...(d.story ?? d.text ? [{ k: 'Story', v: (d.story ?? d.text)! }] : []),
-    ...(d.rules ? perkRuleRows(d.rules).map(([k, v]) => ({ k, v })) : []),
-  ]) }, d.name);
 }
 
 // name and gender carry over when the player switches Start
@@ -328,7 +318,7 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
         start?.story ?? cls?.story ? h('p', { class: 'story-line' }, start?.story ?? cls?.story) : null,
         start?.blessing ? h('p', {}, `You begin with ${facts.perks[0]}, in that god’s Blessed class${facts.classes.length ? `: ${facts.classes.map((c) => `${lib.classes[c].name} (${CLASS_TIERS.name(lib.classes[c].tier)})`).join(' or ')}` : ''}.`)
           : classlessStart(startId) ? h('p', {}, `You begin with no class, at level 0. ${lib.classes[defaultClass() ?? '']?.name ?? 'The default class'} is open to pick, and your levels wait until you pick a class.`)
-          : facts.byLevel.length ? h('p', { class: 'perk-line' }, facts.byLevel.flatMap(([n, ids], i) => [i ? ' ' : '',
+          : facts.byLevel.length ? h('p', {}, facts.byLevel.flatMap(([n, ids], i) => [i ? ' ' : '',
             `${n === classMaxLevel(facts.classes[0]) ? 'Capstone' : 'Class perk'} at level ${n}: `, ...ids.flatMap((id, j) => [j ? ', ' : '', perkButton(id)]), '.'])) : null),
       h('div', { class: 'actions' },
         h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { snap(); recommended(); afterKey = buildKey(); render(); } }, 'Use recommended build'),
