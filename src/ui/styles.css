@@ -29,7 +29,7 @@
   --vh: 100vh;
   /* motion (Motion Rules Review M-50): every duration and easing on the play screen comes from these */
   --m-feedback: 120ms; --m-state: 200ms; --m-beat: 220ms; --m-sentence: 180ms; --m-reveal-cap: 1500ms; --m-stagger: 350ms;
-  --m-results-cap: 3500ms; --m-count: 600ms; --m-trail: 700ms; --m-scenario: 650ms; --m-backdrop: 800ms; /* M-75: a new backdrop's fade, placeholder */ --m-fall: 1400ms; --m-honor: 900ms;
+  --m-results-cap: 3500ms; --m-count: 600ms; --m-trail: 700ms; --m-scenario: 650ms; --m-backdrop: 800ms; /* M-75: a new backdrop's fade, placeholder */ --m-fall: 1400ms; --m-honor: 900ms; --m-honor-legend-hold: 240ms; /* M-38c: a Legendary achievement's longer breath before it lands, placeholder */
   --m-hold: 80ms; --m-shake: 280ms; --m-pulse-step: 20ms; --m-pulse-max: 290ms; --m-ghost-hold: 250ms; --m-gain-gap: 300ms; --m-gains-pace: 2; /* the gains moment runs at this multiple of every duration */ --m-gains-min: 10000ms; /* and lasts at least this long, unless skipped */
   --m-tip-delay: 75ms; /* A7: a hover tip waits this; focus shows it at once */
   --m-ease: cubic-bezier(0.16, 1, 0.3, 1); --m-ease-exit: cubic-bezier(0.4, 0, 1, 1);
@@ -624,6 +624,29 @@ button.cs-sigil:hover, button.cs-sigil:focus-visible { box-shadow: 0 0 0 4px var
 .perk-new[data-series="40"] { --scenario-mark: var(--perk-40); }
 .perk-new.ach.scar { --scenario-mark: var(--danger); background: color-mix(in oklch, var(--danger) 9%, transparent); }
 .perk-new.ach.scar::after { display: none; }
+/* M-38c, AV1-AV5: an achievement or scar shows by its prominence band (data-band); Major is the card above */
+.perk-new.ach[data-band="minor"] { margin: 2px 0; padding: 2px 12px; gap: var(--space-2); border: 0; border-left: 2px solid color-mix(in oklch, var(--scenario-mark) 45%, transparent);
+  border-radius: 0; background: none; }
+.perk-new.ach[data-band="minor"]::after { display: none; }
+.perk-new.ach[data-band="minor"] .st { font-size: 13px; }
+.perk-new.ach[data-band="minor"] .ach-txt { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--space-2); }
+.perk-new.ach[data-band="minor"] .ach-k, .perk-new.ach[data-band="minor"] .ach-lv { font-size: 11px; line-height: 14px; }
+.perk-new.ach[data-band="minor"] .ach-n { font-size: 14px; }
+.perk-new.ach[data-band="minor"] small { display: inline; }
+.perk-new.ach[data-band="notable"]:not(.scar) { border-color: color-mix(in oklch, var(--scenario-mark) 35%, transparent); background: none; }
+.perk-new.ach[data-band="legendary"] { padding: var(--space-4) 18px; border-color: var(--scenario-mark);
+  background: linear-gradient(100deg, color-mix(in oklch, var(--scenario-mark) 22%, transparent), color-mix(in oklch, var(--scenario-mark) 6%, transparent) 70%);
+  box-shadow: inset 0 0 0 3px color-mix(in oklch, var(--scenario-mark) 14%, transparent), 0 0 24px -6px color-mix(in oklch, var(--scenario-mark) 55%, transparent); }
+.perk-new.ach[data-band="legendary"] .st { position: relative; display: grid; place-items: center; flex: none; width: 40px; height: 40px; font-size: 28px; border-radius: 50%;
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--scenario-mark) 60%, transparent), 0 0 16px color-mix(in oklch, var(--scenario-mark) 50%, transparent); }
+.perk-new.ach[data-band="legendary"] .st::after { content: ''; position: absolute; inset: 0; border-radius: 50%; border: 1px solid var(--scenario-mark); opacity: 0; pointer-events: none; }
+.perk-new.ach[data-band="legendary"] .ach-n { font-size: 21px; }
+.perk-new.ach[data-band="legendary"] .ach-lv { background: var(--scenario-mark); border-color: var(--scenario-mark); color: var(--on-pill); }
+/* M-38c: the column's edge glows once as a Legendary one lands (gold, red for a scar) */
+.gains, .story .col { position: relative; }
+.honor-edge { position: absolute; inset: 0; pointer-events: none; opacity: 0; z-index: 1;
+  box-shadow: inset 2px 0 0 var(--scenario-mark), inset -2px 0 0 var(--scenario-mark), inset 28px 0 32px -28px var(--scenario-mark), inset -28px 0 32px -28px var(--scenario-mark); }
+.honor-edge.scar { --scenario-mark: var(--danger); }
 /* details pop-ups on the game screens: movable by the head, never modal */
 .dpop { position: fixed; z-index: 50; width: min(380px, calc(100vw - 32px)); max-height: calc(var(--vh) - 32px); display: grid; grid-template-rows: auto minmax(0, 1fr);
   border: 1px solid color-mix(in oklch, var(--pc, var(--accent)) 55%, var(--border)); border-radius: var(--r-lg); background: var(--surface); color: var(--text); }
@@ -1371,6 +1394,9 @@ button.eq-name:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .g-label { line-height: 24px; }
 .g-items { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--space-3) var(--space-4); }
 .g-items > .perk-new { margin: 0; }
+/* M-38c: a Legendary achievement takes the whole row of the gains moment; a Minor row stays one line high where it fits */
+.g-items > .perk-new.ach[data-band="legendary"] { grid-column: 1 / -1; }
+.g-items > .perk-new.ach[data-band="minor"] { align-self: center; }
 /* a skill that went up: its name, its new value, the gain in gold, and its bar */
 .g-skill { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: "n num up" "bar bar bar"; align-items: baseline; gap: 6px var(--space-3);
   padding: 10px 12px; border-radius: var(--r-lg); background: color-mix(in srgb, var(--surface) 70%, transparent); }
@@ -1582,6 +1608,9 @@ button.eq-name:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .th-knot.held .th-bead { background: var(--thread); color: var(--on-pill); }
 .th-knot.next .th-bead { border: 2px solid var(--thread); background: color-mix(in oklch, var(--thread) 12%, transparent); color: var(--thread); }
 .th-knot.held:hover .th-bead, .th-knot.next:hover .th-bead { outline: 3px solid color-mix(in oklch, var(--thread) 30%, transparent); outline-offset: 0; }
+/* M-38c, AV4: a held knot by its prominence band: Minor smaller (scaled, so the thread stays level), Legendary with a glow */
+.th-knot[data-band="minor"] .th-bead { transform: scale(.78); }
+.th-knot[data-band="legendary"] .th-bead { box-shadow: 0 0 0 2px color-mix(in oklch, var(--thread) 35%, transparent), 0 0 14px color-mix(in oklch, var(--thread) 60%, transparent); }
 /* more levels follow: a short stretch of bare thread fading out after the next knot */
 .th-tail { flex: 0 0 40px; height: 2px; margin-top: 12px; border-radius: 1px; background: linear-gradient(90deg, var(--thread-dim), transparent); }
 .th-branch .th-tail { flex-basis: 28px; margin-top: 9px; }

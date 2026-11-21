@@ -1,7 +1,7 @@
 // CONFIG defaults: reward worth, XP, levels and ratings. src/config.ts spreads every part into one DEFAULTS in file order,
 // so a key keeps its place: moving keys between parts, or reordering them, changes CONFIG's key order.
 import type { DefenseKind } from '../types';
-import type { QualityKey, QuestRewardLevel } from '../scales';
+import type { AchBand, QualityKey, QuestRewardLevel } from '../scales';
 import type { VowStake } from '../types/state';
 import { GR, RT } from '../library/functionIds';
 import { SK } from '../library/skillIds';
@@ -98,6 +98,9 @@ export const PROGRESSION = {
    * + (floor + (atI − floor) × max(0, p)^power) × xpToNext. Level I pays atI, VI about 30%; level 0 and below (scars there
    * too) pay the floor; power under 2 (weaker than squared). All placeholders. */
   ACH_LEVEL_SHARE: { floor: 0.005, atI: 0.02, power: 1.67 },
+  /** AV1: the lowest reward level (REWARD_LEVELS key) of each prominence band above Minor (ACH_BANDS): below the first
+   * cut an achievement is Minor; levels past XV stay Legendary. Read only through achBand. Placeholders. */
+  ACH_BAND_FROM: { notable: 'i', major: 'iii', legendary: 'vi' } as Record<Exclude<AchBand, 'minor'>, string>,
   /** QT9: a quest's reward level from the scenario's gain grade when it is accepted (iv is kept for later story quests) */
   QUEST_GAIN_LEVEL: { none: 'zero', minor: 'zero', moderate: 'i', major: 'ii', extreme: 'iii' } as Record<string, QuestRewardLevel>,
   /** a quest pays the XP of the achievement reward level this many places above its own (quest 0 = achievement II) */

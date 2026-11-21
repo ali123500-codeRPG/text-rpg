@@ -37,20 +37,38 @@ export function gainsSummary(g: ScenarioGains): string {
 /** M-38/M-38a, game-feel T4: an achievement or a level-up card is a milestone. Anticipation: a --m-hold pause. Then the
  * card rises in, its star lands in its struck pose and holds, one band of light sweeps across once, and an achievement's
  * tier lands. A scar comes in heavier and darker, with no light. Nothing on the card grows more than a few pixels, so its
- * text never slides. Returns how long it holds the cards after it. */
+ * text never slides. M-38c: an achievement or scar plays by its prominence band (data-band, AV1-AV5): Minor only fades in,
+ * Notable rises with its star and tier but no light, Major is the beat above, and Legendary holds longer
+ * (--m-honor-legend-hold), sends one ring off its star and makes its column's edge glow once. Returns how long it holds
+ * the cards after it. */
 export function honor(g: HTMLElement, d0: number): number {
-  const dur = ms('--m-honor'), beat = ms('--m-beat'), d = d0 + ms('--m-hold');
+  const band = g.dataset.band ?? 'major', state = ms('--m-state'), beat = ms('--m-beat'), hold = ms('--m-hold');
+  if (band === 'minor') { play(g, [{ opacity: 0 }, { opacity: 1 }], { dur: state, delay: d0 }); return state; }
+  const legend = band === 'legendary', d = d0 + (legend ? ms('--m-honor-legend-hold') : hold);
+  const star = g.querySelector<HTMLElement>('.st'), lv = g.querySelector<HTMLElement>('.ach-lv');
+  let landed: number, out: number;
   if (g.classList.contains('scar')) {
     play(g, [{ opacity: 0, transform: 'translateY(-4px)' }, { opacity: 1, transform: 'none' }], { dur: beat, delay: d });
-    impact(g.querySelector('.st'), d + beat);
-    stamp(g.querySelector<HTMLElement>('.ach-lv'), d + beat);
-    return beat + ms('--m-hold');
+    landed = d + beat; out = beat;
+  } else if (band === 'notable') {
+    play(g, [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { dur: state * 2, delay: d });
+    landed = d + state; out = state * 2;
+  } else {
+    const dur = ms('--m-honor');
+    play(g, [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { dur: state * 2, delay: d });
+    play(g, [{ transform: 'translateX(-100%)' }, { transform: 'translateX(100%)' }], { dur, delay: d + state, pseudo: '::after' });
+    landed = d + state; out = dur / 2;
   }
-  play(g, [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { dur: ms('--m-state') * 2, delay: d });
-  play(g, [{ transform: 'translateX(-100%)' }, { transform: 'translateX(100%)' }], { dur, delay: d + ms('--m-state'), pseudo: '::after' });
-  impact(g.querySelector('.st'), d + ms('--m-state'));
-  stamp(g.querySelector<HTMLElement>('.ach-lv'), d + dur / 2);
-  return dur / 2 + ms('--m-hold');
+  impact(star, landed);
+  stamp(lv, g.classList.contains('scar') || band === 'notable' ? landed : d + ms('--m-honor') / 2);
+  if (legend) {
+    play(star, [{ opacity: 0.8, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(1.8)' }], { dur: ms('--m-honor'), delay: landed + hold, pseudo: '::after' });
+    const edge = g.closest('.gains, .col')?.querySelector<HTMLElement>(':scope > .honor-edge');
+    edge?.classList.toggle('scar', g.classList.contains('scar'));
+    play(edge, [{ opacity: 0 }, { opacity: 1, offset: 0.3 }, { opacity: 0 }], { dur: ms('--m-honor') * 2, delay: landed });
+    out = Math.max(out, ms('--m-honor'));
+  }
+  return out + (d - d0);
 }
 
 type Opts = {
@@ -63,7 +81,7 @@ type Opts = {
 export function gainsPanel(g: ScenarioGains, o: Opts): HTMLElement {
   const end = o.end;
   return h('div', { class: 'gains-veil', role: 'dialog', 'aria-modal': 'false', 'aria-labelledby': 'gains-h', 'data-end': end?.as ?? '' },
-    h('section', { class: 'gains' },
+    h('section', { class: 'gains' }, h('span', { class: 'honor-edge', 'aria-hidden': 'true' }),
       end ? h('p', { class: 'pbreak end g-rule', 'data-end': end.as }, h('b', {}, cap(end.name))) : null,
       end ? h('p', { class: 'g-outcome', 'data-end': end.as }, SCENARIO_ENDING_OUTCOMES[end.as]) : null,
       // SD1: the old scenario's closing line sits under its ending, so the panel is that scenario's last word
@@ -162,6 +180,9 @@ function gainsTimeline(veil: HTMLElement, g: ScenarioGains, t0: number): number 
         arrive(it, t, 6);
         impact(it.querySelector('.st'), t + state);
         t += gap + hold;
+      } else if (key === 'ach' && it.dataset.band === 'minor') {
+        honor(it, t); // AV2/AV4: a Minor one lands like a skill raise, one fade at the common step
+        t += gap;
       } else if (key === 'all' || key === 'ach') {
         t += honor(it, t) + gap;
       } else if (key === 'xp') {
@@ -210,7 +231,7 @@ function gainsTimeline(veil: HTMLElement, g: ScenarioGains, t0: number): number 
 }
 
 /** an achievement or scar as the Gains page lists it: the same card as the turn's, without its pop-up */
-const achNote = (a: AchievementNote) => h('div', { class: `perk-new ach g-ach${a.scar ? ' scar' : ''}` },
+const achNote = (a: AchievementNote) => h('div', { class: `perk-new ach g-ach${a.scar ? ' scar' : ''}`, 'data-band': a.band },
   h('span', { class: 'st', 'aria-hidden': 'true' }, a.scar ? '✶' : '✦'),
   h('div', { class: 'ach-txt' }, h('span', { class: 'ach-k' }, a.scar ? 'Scar' : 'Achievement', a.levelName ? h('span', { class: 'ach-lv' }, `Tier ${a.levelName}`) : null),
     h('b', { class: 'ach-n' }, a.name), a.earnedAt ? h('small', {}, cap(a.earnedAt)) : null));
