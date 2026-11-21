@@ -9,6 +9,7 @@ import { readVow, renounceVow, swearVow, vowRewards, vowXp, type VowForm } from 
 import { getLibrary } from '../../src/library';
 import { RW } from '../../src/library/tableIds';
 import { IT } from '../../src/library/itemIds';
+import { IMPROVISED_ITEM } from '../../src/engine/gear';
 import { createRng } from '../harness';
 import { charLevel } from '../../src/engine/xp';
 import { checkWitness } from '../../src/agents/schema';
@@ -78,6 +79,13 @@ describe('420 vows', () => {
       expect(n('ii')).toBeCloseTo(CONFIG.BOON_BUDGET[CONFIG.VOW_STAKE_GAIN.ii]);
       tables[RW.vow_items].rows = [{ weight: 1, item: IT.varos_loop }]; // far over any band: put back every time
       expect(vowRewards(s, 'iii', createRng(7))).toEqual([]);
+      const budget = CONFIG.BOON_BUDGET, was = budget.major;
+      budget.major = 20; // a band it fits: given once, never twice, and never while one is in the world (D-218)
+      expect(vowRewards(s, 'iii', createRng(7))).toEqual([{ item: IT.varos_loop, qty: 1 }]);
+      s.player.core.inventory.push({ id: 'loop1', itemId: IT.varos_loop });
+      expect(vowRewards(s, 'iii', createRng(7))).toEqual([]);
+      s.player.core.inventory.pop();
+      budget.major = was;
       tables[RW.vow_items].rows = [{ weight: 1, item: IT.healing_draught }];
       swearVow(s, { line: 'Stand at the counter', goal: { kind: 'reach', target: 'tav_counter' }, stake: 'I', days: 2 });
       s.player.zone = 'tav_counter';
@@ -85,6 +93,16 @@ describe('420 vows', () => {
       expect(s.vows![0].items).toEqual([{ item: IT.healing_draught, qty: 4 }]);
       expect(s.player.core.inventory.filter((i) => i.id.startsWith(`vw_${s.vows![0].id}`)).length).toBeGreaterThan(0);
     } finally { tables[RW.vow_items].rows = kept; }
+  });
+
+  it('VW16: the Items table every reward type draws from lists every item but Threadbound ones and the improvised bases', () => {
+    const lib = getLibrary(), imp = new Set(Object.values(IMPROVISED_ITEM));
+    expect(lib.rewardTables![RW.vow_kept].rows).toEqual([{ weight: 3, table: RW.vow_items }, { weight: 1, table: RW.vow_threadbound }]);
+    expect(lib.rewardTables![RW.vow_items].rows).toEqual([{ weight: 1, table: RW.items }]);
+    expect(lib.rewardTables![RW.vow_threadbound].rows).toEqual([{ weight: 1, table: RW.threadbound }]);
+    expect(lib.rewardTables![RW.threadbound].rows.map((r) => r.item).sort()).toEqual(Object.values(lib.items).filter((d) => d.threadbound).map((d) => d.id).sort());
+    const listed = lib.rewardTables![RW.items].rows.map((r) => r.item).sort();
+    expect(listed).toEqual(Object.values(lib.items).filter((d) => !d.threadbound && !imp.has(d.id)).map((d) => d.id).sort());
   });
 
   it('VW2: the Witness answer schema keeps the vow form', () => {

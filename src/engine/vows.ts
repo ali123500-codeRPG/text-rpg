@@ -17,6 +17,7 @@ import type { Rng } from '../types';
 import { RW } from '../library/tableIds';
 import { boon } from '../scenario/validate';
 import { IT } from '../library/itemIds';
+import { threadboundInWorld } from '../ruleset/threadboundItems';
 import { actorById } from './relations';
 import { logCode } from './effects';
 import { awardXp, charLevel, xpToNext } from './xp';
@@ -119,11 +120,14 @@ function drawReward(table: string, rng: Rng, depth = 0): { item: string; qty: nu
 export function vowRewards(state: GameState, stake: VowStake, rng: Rng): { item: string; qty: number }[] {
   const budget = CONFIG.BOON_BUDGET[CONFIG.VOW_STAKE_GAIN[stake]] ?? 0, m = CONFIG.VOW_REWARD_MARGIN;
   const out: { item: string; qty: number }[] = [];
+  const taken = threadboundInWorld(state);
   let total = 0;
   for (let n = 0; n < CONFIG.VOW_REWARD_DRAWS_MAX && total < budget; n++) {
     const r = drawReward(RW.vow_kept, rng);
     if (!r) break;
     const b = boon(state, r.item, r.qty);
+    if (!(b > 0)) continue; // an item with no worth set can't be measured against the band: put back
+    if (getLibrary().items[r.item]?.threadbound && (taken.includes(r.item) || out.some((x) => x.item === r.item))) continue; // one of a kind (D-218)
     if (total + b > budget * (1 + m)) { if (total >= budget * (1 - m)) break; continue; } // close enough, or put it back and draw again
     total += b;
     const had = out.find((x) => x.item === r.item);

@@ -33,9 +33,14 @@ already names how a turn is settled (VW1 a). Pledges, things given up for power,
 - **What a kept vow gives besides Thread** (VW10 a, VW11 b, VW12 a, VW14, VW15). Each stake pays in a scenario band
   (CONFIG.VOW_STAKE_GAIN), whose BOON_BUDGET the reward fills. A kept vow draws from the library's reward tables
   (`rewardTables`, RW ids): one row of a table is picked by weight; a row naming another table rolls that one, so the
-  first pick chooses a reward type and the next the actual reward. RW1 "Kept vow" holds the types (today only items,
-  RW2). Drawing goes on until the items' Boon (Part 5 §7's boon) reaches the band's budget; a draw may pass the budget
+  first pick chooses a reward type and the next the actual reward. RW1 "Kept vow" holds the types: items (RW2, weight
+  3) and Threadbound items (RW4, weight 1). Each type points to one shared table that every reward type draws from, so
+  rewards balance in one place (VW16, the owner in the thread, 21/11/2026: "all items for now, it should point to a table
+  that is used by all reward types as well, so we can balance rewards from a single source"; "add another reward type at
+  a a weight of 1 (compared to items 3), which is threadbound items. I will balance it as I go."): RW3 Items, every item
+  but Threadbound ones and the improvised bases, and RW5 Threadbound items. Weights are placeholders. Drawing goes on until the items' Boon (Part 5 §7's boon) reaches the band's budget; a draw may pass the budget
   by CONFIG.VOW_REWARD_MARGIN; one that would pass more is put back, and drawing stops once the total is within that
   margin below the budget. At most CONFIG.VOW_REWARD_DRAWS_MAX draws. The items go to the pack at once, and the turn's
   changes say so ("Vow kept: … in your pack"; a broken vow says what it took). The vow's panel lists what it gave.
-- **Still open.** What RW2 holds waits for VW16. The lore of vows is parked (VP-1637); Forsworn too (VP-1632).
+  An item with no worth set is put back, as is a Threadbound item already in the world or already drawn (one of a kind).
+- **Parked.** The lore of vows (VP-1637); Forsworn (VP-1632); pledges (VP-266).
