@@ -31,3 +31,11 @@ and `src/config.ts`. How essences began is in [history-growth-and-skill-gain.md]
   of falling back (#932). All pick weights sit in one config table, and a new row must add its weight there.
   A row for beasts whose Resolve tops their weapon skills closed the one parked item of the round, and rows
   may carry owner bounds as a provision (#941).
+
+## Stand-in parts (D-255 a, 21/11/2026)
+
+- The owner chose that an essence grows a stand-in part for its skills ("humans can get a tail or something"). On the
+  hub page "Stand-in body parts": every role gets one where the body lacks it, senses and movement too (EP1 b); the
+  per-essence parts as proposed (EP2 a); listed on the Character card, not drawn, and a held item goes back to the pack
+  when the essence is let go (EP3 a). The figure itself went to its own thread. Parts for senses and movement (EP4) and
+  showing where an essence came from (EP5) were asked in a second round.

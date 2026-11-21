@@ -126,9 +126,15 @@ export type EssenceDef = {
    * the ladder past 100 ('beyond' 150 … 'divine' 400), so a row can be kept for Divine owners or kept from them */
   from: { race?: string; bodyType?: string; role?: string; over?: string; min?: EssenceBounds; max?: EssenceBounds; deed?: true; echo?: true };
   skills: { skill: string; weight: number }[];
+  /** D-255 a (EP1–EP3): parts the essence grows on a body that lacks them (library/index actorBody) */
+  standIns?: StandIn[];
   trait?: string; quirk?: string; // perk rows (OwnedPerk source 'essence'); one so far, Tavern Brawler's Fists Do the Talking (a placeholder; content round IEI-229)
   story: string;
 };
+/** D-255 a: a stand-in part. With `attack` (a natural weapon) it is given when no attack of the body rolls that attack's
+ * skill; without, when no part of the body has every role of `part`. A part whose id the body already has is not added
+ * again (a beast's own tail lashes). speaks: the holder talks as a speaking race does (body canSpeak) */
+export type StandIn = { part: PartDef; attack?: AttackMode; speaks?: true };
 /** PY3: a service a seller can offer; heals names the healing row it pays for */
 /** repairs: D-89, a smith's repair: priced by the job (src/engine/repair.ts repairPrice), never by `price`. forge: RP17 b, the smith's leave to use its forge (Furniture.booked) */
 export type ServiceDef = { id: string; name: string; price: number; heals?: string; repairs?: true; forge?: true };
