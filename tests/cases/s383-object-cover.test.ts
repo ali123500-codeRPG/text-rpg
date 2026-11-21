@@ -40,7 +40,7 @@ describe('383 cover from objects (PC1, PC2)', () => {
     const cases: [number, number, number][] = [[0, 0.61, 18], [4, 0.49, 13], [8, 0.37, 9]];
     for (const [floor, hid, mod] of cases) {
       const { s, z, t } = range(floor);
-      expect(objectHidden(s, t, z, s.player)).toBeCloseTo(hid, 2);
+      expect(objectHidden(s, t, s.player)).toBeCloseTo(hid, 2);
       expect(coverMod(coverShown(s, t, z, s.player))).toBe(mod);
     }
   });
@@ -48,17 +48,17 @@ describe('383 cover from objects (PC1, PC2)', () => {
   it('PC2: a piece the line misses, or one right in front of the shooter, hides nothing', () => {
     const { s, z, t } = range();
     t.pos = { x: OX + 4, y: 1.3 }; // off to the side: the line passes the counter's end
-    expect(objectHidden(s, t, z, s.player)).toBe(0);
+    expect(objectHidden(s, t, s.player)).toBe(0);
     place(s, 'player', 'field_mid'); s.player.pos = { x: OX, y: -1.5 }; // the counter close in front
     t.pos = { x: OX, y: 4.5 };
-    expect(objectHidden(s, t, z, s.player)).toBe(0);
+    expect(objectHidden(s, t, s.player)).toBe(0);
   });
 
   it('PC2: with nobody to hide from, a piece within OBJECT_COVER_M hides its own height; farther, nothing', () => {
     const { s, z, t } = range();
-    expect(objectHidden(s, t, z)).toBeCloseTo(1.1 / 1.75); // 1 m past the counter's edge
+    expect(objectHidden(s, t)).toBeCloseTo(1.1 / 1.75); // 1 m past the counter's edge
     t.pos = { x: OX, y: 2.5 };
-    expect(objectHidden(s, t, z)).toBe(0);
+    expect(objectHidden(s, t)).toBe(0);
   });
 
   it('PC1: the larger of clutter and object cover counts, never both', () => {
