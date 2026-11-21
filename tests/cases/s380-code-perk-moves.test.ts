@@ -1,7 +1,7 @@
 // 380 Code-run NPCs and perk moves (TC53-TC59 a): when an NPC run by code uses each perk move it owns, and how it gets up
 // from Play Dead.
 import { describe, expect, it } from 'vitest';
-import { createRng, makeVillage, place } from '../harness';
+import { createRng, fighter, makeVillage, place } from '../harness';
 import { buildActorView } from '../../src/views';
 import { withTactics } from '../../src/views/tactics';
 import { brokenHolds, fallbackOrder } from '../../src/minds';
@@ -22,10 +22,10 @@ const view = (s: GameState, a: Actor) => withTactics(s, a, buildActorView(s, a.i
 /** the order the code-run list gives, with its perk moves weighed (as mergeOrders does) */
 const decide = (s: GameState, a: Actor): Order => codePerkMove(s, a, buildActorView(s, a.id), fallbackOrder(view(s, a), createRng(1)));
 
-/** a code-run patron hostile to the player in the street, `m` metres from it */
+/** a code-run patron, made a fighter (D-205 b), hostile to the player in the street, `m` metres from it */
 function fight(m: number) {
   const s = makeVillage();
-  const p = place(s, 'patron_1', 'street_square');
+  const p = fighter(place(s, 'patron_1', 'street_square'));
   place(s, 'player', 'street_square');
   s.player.pos = { x: 14, y: -14 }; // inside the square (a 20 m square around x 20, y -14)
   p.pos = { x: 14 + m, y: -14 };

@@ -169,6 +169,14 @@ export function actor(state: GameState, id: string): Actor {
   return a;
 }
 /** move an actor directly (fixture setup only) */
+/** D-205 b: make a code-run NPC a fighter that closes in (steady Nerve, a fighting skill at HOLD_BACK_BELOW), for tests of
+ * pursuit or the fight list that use a villager */
+export function fighter(a: Actor): Actor {
+  a.core.personality = { ...(a.core.personality ?? { traits: {}, values: [] }), nerve: 0 };
+  a.core.skills[SK.unarmed_strike] = { raw: Math.max(a.core.skills[SK.unarmed_strike]?.raw ?? 0, CONFIG.HOLD_BACK_BELOW), state: 'normal' };
+  return a;
+}
+
 export function place(state: GameState, id: string, zone: string): Actor {
   const a = actor(state, id);
   a.zone = zone;

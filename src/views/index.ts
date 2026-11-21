@@ -12,7 +12,7 @@ import { busyWords, doingOf } from '../engine/busy';
 import { budgetUsed, lastScenarios } from '../engine/scenarioEnd';
 import { nearbyZones } from '../scenario/stage';
 import { SCENARIO_ENDING_NAMES } from '../types';
-import { personalityText } from '../ruleset/personality';
+import { holdsBack, personalityText } from '../ruleset/personality';
 import { ageText, lifeStage, stageName, stageOf } from '../ruleset/age';
 import type { AttackOutcome, ScenarioFrame, Tier,
   Actor, ActorView, AttackMode, Drive, BeliefView, CombatPacket, DialogueInput, DialogueView, Effect, EventView, GameEvent, GameState, ItemDef,
@@ -300,9 +300,10 @@ const seemingHealth = (viewer: Actor, a: Actor): HealthLevel => (fooledBy(viewer
  * only once aware. */
 
 /** BG-306: the people `a` is aware of and perceived this turn or last (seen or heard) whom one move and its melee reach
- * would bring a blow to this turn: metres by the walking path, in any zone */
-function withinStrike(state: GameState, a: Actor): { withinStrike?: string[] } {
-  const reach = turnMetres(state, a, 'move') + meleeReachM(state, a), k = a.mind?.knowledge ?? {};
+ * would bring a blow to this turn: metres by the walking path, in any zone. One that holds back (D-205 b) never closes in:
+ * only a step and its reach (RD5's strike distance) */
+function withinStrike(state: GameState, a: Actor, back: boolean): { withinStrike?: string[] } {
+  const reach = (back ? CONFIG.HOSTILE_NEAR_STEP_M : turnMetres(state, a, 'move')) + meleeReachM(state, a), k = a.mind?.knowledge ?? {};
   const ids = allActors(state).filter((x) => x !== a && atLeast(k[x.id]?.status, 'aware') && (k[x.id]?.lastSeenTurn ?? -Infinity) >= state.turn - 1
     && (distOrNull(state, a, x) ?? Infinity) <= reach).map((x) => x.id).sort();
   return ids.length ? { withinStrike: ids } : {};
@@ -773,7 +774,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       ...((o) => o ? { standDownOffer: { from: callName(state, a.id, o.from), landed: OFFER_WORDS[o.landed], ...(o.coin ? { coin: coinWords(o.coin) } : {}), ...(o.demand ? { demand: o.demand } : {}) } } : {})(offersTo(state, a)[0]), // TF15, TF19
       ...(isSeller(a) ? { wares: wareList(state, state.player, a), offers: offerList(state, state.player, a) } : {}),
       ...(chase ? { chaseZones: chase } : {}),
-      ...withinStrike(state, a),
+      ...((back) => ({ ...withinStrike(state, a, back), ...(back ? { holdsBack: true as const } : {}) }))(m.control === 'code' && holdsBack(state, a)),
       ...(a.mind?.suspects && Object.keys(a.mind.suspects).length ? { suspects: Object.entries(a.mind.suspects).map(([id, s]) => ({ id, name: callName(state, a.id, id), item: `a locked ${boxName(state, s.box)}` })) } : {}), // GD3
       ...(atChaseLine(state, a) ? { atChaseLine: true as const } : {}),
     },

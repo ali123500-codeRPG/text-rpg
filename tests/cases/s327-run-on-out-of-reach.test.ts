@@ -3,7 +3,7 @@
 // an agent's blow, a code-run fighter's combat-list blow, and an agent blow gone stale that code takes over (TP2).
 import { describe, expect, it } from 'vitest';
 import type { Actor, GameEvent, GameState } from '../../src/types';
-import { makeVillage } from '../harness';
+import { fighter, makeVillage } from '../harness';
 import { act, intent, play, plannerOut } from './w4-kit';
 import { CONFIG } from '../../src/config';
 import { spawnNpc } from '../../src/library/spawn';
@@ -49,7 +49,7 @@ describe('327 running on at a foe out of reach', () => {
 
   it('a code-run fighter\'s combat-list blow runs on the same way', () => {
     const s = field();
-    const g = at(s, 'brawler', 20, 0);
+    const g = fighter(at(s, 'brawler', 20, 0)); // a cautious patron would hold back (D-205 b)
     g.mind!.control = 'code';
     g.mind!.knowledge.player = { status: 'aware', lastKnownZone: 'tav_common', lastSeenTurn: s.turn, source: 'seen', revealed: [] };
     const ev = play(s, { intent: intent() });

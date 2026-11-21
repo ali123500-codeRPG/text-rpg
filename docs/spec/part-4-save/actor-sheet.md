@@ -678,7 +678,7 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
 
 #### Personality: what it does, where points come from and who sees it
 
-- **SHEET-430** **What it does**: words only (PL13).
+- **SHEET-430** **What it does**: words only (PL13), except who holds back in a fight (SHEET-438).
 - **SHEET-431** The Planner and Responder get one line in CHARACTER: "Nerve: Timid (keeps out of danger when they can;
   Calm right now). Mature at heart (thinks before acting, …), but very curious (wants to know how things work, …).
   Drives: knowledge first (…), then loyalty (…). Tensions: wary but dangerous (…)."
@@ -693,7 +693,7 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
 - **SHEET-436** Both rules tell the agent which line wins when they disagree: a line written for it alone, then a
   tension, then the "at heart" line.
 - **SHEET-437** The Voice gets none of it (Q1).
-- **SHEET-438** Code-run NPCs are unaffected; numeric effects are a deferred item (D-205).
+- **SHEET-438** Code-run NPCs are unaffected, except that the cautious Nerve line can make one hold back and never close in on a foe (D-205 b, PQ3 c, PQ16 b; "Who holds back" under Fallback behavior). Other numeric effects are a deferred item (D-205).
 - **SHEET-439** **Where points come from**: an NPC template gives its points and its starting Resolve (PL11).
 - **SHEET-440** The Weaver may name a Nerve line (±NERVE\_LINE\_POINTS, 40), up to two archetypes (each sets the traits
   it names to its target unless already past it) and up to three ranked values for a new actor (PL12).

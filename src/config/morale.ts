@@ -45,6 +45,9 @@ export const MORALE = {
   SIGNATURE_MAX_CHARS: 120,
   /** PL12: the Nerve points a named line sets (− for cautious, + for daring) */
   NERVE_LINE_POINTS: 40,
+  /** D-205 b (PQ16 b): a code-run NPC with a weapon (or a natural weapon) and a fighting skill this high or more always closes
+   * in; below it, it holds back on the cautious line, and on any line when unarmed (ruleset/personality holdsBack) [placeholder] */
+  HOLD_BACK_BELOW: 30,
   /** AP2: personality points one achievement step is worth; rows write steps (+1, −1), so this one number scales them all */
   ACH_PERSONALITY_STEP: 5,
   /** [MORALE_LEVELS key, max % of max morale lost, roll penalty in % of the average roll (type wounds, MB3, PW1 b)]; broken = out of the fight */

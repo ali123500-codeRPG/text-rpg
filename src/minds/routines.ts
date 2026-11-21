@@ -277,7 +277,7 @@ export function tacticsOrder(view: ActorView): Order | null {
 }
 
 /** the code-run fight list: broken first, then the NPC's skilled rows (D-17, tacticsOrder), then attack, close in,
- * search and hold. B3 Ready the shield goes beside whatever it chose: shot at, it draws the stowed shield too (a free gear
+ * search and hold. One that holds back (D-205 b) strikes only what is in its reach, else flees. B3 Ready the shield goes beside whatever it chose: shot at, it draws the stowed shield too (a free gear
  * op before the action) */
 export function fallbackOrder(view: ActorView, rng: Rng): Order {
   const o = fightList(view, rng);
@@ -292,14 +292,15 @@ function fightList(view: ActorView, rng: Rng): Order {
   if (s.broken) return fleeOrder(view, 'fallback');
   // ZR12: a code-run pursuer at the end of its near chase range turns back
   if (s.atChaseLine && hostileBeliefs(view).some((b) => !b.lost)) return routineOrder(view);
+  // D-205 b: one that holds back takes no row that closes in (a blow out of its strike reach, stealing up)
   const row = tacticsOrder(view);
-  if (row) return row;
+  if (row && !(s.holdsBack && (row.type === 'sneak' || (row.type === 'attack' && !s.withinStrike?.includes(row.target!))))) return row;
   // 2. Attack
   // BG-306: the foes it knows of that a move and a blow reach this turn, else the foes it sees (an attack closes in and runs
-  // on, BG-255); never "in my zone"
+  // on, BG-255); never "in my zone". One that holds back strikes only those in its reach
   const foes = view.beliefs.filter((b) => (b.hostile || b.sparring) && b.active && !b.lost && AWARENESS.pos(b.status) >= AWARENESS.pos('aware'));
   const near = foes.filter((b) => s.withinStrike?.includes(b.about));
-  const here = (near.length ? near : foes.filter((b) => view.seen?.some((x) => x.id === b.about))).map((b) => b.about).sort();
+  const here = (near.length || s.holdsBack ? near : foes.filter((b) => view.seen?.some((x) => x.id === b.about))).map((b) => b.about).sort();
   if (here.length) {
     const target = s.lastHitBy && here.includes(s.lastHitBy) ? s.lastHitBy
       : here.includes('player') ? 'player'
@@ -311,6 +312,7 @@ function fightList(view: ActorView, rng: Rng): Order {
   const recent = hunted.filter((b) => !b.lost)
     .sort((a, b) => (b.lastSeenTurn ?? -1) - (a.lastSeenTurn ?? -1) || a.about.localeCompare(b.about))[0];
   if (recent) {
+    if (s.holdsBack) return fleeOrder(view, 'fallback'); // D-205 b: it never closes in or searches; it flees
     const zone = recent.lastKnownZone!;
     if (zone === s.zone) return order(view, 'search', 'fallback', 'search', { target: zone });
     const path = mapPath(view.map, s.zone, zone);
