@@ -4,7 +4,7 @@
 import type { GameState, LandFeature, LandView, Pt, Region, RoadLine, Site } from '../types';
 import { cellAt, regionAt } from './sight';
 import type { RosterView } from '../types/views';
-import type { GroupDef, GroupPart, HookKindDef, MeetRow, SettlementSize } from '../types/library';
+import type { CastRecipe, RecipePart, HookKindDef, MeetRow, SettlementSize } from '../types/library';
 import { getLibrary } from '../library';
 import { CONFIG } from '../config';
 import { RANKS, type GrandeurKey, type RankKey } from '../scales';
@@ -41,10 +41,10 @@ const rollRow = (rng: Rng, rows: readonly MeetRow[]) => {
 export const SETTLEMENT_SIZES: readonly SettlementSize[] = ['hamlet', 'village', 'town', 'city', 'court'];
 /** NF7 a: the groups a hook can roll in a settlement of this size (a group's minSite keeps the larger rung out of villages) */
 export function hookGroups(h: HookKindDef, size: SettlementSize): string[] {
-  const groups = getLibrary().groups ?? {}, at = SETTLEMENT_SIZES.indexOf(size);
+  const groups = getLibrary().castRecipes ?? {}, at = SETTLEMENT_SIZES.indexOf(size);
   return (h.groups ?? []).filter((id) => { const min = groups[id]?.minSite; return !min || SETTLEMENT_SIZES.indexOf(min) <= at; });
 }
-const groupEntry = (key: string, g: GroupDef, rank: string, hook?: { name: string; gives: string }): RosterEntry =>
+const groupEntry = (key: string, g: CastRecipe, rank: string, hook?: { name: string; gives: string }): RosterEntry =>
   ({ key, who: hook?.name ?? g.name, gives: hook?.gives ?? g.lead.label, group: { id: g.id, rank } });
 
 /** NR17 a: a settlement's hooks, by its size: the must-have hooks first, then the rest from the size's pool */
@@ -62,7 +62,7 @@ export function siteRoster(site: Site): RosterEntry[] {
     const rank = h.rank === 'seat' ? (() => { const r = rollWeights(rng, R.seat[site.size]); return rng.int(1, 100) <= CONFIG.SEAT_STEP_UP_PCT ? rankUp(r) : r; })()
       : rollWeights(rng, h.rank === 'threat' ? R.threat[site.size] : R[h.rank]);
     const gs = hookGroups(h, site.size);
-    if (gs.length) return groupEntry(key, lib.groups![pick(rng, gs)], rank, h);
+    if (gs.length) return groupEntry(key, lib.castRecipes![pick(rng, gs)], rank, h);
     // NR40 a: a seat of the Great is always grand
     const compose: RosterCompose = { race: rollRace(rng), role: pick(rng, h.roles ?? []), theme: h.theme ?? row.theme, rank, ...(h.class ? { class: h.class } : {}), ...(h.rank === 'seat' ? { grandeur: 'grand' as const } : {}) };
     return { key, who: h.name, gives: h.gives, compose, ...(h.goals ? { goals: true as const } : {}), ...(h.notable ? { notable: true as const } : {}) };
@@ -74,7 +74,7 @@ export function roadRoster(road: RoadLine): RosterEntry[] {
   const lib = getLibrary(), row = lib.roadPeople?.[road.danger];
   if (!row) return [];
   const rng = createRng(textSeed(`roster:${road.id}`)), n = rng.int(row.count[0], row.count[1]);
-  return Array.from({ length: n }, (_, i) => groupEntry(`${road.id}.g${i + 1}`, lib.groups![rollRow(rng, row.rows).group], rollWeights(rng, CONFIG.ROSTER_RANKS.road[road.danger])));
+  return Array.from({ length: n }, (_, i) => groupEntry(`${road.id}.g${i + 1}`, lib.castRecipes![rollRow(rng, row.rows).group], rollWeights(rng, CONFIG.ROSTER_RANKS.road[road.danger])));
 }
 
 /** NR20 a: who is at a landmark: one group from its kind's rows, or nobody */
@@ -82,7 +82,7 @@ export function landmarkRoster(f: LandFeature): RosterEntry[] {
   const lib = getLibrary(), rows = lib.landmarkPeople?.[f.kind];
   if (!rows?.length) return [];
   const rng = createRng(textSeed(`roster:${f.id}`));
-  return [groupEntry(`${f.id}.g1`, lib.groups![rollRow(rng, rows).group], rollWeights(rng, CONFIG.ROSTER_RANKS.wild))];
+  return [groupEntry(`${f.id}.g1`, lib.castRecipes![rollRow(rng, rows).group], rollWeights(rng, CONFIG.ROSTER_RANKS.wild))];
 }
 
 /** NR19 a: who can be met on each land cover the region has, at this time of day (the World builder casts from it) */
@@ -91,7 +91,7 @@ export function wildTable(r: Region, night: boolean): WildRow[] {
   const lib = getLibrary(), covers = [...new Set(r.cover)].map((ch) => `LC${parseInt(ch, 36)}`);
   return covers.flatMap((c) => {
     const rows = (lib.wildPeople?.[c] ?? []).filter((m) => !m.when || m.when === (night ? 'night' : 'day'));
-    return rows.length ? [{ cover: lib.landCovers?.[c]?.name ?? c, meet: rows.map((m) => ({ group: m.group, who: lib.groups![m.group].name, weight: m.weight })) }] : [];
+    return rows.length ? [{ cover: lib.landCovers?.[c]?.name ?? c, meet: rows.map((m) => ({ group: m.group, who: lib.castRecipes![m.group].name, weight: m.weight })) }] : [];
   });
 }
 
@@ -107,21 +107,21 @@ export function rosterEntry(state: GameState, key: string): RosterEntry | undefi
 
 /** NR27 (D-308): a group's members as compositions (or templates): the leader and its seconds (NF7 a) `step` ranks up,
  * followers' races rolled (NR31); notable when its part is (NF7 a) */
-export function groupMembers(g: GroupDef, rank: string, seed: string, direPct = 0): { label: string; compose?: RosterCompose; template?: string; lead: boolean; notable?: true }[] {
+export function groupMembers(g: CastRecipe, rank: string, seed: string, direPct = 0): { label: string; compose?: RosterCompose; template?: string; lead: boolean; second?: true; notable?: true }[] {
   const rng = createRng(textSeed(`group:${seed}`)), lib = getLibrary();
-  const one = (p: GroupPart, lead: boolean) => {
-    const notable = p.notable ? { notable: true as const } : {};
-    if (p.template) return { label: p.label, template: p.template, lead, ...notable };
+  const one = (p: RecipePart, lead: boolean, second = false) => {
+    const marks = { ...(p.notable ? { notable: true as const } : {}), ...(second ? { second: true as const } : {}) };
+    if (p.template) return { label: p.label, template: p.template, lead, ...marks };
     const role = p.role ?? pick(rng, p.roles ?? []);
     // NR38 a: a beast may roll the Dire prefix (one rank up and more health, in composeTemplate); its label says so
     const dire = lib.npcRoles?.[role]?.kind === 'beast' && rng.int(1, 100) <= direPct ? PF.dire : undefined;
     const m = p.label.match(/^(a|an|the) (.*)$/), word = dire ? lib.prefixes![dire].name.toLowerCase() : '';
     const label = !dire ? p.label : m ? `${m[1] === 'the' ? 'the' : 'a'} ${word} ${m[2]}` : `${word} ${p.label}`;
-    return { label, lead, ...notable, compose: { race: p.race ?? rollRace(rng), role, theme: g.theme, rank: rankUp(rank, p.step ?? 0), ...(p.class ? { class: p.class } : {}), ...(dire ? { prefix: dire } : {}) } };
+    return { label, lead, ...marks, compose: { race: p.race ?? rollRace(rng), role, theme: g.theme, rank: rankUp(rank, p.step ?? 0), ...(p.class ? { class: p.class } : {}), ...(dire ? { prefix: dire } : {}) } };
   };
   const count = (p?: { count: [number, number] }) => (p ? rng.int(p.count[0], p.count[1]) : 0);
   const n2 = count(g.seconds), n = count(g.follow);
-  return [one(g.lead, true), ...Array.from({ length: n2 }, () => one(g.seconds!, false)), ...Array.from({ length: n }, () => one(g.follow!, false))];
+  return [one(g.lead, true), ...Array.from({ length: n2 }, () => one(g.seconds!, false, true)), ...Array.from({ length: n }, () => one(g.follow!, false))];
 }
 
 /** the roster entries not yet filled, as a planner sees them (is = who code rolled) */
@@ -129,7 +129,7 @@ function rosterViews(state: GameState, es: RosterEntry[]): RosterView[] {
   const lib = getLibrary(), filled = new Set(state.hidden.rosterFilled ?? []);
   const rankName = (k: string) => RANKS.name(k as never);
   return es.filter((e) => !filled.has(e.key)).map((e) => ({ key: e.key, who: e.who, gives: e.gives,
-    is: e.group ? `${lib.groups?.[e.group.id]?.name ?? e.group.id}, ${rankName(e.group.rank)}`
+    is: e.group ? `${lib.castRecipes?.[e.group.id]?.name ?? e.group.id}, ${rankName(e.group.rank)}`
       : `${lib.races?.[e.compose!.race]?.name ?? e.compose!.race} ${lib.npcRoles?.[e.compose!.role]?.name ?? e.compose!.role}, ${rankName(e.compose!.rank)}`,
     ...(e.goals ? { goals: true as const } : {}) }));
 }

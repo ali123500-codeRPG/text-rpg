@@ -1,5 +1,5 @@
 // In-memory GameState (Part 2) and saved pages (Part 4 §9).
-import type { ActorId, Band, FactId, GameEvent, LibraryRef, LogEntry, Mode, PlaceId, SlotKey, StoryId, Tier, Turn, Zone } from './core';
+import type { ActorId, Band, FactId, Organization, OrgLink, TieEnd, GameEvent, LibraryRef, LogEntry, Mode, PlaceId, SlotKey, StoryId, Tier, Turn, Zone } from './core';
 import type { Actor, NameHistory } from './actor';
 import type { Drive, HiddenStore, MemoryEntry, Plan } from './hidden';
 import type { EventRollResult } from './ruleset';
@@ -156,6 +156,9 @@ export type GameState = {
   player: Actor;
   actors: Actor[]; // NPCs and enemies (never the player)
   bands: Band[];
+  /** BEL-01: lasting bodies of people (organizations) and the links between them; step 1 of BEL-61: filled, not read yet */
+  organizations?: Organization[];
+  orgLinks?: OrgLink[];
   hidden: HiddenStore; // never enters the Parser's, Narrator's or Voice's input
   events: GameEvent[]; // this turn's events
   agentLog: AgentTurnLog[]; // this turn's agent inputs and outputs
@@ -251,6 +254,8 @@ export type EnginePage = {
   scenarioCaps: { promotions: number; minted: number };
   clocks: Record<string, number>;
   bands: Band[];
+  organizations?: Organization[];
+  orgLinks?: OrgLink[];
   quests: Quest[];
   vows?: Vow[];
   spars?: Spar[];
@@ -293,6 +298,9 @@ export type Place = {
   headlines: FactId[];
   /** WZ1 the region site this place stands on (a top-level settlement); its zones are placed there */
   site?: string;
+  /** BEL-15: who holds this place, and whose law runs in it (an organization or one person) */
+  holder?: TieEnd;
+  law?: TieEnd;
   /** a bare node made for the story start before any plan (ensurePlace); the first plan's place of the same key fills it in (BG-32) */
   bare?: true;
 };

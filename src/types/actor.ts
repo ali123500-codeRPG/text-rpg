@@ -38,6 +38,8 @@ export type Actor = {
   facing?: [number, number];
   posture?: (typeof import('../scales').POSTURES.keys)[number]; // NS1: any actor can be stealthy
   bandId: string;
+  /** BEL-06: its ties to organizations and people, first listed first (step 1 of BEL-61: filled, not read yet) */
+  ties?: import('./core').Tie[];
   core: Core;
   progression?: Progression;
   mind?: Mind;

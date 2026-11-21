@@ -345,7 +345,7 @@ Speech rolls, offers and standing down, trade and paying, relations, personality
 
 - Spec: [architecture-one-turn.md](spec/part-2-turn-engine/architecture-one-turn.md),
   [hierarchy-and-belonging.md](spec/part-2-turn-engine/hierarchy-and-belonging.md) (BEL-nn: organizations, ties, groups
-  and orders; decided, not built, D-1768)
+  and orders; D-1768, step 1 partly built: src/types/core.ts records, tests/cases/s426-belonging-records.test.ts)
 - History: [history-speech-and-trade.md](memory/history-speech-and-trade.md),
   [history-personality-and-uniques.md](memory/history-personality-and-uniques.md)
 - Code:
