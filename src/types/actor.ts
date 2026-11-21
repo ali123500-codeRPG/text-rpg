@@ -49,6 +49,9 @@ export type Actor = {
   /** TC32 a Play Dead (engine/playDead.ts): lying as if Down. believers: the foes who take it for Down (each on its own,
    * TC48 a, so a sharing rule can take ids out); judged: every foe that has rolled against it */
   playingDead?: { believers: string[]; judged: string[] };
+  /** the actor whose blow last took it Down, and the one whose blow killed it (deed achievements) */
+  downedBy?: string;
+  killedBy?: string;
   /** TC50-TC52 a S3 feigned flight (engine/feint.ts): when it began (game minutes) and the foes who believe the flight */
   feint?: { at: number; believers: string[] };
   /** NW12/NW20: asleep since this game minute; `until` ends a planned sleep (the player's, a night watch); none: a
@@ -116,7 +119,7 @@ export type Engagement = { start: number; last: number; kinds: EngagementKind[];
   power?: number };
 /** the player's fight so far, for the fight achievements: hp = HP lost % last checked; foes = everyone who fought the player;
  * most = the most foes at once; hurt = lost HP; defended = made a defense roll; helped = someone fought a foe of the player's; brink = reached Critical */
-export type FightLog = { hp: number; foes: string[]; most: number; hurt?: true; defended?: true; helped?: true; brink?: true; heldLine?: true; down?: true; struck?: true; broke?: true;
+export type FightLog = { hp: number; foes: string[]; most: number; hurt?: true; defended?: true; helped?: true; brink?: true; heldLine?: true; down?: true; struck?: true; broke?: true; moved?: true;
   /** the most a hostile foe's power (rating + gear rating) was above the player's: in points and in % */
   above?: number; abovePct?: number };
 

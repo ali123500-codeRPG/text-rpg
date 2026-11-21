@@ -110,7 +110,9 @@ describe('291 kills and the survival roll', () => {
       outcomes.add(survived);
       expect(s.player.progression!.tally?.survival_rolls).toBe(survived ? 1 : undefined);
       expect(earned(s).includes(ACH.survival_roll_1)).toBe(survived);
-      expect(achievementMaxMorale(s.player)).toBe(survived ? 10 : 0); // Resolve may also grow in the fight, so read the reward alone
+      // Resolve may also grow in the fight, so read the reward alone; a part Crippled by the blow adds Something Gave's +1
+      const gave = earned(s).includes(ACH.crippled_parts_1) ? 1 : 0;
+      expect(achievementMaxMorale(s.player) - gave).toBe(survived ? 10 : 0);
     }
     expect(outcomes.has(true)).toBe(true);
   });

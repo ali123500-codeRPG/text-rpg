@@ -518,15 +518,16 @@ export type AchievementRule = 'places' | 'health_reached' | 'struck_surrendered'
   | 'coin_spent' | 'coin_earned' | 'mended' | 'back_from_down' | 'holds' | 'aimed_hits'
   | 'quests_for_giver' | 'quest_givers' | 'quest_chains' | 'quests_early' | 'quests_unpaid' | 'spar_wins' | 'cruel_spar_wins' | 'spar_losses' | 'achievements' | 'defeated'
   | 'won_panicking' | 'morale_breaks' | 'healed' | 'calmed' | 'hp_lost' | 'morale_lost' | 'survived_above' | 'survived_above_pct' | 'won_above' | 'won_above_pct' | 'event_crits' | 'event_crit_fails'
-  | 'essences_taken' | 'essence_room' | 'matched_crits' | 'kills' | 'survival_rolls' | 'won_broken' | 'broke_open' | 'bested';
+  | 'essences_taken' | 'essence_room' | 'matched_crits' | 'kills' | 'survival_rolls' | 'won_broken' | 'broke_open' | 'bested'
+  | 'counter_kills' | 'held_ground' | 'finishing_blows' | 'every_last' | 'crippled_quests' | 'crippled_parts' | 'threat_deals';
 /** what a per-kind achievement is earned once for: the granted id is <id>:<that kind's id> */
-export type AchievementBy = 'body_type' | 'race' | 'group' | 'class' | 'class_tier' | 'function' | 'skill' | 'size' | 'giver' | 'heal_source' | 'morale_source' | 'place_kind' | 'health_level';
+export type AchievementBy = 'body_type' | 'race' | 'group' | 'class' | 'class_tier' | 'function' | 'skill' | 'size' | 'giver' | 'heal_source' | 'morale_source' | 'place_kind' | 'health_level' | 'foes';
 /** an achievement tag: a key of ACH_TAGS in src/library/achievementIds.ts */
 export type AchievementTag = 'combat' | 'stealth' | 'social' | 'exploration' | 'survival' | 'skill' | 'progression';
 /** a reward field of AchievementDef */
 export type AchievementReward = 'perk' | 'unawareShift' | 'quieter' | 'readsHealth' | 'skillAdd' | 'renown' | 'deathsDoor' | 'firstSight'
   | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels' | 'personality' | 'personalityByKind' | 'tierUnlocks'
-  | 'searchArea' | 'searchReach' | 'maxMorale' | 'aimEase' | 'safeBreak' | 'skillAddByKind' | 'sellPct' | 'questPayPct' | 'essenceSlots' | 'defenseRoll' | 'spotRoll' | 'fearFrom';
+  | 'searchArea' | 'searchReach' | 'maxMorale' | 'aimEase' | 'safeBreak' | 'skillAddByKind' | 'sellPct' | 'questPayPct' | 'essenceSlots' | 'defenseRoll' | 'spotRoll' | 'fearFrom' | 'maxHpPct';
 /** X6/X11: a library achievement, keyed by its fixed id (ACH in src/library/achievementIds.ts), with a name. 'defeats' is
  * earned at `count` defeats (first defeat = count 1). With `by`, it is earned once per kind (body type, race …): the granted
  * id is <id>:<kind> and {body_type}/{race} in the name become what was defeated. 'mastery' once per tree when enough of its
@@ -559,6 +560,7 @@ export type AchievementDef = { id: string; name: string; level: string; rule: Ac
   skillAddByKind?: number;
   sellPct?: number; // XR2: + this % on what traders pay the owner (the mirror of pricePct)
   questPayPct?: number; // XR2: + this % on the coin a quest giver promises the owner
+  maxHpPct?: number; // DI23: + this % on the owner's total HP
   essenceSlots?: number; // XR2: this many more essence slots
   defenseRoll?: number; // XR7: + this on the owner's defense rolls (dodge, block, parry)
   spotRoll?: number; // XR37: + this on the owner's spotting rolls (sight, hearing and smell perception rolls)

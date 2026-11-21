@@ -74,6 +74,8 @@ export const PROGRESSION = {
   DEFEATS_ROLL_PER_TIER: 1,
   /** the outnumbered achievement: the most foes fighting the player at once, with no one on the player's side */
   OUTNUMBERED_FOES: 3,
+  /** DI20: Not One Step's branches, fights held in place against at least this many foes (the trunk asks OUTNUMBERED_FOES; placeholders) */
+  HELD_GROUND_FOES: [5, 10],
   /** All-50 part numbers (src/library/allPerks.ts; placeholders) */
   FIGHTERS_FRAME_MULT: 0.9,
   DODGY_SKILL: 10,

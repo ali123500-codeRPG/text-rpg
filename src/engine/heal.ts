@@ -9,7 +9,7 @@ import { recoveryMult, healthLevel, partStates, totalHp, trueSkill } from '../ru
 import { partPct, poolState } from '../ruleset/body';
 import { isActive } from './relations';
 import { logCode } from './effects';
-import { bestReward } from '../ruleset/achRewards';
+import { achievementSum } from '../ruleset/achRewards';
 import { moraleLost, restoreMorale, setMoraleLost } from '../ruleset/morale';
 import { tally } from './xp';
 import { now } from '../time';
@@ -95,7 +95,7 @@ export function applyHealing(state: GameState, a: Actor, sourceId: string, opts:
   if (level === 'dead' && !src.revivesDead) return false; // no row heals the dead for now
   const before = partStates(state, a);
   const lost = c.hpLostPct;
-  const extra = sourceId === HL.rest ? bestReward(a, 'restPct')?.value ?? 0 : 0; // an achievement reward: + % on each rest
+  const extra = sourceId === HL.rest ? achievementSum(a, 'restPct') : 0; // an achievement reward: + % on each rest
   const share = opts.share ?? 1; // AT27: an action whose output is a share, broken off, heals by the share it ran
   const amount = (opts.pct ?? src.hpPct + extra) * share;
   const wounds = woundsPct(state, a, src.reach);

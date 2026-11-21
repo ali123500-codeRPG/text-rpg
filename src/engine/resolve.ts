@@ -512,6 +512,7 @@ import {
   contestFeat,
   fightEnded,
   gaveUpFeats,
+  killFeats,
   outmatchedOnce,
   turnFeats,
 } from './feats';
@@ -1492,6 +1493,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
   for (const f of ev.effects) if (f.kind === 'item_dropped') emit(ctx, mk(ctx, t, 'item_dropped', { itemId: f.data.itemId as string }));
   // morale (MB21–MB23): a new health level a health fear covers; bandmates who perceive a fall; the one who downed it
   const after = healthLevel(t);
+  killFeats(state, a, t, before, after, o.intent === PARRY_STRIKE || o.intent === COUNTER_STRIKE);
   const hf = HEALTH_LEVELS.pos(after) > HEALTH_LEVELS.pos(before.level) ? healthFear(t, after) : undefined;
   if (hf) fear(ctx, t, hf.id, {}, seenBy);
   for (const { fear: f, parts } of partFears(before.parts, partStates(state, t))) fear(ctx, t, f.id, { cost: partFearCost(f, parts, actorBody(state, t).parts) }, seenBy); // parts Crippled (or worse) by this hit
@@ -1514,7 +1516,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
   if (o.intent !== PARRY_STRIKE) parryStrike(ctx, a, t, res); // a strike back earns none: a parried one ends the exchange
 }
 
-const PARRY_STRIKE = 'parry strike';
+const PARRY_STRIKE = 'parry strike', COUNTER_STRIKE = 'counter strike';
 /** PA4: a parry at the strike gap or better gives the defender one free melee attack back at the attacker, with the
  * parrying weapon (a fist after a barehanded parry), within its strike-back limit (D-337). Any free attack can earn one,
  * except a strike back itself. */
@@ -1591,7 +1593,7 @@ function allFiftyAfterAttack(ctx: Ctx, a: Actor, t: Actor, ranged: boolean, item
   // the owner's strike-back limit (D-337), counted apart from parry strike-backs
   if (!ranged && tierLevel(res.attack) <= TIERS.pos('critical_failure') && hasPerk(t, PK.counter) && isActive(t) && isActive(a)) {
     const back = defaultMode(state, t, sightDistM(state, t, a));
-    if (back && back.mode.tree !== 'ranged' && strikeBackAllowed(ctx, t, a, 'counter')) doAttack(ctx, t, { ...nullOrder(t.id), type: 'attack', target: a.id, item: back.itemId, mode: back.mode.id }, true);
+    if (back && back.mode.tree !== 'ranged' && strikeBackAllowed(ctx, t, a, 'counter')) doAttack(ctx, t, { ...nullOrder(t.id), type: 'attack', target: a.id, item: back.itemId, mode: back.mode.id, intent: COUNTER_STRIKE }, true);
   }
   // T2b Volley: once per engagement, after a ranged hit, a free shot at a foe already fighting the owner (hostile, or sparring) that it sees
   if (ranged && met(res.outcome) && hasPerk(a, PK.volley) && isActive(a) && readyThisEngagement(state, a, PK.volley)) {

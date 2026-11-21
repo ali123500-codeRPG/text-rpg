@@ -12,7 +12,7 @@ import { actorBody, getLibrary, itemDef, npcTemplate } from '../library';
 import { attackParts, gripReachM, itemState, partPct, pctMod, poolState, usableGrips, working } from './body';
 import { hasPerk, payoffShare, perkSum, standInAdd, themeCount, trueSkill } from './perks';
 import type { PayoffCount } from '../library/perkThemes';
-import { achievementStandIn, bestReward } from './achRewards';
+import { achievementStandIn, achievementSum, achievementSumNames } from './achRewards';
 import { skillOpen } from './access';
 import { heldBy } from '../engine/relations';
 import { withinM } from '../engine/position';
@@ -328,8 +328,8 @@ export function eventRollMods(state: GameState, actor: Actor): { source: string;
     if (!p.dormant && def?.eventRoll) out.push({ source: def.name, type: 'perk', value: def.eventRoll });
   }
   for (const m of rollMods(state, actor, 'event')) out.push({ ...m, type: 'gear' });
-  const ach = bestReward(actor, 'eventRoll'); // an achievement reward (Old Blood)
-  if (ach) out.push({ source: ach.name, type: 'achievement', value: ach.value });
+  const ach = achievementSum(actor, 'eventRoll'); // achievement rewards (Old Blood, the totals chain), added up (DI22 a)
+  if (ach) out.push({ source: achievementSumNames(actor, 'eventRoll'), type: 'achievement', value: ach });
   // GAP: statuses have no library entries yet, so none can name the event roll
   return out;
 }

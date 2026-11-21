@@ -66,6 +66,11 @@ export const ACH = {
   struck_fleeing_1: 'AC229', struck_fleeing_5: 'AC230', struck_fleeing_10: 'AC231', struck_fleeing_25: 'AC232', struck_fleeing_50: 'AC233',
   broke_open_1: 'AC234', broke_open_10: 'AC235', broke_open_50: 'AC236',
   bested_1: 'AC237', bested_10: 'AC238', bested_100: 'AC239', bested_250: 'AC240', bested_1000: 'AC241',
+  counter_kills_1: 'AC249', counter_kills_10: 'AC250', counter_kills_50: 'AC251',
+  held_ground_1: 'AC252', held_ground_10: 'AC253', held_ground_more_1: 'AC254', held_ground_more_10: 'AC255', held_ground_most_1: 'AC256', held_ground_most_10: 'AC257',
+  finishing_1: 'AC258', finishing_10: 'AC259', every_last_1: 'AC260', every_last_10: 'AC261',
+  crippled_quests_1: 'AC262', crippled_quests_5: 'AC263', crippled_parts_1: 'AC264', crippled_parts_10: 'AC265',
+  threat_deals_1: 'AC266', threat_deals_10: 'AC267',
 } as const;
 /** TB6: chain heads with no trunk of their own; their branches are the per-source chains (healing and calming by source) */
 export const ACH_HEADS = { healed: 'AH1', calmed: 'AH2', areas: 'AH3', wounds: 'AH4' } as const;
@@ -117,6 +122,13 @@ export const ACH_RULE_TEXT: Record<AchievementRule, string> = {
   won_above: 'points a hostile foe\'s power (rating + gear) was above yours, in a fight you won',
   won_above_pct: '% a hostile foe\'s power (rating + gear) was above yours, in a fight you won',
   achievements: 'other achievements earned (scars and these totals do not count; a replaced level still does)',
+  counter_kills: 'foes killed by your strike back after a parry, or by a Counter',
+  held_ground: `fights won against ${CONFIG.OUTNUMBERED_FOES}+ foes at once, without moving from where you stood`,
+  finishing_blows: 'foes you killed while Down, after an ally\'s blow put them there',
+  every_last: `fights won beside an ally against ${CONFIG.OUTNUMBERED_FOES}+ foes, in which every foe died by your hand`,
+  crippled_quests: 'quests finished while one of your parts is Crippled',
+  crippled_parts: 'times one of your parts became Crippled',
+  threat_deals: 'deals struck with you while a hostile foe was fighting you',
 };
 /** ACH_RULE_TEXT for a count of exactly 1, where the noun changes ("1 foe defeated", not "1 foes defeated");
  * a rule left out reads the same at 1 (copper, HP, points, %, true skill, class unlocked) */
@@ -147,6 +159,13 @@ export const ACH_RULE_ONE: Partial<Record<AchievementRule, string>> = {
   kills: 'foe who died by your hand (counted apart from defeats; a kill is also a defeat)',
   survival_rolls: 'survival roll passed after going Down with no one left to finish you',
   matched_crits: 'contest where you and the other side landed on the same tier, Critical Success or past it',
+  counter_kills: 'foe killed by your strike back after a parry, or by a Counter',
+  held_ground: `fight won against ${CONFIG.OUTNUMBERED_FOES}+ foes at once, without moving from where you stood`,
+  finishing_blows: 'foe you killed while Down, after an ally\'s blow put it there',
+  every_last: `fight won beside an ally against ${CONFIG.OUTNUMBERED_FOES}+ foes, in which every foe died by your hand`,
+  crippled_quests: 'quest finished while one of your parts is Crippled',
+  crippled_parts: 'time one of your parts became Crippled',
+  threat_deals: 'deal struck with you while a hostile foe was fighting you',
 };
 /** the tree mastery achievement for an All-XXX step, by the tree's rating (TREE_RATINGS): each rating has its own line,
  * grander the higher the rating; an inferior tree earns none */

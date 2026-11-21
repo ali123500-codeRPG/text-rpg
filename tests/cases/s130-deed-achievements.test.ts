@@ -9,6 +9,7 @@ import { forcedRng } from '../harness';
 import { ruleset } from '../../src/ruleset';
 import { fightEnded, turnFeats } from '../../src/engine/feats';
 import { ACH } from '../../src/library/achievementIds';
+import { CONFIG } from '../../src/config';
 import { GR } from '../../src/library/functionIds';
 import { SK } from '../../src/library/skillIds';
 import type { GameEvent, GameState } from '../../src/types';
@@ -61,7 +62,7 @@ describe('130 deed achievements', () => {
     const foes = ['slime_1', 'slime_2', 'patron_1'];
     for (const id of foes) actor(s, id).core.condition.hpLostPct = 100; // all down: the fight is won
     fightEnded(s, { hp: 0, foes, most: 3, struck: true });
-    expect(earned(s)).toEqual([ACH.outnumbered_1]); // no defense roll: not flawless
+    expect(earned(s)).toEqual([ACH.outnumbered_1, ACH.held_ground_1]); // no defense roll: not flawless; never moved: Not One Step too (DI21 b)
     fightEnded(s, { hp: 0, foes, most: 3, struck: true, defended: true, helped: true, brink: true });
     expect(earned(s)).toEqual(expect.arrayContaining([ACH.flawless_1, ACH.brink_1]));
     expect(s.player.progression!.tally!.outnumbered).toBe(1); // helped: not counted
@@ -69,5 +70,17 @@ describe('130 deed achievements', () => {
     fightEnded(s, { hp: 0, foes, most: 3, struck: true, defended: true, brink: true });
     expect(s.player.progression!.tally!.flawless).toBe(1);
     expect(s.player.progression!.tally!.brink).toBe(2); // surviving the brink counts win or not
+  });
+
+  it('AA-108: Not One Step and its larger-crowd branches need you never moved; Every Last One needs every foe killed by you', () => {
+    const s = makeVillage();
+    const foes = ['slime_1', 'slime_2', 'patron_1'];
+    for (const id of foes) Object.assign(actor(s, id), { killedBy: s.player.id }).core.condition.hpLostPct = 100;
+    fightEnded(s, { hp: 0, foes, most: 10, struck: true, helped: true });
+    expect(earned(s)).toEqual(expect.arrayContaining([ACH.held_ground_1, `${ACH.held_ground_more_1}:${CONFIG.HELD_GROUND_FOES[0]}`, `${ACH.held_ground_most_1}:${CONFIG.HELD_GROUND_FOES[1]}`, ACH.every_last_1]));
+    actor(s, 'slime_2').killedBy = 'patron_1';
+    fightEnded(s, { hp: 0, foes, most: 3, struck: true, helped: true, moved: true });
+    expect(s.player.progression!.tally!.held_ground).toBe(1); // moved: not counted
+    expect(s.player.progression!.tally!.every_last).toBe(1); // a foe killed by someone else: not counted
   });
 });
