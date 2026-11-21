@@ -5,6 +5,7 @@ import { knownMap, pointAlong } from '../../src/ui/mapData';
 import { landLabels, landLayer } from '../../src/ui/landSvg';
 import { createFakeGame } from '../../src/ui/fakeGame';
 import { CONFIG } from '../../src/config';
+import { lineLength } from '../../src/land/generate';
 
 describe('the land on the map', () => {
   it('whole turn: the land drawn is only the cells seen, and on the mill road your pin sits on its line', async () => {
@@ -34,11 +35,11 @@ describe('the land on the map', () => {
     const cellOf = (p: { x: number; y: number }) => Math.floor(p.y / r.cell) * N + Math.floor(p.x / r.cell);
     expect(landLabels(r, land).every((l) => land.seen(cellOf(l.at)))).toBe(true);
 
-    // the mill road: its zone carries the road line, and your pin is the point along it
+    // the mill road: its zone carries the road line from where it leaves Millbrook's ground (BG-1679), and your pin is
+    // the point along it
     const road = m.places.find((p) => p.id === 'mill_road')!.zones[0], line = r.roads.find((x) => x.id === s.places.find((p) => p.id === 'mill_road')!.zones[0].road)!;
-    expect(road.line).toEqual(line.pts);
-    expect(road.along!.m).toBeCloseTo(line.length * 0.45, 0);
-    expect(road.along!.len).toBeCloseTo(line.length, 0);
+    expect(line.pts.slice(-(road.line!.length - 1))).toEqual(road.line!.slice(1));
+    expect(road.along!.len).toBeCloseTo(lineLength(road.line!), 0);
     const pin = pointAlong(road.line!, road.along!.m);
     expect(pin.x).toBeCloseTo(s.player.pos!.x, 3);
     expect(pin.y).toBeCloseTo(s.player.pos!.y, 3);
