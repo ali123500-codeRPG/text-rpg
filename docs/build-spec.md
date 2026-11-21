@@ -29,6 +29,7 @@ game system to its topics, code and tests. A new topic is a new file here plus i
 - [Action time](spec/part-2-turn-engine/action-time.md)
 - [Game state model](spec/part-2-turn-engine/game-state-model.md)
 - [Information model](spec/part-2-turn-engine/information-model.md)
+- [Hierarchy and belonging](spec/part-2-turn-engine/hierarchy-and-belonging.md)
 - [Who thinks for each actor](spec/part-2-turn-engine/who-thinks-for-each-actor.md)
 - [Agent Parser](spec/part-2-turn-engine/agent-parser.md)
 - [Agent Planner](spec/part-2-turn-engine/agent-planner.md)

@@ -37,6 +37,7 @@ with where its full meaning lives. A term's rules are never defined here.
 - **SHEET-nn**: an actor sheet rule. `docs/spec/part-4-save/actor-sheet.md`.
 - **GSM-nn**: a game state model rule. `docs/spec/part-2-turn-engine/game-state-model.md`.
 - **ACT-nn**: an action time rule. `docs/spec/part-2-turn-engine/action-time.md`.
+- **BEL-nn**: a hierarchy and belonging rule. `docs/spec/part-2-turn-engine/hierarchy-and-belonging.md`.
 - **PROG-nn**: a progression rule. `docs/spec/part-1-rules/progression.md`.
 - **GF-nn**: a game-feel rule. `.agents/skills/game-feel/SKILL.md`.
 - **Numbers are never reused.** An answered question or a retired item keeps its ID.
@@ -91,6 +92,11 @@ The full list is in the spec under "Typed IDs".
   still say `zone`. Never a measure of distance.
 - **Scenario**: one planned stretch of play (was "scene").
 - **Stance**: how one side stands toward another, from hostile upward.
+- **Band**: the people an actor acts with now (`bandId`). Decided to become the **group**: the team for the job at
+  hand. **Organization**: a lasting body of people, nesting to any depth; a **crew** is a close-knit one. **Link**: a
+  relation between two organizations. **Tie**: one character's bond to an organization or a person. **Seat**: head or
+  officer. Decided, not built: spec, "Hierarchy and belonging" (D-1768). "Group" also names a library spawn recipe
+  (GR) and a skill function's group; the sentence tells which.
 
 ## The game's agents
 

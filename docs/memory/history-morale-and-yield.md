@@ -29,7 +29,7 @@ Part 2); every number is in `src/config.ts` and the library's fears and composur
   cause: awareness needed more states. Two were added, hunting and engaged; fighting means hostile and
   engaged; both drop back after a quiet stretch. A yield reaches those who can perceive it by any sense. A
   taken yield covers the taker's bandmates who are together, not the whole faction; band members who perceive
-  each other are together, and apart they are only a faction (#387). Parked: affiliations and groups (D-196).
+  each other are together, and apart they are only a faction (#387). Affiliations and groups (D-196) are decided since, as D-1768.
 - **Warning as nerve breaks (13/11/2026; NB1-NB6, MW1-MW4, SY1).** Playtests showed nothing warned as morale
   fell, nor said what Broken stops, for how long, or what still works. Built as words and layout (#623) and
   as motion, a violet edge (#621). For the player Broken means all morale is gone, so any morale back lifts
