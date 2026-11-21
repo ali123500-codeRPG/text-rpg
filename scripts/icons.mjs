@@ -23,6 +23,7 @@ const PICKS = {
   // marks
   against_nature: 'gi:cracked-mask', free_action: 'fe:high-voltage',
   tagged: 'gi:price-tag', flawed: 'gi:broken-pottery', locked: 'gi:padlock', damaged: 'gi:hammer-break',
+  drag: 'ms:drag-indicator', // a pop-up's grip, at the left of its head
   class_start: 'gi:sprout', class_next: 'gi:upgrade', class_any: 'gi:crossroad',
   // Play header toggles (SD7)
   agent: 'gi:robot-golem', rolls: 'gi:dice-twenty-faces-twenty', narration: 'gi:open-book', sound: 'gi:speaker', sound_off: 'gi:speaker-off',

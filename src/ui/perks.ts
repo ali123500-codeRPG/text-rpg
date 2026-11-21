@@ -6,7 +6,8 @@ import { termAttrs } from '../words';
 import type { Actor, GameApi, GameState, OwnedPerk, PerkDef } from '../types';
 import { getLibrary } from '../library';
 import { allStepsUpTo, canUndo, milestonesUpTo, milestonePerk, milestoneState, trueSkill, type MilestoneState } from '../ruleset';
-import { boxOf, ended, h, pointOf, viewSize } from './kit';
+import { boxOf, ended, fitInView, h, viewSize } from './kit';
+import { dragBy } from './pop';
 import { CONFIG } from '../config';
 import { skillName, TREE_VIEW } from './creation';
 import { PK } from '../library/perkIds';
@@ -213,22 +214,15 @@ export function perksSection(api: GameApi): HTMLElement {
     const c = el.querySelector<HTMLElement>('.pk-card');
     if (!c || !ui.sel) return;
     const v = viewSize();
-    const fit = (left: number, top: number) => ({ left: Math.max(8, Math.min(v.w - c.offsetWidth - 8, left)), top: Math.max(8, Math.min(v.h - c.offsetHeight - 8, top)) });
-    let at = ui.pos ? fit(ui.pos.left, ui.pos.top) : null;
+    let at = ui.pos;
     if (!at) {
       const n = Array.from(el.querySelectorAll<HTMLElement>(`[data-k="${ui.sel.skill}:${ui.sel.milestone}"]`)).find((x) => x.offsetParent);
       const r = n ? boxOf(n) : undefined;
-      at = r ? fit(r.right + 16 + c.offsetWidth > v.w ? r.left - c.offsetWidth - 16 : r.right + 16, r.top + r.height / 2 - c.offsetHeight / 2) : fit(v.w - c.offsetWidth - 32, 96);
+      at = r ? { left: r.right + 16 + c.offsetWidth > v.w ? r.left - c.offsetWidth - 16 : r.right + 16, top: r.top + r.height / 2 - c.offsetHeight / 2 } : { left: v.w - c.offsetWidth - 32, top: 96 };
     }
-    c.style.left = `${at.left}px`; c.style.top = `${at.top}px`;
+    fitInView(c, at.left, at.top);
     const head = c.querySelector<HTMLElement>('.pk-card-head');
-    head?.addEventListener('pointerdown', (ev) => {
-      if ((ev.target as Element).closest('button')) return;
-      const b = boxOf(c), p0 = pointOf(ev), dx = p0.x - b.left, dy = p0.y - b.top;
-      const move = (m: PointerEvent) => { const p = pointOf(m); ui.pos = fit(p.x - dx, p.y - dy); c.style.left = `${ui.pos.left}px`; c.style.top = `${ui.pos.top}px`; };
-      const up = () => { removeEventListener('pointermove', move); removeEventListener('pointerup', up); };
-      addEventListener('pointermove', move); addEventListener('pointerup', up);
-    });
+    if (head) dragBy(c, head, (p) => { ui.pos = p; });
   }
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && ui.sel && el.isConnected && el.querySelector('.pk-card')) { e.preventDefault(); ui.sel = null; redraw(); } });
   redraw();

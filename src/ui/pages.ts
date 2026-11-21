@@ -19,7 +19,7 @@ import { othersHealthWord } from '../ruleset';
 import { buildPlayerView, callName, factText, questGoalText } from '../views';
 import { ESSENCE_ABOUT, essencesBody, essencesSummary } from './essences';
 import { chainCard, chainViews, foldAll, type ChainView } from './achievementThreads';
-import { tipOff, tipOn, boxOf, closePanel, groupedTable, playDraft, type PanelRow, h, viewSize, natural, openPanel, plural, unitOf, visPass, visTiles, iconMark, type Col, type TGroup, type TRow, type VisState, type VisTile, safe, ended } from './kit';
+import { tipOff, tipOn, boxOf, fitInView, closePanel, groupedTable, playDraft, type PanelRow, h, viewSize, natural, openPanel, plural, unitOf, visPass, visTiles, iconMark, type Col, type TGroup, type TRow, type VisState, type VisTile, safe, ended } from './kit';
 import { charCard, charFocus, gearNote, invFocus, treeBars } from './charsheet';
 import { closePop, fullOpen, openFull, openPop } from './pop';
 import { personalityBlock, signaturesBox } from './personality';
@@ -262,10 +262,8 @@ export function showTip(s: GameState, it: ItemInstance, at: HTMLElement) {
   tipEl.replaceChildren(h('p', { class: 'itip-name' }, cap(countWords(it.itemId, safe(() => pieceName(s, it)) ?? d.name, it.qty))),
     h('dl', {}, ...itemRows(s, it).flatMap((r) => [h('dt', { class: r.split ? 'split' : undefined }, r.k), h('dd', { class: [r.split ? 'split' : '', r.tone ?? ''].join(' ').trim() || undefined }, r.v)])));
   tipEl.hidden = false;
-  const r = boxOf(at), v = viewSize(), w = tipEl.offsetWidth, ht = tipEl.offsetHeight;
-  const left = r.right + 12 + w < v.w ? r.right + 12 : Math.max(12, r.left - 12 - w);
-  tipEl.style.left = `${left}px`;
-  tipEl.style.top = `${Math.max(12, Math.min(v.h - ht - 12, r.top))}px`;
+  const r = boxOf(at), w = tipEl.offsetWidth;
+  fitInView(tipEl, r.right + 12 + w < viewSize().w ? r.right + 12 : r.left - 12 - w, r.top);
 }
 export const hideTip = () => { if (tipEl) tipEl.hidden = true; };
 

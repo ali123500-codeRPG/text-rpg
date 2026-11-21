@@ -29,6 +29,9 @@ export const ACTORS = {
   GRADE_ACH_XP: { rank_0: 0, rank_1: 100, rank_2: 300, rank_3: 1000, rank_4: 3000, rank_5: 10000, rank_6: 30000, rank_7: 100000, rank_transcendent: 300000, rank_8: 1000000 } as Record<string, number>,
   GRADE_KNOWN_BY: { rank_0: 0, rank_1: 1, rank_2: 3, rank_3: 10, rank_4: 30, rank_5: 100, rank_6: 300, rank_7: 1000, rank_transcendent: 3000, rank_8: 10000 } as Record<string, number>,
   GRADE_BEYOND_MULT: 3,
+  /** TS1 (report card down to FFF, placeholders): below E's row, the share of the way to it at which each grade starts;
+   * rank_0 is F. Combat Power reads FFF 0-9, FF 10-19, F 20-29; nobody knowing the hero's name reads FFF */
+  GRADE_LOW_SHARE: { grade_fff: 0, grade_ff: 1 / 3, rank_0: 2 / 3 } as Record<'grade_fff' | 'grade_ff' | 'rank_0', number>,
   /** TC4 a: the Planner's tactics word comes from the NPC's own Battle Sense: the last word whose value it reaches (placeholders; past 100 parked, D-370) */
   TACTICS_FROM: { simple: 0, competent: 35, cunning: 65 } as Record<import('../types').Tactics, number>,
   /** NG2: a role's bands as shares of the rank's anchor */

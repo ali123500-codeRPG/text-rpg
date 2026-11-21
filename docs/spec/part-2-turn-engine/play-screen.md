@@ -388,9 +388,12 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
   each opening its section in a pop-up. Details (the gear's names, the nerve) are the tile's tip, never a line; only the
   exception shows as a mark (◆ N essences on offer).
 - **PS-223** There are two kinds of pop-up. Partial ones float, drag by their head and leave the page usable (Essences,
-  Gear, Personality, a skill, the body, power). The full-screen one covers the page for a board too big for a panel
+  Gear, Personality, a skill, the body, power). The head carries a grip at its left, whose tip says it drags (BG-357). The full-screen one covers the page for a board too big for a panel
   (Perks), and partial pop-ups and the perk card open on top of it (CP2, CP3; src/ui/pop.ts).
 - **PS-224** Both close with ✕ or Esc (the topmost first) and open and close with one short fade (exit faster) (CP2).
+- **PS-490** Every floating box (a partial pop-up, the perk card, the agent's panel, a tip) is placed by one shared
+  fit (fitInView, src/ui/kit.ts): it opens inside the window, 16 px clear of its edges where it fits, stays inside
+  while dragged, and moves back in when the window changes size (BG-357).
 - **PS-225** Pop-ups form one stack: Esc, ✕ and the mouse's Back close the topmost first, and focus returns to what
   opened it. Only a full-screen pop-up blocks the page under it; partial pop-ups never do (B1).
 

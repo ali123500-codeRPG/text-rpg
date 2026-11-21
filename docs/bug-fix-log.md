@@ -10,6 +10,16 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the spec's bug log, docs/spec/bug-log.md, has one. Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-357
+
+**What was wrong:** A box opened from the minimap could sit off screen where the player could not find it. Reproduced on the built page (`?fake=1`): a door's menu opened at 1400 px wide sat at x 780–1162; after the window narrowed to 700 px it stayed there, wholly outside the window. The minimap's hover and click tip (`rail-tip`) for a mark near the right edge ran past it (x 1151–1425 in a 1280 px window).
+
+**Root cause:** No shared placement code. Each floating box worked out its own left and top: `openPop` and the map-mark menu's override (`src/ui/pop.ts`, `src/ui/deckView.ts`), the map's tip (`src/ui/planView.ts`), the rail tip (`src/ui/app.ts`), the item card (`src/ui/pages.ts`), the perk card (`src/ui/perks.ts`) and the agent's panel (`src/ui/autopilot.ts`). Each placed it once against the window at that moment, and nothing moved it back when the window changed size (the game's frame narrows when the host page's side panel opens). The map's tip never checked the window's edge at all, and read the pointer in screen pixels rather than page pixels, so on zoomed (2400 px+) screens it also landed off its point (BG-219's helpers were not used there).
+
+**What was done:** One fit, `fitInView` in `src/ui/kit.ts`, now places every one of those boxes inside the window, 16 px clear of its edges where it fits. A window resize moves any open pop-up or perk card back in (`src/ui/pop.ts`). Dragging goes through one helper, `dragBy` in `src/ui/pop.ts` (partial pop-ups, the perk card, the agent's panel), which keeps the box inside the window while it moves and puts a grip at the left of its head (PS-223, PS-490). The map-mark menu passes its mark's box to `openPop` (`beside`) instead of re-placing the pop-up after it opened. Checked on the built page at 1280×800, 1024×700, 800×600 and 2560×1300: no menu from a minimap mark outside the window, the same door menu back at x 302–684 after narrowing to 700 px, every minimap tip inside the window (0 px over), and a pop-up dragged far past the top right stops at x 882–1264, y 16.
+
+**Fixed by:** #1463
+
 ## BG-356
 
 **What was wrong:** On the Map, someone last seen at a spot was drawn off the centre of their dashed "somewhere here" ring. In the owner's view of Brackwater green, at 43 px a metre, the disc sat 13 px right of and 6 px above the ring's centre. The drift grew as you zoomed in: on bent-nail it was 0 px at zoom 1, 6 px at 2 and 30 px at 6. People in full sight drifted off their own point the same way (18 px at zoom 4), and so did your pin (up to 73 px). MAP-23 and MAP-68 put you and each person at their own point.

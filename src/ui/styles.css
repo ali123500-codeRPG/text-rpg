@@ -91,7 +91,7 @@ html { caret-color: var(--accent); scrollbar-color: var(--rule) var(--bg); }
 /* C7: a quest ready to hand in: a gold dot on the rail's Quests item */
 .hs-rail .rail-dot { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--scenario-mark); outline: 2px solid var(--bg); }
 .rail-label, .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.rail-tip { position: fixed; z-index: 60; transform: translateY(-50%); padding: 4px 10px; border-radius: var(--r-md); background: var(--text); color: var(--bg);
+.rail-tip { position: fixed; z-index: 60; padding: 4px 10px; border-radius: var(--r-md); background: var(--text); color: var(--bg);
   font-size: 13px; font-weight: 600; white-space: nowrap; pointer-events: none; }
 .hs-rail button[aria-pressed="true"] { color: var(--accent); }
 
@@ -1310,6 +1310,7 @@ button.eq-name:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .eq-item.drop-ok, .eq-inside.drop-ok, .eq-pack.drop-ok { outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent); outline-offset: 2px; background-color: color-mix(in srgb, var(--accent) 12%, transparent); }
 .ic-mk { display: inline-block; width: 16px; height: 16px; margin-left: 4px; vertical-align: -3px; color: var(--warn); flex: none; }
 .ic-mk svg { width: 100%; height: 100%; display: block; }
+.ic-mk.grip { margin: 0 calc(-1 * var(--space-1)) 0 calc(-1 * var(--space-2)); color: var(--muted); vertical-align: 0; cursor: move; } /* a pop-up's grip: the head is what drags (BG-357) */
 .eq-ico { position: relative; }
 .eq-item .iico { width: 56px; height: 56px; padding: 10px; }
 .eq-qty { position: absolute; right: -6px; bottom: -6px; padding: 0 5px; border-radius: var(--r-pill); background: var(--bg); border: 1px solid var(--border); font-size: 13px; font-weight: 700; color: var(--text); }

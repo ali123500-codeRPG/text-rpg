@@ -9,7 +9,7 @@ import { isBrokenLevel, isCoweringLevel, moraleLevel } from '../ruleset/morale';
 import { buildPlayerView, findInstance } from '../views';
 import { cap } from '../words';
 import { hideTip, showTip } from './pages';
-import { h, safe, viewSize, type boxOf } from './kit';
+import { h, safe, type boxOf } from './kit';
 import { closePop, openPop } from './pop';
 import { deck, thingActions, type Choice, type DeckAction, type DeckCtx, type MapPeople, type MapThing, type Order, type Pick } from './deck';
 import { openLoot } from './loot';
@@ -96,26 +96,18 @@ export function deckView(api: GameApi, o: {
     const opener = anchor instanceof HTMLElement ? anchor : null;
     if (t.kind === 'people') { // RM27 b: pick one of them, then their list
       const who = t.who.filter((w) => thingActions(groups, ctx!, { kind: 'person', id: w.id }).length);
-      return !!who.length && beside(openPop({ title: 'Who?', opener, cls: 'deck-pick', body: [h('div', { class: 'dk-picks', role: 'list' }, who.map((w) =>
-        h('button', { type: 'button', class: 'dk-pick', role: 'listitem', onclick: () => thingMenu({ kind: 'person', id: w.id }, anchor) }, h('b', {}, cap(w.name)))))] }), anchor);
+      if (who.length) openPop({ title: 'Who?', opener, beside: opener ? undefined : anchor as Box, cls: 'deck-pick', body: [h('div', { class: 'dk-picks', role: 'list' }, who.map((w) =>
+        h('button', { type: 'button', class: 'dk-pick', role: 'listitem', onclick: () => thingMenu({ kind: 'person', id: w.id }, anchor) }, h('b', {}, cap(w.name)))))] });
+      return !!who.length;
     }
     const list = thingActions(groups, ctx, t);
     if (!list.length) return false;
     const first = list.find((e) => 'a' in e);
     const s = api.state(), piece = t.kind === 'furniture' ? s?.furniture.find((f) => f.id === t.id)?.name : undefined;
     const title = (first && 'a' in first ? chosenLabel(first.a, first.c) : undefined) ?? (piece ? cap(piece) : t.kind === 'person' ? 'Them' : 'There');
-    const pop = openPop({ title, opener, cls: 'deck-pick', body: [h('div', { class: 'dk-picks', role: 'list' }, list.map((e) => 'a' in e
+    openPop({ title, opener, beside: opener ? undefined : anchor as Box, cls: 'deck-pick', body: [h('div', { class: 'dk-picks', role: 'list' }, list.map((e) => 'a' in e
       ? h('button', { type: 'button', class: 'dk-pick' + (e.a.hot ? ' hot' : ''), role: 'listitem', title: actTip(e.a), onclick: () => run(e.a, e.c, opener) }, h('b', {}, e.label))
       : h('button', { type: 'button', class: 'dk-pick dk-lim', role: 'listitem', 'aria-disabled': 'true', title: e.why, 'aria-label': `${e.label}: ${e.why}` }, h('b', {}, e.label, e.needs ? lockMark(e.needs) : null))))] });
-    return beside(pop, anchor);
-  }
-  /** a thing's list beside the thing: to its left, or to its right where the left has no room */
-  function beside(pop: HTMLElement, anchor: HTMLElement | Box): true {
-    if (!(anchor instanceof HTMLElement)) {
-      const w = pop.offsetWidth, v = viewSize();
-      pop.style.left = `${anchor.left - w - 8 >= 16 ? anchor.left - w - 8 : Math.min(anchor.right + 8, v.w - w - 16)}px`;
-      pop.style.top = `${Math.max(16, Math.min(anchor.top, v.h - pop.offsetHeight - 16))}px`;
-    }
     return true;
   }
 

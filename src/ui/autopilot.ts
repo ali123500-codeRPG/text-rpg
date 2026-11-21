@@ -3,7 +3,8 @@
 // or on its own save (one story per owner: yours and the agent's), and you can switch between them. Mode "Asks me at
 // crossroads" (GA1–GA17) hands the big calls to the watcher in a question card here in the bar.
 import type { GameApi } from '../types';
-import { boxOf, h, pointOf, viewSize } from './kit';
+import { fitInView, h, viewSize } from './kit';
+import { dragBy } from './pop';
 import { arrive } from './motion';
 import { ICONS } from './itemIcons';
 import { PERSONA_NAMES, VOICE_STYLES, autoPerk, plainLine } from '../agents/autopilot';
@@ -266,18 +267,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
   const close = () => { pause(''); open = false; update(); };
   const head = h('div', { class: 'dpop-head' }, h('span', { class: 'hs-label' }, 'Watch an agent play'),
     h('button', { type: 'button', class: 'hs-icon-btn dpop-x auto-x', 'aria-label': 'Close the agent and pause it', title: 'Close (pauses the agent)', onclick: close }, '✕'));
-  head.addEventListener('pointerdown', (ev) => {
-    if ((ev.target as Element).closest('a, button')) return;
-    const b = boxOf(el), p0 = pointOf(ev), dx = p0.x - b.left, dy = p0.y - b.top;
-    const move = (m: PointerEvent) => {
-      const p = pointOf(m), v = viewSize();
-      at = { left: Math.max(0, Math.min(v.w - 80, p.x - dx)), top: Math.max(0, Math.min(v.h - 40, p.y - dy)) };
-      el.style.left = `${at.left}px`; el.style.top = `${at.top}px`;
-    };
-    const up = () => { removeEventListener('pointermove', move); removeEventListener('pointerup', up); };
-    addEventListener('pointermove', move);
-    addEventListener('pointerup', up);
-  });
+  dragBy(el, head, (p) => { at = p; });
   const panel = h('div', { class: 'auto-panel dpop-body' }, pickBox, fieldsBox, goBox, liveBox);
   /** a list open or a box being typed in inside this part */
   const held = (box: Element) => { const f = document.activeElement; return !!f && box.contains(f) && (f.tagName === 'SELECT' || f.tagName === 'INPUT'); };
@@ -300,8 +290,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
       el.classList.add('dpop', 'auto-pop');
       el.replaceChildren(head, panel);
       // first opened at the top right, under the header; after a drag, where it was left
-      const v = viewSize(), w = el.offsetWidth || Math.min(880, v.w - 64); // its CSS width (large)
-      el.style.left = `${at?.left ?? Math.max(16, v.w - w - 32)}px`; el.style.top = `${at?.top ?? 96}px`;
+      fitInView(el, at?.left ?? viewSize().w - el.offsetWidth - 32, at?.top ?? 96);
       arrive(el, 0, 6);
     }
     const persona = h('select', { 'aria-label': 'Playstyle', onchange: (e: Event) => { prefs.persona = (e.target as HTMLSelectElement).value; writePrefs(prefs); } },
