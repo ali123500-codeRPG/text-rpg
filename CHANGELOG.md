@@ -3,6 +3,9 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bugs/`.
 
+- 21/11/2026: `AGENTS.md` rule 12 and `docs/instructions.md` section 2: a parked D-n row holds the owner's own words,
+  with options only where the owner gave them; no context or options of the agent's own. The owner: "I only told
+  you to park the idea not add your own interpretation to it", then "Change it" on a decision card.
 - 21/11/2026: `docs/instructions.md` section 2: a new D-n or OQ-n is the number of a GitHub issue opened for it and
   closed at once; numbers below 1000 are the old count. `npm run sync` keeps both sides when two PRs add rows to the
   Deferred items table, its archive or the Open questions list. The owner: "address D-n and OQ-n", then "Own issue per
