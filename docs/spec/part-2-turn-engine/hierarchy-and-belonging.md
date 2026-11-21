@@ -44,13 +44,14 @@ organizations is BEL-55), so every stance in play is what it was.
 fight's side, BEL-27) in src/engine/belonging.ts, `onFightSide` in src/engine/engagement.ts. Moved to group or crew:
 turning hostile when one of yours is attacked (RS6) and engagement spreading; fear when one goes down or breaks
 (MB23); the wake shout (NW21); witnesses ignoring their own (filching, a guarded container forced, drawing steel, a
-guard's suspicion, hunches, coming near, a readied "anyone"); a stealthy ally not hidden from you (the stealth contest,
-searching, what you perceive and see); warnings to allies; Battle Cry, Fall Back On Me and the first-sight quirk, which
+guard's suspicion, hunches, coming near, a readied "anyone"); warnings to allies; Back off and Draw into the pack (B4, S1:
+a free ally is one of your group or crew who is not fighting, BB4 b); the Spotter perk (T5b, BB5 a); Battle Cry, Fall Back On Me and the first-sight quirk, which
 also read the fight's side; knowing names (BEL-53: a group's members are introduced as it forms, and in-play joining
 is parked, so its members know each other while in it; crew-mates know each other). Moved to the fight's side: the
-Planner's own side (NV1 b). Not moved yet, asked on "Belonging build": Back off and Draw into the pack (B4, S1) look for
-an ally who is not fighting, whom the fight's side cannot hold; the Spotter perk (T5b), which no reader list names;
-Command from orders (TC7, BEL-54), which needs a group leader the Weaver cannot yet name. The organization's lasting
+Planner's own side (NV1 b). A stealthy ally is no longer seen through (BB9 b, the owner, "Belonging build", 21/11/2026:
+"a hidden character is hidden, allies can get a +2 at most"): its group and crew roll to notice it and search for it
+like anyone else, CONFIG.ALLY_NOTICE_TIERS easier (explore-mode NS rules), and learn of its acts only once they
+notice it. Command from orders (TC7, BEL-54) is step 4. The organization's lasting
 aims (BEL-53) wait for the Weaver to name organizations (BEL-55).
 
 **Shown to the player** (PS-492 to PS-495; the owner, Questions hub page "Show belonging to the player", 21/11/2026,
@@ -238,11 +239,11 @@ has a tie to, as the viewer knows them.
   (NW15); a follower copying your posture; health and morale shown for your own (YB2); addressing a group in speech.
 - **BEL-51** Read "group or crew": seeing one of yours attacked turns you hostile (RS6), and engagement with the
   attacker spreading; fear when one goes down or breaks (MB23); the wake shout (NW21); witnesses ignoring their own
-  (filching, drawing steel, a guard's suspicion, hunches, coming near, a readied "anyone"); a stealthy ally not
-  hidden from you; warnings to allies (D-51 b); Battle Cry, Fall Back On Me and the first-sight quirk, which also
+  (filching, drawing steel, a guard's suspicion, hunches, coming near, a readied "anyone"); a stealthy ally
+  noticed more easily (BB9 b); warnings to allies (D-51 b); the Spotter perk (BB5 a); backing off toward, or drawing a
+  foe toward, a free ally (B4, S1; BB4 b); Battle Cry, Fall Back On Me and the first-sight quirk, which also
   read the fight's side.
-- **BEL-52** Read the fight's side (BEL-27): the Planner's "own side" (NV1 b); backing off toward, or drawing a
-  foe toward, a free ally (B4, S1); a feigned flight not fooling its own, which reads the side and the group.
+- **BEL-52** Read the fight's side (BEL-27): the Planner's "own side" (NV1 b); a feigned flight not fooling its own, which reads the side and the group.
 - **BEL-53** Move to the lasting records: "same band is friendly" and band relations as the default stance split in
   two, what lasts going to organizations and links (BEL-16) and this job's own staying on the group; knowing each
   other's names goes to the crew, and a group's members are introduced when it forms; hidden goals and temperament
