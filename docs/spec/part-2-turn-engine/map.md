@@ -177,7 +177,8 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   card names the way and the zone it leaves, with **Move to here**, which types "I go <the way>": "I go back out to the
   road", "I go to the hut door" (exitOrder, src/ui/map.ts).
 - **MAP-63** There is one map per top-level place (a village, say), with each inner place outlined as an area. A road to
-  a known zone on another map is a stub naming that place, and clicking it opens that map.
+  a known zone on another map is a stub naming that place, and clicking it opens that map. To change: one continuous map
+  (D-1558).
 - **MAP-64** The map has pan, zoom, find me, show the whole map and place crumbs. Right-clicking a zone (or an exit,
   MAP-62) opens its card (look, exits with a go button, people, items) beside the map, with the places list;
   on a touch screen a long press does. A left click on the ground plans a walk, as on the minimap (MAP-81) (MQ3, MQ7 a;
