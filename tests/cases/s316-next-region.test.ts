@@ -22,8 +22,13 @@ const FIRST = {
 };
 const NEXT = { kind: RK.forest, name: 'Eastmarch', look: 'Old oakwood.', settlements: [{ size: 'village', name: 'Oakley', look: '', start: true }], features: [], beyond: {} };
 
+// a 5 km region: these tests check how regions start, join and are seen, not their size (land.test draws the full
+// REGION_SIZE_M); a 10 km region costs about 4x as long to draw
+const S = 5000;
+
 async function story(): Promise<{ s: GameState; d: ScenarioDirector; asked: { gx: number; gy: number; beside: string[] }[] }> {
   const s = toStoryStart(makeVillage());
+  CONFIG.REGION_SIZE_M = S;
   s.regions = undefined;
   const asked: { gx: number; gy: number; beside: string[] }[] = [];
   const d = new ScenarioDirector({ weave: async (view) => villageStagePlan(TIERS.keyOf(view.tier)!), clock: new VirtualClock(),
@@ -37,7 +42,6 @@ function standAt(s: GameState, p: { x: number; y: number }): void {
   s.player.zone = out.id; s.player.placeId = out.placeId; s.player.pos = p;
 }
 const tick = () => new Promise((r) => setTimeout(r, 0));
-const S = CONFIG.REGION_SIZE_M;
 
 describe('316 the next region', () => {
   it('is wanted only once the edge is in sight; is asked for in the background, drawn before the next turn, and joins its neighbour', async () => {
@@ -53,7 +57,7 @@ describe('316 the next region', () => {
     await tick();
     expect(d.applyRegionsDrawn(s)).toEqual(['rg_1_0']);
     const b = s.regions!.find((r) => r.id === 'rg_1_0')!;
-    expect(asked).toEqual([{ gx: 1, gy: 0, sizeKm: 10, beside: ['The Wendvale'] }]);
+    expect(asked).toEqual([{ gx: 1, gy: 0, sizeKm: S / 1000, beside: ['The Wendvale'] }]);
     expect(b).toMatchObject({ name: 'Eastmarch', kind: RK.forest });
     expect(b.start).toBeUndefined(); // only the first region holds the story's start
     expect(a.beyond.e).toMatchObject({ name: 'Eastmarch' });

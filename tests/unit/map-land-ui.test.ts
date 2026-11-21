@@ -4,9 +4,11 @@ import { describe, expect, it } from 'vitest';
 import { knownMap, pointAlong, worldTiles } from '../../src/ui/mapData';
 import { landLabels, landLayer } from '../../src/ui/landSvg';
 import { createFakeGame } from '../../src/ui/fakeGame';
+import { CONFIG } from '../../src/config';
 
 describe('the land on the World map', () => {
   it('whole turn: the land drawn is only the cells seen, and on the mill road your pin sits on its line', async () => {
+    CONFIG.REGION_SIZE_M = 5000; // what is drawn, not how big: a 10 km region is about 4x slower to draw
     const g = createFakeGame({ autoStart: true });
     await new Promise((r) => setTimeout(r, 50));
     await g.submit('travel mill', { aimed: false });

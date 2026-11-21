@@ -13,6 +13,7 @@ const BRIEF = { kind: RK.river_valley, name: 'The Wendvale', look: 'A broad gree
 async function open(regionMs: number, weaveMs: number) {
   const clock = new VirtualClock();
   const s = toStoryStart(makeVillage());
+  CONFIG.REGION_SIZE_M = 5000; // the region's size plays no part in its wait; a 10 km one is about 4x slower to draw
   s.regions = undefined;
   const d = new ScenarioDirector({
     clock,

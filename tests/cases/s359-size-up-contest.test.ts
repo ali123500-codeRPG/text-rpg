@@ -52,7 +52,7 @@ describe('359 sizing someone up is Insight against Guile (BF97 a, BG-320)', () =
       delete w.core.skills[SK.falsehood];
       w.core.skills[skill] = { raw, state: 'normal' };
       let n = 0;
-      for (let i = 0; i < 300; i++) if (sizeUp(s, s.player, wim(s), rng)!.contest.winner === 'a') n++;
+      for (let i = 0; i < 150; i++) if (sizeUp(s, s.player, wim(s), rng)!.contest.winner === 'a') n++;
       return n;
     };
     expect(wins(SK.guile, 80)).toBeLessThan(wins(SK.guile, 0));

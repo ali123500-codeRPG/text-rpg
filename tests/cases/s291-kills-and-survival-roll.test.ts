@@ -84,7 +84,9 @@ describe('291 kills and the survival roll', () => {
 
   it('a passed survival roll earns its row and +10 max morale; a failed one earns nothing', () => {
     const outcomes = new Set<boolean>();
-    for (let base = 0; base < 12 && outcomes.size < 2; base++) {
+    // bases 0 (passes) and 3 (fails) reach both outcomes; the rest are the fallback if the dice change
+    for (const base of [0, 3, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11]) {
+      if (outcomes.size === 2) break;
       const s = makeVillage({ playerZone: 'tav_common' }); // indoors: the lethal slimes out in the field can't sense the player
       CONFIG.GROWTH_AT_SCENARIO_END = false;
       const g = actor(s, 'guard_1');

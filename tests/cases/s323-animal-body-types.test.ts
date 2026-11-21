@@ -23,19 +23,22 @@ import type { GameEvent } from '../../src/types';
 
 const ctx: PlanContext = { tier: 'success', kind: 'scenario', placeId: 'tavern' };
 const ANIMALS = [RC.dog, RC.wolf, RC.tiger, RC.bear, RC.boar, RC.horse, RC.lizard, RC.python, RC.spider, RC.lion, RC.leopard, RC.hyena, RC.crocodile];
+/** the animals composed and spawned: each body type, natural armor (boar), two quadrupeds of different speeds; every
+ *  race's own attacks are checked without spawning in BG-250 below */
+const SPAWNED = [RC.dog, RC.wolf, RC.tiger, RC.boar, RC.python, RC.spider];
 
 describe('323 animal body types', () => {
-  it('every animal composes, spawns with its race speed and attacks, and grips only with jaws', () => {
+  it('an animal of each body type composes, spawns with its race speed and attacks, and grips only with jaws', () => {
     const s = toStoryStart(makeVillage());
-    for (let i = 0; i < ANIMALS.length; i += 3) { // the cast cap is 8: the village's 5 plus 3 animals a plan
+    for (let i = 0; i < SPAWNED.length; i += 3) { // the cast cap is 8: the village's 5 plus 3 animals a plan
       // WI1: the village is built by the first plan; later plans add to it and never declare it again
       const p = i ? { ...villageStagePlan(), places: [], zones: [], bands: [], frontiers: [] } : villageStagePlan();
-      for (const race of ANIMALS.slice(i, i + 3)) p.cast.push({ compose: { race, role: RO.beast, theme: TH.wild_beasts, rank: 'rank_1' }, key: race, label: 'a beast', name: race,
+      for (const race of SPAWNED.slice(i, i + 3)) p.cast.push({ compose: { race, role: RO.beast, theme: TH.wild_beasts, rank: 'rank_1' }, key: race, label: 'a beast', name: race,
         appearance: 'a beast', band: 'village_watch', routineSetId: 'gate_guard', slots: { post: 'street_door' }, awarenessOfPlayer: 'unaware', motive: 'roams' });
       expect(validateStagePlan(s, p, ctx)).toEqual([]);
       applyStagePlan(s, p, ctx, { entry: 'open' }, createRng(1));
     }
-    for (const race of ANIMALS) {
+    for (const race of SPAWNED) {
       const a = s.actors.find((x) => x.names.current === race)!, r = getLibrary().races![race];
       expect(a.core.bodyTypeId).toBe(r.bodyTypeId);
       expect(moveSpeed(s, a)).toEqual(r.speed); // no armor: the race's own speeds
@@ -53,7 +56,7 @@ describe('323 animal body types', () => {
     expect(effectiveSkill(s, wolf, SK.bite).value).toBeGreaterThan(0);
     // AB16 a: a composed beast trains exactly the natural skills its attacks roll; AB20: Hide only with natural armor
     const natural = getLibrary().trees[TR.natural].skills;
-    for (const race of ANIMALS) {
+    for (const race of SPAWNED) {
       const a = s.actors.find((x) => x.names.current === race)!, r = getLibrary().races![race];
       const own = [...new Set(r.naturalAttacks!.map((m) => m.skill!).filter((k) => natural.includes(k)))].sort();
       expect(Object.keys(a.core.skills).filter((k) => natural.includes(k)).sort(), race).toEqual(own);

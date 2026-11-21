@@ -5,6 +5,7 @@ import { middle, roofed } from '../../src/plan/where';
 import { lineLength } from '../../src/land/generate';
 import { describe, expect, it } from 'vitest';
 import { makeVillage, createRng } from '../harness';
+import { CONFIG } from '../../src/config';
 import { TIERS } from '../../src/scales';
 import { ScenarioDirector } from '../../src/scenario';
 import { toStoryStart, villageStagePlan, VirtualClock } from '../../src/scenario/fixtures';
@@ -21,8 +22,11 @@ const BRIEF = {
   beyond: { n: { name: 'the Fells', kind: RK.upland_moor } }, exits: ['n', 'e'],
 };
 
+// a 5 km region: these tests check how regions start, join and are seen, not their size (land.test draws the full
+// REGION_SIZE_M); a 10 km region costs about 4x as long to draw
 async function start(brief: unknown = BRIEF): Promise<{ s: GameState; views: WeaverView[] }> {
   const s = toStoryStart(makeVillage());
+  CONFIG.REGION_SIZE_M = 5000;
   s.regions = undefined;
   const views: WeaverView[] = [];
   const d = new ScenarioDirector({ weave: async (view) => { views.push(view); return villageStagePlan(TIERS.keyOf(view.tier)!); }, clock: new VirtualClock(), region: async () => brief });

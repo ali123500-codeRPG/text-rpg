@@ -1,4 +1,4 @@
-// TQ2: the soak run in every CI run (small) and nightly (large: SOAK_SEEDS, SOAK_TURNS), on the test village.
+// TQ2: the soak run in every CI run (small: one seed) and nightly (large: SOAK_SEEDS, SOAK_TURNS, new seeds), on the test village.
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { soak, type World } from './soak';
@@ -6,7 +6,7 @@ import { TURN_CHECK } from '../../src/save/turnCheck';
 
 // @ts-expect-error Node types are not installed; vitest runs in Node
 const env = process.env as Record<string, string | undefined>;
-const SEEDS = Number(env.SOAK_SEEDS ?? 2), TURNS = Number(env.SOAK_TURNS ?? 25), FIRST = Number(env.SOAK_FIRST_SEED ?? 1);
+const SEEDS = Number(env.SOAK_SEEDS ?? 1), TURNS = Number(env.SOAK_TURNS ?? 25), FIRST = Number(env.SOAK_FIRST_SEED ?? 1);
 const worlds: World[] = [{ name: 'village', load: () => makeVillage() }];
 
 describe('soak run (TQ2)', () => {
