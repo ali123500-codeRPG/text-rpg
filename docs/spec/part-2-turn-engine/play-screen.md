@@ -223,7 +223,8 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
   space beside the right column with no width cap (PS-454), on the same see-through sky as the rest of the page (UI8;
   HS7: no extra veil behind it).
 - **PS-132** The right column (PS-410) shows at every width. Its health strip stays folded (health level and bar,
-  damaged-part chips, Stealthy); a click opens the full condition in a pop-up (UI8; AD1–AD16).
+  damaged-part chips, Stealthy); a click opens the full condition in a pop-up (UI8; AD1–AD16). While a weapon is in the
+  player's hand the header shows a "Weapon drawn" badge beside the Stealthy one, in the Melee tree's colour (DS6 a).
 - **PS-133** Who's here sits in the right column under the minimap and Your band, as compact cells several to a row
   (name, pin and status words; how far they are in the cell's tip, PS-172) so it takes little room (PS-410; AD1–AD16;
   YB4 a, Ali 20/11/2026).

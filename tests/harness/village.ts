@@ -99,7 +99,8 @@ function withRoutine(a: Actor, setId: string, slots: Record<string, string | str
 }
 
 /** shape: changes to a title's spec before it is drawn (a footprint, walls, light …), by title id */
-export type VillageOpts = { seed?: number; playerZone?: string; without?: string[]; shape?: Record<string, Partial<TitleSpec>>; add?: TitleSpec[] };
+/** sheathed: the NPCs keep their weapons sheathed, as spawned (DS2); by default the fixture's NPCs stand with them drawn */
+export type VillageOpts = { seed?: number; playerZone?: string; without?: string[]; shape?: Record<string, Partial<TitleSpec>>; add?: TitleSpec[]; sheathed?: boolean };
 /** a village title's spec with more ways (fixture setup: a way to a title added with `add`) */
 export const withWays = (id: string, ...ways: WaySpec[]): Partial<TitleSpec> => ({ ways: [...villageTitles().find((t) => t.id === id)!.ways, ...ways] });
 /** FR4: the counter village: an 8 m common room with the bar's 3 m floor north of it behind a counter (a low wall) */
@@ -127,7 +128,7 @@ function buildVillage(opts: VillageOpts): GameState {
   const zoneOf = (id: string) => titles.find((z) => z.id === id)!;
   const playerZone = opts.playerZone ?? 'tav_common';
   const npc = (tpl: string, id: string, zone: string, bandId: string, name: string) =>
-    spawnNpc(null, tpl, { id, zone, placeId: zoneOf(zone).placeId, bandId, name, storyId });
+    spawnNpc(null, tpl, { id, zone, placeId: zoneOf(zone).placeId, bandId, name, storyId, drawn: !opts.sheathed });
   let actors: Actor[] = [
     withRoutine(npc(TP.guard, 'guard_1', 'gate_inner', 'village_watch', 'Bertram'), 'gate_guard', { post: 'gate_inner' }),
     withRoutine(npc(TP.trader, 'trader', 'tav_counter', 'tavern_folk', 'Mags'), 'barkeep', { counter: 'tav_counter', refuge: 'tav_cellar' }),
@@ -160,6 +161,7 @@ function buildVillage(opts: VillageOpts): GameState {
   // PZ1: titles on a floor plan, so everyone stands at a point in metres, as in every world the game builds
   drawTitles(state, titles);
   placeAll(state);
+  if (!opts.sheathed) for (const a of state.actors) if (a.mind) a.mind.drawnOnPurpose = true; // the fixture's NPCs keep their steel drawn unless a test puts it away
   return state;
 }
 

@@ -25,6 +25,7 @@ const field = () => {
 const bow = (a: Actor) => {
   for (const i of a.core.inventory) if (i.equippedIn?.some((e) => e.startsWith('grip:'))) i.equippedIn = [];
   a.core.inventory.push({ id: `bow_${a.id}`, itemId: IT.shortbow, equippedIn: ['grip:right_arm', 'grip:left_arm'] });
+  if (a.mind) a.mind.drawnOnPurpose = true; // held by choice: a calm NPC sheathes only what it did not draw on purpose (DS2)
 };
 const rangeOf = (s: GameState, a: Actor) => Math.max(...usableModes(s, a).filter((m) => m.mode.tree === 'ranged').map((m) => m.mode.reach)) * CONFIG.FOLLOW_RANGE_SHARE;
 const follow = (keep?: number | 'range' | 'melee') => intent({ move: { toZone: 'field_mid', spot: { near: 'patron_1', follow: true, ...(keep !== undefined ? { keep } : {}) } } });
@@ -79,7 +80,7 @@ describe('BF35 following at a distance', () => {
     for (let i = 0; i < 12; i++) play(s);
     expect(gap(s, w, s.player)).toBeLessThanOrEqual(keep + 0.5);
     expect(gap(s, w, s.player)).toBeGreaterThan(keep - 1);
-    for (const i of w.core.inventory) i.equippedIn = [];
+    w.core.inventory = w.core.inventory.filter((i) => !i.equippedIn?.some((e) => e.startsWith('grip:'))); // no bow on it at all
     for (let i = 0; i < 12; i++) play(s);
     expect(gap(s, w, s.player)).toBeLessThan(3);
   });

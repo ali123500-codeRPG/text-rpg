@@ -176,6 +176,7 @@ breaking things, repairing gear (D-89), Threadbound items.
   - `src/engine/gear.ts`
   - `src/engine/handover.ts`
   - `src/engine/repair.ts`
+  - `src/engine/steel.ts`
   - `src/library/gearScale.ts`
   - `src/library/itemIds.ts`
   - `src/library/items.ts`

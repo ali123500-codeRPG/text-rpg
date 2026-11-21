@@ -24,8 +24,6 @@ import { TP } from './templateIds';
 import { PLAYER_NAMES } from './names';
 import { personalityFrom } from '../ruleset/personality';
 import { ST } from './startIds';
-import { RL } from './tableIds';
-import { gripSlot } from '../ruleset/slots';
 import { blessedClass, blessingGods, rollBlessing } from '../ruleset/blessings';
 
 /** a fixed seed from a string (a template's ID, or a template and an actor's ID) */
@@ -47,7 +45,8 @@ function fillPools(inst: ItemInstance, d: ItemDef): void {
   if (d.armor?.pools) inst.pools = Object.fromEntries(Object.keys(d.armor.pools).map((k) => [k, 100]));
 }
 /** equip a loadout the obvious way: weapons/shields into free grips, armor worn. */
-export function equipLoadout(state: GameState | null, items: string[], idPrefix: string): ItemInstance[] {
+/** a loadout as instances: armor worn, weapons and shields in the grips (`drawn`) or carried sheathed (DS2: a spawned NPC) */
+export function equipLoadout(state: GameState | null, items: string[], idPrefix: string, drawn = true): ItemInstance[] {
   const out: ItemInstance[] = [];
   const grips = ['grip:right_arm', 'grip:left_arm'];
   let n = 0;
@@ -56,14 +55,14 @@ export function equipLoadout(state: GameState | null, items: string[], idPrefix:
     n += 1;
     const inst: ItemInstance = { id: `${idPrefix}_${itemId}_${n}` , itemId };
     if (d.slot === 'armor') inst.equippedIn = ['armor'];
-    else if ((d.kind === 'weapon' || d.kind === 'shield') && grips.length) inst.equippedIn = [grips.shift()!];
+    else if (drawn && (d.kind === 'weapon' || d.kind === 'shield') && grips.length) inst.equippedIn = [grips.shift()!];
     fillPools(inst, d);
     out.push(inst);
   }
   return out;
 }
 
-export type SpawnOpts = { id: string; zone: string; placeId: string; bandId: string; label?: string; name?: string; storyId?: string; personality?: Personality /* PL12: replaces the template's points */; ageStage?: LifeStageKey /* AG14: the Weaver's life stage */; talent?: TalentKey /* AG25: the Weaver's talent */ };
+export type SpawnOpts = { id: string; zone: string; placeId: string; bandId: string; label?: string; name?: string; storyId?: string; personality?: Personality /* PL12: replaces the template's points */; ageStage?: LifeStageKey /* AG14: the Weaver's life stage */; talent?: TalentKey /* AG25: the Weaver's talent */; drawn?: boolean /* weapons in hand from the start (a test fixture); DS2: sheathed otherwise */ };
 
 /** A class's skill floors: its own floors plus its unlock conditions (a character of the class must meet what unlocks it).
  * all = every skill must reach its value; any = either-of groups, one skill in each must reach its value. */
@@ -400,7 +399,7 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
       classes: t.classId ? [{ classId: t.classId, state: 'current', level: Math.min(level, classMaxLevel(t.classId)) }] : [], // NG7: capped by the class's top level
       perks: [...racePerks(t.raceId, state?.turn ?? 0), ...templatePerks(t, opts.id).map((perkId) => ({ perkId, source: 'template' as const, gainedTurn: state?.turn ?? 0 })), ...tagQuirks(t, opts.id, state?.turn ?? 0)],
       condition: { hpLostPct: 0, parts: fullParts(state, ct.id), status: [] },
-      inventory: equipLoadout(state, loadout, opts.id),
+      inventory: equipLoadout(state, loadout, opts.id, !!opts.drawn), // DS2: sheathed until it matters
       standingDefense: rawDefense((id) => skills[id]?.raw ?? 0, loadout), // GAP: raw skill; ties go block, parry, dodge like the player
       personality: opts.personality ?? presetPersonality(t, opts.id), // NG14: the layers and the copy's spread, or the Weaver's pick on them (PL12)
       ...npcBornDay(state, t, opts.id, opts.ageStage, opts.talent),
@@ -533,8 +532,8 @@ export function newPlayer(startId = PLAYER_START, storyId?: string, raceId: stri
 }
 
 /** The starter kit: after creation the player gets, for each gear class, the highest-level item tagged 'starter'
- * whose equip requirement their skills meet (every class has a Common 25 and a Fine 50 piece). Held: the weapon whose required skill is highest (then the higher level), and a met shield unless
- * that weapon takes two grips; worn: the highest-level armor met, and a plain pack (CT7) that holds the rest. */
+ * whose equip requirement their skills meet (every class has a Common 25 and a Fine 50 piece). Worn: the highest-level
+ * armor met, and a plain pack (CT7) that holds the rest; weapons and shields start sheathed (DS2). */
 export function starterKit(a: Actor): ItemInstance[] {
   const lib = getLibrary();
   const lvl = (d: ItemDef) => equipPos(itemLevel(d) ?? 'crude');
@@ -545,17 +544,10 @@ export function starterKit(a: Actor): ItemInstance[] {
   }
   const met = [...top.values()];
   const score = (d: ItemDef) => { const r = requirement(d); return (r ? skillToward(a, r.skill) : 0) * 10 + lvl(d); };
-  const best = (ds: ItemDef[]) => ds.reduce<ItemDef | undefined>((b, d) => (!b || score(d) > score(b) ? d : b), undefined);
-  // CC8: held in the body's grip parts (a Human's arms, right first; a Dragon's jaws; a Slime has none), worn armor only on
-  // a humanoid body [Proposed]
-  const grips = (getLibrary().bodyTypes[a.core.bodyTypeId]?.parts ?? []).filter((p) => p.roles.includes(RL.grip)).map((p) => p.id).reverse();
-  const weapon = best(met.filter((d) => d.kind === 'weapon' && (d.grips ?? 1) <= grips.length));
-  const shield = grips.length - (weapon?.grips ?? (weapon ? 1 : 0)) >= 1 ? best(met.filter((d) => d.kind === 'shield')) : undefined;
+  // CC8: worn armor only on a humanoid body [Proposed]
   const armor = a.core.bodyTypeId !== BT.humanoid ? undefined : met.filter((d) => d.armor).reduce<ItemDef | undefined>((b, d) => (!b || lvl(d) > lvl(b) || (lvl(d) === lvl(b) && score(d) > score(b)) ? d : b), undefined);
   return met.map((d, n) => {
     const inst: ItemInstance = { id: `player_${d.id}_${n + 1}`, itemId: d.id };
-    if (d === weapon) inst.equippedIn = grips.slice(0, d.grips ?? 1).map(gripSlot);
-    if (d === shield) inst.equippedIn = [gripSlot(grips[weapon?.grips ?? (weapon ? 1 : 0)])];
     if (d === armor) inst.equippedIn = ['armor'];
     fillPools(inst, d);
     return inst;

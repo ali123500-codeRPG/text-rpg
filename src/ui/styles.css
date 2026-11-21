@@ -774,9 +774,11 @@ button.cs-sigil:hover, button.cs-sigil:focus-visible { box-shadow: 0 0 0 4px var
 .st-i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .inbar button.st-act { color: var(--text); }
 .inbar button.st-act .st-i { color: var(--c3); }
-.stealthy-b { display: inline-flex; align-items: center; gap: 6px; vertical-align: middle; margin-left: 10px; position: relative; top: -2px;
+.stealthy-b, .drawn-b { display: inline-flex; align-items: center; gap: 6px; vertical-align: middle; margin-left: 10px; position: relative; top: -2px;
   padding: 3px 10px 3px 8px; border-radius: var(--r-pill); background: var(--c3); color: var(--on-pill); font-size: 13px; font-weight: 700; letter-spacing: .02em; }
 .stealthy-b .st-i { width: 15px; height: 15px; }
+.drawn-b { background: var(--c10); } /* DS6: the Melee tree's colour */
+.drawn-b .dr-i { display: inline-grid; width: 15px; height: 15px; } .drawn-b .dr-i svg { width: 100%; height: 100%; }
 .inbar.stealthy .hs-input { border-color: var(--c3); border-style: dashed; }
 .tod:focus-visible { outline: none; }
 .tone-bad { color: var(--danger); }

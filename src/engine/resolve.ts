@@ -533,6 +533,7 @@ import {
   type TalkedYield,
   truceBars,
 } from './offer';
+import { attackDraws, drawToFight, heldWeapons, noteChoice, sheatheIfCalm, steelBefore, steelDeed, steelEvent } from './steel';
 import {
   minutesUntil,
   nextTimeOfDay,
@@ -770,6 +771,8 @@ type Ctx = {
   input: TurnInput;
   events: GameEvent[];
   orders: Map<string, Order>;
+  /** DS1: the weapons each actor held at the turn's start, before code drew or sheathed for it */
+  steelWas: Map<string, ItemInstance[]>;
   acted: Set<string>;
   /** AT13: this turn's own seconds in each pool */
   turnS: number;
@@ -1394,6 +1397,8 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
   if (truceBars(state, a, t)) { logCode(state, 'truce_no_attack', { actorId: a.id, target: t.id }); return wasted('truce'); } // TF16
   if (heldBack(state, a, t)) { logCode(state, 'spar_blow_held', { actorId: a.id, target: t.id }); return wasted('spar_held'); }
   faceToward(a, t); // SZ4
+  drawToFight(state, t); // DS2/DS7: the one attacked takes up its steel before it defends, at no cost
+  ctx.steelWas.set(t.id, heldWeapons(state, t)); // DS1: drawn because it is attacked: no event of its own
   const dist = sightDistM(state, a, t);
   if (notInHand(state, a, o)) return wasted('not_in_hand'); // BG-186: never a fist in its place
   const named = namedMode(state, a, o);
@@ -2567,8 +2572,14 @@ function step(ctx: Ctx, id: string): void {
   const later = (o.gear ?? []).filter((op) => op.op === 'pick_up' && !reachable(state, a, op));
   const gearNow = (o.gear ?? []).filter((op) => !later.includes(op));
   const pack = packOps(state, a, gearNow); // PO2: read before the ops move anything
+  const steelWas = ctx.steelWas.get(a.id) ?? heldWeapons(state, a); // DS1: what it held before code or its order changed it
+  sheatheIfCalm(state, a, o); // DS2
   const g = applyGearOps(state, a, gearNow);
   useGearTime(ctx, a, gearNow.filter((op) => !g.invalid.includes(op)), pack);
+  if (attackDraws(state, a, o)) drawToFight(state, a, o.item); // DS7: drawing costs nothing
+  noteChoice(state, a, gearNow);
+  const steelEv = steelEvent(state, a, o, steelWas); // DS1: drawn or sheathed, seen
+  if (steelEv) { const ev = mk(ctx, a, steelEv.kind, steelEv); emit(ctx, ev); steelDeed(state, a, ev, gearNow); }
   for (const p of g.picked) emit(ctx, mk(ctx, a, 'pick_up', { itemId: p.itemId, target: p.from }));
   for (const id of g.summoned) emit(ctx, mk(ctx, a, 'summon', { itemId: id })); // TB6
   for (const id of g.armor) emit(ctx, mk(ctx, a, 'equip', { itemId: id }));
@@ -3231,6 +3242,8 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   // NP1 a: an NPC not relevant to the player gets no order this turn; its routine moves it on the clock (catchUp)
   const relevant = CONFIG.ACTIVITY_TIERS ? relevantActors(state, input) : null;
   const active = state.actors.filter((a) => isActive(a) && (!relevant || relevant.has(a.id)));
+  const steelWas = new Map(active.map((a) => [a.id, heldWeapons(state, a)] as const));
+  for (const a of active) steelBefore(state, a); // DS2: code draws for an NPC that is not calm, sheathes a calm one's, before anyone decides
   const views = new Map<string, ActorView>(active.map((a) => [a.id, buildActorView(state, a.id)]));
   const fired = input.fired ?? firedOrders(state);
   (state.scratch.agentRun as string[]).push(...fired.map((o) => o.actorId)); // BG-151: a trigger's order moved them too
@@ -3268,7 +3281,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   // the player first: a companion copies the player's new posture
   for (const id of [...orders.keys()].sort((x, y) => (x === state.player.id ? -1 : y === state.player.id ? 1 : 0))) setPosture(state, actorById(state, id)!, orders.get(id)!);
   const ctx: Ctx = {
-    state, rng, input, events: [], orders, acted: new Set(), slots: new Map(), surprised: new Set(), risen: new Map(), defenses: new Map(), strikeBacks: new Map(), exchangeEvents: [],
+    state, rng, input, events: [], orders, steelWas, acted: new Set(), slots: new Map(), surprised: new Set(), risen: new Map(), defenses: new Map(), strikeBacks: new Map(), exchangeEvents: [],
     turnS: state.mode === 'tactical' ? turnSeconds(state, playerOrder) : CONFIG.FIGHT_TURN_S, clock: new Map(), at: 0, finished: new Set(), stopped: new Set(), spoke: new Set(),
     ...(state.player.walking?.then ? { carried: state.player.walking.then } : {}), // MQ15 a: carried through words or a sneak
   };

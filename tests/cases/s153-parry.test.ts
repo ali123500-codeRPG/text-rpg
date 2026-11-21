@@ -19,7 +19,7 @@ const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: '
 const npc = (s: GameState, id: string) => s.actors.find((a) => a.id === id)!;
 const hold = (a: Actor, items: string[]) => {
   a.core.inventory = a.core.inventory.filter((i) => !i.id.startsWith(`${a.id}_h`));
-  for (const i of a.core.inventory) if (i.equippedIn?.some((h) => h.startsWith('grip:'))) delete i.equippedIn;
+  a.core.inventory = a.core.inventory.filter((i) => !i.equippedIn?.some((h) => h.startsWith('grip:'))); // gone, not stowed: stowed steel is drawn to fight (DS7)
   items.forEach((itemId, n) => {
     a.core.inventory.push({ id: `${a.id}_h${n}`, itemId, equippedIn: [n ? 'grip:left_arm' : 'grip:right_arm'] });
     fit(a, itemId);

@@ -17,6 +17,7 @@
 // cowering Broken, yields when convinced; an AI-run one is told how it landed and answers "yields". A yield is a defeat
 // (payDefeats), unlike a stand-down (TF18).
 import type { Actor, ContestResult, GameState, Intent } from '../types';
+export { SHEATHED_OFFER } from '../types';
 import type { AcceptedAgentOutput } from './types';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';

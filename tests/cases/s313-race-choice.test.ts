@@ -9,6 +9,8 @@ import { BT, RC } from '../../src/library/raceIds';
 import { ST } from '../../src/library/startIds';
 import { CONFIG } from '../../src/config';
 import { SK } from '../../src/library/skillIds';
+import { readied } from '../../src/engine/combatLevel';
+import { makeVillage } from '../harness';
 
 
 describe('313 race choice at creation', () => {
@@ -35,10 +37,11 @@ describe('313 race choice at creation', () => {
 
   it('starter gear goes in the body\'s own grips; only a humanoid wears the starter armor', () => {
     const human = createPlayer(recommendedBuild(), 's1').core.inventory.filter((i) => i.equippedIn);
-    expect(human.flatMap((i) => i.equippedIn!).sort()).toEqual(['armor', 'grip:right_arm', 'pack']);
+    expect(human.flatMap((i) => i.equippedIn!).sort()).toEqual(['armor', 'pack']); // DS2: weapons start sheathed
     const b = recommendedBuild(); b.skills[SK.block] = 25; b.skills[SK.earshot] -= 5; b.skills[SK.eyesight] -= 5; b.skills[SK.dodge] -= 10; b.skills[SK.endurance] -= 5; // a shield is met
-    expect(createPlayer(b, 's1').core.inventory.flatMap((i) => i.equippedIn ?? []).sort()).toEqual(['armor', 'grip:left_arm', 'grip:right_arm', 'pack']);
-    const dragon = createPlayer(recommendedBuild(ST.late_bloomer, RC.dragon), 's1', { preview: true }).core.inventory.filter((i) => i.equippedIn);
+    const shielded = readied(makeVillage(), createPlayer(b, 's1'), true); // drawn to fight: into its own grips
+    expect(shielded.core.inventory.flatMap((i) => i.equippedIn ?? []).sort()).toEqual(['armor', 'grip:left_arm', 'grip:right_arm', 'pack']);
+    const dragon = readied(makeVillage(), createPlayer(recommendedBuild(ST.late_bloomer, RC.dragon), 's1', { preview: true }), true).core.inventory.filter((i) => i.equippedIn);
     expect(dragon.flatMap((i) => i.equippedIn!).sort()).toEqual(['grip:head', 'pack']); // jaws hold the weapon; no shield, no armor
     const slime = createPlayer(recommendedBuild(ST.late_bloomer, RC.slime), 's1', { preview: true }).core.inventory.filter((i) => i.equippedIn);
     expect(slime.flatMap((i) => i.equippedIn!)).toEqual(['pack']);

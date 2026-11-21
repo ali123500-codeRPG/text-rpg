@@ -140,6 +140,9 @@ function eventLine(e: NarrationEvent): string {
       return `${cap(who(e.actor))} ${e.actor === 'player' ? 'arrive' : 'arrives'}${e.where ? ` at ${e.where}` : ''}.`;
     case 'busy':
       return `${cap(who(e.actor))} ${e.actor === 'player' ? 'keep' : 'keeps'} at it${e.busy ? `: ${e.busy.doing.toLowerCase()}, ${e.busy.left} s to go` : ''}${e.item ? ` (${e.item})` : ''}.`;
+    case 'draw_weapon':
+    case 'sheathe_weapon': // DS1
+      return `${cap(who(e.actor))} ${e.kind === 'draw_weapon' ? 'draw' : 'sheathe'}${e.actor === 'player' ? '' : 's'} ${e.item ?? 'a weapon'}${e.target ? ` ${e.kind === 'draw_weapon' ? 'at' : 'before'} ${who(e.target)}` : ''}.`;
     case 'move':
       return `${cap(who(e.actor))} ${e.actor === 'player' ? 'move' : 'moves'}${e.spot ? ` ${e.spot}` : e.heading ? ` toward ${e.heading}` : e.from && e.where ? ` from ${e.from} to ${e.where}` : e.within && e.where ? ` within ${e.where}` : e.where ? ` to ${e.where}` : ''}.${e.lastSeenOf ? ` If ${e.lastSeenOf} is seen or heard this turn, it is the same person, not someone new; never an empty spot when they are there.` : ''}`;
   }
