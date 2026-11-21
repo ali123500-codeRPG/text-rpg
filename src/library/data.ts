@@ -905,7 +905,7 @@ export function prototypeLibrary(): Library {
     // NR17 a: hooks by settlement size (the crowd is text); must = always there, the rest rolled from pool without repeats first
     rosters: {
       hamlet: { count: [1, 2], must: [], pool: [HK.face, HK.threat], theme: TH.village_folk },
-      village: { count: [3, 5], must: [HK.leader, HK.service, HK.seat], pool: [HK.face, HK.face, HK.threat, HK.rival], theme: TH.village_folk },
+      village: { count: [3, 5], must: [HK.leader, HK.service, HK.warden], pool: [HK.face, HK.face, HK.threat, HK.rival], theme: TH.village_folk },
       town: { count: [6, 10], must: [HK.leader, HK.service, HK.seat, HK.trader, HK.watch, HK.rival], pool: [HK.service, HK.face, HK.face, HK.trader, HK.threat], theme: TH.town_folk },
       // TL24 / NR21 a: a city holds a Beyond and a realm's court a Mythic. The land draws no cities or courts yet (a region
       // holds one town at most); these rows are ready for when a region brief or a bigger region places one

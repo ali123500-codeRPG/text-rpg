@@ -83,6 +83,8 @@ export const HOOK_KINDS: Record<string, HookKindDef> = Object.fromEntries(([
   { id: HK.trader, name: 'Trader', gives: 'buys and sells goods', roles: [RO.talker], class: CL.trader, rank: 'face' },
   { id: HK.watch, name: 'Watch', gives: 'keeps the peace; trouble brings them', groups: [GP.watch_patrol], rank: 'face' },
   { id: HK.seat, name: 'Seat of the Great', gives: 'the one person past ordinary power who stands over this place: a name, the deeds that made them (motive), 1 to 3 goals; people call them the Great, never by a rank', roles: [RO.knight, RO.soldier, RO.leader, RO.hunter, RO.healer, RO.brute], rank: 'seat', goals: true },
+  // PQ13 a2: a village's strongest is the lord's man, strong by local measure, never one of the Great (TL24 a, TL26 a)
+  { id: HK.warden, name: 'Warden', gives: 'the lord\'s posted warden, the strongest person here: often a former soldier, hunter or knight; a name, the deeds that made them (motive), 1 to 3 goals; respected locally, never called one of the Great', roles: [RO.knight, RO.soldier, RO.hunter], rank: 'seat', goals: true },
 ] as HookKindDef[]).map((d) => [d.id, d]));
 
 /** NR27 (D-308): group recipes. The leader is `step` ranks above the group's rank; followers' races are rolled (NR31) unless fixed */

@@ -328,8 +328,8 @@ const ROSTER_RULE = [
   `   (land.sites[].roster), a road its travellers (roads[].travellers), a landmark its people (landmarks[].people).`,
   `   Cast each entry for the ground you build once, naming its key in roster: code has set who they are and how strong`,
   `   (is), and you give the name, look, routine and band. A group entry is one cast entry, its leader (label, name and look are the leader's alone); code adds its followers. An`,
-  `   entry with goals is a seat of the Great: give them a name, the deeds that made them (motive) and 1 to ${CONFIG.GOALS_HELD} goals;`,
-  `   people call them the Great, never by a rank.`,
+  `   entry with goals is a seat of the Great or a village's warden: give them a name, the deeds that made them (motive) and 1 to ${CONFIG.GOALS_HELD} goals;`,
+  `   people call a seat of the Great one of the Great, a warden by their post, never by a rank.`,
 ].join('\n');
 export const WEAVER_INSTRUCTIONS = [
   `You are the Weaver of a text RPG. You decide what is happening at a place and`,
@@ -363,7 +363,7 @@ export const WEAVER_INSTRUCTIONS = [
   `   an actor with a plan stops being an ordinary NPC.`,
   `   A unique (one specific person from catalogs.uniques) acts from its own goals, not a routine: give it 1 to ${CONFIG.GOALS_HELD} goals,`,
   `   from its values, archetype and past (an echo's first goal is its unfinished business, from its past, fitted to this`,
-  `   world), each naming in about the ids or keys of the people, places and items it is after. Only uniques, and a seat of the Great from a roster (rule 11), get goals.`,
+  `   world), each naming in about the ids or keys of the people, places and items it is after. Only uniques, and a seat of the Great or a warden from a roster (rule 11), get goals.`,
   `   A job for the player (a quest) comes only through an actor: put it in that`,
   `   actor's plan, and it offers the job in talk.`,
   `8. Keep your note short: what the story is building toward and what you set up.`,

@@ -62,7 +62,7 @@ describe('332 rosters and groups', () => {
     expect(t.length).toBeGreaterThanOrEqual(6); expect(t.length).toBeLessThanOrEqual(10);
     expect(h.length).toBeGreaterThanOrEqual(1); expect(h.length).toBeLessThanOrEqual(2);
     const hooks = getLibrary().hookKinds!;
-    expect(v.slice(0, 3).map((e) => e.who)).toEqual([hooks[HK.leader].name, hooks[HK.service].name, hooks[HK.seat].name]);
+    expect(v.slice(0, 3).map((e) => e.who)).toEqual([hooks[HK.leader].name, hooks[HK.service].name, hooks[HK.warden].name]);
     expect(t.slice(0, 6).map((e) => e.who)).toEqual([HK.leader, HK.service, HK.seat, HK.trader, HK.watch, HK.rival].map((id) => hooks[id].name));
     const seat = (es: typeof v) => es.find((e) => e.goals)!;
     expect(pos(seat(v).compose!.rank)).toBeGreaterThanOrEqual(pos('rank_3'));
