@@ -6,7 +6,8 @@ import { threadboundStartBlocked } from '../ruleset/threadboundItems';
 import { CONFIG } from '../config';
 import { burdenTotal } from '../ruleset/burdenTotal';
 import { getLibrary } from '../library';
-import { classFloors, classlessStart, creationCap, startRaw, defaultClass, createPlayer, playableRaces, raceStartBlock, randomIdentity, creationAge, creationAgeRange, creationPoints, buildState, newPlayer, recommendedBuild, startGives, startLevel } from '../library/spawn';
+import { classFloors, classlessStart, creationCap, startRaw, defaultClass, createPlayer, playableRaces, raceStartBlock, randomIdentity, creationAge, creationAgeRange, creationPoints, buildState, newPlayer, recommendedBuild, startGives, startLevel, classMaxLevel, classPerks } from '../library/spawn';
+import { perkRuleRows } from './perks';
 import { blessedClass, blessingGods } from '../ruleset/blessings';
 import { lifeStage, stageName } from '../ruleset/age';
 import { personalityPicker } from './personality';
@@ -56,16 +57,28 @@ export function creationScreen(api: GameApi, onStarted: () => void, startId: str
 }
 
 /** DX1: what a Start puts on the screen: its class's tier, or the blessing it rolls; and the classes it can begin in */
-function startFacts(startId: string): { tier: string; classes: string[]; perks: string[]; blocked: string } {
+function startFacts(startId: string): { tier: string; classes: string[]; perks: string[]; byLevel: [number, string[]][]; blocked: string } {
   const lib = getLibrary(), s = lib.starts[startId], b = s?.blessing;
   const classes = b && !s.classId ? blessingGods(b.tier).map(blessedClass).filter((c): c is string => !!c) : [startGives(startId).classId].filter((c): c is string => !!c);
-  const perks = classes.length === 1 ? [...Object.values(lib.classes[classes[0]]?.levelPerks ?? {}).flat(), ...(lib.classes[classes[0]]?.capstone ?? [])].map((p) => lib.perks[p]?.name ?? p) : [];
+  // the class's perks by the level that grants them, its capstone at its top level (classPerks)
+  const byLevel: [number, string[]][] = classes.length !== 1 ? [] : Array.from({ length: classMaxLevel(classes[0]) }, (_, i) => [i + 1, classPerks(classes[0], i, i + 1).map((o) => o.perkId)] as [number, string[]]).filter(([, ids]) => ids.length);
+  const perks = byLevel.flatMap(([, ids]) => ids).map((p) => lib.perks[p]?.name ?? p);
   return {
     // the card shows the class tier for every start; a blessing's tier is a game-side number and stays off the screen
     tier: classes[0] ? CLASS_TIERS.name(lib.classes[classes[0]].tier) : classlessStart(startId) ? 'no class' : '',
-    classes, perks: b ? ['a random god’s blessing', ...perks] : perks,
+    classes, perks: b ? ['a random god’s blessing', ...perks] : perks, byLevel,
     blocked: b && !blessingGods(b.tier).length ? 'no god gives this blessing yet.' : '',
   };
+}
+
+/** a perk's name; clicking it opens its story and effect in the movable panel */
+function perkButton(id: string): HTMLElement {
+  const d = getLibrary().perks[id];
+  if (!d) return h('span', {}, id);
+  return h('button', { class: 'hs-btn-text', type: 'button', title: 'What it does', onclick: () => openPanel(d.name, [
+    ...(d.story ?? d.text ? [{ k: 'Story', v: (d.story ?? d.text)! }] : []),
+    ...(d.rules ? perkRuleRows(d.rules).map(([k, v]) => ({ k, v })) : []),
+  ]) }, d.name);
 }
 
 // name and gender carry over when the player switches Start
@@ -315,7 +328,8 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
         start?.story ?? cls?.story ? h('p', { class: 'story-line' }, start?.story ?? cls?.story) : null,
         start?.blessing ? h('p', {}, `You begin with ${facts.perks[0]}, in that god’s Blessed class${facts.classes.length ? `: ${facts.classes.map((c) => `${lib.classes[c].name} (${CLASS_TIERS.name(lib.classes[c].tier)})`).join(' or ')}` : ''}.`)
           : classlessStart(startId) ? h('p', {}, `You begin with no class, at level 0. ${lib.classes[defaultClass() ?? '']?.name ?? 'The default class'} is open to pick, and your levels wait until you pick a class.`)
-          : facts.perks.length ? h('p', {}, `Class perk at level 1: ${facts.perks.join(', ')}.`) : null),
+          : facts.byLevel.length ? h('p', { class: 'perk-line' }, facts.byLevel.flatMap(([n, ids], i) => [i ? ' ' : '',
+            `${n === classMaxLevel(facts.classes[0]) ? 'Capstone' : 'Class perk'} at level ${n}: `, ...ids.flatMap((id, j) => [j ? ', ' : '', perkButton(id)]), '.'])) : null),
       h('div', { class: 'actions' },
         h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { snap(); recommended(); afterKey = buildKey(); render(); } }, 'Use recommended build'),
         h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { snap(); reset(); afterKey = buildKey(); render(); } }, 'Reset'),
