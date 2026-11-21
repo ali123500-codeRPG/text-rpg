@@ -186,9 +186,10 @@ The source of truth for every design decision.
   changed. Never claim a skill's method without having used it: if you could not fetch one, say so in the report.
   Mock-ups only for major changes.
   - **A small change** changes an existing element and adds no element type, colour, font, size token or layout
-    change. It uses `interface-design` and `show-dont-tell-ui` (1 and 5 below), plus the accessibility checks: every
-    control has an accessible name, text keeps its contrast, and no meaning rests on colour alone.
-  - **Everything else** (a new or changed layout, colour or type, a new component or screen) uses all five. When
+    change. It uses `interface-design`, `show-dont-tell-ui` and `design-spatial` (1, 5 and 6 below), plus the
+    accessibility checks: every control has an accessible name, text keeps its contrast, and no meaning rests on
+    colour alone.
+  - **Everything else** (a new or changed layout, colour or type, a new component or screen) uses all six. When
     unsure, the change is not small.
   1. `interface-design`: the primary lens. Structure, hierarchy, density, tokens, states, consistency.
   2. `impeccable`: its audit and critique (anti-patterns, accessibility, theming, spacing, typography, motion), with
@@ -198,6 +199,8 @@ The source of truth for every design decision.
   4. `ui-ux-pro-max`: its search for palette, font-pairing and data-display guidance. Cite what it returned.
   5. `show-dont-tell-ui`: show instead of tell. Mark only the exception with an icon, put words in tooltips and
      aria-labels, and cut hints the styling already gives.
+  6. `design-spatial`: render the built page, run its layout audit, look at the annotated screenshot, and measure
+     what the change is about (centring, the gap to a neighbour). Its gates are fixed; its signals are only pointers.
 - If a skill is missing for the job, look for one online before going without.
 - Play and creation pages are PC only: no phone rules, checks at desktop widths. The library viewer must also work on
   phones, with nothing scrolling sideways.

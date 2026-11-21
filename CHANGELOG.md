@@ -3,6 +3,10 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bug-fix-log.md`.
 
+- 21/11/2026: new skill `design-spatial` in `.agents/skills/` (from connerkward/ckw-design-skill, MIT), used for
+  every UI change as item 6 of the design skills in `docs/instructions.md` section 7. The owner asked: "I feel like
+  we need more design skills, find me one which will tell you to center the icons in a band, and not take too much
+  space"; after seeing it run on the perks board: "looks good, let's add it".
 - 20/11/2026: `docs/providers/claude.md`, "The game page": a publish also sends `assets/backdrops/*.webp` when
   the backdrops changed (PS-486). The owner approved the report whose build plan named this step: "all is good, you
   can proceed with this approach".
