@@ -31,8 +31,8 @@ first. What came out of them as rules is in `docs/instructions.md`, the spec's "
   settled gap notes and caps (#731); one reward XP equation that quests share (#742); grips, not hands, in code
   names (#742, #746); sleepers hear who is near, and no cap past training, D-3 (#756); a Destroyed part weighs
   more than a Crippled one, and a stealth act counts once (#780); the land maker's numbers in one table (#857).
-  Parked: D-256, D-293. The hard caps review (D-275) was asked as CS10-CS14; its row still reads Open and waits
-  for the review of open parked items.
+  Parked: D-256, D-293. The hard caps review (D-275) was asked as CS10-CS14; the owner closed it on that basis
+  (21/11/2026, D-275 a).
 - **Code check in ten slices (16/11 to 17/11/2026; IC1-IC12).** All code checked for inconsistencies, a tenth at
   a time: tidy-ups with no behaviour change in one PR per slice (#923, #924, #939, #954, #955, #956, #958, #959,
   #960, #961), and each bug fixed only after the owner's OK (BG-261 #923, BG-262 #930, BG-267 #952, BG-274 and
