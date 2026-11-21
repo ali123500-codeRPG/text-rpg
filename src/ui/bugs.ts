@@ -36,7 +36,7 @@ export function deedsForClaude(storyId: string, ideas: readonly Want[]): string 
     + 'Review them with the owner, and write each one the owner approves as an achievement code rule by PR (PROG-118). '
     + 'Once the owner rules on one, record it in the game page\'s db on its document in deed_sends (keep id, storyId, name and at) '
     + 'with verdict "approved" or "turned_down", so the Bugs page shows it.\n\n'
-    + ideas.map((w) => `- ${w.label}: ${w.wanted} (scenario ${w.scenario}, turn ${w.turn}; deed_sends/${deedSendId(storyId, w)})`).join('\n');
+    + ideas.map((w) => `- ${w.label}: ${w.wanted ?? ''} (scenario ${w.scenario}, turn ${w.turn}; deed_sends/${deedSendId(storyId, w)})`).join('\n');
 }
 const VERDICT_WORD = { approved: 'Approved', turned_down: 'Turned down' } as const;
 
@@ -82,7 +82,7 @@ function deedIdeas(api: GameApi, redraw: () => void) {
         ...(rows.length ? [send.button, send.copy, rows.some((w) => mark(s, w)?.verdict) ? clear : null, send.note] : [])),
       rows.length ? h('table', { class: 'bug-table' }, h('thead', {}, h('tr', {}, ['Idea', 'Deed', 'Scenario', 'Status'].map((t) => h('th', {}, t)))),
         h('tbody', {}, [...rows].reverse().map((w) => { const m = mark(s, w);
-          return h('tr', {}, h('td', { class: 'bug-id' }, w.label), h('td', {}, w.wanted), h('td', { class: 'hs-note' }, `${w.scenario} · turn ${w.turn}`),
+          return h('tr', {}, h('td', { class: 'bug-id' }, w.label), h('td', {}, w.wanted ?? ''), h('td', { class: 'hs-note' }, `${w.scenario} · turn ${w.turn}`),
             h('td', {}, m ? (m.verdict ? VERDICT_WORD[m.verdict] : 'Sent') : h('span', { class: 'hs-note' }, 'New'))); })))
         : h('p', { class: 'empty' }, 'No deed ideas. The Chronicler proposes deeds no achievement counts yet at each scenario\'s end.'));
   };

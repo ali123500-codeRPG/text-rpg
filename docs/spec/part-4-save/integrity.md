@@ -25,7 +25,7 @@ Raw skill above 100 is logged as a warning, not refused, because workaround mech
 | Item | Budget | When reached |
 | --- | --- | --- |
 | Any page | 256 KiB (platform) | Busy places split facts into more facts.\<placeId>.\<n> pages |
-| Head (control/head) | 256 KiB (platform). It lists every page twice (its own map and the undo bookmark), so it grows with the world | Past HEAD\_WARN\_SHARE of the limit (placeholder), the save that crosses that line files a head\_large bug once. Past the limit the save is refused before anything is written, and the last good head is kept |
+| Head (control/head) | 256 KiB (platform). It lists HEAD\_PART\_PAGES pages itself, the undo turn's changes, and one hash per further part (D-1621, section 6), so it grows only slowly with the world | Past HEAD\_WARN\_SHARE of the limit (placeholder), the save that crosses that line files a head\_large bug once. Past the limit the save is refused before anything is written, and the last good head is kept |
 | Turn records | Last N (placeholder) | Oldest records are deleted; story history stays |
 | Story text | HISTORY\_CHUNK\_TURNS turns per document (20) | A new document starts; nothing is pruned. If one document passes 256 KiB its lines keep their text and lose the code-built extras (mechanics, heard lines, changes) |
 | Claude proposals | Fact text and name length; promotions and minted items per scenario (placeholders) | The validator rejects the proposal |

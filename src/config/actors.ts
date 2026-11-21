@@ -128,6 +128,14 @@ export const ACTORS = {
   GM_AGENT_CALLS_SHOWN: 5,
   BACKUP_EVERY: 10, // Q2
   BACKUPS_KEPT: 3, // Q2
+  /** D-1621 (WT10 b): the save's head lists this many pages itself; the rest go in parts of this many pages each */
+  HEAD_PART_PAGES: 1000, // placeholder
+  /** D-1621 (WT7 a): the GM view's cast power log keeps this many newest rows; the oldest go */
+  GM_LOG_ROWS_CAST_POWER: 50, // placeholder
+  /** D-1621 (WT8 c): the GM view's Roles wanted keeps this many counted groups; the least recently seen goes */
+  GM_LOG_GROUPS_ROLE_WANTS: 100, // placeholder
+  /** D-1621 (WT9): the GM view's Wanted list (templates, routines, deed ideas) keeps this many counted groups; the least recently seen goes */
+  GM_LOG_GROUPS_TEMPLATE_WANTS: 100, // placeholder
   HEAD_WARN_SHARE: 0.75, // placeholder: share of the 256 KiB document limit at which a save's head files head_large
   TURN_ENDS_KEPT: 500, // AT15/AT43: turn end times kept for timers (more than the longest timer needs at the shortest turn)
   HISTORY_CHUNK_TURNS: 20, // Q18: story text saved in documents of this many turns each
@@ -135,7 +143,7 @@ export const ACTORS = {
   /** WT1 a, WT2 b: the floor plan and loose items are saved in square tiles of the world frame this many metres a side
    * (tile.<tx>.<ty>.<n> pages); a change takes effect at the next save, and saves tiled at another size still load */
   TILE_SIZE_M: 100,
-  SCHEMA_VERSION: 16, // v16: clear sight keeps a point, not a title (BG-1618); v15: everyone has a point and height of their own (D-1623); v14: knownOnSight names its reach (KN1 b); v13: the floor plan and the ground saved by tiles (WT1 a); v12: item pool bands (D-89 RP12); v11: doorways hold real doors (BG-312); v10: titles and the floor plan (PZ16 b); v9: land (regions, WZ12)
+  SCHEMA_VERSION: 17, // v17: each person's recent events, memory, plan and drive on their own page, the GM logs capped (D-1621); v16: clear sight keeps a point, not a title (BG-1618); v15: everyone has a point and height of their own (D-1623); v14: knownOnSight names its reach (KN1 b); v13: the floor plan and the ground saved by tiles (WT1 a); v12: item pool bands (D-89 RP12); v11: doorways hold real doors (BG-312); v10: titles and the floor plan (PZ16 b); v9: land (regions, WZ12)
   /** MG2: a save older than this is refused (the prototype keeps no old saves, D-116); OLDEST_SAVE_REASON ends "this save was made …" */
   OLDEST_SAVE_SCHEMA: 10,
   OLDEST_SAVE_REASON: 'before zones became titles on a floor plan (walls, doors and light at points)',

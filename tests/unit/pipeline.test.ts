@@ -297,6 +297,6 @@ describe('SD1 scenario ending moment', () => {
     const sent = sentText(claude.callsFor('chronicler')[0]);
     expect(sent).toContain('smash the mug on his head');
     expect(sent).toContain(narr.text);
-    expect(state.hidden.templateWants).toEqual([{ turn: 1, scenario: 1, actorId: state.player.id, label: 'Mug Breaker', wanted: '1 foe struck with a drinking vessel (smashed a mug)', template: '', of: 'deed' }]);
+    expect(state.hidden.templateWants).toEqual([{ turn: 1, scenario: 1, actorId: state.player.id, label: 'Mug Breaker', wanted: '1 foe struck with a drinking vessel (smashed a mug)', template: '', of: 'deed', count: 1 }]);
   });
 });

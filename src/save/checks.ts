@@ -1,8 +1,9 @@
 // Load checks (Part 4 §7–8): migration steps, library reconcile, shape, invariants, references.
-import type { Actor, BlueprintPage, BodyType, EnginePage, FactsPage, GameState, HiddenPage, ItemDef, Library, Opening, Place, TilePage } from '../types';
+import type { Actor, BlueprintPage, BodyType, EnginePage, FactsPage, GameState, HiddenPage, ItemDef, Library, Opening, Place, RoleWant, TemplateWant, TilePage } from '../types';
 import { resolveAlias } from '../library';
 import { CONFIG } from '../config';
-import { tilePages, type Pages } from './pages';
+import { shareOut, tilePages, type Pages } from './pages';
+import { addWant } from '../scenario/wants';
 import { ageYears, youngestAge } from '../ruleset/age';
 import { gripSlot, gripsOf } from '../ruleset/slots';
 import { BK, OP } from '../library/tableIds';
@@ -90,6 +91,16 @@ export const MIGRATIONS: Record<number, (pages: Pages) => void> = {
         return a && at === a.zone ? [[id, { x: a.pos.x, y: a.pos.y, floor: a.floor }]] : [];
       }));
     }
+  },
+  // D-1621 (WT3 a): each person's recent events, memory, plan and drive move to their own page; the GM logs keep a set size:
+  // cast power its newest rows (WT7 a), the roles and templates wanted fold into counted groups (WT8 c, WT9)
+  16: (pages) => {
+    shareOut(pages, (pages.engine as EnginePage).recentEvents ?? []);
+    const h = pages.hidden as HiddenPage, roles = (h.roleWants ?? []) as RoleWant[], wants = (h.templateWants ?? []) as TemplateWant[];
+    delete h.roleWants; delete h.templateWants;
+    for (const w of roles) addWant(h, 'roleWants', w);
+    for (const w of wants) addWant(h, 'templateWants', w);
+    if (h.castPower) h.castPower = h.castPower.slice(-CONFIG.GM_LOG_ROWS_CAST_POWER);
   },
 };
 

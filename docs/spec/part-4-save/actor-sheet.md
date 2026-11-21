@@ -504,7 +504,11 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
 - **SHEET-319** Every such gap is kept in hidden.templateWants and listed in the GM view (Wanted), so a
   template can be made. A routineGap (no routine set fits) joins the same list, marked Routine, with the set used
   instead, so the routine bank can grow (D-53 a). The Chronicler's deed ideas are kept in the same field but listed on
-  the Bugs page, not here (AA-108, Agent Chronicler).
+  the Bugs page, not here (AA-108, Agent Chronicler). WT9: the list keeps counted groups (kind, who, what was used
+  instead; count, last scenario), at most CONFIG.GM\_LOG\_GROUPS\_TEMPLATE\_WANTS, the least recently seen dropped. Each
+  group has Approve and Turn down in the GM view: approved, it leaves the list; turned down, only its count stays and
+  keeps counting, so a gap that keeps coming shows it needs revising. A deed idea gets the same when Clear list takes it
+  off the Bugs page (Agent Chronicler).
 - **SHEET-320** This settles the NPC half of D-11.
 - **SHEET-321** **Theme role kinds**: each theme lists the role kinds that fit its world (`roleKinds`): Road bandits and
   Town watch take fighting roles only, Wild beasts and Monsters beast roles only, the folk themes (village, town,
@@ -519,7 +523,8 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
   3, Moderate 2, Low 1); ties keep the role table's order.
 - **SHEET-327** Wanted skills that role lacks from its High and Moderate bands go to `hidden.roleWants`, shown in the GM
   view as "Roles wanted", grouped by who was wanted with a count, so new roles are made from what the agents keep asking
-  for.
+  for. WT8 c: the groups (who, skills, role; count, last scenario) are what is kept, at most
+  CONFIG.GM\_LOG\_GROUPS\_ROLE\_WANTS, the least recently seen dropped. Approve and Turn down work as for SHEET-319.
 - **SHEET-328** A composition with neither role nor wants, or wants with fewer than 2, more than 4 or unknown skills, is
   refused (`bad_compose`).
 
@@ -586,6 +591,7 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
   site) reads unknown (CK9 a). A free cast above the place's tables is only logged, through the exceptional reading
   (CK10 a). Code: `usualThreat` in src/scenario/apply.ts.
 - **SHEET-362** The readings are kept in hidden.castPower and shown in the GM view; nothing is refused and no NPC changes.
+  WT7 a: the newest CONFIG.GM\_LOG\_ROWS\_CAST\_POWER readings are kept, the oldest dropped.
   The off-band flag and CAST\_POWER\_BANDS are retired (CK6 a).
 
 #### Perks, traits, rules and personality

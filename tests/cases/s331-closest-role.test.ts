@@ -11,6 +11,7 @@ import { RC } from '../../src/library/raceIds';
 import { RO, TH } from '../../src/library/npcLayerIds';
 import { SK } from '../../src/library/skillIds';
 import { roleWantGroups } from '../../src/ui/gm';
+import { addWant } from '../../src/scenario/wants';
 import { getLibrary } from '../../src/library';
 
 const ctx: PlanContext = { tier: 'success', kind: 'scenario', placeId: 'tavern' };
@@ -38,8 +39,8 @@ describe('331 closest role and Roles wanted', () => {
     applyStagePlan(s, p, ctx, { entry: 'open' }, createRng(1));
     const orla = s.actors.find((a) => a.names.current === 'Orla')!;
     expect(s.hidden.roleWants).toEqual([expect.objectContaining({ actorId: orla.id, label: 'a sapper', role: RO.knight, missing: [SK.handiwork] })]);
-    const twice = [...s.hidden.roleWants!, { ...s.hidden.roleWants![0], label: 'A Sapper', turn: 9 }];
-    expect(roleWantGroups(twice)).toEqual([expect.objectContaining({ label: 'a sapper', role: RO.knight, count: 2 })]);
+    addWant(s.hidden, 'roleWants', { ...s.hidden.roleWants![0], actorId: orla.id, missing: [SK.handiwork], label: 'A Sapper', turn: 9 }); // WT8 c: counted in its group
+    expect(roleWantGroups(s.hidden.roleWants!)).toEqual([expect.objectContaining({ label: 'a sapper', role: RO.knight, count: 2, turn: 9 })]);
   });
 
   it('NR28: a fully covered want logs nothing; bad wants and a composition with neither role nor wants are refused', () => {

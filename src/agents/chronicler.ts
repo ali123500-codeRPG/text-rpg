@@ -1,14 +1,14 @@
 // AA-108: the Chronicler. One background call per ended scenario: it reads that scenario's turns and the achievement
 // library and proposes deeds no achievement counts yet. Its ideas go to the GM view's Wanted list (hidden.templateWants,
 // of 'deed') for the owner to review; an approved one becomes an achievement only as a code rule (PROG-118).
-import type { GameState, LogLine, ScenarioRecord } from '../types';
+import type { GameState, LogLine, ScenarioRecord, TemplateWant } from '../types';
 import { getLibrary } from '../library';
 import { ACH_RULE_TEXT } from '../library/achievementIds';
 import { runAgent, type AgentCtx } from './call';
 import { FIXED } from './prompts';
 import { checkChronicler } from './schema';
 
-export type DeedWant = NonNullable<GameState['hidden']['templateWants']>[number];
+export type DeedWant = TemplateWant;
 
 /** the Chronicler's data: the scenario, its turns as the player saw them, what the library's achievements count, and the deeds already proposed */
 export function chroniclerData(s: GameState, r: ScenarioRecord, lines: readonly LogLine[]): string {
@@ -17,7 +17,7 @@ export function chroniclerData(s: GameState, r: ScenarioRecord, lines: readonly 
   const byRule = new Map<string, string[]>();
   for (const d of Object.values(getLibrary().achievements ?? {})) byRule.set(d.rule, [...(byRule.get(d.rule) ?? []), d.name]);
   const library = [...byRule].map(([rule, names]) => `- ${ACH_RULE_TEXT[rule as keyof typeof ACH_RULE_TEXT] ?? rule}: ${names.join('; ')}`);
-  const proposed = (s.hidden.templateWants ?? []).filter((w) => w.of === 'deed').map((w) => `- ${w.label}: ${w.wanted}`);
+  const proposed = (s.hidden.templateWants ?? []).filter((w) => w.of === 'deed').map((w) => `- ${w.label}${w.wanted ? `: ${w.wanted}` : ''}`); // a turned-down idea keeps only its name
   return [`SCENARIO: ${JSON.stringify({ number: r.number, question: r.question, ending: r.ending, outcome: r.text, turns: `${r.startTurn}-${r.endTurn}` })}`,
     `TURNS:\n${turns.join('\n') || '(none)'}`,
     `LIBRARY (what achievements count, then the names that count it):\n${library.join('\n')}`,

@@ -1,7 +1,7 @@
 // In-memory GameState (Part 2) and saved pages (Part 4 §9).
 import type { ActorId, Band, FactId, GameEvent, LibraryRef, LogEntry, Mode, PlaceId, SlotKey, StoryId, Tier, Turn, Zone } from './core';
 import type { Actor, NameHistory } from './actor';
-import type { HiddenStore } from './hidden';
+import type { Drive, HiddenStore, MemoryEntry, Plan } from './hidden';
 import type { EventRollResult } from './ruleset';
 import type { AgentTurnLog } from './agents';
 import type { NarrationScale, QuestRewardLevel, TimeOfDay } from '../scales';
@@ -236,6 +236,8 @@ export type Head = Bookmark & {
   schemaVersion: number;
   libraryVersion: number;
   undo: Bookmark | null;
+  /** D-1621: the parts of its page list the stored head names (save readHead), for the cleanup */
+  lists?: string[];
 };
 
 export type EnginePage = {
@@ -257,13 +259,21 @@ export type EnginePage = {
   mercy?: PlayerMercy;
   barriers?: Record<string, import('./core').Barrier>;
   turnEnds?: Record<number, number>;
-  /** NPC view history (GameState.recentEvents) */
+  /** D-1621: the recent events no one present keeps (GameState.recentEvents), each with its place among its turn's events;
+   * the rest are on their keepers' pages (ActorPage.own) */
+  recent?: RecentEntry[];
+  /** before v17: all of GameState.recentEvents (migration step 16 shares it out) */
   recentEvents?: GameEvent[];
   /** W1: in-memory order of actors and places (the store may not keep object key order) */
   order?: { actors: string[]; places: string[]; regions?: string[] };
 };
 
 export type HiddenPage = { storyId: StoryId } & HiddenStore;
+/** D-1621: a recent event saved with its place among its turn's events, so a load puts GameState.recentEvents back in order */
+export type RecentEntry = [number, GameEvent];
+/** D-1621 (WT3 a): a person's page: the actor, and their share of the world-wide state: the recent events they keep (each
+ * event once, on the first page in actor order that keeps it), their memory, plan and drive (HiddenStore by actor id) */
+export type ActorPage = Actor & { own?: { recent?: RecentEntry[]; memory?: MemoryEntry[]; plan?: Plan; drive?: Drive } };
 
 export type BlueprintPage = {
   storyId: StoryId;

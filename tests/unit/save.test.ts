@@ -5,17 +5,17 @@ import { CONFIG, resetConfig } from '../../src/config';
 import { getLibrary } from '../../src/library';
 import {
   LoadRefusedError, MIGRATIONS, acquireTurnLock, archiveStory, artifactDbStore, listBackups, listStories, listWorlds, loadStory, memoryStore,
-  loadHistory, readTurnRecord, releaseTurnLock, restoreBackup, saveHistory, saveTurn, undoTurn, goBackOneTurn, type DB,
+  loadHistory, readHead, readTurnRecord, releaseTurnLock, restoreBackup, saveHistory, saveTurn, undoTurn, goBackOneTurn, type DB,
 } from '../../src/save';
-import { toPages } from '../../src/save/pages';
+import { fromPages, toPages } from '../../src/save/pages';
 import { keepInside, middleOf } from '../../src/plan/geom';
-import type { GameState, Head, LogLine, StoryFact, TurnRecord } from '../../src/types';
+import type { ActorPage, EnginePage, GameEvent, GameState, Head, HiddenPage, LogLine, StoryFact, TurnRecord } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
 import { IT } from '../../src/library/itemIds';
 
 const rec = (s: GameState, turn: number, extra: Partial<TurnRecord> = {}): TurnRecord =>
   ({ storyId: s.storyId, turn, libraryVersion: s.libraryVersion, rngBefore: 0, playerInput: '', agentLog: [], events: [], factsAdded: [], ...extra });
-const head = async (st: ReturnType<typeof memoryStore>) => (await st.get<Head>('stories/test/control/head'))!;
+const head = async (st: ReturnType<typeof memoryStore>) => (await readHead(st, 'test'))!;
 const lib = () => getLibrary();
 /** play `turns` turns: each changes the rng state and the guard's flag */
 async function play(st: ReturnType<typeof memoryStore>, s: GameState, from: number, to: number) {
@@ -147,15 +147,22 @@ describe('save and load', () => {
   });
 });
 
-describe('head size', () => {
-  it('refuses a head over the document limit before writing anything', async () => {
-    const st = memoryStore();
-    const s = makeVillage();
-    // the head lists every page by key, so 4,000 pages with long ids pass 256 KiB; bare blueprints are the cheapest pages
-    // to build (any page kind is listed the same way)
-    for (let i = 0; i < 4000; i++) s.blueprints.push({ id: `bp_${i}_${"x".repeat(20)}` } as never);
-    await expect(saveTurn(st, s, rec(s, 0))).rejects.toMatchObject({ code: 'page_too_large', committed: false });
-    expect([...st.docs.keys()]).toEqual([]);
+describe('head in parts', () => {
+  it('D-1621: the head lists HEAD_PART_PAGES pages itself and the rest in parts, its undo turn only what changed; both load back', async () => {
+    const st = memoryStore(), s = makeVillage();
+    CONFIG.HEAD_PART_PAGES = 10;
+    for (let i = 0; i < 25; i++) s.blueprints.push({ storyId: 'test', id: `bp_${i}`, kind: 'item', data: {} } as never);
+    await play(st, s, 1, 3);
+    type Stored = { pages: object; parts: string[]; undo: { pages: object; parts: string[] } };
+    const stored = (await st.get<Stored>('stories/test/control/head'))!, h = await head(st);
+    expect(Object.keys(stored.pages)).toHaveLength(10);
+    expect(stored.parts).toHaveLength(Math.ceil(Object.keys(h.pages).length / 10) - 1);
+    expect(Object.keys(stored.undo.pages)).toEqual(['engine']); // only the engine page changed from turn 2 to 3
+    expect(Object.keys(h.undo!.pages)).toEqual(Object.keys(h.pages));
+    expect((await st.list('stories/test/lists')).sort()).toEqual(stored.parts.map((x) => `stories/test/lists/${x}`).sort()); // no stale part
+    expect((await loadStory(st, 'test', lib())).state.blueprints).toEqual(s.blueprints);
+    await undoTurn(st, 'test');
+    expect((await loadStory(st, 'test', lib())).state.clocks.last).toBe(2);
   });
 });
 
@@ -316,6 +323,36 @@ describe('migration and reconcile', () => {
     (pages['actor.player'] as { journal: { clearSight: unknown } }).journal.clearSight = { patron_1: patron.zone, trader: 'tav_cellar', gone_1: 'tav_common' };
     MIGRATIONS[15](pages);
     expect((pages['actor.player'] as GameState['player']).journal!.clearSight).toEqual({ patron_1: { ...patron.pos, floor: patron.floor } });
+  });
+  it('D-1621: a v16 save puts each person\'s recent events, memory and plan on their own page, each event once, and folds the GM logs to their caps', () => {
+    const s = makeVillage();
+    const ev = (id: string, turn: number, who: string[]) => ({ id, turn, actorId: 'player', kind: 'idle', zone: s.player.zone, effects: [], noise: 'quiet', visibility: 'normal',
+      perception: Object.fromEntries(who.map((w) => [w, { level: 'full' }])) }) as unknown as GameEvent;
+    const events = [ev('a', 1, ['player', 'guard_1']), ev('b', 1, ['guard_1']), ev('c', 2, ['someone_gone'])];
+    s.recentEvents = events;
+    s.hidden.memory.guard_1 = [{ turn: 1, text: 'saw a stranger' }];
+    s.hidden.plans.guard_1 = { goal: 'watch the door', steps: [], triggers: [], createdTurn: 1 };
+    // the pages as a v16 save held them: every recent event on the engine page, memory and plans on the hidden page, the GM logs as rows
+    const pages = toPages(s), engine = pages.engine as EnginePage, hidden = pages.hidden as HiddenPage;
+    for (const k of Object.keys(pages)) if (k.startsWith('actor.')) delete (pages[k] as ActorPage).own;
+    delete engine.recent;
+    engine.recentEvents = structuredClone(events);
+    Object.assign(hidden, structuredClone({ memory: s.hidden.memory, plans: s.hidden.plans }));
+    const role = { turn: 1, scenario: 1, actorId: 'guard_1', label: 'a sapper', skills: [SK.handiwork], role: 'knight', missing: [SK.handiwork] };
+    (hidden as { roleWants: unknown[] }).roleWants = [role, { ...role, label: 'A Sapper', turn: 5, scenario: 2 }];
+    hidden.castPower = Array.from({ length: CONFIG.GM_LOG_ROWS_CAST_POWER + 5 }, (_, i) => ({ turn: i, scenario: i, challenge: 'minor', hostile: 1, player: 1, ratio: 1 }));
+    MIGRATIONS[16](pages);
+    expect((pages['actor.player'] as ActorPage).own).toEqual({ recent: [[0, events[0]]] });
+    expect((pages['actor.guard_1'] as ActorPage).own).toEqual({ recent: [[1, events[1]]], memory: s.hidden.memory.guard_1, plan: s.hidden.plans.guard_1 });
+    expect(engine.recent).toEqual([[0, events[2]]]); // no one present keeps it
+    expect(engine.recentEvents).toBeUndefined();
+    expect(hidden.memory.guard_1 ?? hidden.plans.guard_1).toBeUndefined();
+    expect(hidden.roleWants).toEqual([{ ...role, turn: 5, scenario: 2, count: 2 }]);
+    expect(hidden.castPower.map((c) => c.turn)).toEqual(Array.from({ length: CONFIG.GM_LOG_ROWS_CAST_POWER }, (_, i) => i + 5)); // the newest
+    const back = fromPages(s.meta, { libraryVersion: s.libraryVersion } as Head, pages);
+    expect(back.recentEvents).toEqual(events);
+    expect(back.hidden.memory).toEqual(s.hidden.memory);
+    expect(back.hidden.plans).toEqual(s.hidden.plans);
   });
 });
 

@@ -43,6 +43,7 @@ import { maxMorale, isBrokenLevel, moraleLevel, setMoraleLost } from '../ruleset
 import { CL } from '../library/classIds';
 import { IT } from '../library/itemIds';
 import { armorStop, shieldPool } from '../library/gearScale';
+import { addCastPower, addWant } from './wants';
 
 /** NG15: a composition's template, kept as a story blueprint (one per composition), so its copies rebuild on load and the GM
  * view lists it under "Made this story" with Send to library */
@@ -109,7 +110,7 @@ function logCastPower(state: GameState, challenge: string, cast: Actor[], placeI
   const usual = usualThreat(state, placeId);
   const ranks = foes.map((a) => { const t = a.core.templateId ? npcTemplate(state, a.core.templateId) : undefined, k = t && templateRank(t); return k ? rankPos(k) : -Infinity; });
   const above = usual && ranks.length ? Math.max(...ranks) - usual.top : 0;
-  (state.hidden.castPower ??= []).push({ turn: state.turn, scenario: state.stage.scenarioNumber, challenge, hostile: Math.round(hostile), player: Math.round(player),
+  addCastPower(state.hidden, { turn: state.turn, scenario: state.stage.scenarioNumber, challenge, hostile: Math.round(hostile), player: Math.round(player),
     ratio: player > 0 ? r2(hostile / player) : 0, ...(usual ? { usual: Math.round(usual.power), local: usual.power > 0 ? r2(hostile / usual.power) : 0 } : {}), ...(above > 0 ? { exceptional: above } : {}) });
 }
 
@@ -585,11 +586,11 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   for (const c of plan.cast) if (c.roster && !state.hidden.rosterFilled?.includes(c.roster)) (state.hidden.rosterFilled ??= []).push(c.roster); // NR17
   plan.cast.forEach((c, i) => { // NR28: a composition by wanted skills whose role lacks some of them
     const w = c.compose?.wants, missing = w ? roleMissing(c.compose!.role, w.skills) : [];
-    if (missing.length) (state.hidden.roleWants ??= []).push({ turn: state.turn, scenario: state.stage.scenarioNumber, actorId: castActors[i].id, label: w!.label, skills: w!.skills, role: c.compose!.role, missing });
+    if (missing.length) addWant(state.hidden, 'roleWants', { turn: state.turn, scenario: state.stage.scenarioNumber, actorId: castActors[i].id, label: w!.label, skills: w!.skills, role: c.compose!.role, missing });
   });
-  plan.cast.forEach((c, i) => { if (c.templateGap) (state.hidden.templateWants ??= []).push({ turn: state.turn, scenario: state.stage.scenarioNumber, actorId: castActors[i].id, label: c.label, wanted: c.templateGap, template: castActors[i].core.templateId ?? '' }); });
+  plan.cast.forEach((c, i) => { if (c.templateGap) addWant(state.hidden, 'templateWants', { turn: state.turn, scenario: state.stage.scenarioNumber, actorId: castActors[i].id, label: c.label, wanted: c.templateGap, template: castActors[i].core.templateId ?? '' }); });
   // D-53 a: a routine the Weaver wanted and no set gave, in the same GM list
-  plan.cast.forEach((c, i) => { if (c.routineGap) (state.hidden.templateWants ??= []).push({ turn: state.turn, scenario: state.stage.scenarioNumber, actorId: castActors[i].id, label: c.label, wanted: c.routineGap, template: c.routineSetId, of: 'routine' }); });
+  plan.cast.forEach((c, i) => { if (c.routineGap) addWant(state.hidden, 'templateWants', { turn: state.turn, scenario: state.stage.scenarioNumber, actorId: castActors[i].id, label: c.label, wanted: c.routineGap, template: c.routineSetId, of: 'routine' }); });
   if (ctx.kind === 'scenario') logCastPower(state, plan.event.challenge, castActors, ctx.placeId); // NG16 b, CK6 a
   // UG3: goal holders: the template's standing goal, then the Weaver's goals, their keys read as ids
   const aboutRef = (r: string) => castMap.get(r) ?? placeMap.get(r) ?? zoneMap.get(r) ?? r;

@@ -51,7 +51,7 @@ import type { GuidedCtx } from './crossroads';
 import { acceptIntent, callNarrator, callParser, callPlanner, callResponder, callVoice } from './wrappers';
 import { visitedZoneIds } from '../engine/trail';
 import { buildLeakContext } from './narration';
-import { barkOnly, isComm, noticeCue } from '../perception';
+import { barkOnly, keptBy, noticeCue } from '../perception';
 import { FIXED } from './prompts';
 import { formatOppositionView } from './format';
 import { QUEST_STATE_NAME, abandonQuest, dueText, isOpen, payText, pinQuest } from '../engine/quests';
@@ -60,6 +60,7 @@ import { fileBug, isBugCode, openBugs } from '../save/bugs';
 import { answering } from './answering';
 import { TURN_CHECK, checkTurn, snapTurn } from '../save/turnCheck';
 import { cap, listWords, r1 } from '../words';
+import { addWant, ruleWant, wantKey } from '../scenario/wants';
 
 const INFO_COMMAND = /^\/(stats|inv|quests)\b/i; // the autopilot's sheet, gear and quest looks (BG-25)
 
@@ -250,8 +251,8 @@ export function createGame(deps: GameDeps): Game {
     const p: Promise<void> = callChronicler(s, r, lines, { ...ctxFor(s.turn, []), background: true })
       .then((wants) => {
         if (!wants.length || !state || state.storyId !== storyId) return;
-        (state.hidden.templateWants ??= []).push(...wants);
-        amend((x) => { (x.hidden.templateWants ??= []).push(...wants); });
+        for (const w of wants) addWant(state.hidden, 'templateWants', w);
+        amend((x) => { for (const w of wants) addWant(x.hidden, 'templateWants', w); });
         emit();
       })
       .catch((e) => { if (e instanceof StopPlay) stop(e.code); else codeError('chronicler', e); })
@@ -891,9 +892,17 @@ export function createGame(deps: GameDeps): Game {
       await saveDeedSends(store, ideas.map((w) => ({ id: deedSendId(storyId, w), storyId, name: w.label, at })));
     },
     async clearRuledDeeds() {
-      const ruled = state ? (await deedSends(store, state.storyId)).filter((d) => d.verdict && !d.cleared) : [];
+      const s = state, ruled = s ? (await deedSends(store, s.storyId)).filter((d) => d.verdict && !d.cleared) : [];
       await saveDeedSends(store, ruled.map((d) => ({ ...d, cleared: true as const })));
+      // WT9: an approved idea leaves the story; a turned-down one keeps only its count
+      const rule = (x: GameState) => { for (const d of ruled) { const w = x.hidden.templateWants?.find((g) => g.of === 'deed' && deedSendId(x.storyId, g) === d.id); if (w) ruleWant(x.hidden, 'templateWants', wantKey.templateWants(w), d.verdict!); } };
+      if (s && ruled.length) { rule(s); amend(rule); emit(); }
       return ruled.length;
+    },
+    ruleWant(list, key, verdict) {
+      if (!state || !ruleWant(state.hidden, list, key, verdict)) return;
+      amend((x) => { ruleWant(x.hidden, list, key, verdict); });
+      emit();
     },
     async sendHero(storyId) {
       const f = (await save.listFallen(store)).find((x) => x.storyId === storyId);
@@ -1208,12 +1217,8 @@ export function pruneRecent(s: GameState, all: GameEvent[]): GameEvent[] {
   const keep = new Set<GameEvent>();
   const n = CONFIG.RECENT_EVENTS;
   for (const a of [s.player, ...s.actors]) {
-    const seen = all.filter((e) => e.perception[a.id]);
-    if (a.mind) noteEarlier(s, a, seen.filter((e) => !barkOnly(e)).slice(0, -n));
-    for (const e of seen.filter((e) => !barkOnly(e)).slice(-n)) keep.add(e);
-    for (const e of seen.filter(isComm).slice(-n)) keep.add(e);
-    const hit = [...seen].reverse().find((e) => e.kind === 'attack' && e.target === a.id);
-    if (hit) keep.add(hit);
+    if (a.mind) noteEarlier(s, a, all.filter((e) => e.perception[a.id] && !barkOnly(e)).slice(0, -n));
+    for (const e of keptBy(a.id, all)) keep.add(e);
   }
   return all.filter((e) => keep.has(e));
 }

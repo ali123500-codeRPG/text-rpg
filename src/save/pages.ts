@@ -1,8 +1,9 @@
 // GameState <-> saved pages (Part 4 §6, §9), stable hashing and size budgets.
-import type { Actor, BlueprintPage, EnginePage, FactsPage, GameState, Head, HiddenPage, Place, Pt, Region, StoryFact, StoryMeta, TilePage } from '../types';
+import type { Actor, ActorPage, BlueprintPage, EnginePage, FactsPage, GameEvent, GameState, Head, HiddenPage, Place, Pt, RecentEntry, Region, StoryFact, StoryMeta, TilePage } from '../types';
 import { CONFIG } from '../config';
 import { middleOf } from '../plan/geom';
 import { planChanged } from '../plan/stamp';
+import { keptBy } from '../perception';
 
 export const PAGE_LIMIT = 256 * 1024; // platform: 256 KiB per document
 const FACTS_ENVELOPE = 512; // room for storyId/placeId around the facts array
@@ -105,6 +106,32 @@ export function tilePages(storyId: string, lists: TileLists, size = CONFIG.TILE_
   return out;
 }
 
+/** D-1621 (WT3 a): each person's share of the world-wide state goes on their own page (ActorPage.own): the recent events they
+ * keep (keptBy), each event once, on the first page in actor order that keeps it, so no page holds more than its own person's
+ * history; and their memory, plan and drive, off the hidden page. Recent events no one present keeps stay on the engine
+ * page. `events` in their order; each is saved with its place among its turn's events, which puts them back in order. */
+export function shareOut(pages: Pages, events: readonly GameEvent[]): void {
+  const engine = pages.engine as EnginePage, hidden = pages.hidden as HiddenPage;
+  const nth = new Map<number, number>();
+  const entry = new Map(events.map((e) => { const k = nth.get(e.turn) ?? 0; nth.set(e.turn, k + 1); return [e, [k, e] as RecentEntry] as const; }));
+  const left = new Set(events);
+  const ids = engine.order?.actors ?? Object.keys(pages).filter((k) => k.startsWith('actor.')).map((k) => (pages[k] as Actor).id);
+  for (const id of ids) {
+    const a = pages[`actor.${id}`] as ActorPage | undefined;
+    if (!a) continue;
+    const keeps = new Set(keptBy(id, events)), own: NonNullable<ActorPage['own']> = {};
+    const recent = events.filter((e) => keeps.has(e) && left.delete(e));
+    if (recent.length) own.recent = recent.map((e) => entry.get(e)!);
+    if (hidden.memory[id]) { own.memory = hidden.memory[id]; delete hidden.memory[id]; }
+    if (hidden.plans[id]) { own.plan = hidden.plans[id]; delete hidden.plans[id]; }
+    if (hidden.drives?.[id]) { own.drive = hidden.drives[id]; delete hidden.drives[id]; }
+    if (Object.keys(own).length) a.own = own;
+  }
+  delete engine.recentEvents;
+  const rest = events.filter((e) => left.has(e));
+  if (rest.length) engine.recent = rest.map((e) => entry.get(e)!);
+}
+
 /** Every page of the story, keyed by page key. Copies: the state is never shared with the store (it is only put in tile
  * order first, inTileOrder). */
 export function toPages(state: GameState): Pages {
@@ -113,7 +140,6 @@ export function toPages(state: GameState): Pages {
   const engine: EnginePage = {
     storyId: s.storyId, turn: s.turn, mode: s.mode, rngSeed: s.rngSeed, rngState: s.rngState, pending: s.pending,
     stage: s.stage, scenarioCaps: s.scenarioCaps, clocks: s.clocks, bands: s.bands, quests: s.quests,
-    ...(s.recentEvents?.length ? { recentEvents: s.recentEvents } : {}),
     ...(s.spars?.length ? { spars: s.spars } : {}),
     ...(s.yielding ? { yielding: s.yielding } : {}),
     ...(s.offers ? { offers: s.offers } : {}),
@@ -125,6 +151,7 @@ export function toPages(state: GameState): Pages {
   const hidden: HiddenPage = { storyId: s.storyId, ...s.hidden };
   const pages: Pages = { engine, hidden };
   for (const a of [s.player, ...s.actors]) pages[`actor.${a.id}`] = a;
+  shareOut(pages, s.recentEvents ?? []);
   for (const p of s.places) pages[`place.${p.id}`] = p;
   for (const r of s.regions ?? []) pages[`region.${r.id}`] = { ...r, storyId: s.storyId }; // every page carries its story id
   const byPlace = new Map<string, StoryFact[]>();
@@ -145,6 +172,15 @@ export function fromPages(meta: StoryMeta, head: Head, pages: Pages): GameState 
   const engine = p.engine as EnginePage;
   const { storyId: _s, ...hidden } = p.hidden as HiddenPage;
   const of = <T>(prefix: string) => Object.keys(p).filter((k) => k.startsWith(prefix)).map((k) => p[k] as T);
+  // D-1621: each person's share back where play keeps it
+  const own = of<ActorPage>('actor.').flatMap((a) => { const o = a.own; delete a.own; return o ? [[a.id, o] as const] : []; });
+  for (const [id, o] of own) {
+    if (o.memory) hidden.memory[id] = o.memory;
+    if (o.plan) hidden.plans[id] = o.plan;
+    if (o.drive) (hidden.drives ??= {})[id] = o.drive;
+  }
+  const recentEvents = [...(engine.recent ?? []), ...own.flatMap(([, o]) => o.recent ?? [])]
+    .sort(([ka, a], [kb, b]) => a.turn - b.turn || ka - kb).map(([, e]) => e);
   const actors = orderBy(of<Actor>('actor.'), engine.order?.actors);
   const places = orderBy(of<Place>('place.'), engine.order?.places);
   const regions = orderBy(of<Region & { storyId?: string }>('region.'), engine.order?.regions).map(({ storyId: _r, ...r }) => r);
@@ -159,12 +195,12 @@ export function fromPages(meta: StoryMeta, head: Head, pages: Pages): GameState 
     .sort(([a, na], [b, nb]) => byTile([a.tx, a.ty], [b.tx, b.ty]) || na - nb).map(([t]) => t);
   const tiled = <K extends TileList>(k: K): TilePage[K] => tiles.flatMap((t) => (t[k] ?? []) as unknown[]) as TilePage[K];
   const player = actors.find((a) => a.kind === 'player')!;
-  const { order: _o, storyId: _e, turn, mode, rngSeed, rngState, pending, stage, scenarioCaps, clocks, bands, quests, recentEvents, spars, yielding, offers, mercy, barriers, turnEnds } = engine;
+  const { order: _o, storyId: _e, turn, mode, rngSeed, rngState, pending, stage, scenarioCaps, clocks, bands, quests, spars, yielding, offers, mercy, barriers, turnEnds } = engine;
   return {
     storyId: meta.storyId, turn, mode,
     zones: [...zoneById.values()], // WI8 a: every built zone is live
     player, actors: actors.filter((a) => a !== player), bands,
-    hidden, events: [], agentLog: [], log: [], ...(recentEvents ? { recentEvents } : {}), ...(spars?.length ? { spars } : {}), ...(yielding ? { yielding } : {}), ...(offers ? { offers } : {}), ...(mercy ? { mercy } : {}), ...(barriers ? { barriers } : {}), ...(turnEnds ? { turnEnds } : {}),
+    hidden, events: [], agentLog: [], log: [], ...(recentEvents.length ? { recentEvents } : {}), ...(spars?.length ? { spars } : {}), ...(yielding ? { yielding } : {}), ...(offers ? { offers } : {}), ...(mercy ? { mercy } : {}), ...(barriers ? { barriers } : {}), ...(turnEnds ? { turnEnds } : {}),
     rngSeed, rngState, pending, places, ...(regions.length ? { regions } : {}), facts, stage: (({ zoneIds: _z, ...st }) => st)(stage as typeof stage & { zoneIds?: string[] }), scenarioCaps, clocks, quests,
     settings: structuredClone(meta.settings), libraryVersion: head.libraryVersion,
     blueprints: of<BlueprintPage>('blueprint.'), meta: structuredClone(meta),
