@@ -249,9 +249,10 @@ export function planView(api: GameApi, opts: PlanOpts) {
       gMarks.append(s('g', { class: 'map-item', ...(it.kind ? { 'data-kind': it.kind } : {}), 'data-role': 'icon', 'data-id': it.id, 'data-thing': 'item', 'data-of': it.of, tabindex: 0, role: 'button', 'aria-label': `${cap(it.name)}: what to do` },
         s('circle', { class: 'disc', cx: it.cx, cy: it.cy, r }), iconMark(it.icon, it.cx, it.cy, r * 1.24, 'art'), s('title', {}, cap(it.name))));
     }
+    let you: SVGElement | undefined;
     for (const t of sc.tokens) {
       if (!within(t, inView)) continue;
-      if (t.you) { const g = pin(t.cx, t.cy, d.youTitle ?? 'You are here', d.facing, t.r); g.setAttribute('data-role', 'token'); g.setAttribute('data-id', 'you'); gTokens.append(g); continue; }
+      if (t.you) { const g = pin(t.cx, t.cy, d.youTitle ?? 'You are here', d.facing, t.r); g.setAttribute('data-role', 'token'); g.setAttribute('data-id', 'you'); you = g; continue; }
       const who = t.who!, c = t.cap, tok = { 'data-role': 'token', 'data-id': t.id };
       // BG-324: the disc (GSM-193: or the body's capsule) alone is the token the checker measures; its icon (MAP-69) sits inside it
       const capRect = (q: NonNullable<typeof c>, at: Record<string, string | number>) => s('rect', { x: t.cx - q.len / 2, y: t.cy - q.wide / 2, width: q.len, height: q.wide, rx: Math.min(q.len, q.wide) / 2, transform: `rotate(${q.deg} ${t.cx} ${t.cy})`, ...at });
@@ -271,6 +272,7 @@ export function planView(api: GameApi, opts: PlanOpts) {
         s('text', { x: t.x1 + 4, y: t.cy + 4, class: 'map-who-label' }, t.group ? t.title : who.name), s('title', {}, t.title));
       gTokens.append(g);
     }
+    if (you) gTokens.append(you); // RM33: your pin above every other mark
     // the scale bar under the plan: 10 m and its paces
     const len = 10 * K(), bx = Math.max(sc.bounds.x0, sc.bounds.x1 - len - 120), by = sc.bounds.y1 + 22;
     if (within({ x0: bx, y0: by - 6, x1: bx + len + 90, y1: by + 6 }, inView)) gMarks.append(s('g', { class: 'map-scale' }, s('line', { x1: bx, y1: by, x2: bx + len, y2: by }), s('line', { x1: bx, y1: by - 5, x2: bx, y2: by + 5 }),

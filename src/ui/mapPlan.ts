@@ -277,6 +277,7 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
     if (drawnDoor.has(key)) continue;
     const back = other?.z.links.find((m) => m.opening === l.opening);
     const way = l.way?.shut ? l.way : back?.way?.shut ? back.way : l.way ?? back?.way;
+    if (!way && !l.wall && !back?.wall) continue; // RM34 b: open ground with no door or gate has no mark; its dotted edge is the way
     const c = px(l.at), dir: 'h' | 'v' = Math.abs(l.out[1]) >= Math.abs(l.out[0]) ? 'h' : 'v';
     const kind = way ? 'door' as const : 'opening' as const;
     const title = `${l.label}: ${x.z.name} ↔ ${other?.z.name ?? l.label}${way ? ` · ${shutWord(way) || way.kind}` : ''}`;
