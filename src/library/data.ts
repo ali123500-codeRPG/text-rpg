@@ -434,10 +434,37 @@ export function prototypeLibrary(): Library {
       [SV.forge]: { id: SV.forge, name: 'use of the forge', price: 5, forge: true }, // RP17 b
     },
     // D-141 VW14: a kept vow rolls RW1 for a reward type, then that type's table, until the stake's band is filled
-    // (VW15). The items table waits for its content (VW16).
+    // (VW15). VW16: every reward type draws its items from RW3, the one Items table, so rewards balance in one place.
+    // RW3 holds every item but Threadbound ones and the improvised bases; RW5 every Threadbound item (one of a kind: one
+    // already in the world is put back). Weights are placeholders.
     rewardTables: {
-      [RW.vow_kept]: { id: RW.vow_kept, name: 'Kept vow', rows: [{ weight: 1, table: RW.vow_items }] },
-      [RW.vow_items]: { id: RW.vow_items, name: 'Kept vow: items', rows: [] },
+      [RW.vow_kept]: { id: RW.vow_kept, name: 'Kept vow', rows: [{ weight: 3, table: RW.vow_items }, { weight: 1, table: RW.vow_threadbound }] },
+      [RW.vow_items]: { id: RW.vow_items, name: 'Kept vow: items', rows: [{ weight: 1, table: RW.items }] },
+      [RW.items]: { id: RW.items, name: 'Items', rows: [
+        { weight: 1, item: IT.dagger }, { weight: 1, item: IT.arming_sword }, { weight: 1, item: IT.greataxe }, { weight: 1, item: IT.spear },
+        { weight: 1, item: IT.war_spear }, { weight: 1, item: IT.shortbow }, { weight: 1, item: IT.longbow }, { weight: 1, item: IT.crossbow },
+        { weight: 1, item: IT.basket_hilt_sword }, { weight: 1, item: IT.hidden_blade }, { weight: 1, item: IT.crude_clothes }, { weight: 1, item: IT.cudgel },
+        { weight: 1, item: IT.rusty_knife }, { weight: 1, item: IT.gambeson }, { weight: 1, item: IT.mail_hauberk }, { weight: 1, item: IT.plate_harness },
+        { weight: 1, item: IT.round_shield }, { weight: 1, item: IT.short_sword }, { weight: 1, item: IT.hand_axe }, { weight: 1, item: IT.woodsman_axe },
+        { weight: 1, item: IT.greatsword }, { weight: 1, item: IT.recurve_bow }, { weight: 1, item: IT.flatbow }, { weight: 1, item: IT.light_crossbow },
+        { weight: 1, item: IT.stirrup_crossbow }, { weight: 1, item: IT.boiled_leather }, { weight: 1, item: IT.brigandine }, { weight: 1, item: IT.lamellar_coat },
+        { weight: 1, item: IT.half_plate }, { weight: 1, item: IT.kite_shield }, { weight: 1, item: IT.rapier }, { weight: 1, item: IT.longsword },
+        { weight: 1, item: IT.turkish_bow }, { weight: 1, item: IT.warbow }, { weight: 1, item: IT.jack_of_plates }, { weight: 1, item: IT.coat_of_plates },
+        { weight: 1, item: IT.heater_shield }, { weight: 1, item: IT.peerless_rapier }, { weight: 1, item: IT.peerless_longsword }, { weight: 1, item: IT.peerless_greatsword },
+        { weight: 1, item: IT.peerless_composite_bow }, { weight: 1, item: IT.peerless_warbow }, { weight: 1, item: IT.peerless_crossbow }, { weight: 1, item: IT.peerless_jack },
+        { weight: 1, item: IT.peerless_coat_of_plates }, { weight: 1, item: IT.peerless_plate }, { weight: 1, item: IT.peerless_heater }, { weight: 1, item: IT.arming_cap },
+        { weight: 1, item: IT.leather_cap }, { weight: 1, item: IT.secret }, { weight: 1, item: IT.peerless_cap }, { weight: 1, item: IT.mail_coif },
+        { weight: 1, item: IT.kettle_hat }, { weight: 1, item: IT.sallet }, { weight: 1, item: IT.peerless_sallet }, { weight: 1, item: IT.nasal_helm },
+        { weight: 1, item: IT.bascinet }, { weight: 1, item: IT.great_helm }, { weight: 1, item: IT.peerless_great_helm }, { weight: 1, item: IT.leather_gloves },
+        { weight: 1, item: IT.mail_mittens }, { weight: 1, item: IT.plate_gauntlets }, { weight: 1, item: IT.peerless_gauntlets }, { weight: 1, item: IT.spectacles },
+        { weight: 1, item: IT.charmed_ring }, { weight: 1, item: IT.ear_cup }, { weight: 1, item: IT.amulet }, { weight: 1, item: IT.hooded_cloak },
+        { weight: 1, item: IT.lucky_charm }, { weight: 1, item: IT.lockpicks }, { weight: 1, item: IT.sledgehammer }, { weight: 1, item: IT.pick },
+        { weight: 1, item: IT.healing_draught }, { weight: 1, item: IT.curio }, { weight: 1, item: IT.bandage }, { weight: 1, item: IT.key },
+        { weight: 1, item: IT.pack }, { weight: 1, item: IT.sack }, { weight: 1, item: IT.chest }, { weight: 1, item: IT.crate },
+        { weight: 1, item: IT.coin },
+      ] },
+      [RW.vow_threadbound]: { id: RW.vow_threadbound, name: 'Kept vow: Threadbound items', rows: [{ weight: 1, table: RW.threadbound }] },
+      [RW.threadbound]: { id: RW.threadbound, name: 'Threadbound items', rows: [{ weight: 1, item: IT.varos_loop }] },
     },
     // growth proposal 2.2: essences. Placeholder rows for the engine; the content round (one table per race and body type,
     // with traits) belongs to the lore and loot threads (D-228). EG11 b: never numbers. NM2: an essence is a small foreign addition
