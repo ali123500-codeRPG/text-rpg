@@ -3,6 +3,9 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bugs/`.
 
+- 21/11/2026: `AGENTS.md` rule 7 and `docs/instructions.md` section 4: the spec names a balancing setting and never copies
+  its number. The owner answered PQ15 "if the spec if ancient and not needed, remove it or achieve it somewhere. a
+  otherwise." (option a: "spec names the setting, numbers only in code").
 - 21/11/2026: `AGENTS.md` rule 9: decision records in the spec and the changelog may name the owner and quote their
   answers; email, devices and anything private stay out. The owner, on the Questions hub page "One continuous map
   (D-1558)", RX3 (keep the name and quotes as they are): "b, I don't care so muchn".

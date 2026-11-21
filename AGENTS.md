@@ -46,7 +46,7 @@ project: "the owner" below is its designer and its only player.
    then merges like any other PR (rule 5), without a second OK. An agent never changes a rule on its own idea.
 7. **Balancing numbers live in one place.** Every tunable number (odds, damage, ranges, timers, thresholds, XP, costs)
    sits in `src/config.ts` (its parts in `src/config/`) or a library table under a clear name, with placeholders
-   marked. Never hard-code one in logic, and never copy one into `docs/memory/`: name the setting and where it lives.
+   marked. Never hard-code one in logic, and never copy one into `docs/memory/` or the spec: name the setting and where it lives.
 8. **Distance is real metres.** Reach, range, sight, hearing, movement and room sizes use real-life metres with a
    cited reference. Nearness is never "same zone", zone hops or link counts: zones are only titles for places.
    A zone (title) only names a space. It never decides where something is or is drawn, how marks are placed,
