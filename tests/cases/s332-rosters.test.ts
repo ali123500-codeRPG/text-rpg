@@ -179,7 +179,7 @@ describe('332 rosters and groups', () => {
     expect(p.cast.find((c) => c.key === 'hook')!.compose).toMatchObject({ role: RO.brute, rank: 'rank_3' });
     applyStagePlan(s, p, ctx, { entry: 'open' }, createRng(1));
     const band = s.actors.find((a) => a.names.current === 'Orla')!.bandId;
-    expect(s.actors.filter((a) => a.bandId === band && a.label === 'a bandit').length).toBe(followers.length);
+    expect(s.actors.filter((a) => a.bandId === band && a.label === 'a bandit' && a.names.current === a.label).length).toBe(followers.length); // BG-1547: a follower is called by its label, never by an empty name
   });
 });
 
