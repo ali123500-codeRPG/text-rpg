@@ -1204,10 +1204,8 @@ export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverV
   // WI8 a: the ground around the player and the target (the frontier's edge too), not the whole world
   // BG-1615: by metres from the player's point and the points where the ways out to the frontier are left
   const edges: Located[] = target.frontierKey ? state.openings.filter((o) => o.frontier && o.joins[1] === target.frontierKey && Number.isFinite(o.at.x)).map((o) => ({ zone: o.joins[0], pos: o.at, floor: o.floor })) : [];
-  // at the story's start or an arrival the player stands nowhere yet: from the middles of the target place's own titles,
-  // where the player is about to be
-  const arriving: Located[] = start ? state.zones.filter((z) => z.placeId === target.placeId && z.outline?.length).map((z) => ({ zone: z.id, pos: middle(z), floor: z.floor })) : [];
-  const from = [...(start ? arriving : [placeOf(state.player)]), ...edges];
+  // WT16 a: a newcomer is placed before this view; only a new world's story start has the player nowhere, on no ground yet
+  const from = [...(start ? [] : [placeOf(state.player)]), ...edges];
   const onStage = state.actors.filter((a) => from.some((f) => (distOrNull(state, f, a) ?? Infinity) <= CONFIG.PLAN_VIEW_M));
   // the titles near, and the title each one cast stands in, so no one is left out of its place
   const stage = new Set([...nearbyZones(state, from).map((z) => z.id), ...onStage.map((a) => a.zone)]);
@@ -1237,7 +1235,7 @@ export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverV
       ...((target.kind === 'scenario' || target.kind === 'window') && state.stage.cause ? { cause: structuredClone(state.stage.cause) } : {}) },
     headlines: headlinesFor(state, target.placeId, true),
     // PQ2 a: the start's settlement is cast from its roster, as the World builder casts a site's
-    ...((land) => (land ? { land: start ? withRosters(state, land, timeOfDay(now(state)) === 'night') : land } : {}))(landView(state, state.player.pos ?? (() => { const z = zoneById(state, state.player.zone); return z?.outline?.length ? middle(z) : undefined; })())),
+    ...((land) => (land ? { land: start || target.arrive ? withRosters(state, land, timeOfDay(now(state)) === 'night') : land } : {}))(landView(state, state.player.pos ?? (() => { const z = zoneById(state, state.player.zone); return z?.outline?.length ? middle(z) : undefined; })())),
     places: weaverPlaces(state, near, onStage),
     quests: state.quests.map((q) => ({ id: q.id, state: q.state, text: q.text })),
     bands: state.bands.filter((b) => bandIds.has(b.id)).map((b) => ({ id: b.id, name: b.name, goals: b.goals, relations: { ...b.relations }, ...(b.chase ? { chase: b.chase } : {}) })),

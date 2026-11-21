@@ -13,7 +13,7 @@ import { furnitureIn } from '../engine/furniture';
 import { placeHasForge } from '../engine/repair';
 
 import { FU, ZK } from '../library/tableIds';
-import { distOrNull, entryPoint, placeAll, standingAt, startAtDoor, titleMiddle } from '../engine/position';
+import { distOrNull, entryPoint, placeAll, standingAt, startAtDoor, titleMiddle, unplace } from '../engine/position';
 import { clockSet, now, startClock } from '../time';
 import { activity, getLibrary, itemDef, npcTemplate, routine, routineSet } from '../library';
 import { composeTemplate, rankPos, roleMissing, presetPersonality, spawnNpc, templateRank } from '../library/spawn';
@@ -358,9 +358,9 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   if (ctx.frontierKey && newZones[0] && !ctx.ahead) enterFrontier(state, newZones[0]);
   // at story start the player stands in no built zone yet; it starts in the plan's first zone (CS2)
   const storyStart = !!firstZone && !zoneById(state, state.player.zone);
-  // BG-273, BG-1549: a new character, and the player at story start, arrives where the plan says (arriveAt: an area on the
-  // stage or a new zone), else in its first new zone
-  const arriveAt = (ctx.arrive || storyStart) && plan.arriveAt ? zoneRef(plan.arriveAt) : undefined;
+  // BG-1549: the player at story start arrives where the plan says (arriveAt), else in its first new zone. A newcomer in a
+  // world with ground was placed before the plan (WT16 a, placeNewcomer)
+  const arriveAt = storyStart && plan.arriveAt ? zoneRef(plan.arriveAt) : undefined;
   if (arriveAt && zoneById(state, arriveAt)) moveTo(state, state.player, arriveAt);
   else if (storyStart) moveTo(state, state.player, firstZone!);
   else if (ctx.wake && firstZone) moveTo(state, state.player, firstZone); // D-54: the player wakes somewhere safe
@@ -608,6 +608,18 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   placeAll(state); // ZP1: the cast and anyone moved by the scenario get spots in their zones
   if (storyStart) startAtDoor(state, ctx.placeId); // BG-49: the story opens with the player at the door
   noteZonesSeen(state); // BG-313: what the player sees from where the plan leaves it is on the Map before the first turn
+}
+
+/** WT16 a: a newcomer arriving in a world with ground (HF26) is placed before the Weaver plans, so its ground is measured
+ * from their real point: the start place's first title (else the world's first), a free spot there, at its door when
+ * outside (BG-49) */
+export function placeNewcomer(state: GameState): void {
+  const z = state.places.find((p) => p.id === state.player.placeId)?.zones[0] ?? state.zones[0];
+  if (!z) return;
+  moveTo(state, state.player, z.id);
+  unplace(state, state.player);
+  placeAll(state);
+  startAtDoor(state, z.placeId);
 }
 
 /** At story start the player's place has no node yet (CS2); a bare one is made so the Weaver's plan (and the fallback) can use its id. */

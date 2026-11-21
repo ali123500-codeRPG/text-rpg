@@ -14,7 +14,7 @@ Runs inside the turn that calls scenarioBreak, after resolveTurn and before the 
 
 Setup details (CS2):
 
-- At story start the player has no zone on the stage yet. The Weaver's view says so (player.standsIn is null) and the plan's arriveAt names the zone the player starts in; with none, they start in the plan's first zone (PQ1 a). Starting outdoors, they stand at the door of the building beside them (BG-49). Their place has no node yet either: code makes a bare one so the Weaver's plan and the fallback can use its id.
+- At story start the player has no zone on the stage yet. The Weaver's view says so (player.standsIn is null) and the plan's arriveAt names the zone the player starts in; with none, they start in the plan's first zone (PQ1 a). Starting outdoors, they stand at the door of the building beside them (BG-49). Their place has no node yet either: code makes a bare one so the Weaver's plan and the fallback can use its id. A newcomer arriving in a world that already has ground (HF26) is placed before the Weaver is called (WT16 a): in the start place's first title (else the world's first), at a free spot there, at the door when outside (BG-49); the Weaver's view then says where they stand, and arriveAt applies only at a new world's story start.
 - Someone the Weaver brings back (a cast entry naming an actor already in the world) keeps their names; a name in the plan is ignored.
 - A seeded trigger whose owner has no plan gets an empty plan (no goal, no steps) to hold it.
 - A stage extension keeps the scenario's challenge and gain; its event summary is added after the scenario's, and its hidden terms join the stage's.
