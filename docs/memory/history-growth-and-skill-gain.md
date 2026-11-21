@@ -11,7 +11,7 @@ essences and scenario-end growth, kept as history.
   sight, hearing, damage and health do not grow with skill by formula (CR5, CR6, CR8, CR9 turned down). Task
   grades go past Extreme (#479), on one ladder past 100 shared with NPC ranks and equip levels (#903). A
   natural edge moves one tier only, and no natural roll forces a skill gain (#525). Parked: D-215, D-219,
-  D-1751 (shockwaves); D-214 built three loudness levels past Deafening (#PR); D-213 closed, below.
+  D-1751 (shockwaves); D-214 built three loudness levels past Deafening (#1754); D-213 closed, below.
 - **Tier unlocks (11-14/11/2026; D-211, D-292).** A perk or an achievement can open tiers past Critical (#451,
   #457, #727). Two rules, never merged: a skill roll gets an extra margin band, because skill can reach it; an
   event roll widens its natural range, because nothing raises an event roll. A first reading, a doubled
