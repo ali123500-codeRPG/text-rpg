@@ -15,9 +15,10 @@ const inside = (a: Box, b: Box, pad: number) => a.x0 >= b.x0 + pad && a.x1 <= b.
 /** the checkMap rules on the scene's own boxes: what the browser check measures, without a browser */
 function findings(sc: Scene): string[] {
   const out: string[] = [];
-  // zone names are a background layer the marks may sit on (MZ4): only the marks themselves may not overlap
+  // zone names are a background layer the marks may sit on (MZ4): only the marks themselves may not overlap; people and your
+  // pin stand at their own point and may overlap anything (MAP-25, OM4b a)
   const marks: [string, Box][] = [...sc.places.map((p) => [`title ${p.id}`, p.title] as [string, Box]),
-    ...sc.exits.map((e) => [`note ${e.id}`, e.note] as [string, Box]), ...sc.tokens.map((t) => [`token ${t.id}`, t] as [string, Box]),
+    ...sc.exits.map((e) => [`note ${e.id}`, e.note] as [string, Box]),
     ...sc.doors.map((d) => [`icon ${d.id}`, d] as [string, Box]), ...sc.stairs.map((s) => [`icon ${s.id}`, s] as [string, Box]), ...sc.furniture.map((f) => [`icon ${f.id}`, f] as [string, Box]), ...sc.items.map((t) => [`icon ${t.id}`, t] as [string, Box])];
   for (let i = 0; i < marks.length; i++) for (let j = i + 1; j < marks.length; j++) if (hit(marks[i][1], marks[j][1])) out.push(`MAP-22/31 ${marks[i][0]} overlaps ${marks[j][0]}`);
   for (const l of sc.labels) { const z = sc.zones.find((x) => x.z.id === l.zoneId)!; if (l.placement === 'inside' && !inside(l, z.box, 6)) out.push(`MAP-20 label ${l.zoneId} does not fit`); }

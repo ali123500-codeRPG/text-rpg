@@ -68,10 +68,10 @@ const NARROW_W = 640, NARROW_MIN_K = 0.75;
 /** the "you are here" pin, on the Map and the minimap alike; its point shows the way you face (BG-18: left and right in
  *  orders are taken from it), none before you have walked */
 export function pin(cx: number, cy: number, title?: string, facing?: [number, number], r = PIN_R) {
-  // RM29 c: a pin shrunk where it would overlap keeps its point and core in proportion to its disc
-  const a = facing ? Math.atan2(-facing[1], facing[0]) : null, at = (d: number, q: number) => `${cx + Math.cos(a! + d) * q} ${cy + Math.sin(a! + d) * q}`, f = r / PIN_R;
-  const g = s('g', { class: 'map-pin' }, ...(a === null ? [] : [s('path', { class: 'face', d: `M${at(0, PIN_TIP * f)} L${at(0.5, r)} L${at(-0.5, r)}Z` })]),
-    s('circle', { cx, cy, r }), s('circle', { cx, cy, r: 3.5 * f, class: 'core' }));
+  // RM33 a, OM4b a: a pin of radius r is the whole pin scaled, its facing point, core and outline in proportion to its disc
+  const a = facing ? Math.atan2(-facing[1], facing[0]) : null, at = (d: number, q: number) => `${Math.cos(a! + d) * q} ${Math.sin(a! + d) * q}`;
+  const g = s('g', { class: 'map-pin', transform: `translate(${cx} ${cy}) scale(${r / PIN_R})` }, ...(a === null ? [] : [s('path', { class: 'face', d: `M${at(0, PIN_TIP)} L${at(0.5, PIN_R)} L${at(-0.5, PIN_R)}Z` })]),
+    s('circle', { cx: 0, cy: 0, r: PIN_R }), s('circle', { cx: 0, cy: 0, r: 3.5, class: 'core' }));
   if (title) { g.setAttribute('role', 'img'); g.setAttribute('aria-label', title); g.append(s('title', {}, title)); } // a mark with no visible words
   return g;
 }

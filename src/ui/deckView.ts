@@ -11,7 +11,7 @@ import { cap } from '../words';
 import { hideTip, showTip } from './pages';
 import { h, safe, type boxOf } from './kit';
 import { closePop, openPop } from './pop';
-import { deck, thingActions, type Choice, type DeckAction, type DeckCtx, type MapPeople, type MapThing, type Order, type Pick } from './deck';
+import { deck, thingActions, type Choice, type DeckAction, type DeckCtx, type MapThing, type Order, type Pick } from './deck';
 import { openLoot } from './loot';
 import { ICONS, instanceIcon, partMark, skillMark } from './itemIcons';
 import { DEFENSE_SKILL } from '../library/skillIds';
@@ -92,15 +92,9 @@ export function deckView(api: GameApi, o: {
 
   /** AD14, MAP-85: a click on someone in Who's here, or on a thing on either map: every deck action for it, the thing
    *  already chosen; one that can't be done now greyed, what it needs on hover. False when the deck has none for it */
-  function thingMenu(t: MapThing | MapPeople, anchor: HTMLElement | Box): boolean {
+  function thingMenu(t: MapThing, anchor: HTMLElement | Box): boolean {
     if (disabled || !ctx) return false;
     const opener = anchor instanceof HTMLElement ? anchor : null;
-    if (t.kind === 'people') { // RM27 b: pick one of them, then their list
-      const who = t.who.filter((w) => thingActions(groups, ctx!, { kind: 'person', id: w.id }).length);
-      if (who.length) openPop({ title: 'Who?', opener, beside: opener ? undefined : anchor as Box, cls: 'deck-pick', body: [h('div', { class: 'dk-picks', role: 'list' }, who.map((w) =>
-        h('button', { type: 'button', class: 'dk-pick', role: 'listitem', onclick: () => thingMenu({ kind: 'person', id: w.id }, anchor) }, h('b', {}, cap(w.name)))))] });
-      return !!who.length;
-    }
     const list = thingActions(groups, ctx, t);
     if (!list.length) return false;
     const first = list.find((e) => 'a' in e);

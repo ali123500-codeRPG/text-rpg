@@ -9,7 +9,7 @@ import type { GameApi } from '../types';
 import { boxOf, h } from './kit';
 import { CONFIG } from '../config';
 import type { KnownMap, MapZone } from './mapData';
-import { MAX_K, PX_PER_M, TEXT, checkReach, checkStage, hitCap, nameFit, planScene, roughMeasure, type Box, type Measure, type Scene, type TextKind } from './mapPlan';
+import { MAX_K, PX_PER_M, TEXT, WHO_ICON_SHARE, checkReach, checkStage, nameFit, planScene, roughMeasure, type Box, type Measure, type Scene, type TextKind } from './mapPlan';
 import { checkMap } from './mapCheck';
 import { doorGlyph, fogClip, fogMask, iconMark, keyTool, planKeyRows, floorMarks, floorName, pin, wayBadge } from './map';
 import { furnIcon } from './furnitureIcons';
@@ -18,7 +18,7 @@ import { areaOf } from '../plan/geom';
 import { distText } from '../views';
 import { cap, r1 } from '../words';
 import type { Pos } from '../engine/position';
-import type { MapPeople, MapThing } from './deck';
+import type { MapThing } from './deck';
 
 export type PlanSize = 'mini' | 'full';
 type Places = Parameters<typeof planScene>[0]['places'];
@@ -42,7 +42,7 @@ export type PlanOpts = {
   onWalk(p: MinimapPoint): void;
   /** MAP-85: a click on a person, door, wall, thing on the ground or piece of furniture: the deck's list for it beside the thing (its box in page pixels); false
    *  when the deck has nothing for it, and the click plans a walk as on bare ground */
-  onThing(t: MapThing | MapPeople, anchor: ReturnType<typeof boxOf>): boolean;
+  onThing(t: MapThing, anchor: ReturnType<typeof boxOf>): boolean;
   /** right-click or long press on a zone (MAP-64) */
   onCard(zoneId: string): void;
   /** an unexplored exit or stair picked (MAP-62) */
@@ -125,7 +125,7 @@ export function planView(api: GameApi, opts: PlanOpts) {
     const m = font(kind)?.measureText('');
     return m ? { ascent: m.fontBoundingBoxAscent, descent: m.fontBoundingBoxDescent } : roughMeasure.line(kind);
   } });
-  const sceneAt = (kk: number) => planScene({ zones: d!.floor, every: d!.every, places: d!.places, people: d!.people, k: kk, measure, awayName: d!.awayName });
+  const sceneAt = (kk: number) => planScene({ zones: d!.floor, every: d!.every, places: d!.places, people: d!.people, k: kk, measure, awayName: d!.awayName, youWidthM: d!.km.youWidthM });
 
   /** a zone to scale: its floor at its real size, each side drawn as its edge kind; no zone state (MAP-33): the fog's
    *  two tones say what is in sight now, and the zone you stand in has no outline, even when its card is open */
@@ -229,22 +229,17 @@ export function planView(api: GameApi, opts: PlanOpts) {
       if (!within(t, inView)) continue;
       if (t.you) { const g = pin(t.cx, t.cy, d.youTitle ?? 'You are here', d.facing, t.r); g.setAttribute('data-role', 'token'); g.setAttribute('data-id', 'you'); you = g; continue; }
       const who = t.who!, c = t.cap, tok = { 'data-role': 'token', 'data-id': t.id };
-      // BG-324: the disc (GSM-193: or the body's capsule) alone is the token the checker measures; its icon (MAP-69) sits inside it
-      const capRect = (q: NonNullable<typeof c>, at: Record<string, string | number>) => s('rect', { x: t.cx - q.len / 2, y: t.cy - q.wide / 2, width: q.len, height: q.wide, rx: Math.min(q.len, q.wide) / 2, transform: `rotate(${q.deg} ${t.cx} ${t.cy})`, ...at });
-      const shape = c ? capRect(c, tok) : s('circle', { cx: t.cx, cy: t.cy, r: t.r, ...tok });
-      // RM17 b: a capsule narrower than the disc keeps the disc's width to click on, unseen; its icon shrinks to fit inside it
-      const hitArea = c && c.wide < 2 * t.r ? [capRect(hitCap(c), { class: 'map-who-hit' })] : [];
+      // BG-324: the disc (GSM-193: or the body's capsule) alone is the token the checker measures, and what a click lands on
+      // (OM4b a); its icon (MAP-69) sits inside it
+      const shape = c ? s('rect', { x: t.cx - c.len / 2, y: t.cy - c.wide / 2, width: c.len, height: c.wide, rx: Math.min(c.len, c.wide) / 2, transform: `rotate(${c.deg} ${t.cx} ${t.cy})`, ...tok })
+        : s('circle', { cx: t.cx, cy: t.cy, r: t.r, ...tok });
+      // MAP-69 (OM4b a): the icon scales with the body, fitted inside its narrower side however it is turned
       const turn = c ? Math.abs(Math.cos((c.deg * Math.PI) / 180)) + Math.abs(Math.sin((c.deg * Math.PI) / 180)) : 1;
-      const iconPx = (2 * t.r - 4) * Math.min(1, (c ? Math.min(c.len, c.wide) : 2 * t.r) / (2 * t.r) / turn);
-      // RM27 b: a disc for a group is one token with its "+n" badge, and its click picks one of them first
-      const b = t.badge, many: Record<string, string> = t.group ? { 'data-thing': 'people', 'data-of': t.group.map((w) => w.id).join('|'), 'data-names': t.group.map((w) => w.name).join('|') } : { 'data-thing': 'person', 'data-of': who.id };
-      const g = s('g', { class: `map-who plan-who${who.now && !who.lastAt ? '' : ' last'}${who.at ? ' at' : ''}`, ...(t.zoneId ? { 'data-zone': t.zoneId } : {}), ...many, tabindex: 0, role: 'button', 'aria-label': `${t.title}: what to do` },
+      const iconPx = ((c ? Math.min(c.len, c.wide) / turn : 2 * t.r)) * WHO_ICON_SHARE;
+      const g = s('g', { class: `map-who plan-who${who.now && !who.lastAt ? '' : ' last'}${who.at ? ' at' : ''}`, ...(t.zoneId ? { 'data-zone': t.zoneId } : {}), 'data-thing': 'person', 'data-of': who.id, tabindex: 0, role: 'button', 'aria-label': `${t.title}: what to do` },
         ...(t.rings ?? []).map((q) => s('circle', { class: 'map-who-ring', cx: q.cx, cy: q.cy, r: q.r })),
-        // the checker measures the disc and the badge's pill; the letters' ink sits inside the pill
-        s('g', b ? tok : {}, ...hitArea, b ? s('circle', { cx: t.cx, cy: t.cy, r: t.r }) : shape, iconMark(who.icon, t.cx, t.cy, iconPx, 'map-who-icon'),
-          ...(b ? [s('rect', { x: b.x0, y: b.y0, width: b.x1 - b.x0, height: b.y1 - b.y0, rx: (b.y1 - b.y0) / 2 })] : [])),
-        ...(b ? [s('text', { x: (b.x0 + b.x1) / 2, y: t.cy, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'aria-hidden': 'true' }, b.text)] : []),
-        s('text', { x: t.x1 + 4, y: t.cy + 4, class: 'map-who-label' }, t.group ? t.title : who.name), s('title', {}, t.title));
+        shape, iconMark(who.icon, t.cx, t.cy, iconPx, 'map-who-icon'),
+        s('text', { x: t.x1 + 4, y: t.cy + 4, class: 'map-who-label' }, who.name), s('title', {}, t.title));
       gTokens.append(g);
     }
     if (you) gTokens.append(you); // RM33: your pin above every other mark
@@ -344,10 +339,9 @@ export function planView(api: GameApi, opts: PlanOpts) {
     return z ? planTo(st, d.km, z.id, q) : { why: 'You don’t know what is there.' };
   }
   /** MAP-85: the thing a mark stands for, as the deck targets it */
-  const thingOf = (m: Element): MapThing | MapPeople => {
+  const thingOf = (m: Element): MapThing => {
     const of = m.getAttribute('data-of')!, kind = m.getAttribute('data-thing');
     if (kind === 'wall') { const [x, y] = (m.getAttribute('data-at') ?? '').split(',').map(Number); return { kind, id: of, zone: m.getAttribute('data-zone')!, at: { x: x!, y: y! } }; }
-    if (kind === 'people') { const names = m.getAttribute('data-names')!.split('|'); return { kind, who: of.split('|').map((id, i) => ({ id, name: names[i] })) }; }
     return kind === 'door' ? { kind, ends: of.split('|') } : kind === 'furniture' ? { kind, id: of, is: m.getAttribute('data-is')! } : { kind: kind === 'item' ? kind : 'person', id: of };
   };
   /** a mark that answers a click itself (MAP-62, MAP-63, MAP-85), before the ground under it plans a walk */
