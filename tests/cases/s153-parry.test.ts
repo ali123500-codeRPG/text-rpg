@@ -8,7 +8,7 @@ import { syncPerkLinks } from '../../src/ruleset/perkLinks';
 import { strikeBackAllowed, strikeBackLimit } from '../../src/engine/resolve';
 import { defaultStandingDefense } from '../../src/ruleset/gear';
 import { CONFIG } from '../../src/config';
-import type { Actor, AttackResult, GameState } from '../../src/types';
+import type { Actor, AttackResult, GameState, RollResult } from '../../src/types';
 import { intent, play } from './w4-kit';
 import { SK } from '../../src/library/skillIds';
 import { PK } from '../../src/library/perkIds';
@@ -29,7 +29,18 @@ const hold = (a: Actor, items: string[]) => {
 const DICE = [6, 11, 21, 31, 41, 51, 61, 71, 81, 91, 95, 96, 98, 100];
 const swing = (s: GameState, i: number, k: number) =>
   ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'patron_1_h0', targetPart: null, aimed: false }, s, forcedRng([i, k, 50, 50]));
-const swings = (s: GameState) => DICE.flatMap((i) => DICE.map((k) => swing(s, i, k)));
+/** the first die of DICE for each roll tier (and natural) it gives */
+const diePerTier = (tierOf: (d: number) => RollResult | null | undefined) => {
+  const m = new Map<string, number>();
+  for (const d of DICE) { const r = tierOf(d), t = r && JSON.stringify([r.tier, r.natural]); if (t && !m.has(t)) m.set(t, d); }
+  return [...m.values()];
+};
+/** every attack-tier × defense-tier pair the grid holds, one swing each: a gap depends only on the two tiers */
+const swings = (s: GameState) => {
+  const met = DICE.find((i) => swing(s, i, DICE[0]).defense)!;
+  const atk = diePerTier((i) => swing(s, i, DICE[0]).attack), def = diePerTier((k) => swing(s, met, k).defense);
+  return atk.flatMap((i) => def.map((k) => swing(s, i, k)));
+};
 /** the first swing of the grid that meets a defense (the grid is walked only as far as needed) */
 const defended = (s: GameState) => { for (const i of DICE) for (const k of DICE) { const r = swing(s, i, k); if (r.defense) return r; } };
 const setup = () => {

@@ -39,12 +39,12 @@ describe('111 game clock', () => {
   });
   it('waiting until dawn moves the clock to dawn and shows a line, never ending the scenario (SC9); a foe in the player\'s senses stops it at once', () => {
     const s = makeVillage();
-    startClock(s, 'dusk');
+    s.clocks.time = 24 * 60 + CONFIG.TIME_OF_DAY_FROM.dawn - 60; // day 2, an hour before dawn: the night's stretch costs ~10x more and checks nothing more
     const ev = turn(s, act('wait', 'dawn'));
     expect(timeOfDay(now(s))).toBe('dawn');
     expect(timeView(s)).toEqual({ day: 2, timeOfDay: 'Dawn' });
     expect(s.stage.breakCause).toBeUndefined();
-    expect(mechanicsLines(s, ev)).toContain('Time passes: 11 h (Day 2 · Dawn)');
+    expect(mechanicsLines(s, ev)).toContain('Time passes: 1 h (Day 2 · Dawn)');
     // Q2: waiting until the time of day it already is moves nothing
     const at = now(s);
     const again = turn(s, act('wait', 'dawn'));

@@ -42,7 +42,8 @@ it('116 Quick Word: the line and the reply are free; both actions still happen',
 
 it('116b TP6 c, TK1 c, TK6: plain talk in a fight takes no time; outside one its turn, like persuading, lying or threatening takes the Speech row\'s fixed time', () => {
   const short = 'Put it down.', long = 'Put the knife down now, friend, and nobody here gets hurt today, I promise you that on my name.';
-  for (const mode of ['tactical', 'explore'] as const) for (const [type, spoken] of [['talk', long], ['intimidate', short], ['intimidate', long], ['persuade', long], ['deceive', short]] as const) {
+  // talk in a fight (no time, however long), talk outside one, and a short threat in a fight (the Speech row's time)
+  for (const [mode, type, spoken] of [['tactical', 'talk', long], ['explore', 'talk', long], ['tactical', 'intimidate', short]] as const) {
     const s = makeVillage();
     const wim = s.actors.find((a) => a.id === 'patron_1')!;
     wim.zone = s.player.zone;

@@ -149,9 +149,9 @@ describe('head size', () => {
   it('refuses a head over the document limit before writing anything', async () => {
     const st = memoryStore();
     const s = makeVillage();
-    const npc = s.actors.find((a) => a.mind)!;
-    // each person is a page, and the head lists every page at about 66 bytes: 4,000 more people pass 256 KiB
-    for (let i = 0; i < 4000; i++) s.actors.push({ ...structuredClone(npc), id: `${npc.id}_x${i}` });
+    // the head lists every page by key, so 4,000 pages with long ids pass 256 KiB; bare blueprints are the cheapest pages
+    // to build (any page kind is listed the same way)
+    for (let i = 0; i < 4000; i++) s.blueprints.push({ id: `bp_${i}_${"x".repeat(20)}` } as never);
     await expect(saveTurn(st, s, rec(s, 0))).rejects.toMatchObject({ code: 'page_too_large', committed: false });
     expect([...st.docs.keys()]).toEqual([]);
   });

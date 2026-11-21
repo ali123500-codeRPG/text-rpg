@@ -42,7 +42,7 @@ describe('172 travel', () => {
   });
 
   it('TV5: a trip that reaches dusk stops there; setting off in the dark presses on, slower, through the dark', () => {
-    const s = withRoad(30);
+    const s = withRoad(5); // longer than the half hour of light left; a longer road only adds night steps
     s.clocks.time = CONFIG.TIME_OF_DAY_FROM.dusk - 30;
     go(s, 'ashford_gate');
     expect(trip(s)!.stop).toBe('nightfall');
