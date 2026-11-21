@@ -21,7 +21,7 @@ import { actorBody, getLibrary, perkName } from '../library';
 import type { TierRoll } from '../types';
 import { fellFacts, fellLine } from './fell';
 import { autopilotBar } from './autopilot';
-import { boxOf, h, tint, tipPlain, dragScroll, lineIcon, playDraft, viewSize, safe, turnShown } from './kit';
+import { boxOf, h, keyCap, labelled, tint, tipPlain, dragScroll, lineIcon, playDraft, viewSize, safe, turnShown } from './kit';
 import { healthTone, perkIdTone, TONE } from './tipTones';
 import { perkSeries } from './perks';
 import { drawnBadge, stealthBadge, stealthyTip } from './stealth';
@@ -132,7 +132,7 @@ export function whoDistance(a: PlayerView['actors'][number], pv: PlayerView): st
   if (a.distanceM === undefined) return where ? cap(where) : '';
   const far = pv.player.reaches?.[0];
   const m = (x: number) => (x < 10 ? `${r1(x)} m` : distText(x));
-  const reach = !far ? '' : a.distanceM <= far.metres ? `in reach of your ${far.name} (${m(far.metres)})` : `beyond your ${far.name}’s ${m(far.metres)}`;
+  const reach = !far ? '' : a.distanceM <= far.metres ? `${tint(TONE.inReach, 'in reach')} of your ${far.name} (${m(far.metres)})` : `${tint(TONE.outOfReach, 'beyond')} your ${far.name}’s ${m(far.metres)}`;
   return [`${m(a.distanceM)} away`, where, reach].filter(Boolean).join(' · ');
 }
 
@@ -690,8 +690,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     // YB3 c: a band-mate in sight shows its health and morale as two thin bars, the level words in their tips
     const fill = (pos: number, end: number) => Math.max(0, Math.round(100 * (1 - pos / end)));
     const mateBars = (a: PlayerView['actors'][number]) => h('span', { class: 'mate-bars' },
-      a.health ? h('span', { class: 'cs-hptrack', role: 'img', title: `Health: ${tint(healthTone(a.health), HEALTH_LEVELS.name(a.health))}`, 'aria-label': `Health: ${HEALTH_LEVELS.name(a.health)}` }, h('b', { style: `width:${fill(HEALTH_LEVELS.pos(a.health), HEALTH_LEVELS.pos('incapacitated'))}%` })) : null,
-      a.morale ? h('span', { class: 'cs-hptrack cs-morale', role: 'img', title: `Morale: ${tint(TONE.morale, a.morale)}`, 'aria-label': `Morale: ${a.morale}` }, h('b', { style: `width:${fill(MORALE_LEVELS.pos(MORALE_LEVELS.keyOf(a.morale) ?? 'calm'), MORALE_LEVELS.pos('broken'))}%` })) : null);
+      a.health ? h('span', { class: 'cs-hptrack', role: 'img', title: labelled('Health', tint(healthTone(a.health), HEALTH_LEVELS.name(a.health))), 'aria-label': `Health: ${HEALTH_LEVELS.name(a.health)}` }, h('b', { style: `width:${fill(HEALTH_LEVELS.pos(a.health), HEALTH_LEVELS.pos('incapacitated'))}%` })) : null,
+      a.morale ? h('span', { class: 'cs-hptrack cs-morale', role: 'img', title: labelled('Morale', tint(TONE.morale, a.morale)), 'aria-label': `Morale: ${a.morale}` }, h('b', { style: `width:${fill(MORALE_LEVELS.pos(MORALE_LEVELS.keyOf(a.morale) ?? 'calm'), MORALE_LEVELS.pos('broken'))}%` })) : null);
     const cell = (a: PlayerView['actors'][number]) => h('div', { class: 'pp' + (foe(a) ? ' foe' : '') + (pins.has(a.id) ? ' pinned' : ''), role: 'listitem button', 'data-who': cap(a.name ?? a.label), 'data-id': a.id, tabindex: '0', title: tipOf(a) },
       h('span', { class: 'dot', 'aria-hidden': 'true' }),
       h('b', {}, cap(a.name ?? a.label), headMark(a.id), handIn.has(a.id) ? h('span', { class: 'q-ready', title: 'A quest for them is ready to hand in', 'aria-label': ', a quest for them is ready to hand in' }, ' ✓') : null), // the name (BG-30's edit had put it inside the comment, so the row lost every name)
@@ -753,7 +753,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     helpPanel.hidden = !open;
     cmdBtn.setAttribute('aria-pressed', String(open === 'commands'));
     if (open === 'commands') helpPanel.replaceChildren(h('div', { class: 'helps-h' }, h('p', { class: 'hs-section' }, 'Commands'),
-      h('button', { class: 'hs-icon-btn dpop-x', type: 'button', 'aria-label': 'Close', title: 'Close (Esc)', onclick: () => { open = null; update(); } }, '✕')),
+      h('button', { class: 'hs-icon-btn dpop-x', type: 'button', 'aria-label': 'Close', title: `Close ${keyCap('Esc')}`, onclick: () => { open = null; update(); } }, '✕')),
       h('ul', { class: 'cmds' }, COMMANDS.map(([c, what]) => h('li', {}, h('button', { type: 'button', onclick: () => pick(c) }, h('b', {}, c.trim()), h('span', {}, what))))),
       // A5: the keys the play screen answers, beside the commands
       h('p', { class: 'hs-section' }, 'Keys'), h('dl', { class: 'keys' }, KEYS.flatMap(([k, what]) => [h('dt', {}, h('kbd', {}, k)), h('dd', {}, what)])));

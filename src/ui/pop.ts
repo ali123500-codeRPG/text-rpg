@@ -3,7 +3,7 @@
 // opening another replaces it. A full-screen pop-up covers the page for a board too big for a panel (Perks); partial
 // pop-ups and the perk card still open on top of it. Both close with ✕ or Esc, focus goes back to what opened them, and
 // each opens and closes with one short fade (exit faster than entrance, M-51; none with motion off, M-72).
-import { boxOf, fitInView, h, iconMark, pointOf, viewSize } from './kit';
+import { boxOf, fitInView, h, iconMark, keyCap, pointOf, viewSize } from './kit';
 import { ICONS } from './itemIcons';
 
 type Box = ReturnType<typeof boxOf>;
@@ -53,7 +53,7 @@ export function closeFull(byBack = false): boolean {
 export function openFull(o: { label: string; body: (Node | string | null)[]; opener?: HTMLElement | null; cls?: string; onClose?: () => void }): HTMLElement {
   closeFull(true); // one replacing another keeps the history step
   closePop();
-  const x = h('button', { type: 'button', class: 'hs-icon-btn fpop-x', 'aria-label': 'Close', title: 'Close (Esc)', onclick: () => closeFull() }, '✕');
+  const x = h('button', { type: 'button', class: 'hs-icon-btn fpop-x', 'aria-label': 'Close', title: `Close ${keyCap('Esc')}`, onclick: () => closeFull() }, '✕');
   const el = h('div', { class: `fpop ${o.cls ?? ''}`, role: 'dialog', 'aria-modal': 'true', 'aria-label': o.label, tabindex: '-1' }, x, h('div', { class: 'fpop-body' }, ...o.body));
   const shut = Array.from(document.body.children).filter((c): c is HTMLElement => c instanceof HTMLElement && !c.inert && c.tagName !== 'SCRIPT' && c.tagName !== 'STYLE');
   for (const c of shut) c.inert = true;
@@ -99,7 +99,7 @@ export function dragBy(el: HTMLElement, head: HTMLElement, moved?: (at: { left: 
 export function openPop(o: { title: string; body: (Node | string | null)[]; opener?: HTMLElement | null; beside?: Box; tone?: string; cls?: string; back?: true }): HTMLElement {
   closePop(!!(o.back && current?.back)); // one Back pop-up replacing another keeps the history step
   const tid = `dpop-t${Date.now()}`;
-  const x = h('button', { type: 'button', class: 'hs-icon-btn dpop-x', 'aria-label': 'Close', title: 'Close (Esc)', onclick: () => closePop() }, '✕');
+  const x = h('button', { type: 'button', class: 'hs-icon-btn dpop-x', 'aria-label': 'Close', title: `Close ${keyCap('Esc')}`, onclick: () => closePop() }, '✕');
   const head = h('div', { class: 'dpop-head' }, h('span', { class: 'hs-label', id: tid }, o.title), x);
   const el = h('aside', { class: `dpop ${o.cls ?? ''}`, role: 'dialog', 'aria-modal': 'false', 'aria-labelledby': tid, tabindex: '-1', style: o.tone ? `--pc: var(--${o.tone})` : undefined },
     head, h('div', { class: 'dpop-body' }, ...o.body));

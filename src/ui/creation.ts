@@ -14,7 +14,7 @@ import { personalityPicker } from './personality';
 import { createRng } from '../rng';
 import { SKILL_NAMES, skillName } from '../library/skillNames';
 import { classTree, skillOpen, treeOpen } from '../ruleset/access';
-import { h, openPanel } from './kit';
+import { h, keyCap, openPanel } from './kit';
 import { ICONS, skillMark, startIcon, treeIcon, type IconName } from './itemIcons';
 import { preview } from './sheet';
 import { DEFENSE_SKILL, SK } from '../library/skillIds';
@@ -143,9 +143,9 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
         h('div', { class: 'bar' }, h('div', { class: 'tr' }, h('i', { class: 's' }), h('i', { class: 'f' })),
           h('span', { class: 'tk', style: 'left:50%' }), h('span', { class: 'tk cap', style: `left:${cap(k)}%` }), range),
         h('div', { class: 'step' },
-          h('button', { class: 'hs-icon-btn mi', type: 'button', title: `Lower by ${STEP} (Ctrl+click: by 1)`, 'aria-label': `Lower ${skillName(k)}`, onclick: (e: MouseEvent) => setVal(k, st.v[k] - stepOf(e)) }, '−'),
+          h('button', { class: 'hs-icon-btn mi', type: 'button', title: `Lower by ${STEP} · ${keyCap('Ctrl')}+click: by 1`, 'aria-label': `Lower ${skillName(k)}`, onclick: (e: MouseEvent) => setVal(k, st.v[k] - stepOf(e)) }, '−'),
           h('span', { class: 'val hs-num' }),
-          h('button', { class: 'hs-icon-btn pl', type: 'button', title: `Raise by ${STEP} (Ctrl+click: by 1)`, 'aria-label': `Raise ${skillName(k)}`, onclick: (e: MouseEvent) => setVal(k, st.v[k] + stepOf(e)) }, '+')));
+          h('button', { class: 'hs-icon-btn pl', type: 'button', title: `Raise by ${STEP} · ${keyCap('Ctrl')}+click: by 1`, 'aria-label': `Raise ${skillName(k)}`, onclick: (e: MouseEvent) => setVal(k, st.v[k] + stepOf(e)) }, '+')));
       rows.set(k, row);
       sec.append(row);
     }

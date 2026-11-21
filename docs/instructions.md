@@ -249,9 +249,10 @@ The source of truth for every design decision.
   labels were the browser's and some the game's, with different looks and waits.
 - **Tips are colour-coded.** In every hover tip, the words that name something with a colour of its own (a skill, a
   health level, a perk, a tie, a gain or a caution) take that colour through `tint()`, with the tone from
-  `src/ui/tipTones.ts`; plain words and control names stay plain (PS-496, PS-497). A new tip tints its words the same
-  way, and a tip that names a kind of thing with no colour yet names it in its PR so the owner can give it one.
-  Reason: the owner asked for every tip to be colour-coded and for the practice to carry on (OW1, HU1 to HU3).
+  `src/ui/tipTones.ts`; plain words and control names stay plain (PS-497, PS-498). A label before a coloured value
+  goes through `labelled()` and a shortcut key through `keyCap()`. A new tip tints its words the same way, and a tip
+  that names a kind of thing with no colour yet names it in its PR so the owner can give it one. Reason: the owner
+  asked for every tip to be colour-coded and for the practice to carry on (OW1, HU1 to HU9).
 - If a skill is missing for the job, look for one online before going without.
 - Play and creation pages are PC only: no phone rules, checks at desktop widths. The library viewer must also work on
   phones, with nothing scrolling sideways.
