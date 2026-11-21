@@ -12,6 +12,16 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the spec's bug log, docs/spec/bug-log.md, has one. Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-339
+
+**What was wrong:** Two door marks touched on the minimap's widest view, 100 m across: doors 3–6 m apart on the test village (village.o and tavern.o_2, tavern.o_7 and thornbury.o on bent-nail, manor.o_7 and manor.o_8 on long-names). The Map, which never zooms out that far, kept them apart.
+
+**Root cause:** A door mark was a fixed 12 × 6 px (a 16 px disc with a badge) at every zoom, while walls and the distances between doors are drawn to scale (MAP-10). At the 100 m step doors 3–6 m apart are only 10–20 px apart, less than two marks need. Drawing doors to scale (#1492, RM28 a) fixed those pairs but left one: on the default test page two 40 m sides of open ground, with no wall and no door, meet at a field's corner, and their marks touched at every zoom ("MAP-22/31 icon door:village.o_2 overlaps icon door:field.o").
+
+**What was done:** Doors, gaps and windows are drawn at their own width (#1492). Open ground with no wall and no door or gate now gets no mark: its dotted edge is the way through (MAP-14, RM34 b). Checked: the default test page's minimap and every Map zoom step show no findings, against that finding on main at every step; map.smoke passes on the three test stages.
+
+**Fixed by:** #1219
+
 ## BG-358
 
 **What was wrong:** The Questions hub's home list said nothing was waiting, but opening a questionnaire showed open questions. On 21/11/2026 "map-one" was listed as "All answered and read" while MQ22 and MQ23 were open.

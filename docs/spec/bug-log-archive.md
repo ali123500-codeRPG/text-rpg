@@ -345,6 +345,7 @@ Closed rows of the "Bug log" (`bug-log.md`): fixed, won't fix or duplicate. A ro
 | BG-336 | A failed first save in a carried-on world left a story with no save that kept the world taken, so reopening said it was no longer free | Thread | Fixed | #1218 |
 | BG-337 | After a turn failed to save, its story text was saved anyway, so a reload showed a turn the save did not hold (and the Universe day moved on) | Thread | Fixed | #1218 |
 | BG-338 | A failed delete after /undo's head write said there was nothing to undo and kept the pre-undo state on screen | Thread | Fixed | #1225 |
+| BG-339 | Two door marks overlap on the default fake page's minimap (MAP-22/31 door:village.o and door:tavern.o_2); the Map keeps them apart | Thread | Fixed | #1219 |
 | BG-340 | A crossbow shot ran under its instant spanning row, so it never locked movement and paid base strain, not Hard | Thread | Fixed | #1291 |
 | BG-341 | Test fixtures ran at another distance than asked: `beside()` fell back silently, and `tinyArea()` was undone by `makeVillage()` | Thread | Fixed | #1275 |
 | BG-343 | The ambush rolled the attacker's weapon skill against one sense, not Combat Stealth (against ST2); now the attack's own stealth contests | Thread | Fixed | #1304 |
