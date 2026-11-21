@@ -3,6 +3,8 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bugs/`.
 
+- 21/11/2026: `.agents/skills/rpg-map`: the stages to render and check are four, with `two-towns`. The owner, in the
+  D-1558 thread: "Add a 4th test stage with two towns and a road (MAP-52)."
 - 21/11/2026: `AGENTS.md` rule 7 and `docs/instructions.md` section 4: the spec names a balancing setting and never copies
   its number. The owner answered PQ15 "if the spec if ancient and not needed, remove it or achieve it somewhere. a
   otherwise." (option a: "spec names the setting, numbers only in code").

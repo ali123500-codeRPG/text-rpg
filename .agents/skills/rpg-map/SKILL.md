@@ -28,9 +28,9 @@ rule wins for the map.
 
 ## Check, then look
 
-1. Render each MAP-52 test stage in a dev view (`?fake=1&stage=bent-nail|one-room|long-names`, or `?mapcheck`). The
+1. Render each MAP-52 test stage in a dev view (`?fake=1&stage=bent-nail|one-room|long-names|two-towns`, or `?mapcheck`). The
    checker runs after every render and logs every finding (MAP-51, MAP-55).
-2. `tests/smoke/map.smoke.ts` asserts zero findings on the Map and the minimap for the three stages, and the PR's run
+2. `tests/smoke/map.smoke.ts` asserts zero findings on the Map and the minimap for the four stages, and the PR's run
    on GitHub is the judge (MAP-56). Run it locally only to debug a failure (`npm run smoke -- tests/smoke/map.smoke.ts`);
    do not write your own Playwright script.
 3. Run `tests/unit/map-plan.test.ts` for the layout's own checks (MAP-57).
