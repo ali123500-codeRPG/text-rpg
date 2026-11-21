@@ -791,7 +791,7 @@ export function prototypeLibrary(): Library {
     // the land and objects (PZ6), light is sources (PZ5)
     zoneKinds: Object.fromEntries(([
       // aspect: the least and most long side ÷ short side a new title of the kind is drawn at (FZ5 a, placeholders)
-      [ZK.room, 'Room', true, 'lamplit', 'room', [1, 2]], [ZK.corridor, 'Corridor', true, 'dim', 'small', [3, 6]], [ZK.stairs, 'Stairs', true, 'dim', 'cramped', [2, 3]],
+      [ZK.room, 'Room', true, 'lamplit', 'room', [1, 3]], [ZK.corridor, 'Corridor', true, 'dim', 'small', [3, 6]], [ZK.stairs, 'Stairs', true, 'dim', 'cramped', [2, 3]],
       [ZK.cellar, 'Cellar or cave', true, 'dark', 'room', [1, 2]], [ZK.street, 'Street', false, 'dark', 'yard', [4, 8]], [ZK.square, 'Square', false, 'dark', 'open', [1, 1.5]],
       [ZK.gate, 'Gate', false, 'dark', 'small', [1.5, 2.5]], [ZK.yard, 'Yard', false, 'dark', 'yard', [1, 2]], [ZK.field, 'Field', false, 'dark', 'immense', [1, 3]],
       [ZK.woods, 'Woods', false, 'dark', 'immense', [1, 2]],

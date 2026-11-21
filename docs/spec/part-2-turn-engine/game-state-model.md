@@ -116,7 +116,8 @@ type Band = {                   // a small group: a guard post, a gang, a househ
   needs a long connector on the Map (CO1 B). A title's aspect (long side ÷ short side) is its spec's when given, else rolled evenly between its kind's
   least and most (the library's zoneKinds aspect range, placeholders), from dice seeded by the story and the title, so the
   same title always draws the same shape (FZ5 a, Ali, 21/11/2026, Questions hub page "Field sizes"; rollAspect in
-  src/plan/draw.ts). Irregular outlines for fields and woods follow as their own task (the owner's choice on the shapes
+  src/plan/draw.ts). A room may be up to 3 to 1, as a great hall was 1.5 to 3 times as long as wide (the owner, card in the
+  "Review the size of fields" thread, 21/11/2026: "Up to 3 to 1"). Irregular outlines for fields and woods follow as their own task (the owner's choice on the shapes
   card, 21/11/2026: "Proportions, then irregular").
 - **GSM-43** Then code draws the plan (drawPlan): one wall along each side by its wall kind (a side two titles share
   gets one wall, the more closed of their two kinds), one opening per way at the middle of the shared wall (a doorway),
