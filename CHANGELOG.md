@@ -3,6 +3,9 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bugs/`.
 
+- 21/11/2026: `AGENTS.md` rule 3 and `docs/instructions.md` section 5: a new skill's milestone perks that are not
+  written with it get a perks-list row to be built the same turn, never a note that they do not exist, and are drafted
+  only when the owner asks. The owner, project thread "Act on parked items round 10", 21/11/2026: "rule 3 and section 5 are somewhat right, as I disagree with your decision to start the build thread for the perks now, as I am not in the mood to create perks at the moment, I just wanted it to be marked as a point to be built, and not be decided to not exist. you can adjust the rules accordingly."
 - 21/11/2026: `docs/instructions.md` section 7: tips are colour-coded (`tint()`, `src/ui/tipTones.ts`, PS-496 and
   PS-497). The owner, Questions hub "Show belonging to the player", OW1: "a, have a thread do a pass on all tooltips to
   have them color coded, and build rules on how to continue this practice in the future"; then "Colour-coded tips",

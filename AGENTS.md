@@ -36,7 +36,9 @@ project: "the owner" below is its designer and its only player.
    it before it is built. A gap, or a request that can be read more than one way, is a question to the owner whose
    options are such proposals. Build only the clear parts. When the shape of a curve, formula or table is open, or a
    request gives a direction for a number but no amount, show options with values before building. Only the in-game
-   agents never invent: during play, code owns every mechanic, reward and number.
+   agents never invent: during play, code owns every mechanic, reward and number. A part that is due but not asked
+   for yet (such as a new skill's milestone perks) gets a parked row to be built (rule 12), never a decision that it
+   does not exist, and is drafted only when the owner asks.
 4. **Never settle a clash silently.** Where code and spec disagree, report it: a BG-n if the code is wrong, a question
    if not.
 5. **No direct commits to `main`.** Every change is a PR that follows `.github/pull_request_template.md`, with "Siblings
