@@ -4,6 +4,7 @@ import { itemDef } from '../library';
 import { IT } from '../library/itemIds';
 import { PA, VL } from '../library/tableIds';
 import { personalityOf } from '../ruleset/personality';
+import { intelligenceOf } from '../ruleset/body';
 import { isActive, stance } from './relations';
 import { coins, itemValue } from './trade';
 import { distM } from './position';
@@ -11,8 +12,10 @@ import { distM } from './position';
 /**
  * WP6 a, D-253 b: `looters` strip `body` in their order. The first takes all the coin; then each in turn takes the most
  * valuable thing left, until each has LOOT_TAKE_MAX or nothing of value is left. Worn containers and soulbound gear stay.
+ * Only an intelligent looter takes: a beast or a monster (semi-intelligent or unintelligent) leaves it all.
  */
-export function stripBody(state: GameState, body: Actor, looters: Actor[]): void {
+export function stripBody(state: GameState, body: Actor, all: Actor[]): void {
+  const looters = all.filter((a) => intelligenceOf(a) === 'intelligent'); // BG-1478: a beast or a monster (a wolf, a slime) never loots
   if (!looters.length) return;
   const take = (a: Actor, i: (typeof body.core.inventory)[number]) => {
     body.core.inventory = body.core.inventory.filter((x) => x !== i);

@@ -15,6 +15,7 @@ import { getLibrary } from '../../src/library';
 import { SK } from '../../src/library/skillIds';
 import type { GameState, TurnRecord } from '../../src/types';
 import { IT } from '../../src/library/itemIds';
+import { RC } from '../../src/library/raceIds';
 import { threadboundStartBlocked } from '../../src/ruleset/threadboundItems';
 import { bindCarriedCharms } from '../../src/engine/gear';
 import { FU } from '../../src/library/tableIds';
@@ -155,6 +156,18 @@ describe('272 carrying a world on', () => {
     const kit = world.player.core.inventory.map((i) => i.id);
     const s = carryOn(world, { ...world, storyId: 'story_b', player: createPlayer(build, 'story_b', { world }), actors: [], bands: [], hidden: { ...world.hidden, plans: {} } });
     expect(s.actors.find((a) => a.id === pastCharacterId('story_a'))!.core.inventory.map((i) => i.id)).toEqual(kit);
+  });
+
+  it.each([['slime_1', null], ['patron_1', RC.wolf]])('BG-1478: a foe that is not intelligent (%s, race %s) takes nothing from the body', (id, race) => {
+    const world = fallenWorld();
+    const foe = world.actors.find((a) => a.id === id)!;
+    if (race) foe.core.raceId = race;
+    Object.assign(foe, { zone: world.player.zone, placeId: world.player.placeId });
+    (foe.mind!.overrides ??= {})[world.player.id] = 'hostile';
+    const kit = world.player.core.inventory.map((i) => i.id);
+    const s = carryOn(world, { ...world, storyId: 'story_b', player: createPlayer(build, 'story_b', { world }), actors: [], bands: [], hidden: { ...world.hidden, plans: {} } });
+    expect(s.actors.find((a) => a.id === pastCharacterId('story_a'))!.core.inventory.map((i) => i.id)).toEqual(kit);
+    expect(s.actors.find((a) => a.id === foe.id)!.core.inventory.some((i) => kit.includes(i.id))).toBe(false);
   });
 
   it('BG-332: the world carried on is the world as it was saved; BG-333: both pages show the turn just played', async () => {
