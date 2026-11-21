@@ -1012,17 +1012,6 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Open:** Parked for a hiding perk (D-189).
 - **Banked as:** a later Sneaking perk, suggested for the 60 perk
 
-### Held Shot (Medium ranged) · D8
-
-*Story:* Patience is a blade too. You hold your shot and wait. Instead of acting, you ready a ranged weapon: the first hostile to enter your zone before the end of your next turn takes a shot before it can act.
-
-- **Kind:** Move
-- **Trigger:** The owner readies any ranged weapon instead of acting.
-- **Effect:** When a hostile actor enters the owner's zone, the owner shoots it at once, before it acts.
-- **Lasts:** Until the end of the owner's next turn, one shot.
-- **Needs first:** Moves; reactions.
-- **Banked as:** a later Medium ranged perk, suggested for the 60 perk
-
 ### Gut Feeling (Insight) · LI5b
 
 *Story:* You can feel ill will on the back of your neck. When someone who means you harm watches you from hiding, you may get a hunch of where they are, though never who.
