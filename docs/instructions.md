@@ -39,6 +39,10 @@ edge cases. Where a section repeats a rule from `AGENTS.md`, it is there to add 
   in the spec's "Deferred items" table holding the owner's own words, with options only where the owner gave them
   (no context or reading of the agent's own), plus banked rows in the library where it is content (perks,
   achievements, table rows).
+- **Perk ideas.** A parked idea that is about perks specifically (a perk, a kind of perk, an All-X part) is a PP-n row
+  in `docs/spec/perk-ideas.md` instead, so a perks thread can take them together. A new PP-n is numbered as a new D-n
+  is (`title='PP: <item>'`); a row moved there from the Deferred items table keeps its number (D-189 became PP-189),
+  and its D-n row in the archive says where it went.
 - **Active and archive.** The Deferred items table and the Bug log keep open rows only. A row moves unchanged to
   `deferred-items-archive.md` or `bug-log-archive.md` (beside them in `docs/spec/`) in the PR that finishes it: built,
   settled, dropped, closed or merged for a D-n; fixed, won't fix or duplicate for a BG-n. `npm run spec -- <ID>` finds
