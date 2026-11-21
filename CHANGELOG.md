@@ -3,6 +3,10 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bugs/`.
 
+- 21/11/2026: `docs/instructions.md` sections 4 and 8: a task that grows big within its scope uses helper agents;
+  work of a different scope goes to its own thread. The owner, in the DS1–DS7 thread: "make it a standing rule as
+  well if the tasks gets big within the same scope, use helper agents, if the scope is different, separate the scope
+  to a different thread."
 - 21/11/2026: `AGENTS.md` rule 3 and `docs/instructions.md` sections 1 and 5: inventing new things for the game is the
   build agents' job, proposed whole with concrete values for the owner to approve; only the in-game agents never
   invent. The owner, in the AA-108 deed-ideas thread: "the ones who cannot invent rewards are the in-game agents

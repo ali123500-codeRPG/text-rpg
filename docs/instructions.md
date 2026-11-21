@@ -117,7 +117,10 @@ The source of truth for every design decision.
 - **Smallest complete change.** Use the `ponytail` skill (`docs/skills.md`): the least new code that solves the whole
   task, no extras, and every part the change touches is finished (callers, tests, fixtures). Where it says "no
   config", the balancing rule below wins; where it asks for a test, section 8 decides.
-- **Stay in scope.** Out-of-scope work becomes its own task. Do not widen the current one.
+- **Stay in scope.** Out-of-scope work becomes its own task. Do not widen the current one. A task that grows big
+  within its own scope gets helper agents (section 8, parallel workers); work of a different scope goes to a thread of
+  its own (for Claude, asked for through the coordinator, `docs/providers/claude.md`). Reason: one thread that built
+  seven answers across spawning, events, speech, offers and the play screen took far longer than split work would.
 - **Read by ID, not by file.** `npm run spec -- <ID>` or a line range. Never read a file over 50 KB whole.
 - **Balancing levers.** Every balancing number lives in one easy-to-edit place (`src/config.ts`, whose parts are in
   `src/config/`, or a library table), with a clear name, placeholders marked, and the lever named in the spec by its setting, never copied as a number
@@ -305,8 +308,9 @@ The source of truth for every design decision.
   and read its checks. Decided 19/11/2026; the first agent that needs a long run after 19/12/2026 asks the owner
   again.
 - A balancing change can move the soak results (`tests/soak`).
-- Where work splits cleanly, use parallel workers. Give each a narrow scope, the spec sections it owns and the
-  interfaces it must match, and merge through one owner of the integration.
+- Where work splits cleanly, use parallel workers, and always once a task grows big within its scope (section 4,
+  "Stay in scope"). Give each a narrow scope, the spec sections it owns and the interfaces it must match, and merge
+  through one owner of the integration.
 - The game's own agents and which model each uses are set in `CONFIG.AGENT_MODELS`.
 
 ## 9. Playtests
