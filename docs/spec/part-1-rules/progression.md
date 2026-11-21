@@ -47,7 +47,7 @@ question IDs, BG/D numbers) sits in one trailing parenthesis.
   in its first group (`groupsOf`), so attack skills count in Melee or Ranged, dodge and block in Defense, endurance in
   Health, the senses in Notice, stealth skills in Stealth and speech in Influence.
 - **PROG-45** Riposte and Blade Dance (formerly Slip Counter) join the Melee and Defense groups directly (D-158) and
-  count in Melee. Filching (the Sleight group, FL1) counts like Stealth; Handiwork (the Survival group, D-89) counts for nothing in a fight.
+  count in Melee. Filching (the Sleight group, FL1) counts like Stealth; Handiwork and First Aid (the Survival group, D-89, D-235) count for nothing in a fight.
 - **PROG-46** A skill's worth is SKILL\_RATING\_AT\_50 (23.1) × (s ÷ 50)^SKILL\_RATING\_POWER (2), so doubling a skill
   makes it worth four times as much, with no cap; s is the **true** skill × its tier multiplier (LF16), for the player
   and foes alike (Ali, 12/11/2026, LF15; it replaced the old training-effort curve, which assumed 100 was the top and

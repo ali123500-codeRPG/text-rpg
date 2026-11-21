@@ -66,6 +66,10 @@ export const CLOCK = {
   HEAL_UNLOCK: 50,
   HEAL_TIER_SHARE: { near_miss: 0.05, success: 0.1, great_success: 0.15, critical_success: 0.25 } as Record<string, number>,
   HEAL_PAST_STEP: 0.1,
+  /** D-235 a (placeholders): a healing item heals its row × (FIRST_AID_BASE + the user's true First Aid × FIRST_AID_PER_POINT):
+   * half at 0, the row at 50, one and a half at 100 */
+  FIRST_AID_BASE: 0.5,
+  FIRST_AID_PER_POINT: 0.01,
   /** NR28: how much each band counts when code picks the closest role for the skills the World builder or Weaver wants */
   ROLE_WANT_SCORE: { high: 3, moderate: 2, low: 1 },
   ROLE_WANT_SKILLS: [2, 4] as [number, number], // NR28: a cast entry's wants name this many skills, fewest to most

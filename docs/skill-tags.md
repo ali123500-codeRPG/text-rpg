@@ -34,6 +34,7 @@ function in its group; adding a function or group is one row there.
 | Stealth | stealth | sneaking, combat_stealth, vanishing |
 | Sleight | lockpicking | filching applied to a lock (BA2; D-89 RP20: no Lockpicking skill) |
 | Survival | handiwork | handiwork (tree "Survival", D-89 RP13: mending gear; XP none) |
+| Survival | first_aid | first_aid (tree "Survival", D-235 a: using a bandage or draught; XP none) |
 | Influence | influence | persuasion, intimidation, barter |
 | Speed | initiative | none yet (the best one adds to the initiative d100); dodge joins the Speed group directly, without the function |
 | none | none | feint, riposte, disarm (placeholders) |
@@ -60,6 +61,7 @@ function in its group; adding a function or group is one row there.
 | hide (no function, Defense group; races with natural armor, AB20) | defense | | | |
 | filching (functions: filching, lockpicking) | trickery | grip | | |
 | handiwork (D-89) | survival | grip | | |
+| first_aid (D-235 a) | survival | grip | | |
 
 Persuasion and barter also need a speaking race (race tag `speaks`: Human, Elf); intimidation does not (SR1, Ali 08/11/2026).
 

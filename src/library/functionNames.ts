@@ -15,11 +15,12 @@ export const FUNCTION_GROUP: Record<SkillFunction, SkillGroup> = {
   [FN.healing]: GR.medicine, // NR33: its own group (Medicine)
   [FN.tactics]: GR.tactics, // TC10, TC14: the Tactics group
   [FN.handiwork]: GR.survival, // D-89: the Survival group
+  [FN.first_aid]: GR.survival, // D-235 a: the Survival group
 };
 export const FUNCTION_NAMES: Record<SkillFunction, string> = {
   [FN.arms]: 'Arms', [FN.unarmed]: 'Unarmed', [FN.ranged]: 'Ranged', [FN.defense]: 'Defense', [FN.armor]: 'Armor', [FN.health]: 'Health',
   [FN.sight]: 'Sight', [FN.hearing]: 'Hearing', [FN.stealth]: 'Stealth', [FN.influence]: 'Influence', [FN.initiative]: 'Reaction', [FN.morale]: 'Morale',
-  [FN.engagement_aura]: 'Engagement aura', [FN.projected_aura]: 'Projected aura', [FN.lockpicking]: 'Lockpicking', [FN.filching]: 'Filching', [FN.stamina]: 'Stamina', [FN.smell]: 'Smell', [FN.healing]: 'Healing', [FN.tactics]: 'Tactics', [FN.handiwork]: 'Handiwork',
+  [FN.engagement_aura]: 'Engagement aura', [FN.projected_aura]: 'Projected aura', [FN.lockpicking]: 'Lockpicking', [FN.filching]: 'Filching', [FN.stamina]: 'Stamina', [FN.smell]: 'Smell', [FN.healing]: 'Healing', [FN.tactics]: 'Tactics', [FN.handiwork]: 'Handiwork', [FN.first_aid]: 'First Aid',
 };
 export const GROUP_NAMES: Record<SkillGroup, string> = {
   [GR.melee]: 'Melee', [GR.ranged]: 'Ranged', [GR.defense]: 'Defense', [GR.health]: 'Health', [GR.notice]: 'Notice', [GR.stealth]: 'Stealth', [GR.influence]: 'Influence', [GR.speed]: 'Speed', [GR.will]: 'Will', [GR.aura]: 'Aura', [GR.sleight]: 'Sleight', [GR.stamina]: 'Stamina', [GR.medicine]: 'Medicine', [GR.tactics]: 'Tactics', [GR.survival]: 'Survival',

@@ -1,6 +1,7 @@
 // Healing ("Healing: options" H1–H15). Every source is a row of the library healing table, applied by
 // this one rule, so amounts stay consistent (B5) and new sources or tiers are new rows (H1).
 import { CP, HL } from '../library/tableIds';
+import { SK } from '../library/skillIds';
 import type { Actor, GameState } from '../types';
 import { PART_STATES, type PartStateKey } from '../scales';
 import { CONFIG } from '../config';
@@ -120,6 +121,9 @@ export function applyHealing(state: GameState, a: Actor, sourceId: string, opts:
   if (!opts.quiet || to !== level || changed.length) logCode(state, 'healed', { actorId: a.id, source: sourceId, from: level, to, parts: changed, better: c.hpLostPct < lost || healed });
   return c.hpLostPct !== lost || healed;
 }
+
+/** D-235 a: how much of its row a healing item heals in `user`'s hands, from the user's true First Aid */
+export const firstAidMult = (user: Actor): number => CONFIG.FIRST_AID_BASE + trueSkill(user, SK.first_aid) * CONFIG.FIRST_AID_PER_POINT;
 
 /** Q3: would this source heal anything? A healing item isn't used up when it wouldn't. */
 export function wouldHeal(state: GameState, a: Actor, sourceId: string): boolean {

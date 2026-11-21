@@ -63,11 +63,12 @@ project: "the owner" below is its designer and its only player.
 11. **No decision stamps in code.** No names of who ruled and no dates in `src`, `tests` or `scripts`, nor in game
     text. Why a rule changed belongs in the PR and the spec. A
     question ID or a D-n in a comment is fine.
-12. **A parked item gets its ID the same turn.** Anything the owner parks gets a D-n row in the spec's "Deferred items"
-    table (or a row in its subject's idea list, named in the table at the top of that file: perks IPP-n, achievements
-    IAA-n, vows and pledges IVP-n, classes ICI-n, essences IEI-n, Threadbound items ITI-n, combat and bodies ICB-n,
-    items, loot and trade IGT-n, world, travel and scenarios IWD-n, NPCs and personality INP-n, age and training
-    ICG-n), holding the owner's own words. Options only where the owner gave them; add no context or reading of your own.
+12. **A parked item gets its ID the same turn, in a group.** Anything the owner parks gets a row in its subject's idea
+    list, named in the table at the top of the spec's "Deferred items" file: perks IPP-n, achievements IAA-n, vows and
+    pledges IVP-n, classes ICI-n, essences IEI-n, Threadbound items ITI-n, combat and bodies ICB-n, items, loot and
+    trade IGT-n, world, travel and scenarios IWD-n, NPCs and personality INP-n, age and training ICG-n. It holds the
+    owner's own words. Options only where the owner gave them; add no context or reading of your own. When no list
+    fits, the row waits in the D-n table and the owner is asked the same turn which list takes it, or for a new list.
 
 ## Order of authority
 

@@ -18,6 +18,7 @@ export const SK = {
   battle_sense: 'SK45', command: 'SK46', fieldcraft: 'SK47', stratagem: 'SK48',
   guile: 'SK49', // TC24, TC26: Trickery's lying with the body (feigned flight, playing dead), rolled against Insight
   handiwork: 'SK50', // D-89 (RP13): the Survival tree's smith skill: mending gear
+  first_aid: 'SK51', // D-235 a: the Survival tree's skill for using bandages and draughts
 } as const;
 export type SkillId = (typeof SK)[keyof typeof SK];
 /** a standing defense (dodge, block or parry, a choice, not a skill) and the skill it rolls */

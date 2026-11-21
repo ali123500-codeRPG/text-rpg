@@ -309,6 +309,7 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   // opens it (BA2; D-89 RP20: there is no Lockpicking skill)
   sk(SK.filching, TR.trickery, [FN.filching, FN.lockpicking], [RL.grip]), // in Trickery beside Falsehood
   sk(SK.handiwork, TR.survival, [FN.handiwork], [RL.grip]), // D-89 RP13: mending gear, at a forge or in the field (src/engine/repair.ts)
+  sk(SK.first_aid, TR.survival, [FN.first_aid], [RL.grip]), // D-235 a: a bandage or draught heals its row × firstAidMult (src/engine/heal.ts)
   sk(SK.guile, TR.trickery, [FN.influence], []), // TC24, TC26: a lie told with the body, rolled against the onlooker's Insight
   // Tactics (TR19; TC11 d, TC10, TC13, TC14): the Tactics function on three skills that stand in for each other; Battle
   // Sense also rolls Reaction (FN11, the initiative roll: TC5, TC13); Command joins the group only
@@ -365,7 +366,7 @@ export function prototypeLibrary(): Library {
       // BR7: from being a slime, not from a class
       [TR.slime_senses]: { id: TR.slime_senses, name: 'Tremor senses', rating: 'inferior', skills: [SK.tremor], access: { either: [RC.python, RC.spider].map((id) => ({ kind: 'race' as const, id })) } }, // AB11, AB19: snakes and spiders feel vibration; slimes smell instead
       [TR.medicine]: { id: TR.medicine, name: 'Medicine', skills: [SK.healing], access: { blockedBy: [AMORPHOUS] } }, // NR33: hands to mend with
-      [TR.survival]: { id: TR.survival, name: 'Survival', skills: [SK.handiwork], access: { blockedBy: [AMORPHOUS] } }, // RP18 a: hands to work with
+      [TR.survival]: { id: TR.survival, name: 'Survival', skills: [SK.handiwork, SK.first_aid], access: { blockedBy: [AMORPHOUS] } }, // RP18 a: hands to work with
     },
     classes: {
       // Parry 80 and Medium or Heavy Weapons 60 unlock the class (PR #918); Medium Weapons 40 and Parry 40 are its creation floors

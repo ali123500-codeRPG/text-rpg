@@ -3,6 +3,10 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bugs/`.
 
+- 21/11/2026: `AGENTS.md` rule 12 and `docs/instructions.md` section 2: every newly parked item goes into an idea
+  list (a group ID), not the D-n table; when no list fits, the row waits in the D-n table while the owner is asked
+  which list takes it, or for a new one. The owner, project thread "Act on parked items round 10", 21/11/2026:
+  "moving forward, make sure every item I say to park belongs to a group ID".
 - 21/11/2026: `AGENTS.md` rule 12 and `docs/instructions.md` section 2: five more idea lists, ICB-n (combat and
   bodies), IGT-n (items, loot and trade), IWD-n (world, travel and scenarios), INP-n (NPCs and personality) and ICG-n
   (age and training); 40 open D-n rows below D-231 moved there with their numbers, and rule 12 now names every
