@@ -17,11 +17,12 @@ import { closestRole, rankKeyOf, composeError, composeTemplate, presetAgeFloor, 
 import { stageReaches, talentName, youngestAge } from '../ruleset/age';
 import { uniqueInWorld } from '../library/echo';
 import type { PlanError, PlanContext } from './index';
-import { itemValue } from '../ruleset/value';
 import { zoneById } from '../engine/relations';
 import { landNode, landTarget, landZone, worldCheck } from './ways';
 import { applyStagePlan } from './apply';
-import { createRng } from '../rng';
+import { createRng, textSeed } from '../rng';
+import { drawRewards } from '../engine/rewards';
+import { RW } from '../library/tableIds';
 
 
 /** what the Weaver may say a cast member knows of the player or a band: AWARENESS up to aware (tracking and up are code's) */
@@ -48,12 +49,15 @@ export const GRADES_FIT: Record<Tier, Fit> = {
   great_success: { challenge: ['moderate', 'major'], gain: ['major', 'extreme'], gainVsChallenge: [1, 2] }, // SW1 b, SW2 a: a prize above a real challenge
   critical_success: { challenge: CRITICAL_CHALLENGE, gain: ['extreme', 'extreme'] },
 };
+/** D-216c a: a tier past Critical Failure (Critical Failure− and worse) keeps Critical Failure's gain, with only this challenge */
+export const PAST_CRITICAL_FAILURE_CHALLENGE: [Grade, Grade] = ['extreme', 'extreme'];
 const within = (x: number, [lo, hi]: [Grade, Grade]) => x >= g(lo) && x <= g(hi);
-export function gradesFitTier(tier: Tier, challenge: Grade, gain: Grade): boolean {
+/** `beyond`: steps the roll went past the end tier (below Critical Failure when negative) */
+export function gradesFitTier(tier: Tier, challenge: Grade, gain: Grade, beyond = 0): boolean {
   const c = g(challenge), n = g(gain), fit = GRADES_FIT[tier];
   if (c < 0 || n < 0 || !fit) return false;
   const v = fit.gainVsChallenge;
-  return within(c, fit.challenge) && within(n, fit.gain) && (!v || (n - c >= v[0] && n - c <= v[1]));
+  return within(c, tier === 'critical_failure' && beyond < 0 ? PAST_CRITICAL_FAILURE_CHALLENGE : fit.challenge) && within(n, fit.gain) && (!v || (n - c >= v[0] && n - c <= v[1]));
 }
 /** GRADES_FIT in words, for the Weaver prompt */
 export function gradesFitText(): string {
@@ -62,7 +66,7 @@ export function gradesFitText(): string {
   return TIERS.keys.map((t) => {
     const f = GRADES_FIT[t];
     return `${TIERS.name(t)} = challenge ${range(f.challenge)}, gain ${f.gainVsChallenge ? vs(f.gainVsChallenge) : range(f.gain)}`;
-  }).join('; ');
+  }).join('; ') + `; past Critical Failure (Critical Failure− and worse) = challenge ${range(PAST_CRITICAL_FAILURE_CHALLENGE)}, gain as Critical Failure`;
 }
 
 /** frontier keys currently on the stage (ways to ground not built yet) */
@@ -273,8 +277,10 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
   if (ctx.kind === 'checkin') { /* SC12: a check-in keeps the scenario's grades */ }
   else if (ctx.world) { /* WB1: the World builder rolls no luck: no grades to fit */ }
   else if (!ev || !GRADES.includes(ev.challenge) || !GRADES.includes(ev.gain)) err('bad_grade', 'event needs challenge and gain grades');
-  else if (!gradesFitTier(ctx.tier, ev.challenge, ev.gain))
-    err('grades_misfit', `challenge ${ev.challenge} / gain ${ev.gain} does not fit tier ${tierName(ctx.tier)}`);
+  else if (!gradesFitTier(ctx.tier, ev.challenge, ev.gain, ctx.tier === state.stage.tier ? state.stage.tierBeyond ?? 0 : 0)) {
+    const beyond = ctx.tier === state.stage.tier ? state.stage.tierBeyond : undefined;
+    err('grades_misfit', `challenge ${ev.challenge} / gain ${ev.gain} does not fit tier ${tierName({ tier: ctx.tier, ...(beyond ? { beyond } : {}) })}`);
+  }
 
   // ---- text: caps for every free-text field; public fields scanned for hidden and leak terms ----
   const terms = [...arr(plan.hiddenTerms), ...secrets.flatMap((s) => arr(s.leakTerms))].filter((t) => typeof t === 'string' && t.trim());
@@ -621,7 +627,8 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
   }
 
   // ---- rewards: repaired, never blocking (loot L1) ----
-  errs.push(...tidyContainers(state, plan).notes, ...tidyRewards(state, plan).notes);
+  // a drawn reward the plan left out is code's own placing, logged when the plan is applied, not a repair of the plan
+  errs.push(...tidyContainers(state, plan).notes, ...tidyRewards(state, plan, ctx).notes.filter((n) => n.code !== 'reward_placed' && n.code !== 'reward_unplaced'));
 
   // WI9 a / WI10 a: a plan that would leave the world breaking a land rule it kept before goes back for repair
   if (errs.every((e) => e.repaired)) errs.push(...worldAfter(state, plan, ctx));
@@ -661,18 +668,27 @@ export function tidyContainers(state: GameState, plan: StagePlan): { containers:
   return { containers, notes };
 }
 
-/** Loot V8: a reward's Boon = the item's boon (or its value ÷ BOON_COIN, src/ruleset/value.ts) × qty, × BOON_QUALITY for a minted item. */
-export function boon(state: GameState, item: Reward['item'], qty = 1): number {
-  const def = itemDef(state, typeof item === 'string' ? item : item.base);
-  const q = typeof item === 'string' ? 'plain' : item.quality;
-  return (def.boon ?? itemValue(state, def) / CONFIG.BOON_COIN) * qty * CONFIG.BOON_QUALITY[q];
+import { boon, boonBudget } from './boon';
+export { boon };
+
+/** TI-220b b: the rewards a Weaver call places, drawn by code from RW6 (the Weaver's reward table) up to the highest Boon
+ * budget the call's tier allows, in draw order. Seeded by the story, the scenario and the call, so the Weaver's view and
+ * the check of its plan see the same draw, and the game's own dice are not touched. */
+export function rewardDraw(state: GameState, ctx: PlanContext): { item: string; qty: number; boon: number }[] {
+  const top = ctx.world ? undefined : GRADES_FIT[ctx.tier]?.gain[1];
+  if (!top) return [];
+  const rng = createRng(textSeed(`${state.storyId}:draw:${state.stage.scenarioNumber}:${ctx.kind}:${ctx.frontierKey ?? ctx.placeId}`));
+  return drawRewards(state, RW.weaver, 'weaver', boonBudget(state, top, ctx.tier), rng, false).map((r) => ({ ...r, boon: boon(state, r.item, r.qty) }));
 }
 
 /**
  * Loot L1: a bad reward is fixed or dropped, never fails the plan. Validation reports each change as a repaired
  * note; the apply step places the tidied list. Same input, same output, so replay matches.
+ * TI-220b b: minted items come first and their Boon is taken from the budget; then the drawn items (rewardDraw), in
+ * draw order, each one that still fits what is left. A plain reward must be one of those; a drawn one the plan left
+ * unplaced goes where the drawn reward before it went (else where the first reward went).
  */
-export function tidyRewards(state: GameState, plan: StagePlan): { rewards: Reward[]; notes: PlanError[] } {
+export function tidyRewards(state: GameState, plan: StagePlan, ctx?: PlanContext): { rewards: Reward[]; notes: PlanError[] } {
   const notes: PlanError[] = [];
   const note = (code: string, message: string) => notes.push({ code, message, routineOnly: false, repaired: true });
   const castKeys = new Set(arr(plan.cast).map((c) => c.key));
@@ -684,56 +700,81 @@ export function tidyRewards(state: GameState, plan: StagePlan): { rewards: Rewar
   // BG-212: hidden terms as whole words, as every other public text in the plan is checked (V10)
   const badText = (v: unknown) => typeof v !== 'string' || v.length > CONFIG.TEXT_CAP || terms.some((t) => mentions(v, t));
   const gain = plan.event?.gain;
+  const tier = ctx?.tier ?? state.stage.tier;
   const maxQ = GRADES.includes(gain) ? CONFIG.GAIN_MAX_QUALITY[gain] ?? null : null;
   let mintLeft = CONFIG.SCENARIO_CAPS.minted - state.scenarioCaps.minted;
-  let boonLeft = GRADES.includes(gain) ? CONFIG.BOON_BUDGET[gain] ?? 0 : 0; // V8: Boon is the only limit on rewards
+  let boonLeft = GRADES.includes(gain) && tier ? boonBudget(state, gain, tier) : 0; // V8: Boon is the only limit on rewards; D-216c past Critical Success
   const known = (id: unknown) => { try { return typeof id === 'string' ? itemDef(state, id) : undefined; } catch { return undefined; } };
 
   const boxes = new Set(tidyContainers(state, plan).containers.map((c) => c.key));
-  const rewards: Reward[] = [];
-  arr(plan.rewards).forEach((r, i) => {
-    const where = `reward ${i}`;
+  const out: [number, Reward][] = [];
+  const list = arr(plan.rewards);
+  const placedOk = (r: Reward | undefined) => {
     const pl = r?.place as { carriedBy?: string; groundIn?: string; in?: string } | undefined;
-    const placed = pl?.carriedBy !== undefined ? castKeys.has(pl.carriedBy) || actorIds.has(pl.carriedBy)
+    return pl?.carriedBy !== undefined ? castKeys.has(pl.carriedBy) || actorIds.has(pl.carriedBy)
       : pl?.groundIn !== undefined ? zoneKeys.has(pl.groundIn) || stageZones.has(pl.groundIn) : pl?.in !== undefined && boxes.has(pl.in);
-    if (!placed) return note('reward_dropped', `${where}: needs a known carriedBy (not the player), groundIn or in (a container key)`);
-    let qty = r.qty;
-    if (qty !== undefined && (!Number.isInteger(qty) || qty < 1)) { note('reward_qty', `${where}: qty ${qty} set to 1`); qty = 1; }
-    let item: Reward['item'];
-    if (typeof r.item === 'string') {
-      if (!known(r.item)) return note('reward_dropped', `${where}: item ${r.item} unknown`);
-      if (known(r.item)!.threadbound) return note('reward_dropped', `${where}: ${r.item} is a Threadbound item; the Weaver does not place those (TI-220)`);
-      item = r.item;
-    } else {
-      const m = r.item;
-      const base = known(m?.base);
-      if (!base) return note('reward_dropped', `${where}: base item ${m?.base} unknown`);
-      if (base.threadbound) return note('reward_dropped', `${where}: ${base.id} is one of a kind and cannot be minted`); // D-218
-      const plain = mintLeft <= 0 ? 'the scenario\'s minted cap is used up' : !maxQ ? `a ${gain} gain allows no minted item`
-        : badText(m.name) || badText(m.look) ? 'its name or look is too long or uses a hidden term' : '';
-      if (plain) { note('reward_plain', `${where}: placed as a plain ${base.id}, because ${plain}`); item = base.id; }
-      else {
-        mintLeft -= 1;
-        const asked = qualityOf(m.quality) ?? QUALITY_LEVELS.keys[0];
-        const quality = QUALITY_LEVELS.pos(asked) > QUALITY_LEVELS.pos(maxQ!) ? maxQ! : asked;
-        if (quality !== m.quality) note('reward_quality', `${where}: quality ${m.quality} set to ${quality}, the most a ${gain} gain allows`);
-        let boosts = m.boosts;
-        if (base.kind === 'weapon' && boosts !== 'hitAdj' && boosts !== 'damageAdj') {
-          note('reward_boosts', `${where}: boosts "${boosts}" set to hitAdj`);
-          boosts = 'hitAdj';
-        }
-        item = { ...m, quality, boosts };
-      }
+  };
+  const qtyOf = (r: Reward, where: string) => {
+    if (r.qty !== undefined && (!Number.isInteger(r.qty) || r.qty < 1)) { note('reward_qty', `${where}: qty ${r.qty} set to 1`); return 1; }
+    return r.qty;
+  };
+  // minted items first
+  list.forEach((r, i) => {
+    if (typeof r?.item === 'string') return;
+    const where = `reward ${i}`;
+    if (!placedOk(r)) return note('reward_dropped', `${where}: needs a known carriedBy (not the player), groundIn or in (a container key)`);
+    const qty = qtyOf(r, where);
+    const m = r.item;
+    const base = known(m?.base);
+    if (!base) return note('reward_dropped', `${where}: base item ${m?.base} unknown`);
+    if (base.threadbound) return note('reward_dropped', `${where}: ${base.id} is one of a kind and cannot be minted`); // D-218
+    const plain = mintLeft <= 0 ? 'the scenario\'s minted cap is used up' : !maxQ ? `a ${gain} gain allows no minted item`
+      : badText(m.name) || badText(m.look) ? 'its name or look is too long or uses a hidden term' : '';
+    if (plain) return note('reward_dropped', `${where}: ${base.id} cannot be minted, because ${plain}; plain items come from the reward draw`);
+    mintLeft -= 1;
+    const asked = qualityOf(m.quality) ?? QUALITY_LEVELS.keys[0];
+    const quality = QUALITY_LEVELS.pos(asked) > QUALITY_LEVELS.pos(maxQ!) ? maxQ! : asked;
+    if (quality !== m.quality) note('reward_quality', `${where}: quality ${m.quality} set to ${quality}, the most a ${gain} gain allows`);
+    let boosts = m.boosts;
+    if (base.kind === 'weapon' && boosts !== 'hitAdj' && boosts !== 'damageAdj') {
+      note('reward_boosts', `${where}: boosts "${boosts}" set to hitAdj`);
+      boosts = 'hitAdj';
     }
+    const item = { ...m, quality, boosts };
     const b = boon(state, item, qty ?? 1);
     if (b > boonLeft + 1e-9) {
-      if (typeof item !== 'string') mintLeft += 1;
+      mintLeft += 1;
       return note('reward_dropped', `${where}: worth ${b} Boon, only ${boonLeft} left of the ${gain} gain budget`);
     }
     boonLeft -= b;
-    rewards.push({ ...r, item, ...(qty !== undefined ? { qty } : {}) });
+    out.push([i, { ...r, item, ...(qty !== undefined ? { qty } : {}) }]);
   });
-  return { rewards, notes };
+  // then the drawn items, in draw order, each one that still fits
+  const fits: { item: string; qty: number; boon: number; at?: Reward['place'] }[] = [];
+  for (const d of tier ? rewardDraw(state, ctx ?? { tier, kind: 'scenario', placeId: state.player.placeId }) : []) {
+    if (d.boon <= boonLeft + 1e-9) { fits.push({ ...d }); boonLeft -= d.boon; }
+  }
+  list.forEach((r, i) => {
+    if (typeof r?.item !== 'string') return;
+    const where = `reward ${i}`;
+    if (!placedOk(r)) return note('reward_dropped', `${where}: needs a known carriedBy (not the player), groundIn or in (a container key)`);
+    if (!known(r.item)) return note('reward_dropped', `${where}: item ${r.item} unknown`);
+    const d = fits.find((x) => !x.at && x.item === r.item);
+    if (!d) return note('reward_dropped', `${where}: ${r.item} is not in the reward draw, or the budget left does not reach it`);
+    if (r.qty !== undefined && r.qty !== d.qty) note('reward_qty', `${where}: qty ${r.qty} set to ${d.qty}, as drawn`);
+    d.at = r.place;
+    out.push([i, { ...r, item: d.item, qty: d.qty }]);
+  });
+  const first = [...out].sort((x, y) => x[0] - y[0])[0]?.[1].place;
+  let before: Reward['place'] | undefined;
+  fits.forEach((d, k) => {
+    if (d.at) { before = d.at; return; }
+    const place = before ?? first;
+    if (!place) return note('reward_unplaced', `drawn ${d.item}: no reward was placed, so it has nowhere to go`);
+    note('reward_placed', `drawn ${d.item}: left unplaced, so it goes where the reward before it went`);
+    out.push([list.length + k, { item: d.item, qty: d.qty, place }]);
+  });
+  return { rewards: out.sort((x, y) => x[0] - y[0]).map(([, r]) => r), notes };
 }
 
 /** WI9 a: the plan is tried on a copy of the world; each land rule it would newly break is an error for the repair round

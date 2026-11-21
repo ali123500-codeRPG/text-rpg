@@ -11,7 +11,7 @@ import { zoneById, actorById } from '../../src/engine/relations';
 import { IT } from '../../src/library/itemIds';
 import { checkParserLegality } from '../../src/agents/legality';
 import { tidyContainers, tidyRewards } from '../../src/scenario/validate';
-import { layAll } from '../harness';
+import { layAll, withDrawOf } from '../harness';
 import { groundIn } from '../../src/engine/ground';
 
 const village = (): GameState => makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
@@ -85,11 +85,16 @@ it('CT2: the Weaver\'s containers are checked (bad ones dropped) and rewards go 
       { key: 'carried_chest', item: IT.chest, place: { carriedBy: 'patron_1' } }, // a chest can't be carried
       { key: 'not_a_box', item: IT.dagger, place: { groundIn: 'tav_common' } },
     ],
-    rewards: [{ item: IT.curio, place: { in: 'cellar_chest' } }, { item: IT.curio, place: { in: 'not_a_box' } }],
+    rewards: [{ item: IT.curio, place: { in: 'not_a_box' } }, { item: IT.curio, place: { in: 'cellar_chest' } }],
     event: { summary: '', challenge: 'minor', gain: 'moderate' },
   } as unknown as StagePlan;
   const tc = tidyContainers(s, plan);
   expect(tc.containers.map((c) => c.key)).toEqual(['cellar_chest']);
   expect(tc.notes.map((n) => n.code)).toEqual(['container_dropped', 'container_dropped']);
-  expect(tidyRewards(s, plan).rewards.map((r) => (r.place as { in?: string }).in)).toEqual(['cellar_chest']);
+  // TI-220b: the draw gives only curios; the reward naming a dropped box is dropped, the other places one, and the curios
+  // left unplaced go where it went
+  const ctx = { tier: 'success' as const, kind: 'scenario' as const, placeId: s.player.placeId };
+  const placed = withDrawOf(IT.curio, () => tidyRewards(s, plan, ctx)).rewards.map((r) => (r.place as { in?: string }).in);
+  expect(placed.length).toBeGreaterThan(0);
+  expect(new Set(placed)).toEqual(new Set(['cellar_chest']));
 });

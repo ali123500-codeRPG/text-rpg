@@ -191,9 +191,9 @@ question IDs, BG/D numbers) sits in one trailing parenthesis.
   morale and one Nerve step; the fight still counts as lost for the Loser scars, as a break always does (D-294).
 - **PROG-117** The reward fits the deed, as a guide for whoever proposes a row: an ordeal pays what would have carried
   you through it (max morale, death's door, rest), and a feat done with a skill may pay that skill (D-278).
-- **PROG-118** New achievements come only from Ali-approved proposals (AA-108); Weaver-seeded scenario achievements (X7)
+- **PROG-118** New achievements come only from Ali-approved proposals (IAA-108); Weaver-seeded scenario achievements (X7)
   are dropped (Ali, 07/11/2026).
-  The first approved round (Ali, Questions hub page "Chronicler deed ideas: which become achievements (AA-108)",
+  The first approved round (Ali, Questions hub page "Chronicler deed ideas: which become achievements (IAA-108)",
   21/11/2026; rows in src/library/data.ts, counted in src/engine/feats.ts, quests.ts and memory.ts): Answer in Steel
   (kills on a strike back, XP only, DI1), Not One Step (fights won against OUTNUMBERED_FOES+ foes without moving, with
   branches at CONFIG.HELD_GROUND_FOES, DI2, DI20; a solo stand also earns Stand Against Many, DI21 b), Finishing Stroke
@@ -262,7 +262,7 @@ question IDs, BG/D numbers) sits in one trailing parenthesis.
   gain, while its raw value is below LATE\_BLOOM\_SHARE (0.5, placeholder) × the owner's highest raw skill
   (PerkDef.improveRolls.belowShare), so it keeps working as skills grow: best skill 50 covers skills under 25, 100 under
   50, 200 under 100.
-- **PROG-166** Its capstone is parked (CI-360).
+- **PROG-166** Its capstone is parked (ICI-360).
 - **PROG-167** Reaching A Somebody 20 also unlocks **Unwritten Legend** in play (CB3); its Start stays the fast way in.
 - **PROG-168** Unwritten Legend's own level 1 perk is **Any Road Will Do** (PK158): the stand-in share of every function
   is +UL\_STAND\_IN\_ADD (0.2, placeholder; PerkDef.standIn with no function named), so 0.3 becomes 0.5, kept within 0

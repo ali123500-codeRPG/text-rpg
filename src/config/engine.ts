@@ -81,7 +81,7 @@ export const ENGINE = {
     planner: { model: 'claude-opus-5-5', effort: 'low' },
     // Sonnet 5.5 at its own effort ranked well above the quick tier (Haiku) in blind judging, and answered faster
     parser: { model: 'claude-sonnet-5-5' },
-    // AA-108: Fable 5.2 high gave the most and sharpest deed ideas in the comparison with Opus 5.5 high and Fable 5.2 medium
+    // IAA-108: Fable 5.2 high gave the most and sharpest deed ideas in the comparison with Opus 5.5 high and Fable 5.2 medium
     chronicler: { model: 'claude-fable-5-2', effort: 'high' },
     witness: { model: 'claude-sonnet-5-5' }, // D-141 VW2: a chat beside play, on the Parser's model
   } as Record<string, { model: string; effort?: 'low' | 'medium' | 'high' }>,

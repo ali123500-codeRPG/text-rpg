@@ -65,7 +65,7 @@ export function villageStagePlan(tier: Tier = 'success'): StagePlan {
         band: 'slimes', routineSetId: 'slime_wander', slots: { route: ['field_far', 'field_mid'], post: 'field_mid' }, awarenessOfPlayer: 'unaware', motive: 'hunger' },
     ],
     seeds: { plans: [], triggers: [], secrets: [] },
-    rewards: [{ item: IT.coin, qty: 5, place: { carriedBy: 'barkeep' } }],
+    rewards: [], // TI-220b b: plain rewards come from code's draw, which a fixed plan cannot know
     hiddenTerms: ['nest'],
     weaverNote: 'Opening: slimes raid the field from a nest in the woods. Mags will pay for help.',
     scenario: { question: 'will the slimes be driven off the field?', stake: 'the field and its crop', scale: 'episode', endings: [

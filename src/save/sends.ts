@@ -30,7 +30,7 @@ export async function librarySends(store: Store): Promise<LibrarySend[]> {
   return docs.filter((d): d is LibrarySend => !!d).sort((a, b) => b.at.localeCompare(a.at));
 }
 
-// AA-108: the Chronicler's deed ideas sent to Claude from the GM view's Wanted list, one document each, so an idea is sent once.
+// IAA-108: the Chronicler's deed ideas sent to Claude from the GM view's Wanted list, one document each, so an idea is sent once.
 // The ideas themselves stay in the story (hidden.templateWants); this list only marks which went, and the owner's verdict,
 // which the reviewing thread writes on the idea's document once the owner rules (an approved one becomes a code rule, PROG-118),
 // and cleared once the owner clears ruled ideas from the list (the story keeps them, so the Chronicler doesn't propose them again).

@@ -8,20 +8,22 @@ with where its full meaning lives. A term's rules are never defined here.
 - **D-n**: a parked ("deferred") item. One row each in the "Deferred items" table (`docs/spec/deferred-items.md`; finished ones in its archive),
   with its options and a status. The table doubles as the decision log. From D-1000 on, n is the number of its own
   closed GitHub issue.
-- **PP-n**: a parked perk idea. One row each in the "Perk ideas" table (`docs/spec/perk-ideas.md`; finished ones in
-  the Deferred items archive). A row moved from the Deferred items table keeps its number (D-189 became PP-189).
-- **AA-n**: a parked achievement idea. One row each in the "Achievement ideas" table
+- **I…-n**: an idea list's ID starts with I (for idea), so it never reads like a Questions hub question ID. The
+  lists: IPP-n, IAA-n, IVP-n, ICI-n, IEI-n and ITI-n, below.
+- **IPP-n**: a parked perk idea. One row each in the "Perk ideas" table (`docs/spec/perk-ideas.md`; finished ones in
+  the Deferred items archive). A row moved from the Deferred items table keeps its number (D-189 became IPP-189).
+- **IAA-n**: a parked achievement idea. One row each in the "Achievement ideas" table
   (`docs/spec/achievement-ideas.md`; finished ones in the Deferred items archive). A row moved from the Deferred items
-  table keeps its number (D-124 became AA-124).
-- **VP-n**: a parked vow or pledge idea. One row each in the "Vow and pledge ideas" table (`docs/spec/vow-ideas.md`;
-  finished ones in the Deferred items archive). A row moved from another list keeps its number (PP-266 became VP-266).
-- **CI-n**: a parked class idea. One row each in the "Class ideas" table (`docs/spec/class-ideas.md`; finished ones in
-  the Deferred items archive). A row moved from the Deferred items table keeps its number (D-157 became CI-157).
-- **EI-n**: a parked essence idea. One row each in the "Essence ideas" table (`docs/spec/essence-ideas.md`; finished ones
-  in the Deferred items archive). A row moved from the Deferred items table keeps its number (D-227 became EI-227).
-- **TI-n**: a parked Threadbound item idea. One row each in the "Threadbound ideas" table
+  table keeps its number (D-124 became IAA-124).
+- **IVP-n**: a parked vow or pledge idea. One row each in the "Vow and pledge ideas" table (`docs/spec/vow-ideas.md`;
+  finished ones in the Deferred items archive). A row moved from another list keeps its number (IPP-266 became IVP-266).
+- **ICI-n**: a parked class idea. One row each in the "Class ideas" table (`docs/spec/class-ideas.md`; finished ones in
+  the Deferred items archive). A row moved from the Deferred items table keeps its number (D-157 became ICI-157).
+- **IEI-n**: a parked essence idea. One row each in the "Essence ideas" table (`docs/spec/essence-ideas.md`; finished ones
+  in the Deferred items archive). A row moved from the Deferred items table keeps its number (D-227 became IEI-227).
+- **ITI-n**: a parked Threadbound item idea. One row each in the "Threadbound ideas" table
   (`docs/spec/threadbound-ideas.md`; finished ones in the Deferred items archive). A row moved from the Deferred items
-  table keeps its number (D-218 became TI-218).
+  table keeps its number (D-218 became ITI-218).
 - **BG-n**: a bug. n is its claim issue's number (label `bug`); the issue is its register entry and its story is
   `docs/bugs/BG-n.md`. Below 1000, the old count: a row in the spec's "Bug log" (`docs/spec/bug-log.md`; closed ones in
   `bug-log-archive.md`) and a story in `docs/bug-fix-log.md`.

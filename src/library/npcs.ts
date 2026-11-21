@@ -49,7 +49,7 @@ export const NPC_ROLES: Record<string, NpcRoleDef> = Object.fromEntries([
   role(RO.healer, 'Healer', 'civilian', 'mundane', { high: [SK.healing, SK.insight, SK.persuasion], moderate: [SK.resolve, SK.earshot], low: [SK.barter] }, { traits: { [PA.sociability]: 20 }, values: [VL.kindness] }),
   // D-89 RP16: the smith who mends gear at a forge and sells repair (SV.repair) and use of the forge (SV.forge)
   role(RO.smith, 'Smith', 'civilian', 'mundane', { high: [SK.handiwork], low: [SK.barter] }),
-  // NR8: the person others answer to (headman, reeve, guild master); a quest giver. Its own class comes later (CI-341)
+  // NR8: the person others answer to (headman, reeve, guild master); a quest giver. Its own class comes later (ICI-341)
   role(RO.leader, 'Leader', 'civilian', 'ordinary', { high: [SK.persuasion, SK.intimidation, SK.command], moderate: [SK.insight, SK.resolve], low: [SK.melee_medium, SK.barter] }, { traits: { [PA.pride]: 20 }, values: [VL.order, VL.reputation] }),
   // NR13: the armoured professional (man-at-arms, knight, champion); its master's class is Knight (CL11)
   role(RO.knight, 'Knight', 'combat', 'grand', { high: [SK.melee_medium, SK.heavy_armor], moderate: [SK.block, SK.resolve, SK.intimidation], low: [SK.melee_heavy, SK.persuasion] }, { traits: { [PA.discipline]: 40 }, values: [VL.duty, VL.glory] }, [PK.second_wind], [GC.melee_medium, GC.shield, GC.armor_heavy]),

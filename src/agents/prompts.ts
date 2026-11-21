@@ -493,11 +493,12 @@ A street, square, gate, field, woods or road leads onward (catalogs.zoneKinds ma
 Slots bind zones only, never frontiers; every zone an actor's slots bind must be reachable from its first bound zone by ways.
 A player-band cast entry uses routine set "companion" and binds no slots.
 Limits: at most ${Object.entries(CONFIG.PLAN_CAPS).filter(([k]) => k !== 'knows').map(([k, n]) => `${n} ${k}`).join(', ')}; at most ${CONFIG.PLAN_CAPS.knows} knows per actor;
-rewards together are worth at most ${Object.entries(CONFIG.BOON_BUDGET).map(([g, b]) => `${b} Boon for ${g} gain`).join(', ')}:
+rewards together are worth at most ${Object.entries(CONFIG.BOON_BUDGET).map(([g, b]) => `${b} Boon for ${g} gain`).join(', ')}, × ${CONFIG.BOON_PAST_CRIT_MULT} for each step the tier goes past Critical Success:
 a reward's Boon is its catalog item's boon × qty, × ${QUALITY_LEVELS.keys.map((k) => CONFIG.BOON_QUALITY[k]).join('/')} for a minted item of quality ${QUALITY_LEVELS.keys.join('/')};
 at most ${CONFIG.SCENARIO_CAPS.minted} minted items (rewards whose item is an object) per scenario. A minted item's quality is at most
 ${Object.entries(CONFIG.GAIN_MAX_QUALITY).map(([g, q]) => `${q ?? 'no minted item'} for ${g} gain`).join(', ')}; a minted weapon's boosts is "hitAdj" or "damageAdj". A minted item may set "fragility", how easily it breaks when its container is forced open: ${FRAGILITY.keys.map((k) => `${k} (${CONFIG.FRAGILITY_BREAKS_AT[k] ? `breaks at ${tierName(CONFIG.FRAGILITY_BREAKS_AT[k]!)} or worse` : 'never breaks'})`).join(', ')}; leave it out to keep its base's (glass and potions fragile, charms and jewellery delicate, armor and clothes sturdy, tools tough, weapons solid).
-A reward that breaks these rules is not refused: code drops it or places it as its plain base item.
+Code draws the plain rewards: WEAVER_VIEW.rewardDraw lists them in draw order (item, name, qty, boon). Your minted items come first and their Boon is taken from the budget; then each drawn item, in order, that still fits what is left. Place each of those as a reward with its item id and qty, where it fits the story (who carries it, which container, which zone, hidden or not). A plain reward that is not one of them is dropped, and a drawn one you leave unplaced goes where the drawn reward before it went.
+A reward that breaks these rules is not refused: code drops it.
 A reward on the ground may be hidden (hiddenAt): a search finds it only with a result better than that tier, so Failure is easy and Critical Success very hard to find. Hide rewards and clues where hiding fits the place.
 A container (catalogs.items with "container") holds things: a chest or crate stands in a zone ("fixed": it never moves), a sack is carried or set down, a pack ("worn") is worn on someone's back and holds what they carry. Place what is inside with rewards whose place is {"in": the container's key}; the container itself costs no Boon. Give "owner" when it belongs to someone (taking from it under their eyes is theft); "locked" works as on a barrier, with "keys" for who carries its key.
 A reward that belongs to someone who does not have it (stolen, lost, pawned) gives "owner": that person knows it is missing.
@@ -621,7 +622,7 @@ trigger = {"id","ownerId":actor id,"when":{"type":"quiet_turns","turns":number}|
 A beat's then: ${gradeRule('its owner')}
 orderType = ${ORDER_TYPES.map((t) => `"${t}"`).join("|")}`;
 
-/** AA-108: the Chronicler proposes achievements at a scenario's end; the owner approves, code grants (PROG-118) */
+/** IAA-108: the Chronicler proposes achievements at a scenario's end; the owner approves, code grants (PROG-118) */
 export const CHRONICLER_INSTRUCTIONS = `You are the Chronicler of a text RPG. A scenario has just ended. In this game achievements are earned only
 through code rules that count what the player did (defeats, places reached, deals made, foes who yielded, and so on). You
 never grant anything and never narrate: you propose new achievements to the game's designer, who decides which become rules.

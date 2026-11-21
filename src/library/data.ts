@@ -395,7 +395,7 @@ export function prototypeLibrary(): Library {
       // unlocks at Commoner's top level (its Start, ST3, was removed: CC3)
       [CL.a_nobody]: { id: CL.a_nobody, personality: { [PA.pride]: -CONFIG.ACH_PERSONALITY_STEP }, name: 'A Nobody', tier: 'tier_2', label: 'a nobody', story: 'Nobody watches a nobody, and you have learned to use that.', floors: {}, unlockClass: { [CL.commoner]: 'max' },
         levelPerks: { 1: [PK.quick_study] }, capstone: [PK.every_fall_a_lesson] },
-      // CB1-CB7: between A Nobody and Unwritten Legend; opens at A Nobody's top level (no skill road), Late Bloom at 1; its capstone is parked (CI-360)
+      // CB1-CB7: between A Nobody and Unwritten Legend; opens at A Nobody's top level (no skill road), Late Bloom at 1; its capstone is parked (ICI-360)
       [CL.a_somebody]: { id: CL.a_somebody, personality: { [PA.pride]: CONFIG.ACH_PERSONALITY_STEP }, name: 'A Somebody', tier: 'tier_3', label: 'a somebody', story: 'People finally know your name, though most of them still get it wrong.', floors: {},
         unlockClass: { [CL.a_nobody]: 'max' }, levelPerks: { 1: [PK.late_bloom] } },
       // PY2: every NPC that sells has this class; Barter 20 unlocks it
@@ -466,7 +466,7 @@ export function prototypeLibrary(): Library {
       ] },
       [RW.vow_threadbound]: { id: RW.vow_threadbound, name: 'Kept vow: Threadbound items', rows: [{ weight: 1, table: RW.threadbound }] },
       [RW.threadbound]: { id: RW.threadbound, name: 'Threadbound items', rows: [{ weight: 1, item: IT.varos_loop }] },
-      // TI-220: the Weaver's rewards draw as a kept vow's do, from a table of their own with the same weights. A row's
+      // ITI-220: the Weaver's rewards draw as a kept vow's do, from a table of their own with the same weights. A row's
       // showsIn says which draws it can show in (left out: every draw), so a reward type can be for vows only.
       [RW.weaver]: { id: RW.weaver, name: 'Scenario reward', rows: [{ weight: 3, table: RW.weaver_items }, { weight: 1, table: RW.weaver_threadbound }] },
       [RW.weaver_items]: { id: RW.weaver_items, name: 'Scenario reward: items', rows: [{ weight: 1, table: RW.items }] },
@@ -1052,7 +1052,7 @@ export function prototypeLibrary(): Library {
       [ACH.crippled_10]: { id: ACH.crippled_10, name: 'Bones Heal Later', level: 'ii', rule: 'crippled_defeats', tags: ['combat', 'survival'], count: 10, perk: PK.past_the_pain, after: ACH.crippled_1 },
       [ACH.held_line_1]: { id: ACH.held_line_1, name: 'Few Against Many', level: 'i', rule: 'held_line', tags: ['combat', 'social'], count: 1, personality: ap({ nerve: 1 }) },
       [ACH.held_line_10]: { id: ACH.held_line_10, name: 'Hold the Line', level: 'ii', rule: 'held_line', tags: ['combat', 'social'], count: 10, after: ACH.held_line_1, rally: 10, personality: ap({ nerve: 1 }) },
-      // AA-108 deed ideas (DI1-DI7, DI12-DI15, DI20): rows approved from the Chronicler's ideas
+      // IAA-108 deed ideas (DI1-DI7, DI12-DI15, DI20): rows approved from the Chronicler's ideas
       [ACH.counter_kills_1]: { id: ACH.counter_kills_1, name: 'Answer in Steel', level: 'zero', rule: 'counter_kills', tags: ['combat'], count: 1 },
       [ACH.counter_kills_10]: { id: ACH.counter_kills_10, name: 'Every Thrust Returned', level: 'i', rule: 'counter_kills', tags: ['combat'], count: 10, after: ACH.counter_kills_1 }, // placeholder name
       [ACH.counter_kills_50]: { id: ACH.counter_kills_50, name: 'Strike Me and Die', level: 'ii', rule: 'counter_kills', tags: ['combat'], count: 50, after: ACH.counter_kills_10 }, // placeholder name

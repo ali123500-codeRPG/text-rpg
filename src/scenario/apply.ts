@@ -526,7 +526,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   if (forbidden.length) state.stage.forbidden = forbidden;
 
   // ---- rewards ----
-  const { rewards, notes } = tidyRewards(state, plan);
+  const { rewards, notes } = tidyRewards(state, plan, ctx);
   if (notes.length) state.log.push({ turn, code: 'reward_repaired', detail: { notes: notes.map((e) => e.message) } });
   const made = new Map<string, string[]>(), plain = new Set<string>(); // BG-227: what this plan makes from each base item
   rewards.forEach((r, i) => {

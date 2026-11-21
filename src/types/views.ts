@@ -397,6 +397,8 @@ export type RosterView = { key: string; who: string; gives: string; is: string; 
 export type WorldView = Omit<WeaverView, 'tier' | 'stakes' | 'ways' | 'lastScenarios' | 'outerScenario'>;
 export type WeaverView = {
   tier: TierName;
+  /** TI-220b b: the rewards code drew for this plan, in draw order; set by the director for a stage plan */
+  rewardDraw?: { item: string; name: string; qty: number; boon: number }[];
   /** null at story start: the Weaver picks the opening time of day (T8) */
   time: TimeView | null;
   stakes: string;

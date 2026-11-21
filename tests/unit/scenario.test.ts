@@ -34,7 +34,7 @@ vi.mock('../../src/views', () => ({
   buildWeaverView: vi.fn(() => ({})),
 }));
 
-import { makeVillage, createRng } from '../harness';
+import { makeVillage, createRng, withDrawOf } from '../harness';
 import { CONFIG } from '../../src/config';
 import { ruleset } from '../../src/ruleset';
 import { updateBeliefs } from '../../src/perception';
@@ -122,8 +122,8 @@ describe('validateStagePlan', () => {
     const leaks = validateStagePlan(fresh(), p, ctx).filter((e) => e.code === 'public_leak').map((e) => e.message);
     expect(leaks.some((m) => m.includes('band village_watch name'))).toBe(true);
     expect(leaks.some((m) => m.includes('knows'))).toBe(true);
-    // a leaking minted name is no longer a leak error: the reward is placed as the plain base item
-    expect(validateStagePlan(fresh(), p, ctx).some((e) => e.code === 'reward_plain' && e.repaired && e.message.startsWith('reward 1'))).toBe(true);
+    // a leaking minted name is no longer a leak error: the reward is dropped (TI-220b: plain items come only from the draw)
+    expect(validateStagePlan(fresh(), p, ctx).some((e) => e.code === 'reward_dropped' && e.repaired && e.message.includes('hidden term'))).toBe(true);
     expect(leaks.some((m) => m.includes('zone tav_counter look') && m.includes('kegs'))).toBe(true);
     // hidden fields are not scanned
     p.weaverNote = 'the nest';
@@ -156,14 +156,15 @@ describe('validateStagePlan', () => {
     p.rewards.push({ item: IT.coin, place: { groundIn: 'woods' } });
     const e = validateStagePlan(fresh(), p, ctx);
     expect(e.every((x) => x.repaired)).toBe(true);
-    expect(e.map((x) => x.code)).toEqual(['reward_dropped', 'reward_quality', 'reward_boosts', 'reward_dropped']);
-    const t = tidyRewards(fresh(), p).rewards;
+    // TI-220b: minted items are checked first; excalibur is unknown and the coin is not in the draw
+    expect(e.map((x) => x.code)).toEqual(['reward_quality', 'reward_boosts', 'reward_dropped', 'reward_dropped']);
+    const t = tidyRewards(fresh(), p, ctx).rewards.filter((r) => typeof r.item === 'object');
     expect(t).toHaveLength(n + 1);
     expect(t[n].item).toMatchObject({ base: IT.arming_sword, quality: 'quality_2', boosts: 'hitAdj' });
     const q = villageStagePlan();
     q.rewards = []; // 2.3 + 2.3 + plain 1.15 Boon (the dagger is 23 coin: kit 10, 8.3 damage a second, its 7 m throw): over the moderate 5
     for (let i = 0; i < 3; i++) q.rewards.push({ item: { base: IT.dagger, quality: 'quality_1', boosts: 'damageAdj', name: 'a sword', look: 'plain' }, place: { carriedBy: 'guard_1' } });
-    expect(codes(fresh(), q)).toEqual(['reward_plain', 'reward_dropped']);
+    expect(codes(fresh(), q)).toEqual(['reward_dropped']); // the third is past the minted cap: dropped, as plain items come from the draw
   });
   it('rewards fit the Boon budget of the gain, with no flat cap (loot V8)', () => {
     const q = villageStagePlan(); // moderate gain: 5 Boon
@@ -172,11 +173,10 @@ describe('validateStagePlan', () => {
     expect(boon(fresh(), IT.dagger)).toBe(1.15);
     expect(boon(fresh(), { base: IT.dagger, quality: 'quality_2', boosts: 'hitAdj', name: 'x', look: 'y' })).toBeCloseTo(3.45);
     expect(boon(fresh(), IT.coin, 10)).toBe(0.5);
-    const t = tidyRewards(fresh(), q);
+    const st = fresh(); // made first: a new village resets the library
+    const t = withDrawOf(IT.dagger, () => tidyRewards(st, q, ctx)); // TI-220b: the draw is all daggers
     expect(t.rewards).toHaveLength(4); // 4 × 1.15 fits 5 Boon, a fifth does not
     expect(t.notes.map((n) => n.code)).toEqual(['reward_dropped', 'reward_dropped']);
-    q.rewards = [{ item: IT.coin, qty: 200, place: { carriedBy: 'guard_1' } }, { item: IT.coin, qty: 100, place: { carriedBy: 'guard_1' } }];
-    expect(tidyRewards(fresh(), q).rewards).toHaveLength(1); // 10 Boon is over 5, 5 fits
   });
   it('routine errors are routineOnly and name the cast entry', () => {
     const p = villageStagePlan();
@@ -228,7 +228,7 @@ describe('applyStagePlan', () => {
     expect(mags.knownOnSight).toBe('everyone');
     expect(mags.pronouns).toBe('she'); // run 14 Q3: pronouns are kept on the actor
     expect(mags.mind!.knows).toHaveLength(1);
-    expect(mags.core.inventory.filter((i) => i.itemId === IT.coin).map((i) => i.qty)).toEqual([CONFIG.TRADER_PURSE, 5]); // SL3 purse, then the reward
+    expect(mags.core.inventory.filter((i) => i.itemId === IT.coin).map((i) => i.qty)).toEqual([CONFIG.TRADER_PURSE]); // SL3 purse (the plan places no reward)
     expect(s.hidden.stage).toEqual({ eventSummary: villageStagePlan().event.summary, challenge: 'moderate', gain: 'moderate', hiddenTerms: ['nest'] });
     expect(s.hidden.castNotes!.guard_1.motive).toContain('harvest');
     expect(s.hidden.memory).toEqual({});
