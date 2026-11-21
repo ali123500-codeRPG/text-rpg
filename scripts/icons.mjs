@@ -32,6 +32,8 @@ const PICKS = {
   presence: 'gi:crown', senses: 'gi:eye-target',
   // the character card's figures (their words are the tip)
   fig_power: 'gi:power-lightning', fig_attack: 'gi:sword-brandish', fig_defense: 'gi:checked-shield',
+  // the Hall of fame report card's lines (Combat Power reads fig_power)
+  rc_achievements: 'gi:trophy-cup', rc_reputation: 'gi:three-friends',
   // the Character page's section tiles
   tile_essences: 'gi:floating-crystal', tile_perks: 'gi:star-formation', tile_gear: 'gi:battle-gear', tile_personality: 'gi:drama-masks',
   // skill trees, drawn large in each band's heading (TREE_ICON in src/ui/itemIcons.ts)

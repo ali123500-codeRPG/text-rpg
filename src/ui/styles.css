@@ -259,8 +259,9 @@ pre.json { margin: 0; font: 13px/1.45 var(--font-mono); color: var(--muted); whi
 .check { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px 8px; flex-wrap: wrap; }
 .check .ci { color: var(--accent); width: 16px; height: 16px; vertical-align: 0; }
 .check .sk { color: var(--text); font-weight: 700; }
-.check .tier { padding: 0 7px; border-radius: var(--r-pill); font-weight: 700; font-size: 13px; line-height: 20px; color: var(--text); background: color-mix(in srgb, var(--tc) 30%, transparent); border: 1px solid color-mix(in srgb, var(--tc) 60%, transparent); }
-.check .tier.great { --tc: var(--ok); } .check .tier.ok { --tc: var(--accent); } .check .tier.near { --tc: var(--warn); } .check .tier.bad { --tc: var(--danger); }
+.check .tier, .rc-g.tier { padding: 0 7px; border-radius: var(--r-pill); font-weight: 700; font-size: 13px; line-height: 20px; color: var(--text); background: color-mix(in srgb, var(--tc) 30%, transparent); border: 1px solid color-mix(in srgb, var(--tc) 60%, transparent); }
+.check .tier.great, .rc-g.great { --tc: var(--ok); } .check .tier.ok, .rc-g.ok { --tc: var(--accent); } .check .tier.near, .rc-g.near { --tc: var(--warn); } .check .tier.bad, .rc-g.bad { --tc: var(--danger); }
+.rc-g { display: inline-flex; align-items: center; gap: 4px; padding-left: 4px; }
 .check .gap { color: var(--faint); }
 .check .res b { color: var(--text); display: inline-block; }
 /* M-20: a hit's word says whose loss it is: the player's hit in the accent, a hit on the player in danger */
