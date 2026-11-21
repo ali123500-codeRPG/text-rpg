@@ -441,7 +441,7 @@ orderType = ${ORDER_TYPES.map((t) => `"${t}"`).join("|")}
 awareness = what the character knows: "unaware"|"suspicious"|"aware" (hostility goes in band relations)
 tier = ${words(TIERS)}
 Public text (every name, label, appearance, look, link label and knows text) is at most ${CONFIG.TEXT_CAP} characters; hidden notes are cut at ${CONFIG.NOTE_CAP}.
-A look describes the place itself, what stays put (walls, furniture, light, smells): never people, or what someone is doing there, since they can leave. Put people in the cast.
+A look describes the place itself, what stays put (walls, furniture, light, smells): never people, or what someone is doing there, since they can leave. Put people in the cast. A look names only things that are there: an opening (a window, a hatch, a gap) only when it is one of the zone's ways, furniture or a container (a chest, a barrel) only when the zone's furniture has it; leave out any other thing.
 No word or phrase from hiddenTerms or any secret's leakTerms may appear in public text, so list only words that public text never uses: names and telling phrases (\"the silver ring\", \"Varo's loop\"), never an everyday word with other meanings (lift, picks, partner, fence).
 Terms match whole words only.
 Grades must fit the tier: ${gradesFitText()}.

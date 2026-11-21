@@ -1,7 +1,8 @@
 // CO7/CO17, PZ14 a: prebuilt layouts, small floor plans: a common building's titles, sizes, walls and ways, ready made so
 // the Weaver only picks one by id (and may rename its titles). Way labels carry compass words, so code places the titles
 // (src/scenario/geometry.ts); a way's kind (up, down) sets floors; a 'door' way holds a plain door unless marked 'doorless'
-// (BG-312: a curtain or an open doorway). A building type can have several layouts; add a row.
+// (BG-312: a curtain or an open doorway). A building type can have several layouts; add a row. A look names only
+// things the zone has: its ways and its furniture (GSM-22, PQ12 a).
 import type { LayoutDef } from '../types';
 import { FU, LY, WK, ZK } from './tableIds';
 import type { PlanFurniture } from '../types';
@@ -14,10 +15,10 @@ export const LAYOUTS: Record<string, LayoutDef> = Object.fromEntries(([
     { key: 'common', kind: ZK.room, name: 'common room', look: 'Benches and tables around a hearth; a counter runs along the north side.', size: 'room', walls: { n: WK.low },
       furniture: [f(FU.counter, 'bar counter', 'n', true), f(FU.hearth, 'hearth', 'e'), f(FU.table, 'tables'), f(FU.bench, 'benches', 'sw')],
       ways: [['bar', 'behind the counter, north', 'open'], ['kitchen', 'the kitchen door, west', 'door'], ['yard', 'the back door, east', 'door'], ['upstairs', 'the stairs up', 'up']] },
-    { key: 'bar', kind: ZK.room, name: 'behind the counter', look: 'Kegs, cups and a shelf of bottles behind the counter.', size: 'cramped', walls: { s: WK.low },
+    { key: 'bar', kind: ZK.room, name: 'behind the counter', look: 'Kegs and a shelf of bottles behind the counter.', size: 'cramped', walls: { s: WK.low },
       furniture: [f(FU.barrels, 'kegs', 'n'), f(FU.shelves, 'shelf of bottles', 'e')],
       ways: [['common', 'over the counter, south', 'open']] },
-    { key: 'kitchen', kind: ZK.room, name: 'kitchen', look: 'Pots over a fire, a long table, onions hanging from the beams.', size: 'small',
+    { key: 'kitchen', kind: ZK.room, name: 'kitchen', look: 'A cooking fire, a long table and a shelf of pots.', size: 'small',
       furniture: [f(FU.hearth, 'cooking fire', 'w'), f(FU.table, 'long table'), f(FU.shelves, 'pot shelf', 'n')],
       ways: [['common', 'the common room, east', 'door'], ['cellar', 'the cellar hatch, down', 'down']] },
     { key: 'yard', kind: ZK.yard, name: 'back yard', look: 'Stacked firewood and a rain barrel inside a fence.', size: 'yard', walls: { n: WK.fence, e: WK.fence, s: WK.fence },
@@ -27,10 +28,10 @@ export const LAYOUTS: Record<string, LayoutDef> = Object.fromEntries(([
       furniture: [],
       ways: [['common', 'the stairs down', 'down'], ['room1', 'the first door, north', 'door'], ['room2', 'the second door, south', 'door']] },
     // BG-56: the landing's doors lead somewhere: two rooms let for the night
-    { key: 'room1', kind: ZK.room, name: 'front room', look: 'A narrow bed, a stool and a shuttered window over the lane.', size: 'cramped',
+    { key: 'room1', kind: ZK.room, name: 'front room', look: 'A narrow bed and a stool.', size: 'cramped',
       furniture: [f(FU.bed, 'narrow bed', 'e'), f(FU.stool, 'stool', 'w')],
       ways: [['upstairs', 'the door to the landing, south', 'door']] },
-    { key: 'room2', kind: ZK.room, name: 'back room', look: 'A narrow bed and a chest under the eaves, a window over the yard.', size: 'cramped',
+    { key: 'room2', kind: ZK.room, name: 'back room', look: 'A narrow bed under the eaves.', size: 'cramped',
       furniture: [f(FU.bed, 'narrow bed', 'w')],
       ways: [['upstairs', 'the door to the landing, north', 'door']] },
     { key: 'cellar', kind: ZK.cellar, name: 'cellar', look: 'Barrels and sacks in the damp dark.', size: 'room',
@@ -41,10 +42,10 @@ export const LAYOUTS: Record<string, LayoutDef> = Object.fromEntries(([
     { key: 'main', kind: ZK.room, name: 'main room', look: 'A hearth, a table and a bench in one low room.', size: 'small', walls: { s: WK.glazed },
       furniture: [f(FU.hearth, 'hearth', 'n'), f(FU.table, 'table'), f(FU.bench, 'bench', 'w')],
       ways: [['bed', 'the curtain, north', 'door', 'doorless'], ['garden', 'the back door, east', 'door']] },
-    { key: 'bed', kind: ZK.room, name: 'sleeping nook', look: 'A straw bed and a chest behind a curtain.', size: 'cramped',
+    { key: 'bed', kind: ZK.room, name: 'sleeping nook', look: 'A straw bed behind a curtain.', size: 'cramped',
       furniture: [f(FU.bed, 'straw bed', 'n')],
       ways: [['main', 'the curtain, south', 'door', 'doorless']] },
-    { key: 'garden', kind: ZK.yard, name: 'garden', look: 'Rows of cabbages and beans behind a wattle fence.', size: 'small', walls: { n: WK.fence, e: WK.fence, s: WK.fence },
+    { key: 'garden', kind: ZK.yard, name: 'garden', look: 'Dug earth behind a wattle fence.', size: 'small', walls: { n: WK.fence, e: WK.fence, s: WK.fence },
       furniture: [],
       ways: [['main', 'the back door, west', 'door']] },
   ] },
@@ -68,7 +69,7 @@ export const LAYOUTS: Record<string, LayoutDef> = Object.fromEntries(([
       ways: [['forge', 'the forge, west', 'door']] },
   ] },
   { id: LY.gatehouse, name: 'Gatehouse', building: 'gate', entry: 'passage', zones: [
-    { key: 'passage', kind: ZK.gate, name: 'gate passage', look: 'A stone passage under the gatehouse, gates at both ends.', size: 'small',
+    { key: 'passage', kind: ZK.gate, name: 'gate passage', look: 'A stone passage under the gatehouse.', size: 'small',
       furniture: [],
       ways: [['guard', 'the guard room door, east', 'door'], ['walk', 'the stairs up to the wall', 'up']] },
     { key: 'guard', kind: ZK.room, name: 'guard room', look: 'A table, a brazier and a rack of spears.', size: 'small', walls: { w: WK.glazed },
