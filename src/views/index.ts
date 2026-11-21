@@ -777,6 +777,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       ...(m.lastWasted ? { lastWasted: { ...m.lastWasted } } : {}), ...missingOf(state, a), ...(m.meanwhile && m.meanwhile.turn >= state.turn - 1 ? { meanwhile: { minutes: Math.round(m.meanwhile.seconds / 60) } } : {}), active: isActive(a), broken: m.moraleState === 'broken', ...(m.moraleState === 'broken' && isCoweringLevel(moraleLevel(a)) ? { cowering: true as const } : {}), surrendered: m.moraleState === 'surrendered', ...fallBackView(state, a),
       control: m.control, standingDefense: a.core.standingDefense, ...(heldBy(state, a) ? { heldBy: heldBy(state, a)!.id } : {}),
       gear: ownGear(state, a), attackSkill, ...bodyAttacks(state, a), ...perkMovesOf(state, a, seenActors(state, a)), ...(a.playingDead ? { playingDead: true as const } : {}),
+      ...(a.readied ? { readied: { type: a.readied.order.type, target: a.readied.order.target, when: a.readied.when } } : {}),
       ...routineOf(state, a),
       routines: offeredRoutines(m.routines).map((id) => ({ id, brief: routine(id).brief })),
       ...(m.routineSetId ? { routineSetId: m.routineSetId } : {}),

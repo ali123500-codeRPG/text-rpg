@@ -141,6 +141,7 @@ export type PlannerOutput = {
   goals?: GoalOps | null; // UG5: a goal holder's goals met, failed or added
   steps?: import('./hidden').GoalStep[] | null; // UG16: a goal holder's next steps, in order (replaces its queue)
   perkMove?: { perk: string; target: string | null } | null; // TC49: one of self.perkMoves, as the player's
+  when?: import('../scales').ReadyWhen | null; // AE6 (RQ3 a): the action is readied, as the player's Intent.when
 };
 export type ResponderOutput = PlannerOutput & { reveals: string[] };
 export type VoiceOutput = {

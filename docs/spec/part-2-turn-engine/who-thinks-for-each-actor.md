@@ -1,6 +1,6 @@
 ### Who thinks for each actor
 
-Every actor gets exactly one order per turn, from the first controller in this order that has one: fired trigger > broken (Part 3, Morale) > agent (Planner, Responder or Voice) > onAlert > routine (desired state) for an actor not engaged, or its type's combat list for an engaged one (Fallback behavior). An inactive (incapacitated) actor gets none. Significance (control: agent or code) only decides who thinks when the actor is engaged.
+Every actor gets exactly one order per turn, from the first controller in this order that has one: fired trigger > broken (Part 3, Morale) > agent (Planner, Responder or Voice) > a readied step still waiting (AE6, RQ3 a: it holds on; Agent Planner, "Readied steps") > onAlert > routine (desired state) for an actor not engaged, or its type's combat list for an engaged one (Fallback behavior). An inactive (incapacitated) actor gets none. Significance (control: agent or code) only decides who thinks when the actor is engaged.
 
 | Actor this turn | Controlled by | Notes |
 | --- | --- | --- |

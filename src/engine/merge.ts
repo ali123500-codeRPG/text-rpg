@@ -179,7 +179,8 @@ export function mergeOrders(state: GameState, input: TurnInput, views: Map<strin
   for (const o of usableAgentOutputs(input)) {
     if (!views.has(o.actorId) || agent.has(o.actorId)) continue;
     const pm = o.agent !== 'voice' && o.output.perkMove ? { perkMove: o.output.perkMove } : {}; // TC49: an agent's perk move, as the player's
-    const order = npcActionToOrder(o.actorId, o.output.action, { gear: o.output.gear, line: agentLine(o, state.player.id), ...npcMove(state, o), ...pm });
+    const ready = o.agent !== 'voice' && o.output.when ? { ready: o.output.when } : {}; // AE6 (RQ3 a): a readied action, as the player's
+    const order = npcActionToOrder(o.actorId, o.output.action, { gear: o.output.gear, line: agentLine(o, state.player.id), ...npcMove(state, o), ...pm, ...ready });
     // BG-34: a follower out of a fight walks after the player beside the action its agent gave
     const follow = !order.move && !MOVE_ACTIONS.includes(order.type) && !isEngaged(state, actorById(state, o.actorId)!) ? followMove(views.get(o.actorId)!) : null;
     agent.set(o.actorId, follow ? { ...order, move: follow } : order);
@@ -195,6 +196,11 @@ export function mergeOrders(state: GameState, input: TurnInput, views: Map<strin
   for (const id of out.keys()) {
     const alarm = actorById(state, id)?.mind?.alarm;
     if (alarm?.onAlertDue) delete alarm.onAlertDue;
+  }
+  // AE6 (RQ3 a, RQ4 a): one whose readied step still waits, with no new order from its agent, a trigger or its nerve, holds on
+  for (const id of ids) {
+    const r = actorById(state, id)?.readied;
+    if (r && !out.has(id)) out.set(id, { actorId: id, type: 'hold', target: null, skill: null, intent: 'waits', source: 'fallback', ready: r.when });
   }
   const pendingViews = ids.filter((id) => !out.has(id)).map((id) => views.get(id)!);
   for (const o of alertOrders(state, pendingViews)) if (!out.has(o.actorId) && views.has(o.actorId)) out.set(o.actorId, o);

@@ -823,10 +823,11 @@ type Ctx = {
   arrived?: true;
   /** AE6: the turn's initiative order (a readied step's tie with the one it answers goes by it) */
   order?: string[];
-  /** AE6: the player's readied step being watched: its condition and order, what was seen at the last check and the events
-   * since it (from); pend: it came true on a walk, to play once that actor's action is done; firing: it is playing now */
-  ready?: { when: ReadyWhen; order: Order; seen: ReadySeen; from: number; pend?: { at: number; by: string[] } };
-  readyFire?: boolean;
+  /** AE6: the readied steps being watched, by watcher: the condition and order, what was seen at the last check and the
+   * events since it (from); pend: it came true on a walk, to play once that actor's action is done */
+  ready?: Map<string, { when: ReadyWhen; order: Order; seen: ReadySeen; from: number; pend?: { at: number; by: string[] } }>;
+  /** AE6: the watcher whose readied step is playing now */
+  readyFire?: string;
   /** AE6: the second the actor stepping now started its walk */
   stepFrom?: number;
 };
@@ -2710,14 +2711,15 @@ function step(ctx: Ctx, id: string): void {
   // AT48: the main action finishes after the walk that led to it and the gear ops before it
   const pools = slotsOf(ctx, a);
   if (!o.moveAfter) ctx.clock.set(id, Math.max(ctx.clock.get(id) ?? 0, pools.walkedS));
-  // AE6: the player readies here, where the move left them; anyone else's walk may set a readied step off
-  if (a === state.player && o.ready && !ctx.readyFire) {
-    if (!ctx.ready && readyArm(ctx, o, true)) return;
+  // AE6: one readying readies here, where the move left it; anyone's walk may set someone else's readied step off
+  if (o.ready && !ctx.readyFire) {
+    if (!ctx.ready?.has(id) && readyArm(ctx, a, o, true)) return;
     // the hold spends no main time, so the step has the turn's time when it fires; no "holds" after a move alone (BG-16)
     if (o.line || !moved) emit(ctx, bark(mk(ctx, a, 'hold'), o));
+    readyAfterWalk(ctx, a, o, undefined);
     return;
   }
-  if (a !== state.player && !o.moveAfter) readyAfterWalk(ctx, a, o, cost);
+  if (!o.moveAfter) readyAfterWalk(ctx, a, o, cost);
   if (o.type !== 'hold' && waits()) return; // MQ8: the walk goes on to it first
   // FT10: Spent, an action above Light comes to nothing (picking pays at the lock's row)
   if (!ctx.spoke.has(id) && tooSpent(a, o.type === 'pick' ? actionRow(DU.pick_lock)?.effort : cost?.row.effort)) {
@@ -2840,119 +2842,134 @@ function breakOff(state: GameState, t: Actor, ev: GameEvent): void {
   logCode(state, 'busy_broken', { actorId: t.id, row: b.row, done: b.done, need: b.need, then });
 }
 
-/** AE6 (RY1 a): the player's order with a readied step becomes a hold (its move, gear, words and defence still happen) and
- * the step waits on the player (Actor.readied). A later turn with no move and no action keeps it waiting (RQ4 a); any
- * other order drops it */
-function readyOrder(state: GameState, o: Order, intent: Intent | null): Order {
-  const p = state.player;
-  if (o.ready) {
+/** AE6 (RY1 a): an order with a readied step becomes a hold (its move, gear, words and defence still happen) and the step
+ * waits on the actor (Actor.readied). `keep`: the order keeps a step already waiting (the player's turn with no move and
+ * no action, RQ4 a; an NPC's held turn with no new order, RQ3 a); any other order drops it */
+function readyOrder(a: Actor, o: Order, keep: boolean): Order {
+  if (o.ready && o.type !== 'hold' && !(keep && a.readied)) {
     const { move: _m, moveAfter: _a, moveSpot: _s, jump: _j, gear: _g, line: _l, perkMove: _p, warn: _w, defense: _d, way: _y, ready: _r, ...step } = o;
-    p.readied = { when: o.ready, order: { ...step, move: null, gear: null, line: null }, waited: 0 };
-  } else if (!p.readied) return o;
-  else if (intent && (intent.move || intent.action || intent.way)) { delete p.readied; return o; }
-  return { ...o, type: 'hold', target: null, skill: null, item: null, targetPart: null, aimed: false, mode: null, ready: p.readied!.when };
+    a.readied = { when: o.ready, order: { ...step, move: null, gear: null, line: null }, waited: 0 };
+  } else if (!a.readied || !keep) {
+    delete a.readied;
+    if (!o.ready) return o;
+    const { ready: _r, ...rest } = o;
+    return rest;
+  }
+  return { ...o, type: 'hold', target: null, skill: null, item: null, targetPart: null, aimed: false, mode: null, ready: a.readied!.when };
 }
 
-/** AE6: the reach in metres of the readied step done to x. An attack: the mode it names, else the longest held weapon's
+/** AE6: the reach in metres of w's readied step done to x. An attack: the mode it names, else the longest held weapon's
  * that is not thrown (a spear's thrust, a bow's range: "in range, for a shot"; RY2 a meleeReachM), else the body's own;
  * anything else: the grip or weapon reach its action needs (FR4). Null when it is done to no one */
-function readyReach(ctx: Ctx, o: Order, x: Actor): number | null {
-  const { state } = ctx, p = state.player, at = { ...o, target: x.id };
-  if (o.type !== 'attack') return reachOf(state, p, at)?.m ?? null;
-  const named = namedMode(state, p, at);
+function readyReach(ctx: Ctx, w: Actor, o: Order, x: Actor): number | null {
+  const { state } = ctx, at = { ...o, target: x.id };
+  if (o.type !== 'attack') return reachOf(state, w, at)?.m ?? null;
+  const named = namedMode(state, w, at);
   if (named) return named.mode.reach;
-  const modes = usableModes(state, p), held = modes.filter((m) => m.itemId !== 'unarmed' && !m.itemId.startsWith('natural:') && !m.mode.thrown);
+  const modes = usableModes(state, w), held = modes.filter((m) => m.itemId !== 'unarmed' && !m.itemId.startsWith('natural:') && !m.mode.thrown);
   return Math.max(0, ...(held.length ? held : modes).map((m) => m.mode.reach)) || null;
 }
 /** who ran this turn (a flee order played): "runs" sets off a step waiting for someone to go down, yield or run */
 const fledNow = (ctx: Ctx): Set<string> => new Set([...ctx.acted].filter((id) => ctx.orders.get(id)?.type === 'flee'));
+/** the actors whose readied steps are watched, in initiative order */
+const readyWatchers = (ctx: Ctx): Actor[] =>
+  [...new Set([...(ctx.order ?? []), ...(ctx.ready?.keys() ?? [])])].filter((id) => ctx.ready?.has(id)).map((id) => actorById(ctx.state, id)!).filter(Boolean);
 
-/** AE6: start watching the player's readied step: in a fight within the turn, outside one on the world clock as a wait
- * for someone does (BG-231, WAIT_SOMEONE_MAX_H at most). `first`: the turn it is readied, when a condition that already
- * holds plays the step at once (RQ6 a). True when the step's own turn is over (it played, or the stretch has it) */
-function readyArm(ctx: Ctx, o: Order, first: boolean): boolean {
-  const { state } = ctx, p = state.player, r = p.readied;
+/** AE6: start watching w's readied step: in a fight within the turn; outside one the player's is a wait for someone
+ * (BG-231, WAIT_SOMEONE_MAX_H at most), an NPC's is watched through its turn. `first`: the turn it is readied, when a
+ * condition that already holds plays the step at once (RQ6 a). True when the step's own turn is over (it played, or the
+ * stretch has it) */
+function readyArm(ctx: Ctx, w: Actor, o: Order, first: boolean): boolean {
+  const { state } = ctx, r = w.readied;
   if (!r || !o.ready) return false;
-  ctx.ready = { when: r.when, order: r.order, seen: readySeen(state, p), from: ctx.events.length };
-  const already = first ? readyAlready(state, p, r.when, (x) => readyReach(ctx, r.order, x)) : [];
-  if (already.length) { fireReady(ctx, ctx.clock.get(p.id) ?? 0, already); return true; }
-  if (state.mode === 'tactical') return false;
-  const ev = bark(mk(ctx, p, 'wait'), o);
+  (ctx.ready ??= new Map()).set(w.id, { when: r.when, order: r.order, seen: readySeen(state, w), from: ctx.events.length });
+  const already = first ? readyAlready(state, w, r.when, (x) => readyReach(ctx, w, r.order, x)) : [];
+  if (already.length) { fireReady(ctx, w, ctx.clock.get(w.id) ?? 0, already); return true; }
+  if (state.mode === 'tactical' || w !== state.player) return false;
+  const ev = bark(mk(ctx, w, 'wait'), o);
   ctx.stretch = { kind: 'wait', seconds: CONFIG.WAIT_SOMEONE_MAX_H * 3600, pose: 'standing', ev, someone: true, ready: true };
   emit(ctx, ev);
   return true;
 }
 
-/** AE6: who set the readied step off since the last check (the check moves on either way) */
-function readyNow(ctx: Ctx): string[] {
-  const r = ctx.ready, { state } = ctx, p = state.player;
-  if (!r || ctx.readyFire || !isActive(p)) return [];
-  const by = readyHits(state, p, r.when, r.seen, ctx.events.slice(r.from), (x) => readyReach(ctx, r.order, x), fledNow(ctx));
-  r.seen = readySeen(state, p);
+/** AE6: who set w's readied step off since its last check (the check moves on either way) */
+function readyNow(ctx: Ctx, w: Actor): string[] {
+  const r = ctx.ready?.get(w.id), { state } = ctx;
+  if (!r || ctx.readyFire || !isActive(w)) return [];
+  const by = readyHits(state, w, r.when, r.seen, ctx.events.slice(r.from), (x) => readyReach(ctx, w, r.order, x), fledNow(ctx));
+  r.seen = readySeen(state, w);
   r.from = ctx.events.length;
   return by;
 }
 
-/** AE6 (RY2 a, RY5): after `a` walked, before its action: did that set the readied step off? The step starts then
- * (readyMoment) and is placed by its finish against a's own action: sooner (or level, and the player first in the
+/** AE6 (RY2 a, RY5): after `a` walked, before its action: did that set a readied step off? The step starts then
+ * (readyMoment) and is placed by its finish against a's own action: sooner (or level, and its watcher first in the
  * initiative order) plays it now; else it plays once a's action is done */
-function readyAfterWalk(ctx: Ctx, a: Actor, o: Order, cost: ReturnType<typeof orderCost>): void {
-  const r = ctx.ready;
-  if (!r || ctx.readyFire) return;
-  const { state } = ctx, p = state.player, seen = r.seen;
-  const by = readyNow(ctx);
-  if (!by.length) return;
-  const at = readyMoment(ctx, a, by, seen);
-  const mine = at + (orderCost(state, p, { ...r.order, target: readyTarget(ctx, by) })?.seconds ?? 0);
-  const theirs = o.type === 'hold' || !cost ? Infinity : (ctx.clock.get(a.id) ?? 0) + Math.min(cost.seconds, mainLeft(ctx, a));
-  const first = (ctx.order ?? []).indexOf(p.id) < (ctx.order ?? []).indexOf(a.id);
-  if (mine < theirs - T_EPS || (Math.abs(mine - theirs) <= T_EPS && first)) fireReady(ctx, at, by);
-  else r.pend = { at, by };
+function readyAfterWalk(ctx: Ctx, a: Actor, o: Order, cost: ReturnType<typeof orderCost> | undefined): void {
+  if (!ctx.ready?.size || ctx.readyFire) return;
+  const { state } = ctx, order = ctx.order ?? [];
+  for (const w of readyWatchers(ctx)) {
+    const r = ctx.ready.get(w.id);
+    if (w === a || !r || r.pend) continue;
+    const seen = r.seen, by = readyNow(ctx, w);
+    if (!by.length) continue;
+    const at = readyMoment(ctx, w, a, by, seen);
+    const mine = at + (orderCost(state, w, { ...r.order, target: readyTarget(ctx, w, by) })?.seconds ?? 0);
+    const theirs = o.type === 'hold' || !cost ? Infinity : (ctx.clock.get(a.id) ?? 0) + Math.min(cost.seconds, mainLeft(ctx, a));
+    const first = order.indexOf(w.id) < order.indexOf(a.id);
+    if (mine < theirs - T_EPS || (Math.abs(mine - theirs) <= T_EPS && first)) fireReady(ctx, w, at, by);
+    else r.pend = { at, by };
+  }
 }
-/** AE6: the second a's step set the readied step off: when its walk or action ended, by the turn's end at most (a dash pays
+/** AE6: the second a's step set w's readied step off: when its walk or action ended, by the turn's end at most (a dash pays
  * move and main seconds side by side, so its seconds can pass the turn's); for "closes" by a's walk, when it crossed into
  * the step's reach on its way from where it stood at the last check (a longer weapon meets it sooner, RY2 a) */
-function readyMoment(ctx: Ctx, a: Actor, by: string[], seen: ReadySeen): number {
-  const { state } = ctx, p = state.player, r = ctx.ready!;
+function readyMoment(ctx: Ctx, w: Actor, a: Actor, by: string[], seen: ReadySeen): number {
+  const { state } = ctx, r = ctx.ready!.get(w.id)!;
   const end = Math.min(ctx.clock.get(a.id) ?? 0, ctx.turnS + slotsOf(ctx, a).carried.main), was = seen.get(a.id)?.at;
-  const reach = r.when.on === 'closes' && by.includes(a.id) && was ? readyReach(ctx, r.order, a) : null;
+  const reach = r.when.on === 'closes' && by.includes(a.id) && was ? readyReach(ctx, w, r.order, a) : null;
   if (reach === null) return end;
   const s0 = Math.min(ctx.stepFrom ?? 0, end);
-  return crossedAt(sightDistM(state, seen.get(p.id)?.at ?? p, was!), sightDistM(state, p, a), reach, s0, end);
+  return crossedAt(sightDistM(state, seen.get(w.id)?.at ?? w, was!), sightDistM(state, w, a), reach, s0, end);
 }
 
 /** AE6 (RY2 a): after `a`'s step or blow: a step set off on its walk plays now, or did its action set one off (an attack,
  * someone down or run, a walk run on after the blow)? It plays right after, from that moment */
 function readyAfterAct(ctx: Ctx, a: Actor | undefined): void {
-  const r = ctx.ready;
-  if (!r || ctx.readyFire || !a) return;
-  if (r.pend) return fireReady(ctx, r.pend.at, r.pend.by);
-  const seen = r.seen, by = readyNow(ctx);
-  if (by.length) fireReady(ctx, readyMoment(ctx, a, by, seen), by);
+  if (!ctx.ready?.size || ctx.readyFire || !a) return;
+  for (const w of readyWatchers(ctx)) {
+    const r = ctx.ready?.get(w.id);
+    if (!r || ctx.readyFire) continue;
+    if (r.pend) { fireReady(ctx, w, r.pend.at, r.pend.by); continue; }
+    const seen = r.seen, by = readyNow(ctx, w);
+    if (by.length) fireReady(ctx, w, readyMoment(ctx, w, a, by, seen), by);
+  }
 }
 
-/** whom the readied step is done to: its own target when it names someone, else the first who set it off */
-function readyTarget(ctx: Ctx, by: string[]): string | null {
-  const t = ctx.ready?.order.target ?? null;
+/** whom w's readied step is done to: its own target when it names someone, else the first who set it off */
+function readyTarget(ctx: Ctx, w: Actor, by: string[]): string | null {
+  const t = ctx.ready?.get(w.id)?.order.target ?? null;
   return t && actorById(ctx.state, t) ? t : by[0] ?? t;
 }
 
-/** AE6 (RY1 a): the readied step plays now, as the player's main action, its time starting `at` seconds into the turn. A
- * step it cannot finish this turn goes on as a long action (RY5 b, longAction) and ends first thing next turn */
-function fireReady(ctx: Ctx, at: number, by: string[]): void {
-  const { state } = ctx, p = state.player, r = ctx.ready!;
-  const o: Order = { ...r.order, target: readyTarget(ctx, by), move: null };
-  if (state.mode === 'tactical') at = Math.min(at, ctx.turnS + slotsOf(ctx, p).carried.main);
-  delete ctx.ready;
-  delete p.readied;
-  logCode(state, 'ready_fired', { actorId: p.id, on: r.when.on, by, at: Math.round(at * 10) / 10, type: o.type, target: o.target });
-  if (!isActive(p)) return;
-  ctx.orders.set(p.id, o);
-  ctx.acted.delete(p.id);
-  if (state.mode !== 'tactical') { ctx.slots.delete(p.id); ctx.clock.set(p.id, 0); delete ctx.own; delete ctx.stretch; } // fresh pools, as actThere
-  else ctx.clock.set(p.id, Math.max(ctx.clock.get(p.id) ?? 0, at));
-  ctx.readyFire = true;
-  try { step(ctx, p.id); } finally { ctx.readyFire = false; }
+/** AE6 (RY1 a): w's readied step plays now, as its main action, its time starting `at` seconds into the turn. A step it
+ * cannot finish this turn goes on as a long action (RY5 b, longAction) and ends first thing next turn. Then the other
+ * watchers check whether it set theirs off */
+function fireReady(ctx: Ctx, w: Actor, at: number, by: string[]): void {
+  const { state } = ctx, r = ctx.ready!.get(w.id)!;
+  const o: Order = { ...r.order, target: readyTarget(ctx, w, by), move: null };
+  if (state.mode === 'tactical') at = Math.min(at, ctx.turnS + slotsOf(ctx, w).carried.main);
+  ctx.ready!.delete(w.id);
+  delete w.readied;
+  logCode(state, 'ready_fired', { actorId: w.id, on: r.when.on, by, at: Math.round(at * 10) / 10, type: o.type, target: o.target });
+  if (!isActive(w)) return;
+  ctx.orders.set(w.id, o);
+  ctx.acted.delete(w.id);
+  if (state.mode !== 'tactical' && w === state.player) { ctx.slots.delete(w.id); ctx.clock.set(w.id, 0); delete ctx.own; delete ctx.stretch; } // fresh pools, as actThere
+  else ctx.clock.set(w.id, Math.max(ctx.clock.get(w.id) ?? 0, at));
+  ctx.readyFire = w.id;
+  try { step(ctx, w.id); } finally { ctx.readyFire = undefined; }
+  readyAfterAct(ctx, w);
 }
 
 /** RY5 b: a readied step that fired too late last turn finishes first this turn, on its seconds still to go */
@@ -2964,31 +2981,34 @@ function finishReadied(ctx: Ctx, a: Actor): void {
   if (useMain(ctx, a, { row: actionRow(b.row), seconds })) doMain(ctx, a, o);
 }
 
-/** AE6: outside a fight, each stretch step: did the readied step's condition come true? */
+/** AE6: outside a fight, each stretch step: did the player's readied step's condition come true? */
 function readyStretch(ctx: Ctx): StretchStop | null {
-  const by = readyNow(ctx);
+  const by = readyNow(ctx, ctx.state.player);
   return by.length ? { why: 'ready', by } : null;
 }
 /** AE6: outside a fight the wait ended: stopped for its condition, the step plays there (as actThere does); a wait that ran
  * out drops it; one stopped for anything else keeps it for the next turn (RQ4 a) */
 function readyStretchEnd(ctx: Ctx, st: Stretch, onLeg?: OnLeg): void {
-  const { state } = ctx;
-  if (st.stop?.why === 'ready' && ctx.ready) {
-    fireReady(ctx, 0, st.stop.by);
+  const { state } = ctx, p = state.player;
+  if (st.stop?.why === 'ready' && ctx.ready?.has(p.id)) {
+    fireReady(ctx, p, 0, st.stop.by);
     if (ctx.stretch) runStretch(ctx, ctx.stretch, onLeg);
-    else passTime(state, exploreSeconds(ctx, ctx.orders.get(state.player.id)!) / 60);
-  } else if (!st.stop) delete state.player.readied;
-  delete ctx.ready;
+    else passTime(state, exploreSeconds(ctx, ctx.orders.get(p.id)!) / 60);
+  } else if (!st.stop) delete p.readied;
+  ctx.ready?.delete(p.id);
 }
 /** AE6 (RY4 a): a readied order held through a fight turn has waited the turn's seconds more; past CONFIG.READY_MAX_S it is
- * dropped. Down, the player readies nothing */
+ * dropped. Down, one readies nothing; outside a fight an NPC's lasts the turn it was given (RQ3 a) */
 function readyTurnEnd(ctx: Ctx): void {
-  const { state } = ctx, p = state.player, r = p.readied;
-  if (!r) return;
-  if (!isActive(p)) { delete p.readied; return; }
-  if (state.mode !== 'tactical') return;
-  r.waited += ctx.turnS;
-  if (r.waited >= CONFIG.READY_MAX_S - T_EPS) { delete p.readied; logCode(state, 'ready_expired', { actorId: p.id, on: r.when.on, waited: r.waited }); }
+  const { state } = ctx;
+  for (const a of allActors(state)) {
+    const r = a.readied;
+    if (!r) continue;
+    if (!isActive(a)) { delete a.readied; continue; }
+    if (state.mode !== 'tactical') { if (a !== state.player) delete a.readied; continue; }
+    r.waited += ctx.turnS;
+    if (r.waited >= CONFIG.READY_MAX_S - T_EPS) { delete a.readied; logCode(state, 'ready_expired', { actorId: a.id, on: r.when.on, waited: r.waited }); }
+  }
 }
 
 /** AT78/AT48: an attack order repeats while the actor has main time for another one, each next blow or shot resolving in
@@ -3432,7 +3452,16 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   const fired = input.fired ?? firedOrders(state);
   (state.scratch.agentRun as string[]).push(...fired.map((o) => o.actorId)); // BG-151: a trigger's order moved them too
   const orders = mergeOrders(state, input, views, fired, rng);
-  const playerOrder = isAsleep(state.player) ? asleepOrder(state.player) : readyOrder(state, fromIntent(state, carryOnWalk(state, input.intent), input.aimed), input.intent); // NW18: asleep, your turn passes
+  // AE6 (RQ3 a): an NPC's readied step, as the player's; `held`: those still waiting from an earlier turn
+  const held = new Set<string>();
+  for (const [id, o] of orders) {
+    const a = actorById(state, id);
+    if (!a || a === state.player) continue;
+    const keep = o.type === 'hold' && !!o.ready;
+    if (keep && a.readied) held.add(id);
+    orders.set(id, readyOrder(a, o, keep));
+  }
+  const playerOrder = isAsleep(state.player) ? asleepOrder(state.player) : readyOrder(state.player, fromIntent(state, carryOnWalk(state, input.intent), input.aimed), !(input.intent && (input.intent.move || input.intent.action || input.intent.way))); // NW18: asleep, your turn passes
   const imp = input.intent?.action?.improvised;
   if (imp && playerOrder.type === 'attack' && !playerOrder.item && isActive(state.player)) {
     // loot L3: the grabbed object is minted and drawn (swap stows held weapons) before the attack
@@ -3486,7 +3515,8 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   const ordered = init.order;
   ctx.order = ordered;
   // AE6: a readied step held from an earlier fight turn is watched from the turn's start
-  if (state.mode === 'tactical' && playerOrder.ready && !input.intent?.when && isActive(state.player)) readyArm(ctx, playerOrder, false);
+  if (playerOrder.ready && !input.intent?.when) held.add(state.player.id);
+  if (state.mode === 'tactical') for (const id of ordered) { const a = actorById(state, id), o = orders.get(id); if (a && o?.ready && held.has(id) && isActive(a)) readyArm(ctx, a, o, false); }
   // AT58/AT60: a reaction or a hesitation: the actor's time starts that many seconds into the turn, and it walks no sooner
   for (const [id, wait] of init.delay) { const a = actorById(state, id); if (!a) continue; ctx.clock.set(id, wait); const s = slotsOf(ctx, a); s.move = Math.max(0, s.move - wait); }
 
