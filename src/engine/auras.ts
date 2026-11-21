@@ -16,7 +16,7 @@ import { calm } from './heal';
 import { allActors, atLeast, atLeastStance, isActive, onSightPerks, stance, wary } from './relations';
 import { STANCES, TIERS } from '../scales';
 import { probe } from './yield';
-import { distM, withinM } from './position';
+import { distM, withinM, placeOf } from './position';
 import { besidePlayer } from './engagement';
 import { hears, perceptionOf } from '../perception';
 import { AURAS, type AuraDef } from '../library/auras';
@@ -175,7 +175,7 @@ export function rallyCall(state: GameState, owner: Actor, ev: GameEvent, rng: Rn
  * from where the owner stands, or stands within the projected reach */
 export const rallyWouldReach = (state: GameState, owner: Actor, t: Actor): boolean =>
   t !== owner && isActive(t) && !wary(state, t, owner) && cryAlly(state, t, owner)
-  && (hears(state, t, { zone: owner.zone, ...(owner.pos ? { pos: owner.pos } : {}) }, 'loud') || withinM(distM(state, owner, t), projectedReachM(owner)));
+  && (hears(state, t, placeOf(owner), 'loud') || withinM(distM(state, owner, t), projectedReachM(owner)));
 
 /** I9/MB27 Battle Cry (Intimidation 140), a projected aura triggered by its move: the owner's roar (`ev`, a Loud event)
  * reaches everyone who perceives it at any level, however far, and anyone within the projected reach (projectedReachM),

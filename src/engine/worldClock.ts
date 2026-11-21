@@ -11,7 +11,7 @@ import { logCode } from './effects';
 import { passiveFatigue } from './fatigue';
 import { passiveHealing } from './heal';
 import { bedGap, freeBeds } from './sleep';
-import { gateAhead, M_EPS, seeingM, walkLeg, withinM } from './position';
+import { gateAhead, M_EPS, seeingM, walkLeg, withinM, placeOf } from './position';
 import type { Located } from './position';
 import { isActive, isAsleep, isEngaged } from './relations';
 import { travelSpeed } from './travel';
@@ -59,7 +59,7 @@ export function catchUp(state: GameState, minutes: number, deductWalked = true, 
       if (gate && (gate.pass !== 'opens' || !unseen)) break; // a way that is not simply open, or opened in view
       const was = gate && { locked: !!gate.b.lock?.locked, drawn: !!gate.b.bar?.drawn };
       if (gate) openWay(gate.b, a, a.zone);
-      const from = a.zone, at: Located = { zone: a.zone, ...(a.pos ? { pos: { ...a.pos } } : {}) };
+      const from = a.zone, at: Located = placeOf(a);
       const r = walkLeg(state, a, goal, left, 0, a);
       const crossed = r !== null && (r > 0 || a.zone !== from); // BG-151: a doorway underfoot is crossed in 0 m
       if (crossed && onLeg) onLeg(a, at, r, d.zone); // BF2: a leg anyone could see or hear is a walk like any other

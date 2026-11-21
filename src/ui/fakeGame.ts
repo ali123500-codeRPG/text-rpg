@@ -291,7 +291,7 @@ function useStage(st: GameState, stage: FakeStage): void {
     const zone = st.zones.find((z) => z.id === x.zone)!;
     const a = spawnNpc(null, TP.patron, { id: x.id, zone: x.zone, placeId: zone.placeId, bandId: `band_${x.id}`, storyId: 'fake', label: x.label, at: titleMiddle(zone) });
     const pos = x.at ? at(x.zone, x.at) : undefined;
-    if (pos) { a.pos = pos; delete a.unplaced; }
+    if (pos) a.pos = pos;
     if (x.race) { a.core.raceId = x.race; a.core.bodyTypeId = getLibrary().races![x.race].bodyTypeId; }
     if (x.facing) a.facing = x.facing;
     const last = x.last === 'zone' ? undefined : x.last && at(x.zone, x.last);

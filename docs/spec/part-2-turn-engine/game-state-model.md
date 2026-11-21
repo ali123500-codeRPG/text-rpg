@@ -64,10 +64,13 @@ type Band = {                   // a small group: a guard post, a gang, a househ
 - **GSM-23** A point's title is the smallest space that holds it: a booth drawn inside a hall reads as the booth
   (`src/plan/where.ts` zoneAt). A point on a wall that the title someone is in shares with another (a doorway) stays
   in the title they are in, so standing in a doorway never moves anyone into the room beside it (BG-1506).
-- **GSM-24** Actor.zone is that title, kept by code whenever a point moves; code that sets a title instead (a
-  scenario's start zone, a test) gets a point in it from placeAll. A title's floor is the floor of everyone standing in
-  it. Decided, not built: every person gets a point and a height of their own, and the title is only the name of where
-  that is (WT4 a, D-1623).
+- **GSM-24** Every person has a point and a height of their own, always (Actor.pos and Actor.floor, metres above the
+  ground outside); the title is only the name of where that is (Ali, 21/11/2026, Questions hub "Splitting the world for
+  saving", WT4 a, D-1623). Actor.zone is that title at that height, kept by code whenever a point moves (a climb carries
+  the height with it). Code that sets a title instead (a scenario's start zone, someone brought along across a frontier,
+  a test) stands the person at the title's middle on its floor and marks them unplaced, and placeAll gives them a free
+  spot there; a title with no outline never takes a point away. Every event made by someone carries their point and
+  height (GameEvent.pos, fromPos), and a belief's last-known point carries the height it was made out at.
 - **GSM-25** Belonging to a named place stays keyed by the place: the smith at a forge, a bed or forge for hire in the
   seller's place, the doors an NPC knows in the place it lives or works in, and the facts the agents are told about the
   place they are in. These say who owns or belongs to a place, not where anything is or what is near (Ali, 21/11/2026,
@@ -240,7 +243,10 @@ type Band = {                   // a small group: a guard post, a gang, a househ
 
 - **GSM-130** The floor-plan rewrite is schema 10; older saves are refused (no old saves are kept, prototype rule)
   (PZ16 b). Schema 11: a doorway its old fixed flag kept shut gets the plain door it stood for (BG-312). Schema 13: the
-  floor plan and the ground move from place pages and one ground page to tiles (WT1 a, Part 4 §6).
+  floor plan and the ground move from place pages and one ground page to tiles (WT1 a, Part 4 §6). Schema 15: everyone
+  gets a point and height of their own: a missing point is the title's middle, the height the title's floor; an event's
+  point gets its title's floor; a thing on the ground with no point (it lay in no title, so nothing could reach it) goes
+  (WT4 a, D-1623, MIGRATIONS 14).
 
 #### Drops and falls
 

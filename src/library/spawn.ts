@@ -63,9 +63,9 @@ export function equipLoadout(state: GameState | null, items: string[], idPrefix:
 }
 
 export type SpawnOpts = { id: string; zone: string; placeId: string; bandId: string; label?: string; name?: string; storyId?: string; personality?: Personality /* PL12: replaces the template's points */; ageStage?: LifeStageKey /* AG14: the Weaver's life stage */; talent?: TalentKey /* AG25: the Weaver's talent */; drawn?: boolean /* weapons in hand from the start (a test fixture); DS2: sheathed otherwise */; at?: Pt3 /* D-1623: its title's middle, until placeAll gives it a spot */ };
-/** D-1623: everyone has a point and height from the start: a stand-in (its title's middle, else the map's origin) until
- * placeAll gives it a free spot in its title (ZP1) */
-export const standIn = (at?: Pt3) => ({ pos: { x: at?.x ?? 0, y: at?.y ?? 0 }, floor: at?.floor ?? 0, unplaced: true as const });
+/** D-1623: everyone has a point and height from the start: its title's middle (`at`), else the map's origin, until it is
+ * stood somewhere (a caller putting it on stage marks it unplaced, so placeAll gives it a free spot there, ZP1) */
+export const standIn = (at?: Pt3) => ({ pos: { x: at?.x ?? 0, y: at?.y ?? 0 }, floor: at?.floor ?? 0 });
 
 /** A class's skill floors: its own floors plus its unlock conditions (a character of the class must meet what unlocks it).
  * all = every skill must reach its value; any = either-of groups, one skill in each must reach its value. */
@@ -694,7 +694,7 @@ export function createPlayer(build: CreationBuild, storyId: string, opts: { prev
   const p: Actor = {
     id: 'player', storyId, kind: 'player', names: { current: build.name.trim(), past: [] }, ...(build.pronouns ? { pronouns: build.pronouns } : {}),
     label: 'a stranger', // the start class's stranger label, set below
-    placeId: '', zone: '', ...standIn(), // GAP: set by story-start scenario setup (the village tavern, Part 2 Scenario setup)
+    placeId: '', zone: '', ...standIn(), unplaced: true, // GAP: set by story-start scenario setup (the village tavern, Part 2 Scenario setup)
     posture: 'open', bandId: 'player_band',
     core: {
       ...newPlayer(build.startId ?? PLAYER_START, storyId, build.raceId),

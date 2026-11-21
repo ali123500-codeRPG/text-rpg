@@ -4,7 +4,7 @@ import { SPEECH_ACTIONS } from '../types';
 import { CONFIG } from '../config';
 import { AWARENESS, GRADE_LEVELS, HIT_OUTCOMES, NOISE, type GradeLevel, type NoiseKey } from '../scales';
 import { hearingOf, soundDb, VOLUME_NOISE } from './noise';
-import { M_EPS, distOrNull, leastGapM, seeingM, standingAt, withinM, type Located } from '../engine/position';
+import { M_EPS, distOrNull, leastGapM, seeingM, spotAt, standingAt, withinM, type Located } from '../engine/position';
 import { sightLevel, stillGlimpsed } from './sight';
 export { hearingOf, openAirReachM, soundDb } from './noise';
 import { isDark, now, pitchBlack, turnTime, zoneLight } from '../time';
@@ -116,7 +116,7 @@ export function smells(state: GameState, observer: Actor, at: Located): boolean 
  * the point */
 function madeAt(state: GameState, event: GameEvent): Located {
   const a = actorById(state, event.actorId), p = event.pos;
-  return a && p && a.zone === event.zone && a.pos && Math.hypot(a.pos.x - p.x, a.pos.y - p.y) <= M_EPS ? a : { zone: event.zone, pos: p };
+  return a && p && a.zone === event.zone && a.pos && Math.hypot(a.pos.x - p.x, a.pos.y - p.y) <= M_EPS ? a : spotAt(event.zone, p);
 }
 
 /** BG-89: event kinds that touch their target */
@@ -150,7 +150,7 @@ export function faintness(state: GameState, event: GameEvent, observer: Actor, c
     const g = GRADE_LEVELS.pos(pick(CONFIG.MAKE_OUT_SIGHT_GRADES, (n) => share <= n)) + (dark ? CONFIG.MAKE_OUT_DARK_STEPS : 0);
     return Math.min(g, GRADE_LEVELS.keys.length - 1);
   };
-  const ps = [at(madeAt(state, event)), event.fromZone ? at({ zone: event.fromZone, pos: event.fromPos }) : null].filter((g): g is number => g !== null);
+  const ps = [at(madeAt(state, event)), event.fromZone ? at(spotAt(event.fromZone, event.fromPos)) : null].filter((g): g is number => g !== null);
   return ps.length ? GRADE_LEVELS.at(Math.min(...ps)) : null;
 }
 
@@ -163,7 +163,7 @@ function sightOf(event: GameEvent, state: GameState, observer: Actor, at: Locate
   let sight = seenAt(at);
   // BG-23: a leg out of a zone is seen where it set off as well as where it ended (someone walking out through a door
   // in plain sight is seen going, though the room beyond is out of sight)
-  if (event.fromZone) sight = better(sight, seenAt({ zone: event.fromZone, pos: event.fromPos }));
+  if (event.fromZone) sight = better(sight, seenAt(spotAt(event.fromZone, event.fromPos)));
   // Q17: someone the player saw clearly stays seen while they stay put (within the zones the player can see); BG-252
   // (PG11 a): as long as they can still be glimpsed, the same rule as Who's here (seenActors)
   if (observer.kind === 'player' && event.kind !== 'move' && event.kind !== 'flee' && observer.journal?.clearSight?.[event.actorId] === event.zone

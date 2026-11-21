@@ -50,6 +50,8 @@ export const floorOf = (state: GameState, a: Located): number => a.floor ?? zone
 export const standingAt = (a: Actor): Pt3 => ({ x: a.pos.x, y: a.pos.y, floor: a.floor });
 /** D-1623: where an actor stands, as a copy: its title, point and height */
 export const placeOf = (a: Actor): Located => ({ zone: a.zone, pos: { ...a.pos }, floor: a.floor });
+/** D-1623: where an event's point lies: its title, point and height */
+export const spotAt = (zone: string, p?: Pt3): Located => ({ zone, ...(p ? { pos: { x: p.x, y: p.y }, floor: p.floor } : {}) });
 /** D-1623: the point and height of a title's middle (where someone put in it with no point of its own starts) */
 export const titleMiddle = (z: Zone): Pt3 => ({ ...(z.outline?.length ? centre(z) : { x: 0, y: 0 }), floor: z.floor });
 
@@ -131,17 +133,18 @@ const titleIn = (state: GameState, z: Zone, p: Pos): string => zoneAt(state, p, 
 export function placeAll(state: GameState, withPlayer: readonly string[] = []): void {
   const gap = CONFIG.PLACE_SPACING_M;
   const people = allActors(state);
+  const pending = new Set(people.filter((a) => a.unplaced || withPlayer.includes(a.id))); // stand-in points: no one stands there yet
   for (const a of people) {
     const z = zoneById(state, a.zone);
-    if (!z?.outline?.length) continue;
-    const fresh = a.unplaced || withPlayer.includes(a.id);
+    const fresh = pending.delete(a);
     delete a.unplaced;
+    if (!z?.outline?.length) continue;
     if (!fresh && inside(z, a.pos) && inSpan(z, a.floor)) {
       const t = zoneAt(state, a.pos, a.floor, z.id)?.id ?? z.id;
       if (t !== a.zone) { a.zone = t; a.placeId = zoneById(state, t)?.placeId ?? a.placeId; }
       continue;
     }
-    const taken = people.filter((o) => o !== a && o.zone === a.zone && o.pos && inside(z, o.pos)).map((o) => shapeOf(state, o, o.pos!));
+    const taken = people.filter((o) => o !== a && !pending.has(o) && o.zone === a.zone && o.pos && inside(z, o.pos)).map((o) => shapeOf(state, o, o.pos!));
     const c = anchor(state, z, withPlayer.includes(a.id));
     let spot = c;
     const step = gap / 2; // SZ6: a finer grid than the spacing, so bodies of any width find the nearest free spot

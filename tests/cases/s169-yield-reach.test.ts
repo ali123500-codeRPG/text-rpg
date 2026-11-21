@@ -11,6 +11,7 @@ import { answerYield, playerYields, together } from '../../src/engine/yield';
 import { hostile } from '../../src/engine/relations';
 import { ago, tick, turnsFor } from '../harness/time';
 import { engagementEndS } from '../../src/ruleset/actionTime';
+import { unplace } from '../../src/engine/position';
 
 const belief = (status: 'tracking' | 'engaged', zone: string, turn: number) =>
   ({ status, lastKnownZone: zone, lastSeenTurn: turn, ...(status === 'engaged' ? { closedTurn: turn } : {}), source: 'seen' as const, revealed: [] });
@@ -21,7 +22,7 @@ const hit = (s: GameState, a: Actor, t: Actor): GameEvent =>
 function tavernFight(mossZone: string): GameState {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
   const tam = actor(s, 'patron_1'), moss = actor(s, 'trader');
-  moss.zone = mossZone;
+  if (moss.zone !== mossZone) { moss.zone = mossZone; unplace(s, moss); }
   for (const x of [tam, moss]) { x.mind!.overrides = { player: 'hostile' }; x.mind!.control = 'agent'; }
   tam.mind!.knowledge.player = belief('engaged', 'tav_common', s.turn);
   moss.mind!.knowledge.player = belief('tracking', 'tav_common', s.turn);

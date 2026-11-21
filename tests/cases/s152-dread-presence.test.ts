@@ -15,6 +15,7 @@ import type { Actor, GameState } from '../../src/types';
 import { play } from './w4-kit';
 import { ago, tick, turnsFor } from '../harness/time';
 import { engagementEndS } from '../../src/ruleset/actionTime';
+import { unplace } from '../../src/engine/position';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const npc = (s: GameState, id: string) => s.actors.find((a) => a.id === id)!;
@@ -24,7 +25,7 @@ const setup = (zone?: string) => {
   give(s.player, PK.dread_presence);
   s.player.core.skills[SK.intimidation] = { raw: 80, state: 'normal' };
   const t = npc(s, 'patron_1');
-  t.zone = zone ?? s.player.zone;
+  if (zone) { t.zone = zone; unplace(s, t); }
   t.mind!.overrides = { player: 'opposed' };
   t.mind!.knowledge.player = { ...({ source: 'seen', revealed: [] } as const), ...(t.mind!.knowledge.player ?? {}), status: 'aware', lastKnownZone: s.player.zone };
   return { s, t };

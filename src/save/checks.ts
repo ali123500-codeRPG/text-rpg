@@ -72,7 +72,10 @@ export const MIGRATIONS: Record<number, (pages: Pages) => void> = {
       if (!a.pos) a.pos = z?.outline?.length ? keepInside(middleOf(z.outline), z.outline, 0) : { x: 0, y: 0 };
       a.floor ??= floorOf(a.zone);
     }
-    for (const e of (pages.engine as EnginePage).recentEvents ?? []) if (e.pos && e.pos.floor === undefined) e.pos.floor = floorOf(e.zone);
+    for (const e of (pages.engine as EnginePage).recentEvents ?? []) {
+      if (e.pos && e.pos.floor === undefined) e.pos.floor = floorOf(e.zone);
+      if (e.fromPos && e.fromPos.floor === undefined) e.fromPos.floor = floorOf(e.fromZone ?? e.zone);
+    }
     for (const k of Object.keys(pages)) if (k.startsWith('tile.')) { const t = pages[k] as TilePage; t.items = t.items.filter((i) => i.at); }
   },
 };

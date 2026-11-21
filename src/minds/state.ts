@@ -15,7 +15,7 @@ import { soundDb, VOLUME_NOISE } from '../perception/noise';
 import { markUse, ruleset, situational, fnRoller, tierLevel, effectiveSkill } from '../ruleset';
 import { coverShown, rollFnSkills } from '../ruleset/gear';
 import { rewardSources } from '../ruleset/achRewards';
-import { distM, seeingM, sightDistM, standingAt, withinGrip, withinM, type Located } from '../engine/position';
+import { distM, placeOf, seeingM, sightDistM, spotAt, standingAt, withinGrip, withinM, type Located } from '../engine/position';
 import { hasPerk, meltAwayHere, perkSum } from '../ruleset/perks';
 import { blindSpotNow } from '../engine/perkMarks';
 import { fightingWith } from '../engine/engagement';
@@ -275,7 +275,7 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): str
   const moved = event.kind === 'move';
   const melt = !moved && !fade && event.kind !== 'attack' && hasPerk(s, PK.melt_away) && !!zone && (blindSpotNow(state, s) || meltAwayHere(coverShown(state, s, zone), zoneLight(state, zone, s.pos)));
   const still = fade || melt;
-  const from: Located = { zone: event.fromZone ?? s.zone, pos: event.fromPos ?? s.pos };
+  const from: Located = event.fromPos ? spotAt(event.fromZone ?? s.zone, event.fromPos) : placeOf(s);
   const mine = (sk: string, sense: Sense, a?: Actor) => hiderRoll(state, s, sk, sense, still, a);
   const theirs = (a: Actor, sense: Sense) => watcherRoll(state, a, sense, zone, s);
   // VS5: slipping away from a foe that is fighting you within VANISH_NEAR_M is harder (by distance, not weapon reach)

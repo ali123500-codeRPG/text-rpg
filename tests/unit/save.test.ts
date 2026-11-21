@@ -7,6 +7,8 @@ import {
   LoadRefusedError, MIGRATIONS, acquireTurnLock, archiveStory, artifactDbStore, listBackups, listStories, listWorlds, loadStory, memoryStore,
   loadHistory, readTurnRecord, releaseTurnLock, restoreBackup, saveHistory, saveTurn, undoTurn, goBackOneTurn, type DB,
 } from '../../src/save';
+import { toPages } from '../../src/save/pages';
+import { keepInside, middleOf } from '../../src/plan/geom';
 import type { GameState, Head, LogLine, StoryFact, TurnRecord } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
 import { IT } from '../../src/library/itemIds';
@@ -289,6 +291,24 @@ describe('migration and reconcile', () => {
     expect(state.libraryVersion).toBe(2);
     expect(report).toEqual(expect.arrayContaining([`reconcile: player skill ${SK.melee_medium} -> blades`, `reconcile: player skill ${SK.barter} dormant`]));
     expect((await head(st)).libraryVersion).toBe(2);
+  });
+  it('D-1623: a v14 save gives everyone a point and height of their own: the title\'s middle when the point is missing, the title\'s floor; an event\'s point its title\'s floor; a thing on the ground with no point goes', () => {
+    const s = makeVillage();
+    const pages = toPages(s), cellar = s.zones.find((z) => z.id === 'tav_cellar')!;
+    const w = pages['actor.patron_1'] as Partial<GameState['player']>, kept = pages['actor.player'] as GameState['player'];
+    Object.assign(w, { zone: 'tav_cellar' }); delete w.pos; delete w.floor; delete (kept as Partial<typeof kept>).floor;
+    const engine = pages.engine as { recentEvents?: unknown[] };
+    engine.recentEvents = [{ id: 'e1', turn: 0, actorId: 'patron_1', kind: 'idle', zone: 'tav_cellar', pos: { x: 1, y: 2 }, effects: [], noise: 'quiet', visibility: 'normal', perception: {} }];
+    const tile = Object.entries(pages).find(([k]) => k.startsWith('tile.'))![1] as { items: unknown[] };
+    tile.items.push({ id: 'lost', itemId: IT.short_sword });
+    MIGRATIONS[14](pages);
+    expect(w.pos).toEqual(keepInside(middleOf(cellar.outline), cellar.outline, 0));
+    expect(w.floor).toBe(cellar.floor);
+    expect(cellar.floor).toBeLessThan(0); // a height that is not the ground's
+    expect(kept.pos).toEqual(s.player.pos); // a point it had stays
+    expect(kept.floor).toBe(s.zones.find((z) => z.id === s.player.zone)!.floor);
+    expect(engine.recentEvents[0]).toMatchObject({ pos: { x: 1, y: 2, floor: cellar.floor } });
+    expect(tile.items.some((i) => (i as { id: string }).id === 'lost')).toBe(false);
   });
 });
 

@@ -70,7 +70,7 @@ export function recommendedPlayer(storyId = 'test', zone = 'tav_common', placeId
   const tagged: string[] = [SK.melee_medium, SK.block, SK.endurance];
   return {
     id: 'player', storyId, kind: 'player', names: { current: 'Aldric', past: [] }, label: 'a swordsman',
-    placeId, zone, ...standIn(), posture: 'open', bandId: 'player_band',
+    placeId, zone, ...standIn(), unplaced: true, posture: 'open', bandId: 'player_band',
     core: {
       bodyTypeId: BT.humanoid, raceId: RC.human,
       skills: Object.fromEntries(Object.entries(skills).map(([k, v]) => [k, { raw: v, state: tagged.includes(k) ? 'tagged' as const : 'normal' as const }])),
@@ -128,7 +128,7 @@ function buildVillage(opts: VillageOpts): GameState {
   const zoneOf = (id: string) => titles.find((z) => z.id === id)!;
   const playerZone = opts.playerZone ?? 'tav_common';
   const npc = (tpl: string, id: string, zone: string, bandId: string, name: string) =>
-    spawnNpc(null, tpl, { id, zone, placeId: zoneOf(zone).placeId, bandId, name, storyId, drawn: !opts.sheathed });
+    ({ ...spawnNpc(null, tpl, { id, zone, placeId: zoneOf(zone).placeId, bandId, name, storyId, drawn: !opts.sheathed }), unplaced: true as const });
   let actors: Actor[] = [
     withRoutine(npc(TP.guard, 'guard_1', 'gate_inner', 'village_watch', 'Bertram'), 'gate_guard', { post: 'gate_inner' }),
     withRoutine(npc(TP.trader, 'trader', 'tav_counter', 'tavern_folk', 'Mags'), 'barkeep', { counter: 'tav_counter', refuge: 'tav_cellar' }),

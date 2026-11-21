@@ -53,7 +53,7 @@ describe('213 zones are not distances', () => {
     f2.mind!.overrides = { player: 'hostile' };
     const was = { ...f2.pos! };
     f2.pos = { x: was.x + 5, y: was.y };
-    noteFighting(s2, [{ ...step, zone: f2.zone, pos: standingAt(f2), fromPos: was }]);
+    noteFighting(s2, [{ ...step, zone: f2.zone, pos: standingAt(f2), fromPos: { ...was, floor: f2.floor } }]);
     expect(f2.mind!.knowledge.player.status).toBe('aware');
   });
 

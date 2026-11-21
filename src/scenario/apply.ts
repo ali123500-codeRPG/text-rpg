@@ -393,6 +393,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
       const personality = c.personality ? personalityFrom(presetPersonality(t, id), c.personality) : undefined; // PL12 on the NG14 layers
       const z0 = zoneById(state, startZone);
       a = spawnNpc(state, t.id, { id, zone: startZone, placeId: startPlace, ...(z0 ? { at: titleMiddle(z0) } : {}), bandId: bandRef(c.band), label: c.label, name: c.name, storyId: state.storyId, ...(personality ? { personality } : {}), ...(LIFE_STAGES.keyOf(c.age) ? { ageStage: LIFE_STAGES.keyOf(c.age) } : {}), ...(TALENTS.keyOf(c.talent) ? { talent: TALENTS.keyOf(c.talent) } : {}) }, rng);
+      a.unplaced = true; // ZP1: placeAll gives it a free spot in its title
       state.actors.push(a);
     }
     a.bandId = bandRef(c.band);

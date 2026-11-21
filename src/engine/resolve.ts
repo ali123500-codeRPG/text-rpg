@@ -163,6 +163,8 @@ import {
   spotOnTheWay,
   spotPoint,
   standingAt,
+  floorOf,
+  spotAt,
   placeOf,
   unplace,
   walkLeg,
@@ -1108,7 +1110,7 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
     const shutters = barrierOn(state, link.opening); // PC3: a window's shutters must be open, and the body must fit the opening
     if ((shutters && !shutters.open && !broken(shutters)) || !fitsThrough(state, a, link)) return null;
     const up = zoneById(state, a.zone)!, down = zoneById(state, goal.zone)!;
-    const drop = Math.max(0, a.floor - heightOf(down)), was = a.pos && { ...a.pos };
+    const drop = Math.max(0, a.floor - heightOf(down)), was = standingAt(a);
     a.zone = down.id;
     a.placeId = down.placeId;
     a.floor = down.floor;
@@ -1116,11 +1118,11 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
     else { unplace(state, a); placeAll(state); } // a drop not yet placed (none in play: placeOpening gives every window its landing point)
     noteLeft(state, up.id);
     const f = landFall(state, a, drop, ctx.rng);
-    const ev = mk(ctx, a, 'move', { metres: 0, fromZone: up.id, ...(was ? { fromPos: was } : {}), fall: { metres: drop, damage: f.damage, landing: f.landing }, effects: f.effects });
+    const ev = mk(ctx, a, 'move', { metres: 0, fromZone: up.id, fromPos: was, fall: { metres: drop, damage: f.damage, landing: f.landing }, effects: f.effects });
     emit(ctx, withBark ? bark(ev, o) : ev);
     return 'spent';
   }
-  const from = a.zone, fromPos = a.pos && { ...a.pos };
+  const from = a.zone, fromPos = standingAt(a);
   // SD3–SD5: a barrier not open to the walker on the next way: walk up to it, then open it (a key, the bolt's side) or try it
   const gate = gateAhead(state, a, goal.zone);
   const round = roundShut(state, a, goal.zone);
@@ -1130,7 +1132,7 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
   if (walked <= 0 && a.zone === from) return 0; // a doorway right where the walker stands is crossed in 0 m: still a move
   if (a === state.player && a.zone !== from) noteLeft(state, from);
   // a leg inside the zone (closing in, a step) names who it heads for and carries no fromZone; every leg keeps where it set off
-  const leg = { metres: r1(walked), ...(fromPos ? { fromPos } : {}), ...(a.zone !== from ? { fromZone: from } : toward ? { target: toward, ...(goal.zone !== a.zone ? toGo(state, a, goal.zone) : reachedSpot(state, a, goal, stopShort) ? { beside: true as const } : {}) } : goal.zone !== a.zone ? { heading: goal.zone, ...toGo(state, a, goal.zone) } : {}), ...(spot && a.zone === goal.zone ? { spot: reachedSpot(state, a, goal, stopShort) ? spot : spotOnTheWay(spot), ...(o.moveSpot?.lastSeen && o.moveSpot.near ? { lastSeenOf: o.moveSpot.near } : {}) } : {}) };
+  const leg = { metres: r1(walked), fromPos, ...(a.zone !== from ? { fromZone: from } : toward ? { target: toward, ...(goal.zone !== a.zone ? toGo(state, a, goal.zone) : reachedSpot(state, a, goal, stopShort) ? { beside: true as const } : {}) } : goal.zone !== a.zone ? { heading: goal.zone, ...toGo(state, a, goal.zone) } : {}), ...(spot && a.zone === goal.zone ? { spot: reachedSpot(state, a, goal, stopShort) ? spot : spotOnTheWay(spot), ...(o.moveSpot?.lastSeen && o.moveSpot.near ? { lastSeenOf: o.moveSpot.near } : {}) } : {}) };
   let ev = withActivity(ctx, a, mk(ctx, a, 'move', { ...leg, ...(round ? { round } : {}) }), o.activity);
   if (withBark) ev = bark(ev, o);
   emit(ctx, ev);
@@ -1427,7 +1429,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
   // NS6: a stealthy NPC can ambush the player too; the player's belief is cleared only after the blow
   // TC35 b Never Flat-Footed: a foe the target has seen this fight is no ambush (bystanders still roll to notice it)
   if (!surprised && !atLeast(beliefStatus(state, t, a), 'suspicious')) {
-    surprised = resolveAmbush(state, a.id, t.id, ev, rng).surprised && !hearsItComing(state, t, { zone: ev.zone, pos: ev.pos }, ev.noise) && !neverFlatFooted(t, a);
+    surprised = resolveAmbush(state, a.id, t.id, ev, rng).surprised && !hearsItComing(state, t, spotAt(ev.zone, ev.pos), ev.noise) && !neverFlatFooted(t, a);
     if (surprised) ctx.surprised.add(t.id);
   }
   // TC32 a Play Dead: the owner's first blow on a foe that took it for Down lands as on an unaware foe
@@ -2875,7 +2877,7 @@ function noteCarry(ctx: Ctx): void {
  * turn (a trade, a rest, a wait, a trip) the legs are summed up for the Narrator (cameAndWent); asleep, the player notices none */
 function legsOf(ctx: Ctx, long: boolean): OnLeg | undefined {
   return !long || !isAsleep(ctx.state.player) ? (m: Actor, from: Located, metres: number, toward: string) => {
-    const leg = { metres: r1(metres), ...(from.pos ? { fromPos: from.pos } : {}), ...(m.zone !== from.zone ? { fromZone: from.zone } : { heading: toward }), ...(long ? { summed: true as const } : {}) };
+    const leg = { metres: r1(metres), ...(from.pos ? { fromPos: { ...from.pos, floor: floorOf(ctx.state, from) } } : {}), ...(m.zone !== from.zone ? { fromZone: from.zone } : { heading: toward }), ...(long ? { summed: true as const } : {}) };
     emit(ctx, withActivity(ctx, m, mk(ctx, m, 'move', leg), 'walk'));
   } : undefined;
 }
