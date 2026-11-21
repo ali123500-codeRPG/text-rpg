@@ -296,7 +296,8 @@ BG/D numbers) sits in one trailing parenthesis.
   × their trigger distance away.
 - **ACT-214** Seeing a path needs the person made out clearly.
 - **ACT-215** Steps are at most half the shortest time anyone perceived needs to trigger, between STEP\_MIN\_S (3) and
-  STEP\_MAX\_S (60); noticing is rolled per second.
+  STEP\_MAX\_S (60); noticing is rolled per second. The 60 s cap holds even when nobody is near (NP2 a): longer quiet
+  steps, which would notice someone walking in later, were turned down.
 
 #### Pause or break
 
