@@ -10,4 +10,3 @@ The game files a report at `bugs/new-<time>` (status new) for every bug code it 
 | --- | --- | --- | --- | --- |
 | BG-107 | Resting, waiting and healing in a fight were blocked by any hostile in the zone, however far, never by one through a doorway | 12/11/2026 | Open |  |
 | BG-342 | The World view showed land the player never saw while they stayed inside a room (cause needs the save; desk:main) | Owner | Open | #1305 |
-| BG-344 | An essence offer pop-up opens over the minimap's top corner and hides the Map button there (MAP-60) until it is closed | Thread | Open | #1311 |

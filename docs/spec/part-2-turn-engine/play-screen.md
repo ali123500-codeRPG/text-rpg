@@ -170,7 +170,8 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
   lines. Space alone parts them, a hover tints the tile under the pointer, and a lit tile shows its figure in its colour
   (HS7; Ali: "I hate your stupid tile boxes", then "stupid lines").
 - **PS-103** Pop-ups stay as built and movable, and so do the game-moment cards (gains, perk unlocked, hit cards)
-  (HS7; Ali: "the pop-up is nice").
+  (HS7; Ali: "the pop-up is nice"). A pop-up that opens by itself, with no opener and no map mark, such as an essence
+  offer, opens centred on the screen (src/ui/pop.ts; BG-344; Ali, 21/11/2026, decision card: "Centred on the screen").
 - **PS-104** The Play column has no extra veil of its own (HS7; Ali: not transparent "for no reason at all").
 - **PS-105** Design changes use the design skills in proportion to the change, as `docs/instructions.md` section 7
   sets out: a small change uses interface-design and show-dont-tell-ui plus the accessibility checks; everything else
