@@ -29,7 +29,7 @@ export function relevantActors(state: GameState, input: Pick<TurnInput, 'agentOu
   const holding = new Set(state.actors.map((a) => a.heldBy).filter((h): h is string => !!h));
   for (const a of npcs) {
     const m = a.mind;
-    const busyTurn = taken.has(a.id) || m?.control === 'agent' || !!m?.alarm?.onAlertDue || !!m?.moraleState || !!a.busy || !!a.heldBy || holding.has(a.id)
+    const busyTurn = taken.has(a.id) || !!m?.alarm?.onAlertDue || !!m?.moraleState || !!a.busy || !!a.heldBy || holding.has(a.id)
       || !!(m?.suspects && Object.keys(m.suspects).length) || !!drawnTo(state, a) || isEngaged(state, a);
     if (busyTurn || mindOnPlayer(state, a) || near(p, a)) out.add(a.id);
   }
