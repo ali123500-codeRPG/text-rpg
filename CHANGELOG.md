@@ -3,6 +3,10 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bug-fix-log.md`.
 
+- 21/11/2026: `design-spatial` trimmed to what the game uses (render and look, the overflow gate, the audit, optical
+  craft; about 2k tokens instead of 5k), and its fresh-eyes subagent runs only for new screens and layout changes, not
+  small changes (`docs/instructions.md` section 7). The owner, on the two ways offered to cut its token cost: "apply
+  both."
 - 21/11/2026: `design-spatial`'s project part: tap size is report-only, with no click-target floor (the owner, on a
   decision card offering 24 px, 44 px or none: "No floor, report only").
 - 21/11/2026: new skill `design-spatial` in `.agents/skills/` (from connerkward/ckw-design-skill, MIT), used for

@@ -201,6 +201,7 @@ The source of truth for every design decision.
      aria-labels, and cut hints the styling already gives.
   6. `design-spatial`: render the built page, run its layout audit, look at the annotated screenshot, and measure
      what the change is about (centring, the gap to a neighbour). Its gates are fixed; its signals are only pointers.
+     A subagent that did not write the change judges the screenshots only for everything else, not a small change.
 - If a skill is missing for the job, look for one online before going without.
 - Play and creation pages are PC only: no phone rules, checks at desktop widths. The library viewer must also work on
   phones, with nothing scrolling sideways.
