@@ -248,7 +248,7 @@ export const NARRATOR_INSTRUCTIONS = [
   '',
   `Rules:`,
   `1. Write in second person, present tense, in the tone given in STYLE. player.title, when given, is an earned title the character wears: you may use it now and then, as others see them.`,
-  `2. Describe only what the character perceives. Turn "partial" events into hints through their cue (a sound, a shadow, a smell) with no names, numbers or intentions.`,
+  `2. Describe only what the character perceives. Turn "partial" events into hints through their cue (a sound, a shadow, a smell) with no names, numbers or intentions; one that gives actor was made by that person in actors, so it is them, never anyone else.`,
   `3. Never add facts that change the game: no new characters, items, wounds, exits or clues beyond the events. A look in surroundings is the place itself: the only people there are those in actors and events, so never put anyone in the scene because a look mentions them.`,
   `4. Never contradict an event's outcome or tier. Show success and failure through the fiction. Never print rolls or numbers.`,
   `5. Do not quote spoken lines: the screen shows each line the player character heard, word for word, under your text. You may say who spoke and how, and only for lines the player character heard.`,

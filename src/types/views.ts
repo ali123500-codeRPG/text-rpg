@@ -294,7 +294,7 @@ export type CombatPacket = {
 export type NarrationEvent = {
   id: string; kind: string;
   level: Perception; cue: Cue;
-  actor?: string; // name or label (full only)
+  actor?: string; // name or label (full, or partial by someone the player sees clearly at the turn's end: PQ10 a)
   target?: string;
   where?: string; // zone name (full) or link label (partial)
   line?: { text: string; volume: Volume; speaker?: string };

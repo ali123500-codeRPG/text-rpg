@@ -934,7 +934,8 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     if (e.summed) { comings.set(e.actorId, [...(comings.get(e.actorId) ?? []), legWords(state, e, full)]); continue; }
     const changes = visibleChanges(state, e.effects, me);
     if ((e.kind === 'threshold_crossed' || e.kind === 'part_state_changed') && !changes.length) continue; // hidden change
-    const speaker = full || knowsStep(state, p, e) ? callName(state, me, e.actorId) : undefined;
+    const named = full || seenIds.has(e.actorId); // PQ10 a: a half-seen event names its actor when the player sees them clearly at the turn's end
+    const speaker = named || knowsStep(state, p, e) ? callName(state, me, e.actorId) : undefined;
     const hears = !!e.line && hearsWords(per);
     if (hears) heard.push({ speaker: speaker ?? 'someone', text: e.line!.text, volume: e.line!.volume });
     const look = full ? eventLook(state, e) : undefined;
@@ -947,8 +948,8 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ?? (e.actorId === me && actorById(state, e.target) ? 'someone' : undefined) : undefined;
     out.push({
       id: e.id, kind: e.kind === 'play_dead' && fooledBy(p, actorById(state, e.actorId)) ? 'collapse' : e.kind === 'feint' && fooledByFeint(state, p, actorById(state, e.actorId)) ? 'breaks_and_runs' : e.kind, level: per.level, cue: per.cue, // TC32 a: the fooled see a fall
-      ...(full ? { actor: callName(state, me, e.actorId) } : {}),
-      ...(full && e.actorId !== me && actorById(state, e.actorId)?.pronouns ? { pronouns: actorById(state, e.actorId)!.pronouns } : {}),
+      ...(named ? { actor: callName(state, me, e.actorId) } : {}),
+      ...(named && e.actorId !== me && actorById(state, e.actorId)?.pronouns ? { pronouns: actorById(state, e.actorId)!.pronouns } : {}),
       ...(target ? { target } : {}),
       ...(target && e.target !== me && actorById(state, e.target!)?.pronouns ? { targetPronouns: actorById(state, e.target!)!.pronouns } : {}),
       where: full ? zoneById(state, e.zone)?.name : whereLabel(state, p.zone, e.zone),
@@ -1007,7 +1008,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     ...((offered) => offered.length ? { essences: offered } : {})((p.progression?.essenceOffers ?? []).filter((o) => o.turn === state.turn)
       .map((o) => ({ name: getLibrary().essences?.[o.essence]?.name ?? o.essence, story: getLibrary().essences?.[o.essence]?.story ?? '' }))),
     // essences that appeared this turn and failed their quality roll: they show, then fade
-    ...(comings.size ? { cameAndWent: cameAndWent(state, me, comings) } : {}),
+    ...(comings.size ? { cameAndWent: cameAndWent(state, me, comings, seenIds) } : {}),
     ...((f) => f ? { fightFinished: { rounds: f.rounds, stop: FINISH_STOP_WORDS[f.stop] } } : {})(state.scratch?.fightFinished as { rounds: number; stop: FinishStop } | undefined), // IQ4 a
     ...((gone) => gone.length ? { notThere: gone } : {})(notThere(state, intent, seen)),
     ...((w) => w ? { stayedPut: w } : {})(stayedPut(state, events, intent)),
@@ -1073,9 +1074,9 @@ function legWords(state: GameState, e: GameEvent, full: boolean): string {
   if (!full) return 'moved about, heard but not seen';
   return e.fromZone ? `went from ${zoneById(state, e.fromZone)?.name ?? e.fromZone} into ${to}` : `crossed ${to} toward ${zoneById(state, e.heading ?? '')?.name ?? 'the way out'}`;
 }
-/** BF2e3/BF2e4: one line per person noticed, legs in order, up to LONG_TURN_LINES; the rest "others came and went" */
-function cameAndWent(state: GameState, me: string, comings: Map<string, string[]>): string[] {
-  const lines = [...comings].map(([id, legs]) => `${legs.every((l) => l.startsWith('moved about')) ? 'someone' : callName(state, me, id)} ${[...new Set(legs)].join(', then ')}`);
+/** BF2e3/BF2e4 (PQ10 a: named when seen clearly at the turn's end): one line per person noticed, legs in order, up to LONG_TURN_LINES; the rest "others came and went" */
+function cameAndWent(state: GameState, me: string, comings: Map<string, string[]>, seen: Set<string>): string[] {
+  const lines = [...comings].map(([id, legs]) => `${legs.every((l) => l.startsWith('moved about')) && !seen.has(id) ? 'someone' : callName(state, me, id)} ${[...new Set(legs)].join(', then ')}`);
   const n = CONFIG.LONG_TURN_LINES;
   return lines.length > n ? [...lines.slice(0, n), 'others came and went'] : lines;
 }
