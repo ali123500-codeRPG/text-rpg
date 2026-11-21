@@ -108,8 +108,13 @@ export type ScenarioFrame = {
   /** SC12: the check-in has been told the scenario is over its budget */
   overTime?: true;
   /** CH1: the scenario's ground: the zone the player stood in when it began, every zone its plans built (opening plan,
-   * frontier extensions, check-in frontiers once built) and the stage zones they name. Off it with no one chasing: left. */
+   * frontier extensions, check-in frontiers once built) and the stage zones they name. D-217 a: their outlines (chase.ts
+   * groundSpaces); off them and out of touch with its people for GROUND_APART_TURNS turns, with no one chasing: left. */
   ground?: string[];
+  /** D-217 a: everyone its plans brought (cast of its opening plan, extensions and check-ins) */
+  people?: string[];
+  /** D-217 a: turns in a row the player has been outside the ground's outlines and out of touch with its people */
+  apart?: number;
   /** BG-41: what happened in it, one short hidden line per notable thing (spars, yields, defeats, gives, trades, jobs, deals) */
   happened?: { turn: number; text: string }[];
   /** D-226: the player's raises and All-XXX so far in it, for the ending moment's summary (engine/growth.ts) */

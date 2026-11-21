@@ -582,13 +582,23 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   const named = [...plan.zones.flatMap((z) => z.ways.map((l) => l.to)), ...plan.cast.flatMap((c) => Object.values(c.slots ?? {}).flat())]
     .filter((r): r is string => typeof r === 'string' && stageZones.has(r));
   const ground = [...(ctx.kind === 'scenario' && !ctx.wake ? [startZone] : []), ...newZones.map((z) => z.id), ...named].filter((z) => zoneById(state, z));
+  // D-217 a: everyone its plans bring (not a World builder's everyday people: they are the world's)
+  const people = ctx.world ? [] : castActors.map((a) => a.id);
   if (ctx.kind === 'scenario' && state.stage.scenario) {
     state.stage.scenario.ground = [...new Set(ground)];
-    if (state.stage.outer) state.stage.outer.ground = [...new Set([...(state.stage.outer.ground ?? []), ...ground])]; // SW10 a: the episode holds each part's ground
+    state.stage.scenario.people = [...new Set(people)];
+    if (state.stage.outer) { // SW10 a: the episode holds each part's ground and people
+      state.stage.outer.ground = [...new Set([...(state.stage.outer.ground ?? []), ...ground])];
+      state.stage.outer.people = [...new Set([...(state.stage.outer.people ?? []), ...people])];
+    }
   }
-  else if (state.stage.scenario?.ground) state.stage.scenario.ground = [...new Set([...state.stage.scenario.ground, ...ground])];
-  // SC12: a check-in may change the running scenario's question, scale and endings; its number, start and records stay
-  else if (ctx.kind === 'checkin' && plan.scenario && state.stage.scenario) {
+  else if (state.stage.scenario?.ground) {
+    state.stage.scenario.ground = [...new Set([...state.stage.scenario.ground, ...ground])];
+    state.stage.scenario.people = [...new Set([...(state.stage.scenario.people ?? []), ...people])];
+  }
+  // SC12: a check-in may change the running scenario's question, scale and endings; its number, start and records stay (BG-1775:
+  // whether or not the scenario keeps a ground)
+  if (ctx.kind === 'checkin' && plan.scenario && state.stage.scenario) {
     const f = frameOf(state, plan.scenario, state.stage.scenario.tier, frameRef);
     Object.assign(state.stage.scenario, { question: f.question, scale: f.scale, endings: f.endings, ...(f.stake ? { stake: f.stake } : {}) });
   }

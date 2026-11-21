@@ -1,15 +1,18 @@
-// Chases and free roam (SC16–SC19, SC23, SD2 a; CH1–CH7). A scenario has ground (CH1); leaving it with no one chasing ends the
-// scenario as left and free roam starts: no scenario runs until danger starts one or a scenario window
+// Chases and free roam (SC16–SC19, SC23, SD2 a; CH1–CH7). A scenario has ground (CH1, D-217 a): the outlines of the spaces its
+// plans built or named. The player has left it when outside those outlines and out of touch with everyone the scenario
+// brought for GROUND_APART_TURNS turns in a row; left with no one chasing, the scenario ends as left and free roam starts:
+// no scenario runs until danger starts one or a scenario window
 // opens (WB5, WB6); crossing an unbuilt frontier only builds ground. A pursuer (CH4) is an active NPC hunting the player that has not broken or yielded; code-run
 // pursuers keep to their chase range (CH5), and follow through a frontier only with range far (CH6). When no pursuer has
 // seen or heard the player for CHASE_LOST_S seconds, the chase is lost (CH7): they drop to tracking, go back to their
 // routines and remember it (the price comes from the fiction, SC23), and off the ground the scenario ends as escaped.
-import { waysOut } from '../plan/where';
-import type { Actor, GameEvent, GameState, Lull, WindowAnswer } from '../types';
+import { inTitle, waysOut } from '../plan/where';
+import type { Actor, GameEvent, GameState, Lull, Pt, ScenarioFrame, WindowAnswer, Zone } from '../types';
 import { CONFIG } from '../config';
 import { CHASE_RANGES, type ChaseRange } from '../scales';
 import { getLibrary } from '../library';
-import { atLeast, bandById, chaseLost, hostile, isActive, zoneById } from './relations';
+import { actorById, atLeast, bandById, chaseLost, hostile, isActive, zoneById } from './relations';
+import { perceivesNow } from './yield';
 import { pathM, wayPoint, type Located } from './position';
 import { applyMemoryOps } from './memory';
 import { logCode } from './effects';
@@ -27,18 +30,46 @@ export function isPursuer(state: GameState, a: Actor): boolean {
 }
 export const pursuers = (state: GameState): Actor[] => state.actors.filter((a) => isPursuer(state, a));
 
-/** BG-43: the places a ground touches; every zone of those places is on the ground (a tavern scenario's ground is the whole
- * tavern: back yard, cellar and upstairs too) */
-const groundPlaces = (state: GameState, ground: string[]) => new Set(ground.map((z) => zoneById(state, z)?.placeId).filter((p): p is string => !!p));
-/** is zone `z` on this ground: one of its zones, or any zone of a place it touches (BG-43) */
-export function onGround(state: GameState, ground: string[], z: string): boolean {
-  return ground.includes(z) || groundPlaces(state, ground).has(zoneById(state, z)?.placeId ?? '');
+/** D-217 a: a road's title runs the road's whole length, so open road adds no outline to a ground */
+const isRoad = (z: Zone | undefined): boolean => z?.line !== undefined;
+/** D-217 a: the spaces a ground's outlines cover: its titles, widened to every title of each place they touch (BG-43: a
+ * tavern scenario's ground is the whole tavern, back yard, cellar and upstairs too), less roads */
+export function groundSpaces(state: GameState, ground: string[]): Zone[] {
+  const places = new Set(ground.map((id) => zoneById(state, id)).filter((z) => !!z && !isRoad(z)).map((z) => z!.placeId));
+  return state.zones.filter((z) => !isRoad(z) && (ground.includes(z.id) || places.has(z.placeId)));
 }
+/** D-217 a: the point lies inside the ground's outlines */
+export const onGround = (state: GameState, ground: string[], at: Pt): boolean => groundSpaces(state, ground).some((z) => inTitle(z, at));
+
+/** BG-1508: your side: you, your bandmates and anyone following you (as travel.ts companions) */
+export const yourSide = (state: GameState, a: Actor): boolean => a === state.player || a.bandId === state.player.bandId
+  || (a.mind?.routine?.id !== undefined && getLibrary().routines?.[a.mind.routine.id]?.kind === 'follow');
+/** D-217 a: someone the scenario brought (not your side), up, perceives the player just being there, or the player them
+ * (in sight, or close enough to hear a faint sound: the same test as bandmates being together, YD7) */
+function inTouch(state: GameState, f: ScenarioFrame): boolean {
+  const p = state.player;
+  return (f.people ?? []).some((id) => {
+    const a = actorById(state, id);
+    return !!a && isActive(a) && !yourSide(state, a) && (perceivesNow(state, a, p, 'faint') || perceivesNow(state, p, a, 'faint'));
+  });
+}
+const outside = (state: GameState, f: ScenarioFrame) => !!f.ground && !onGround(state, f.ground, state.player.pos);
+/** D-217 a: each turn, before the chase and the endings: the turns in a row the player has been outside each running frame's
+ * outlines and out of touch with everyone it brought */
+export function noteApart(state: GameState): void {
+  for (const f of [state.stage.scenario, state.stage.outer]) {
+    if (!f?.ground) continue;
+    if (outside(state, f) && !inTouch(state, f)) f.apart = (f.apart ?? 0) + 1;
+    else delete f.apart;
+  }
+}
+/** D-217 a: the player has left this frame's ground: outside its outlines, and out of touch for GROUND_APART_TURNS turns */
+export const leftGround = (state: GameState, f: ScenarioFrame | undefined): boolean =>
+  !!f?.ground && outside(state, f) && (f.apart ?? 0) >= CONFIG.GROUND_APART_TURNS;
 /** off the running scenario's ground, and off the bigger scenario's too (outer) */
 export function offGround(state: GameState): { off: boolean; outer: boolean } {
-  const z = state.player.zone, st = state.stage;
-  const off = !!st.scenario?.ground && !onGround(state, st.scenario.ground, z);
-  return { off, outer: off && !!st.outer?.ground && !onGround(state, st.outer.ground, z) };
+  const st = state.stage, off = leftGround(state, st.scenario);
+  return { off, outer: off && leftGround(state, st.outer) };
 }
 
 /** CH5: an NPC's chase range: its band's, else its template's, else CONFIG.CHASE_RANGE_DEFAULT */
@@ -71,8 +102,8 @@ function metresToGround(state: GameState, at: { zone: string; pos?: Located['pos
   return best;
 }
 
-/** the ground a code-run NPC chases on: its own place's zones, and with range ground or near the scenario's ground (every
- * zone of the places it touches, BG-43); undefined = no limit (far, an agent-run NPC, or no ground kept for the scenario) */
+/** the ground a code-run NPC chases on: its own place's zones, and with range ground or near the scenario's ground spaces
+ * (groundSpaces); undefined = no limit (far, an agent-run NPC, or no ground outlines kept for the scenario) */
 function chaseGround(state: GameState, a: Actor): Set<string> | undefined {
   if (a.mind?.control === 'agent') return undefined;
   const range = chaseRange(state, a);
@@ -81,8 +112,9 @@ function chaseGround(state: GameState, a: Actor): Set<string> | undefined {
   if (range === 'post') return new Set(post);
   const st = state.stage;
   if (!st.scenario?.ground) return undefined;
-  const ground = [...st.scenario.ground, ...(st.outer?.ground ?? [])];
-  return new Set([...post, ...zonesOfPlaces(state, groundPlaces(state, ground))]);
+  const spaces = groundSpaces(state, [...st.scenario.ground, ...(st.outer?.ground ?? [])]);
+  if (!spaces.length) return undefined;
+  return new Set([...post, ...spaces.map((z) => z.id)]);
 }
 
 /** CH5: the zones a code-run NPC may chase the player into; undefined = anywhere (far, an agent-run NPC, or a ground or

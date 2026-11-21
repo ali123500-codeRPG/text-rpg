@@ -15,7 +15,7 @@ import { logCode } from './effects';
 import { flushGrowth, keepGains, xpBar } from './growth';
 import { lootFoundBodies } from './loot';
 import { triggerErrors } from '../scenario/triggers';
-import { checkGround, offGround, onGround, pursuers } from './chase';
+import { checkGround, leftGround, offGround, pursuers, yourSide } from './chase';
 
 /** SC4: does a scenario of this scale hold smaller scenarios inside it */
 export const holdsInner = (s: ScenarioScale): boolean => SCENARIO_SCALES.pos(s) >= SCENARIO_SCALES.pos(CONFIG.SCENARIO_HOLDS_FROM as ScenarioScale);
@@ -81,9 +81,6 @@ function bandOut(state: GameState, band: string): boolean {
 export const foesIn = (state: GameState, place: string) => state.actors.filter((a) => actorIn(state, a, place) && isActive(a) && !a.mind?.moraleState
   && !!zoneById(state, a.zone) && stance(state, a, state.player) === 'hostile');
 
-/** BG-1508: your side: you, your bandmates and anyone following you (as travel.ts companions) */
-const yourSide = (state: GameState, a: Actor): boolean => a === state.player || a.bandId === state.player.bandId
-  || (a.mind?.routine?.id !== undefined && getLibrary().routines?.[a.mind.routine.id]?.kind === 'follow');
 /** BG-1508: someone named by a reach ending (the person, or any of the band) up, unbroken and in the place */
 const someoneIn = (state: GameState, w: { place: string; actor?: string; band?: string }): boolean => state.actors.some((a) =>
   (a.id === w.actor || (w.band !== undefined && a.bandId === w.band)) && isActive(a) && !a.mind?.moraleState && actorIn(state, a, w.place));
@@ -98,8 +95,8 @@ export function checkMet(state: GameState, w: EndCheck, events: GameEvent[], fra
   switch (w.kind) {
     case 'band_out': return bandOut(state, w.band);
     case 'reach': return w.actor !== undefined || w.band !== undefined ? someoneIn(state, w) : playerIn(state, w.place);
-    // BG-44: out of the place AND off the scenario's ground (a step into the lane mid-chase is not leaving)
-    case 'leave': return !playerIn(state, w.place) && !!frame?.beenIn?.includes(w.place) && !(frame.ground && onGround(state, frame.ground, state.player.zone));
+    // BG-44: out of the place AND off the scenario's ground (a step into the lane mid-chase is not leaving; D-217 a)
+    case 'leave': return !playerIn(state, w.place) && !!frame?.beenIn?.includes(w.place) && (!frame.ground || leftGround(state, frame));
     case 'find': return playerFound(state, w.actor);
     case 'hold': return state.player.core.inventory.some((i) => i.itemId === w.item);
     case 'deliver': return givenTo(state, events, w.item, w.to) > 0;
