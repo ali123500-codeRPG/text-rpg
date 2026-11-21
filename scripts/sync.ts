@@ -2,7 +2,7 @@
 //   (nothing)            fetch origin/main, rebase onto it, then check every line this branch added is still there
 //   --check <old head>   only the check, after a rebase or merge done by hand (`npm run sync -- --check ORIG_HEAD`)
 // A conflict stops the rebase with what to do, except one kind: both sides only added new entries at the same spot of
-// a newest-first log (LOGS below). Those are kept both, this branch's first, with no other change (autoResolve). Taking one side of a whole file (`git checkout --ours/--theirs`) drops
+// a log or ID table (LOGS below). Those are kept both, this branch's first, with no other change (autoResolve). Taking one side of a whole file (`git checkout --ours/--theirs`) drops
 // every edit of the other side in that file, which is how edits went missing before; the check catches that.
 // Plain-syntax TypeScript so Node 22 runs it as is; tests/unit/sync-check.test.ts checks the comparison.
 // @ts-expect-error Node types are not installed; Node runs this file
@@ -16,8 +16,12 @@ declare const process: { argv: string[]; exitCode?: number };
 
 const git = (...a: string[]): string => execFileSync('git', a, { encoding: 'utf8', maxBuffer: 1 << 28 });
 
-/** newest-first logs where two PRs adding an entry at the top always meet; only pure additions there are resolved */
-export const LOGS = ['CHANGELOG.md', 'docs/bug-fix-log.md'];
+/** logs and ID tables where two PRs adding an entry at the same spot (a log's top, a table's end) always meet; only
+ *  pure additions there are resolved */
+export const LOGS = [
+  'CHANGELOG.md', 'docs/bug-fix-log.md',
+  'docs/spec/deferred-items.md', 'docs/spec/deferred-items-archive.md', 'docs/spec/open-questions.md',
+];
 
 /** a conflicted file (diff3 marks) with both sides keeping, or null when any conflict is more than two insertions at one
  *  spot: the base between them must be empty. In a rebase "ours" is main and "theirs" is this branch's newer entry, so
@@ -95,7 +99,7 @@ function main(args: string[]): number {
   while (r.status !== 0) {
     const stuck = git('diff', '--name-only', '--diff-filter=U').split('\n').filter(Boolean);
     const fixed = stuck.length && stuck.every((f) => LOGS.includes(f))
-      ? stuck.map((f) => [f, autoResolve(readFileSync(f, 'utf8'), f !== 'CHANGELOG.md')] as const) : [];
+      ? stuck.map((f) => [f, autoResolve(readFileSync(f, 'utf8'), f === 'docs/bug-fix-log.md')] as const) : [];
     if (!fixed.length || fixed.some(([, text]) => text === null)) break;
     for (const [f, text] of fixed) { writeFileSync(f, text!); git('add', f); merged.add(f); }
     r = spawnSync('git', ['-c', 'core.editor=true', '-c', 'merge.conflictStyle=diff3', 'rebase', '--continue'], { stdio: 'inherit' });

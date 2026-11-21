@@ -1,6 +1,6 @@
 ## Deferred items
 
-These can wait until after the first build. Each item has a fixed ID (D-n) that is never renumbered or reused. Build the related parts as written or with placeholders, keep them easy to change, and ask before settling any of them.
+These can wait until after the first build. Each item has a fixed ID (D-n) that is never renumbered or reused; a new one is the number of its own closed GitHub issue (`docs/instructions.md` section 2; the owner, 21/11/2026, #1481), and below 1000 are the old count. Build the related parts as written or with placeholders, keep them easy to change, and ask before settling any of them.
 
 **Excluded for now:** criticals; skill-check margins; more than one damage type.
 
