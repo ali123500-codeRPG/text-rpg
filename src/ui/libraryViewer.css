@@ -39,8 +39,11 @@ body { --rail-w: 96px; grid-template-columns: var(--rail-w) minmax(0, 1fr); heig
 .lv-raw summary { cursor: pointer; color: var(--faint); font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: .1em; }
 .lv-raw pre { margin: var(--space-2) 0 0; padding: var(--space-3); background: var(--bg); border-radius: var(--r-md); font: 12px/1.45 var(--font-mono); overflow: auto; max-height: 420px; }
 .lv-rules { display: grid; gap: var(--space-1); padding: var(--space-2) var(--space-3); border-radius: var(--r-md); background: color-mix(in srgb, var(--accent) 6%, transparent); }
-.lv-armor { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--space-4); align-items: start; }
-.lv-fig { display: grid; justify-items: center; gap: 2px; }
+/* the figure sits beside its fields only while the fields keep room for a nested box; a narrow card (three across on a
+   desktop, or a phone) puts the figure above them, centred on its own line (BG-1761) */
+.lv-armor { display: flex; flex-wrap: wrap; gap: var(--space-4); align-items: start; }
+.lv-armor > :not(.lv-fig) { flex: 999 1 300px; min-width: 0; }
+.lv-fig { flex: 1 0 auto; display: grid; justify-items: center; gap: 2px; }
 .lv-credit { margin: 0; max-width: 170px; font-size: 11px; line-height: 1.35; color: var(--faint); text-align: center; }
 .lv-credit a { color: inherit; }
 .lv-ess { fill: var(--danger); background: var(--danger); }
@@ -324,7 +327,6 @@ body.lv-allmode .lv-body > :not(.lv-allres), body.lv-allmode .lv-filters, body.l
   .lv-refresh { margin-left: 0; }
   .lv-fbtn, .lv-fb, .lv-seg button { min-height: var(--touch); }
   .lv-row { grid-template-columns: 88px minmax(0, 1fr); gap: var(--space-2); }
-  .lv-armor { grid-template-columns: minmax(0, 1fr); }
   .lv-card { scroll-margin-top: calc(var(--bar-h) + 64px); }
   /* a view's small table becomes one small card per row, each value named by its column (labelCells: lv-ctbl, data-k) */
   .lv-ctbl, .lv-ctbl > tbody { display: block; width: auto; }
