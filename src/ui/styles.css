@@ -1764,12 +1764,13 @@ button.eq-name:focus-visible { outline: 2px solid var(--accent); outline-offset:
 /* D-141: the Vows section on the Quests page and the Witness chat */
 .vows > .head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
 .wit-pop { width: min(440px, calc(100vw - 32px)); }
-.wit-pop .dpop-body { display: grid; gap: var(--space-3); }
+.wit-pop .dpop-body { display: grid; gap: var(--space-3); justify-items: stretch; }
 .wit-log { display: grid; gap: var(--space-2); max-height: 40vh; overflow-y: auto; }
 .wit-log p { margin: 0; }
 .wit-witness { font-family: var(--font-story, inherit); }
 .wit-player { color: var(--muted); }
 .wit-card { display: grid; gap: var(--space-2); border: 1px solid var(--rule); border-radius: var(--r-md); padding: var(--space-3); }
 .wit-card[hidden] { display: none; }
+.wit-card > button { justify-self: start; }
 .wit-row { display: flex; gap: var(--space-2); align-items: end; }
 .wit-in { flex: 1; resize: vertical; }

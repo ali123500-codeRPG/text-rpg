@@ -12,6 +12,8 @@ import { closePop, openPop } from './pop';
 export const vowGoalText = (s: GameState, v: Vow): string => vowOwnGoalText(s, v) ?? questGoalText(s, v as Vow & { goal: Exclude<Vow['goal'], { kind: 'skill' | 'level' | 'achievement' | 'essence' | 'restraint' }> });
 const stakeText = (s: GameState, v: Vow) => `${REWARD_LEVELS.name(v.stake)} · ${v.xp ?? vowXp(s, v.stake)} Thread`;
 
+/** the table's open groups and sort live across redraws, as listPage keeps its own */
+const OPEN = new Set<string>(), SORT: { key: string; dir: 0 | 1 | -1 } = { key: 'text', dir: 0 };
 const COLS: Col[] = [{ key: 'text', title: 'Vow' }, { key: 'goal', title: 'Goal' }, { key: 'stake', title: 'Stake' }, { key: 'due', title: 'Due' }, { key: 'state', title: 'State' }];
 
 /** VW8 a: renouncing breaks the vow, so it asks once */
@@ -35,10 +37,9 @@ export function vowsSection(api: GameApi, s: GameState, redraw: () => void): HTM
     const cells = { text: v.text, goal: vowGoalText(s, v), stake: stakeText(s, v), due: v.state === 'active' ? dueText(v).replace(/^Due /, '') : '', state: VOW_STATE_NAME[v.state] };
     return { id: v.id, title: v.text, rows: [{ id: v.id, sortKey: v.startTurn, cells, ...(v.state === 'broken' ? { tones: { state: 'bad' as const } } : {}) }], combined: cells };
   });
-  const open = new Set<string>(), sort = { key: 'text', dir: 0 as const };
   return h('div', { class: 'sec vows' },
     h('div', { class: 'head' }, h('h2', {}, 'Vows'), swear),
-    groupedTable({ cols: COLS, groups, open, sort: sort as { key: string; dir: 0 | 1 | -1 }, redraw, emptyText: 'No vows yet.',
+    groupedTable({ cols: COLS, groups, open: OPEN, sort: SORT, redraw, emptyText: 'No vows yet.',
       onField: (row, key) => {
         const v = vows.find((x) => x.id === row.id);
         if (!v) return;
@@ -53,14 +54,14 @@ export function openWitness(api: GameApi, opener: HTMLElement, done: () => void)
   const log = h('div', { class: 'wit-log', role: 'log', 'aria-live': 'polite' });
   const card = h('div', { class: 'wit-card', hidden: true });
   const input = h('textarea', { class: 'hs-input wit-in', rows: 2, 'aria-label': 'Your words to the Witness', placeholder: 'A goal you mean to hold to' }) as HTMLTextAreaElement;
-  const send = h('button', { type: 'button', class: 'hs-btn-main' }, 'Send') as HTMLButtonElement;
+  const send = h('button', { type: 'button', class: 'hs-btn-text' }, 'Send') as HTMLButtonElement; // Swear is the one main button
   const say = (l: WitnessLine) => { chat.push(l); log.append(h('p', { class: `wit-${l.by}` }, l.text)); log.scrollTop = log.scrollHeight; };
   const showCard = (r: WitnessReply) => {
     const s = api.state();
     if (!s || !r.form || !r.vow) { card.hidden = true; return; }
     const v = r.vow, err = h('p', { class: 'hs-note tone-bad', hidden: true });
     card.replaceChildren(h('b', {}, v.text),
-      h('p', { class: 'hs-note' }, `${vowGoalText(s, v)} · ${dueText(v)} · stake ${stakeText(s, v)}`),
+      h('p', { class: 'hs-note' }, `${vowGoalText(s, v)} · ${dueText(v)} · Stake ${stakeText(s, v)}`),
       h('button', { type: 'button', class: 'hs-btn-main', onclick: () => {
         const why = api.swearVow(r.form!);
         if (why) { err.textContent = why; err.hidden = false; return; }
