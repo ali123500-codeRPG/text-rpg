@@ -1117,7 +1117,7 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-crumbs .sep { color: var(--faint); }
 .map-tools { position: absolute; right: 12px; bottom: 12px; display: flex; gap: 6px; }
 /* CO9: the height slider, lowest height at the bottom; the stops beside it name each height the map has */
-.map-floors { position: absolute; left: 12px; bottom: 40px; display: grid; gap: var(--space-2); padding: var(--space-2) var(--space-3);
+.map-floors { position: absolute; left: 12px; bottom: 76px; display: grid; gap: var(--space-2); padding: var(--space-2) var(--space-3);
   border: 1px solid var(--border); border-radius: var(--r-md); background: color-mix(in srgb, var(--bg) 85%, transparent); }
 .map-floors[hidden] { display: none; }
 .map-floor-track { display: flex; gap: var(--space-2); align-items: stretch; }
