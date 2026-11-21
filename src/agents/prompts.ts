@@ -339,7 +339,7 @@ const ROSTER_RULE = [
   `   (land.sites[].roster), a road its travellers (roads[].travellers), a landmark its people (landmarks[].people).`,
   `   Cast each entry for the ground you build once, naming its key in roster: code has set who they are and how strong`,
   `   (is), and you give the name, look, routine and band. A group entry is one cast entry, its leader (label, name and look are the leader's alone); code adds its followers. An`,
-  `   entry with goals is a seat of the Great or a village's warden: give them a name, the deeds that made them (motive) and 1 to ${CONFIG.GOALS_HELD} goals;`,
+  `   entry with goals is a seat of the Great or a warden: give them a name, the deeds that made them (motive) and 1 to ${CONFIG.GOALS_HELD} goals;`,
   `   people call a seat of the Great one of the Great, a warden by their post, never by a rank.`,
 ].join('\n');
 export const WEAVER_INSTRUCTIONS = [

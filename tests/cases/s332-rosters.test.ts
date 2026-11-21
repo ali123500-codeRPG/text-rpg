@@ -63,13 +63,26 @@ describe('332 rosters and groups', () => {
     expect(h.length).toBeGreaterThanOrEqual(1); expect(h.length).toBeLessThanOrEqual(2);
     const hooks = getLibrary().hookKinds!;
     expect(v.slice(0, 3).map((e) => e.who)).toEqual([hooks[HK.leader].name, hooks[HK.service].name, hooks[HK.warden].name]);
-    expect(t.slice(0, 6).map((e) => e.who)).toEqual([HK.leader, HK.service, HK.seat, HK.trader, HK.watch, HK.rival].map((id) => hooks[id].name));
     const seat = (es: typeof v) => es.find((e) => e.goals)!;
+    const great = pos(seat(t).compose!.rank) >= pos(CONFIG.GREAT_FROM); // GW7 a: a seat below the Great is the town's Warden
+    expect(t.slice(0, 6).map((e) => e.who)).toEqual([HK.leader, HK.service, great ? HK.seat : HK.warden, HK.trader, HK.watch, HK.rival].map((id) => hooks[id].name));
     expect(pos(seat(v).compose!.rank)).toBeGreaterThanOrEqual(pos('rank_3'));
     expect(pos(seat(t).compose!.rank)).toBeGreaterThanOrEqual(pos('rank_5'));
     expect(t.find((e) => e.who === hooks[HK.watch].name)!.group!.id).toBe(GP.watch_patrol);
     expect(v[0].compose!.role).toBe(RO.leader);
     for (const e of [...v, ...t, ...h]) if (e.compose) expect([RC.human, RC.elf]).toContain(e.compose.race);
+  });
+
+  it('GW7 a (BG-1792): a town seat below the Great is its Warden, never called one of the Great; one stepped up is the Seat of the Great', () => {
+    const hooks = getLibrary().hookKinds!, seen = new Set<string>();
+    for (let i = 0; i < 40; i++) {
+      const e = siteRoster({ ...site('town'), id: `town_${i}` }).find((x) => x.goals)!;
+      const great = pos(e.compose!.rank) >= pos(CONFIG.GREAT_FROM);
+      expect(e.hook).toBe(great ? HK.seat : HK.warden);
+      expect(hooks[e.hook!].roles).toContain(e.compose!.role); // the hook it ends up as picks the role
+      seen.add(e.hook!);
+    }
+    expect([...seen].sort()).toEqual([HK.seat, HK.warden].sort()); // the step up still seats one of the Great over some towns
   });
 
   it('TL24: a city seats a Beyond and a court a Mythic; their must-haves are always there', () => {

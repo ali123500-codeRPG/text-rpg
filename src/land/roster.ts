@@ -8,10 +8,10 @@ import type { CastRecipe, RecipePart, HookKindDef, MeetRow, SettlementSize } fro
 import { getLibrary } from '../library';
 import { CONFIG } from '../config';
 import { RANKS, type GrandeurKey, type RankKey } from '../scales';
-import { rankAbove } from '../library/spawn';
+import { rankAbove, rankPos } from '../library/spawn';
 import { createRng, textSeed } from '../rng';
 import { RC } from '../library/raceIds';
-import { PF } from '../library/npcLayerIds';
+import { HK, PF } from '../library/npcLayerIds';
 
 type Rng = ReturnType<typeof createRng>;
 /** a composition as a cast entry names it (NG15) */
@@ -58,9 +58,12 @@ export function siteRoster(site: Site): RosterEntry[] {
   while (hooks.length < n) hooks.push(pick(rng, row.pool));
   const R = CONFIG.ROSTER_RANKS;
   return hooks.slice(0, Math.max(n, row.must.length)).map((id, i) => {
-    const h = lib.hookKinds![id], key = `${site.id}.h${i + 1}`;
+    let h = lib.hookKinds![id];
+    const key = `${site.id}.h${i + 1}`;
     const rank = h.rank === 'seat' ? (() => { const r = rollWeights(rng, R.seat[site.size]); return rng.int(1, 100) <= CONFIG.SEAT_STEP_UP_PCT ? rankUp(r) : r; })()
       : rollWeights(rng, h.rank === 'threat' ? R.threat[site.size] : R[h.rank]);
+    // GW7 a (BG-1792): the Great are past the mortal limit, so a seat rolled below CONFIG.GREAT_FROM is the place's Warden
+    if (id === HK.seat && rankPos(rank as RankKey) < rankPos(CONFIG.GREAT_FROM)) h = lib.hookKinds![HK.warden];
     const gs = hookGroups(h, site.size);
     if (gs.length) return groupEntry(key, lib.castRecipes![pick(rng, gs)], rank, h);
     // NR40 a: a seat of the Great is always grand
