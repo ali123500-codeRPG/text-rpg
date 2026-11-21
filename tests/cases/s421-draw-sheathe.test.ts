@@ -77,6 +77,10 @@ it('DS6/DS8: steel in hand lifts the speaker\'s threat and weighs on persuading 
   expect(steel(SK.intimidation)).toBeGreaterThan(0);
   expect(steel(SK.persuasion)).toBeLessThan(0);
   expect(steel(SK.barter)).toBeLessThan(0);
+  s.player.core.skills[SK.persuasion] = { ...s.player.core.skills[SK.persuasion], raw: 10 };
+  s.player.core.skills[SK.intimidation] = { ...s.player.core.skills[SK.intimidation], raw: 60 };
+  expect(rollSetup({ actorId: 'player', skill: SK.persuasion, modifiers: [], tierShifts: [] }, s).eff.skill).toBe(SK.intimidation);
+  expect(steel(SK.persuasion)).toBeGreaterThan(0); // it follows the skill rolled: Intimidation standing in gets the threat's step
   for (const i of s.player.core.inventory) if (i.equippedIn?.some((e) => e.startsWith('grip:'))) delete i.equippedIn;
   expect(steel(SK.intimidation)).toBe(0); // sheathed: words only
 });
