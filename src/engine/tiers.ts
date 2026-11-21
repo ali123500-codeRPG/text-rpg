@@ -11,7 +11,8 @@ import { perkSum } from '../ruleset/perks';
 import type { Actor, GameState } from '../types';
 import type { TurnInput } from './types';
 import { drawnTo } from './perkMarks';
-import { leastGapM } from './position';
+import { frontierPoint, leastGapM, pathM } from './position';
+import { turnMetres } from './speed';
 import { actorById, atLeast, bandById, foe, isActive, isEngaged, mayFight } from './relations';
 import { perceivesNow } from './yield';
 
@@ -19,8 +20,9 @@ import { perceivesNow } from './yield';
  * player in its own; (2) has its mind on the player (follows them, believes in them at Tracking or above, heads to where it
  * thinks they are, or holds a goal or a plan trigger that names them); (3) is in a fight or within sense range of a foe;
  * (4) is within sense range of anyone under 1 to 3. Also anyone the player's intent names, and anyone whose turn something other than its routine takes (a trigger,
- * its agent, an alert, flight, a long action, a hold, a suspicion, a draw), so nothing under way is cut off, and anyone at the edge of unbuilt ground, whose step
- * into it starts its building (NW3), which the catch-up, stopping there, would not. */
+ * its agent, an alert, flight, a long action, a hold, a suspicion, a draw), so nothing under way is cut off, and anyone walking to
+ * unbuilt ground who reaches its way within this turn's walk, whose step into it starts its building (NW3), which the catch-up,
+ * stopping there, would not. */
 export function relevantActors(state: GameState, input: Pick<TurnInput, 'intent' | 'agentOutputs' | 'spokespeople' | 'fired'>): Set<string> {
   const p = state.player;
   const npcs = state.actors.filter(isActive);
@@ -28,12 +30,11 @@ export function relevantActors(state: GameState, input: Pick<TurnInput, 'intent'
   const near = senseRange(state);
   const taken = new Set<string>([...(input.fired ?? []).map((o) => o.actorId), ...input.agentOutputs.map((o) => o.actorId), ...input.spokespeople, ...(state.pending?.engaged ?? []),
     ...named(input.intent)]);
-  const edge = new Set(state.openings.filter((o) => o.frontier).map((o) => o.joins[0]));
   const holding = new Set(state.actors.map((a) => a.heldBy).filter((h): h is string => !!h));
   for (const a of npcs) {
     const m = a.mind;
     const busyTurn = taken.has(a.id) || !!m?.alarm?.onAlertDue || !!m?.moraleState || !!a.busy || !!a.heldBy || holding.has(a.id)
-      || !!(m?.suspects && Object.keys(m.suspects).length) || !!drawnTo(state, a) || isEngaged(state, a) || edge.has(a.zone);
+      || !!(m?.suspects && Object.keys(m.suspects).length) || !!drawnTo(state, a) || isEngaged(state, a) || reachesFrontier(state, a);
     if (busyTurn || mindOnPlayer(state, a) || near(p, a)) out.add(a.id);
   }
   // 3: a foe pair within sense range of each other, either way
@@ -45,6 +46,19 @@ export function relevantActors(state: GameState, input: Pick<TurnInput, 'intent'
   const core = [...out].map((id) => actorById(state, id)).filter((x): x is Actor => !!x);
   for (const x of npcs) if (!out.has(x.id) && core.some((r) => near(r, x))) out.add(x.id);
   return out;
+}
+
+/** NW3, BG-1619 (WT15 a): `a` is heading for a frontier way (a head routine bound to it) and reaches its point within one
+ * turn's walk (walked metres), so it steps into the unbuilt ground this turn */
+function reachesFrontier(state: GameState, a: Actor): boolean {
+  const m = a.mind, dest = m?.slots?.dest, key = Array.isArray(dest) ? dest[0] : dest;
+  if (!m?.routine || !key || routine(m.routine.id).kind !== 'head') return false;
+  const walk = turnMetres(state, a, 'move');
+  return state.openings.some((o) => {
+    if (!o.frontier || o.joins[1] !== key) return false;
+    const at = frontierPoint(state, o.joins[0], key);
+    return !!at && pathM(state, a, { zone: o.joins[0], pos: at }, a) <= walk;
+  });
 }
 
 /** 2: its mind is on the player */

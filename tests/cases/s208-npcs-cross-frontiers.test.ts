@@ -14,19 +14,22 @@ import { headTo, routineOrder } from '../../src/minds';
 import { zoneById } from '../../src/engine/relations';
 import { waysOut } from '../../src/plan/where';
 import { addFrontier } from '../../src/plan/draw';
-import { unplace } from '../../src/engine/position';
+import { frontierPoint, titleMiddle } from '../../src/engine/position';
 
 const idle: Intent = { move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null, action: null };
 const go = (to: string): Intent => ({ ...idle, move: { toZone: to } });
 const turn = (s: GameState, intent: Intent = idle) => { s.turn += 1; return resolveTurn(s, { intent, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(1)); };
 const village = (playerZone: string) => makeVillage({ playerZone, without: ['slime_1', 'slime_2', 'patron_1'] });
-/** the guard stands at the field's far edge, heading into the woods */
-const guardToWoods = (s: GameState) => {
-  const g = s.actors.find((a) => a.id === 'guard_1')!;
-  g.zone = 'field_far'; g.placeId = 'field'; unplace(s, g);
-  headTo(s, g, 'woods');
-  return g;
+/** `id` stands a step in from the way out of `zone` to the unbuilt `key`, heading there (BG-1619: within this turn's walk of it) */
+const byWay = (s: GameState, id: string, zone: string, placeId: string, key: string) => {
+  const a = s.actors.find((x) => x.id === id)!, at = frontierPoint(s, zone, key)!, mid = titleMiddle(zoneById(s, zone)!);
+  const d = Math.hypot(mid.x - at.x, mid.y - at.y);
+  Object.assign(a, { zone, placeId, pos: { x: at.x + (mid.x - at.x) / d, y: at.y + (mid.y - at.y) / d }, floor: mid.floor });
+  headTo(s, a, key);
+  return a;
 };
+/** the guard stands at the field's far edge, heading into the woods */
+const guardToWoods = (s: GameState) => byWay(s, 'guard_1', 'field_far', 'field', 'woods');
 const flush = () => new Promise((r) => setTimeout(r, 0)); // every pending background step settles
 
 describe('208 NPCs and unbuilt frontiers (NW3, NW8)', () => {
@@ -60,9 +63,7 @@ describe('208 NPCs and unbuilt frontiers (NW3, NW8)', () => {
     const s = village('tav_cellar');
     addFrontier(s, zoneById(s, 'gate_inner')!, 'east_road', 'the east road');
     const g = guardToWoods(s);
-    const t = s.actors.find((a) => a.id === 'trader')!;
-    t.zone = 'gate_inner'; t.placeId = 'gate'; unplace(s, t);
-    headTo(s, t, 'east_road');
+    byWay(s, 'trader', 'gate_inner', 'gate', 'east_road');
     turn(s);
     expect((s.scratch?.frontierWaits as unknown[]).length).toBe(2);
     const weave = vi.fn(async (_v: WeaverView) => null as StagePlan | null);

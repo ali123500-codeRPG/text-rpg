@@ -490,7 +490,8 @@ type ActivityDef = {
   time the turn took at the travel speed (travelSpeed, the road travel rule), less what its own move already walked
   (NW11, BG-151).
 - **GSM-261** It is one jump, with no Claude calls; it stops at a way that is not simply open and at an unbuilt
-  frontier, and a road is walked by its length.
+  frontier (one heading there walks on to the point of that way, not only into its title, BG-1619), and a road is walked
+  by its length.
 - **GSM-262** A way it can open itself (its key turns the lock, or it is on the bolt's side) it opens and walks
   through when it happens out of the player's sight (no clear line from the player to the way within the glimpse range
   of someone walking, SIGHT\_M normal), and leaves it as it was where it can: the key locks it again from either side,
@@ -504,8 +505,9 @@ type ActivityDef = {
   it is in a fight or within sense range of a foe; (4) it is within sense range of anyone under 1 to 3; or the player's intent names it (its target, whom it speaks
   to, walks near or buys for); or something
   other than its routine takes its turn (a trigger, its agent, an alert, flight, a long action, a hold, a suspicion, a
-  draw); or it stands at the edge of unbuilt ground, where its step in starts the building (NW3) and the catch-up
-  stops. The rest get no order that turn: their routines move them at the turn's end by the catch-up above, and they
+  draw); or it is heading for unbuilt ground (a head routine bound to a frontier way) and reaches that way's point
+  within one turn's walk (walked metres, turnMetres), where its step in starts the building (NW3) and the catch-up stops
+  (BG-1619, WT15 a: not anyone in a title that has such a way). The rest get no order that turn: their routines move them at the turn's end by the catch-up above, and they
   still perceive what relevant actors do. Worked out afresh every turn (src/engine/tiers.ts); nothing about it is
   saved.
 - **GSM-264** On a turn that took one action's time, each leg of the catch-up is a move event like any walk, perceived

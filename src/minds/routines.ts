@@ -51,7 +51,7 @@ export function slotsRead(r: Routine): string[] {
   return [...s];
 }
 
-export function desiredState(view: RoutineInput): { zone: string; activity: string; unbound?: true } | null {
+export function desiredState(view: RoutineInput): { zone: string; activity: string; unbound?: true; frontier?: string } | null {
   const cur = view.self.routine;
   if (!cur) return null;
   const r = getRoutine(cur.id);
@@ -64,7 +64,7 @@ export function desiredState(view: RoutineInput): { zone: string; activity: stri
     const dest = view.self.slots.dest;
     const g = headGoal(view, (Array.isArray(dest) ? dest[0] : dest) ?? view.self.zone);
     // a destination gone from its map (or never bound): it stays where it is until code sends it back
-    return { zone: g?.zone ?? view.self.zone, activity: r.activity ?? 'walk' };
+    return { zone: g?.zone ?? view.self.zone, activity: r.activity ?? 'walk', ...(g?.frontier ? { frontier: g.frontier } : {}) };
   }
   if (r.kind === 'wait') {
     const here = view.self.slots.here;
