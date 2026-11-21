@@ -176,6 +176,13 @@ export function equations(lib: Library): EquationGroup[] {
           `Natural armor (a boar's shield, a crocodile's plates) uses the same equation with the owner's Hide skill in place of the need, times its race's hide: ARMOR_FACTOR × Hide × race hide (naturalReduction); its multiplier is light armor's.`,
           `A shield's pool is POOL_BASE (${n(CONFIG.POOL_BASE)}) + POOL_FACTOR (${n(CONFIG.POOL_FACTOR)}) × its need; a minted shield adds POOL_QUALITY_FACTOR (${n(CONFIG.POOL_QUALITY_FACTOR)}) × need × quality, rounded. A blow on a shield drains its pool by the damage (×${n(CONFIG.SHIELD_BREAKER_MULT)} with Shield Breaker; ×${n(CONFIG.IRON_RIM_MULT)} with Iron Rim).`] },
     ] },
+    { key: 'healing', title: 'Healing', about: 'How a heal splits between health and the body parts.', equations: [
+      { name: 'Heal split', at: 'applyHealing · woundsPct · src/engine/heal.ts',
+        formula: 'health lost falls by the row\'s % of total HP; share = that % ÷ wounds, at most 1; each part the row reaches gets back share × what its pool is missing',
+        terms: [['wounds', `the general area's share of health lost (health lost − what the parts add to it, never below 0) + what each part the row reaches adds: missing pool % × its size share (${Object.entries(CONFIG.PART_SHARE).map(([k, v]) => `${k} ${n(v)}`).join(', ')}) × its impact (${Object.entries(CONFIG.IMPACT_MULT).map(([k, v]) => `${k} ${n(v)}`).join(', ')}; a non-essential part counts as normal here)`],
+          ['reach', 'a part worse than the row\'s reach is skipped and left out of the wounds, so the parts it reaches mend faster']],
+        notes: ['Every wound a heal reaches mends the same share, so a badly hurt part gets more back than a scratched one. A Crippled part mends from where it is. The Heal skill mends its tier\'s share (HEAL_TIER_SHARE) of every wound it reaches; natural recovery heals Endurance × its % an hour.'] },
+    ] },
     { key: 'gain', title: 'Skill gain', about: 'How a marked skill improves.', equations: [
       { name: 'When skills roll to improve', at: 'payScenario · scenarioRolls · src/engine/growth.ts',
         formula: CONFIG.GROWTH_AT_SCENARIO_END ? 'at the end of a scenario: rolls = round(owed rolls marked in it × tier share × ending factor) + rolls past Critical Success + the low-level bonus, dealt to the marked skills by their owed rolls' : 'at the end of the turn a skill is marked, it makes the improvement roll(s) it is owed',

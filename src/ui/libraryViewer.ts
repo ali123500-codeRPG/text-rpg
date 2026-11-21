@@ -519,7 +519,7 @@ function restores(d: HealingDef): string {
     return `every hour, ${d.hourly.pctPerPoint} % of max health per ${skillName(d.hourly.skill)} point (${at50} % at 50)`;
   }
   const calm = d.composure ? lib.composure?.[d.composure] : undefined; // morale comes from the composure table's row
-  const parts = [d.hpPct ? `${d.hpPct} % health` : '', d.partPct ? `${d.partPct} % to body parts` : '', calm?.pct ? `${calm.pct} % morale` : ''].filter(Boolean);
+  const parts = [d.hpPct ? `${d.hpPct} % health` : '', d.hpPct ? 'body parts by their share' : '', calm?.pct ? `${calm.pct} % morale` : ''].filter(Boolean);
   return parts.length ? parts.join(', ') : 'nothing';
 }
 function healing(): HTMLElement[] {
@@ -527,7 +527,7 @@ function healing(): HTMLElement[] {
     [d.countOnly ? chip('tally only') : null, d.composure ? chip('morale') : null],
     row('Restores', restores(d)),
     d.composure ? row('Morale from', link('composure', d.composure, lib.composure?.[d.composure]?.name ?? d.composure), ' (composure row)') : null,
-    ...fields(d as unknown as Entry, ['id', 'name', 'hpPct', 'partPct', 'composure', 'hourly', 'countOnly']))))];
+    ...fields(d as unknown as Entry, ['id', 'name', 'hpPct', 'composure', 'hourly', 'countOnly']))))];
 }
 // Composure: what restores morale, its own table so it tunes apart from healing; a healing row names the row it also restores
 function composureText(d: ComposureDef): string {
@@ -1177,7 +1177,7 @@ const FACETS: Record<string, Facets> = {
   fears: (f: FearDef) => [['Roll', f.rolled ? 'rolled' : 'flat'], ['Cost', f.partCost || f.partCostOf ? 'by part' : f.perTier ? 'per tier' : f.cost < 0 ? 'restores' : 'flat cost'], ['Part', f.part && PART_STATES.name(f.part)]],
   gearClasses: (g: { use?: string }) => [['Use', g.use]],
   healing: (d: HealingDef) => [['Reach', d.reach], ['Restores', d.hourly ? 'health hourly' : undefined],
-    ...(['hpPct', 'partPct', 'composure'] as const).filter((k) => d[k]).map((k): [string, string] => ['Restores', { hpPct: 'health', partPct: 'body parts', composure: 'morale' }[k]])],
+    ...(['hpPct', 'composure'] as const).filter((k) => d[k]).map((k): [string, string] => ['Restores', { hpPct: 'health and body parts', composure: 'morale' }[k]])],
   races: (r: { intelligence?: string }) => [['Intelligence', r.intelligence && INTELLIGENCE.name(r.intelligence as 'intelligent')]],
   starts: (s: { blessing?: unknown }) => [['Kind', s.blessing ? 'blessing' : 'class']],
   classes: (c: ClassDef) => [['Tier', CLASS_TIERS.name(c.tier)], ['Kind', c.fallback ? 'default class' : startsOf(c).length ? 'class of a Start' : 'unlocked in play']],

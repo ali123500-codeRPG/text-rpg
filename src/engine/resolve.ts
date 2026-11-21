@@ -169,6 +169,7 @@ import {
 } from './position';
 import {
   applyHealing,
+  woundsPct,
   calm,
   healFromPerk,
   minutesSinceRest,
@@ -2003,7 +2004,7 @@ function doHeal(ctx: Ctx, a: Actor, o: Order): void {
   ev.roll = r; ev.tier = r.tier;
   const share = healShare(tierLevel(r));
   if (share > 0) {
-    applyHealing(state, t, HL.heal, { pct: Math.max(c.hpLostPct, ...Object.values(c.parts).map((v) => 100 - v)) * share });
+    applyHealing(state, t, HL.heal, { pct: woundsPct(state, t, getLibrary().healing![HL.heal].reach) * share }); // D-114: the tier's share of every wound it reaches
     ev.effects.push({ kind: 'healed', actorId: t.id, data: { source: HL.heal } });
   }
   emit(ctx, ev);

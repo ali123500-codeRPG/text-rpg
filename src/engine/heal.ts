@@ -2,9 +2,11 @@
 // this one rule, so amounts stay consistent (B5) and new sources or tiers are new rows (H1).
 import { CP, HL } from '../library/tableIds';
 import type { Actor, GameState } from '../types';
-import { getLibrary } from '../library';
-import { PART_STATES } from '../scales';
+import { PART_STATES, type PartStateKey } from '../scales';
+import { CONFIG } from '../config';
+import { actorBody, getLibrary } from '../library';
 import { recoveryMult, healthLevel, partStates, totalHp, trueSkill } from '../ruleset';
+import { partPct, poolState } from '../ruleset/body';
 import { isActive } from './relations';
 import { logCode } from './effects';
 import { bestReward } from '../ruleset/achRewards';
@@ -70,10 +72,21 @@ const wouldCalm = (a: Actor, sourceId?: string): boolean => {
   return !!src && !src.countOnly && (src.pct > 0 || (src.points ?? 0) > 0) && moraleLost(a) > 0;
 };
 
-/** Restores the row's share of HP and of each part pool (`pct` replaces both, for hourly rows). A part heals only if its state is no worse
- * than the row's reach (H4/H12); a Crippled or worse part a row reaches starts again from 0. Destroyed parts need a row
- * that reaches them (OQ-6: a special perk, item or story event). `quiet` logs only a visible change (passive healing).
- * Returns false if nothing changed. */
+/** D-114 (HD1–HD5): how much of its wounds a row's heal mends, in % of total HP: the general area's share of health lost
+ * (what the parts' hits do not explain) plus each part the row reaches, by what it adds to health lost (× its impact; a part
+ * that costs no health counts as a normal part). A part worse than the row's reach is left out (H4). */
+export function woundsPct(state: GameState, a: Actor, reach: PartStateKey): number {
+  const parts = actorBody(state, a).parts, lost = (id: string) => Math.max(0, 100 - partPct(a, id));
+  const inHealth = parts.reduce((t, p) => t + lost(p.id) * CONFIG.PART_SHARE[p.size] * CONFIG.IMPACT_MULT[p.impact], 0);
+  const general = Math.max(0, a.core.condition.hpLostPct - inHealth);
+  return general + parts.filter((p) => PART_STATES.pos(poolState(partPct(a, p.id))) <= PART_STATES.pos(reach))
+    .reduce((t, p) => t + lost(p.id) * CONFIG.PART_SHARE[p.size] * (CONFIG.IMPACT_MULT[p.impact] || 1), 0);
+}
+
+/** Heals the row's flat % of total HP (`pct` replaces it, for hourly rows and Heal). Every wound the row reaches mends the
+ * same share: heal ÷ woundsPct, at most 1, so each reached part gets back that share of what its pool is missing (a Crippled
+ * part too, from where it is). Destroyed parts need a row that reaches them (OQ-6: a special perk, item or story event).
+ * `quiet` logs only a visible change (passive healing). Returns false if nothing changed. */
 export function applyHealing(state: GameState, a: Actor, sourceId: string, opts: { pct?: number; quiet?: boolean; share?: number } = {}): boolean {
   const src = getLibrary().healing?.[sourceId];
   if (!src) return false;
@@ -84,14 +97,17 @@ export function applyHealing(state: GameState, a: Actor, sourceId: string, opts:
   const lost = c.hpLostPct;
   const extra = sourceId === HL.rest ? bestReward(a, 'restPct')?.value ?? 0 : 0; // an achievement reward: + % on each rest
   const share = opts.share ?? 1; // AT27: an action whose output is a share, broken off, heals by the share it ran
-  c.hpLostPct = Math.max(0, lost - (opts.pct ?? src.hpPct + extra) * share);
+  const amount = (opts.pct ?? src.hpPct + extra) * share;
+  const wounds = woundsPct(state, a, src.reach);
+  const mend = wounds > 0 ? Math.min(1, amount / wounds) : 0;
+  c.hpLostPct = Math.max(0, lost - amount);
   const reach = PART_STATES.pos(src.reach);
   const changed: { id: string; from: string; to: string }[] = [];
   let healed = false;
   for (const p of before) {
     if (!(p.id in c.parts) || PART_STATES.pos(p.state) > reach) continue;
     const pct = c.parts[p.id];
-    c.parts[p.id] = Math.min(100, Math.max(0, pct) + (opts.pct ?? src.partPct + extra) * share);
+    c.parts[p.id] = pct + mend * (100 - pct);
     healed ||= c.parts[p.id] !== pct;
   }
   for (const p of partStates(state, a)) {
@@ -114,7 +130,7 @@ export function wouldHeal(state: GameState, a: Actor, sourceId: string): boolean
   if (c.hpLostPct > 0 && src.hpPct > 0) return true;
   if (wouldCalm(a, src.composure)) return true;
   const reach = PART_STATES.pos(src.reach);
-  return src.partPct > 0 && partStates(state, a).some((p) => p.id in c.parts && c.parts[p.id] < 100
+  return src.hpPct > 0 && partStates(state, a).some((p) => p.id in c.parts && c.parts[p.id] < 100
     && PART_STATES.pos(p.state) <= reach);
 }
 
