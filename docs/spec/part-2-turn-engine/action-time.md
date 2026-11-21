@@ -44,7 +44,7 @@ BG/D numbers) sits in one trailing parenthesis.
 - **ACT-33** One shot time per weapon class, all Hard: light bows 3 s, medium bows 4 s, crossbows 5 s (locks, steady)
   (TP9 a; once light bow 5 s, medium bow 6 s, crossbow 2 s Light).
 - **ACT-34** A crossbow's spanning is a row of its own that is instant for every crossbow (TP6 f, TP8 a: once light 4 s,
-  stirrup 8 s, heavy 28 s all-out).
+  stirrup 8 s, heavy 28 s all-out). There is no reloading for now (D-96).
 - **ACT-35** Battle Cry 1 s; plain talk instant in a fight (TP6 c, TK6), and a turn of it outside a fight 3 s like skill
   speech (the world moves on while you talk); persuading, lying or threatening 3 s however long the words (TK1 c, the
   Speech row); barks stay free (AE7).

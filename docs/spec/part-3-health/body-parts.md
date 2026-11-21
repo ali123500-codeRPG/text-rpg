@@ -48,7 +48,7 @@ Size is set per body type, not per part name: one body type can have big arms an
 | --- | --- | --- | --- | --- |
 | Sense (head) | Yes | −13% | −27% to all checks | Perception and mental checks when Damaged; every check when Crippled |
 | Grip (arm) | No: per limb | −13% | Unusable: keeps holding its item but can't attack, block or use a tool with it; no two-handed actions. A Destroyed arm drops what it held to the ground (Part 5 §4). | Anything done with that limb: melee, shooting, climbing, fine work |
-| Move (legs) | Yes | −13% | −27% to dodge (movement effects: D-99) | Dodge, athletics, stealth, fleeing |
+| Move (legs) | Yes | −13% | −27% to dodge (movement effects: D-248) | Dodge, athletics, stealth, fleeing |
 | Fly (wing) | Yes | −13% to flying | Can't fly | Flight |
 | Strike (tail, horns, bite) | No: per part | −13% to that attack | That attack is unavailable | Attacks made with the part |
 | Speech (head) | Yes | −13% | −27% | Speech rolls: persuasion, intimidation, barter (Ali, 08/11/2026). With a Crippled head a speech roll takes both −27%s, stacked within the wounds type (SR4) |
