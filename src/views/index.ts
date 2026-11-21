@@ -66,7 +66,8 @@ import { fightingWith } from '../engine/engagement';
 import { PK } from '../library/perkIds';
 import { readsHealthOf } from '../ruleset/achRewards';
 import { IT } from '../library/itemIds';
-import { cap, listWords, mentions, r1, theItem, theOf } from '../words';
+import { OP } from '../library/tableIds';
+import { cap, listWords, mentions, r1, theItem, theName, theOf } from '../words';
 import { clutterCover, gripsOf, isAccSlot, isGripSlot, isHeld, meleeReachM, modeName, pieceName, usableModes } from '../ruleset/gear';
 import { partName, usableGrips } from '../ruleset/body';
 import { met, outcomeText } from '../ruleset/hits';
@@ -570,9 +571,17 @@ function walkingOf(state: GameState, p: Actor, seen: SeenActor[]): { walking?: W
   // a door or a bed by it
   const ref = w.spot?.near, near = ref ? seen.find((a) => a.id === ref) : undefined;
   const piece = ref && !near && w.then ? furnitureIn(state, w.toZone).find((f) => f.id === ref)?.name : undefined;
-  const thing = piece ? theItem(piece) : ref && !near && w.then ? wayTo(state, w.toZone, ref)?.label : undefined;
+  const thing = piece ? theItem(piece) : ref && !near && w.then ? doorName(state, p, w.toZone, ref) : undefined;
   return { walking: { toZone: w.toZone, to: near ? near.name ?? near.label : thing ?? zoneById(state, w.toZone)?.name ?? w.toZone, metres: Math.round(m), seconds: Math.round(m / walk),
     ...(w.then ? { then: thenName(state, w.then) } : {}) } };
+}
+/** MQ21 b: a door as the player knows it: its kind (the barrier on it, else a doorway's door), and where it leads once
+ * they know that title ("the door to the common room", "the gate"); any other way by its label */
+function doorName(state: GameState, p: Actor, from: string, to: string): string | undefined {
+  const w = wayTo(state, from, to), b = barrierOn(state, w), kind = b ? barrierName(b) : w?.opening.kind === OP.doorway ? 'door' : undefined;
+  if (!kind) return w?.label;
+  const far = p.journal?.zonesSeen?.includes(to) ? zoneById(state, to)?.name : undefined;
+  return `the ${kind}${far ? ` to ${theName(far)}` : ''}`;
 }
 /** MQ15 a: the action a walk carries, by its deck name (a way op by its own word) */
 const THEN_NAME: Record<string, string> = { pick: 'pick a lock', open: 'open', filch: 'filch', sleep: 'sleep', hold: 'pick up' };
