@@ -139,7 +139,7 @@ export const MOD_SOURCES: ModSource[] = [
   { type: 'situational', roll: 'skill', source: 'Lock or grade', at: 'src/ruleset/index.ts', when: 'SE23\'s grade modifier, on rolls in doubt (OD1 b): lock rolls (Filching, BA2) and breaking a container open (BF31) with the weapon in hand (bare hands: Improvised), at the lock\'s grade (shown as lock); use, interact, observe and other at the grade of what they act on, else the Parser\'s (OD3, shown as grade).', value: GRADES.map((k) => `${GRADE_LEVELS.name(k)} ${sg(gradeMod(CONFIG.DIFFICULTY[k]))}`).join(' · ') },
   { type: 'situational', roll: 'skill', source: 'Repeat try', at: 'src/ruleset/pressure.ts',
     when: 'Persuading, lying, threatening or haggling again at the same listener, out of a fight (plain talk never counts; in a fight there is no repeat penalty, TF9).', value: `−${CONFIG.REPEAT_TRY}% × earlier tries${OF_AVG}` },
-  { type: 'situational', roll: 'skill', source: 'Steel in hand', at: 'src/ruleset/index.ts', when: 'The speaker\'s own Intimidation, Persuasion or Barter roll while a weapon is in their hand (DS6).',
+  { type: 'situational', roll: 'skill', source: 'Steel in hand', at: 'src/ruleset/index.ts', when: 'The speaker\'s own Intimidation, Persuasion or Barter roll while a weapon is in their hand, by the skill rolled (DS6).',
     value: pctList(Object.fromEntries(Object.entries(CONFIG.STEEL_SPEECH).map(([k, v]) => [skillName(k), v]))) },
   { type: 'situational', roll: 'skill', source: 'Coin offered', at: 'src/engine/speech.ts', when: 'A bribe in a fight (TF10): the briber\'s Barter roll, by the coin offered against the listener\'s price (OFFER_BRIBE_PRICE per level).',
     value: `${sg(CONFIG.OFFER_BRIBE_MOD)} per doubling over the price, as much less per halving` },
