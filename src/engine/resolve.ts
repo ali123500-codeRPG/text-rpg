@@ -380,6 +380,9 @@ import {
   fireMidTurnTrigger,
 } from './triggers';
 import {
+  relevantActors,
+} from './tiers';
+import {
   checkSecrets,
 } from './secrets';
 import {
@@ -566,11 +569,11 @@ import {
 } from './mode';
 import {
   applyNightPhase,
+  bedGap,
+  bedHasRoom,
   hostilesNear,
   nextChange,
   planNight,
-  bedGap,
-  bedHasRoom,
   settleSleepers,
   wake,
   wakeByEvent,
@@ -3172,7 +3175,9 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   // MB41: foes asked by the player's yield answer in this turn's output, before anyone acts
   for (const o of usableAgentOutputs(input)) answerYield(state, actorById(state, o.actorId)!, o.output.acceptYield);
   for (const o of usableAgentOutputs(input)) answerMercy(state, actorById(state, o.actorId)!, o.output.spare); // D-239
-  const active = state.actors.filter(isActive);
+  // NP1 a: an NPC not relevant to the player gets no order this turn; its routine moves it on the clock (catchUp)
+  const relevant = CONFIG.ACTIVITY_TIERS ? relevantActors(state, input) : null;
+  const active = state.actors.filter((a) => isActive(a) && (!relevant || relevant.has(a.id)));
   const views = new Map<string, ActorView>(active.map((a) => [a.id, buildActorView(state, a.id)]));
   const fired = input.fired ?? firedOrders(state);
   (state.scratch.agentRun as string[]).push(...fired.map((o) => o.actorId)); // BG-151: a trigger's order moved them too

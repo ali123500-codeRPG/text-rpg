@@ -83,7 +83,7 @@ describe('221 search', () => {
     const calls = rig(-1);
     play(s, search());
     expect(searches(s)).toEqual([{ actorId: 'player', hiderId: 'thief_1', gap: -1, sense: FN.sight }]); // past two radii: ring two
-    expect(calls[0].tierShifts).toContainEqual({ source: 'searching', value: CONFIG.SEARCH_RING_SHIFTS[1] });
+    expect(calls.flatMap((b) => b.tierShifts)).toContainEqual({ source: 'searching', value: CONFIG.SEARCH_RING_SHIFTS[1] });
     beside(s, 'thief_1', 'player', 2);
     rig(1);
     play(s, search());

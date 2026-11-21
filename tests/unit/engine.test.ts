@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Actor, AttackRequest, AttackResult, GameEvent, GameState, Intent, Order, RollRequest } from '../../src/types';
 import { makeVillage, actor, place, createRng, beside, lay } from '../harness';
 import { SK } from '../../src/library/skillIds';
+import { CONFIG } from '../../src/config';
 import { IT } from '../../src/library/itemIds';
 import { PK } from '../../src/library/perkIds';
 
@@ -188,6 +189,7 @@ describe('order priority', () => {
     expect(byActor('player')).toEqual(['hold']);
   });
   it('acts in initiative order', () => {
+    (CONFIG as { ACTIVITY_TIERS: boolean }).ACTIVITY_TIERS = false; // everyone acts this turn (NP1 a); makeVillage resets it
     F.init = { player: 10, guard_1: 90, trader: 70, patron_1: 60, slime_1: 40, slime_2: 30 };
     const ev = resolveTurn(s, input(), createRng(1));
     expect(ev.map((e) => e.actorId)).toEqual(['guard_1', 'trader', 'patron_1', 'slime_1', 'slime_2', 'player']);

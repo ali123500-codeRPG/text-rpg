@@ -466,6 +466,15 @@ type ActivityDef = {
   but a bar slid back from its own side can't be drawn again from the far side, so it stays open (BG-316, BF85 a; CS11,
   Ali 13/11/2026).
 - **GSM-263** Those travelling with the player spent the turn on the road.
+- **GSM-342** \[Placeholder, to be tested\] Activity tiers (NP1 a, CONFIG.ACTIVITY\_TIERS): each turn only the NPCs
+  relevant to the player are simulated in full: they get an order, act and make events. An NPC is relevant when (1) it
+  is in the player's senses or has the player in its own; (2) its mind is on the player: it follows them, believes in
+  them at Tracking or above, heads to where it thinks they are, or holds a goal or a plan trigger that names them; (3)
+  it is in a fight or within sense range of a foe; (4) it is within sense range of anyone under 1 to 3; or something
+  other than its routine takes its turn (a trigger, its agent, an alert, flight, a long action, a hold, a suspicion, a
+  draw). The rest get no order that turn: their routines move them at the turn's end by the catch-up above, and they
+  still perceive what relevant actors do. Worked out afresh every turn (src/engine/tiers.ts); nothing about it is
+  saved.
 - **GSM-264** On a turn that took one action's time, each leg of the catch-up is a move event like any walk, perceived
   by the normal rules, so whoever sees or hears it (the player or an NPC) sees them go, and where to while in sight; a
   leg nobody perceives stays silent (BF2a-d).

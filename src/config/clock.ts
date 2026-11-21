@@ -35,6 +35,9 @@ export const CLOCK = {
   /** AT67: a stretch of time steps at most half the shortest time anyone perceived needs to trigger the check, within these */
   STEP_MIN_S: 3,
   STEP_MAX_S: 60,
+  /** NP1 a (placeholder, to be tested): only the NPCs relevant to the player are simulated in full each turn; the rest follow
+   * their routines on the clock (src/engine/tiers.ts). false: everyone every turn, as before */
+  ACTIVITY_TIERS: true,
   /** BG-231: a wait until someone appears stops after this many hours if no one comes */
   WAIT_SOMEONE_MAX_H: 8,
   TIME_OF_DAY_FROM: { dawn: 5 * 60, morning: 7 * 60, afternoon: 12 * 60, dusk: 18 * 60, evening: 20 * 60, night: 23 * 60 } as Record<string, number>, // minute of the day each starts (placeholders)
