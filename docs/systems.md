@@ -361,6 +361,7 @@ Speech rolls, offers and standing down, trade and paying, relations, personality
   - `src/ruleset/blessings.ts`
   - `src/ruleset/personality.ts`
   - `src/ruleset/pressure.ts`
+  - `src/scenario/belong.ts`
   - `src/ui/ideaLeans.ts`
   - `src/ui/personality.ts`
 

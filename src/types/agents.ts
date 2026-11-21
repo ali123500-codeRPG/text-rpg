@@ -235,6 +235,8 @@ export type StagePlan = {
     notable?: true;
     /** code only (BEL-09): a recipe's lead is its group's leader, its seconds the officers */
     seat?: 'leader' | 'officer';
+    /** code only (BEL-17): the cast recipe (GP…) it was spawned from, so code can give it its tie */
+    recipe?: string;
     /** NG15: who the Weaver wanted when no template or composition fits; flagged in the GM view so a template can be made */
     templateGap?: string;
     label: string; name: string; appearance: string; pronouns?: 'he' | 'she' | 'they' | 'it';

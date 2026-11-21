@@ -1,23 +1,43 @@
 ### Hierarchy and belonging
 
-**Decided; steps 1 and 2 of 4 built, step 1 in part (D-1768).** Step 1 (BEL-61, PR #1774): the organization, link and
-tie records (`Organization`, `OrgLink`, `Tie` in src/types/core.ts; `GameState.organizations` and `orgLinks`,
+**Decided; steps 1 and 2 of 4 built (D-1768).** Step 1 (BEL-61, PR #1774 and issue #1788): the organization,
+link and tie records (`Organization`, `OrgLink`, `Tie` in src/types/core.ts; `GameState.organizations` and `orgLinks`,
 `Actor.ties`, `Place.holder` and `law`), the group's new fields on the band (`purpose`, `leaderId`, `officerIds`,
 `backer`, `parentId`), the names tables `TIE_STATUS`, `COMMITMENT`, `TIE_COVER` and `LINK_KINDS` (src/scales.ts), the
-save keeping all of them, the library table renamed to `castRecipes` (BEL-17), and a recipe's lead and seconds made
-its group's leader and officers (BEL-09). Waiting on the owner (Questions hub page "Belonging build"): which
-organization each recipe names and what its ties hold (BB1), and ties for one-person roster hooks (BB2). Readers other
-than the default attitude (step 2) still read the band, as the band rules in [Information model](information-model.md)
-say, and where this topic and the code differ the code wins.
+save keeping all of them, the library table renamed to `castRecipes` (BEL-17), a recipe's lead and seconds made its
+group's leader and officers (BEL-09), and the ties code gives at spawn (src/scenario/belong.ts, below). Step 2 (PR
+#1777): the default attitude (BEL-25). Readers other than the default attitude still read the band, as the band rules
+in [Information model](information-model.md) say, and where this topic and the code differ the code wins.
+
+**What spawning fills** (the owner, Questions hub page "Belonging build", 21/11/2026, BB1 a and BB2 a; the organization
+each recipe names is the recipe's `org` or `hired` in src/library/npcs.ts, the council's kind and commitment
+`SETTLEMENT_COUNCIL` there):
+
+- A Watch patrol, Watch garrison or Watch post belongs to its settlement's own watch, one per settlement, found there
+  or made there, a unit of the settlement's council. Off a settlement (a road), it is the watch of the nearest
+  settlement in metres; cast with no roster, the settlement its place stands in. A garrison's captain becomes the
+  watch's head if it has none; its seconds become officers.
+- A Bandit gang is a new gang each time, close-knit; a Bandit company a new company, not close-knit; a Wolf pack a new
+  pack, close-knit. Each is headed by its lead, its seconds are officers, and it takes its group's name.
+- A Caravan has no organization: each hired guard holds a tie to the caravan master in person, hired and bound.
+- Pilgrims, a pedlar, a traveller, a hunter, single beasts, a dog and slimes belong to nothing.
+- Every tie above, except the guards', is member, sworn and open, titled with the part's label; a pack's wolves are
+  member, devoted and open, with no title.
+- Each settlement has one council (kind "council"), seated there, which holds the place and whose law runs there, made
+  the first time it is needed and for every settlement place that is built. A roster's Leader is its head and its
+  Warden an officer, each with a sworn, open tie; a Seat of the Great holds the place instead, and the council is
+  registered with the Seat. Service, Trader, Face and Rival hooks get no ties.
+- Several organizations fighting over or sharing control of one city is parked (D-1784).
 
 **Step 2 built** (BEL-25, src/engine/belonging.ts `groupAndOrgStance`, read by `baseStance` in src/engine/relations.ts):
 steps 3 to 5 of the default attitude. The word of a group reads its relations toward b, b's group or an organization a
 knows b to be in, in that order, nearest group first. Sharing any group, nested or not, is friendly and skips the
-first-sight and Dreaded-on-sight cooling, as the same band did. Read as built, asked as BB3 on that page: an open tie is
-known to anyone, whether or not they have seen the character yet (a stance only acts once they meet); a quiet tie is
-known only to fellow members, since being told of one has no rule yet; a secret tie is known to no one else yet; a tie
-to a person says nothing about others; RS3 (taking a side) counts loyal and friend entries of a's groups and
-organizations as it counted the band's. Until BB1 fills ties at spawn, no one holds a tie, so play is unchanged.
+first-sight and Dreaded-on-sight cooling, as the same band did. Kept by the owner (BB3 a): an open tie is known to
+anyone, whether or not they have seen the character yet (a stance only acts once they meet); a quiet tie is known only
+to fellow members, since being told of one has no rule yet; a secret tie is known to no one else until a rule lets a
+character learn one; a tie to a person says nothing about others; RS3 (taking a side) counts loyal and friend entries
+of a's groups and organizations as it counted the band's. No organization holds a stance entry yet (the Weaver naming
+organizations is BEL-55), so every stance in play is what it was.
 
 Who a character belongs to, whom it serves, whom it works beside right now, who may give it orders, and what each
 character knows about the others' ties. Decided by the owner on the Questions hub page "Hierarchy and belonging",

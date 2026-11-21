@@ -20,6 +20,7 @@ import { composeTemplate, rankPos, roleMissing, presetPersonality, spawnNpc, tem
 import type { MeetRow } from '../types/library';
 import type { RankKey } from '../scales';
 import { groupMembers, hookGroups, rosterEntry } from '../land/roster';
+import { fillBelonging } from './belong';
 import { cellAt, regionAt } from '../land/sight';
 import { topPlace } from '../engine/relations';
 import { HK } from '../library/npcLayerIds';
@@ -420,6 +421,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     if (!reused.has(a)) moveTo(state, a, startZone);
     castActors.push(a);
   }
+  fillBelonging(state, plan.cast, castActors); // BEL-17, BB1 a, BB2 a
   plan.cast.forEach((c, i) => {
     const a = castActors[i];
     for (const o of c.overrides ?? []) (a.mind!.overrides ??= {})[actorRef(o.actor)] = o.stance;
