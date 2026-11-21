@@ -142,7 +142,7 @@ export function fillPlanDefaults(plan: StagePlan): void {
 
 /** NR17: a cast entry naming a roster key takes the entry's race and rank, and who it is unless it names a template or
  * composition; NR27 (D-308): a group entry becomes its leader, with its seconds and followers added right after it (groupOf;
- * NF7 a: notable where its part is). In place,
+ * NF7 a: notable where its part is; BEL-09: its lead the leader, its seconds officers). In place,
  * once: a filled entry loses its group, so a second pass changes nothing. */
 function fillRosterAndGroups(state: GameState, plan: StagePlan, err: (code: string, message: string, castKey?: string) => void): void {
   if (!Array.isArray(plan?.cast)) return;
@@ -163,8 +163,8 @@ function fillRosterAndGroups(state: GameState, plan: StagePlan, err: (code: stri
   for (const c of plan.cast) {
     out.push(c);
     if (!c?.group || c.groupOf) continue;
-    const g = lib.groups?.[c.group.id], rank = rankKeyOf(c.group.rank);
-    if (!g || !rank) { err('bad_group', `cast ${c.key}: group ${c.group.id} at rank ${c.group.rank} unknown; groups: ${Object.keys(lib.groups ?? {}).join(', ')}`, c.key); continue; }
+    const g = lib.castRecipes?.[c.group.id], rank = rankKeyOf(c.group.rank);
+    if (!g || !rank) { err('bad_group', `cast ${c.key}: group ${c.group.id} at rank ${c.group.rank} unknown; groups: ${Object.keys(lib.castRecipes ?? {}).join(', ')}`, c.key); continue; }
     if (c.template !== undefined || c.compose !== undefined || c.actor !== undefined) { err('bad_cast', `cast ${c.key}: a group names no template, compose or actor`, c.key); continue; }
     // NR38 a: beasts roll Dire, except on safe and quiet roads
     const road = c.roster ? state.regions?.flatMap((r) => r.roads).find((r) => c.roster!.startsWith(`${r.id}.`)) : undefined;
@@ -172,9 +172,10 @@ function fillRosterAndGroups(state: GameState, plan: StagePlan, err: (code: stri
     delete c.group;
     if (lead.template) c.template = lead.template; else c.compose = lead.compose;
     if (lead.notable) c.notable = true;
+    c.seat = 'leader'; // BEL-09
     rest.forEach((m, i) => out.push({ key: `${c.key}_${i + 2}`, label: m.label, name: '', appearance: m.label, band: c.band, routineSetId: c.routineSetId, slots: c.slots,
       ...(c.startAt ? { startAt: c.startAt } : {}), awarenessOfPlayer: c.awarenessOfPlayer, ...(c.awarenessOfBands ? { awarenessOfBands: c.awarenessOfBands } : {}),
-      ...(c.overrides ? { overrides: c.overrides } : {}), motive: c.motive, ...(m.template ? { template: m.template } : { compose: m.compose }), groupOf: c.key, ...(m.notable ? { notable: true as const } : {}) }));
+      ...(c.overrides ? { overrides: c.overrides } : {}), motive: c.motive, ...(m.template ? { template: m.template } : { compose: m.compose }), groupOf: c.key, ...(m.notable ? { notable: true as const } : {}), ...(m.second ? { seat: 'officer' as const } : {}) }));
   }
   plan.cast = out;
 }

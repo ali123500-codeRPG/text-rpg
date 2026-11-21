@@ -1,13 +1,19 @@
 ### Hierarchy and belonging
 
-**Decided, not built (D-1768).** Nothing in this topic is in the code yet. Until it is built, the band rules in
-[Information model](information-model.md) are what the game does, and where this topic and the code differ the code
-wins. The build is its own work and reads this topic as its design.
+**Decided, step 1 of 4 partly built (D-1768).** Built (BEL-61 step 1, PR for issue #1772): the organization, link and
+tie records (`Organization`, `OrgLink`, `Tie` in src/types/core.ts; `GameState.organizations` and `orgLinks`,
+`Actor.ties`, `Place.holder` and `law`), the group's new fields on the band (`purpose`, `leaderId`, `officerIds`,
+`backer`, `parentId`), the names tables `TIE_STATUS`, `COMMITMENT`, `TIE_COVER` and `LINK_KINDS` (src/scales.ts), the
+save keeping all of them, the library table renamed to `castRecipes` (BEL-17), and a recipe's lead and seconds made
+its group's leader and officers (BEL-09). Waiting on the owner (Questions hub page "Belonging build"): which
+organization each recipe names and what its ties hold (BB1), and ties for one-person roster hooks (BB2). No reader uses
+the new records yet, so the band rules in [Information model](information-model.md) are still what the game does, and
+where this topic and the code differ the code wins.
 
 Who a character belongs to, whom it serves, whom it works beside right now, who may give it orders, and what each
 character knows about the others' ties. Decided by the owner on the Questions hub page "Hierarchy and belonging",
-21/11/2026, OB1 a to OB13 a (OB7 is [Proposed] until the owner confirms it: the answer read "a. d." with nothing
-after the d). The study behind it, with nine worked cases, is the page "Hierarchy and Belonging Study"
+21/11/2026, OB1 a to OB13 a (OB7 read "a. d." with nothing after the d, and the owner confirmed a on a decision
+card the same day). The study behind it, with nine worked cases, is the page "Hierarchy and Belonging Study"
 (https://claude.ai/artifact/Nn9vfRT7cdEDxSmz3hv6H7). Each rule starts with a stable ID (BEL-nn); a number is never
 reused.
 
@@ -126,7 +132,7 @@ is new data and never new structure.
 - **BEL-29** When a head or leader falls, the seat passes to an officer, then to the longest-serving member present.
   A title without a seat gives no claim.
 
-#### Orders [Proposed, OB7]
+#### Orders
 
 - **BEL-30** A right to give an order rests on one of four bases, and reaches only as far as that basis:
   - **Command**: the giver holds a seat in an organization the receiver belongs to, in the receiver's unit or above

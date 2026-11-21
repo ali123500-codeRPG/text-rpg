@@ -233,6 +233,8 @@ export type StagePlan = {
     groupOf?: string;
     /** code only (NF7 a): spawned from a group part marked notable, so it is a notable foe */
     notable?: true;
+    /** code only (BEL-09): a recipe's lead is its group's leader, its seconds the officers */
+    seat?: 'leader' | 'officer';
     /** NG15: who the Weaver wanted when no template or composition fits; flagged in the GM view so a template can be made */
     templateGap?: string;
     label: string; name: string; appearance: string; pronouns?: 'he' | 'she' | 'they' | 'it';

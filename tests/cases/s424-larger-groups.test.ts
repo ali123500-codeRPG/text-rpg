@@ -20,7 +20,7 @@ const site = (size: string, i: number): Site => ({ id: `rgx_s${i}`, size: size a
 describe('424 larger groups with a notable head', () => {
   it('a company is its captain 2 ranks up (notable), 2 gang chiefs 1 rank up and 6 to 10 bandits', () => {
     for (let i = 0; i < 5; i++) {
-      const m = groupMembers(lib().groups![GP.bandit_company], 'rank_2', `c${i}`);
+      const m = groupMembers(lib().castRecipes![GP.bandit_company], 'rank_2', `c${i}`);
       expect(m[0]).toMatchObject({ lead: true, notable: true, label: 'a bandit captain', compose: { role: RO.brute, rank: 'rank_4' } });
       const chiefs = m.filter((x) => x.label === 'a gang chief'), bandits = m.filter((x) => x.label === 'a bandit');
       expect(chiefs.length).toBe(2);
@@ -28,13 +28,13 @@ describe('424 larger groups with a notable head', () => {
       expect(bandits.length).toBeGreaterThanOrEqual(6); expect(bandits.length).toBeLessThanOrEqual(10);
       expect(m.slice(1).some((x) => x.notable)).toBe(false);
     }
-    const g = groupMembers(lib().groups![GP.watch_garrison], 'rank_2', 'g');
+    const g = groupMembers(lib().castRecipes![GP.watch_garrison], 'rank_2', 'g');
     expect(g[0]).toMatchObject({ notable: true, label: 'a watch captain', compose: { rank: 'rank_4' } });
     expect(g.filter((x) => x.label === 'a watch sergeant').length).toBe(2);
     const men = g.filter((x) => x.label === 'a watchman').length;
     expect(men).toBeGreaterThanOrEqual(4); expect(men).toBeLessThanOrEqual(8);
     // today's small groups keep no notable member (NF3)
-    for (const id of [GP.bandit_gang, GP.watch_patrol, GP.wolf_pack]) expect(groupMembers(lib().groups![id], 'rank_3', id).some((m) => m.notable), id).toBe(false);
+    for (const id of [GP.bandit_gang, GP.watch_patrol, GP.wolf_pack]) expect(groupMembers(lib().castRecipes![id], 'rank_3', id).some((m) => m.notable), id).toBe(false);
   });
 
   it('towns and larger roll them; hamlets and villages never do', () => {

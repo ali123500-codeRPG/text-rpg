@@ -80,6 +80,19 @@ export const LIGHT = scale([['bright', 'bright'], ['lamplit', 'lamplit'], ['dim'
  * loyal = takes the other's side: anyone hostile to them it treats as hostile too) */
 export const STANCES = scale([['hostile', 'hostile'], ['opposed', 'opposed'], ['unfriendly', 'unfriendly'], ['neutral', 'neutral'], ['friendly', 'friendly'], ['friend', 'friend'], ['loyal', 'loyal']]);
 export type StanceKey = (typeof STANCES.keys)[number];
+/** BEL-07: a tie's status, a names table so a row can be added */
+export const TIE_STATUS = scale([['member', 'member'], ['hired', 'hired'], ['associate', 'associate'], ['supporter', 'supporter']]);
+export type TieStatus = (typeof TIE_STATUS.keys)[number];
+/** BEL-08: a tie's commitment, lowest first; only the character itself ever sees its own */
+export const COMMITMENT = scale([['feigned', 'feigned'], ['bound', 'bound'], ['sworn', 'sworn'], ['devoted', 'devoted']]);
+export type Commitment = (typeof COMMITMENT.keys)[number];
+/** BEL-10: who can know a tie or a link (not COVER, which is shelter from attacks) */
+export const TIE_COVER = scale([['open', 'open'], ['quiet', 'quiet'], ['secret', 'secret']]);
+export type TieCover = (typeof TIE_COVER.keys)[number];
+/** BEL-05: the kinds of link between two organizations (or a powerful person); a new kind is a new row */
+export const LINK_KINDS = scale([['ally', 'ally'], ['vassal_of', 'vassal of'], ['hired_by', 'hired by'], ['registered_with', 'registered with'],
+  ['rival', 'rival'], ['at_war', 'at war'], ['owns', 'owns'], ['secret_pact', 'secret pact']]);
+export type LinkKind = (typeof LINK_KINDS.keys)[number];
 /** D-206 BN5 a: how deep a personal stance sits in its step on the regard score, by thirds from the side nearer neutral */
 export const REGARD_STRENGTH = scale([['slight', 'slight'], ['plain', 'plain'], ['strong', 'strong']]);
 export type RegardStrength = (typeof REGARD_STRENGTH.keys)[number];

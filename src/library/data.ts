@@ -80,7 +80,7 @@ import type {
   ActivityDef,
   AttackMode,
   BodyType,
-  GroupDef,
+  CastRecipe,
   HookKindDef,
   ItemDef,
   ItemEffect,
@@ -177,7 +177,7 @@ import {
 } from './bodyTypes';
 import {
   ap,
-  GROUPS,
+  CAST_RECIPES,
   HIDE,
   HOOK_KINDS,
   meet,
@@ -187,7 +187,7 @@ import {
   TEMPLATES,
   THEMES,
 } from './npcs';
-export { GROUPS, HOOK_KINDS, NPC_ROLES, TEMPLATES, THEMES } from './npcs';
+export { CAST_RECIPES, HOOK_KINDS, NPC_ROLES, TEMPLATES, THEMES } from './npcs';
 export { ACTIVITIES, ROUTINES, ROUTINE_SETS } from './routineBank';
 export { FISTS, GEAR_TYPES, ITEMS, ITEM_FAMILIES } from './items';
 export { BODY_TYPES, FORELEGS, HIND_LEGS } from './bodyTypes';
@@ -949,7 +949,7 @@ export function prototypeLibrary(): Library {
     // NR37 a: Dire's third part, one body size larger, waits for a body-size rule (D-354)
     prefixes: { [PF.dire]: { id: PF.dire, name: 'Dire', text: 'A bigger, fiercer kind of the same beast: one rank up, half again the health, a fifth more skill.', rankStep: 1, hpMult: 1.5, skillMult: 1.2 } },
     hookKinds: HOOK_KINDS,
-    groups: GROUPS,
+    castRecipes: CAST_RECIPES,
     // NR17 a: hooks by settlement size (the crowd is text); must = always there, the rest rolled from pool without repeats first
     rosters: {
       hamlet: { count: [1, 2], must: [], pool: [HK.face, HK.threat], theme: TH.village_folk },

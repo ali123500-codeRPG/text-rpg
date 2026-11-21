@@ -42,6 +42,64 @@ export type Band = {
   relations: Record<string, Stance>;
   /** CH5: how far its code-run members chase the player (none: the template's, else CONFIG.CHASE_RANGE_DEFAULT) */
   chase?: import('../scales').ChaseRange;
+  // BEL-11: the band is the group, the team for the job at hand. Step 1 of BEL-61 fills these; no reader uses them yet
+  /** what the job is, hidden text */
+  purpose?: string;
+  /** BEL-09: its leader and officers (a recipe's lead and seconds) */
+  leaderId?: ActorId;
+  officerIds?: ActorId[];
+  /** whom it works for */
+  backer?: TieEnd;
+  /** BEL-12: the bigger group it sits inside */
+  parentId?: string;
+};
+
+/** BEL-05, BEL-06: one end of a tie or a link: an organization, or one person */
+export type TieEnd = { org: string } | { person: ActorId };
+
+/** BEL-02: a lasting body of people or beasts: a kingdom, a squad, a guild, a gang, a pack. Its kind word is for display
+ * only and never decides a rule. A unit is one with a parent (BEL-03) */
+export type Organization = {
+  id: string;
+  name: string; // public
+  kind: string; // display word (army, guild, pack)
+  parentId?: string;
+  headId?: ActorId;
+  officerIds?: ActorId[];
+  /** BEL-15: its home place */
+  seat?: PlaceId;
+  /** BEL-04: a crew: its members know each other by name and face */
+  closeKnit?: true;
+  goals?: string; // hidden text
+  temperament?: string; // hidden text
+  /** BEL-16: only entries that differ from neutral, toward an organization id or a person's actor id */
+  stances?: Record<string, import('../scales').StanceKey>;
+  /** BEL-02: its stance toward strangers (neutral when left out) */
+  strangers?: import('../scales').StanceKey;
+};
+
+/** BEL-05: a typed relation between two organizations (either end may be one person) that is not containment */
+export type OrgLink = {
+  id: string;
+  a: TieEnd;
+  b: TieEnd;
+  kind: import('../scales').LinkKind;
+  /** the stance it implies by default (neutral when left out) */
+  stance?: import('../scales').StanceKey;
+  cover: import('../scales').TieCover;
+};
+
+/** BEL-06: one character's bond to one organization or one person. A character holds an ordered list of them; the order
+ * breaks a clash between ties of equal commitment (BEL-42) */
+export type Tie = {
+  to: TieEnd;
+  status: import('../scales').TieStatus;
+  /** BEL-08: never shown to anyone but the character itself */
+  commitment: import('../scales').Commitment;
+  cover: import('../scales').TieCover;
+  title?: string; // BEL-09: display and speech only
+  since?: number; // game minutes (time.ts); BEL-09: seniority
+  until?: number;
 };
 
 /** SD3–SD5, BA2–BA7: a door, gate, grate, shutters or blocked passage on a way. One record serves both sides; its opening

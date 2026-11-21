@@ -58,7 +58,7 @@ function composedBlueprint(state: GameState, c: NonNullable<StagePlan['cast'][nu
  * encounter point, else the settlement's threat hook; only groups marked threat. Undefined where the place has none. */
 function threatTable(state: GameState, placeId: string): { rows: MeetRow[]; ranks: Record<string, number>; dire: boolean } | undefined {
   const lib = getLibrary(), R = CONFIG.ROSTER_RANKS, enc = state.stage.encounter;
-  const only = (rows: MeetRow[] | undefined) => (rows ?? []).filter((m) => lib.groups?.[m.group]?.threat);
+  const only = (rows: MeetRow[] | undefined) => (rows ?? []).filter((m) => lib.castRecipes?.[m.group]?.threat);
   let t: { rows: MeetRow[]; ranks: Record<string, number>; dire: boolean } | undefined;
   if (enc) {
     const z = zoneById(state, enc.zone), r = regionAt(state, enc.at), i = r ? cellAt(r, enc.at) : -1;
@@ -70,6 +70,15 @@ function threatTable(state: GameState, placeId: string): { rows: MeetRow[]; rank
     if (site && h) t = { rows: only(hookGroups(h, site.size).map((g) => ({ group: g, weight: 1 }))), ranks: R.threat[site.size], dire: true };
   }
   return t?.rows.length && t.ranks ? t : undefined;
+}
+
+/** BEL-09, step 1 of BEL-61: a recipe's lead becomes its group's leader (when the group has none yet) and its seconds its
+ * officers. Nothing reads these yet */
+function seatInGroup(state: GameState, a: Actor, seat: 'leader' | 'officer'): void {
+  const g = state.bands.find((b) => b.id === a.bandId);
+  if (!g) return;
+  if (seat === 'leader') g.leaderId ??= a.id;
+  else if (!g.officerIds?.includes(a.id)) (g.officerIds ??= []).push(a.id);
 }
 
 /** CK6 a: the place's usual hostile group power (the weighted median over its threat groups and rank weights, one fixed
@@ -88,14 +97,14 @@ export function usualThreat(state: GameState, placeId: string): { power: number;
     return memo.get(tpl.id)!;
   };
   const cells = t.rows.flatMap((row) => Object.entries(t.ranks).map(([rank, w]) => ({
-    weight: row.weight * w, power: groupMembers(lib.groups![row.group], rank, `usual:${row.group}:${rank}`).reduce((n, m) => n + one(m), 0) })))
+    weight: row.weight * w, power: groupMembers(lib.castRecipes![row.group], rank, `usual:${row.group}:${rank}`).reduce((n, m) => n + one(m), 0) })))
     .sort((a, b) => a.power - b.power);
   const half = cells.reduce((n, c) => n + c.weight, 0) / 2;
   let acc = 0;
   const median = cells.find((c) => (acc += c.weight) >= half)!.power;
   const maxRank = Math.max(...Object.keys(t.ranks).map((k) => rankPos(k as RankKey)));
   const top = Math.max(...t.rows.map((row) => {
-    const g = lib.groups![row.group], beast = [g.lead, g.seconds, g.follow].some((p) => [p?.role, ...(p?.roles ?? [])].some((r) => r && lib.npcRoles?.[r]?.kind === 'beast'));
+    const g = lib.castRecipes![row.group], beast = [g.lead, g.seconds, g.follow].some((p) => [p?.role, ...(p?.roles ?? [])].some((r) => r && lib.npcRoles?.[r]?.kind === 'beast'));
     return maxRank + (g.lead.step ?? 0) + (t.dire && beast ? 1 : 0);
   }));
   return { power: median, top };
@@ -400,6 +409,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     }
     a.bandId = bandRef(c.band);
     if (c.notable || (c.roster && rosterEntry(state, c.roster)?.notable)) a.core.notable = true; // NF7 a: a group's notable part; NF4 b
+    if (c.seat) seatInGroup(state, a, c.seat);
     const unique = a.core.generation === 'unique'; // HF15: a unique's looks and pronouns are its own
     if (!unique || !a.appearance) a.appearance = c.appearance;
     if (c.pronouns && (!unique || !a.pronouns)) a.pronouns = c.pronouns;

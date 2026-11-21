@@ -5,7 +5,7 @@ import { GP, HK, PF, RO, TH } from './npcLayerIds';
 import { RC } from './raceIds';
 import { CONFIG } from '../config';
 import type { GrandeurKey, RankKey } from '../scales';
-import type { AttackMode, GroupDef, HookKindDef, MeetRow, NpcRoleDef, NpcTemplate, ThemeDef } from '../types';
+import type { AttackMode, CastRecipe, HookKindDef, MeetRow, NpcRoleDef, NpcTemplate, ThemeDef } from '../types';
 import { SK } from './skillIds';
 import { CL } from './classIds';
 import { PK } from './perkIds';
@@ -88,7 +88,7 @@ export const HOOK_KINDS: Record<string, HookKindDef> = Object.fromEntries(([
 ] as HookKindDef[]).map((d) => [d.id, d]));
 
 /** NR27 (D-308): group recipes. The leader (and NF7 a seconds) are `step` ranks above the group's rank; followers' races are rolled (NR31) unless fixed */
-export const GROUPS: Record<string, GroupDef> = Object.fromEntries(([
+export const CAST_RECIPES: Record<string, CastRecipe> = Object.fromEntries(([
   { id: GP.pedlar, name: 'Pedlar', theme: TH.travellers, lead: { role: RO.talker, label: 'a pedlar', class: CL.trader } },
   { id: GP.traveller, name: 'Traveller', theme: TH.travellers, lead: { role: RO.talker, label: 'a traveller with news or a job' } },
   { id: GP.caravan, name: 'Caravan', theme: TH.travellers, lead: { role: RO.talker, label: 'a caravan master', class: CL.trader }, follow: { role: RO.soldier, label: 'a hired guard', count: [2, 2] } },
@@ -107,7 +107,7 @@ export const GROUPS: Record<string, GroupDef> = Object.fromEntries(([
   { id: GP.hunter, name: 'Hunter', theme: TH.village_folk, lead: { role: RO.hunter, label: 'a hunter (a guide, or a poacher)' } },
   { id: GP.dog, name: 'Dog at the fold', theme: TH.wild_beasts, lead: { role: RO.beast, race: RC.dog, label: 'a dog at the fold' } },
   { id: GP.slimes, threat: true, name: 'Slimes', theme: TH.wild_beasts, lead: { template: TP.slime, label: 'a slime' }, follow: { template: TP.slime, label: 'a slime', count: [1, 4] } },
-] as GroupDef[]).map((d) => [d.id, d]));
+] as CastRecipe[]).map((d) => [d.id, d]));
 export const meet = (group: string, weight: number, when?: 'day' | 'night'): MeetRow => ({ group, weight, ...(when ? { when } : {}) });
 
 /** named presets from race, role, theme and rank, with the composed defaults for the role's kind (as composeTemplate);

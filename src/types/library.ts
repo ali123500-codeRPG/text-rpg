@@ -74,12 +74,12 @@ export type HookKindDef = { id: LibraryRef; name: string; gives: string; roles?:
   /** NF4 b: whoever fills this hook in a roster is a notable foe (an essence always appears when they die) */
   notable?: true };
 /** NR27: one part of a group: its role (or a template), race when fixed (else rolled: NR31), label, and rank steps above the group's */
-export type GroupPart = { role?: LibraryRef; roles?: readonly LibraryRef[]; template?: LibraryRef; race?: LibraryRef; label: string; step?: number; class?: LibraryRef;
+export type RecipePart = { role?: LibraryRef; roles?: readonly LibraryRef[]; template?: LibraryRef; race?: LibraryRef; label: string; step?: number; class?: LibraryRef;
   /** NF7 a: whoever this part spawns is a notable foe (a larger group's head, never a small group's leader) */
   notable?: true };
 /** NR27 (D-308): a group recipe: a leader, its seconds (NF7 a: a larger group's officers) and its followers, of one theme */
-export type GroupDef = { id: LibraryRef; name: string; theme: LibraryRef; lead: GroupPart; seconds?: GroupPart & { count: [number, number] };
-  follow?: GroupPart & { count: [number, number] };
+export type CastRecipe = { id: LibraryRef; name: string; theme: LibraryRef; lead: RecipePart; seconds?: RecipePart & { count: [number, number] };
+  follow?: RecipePart & { count: [number, number] };
   /** CK6 a: a group that comes as a threat, so it counts toward a place's usual hostile group */
   threat?: true;
   /** NF7 a: the smallest settlement a roster rolls it in (SETTLEMENT_SIZES, src/land/roster.ts); roads and the wild name it in their own rows */
@@ -235,7 +235,7 @@ export type Library = {
   themes?: Record<string, ThemeDef>; // NG1: TH…, the world an NPC belongs to
   prefixes?: Record<string, PrefixDef>; // NR37: PF…, beast prefixes
   hookKinds?: Record<string, HookKindDef>; // NR17: HK…, why a real person stands in a place
-  groups?: Record<string, GroupDef>; // NR27 (D-308): GP…, cast as one entry
+  castRecipes?: Record<string, CastRecipe>; // NR27 (D-308), BEL-17: GP…, a recipe that spawns its people as one group
   /** NR17: the hooks each settlement size holds; code rolls them per site, the World builder fills them */
   rosters?: Record<SettlementSize, { count: [number, number]; must: LibraryRef[]; pool: LibraryRef[]; theme: LibraryRef }>;
   /** NR18: who travels a road, by its danger: how many groups a stretch holds, and from which rows */

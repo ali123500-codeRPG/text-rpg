@@ -140,6 +140,8 @@ export function toPages(state: GameState): Pages {
   const engine: EnginePage = {
     storyId: s.storyId, turn: s.turn, mode: s.mode, rngSeed: s.rngSeed, rngState: s.rngState, pending: s.pending,
     stage: s.stage, scenarioCaps: s.scenarioCaps, clocks: s.clocks, bands: s.bands, quests: s.quests,
+    ...(s.organizations?.length ? { organizations: s.organizations } : {}), // BEL-01
+    ...(s.orgLinks?.length ? { orgLinks: s.orgLinks } : {}),
     ...(s.spars?.length ? { spars: s.spars } : {}),
     ...(s.yielding ? { yielding: s.yielding } : {}),
     ...(s.offers ? { offers: s.offers } : {}),
@@ -195,11 +197,11 @@ export function fromPages(meta: StoryMeta, head: Head, pages: Pages): GameState 
     .sort(([a, na], [b, nb]) => byTile([a.tx, a.ty], [b.tx, b.ty]) || na - nb).map(([t]) => t);
   const tiled = <K extends TileList>(k: K): TilePage[K] => tiles.flatMap((t) => (t[k] ?? []) as unknown[]) as TilePage[K];
   const player = actors.find((a) => a.kind === 'player')!;
-  const { order: _o, storyId: _e, turn, mode, rngSeed, rngState, pending, stage, scenarioCaps, clocks, bands, quests, spars, yielding, offers, mercy, barriers, turnEnds } = engine;
+  const { order: _o, storyId: _e, turn, mode, rngSeed, rngState, pending, stage, scenarioCaps, clocks, bands, organizations, orgLinks, quests, spars, yielding, offers, mercy, barriers, turnEnds } = engine;
   return {
     storyId: meta.storyId, turn, mode,
     zones: [...zoneById.values()], // WI8 a: every built zone is live
-    player, actors: actors.filter((a) => a !== player), bands,
+    player, actors: actors.filter((a) => a !== player), bands, ...(organizations?.length ? { organizations } : {}), ...(orgLinks?.length ? { orgLinks } : {}),
     hidden, events: [], agentLog: [], log: [], ...(recentEvents.length ? { recentEvents } : {}), ...(spars?.length ? { spars } : {}), ...(yielding ? { yielding } : {}), ...(offers ? { offers } : {}), ...(mercy ? { mercy } : {}), ...(barriers ? { barriers } : {}), ...(turnEnds ? { turnEnds } : {}),
     rngSeed, rngState, pending, places, ...(regions.length ? { regions } : {}), facts, stage: (({ zoneIds: _z, ...st }) => st)(stage as typeof stage & { zoneIds?: string[] }), scenarioCaps, clocks, quests,
     settings: structuredClone(meta.settings), libraryVersion: head.libraryVersion,
