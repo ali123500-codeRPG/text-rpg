@@ -3,6 +3,8 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bug-fix-log.md`.
 
+- 21/11/2026: `design-spatial`'s project part: tap size is report-only, with no click-target floor (the owner, on a
+  decision card offering 24 px, 44 px or none: "No floor, report only").
 - 21/11/2026: new skill `design-spatial` in `.agents/skills/` (from connerkward/ckw-design-skill, MIT), used for
   every UI change as item 6 of the design skills in `docs/instructions.md` section 7. The owner asked: "I feel like
   we need more design skills, find me one which will tell you to center the icons in a band, and not take too much

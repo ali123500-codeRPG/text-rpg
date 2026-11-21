@@ -21,8 +21,9 @@ unchanged. The sections from 1 on are the source's text. Only this part is added
   is still in the DOM and the default set counts it, so collisions flood the screen. Pass `contentSelector` for the
   open layer, e.g. `'.pk-full :is(h2, h3, button, b, small, .skico, .trico, .pk-rail, .pk-in)'`. The tap and contrast
   checks always scan the whole page: read only their marks inside the open layer.
-- **Tap size:** the script flags targets under 44 × 44 px (Apple's guide). WCAG 2.2 AA asks for 24 × 24. Which floor
-  the game holds to is the owner's call; until it is set, report tap findings without failing the work on them.
+- **Tap size is report-only here.** The script flags targets under 44 × 44 px (Apple's guide; WCAG 2.2 AA asks for
+  24 × 24). The game holds to no floor: name tap findings in the report, but never fail the work on them or grow a
+  target because of them (`docs/memory/ui-decisions.md`).
 - **Also measure what the change is about** in the same pass: an icon's centre against what it labels, the gap
   between neighbours, a control against the one above it. Report the numbers ("0 px off its rail", "16 px clear").
 - **Widths:** the play and creation pages are PC only (`docs/instructions.md` section 7): check at the dev width and
