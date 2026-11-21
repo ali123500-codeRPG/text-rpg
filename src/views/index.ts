@@ -1103,8 +1103,8 @@ const WAY_WORDS: Record<WayDid, string> = {
 /** BA8 (SD3): how the tier leans the ways in and out, never a limit. A tier past Critical reads its end row for now (the
  * extra lean past Critical is parked, D-216). The GM view counts barriers per tier so the lean can be checked. */
 const WAYS_LEAN: Record<Tier, string> = {
-  critical_failure: 'Ways out lean toward locked, barred or guarded, at major or extreme grades, and pursuers chase far.',
-  failure: 'Ways out lean toward locked, barred or guarded, at major or extreme grades, and pursuers chase far.',
+  critical_failure: '', // CK7 a: no lean on the bad tiers, so the Weaver shapes their ways freely
+  failure: '',
   near_miss: 'A way or two shut, around moderate.',
   success: 'Ways mostly open, minor at most.',
   great_success: 'Open ways, and a guard who looks away.',

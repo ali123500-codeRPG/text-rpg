@@ -571,12 +571,20 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
   never on a safe or quiet road.
 - **SHEET-357** The World builder and the Weaver may cast a prefix from the catalog.
 
-- **SHEET-360** **Cast check**: at each scenario's opening, the power of the cast hostile or opposed to the player over
-  the player's power is set against the challenge grade's band (CAST\_POWER\_BANDS: minor 0.25–0.75, moderate 0.5–1.25,
-  major 1–2, extreme 1.75–4) (NG16 b).
-- **SHEET-361** The cast power is kept in hidden.castPower, shown in the GM view, and an off-band cast logs
-  cast\_power\_off\_band.
-- **SHEET-362** Nothing is refused and no NPC changes; a reject waits until playtests show the bands hold.
+- **SHEET-360** **Cast readings** (NG16 b, CK6 a): the challenge grade stays the Weaver's declared severity, checked only
+  against the tier. At each scenario's opening code logs three readings beside it, none of them a verdict: danger to the
+  player (the power of the cast hostile or opposed to the player over the player's), local pressure (the same hostile
+  power over the place's usual hostile group) and exceptional (how many ranks the strongest hostile stands above anything
+  the place can roll).
+- **SHEET-361** The place's usual hostile group is the weighted median power of its own threat table, one fixed roll per
+  group and rank: an encounter on a road by the road's danger (roadPeople, ROSTER\_RANKS.road), else the land cover at the
+  encounter point (wildPeople, ROSTER\_RANKS.wild), else the settlement's threat hook (ROSTER\_RANKS.threat), counting only
+  groups marked threat (GroupDef.threat: bandit gang, wolf pack, boar, bear, slimes). The highest rank it can roll adds a
+  leader's step and, where Dire can roll, one more. A place with no threat table (a safe or quiet road, a place on no land
+  site) reads unknown (CK9 a). A free cast above the place's tables is only logged, through the exceptional reading
+  (CK10 a). Code: `usualThreat` in src/scenario/apply.ts.
+- **SHEET-362** The readings are kept in hidden.castPower and shown in the GM view; nothing is refused and no NPC changes.
+  The off-band flag and CAST\_POWER\_BANDS are retired (CK6 a).
 
 #### Perks, traits, rules and personality
 
