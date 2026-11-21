@@ -17,7 +17,7 @@ const brief: RegionBrief = {
   settlements: [{ size: 'town', name: 'Marbury', look: '', where: 'crossing' }, { size: 'village', name: 'Thornbury', look: '' }],
   features: [], beyond: {},
 };
-const region = drawRegion('rg1', 0, 0, 4242, brief);
+const region = drawRegion('rg3', 0, 0, 4242, brief); // a region whose town seat steps up to one of the Great (GW7 a: below them it is the Warden)
 for (const r of region.roads) r.danger = 'safe'; // safe roads roll watch patrols
 const ctx: PlanContext = { tier: 'success', kind: 'scenario', placeId: 'tavern' };
 const town = region.sites.find((x) => x.size === 'town')!;
