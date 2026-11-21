@@ -1,4 +1,5 @@
 import { ms } from './motion';
+import { skillMark } from './itemIcons';
 // Small DOM helpers and the shared HISAB pieces: readout tiles, visibility tiles, grouped tables, side panel.
 type Attrs = Record<string, unknown>;
 /** YB5: an archived story, shown read-only (a fallen character's sheet in the Hall of fame): nothing on it can act */
@@ -197,7 +198,7 @@ export function askInPlace(host: HTMLElement, lost: string, yes: string, onYes: 
   back.focus();
 }
 
-export type PanelRow = { k: string; v: string | Node; picked?: boolean /* the field the player clicked, highlighted */; tone?: string /* a class for the value, e.g. tone-good */; split?: true /* starts a new block of rows, set apart by a rule */ };
+export type PanelRow = { k: string; skill?: string /* drawn as the skill's icon, k its tip */; v: string | Node; picked?: boolean /* the field the player clicked, highlighted */; tone?: string /* a class for the value, e.g. tone-good */; split?: true /* starts a new block of rows, set apart by a rule */ };
 let panelHost: HTMLElement | null = null;
 export function setPanelHost(el: HTMLElement) { panelHost = el; }
 export function closePanel() { if (panelHost) { panelHost.hidden = true; panelHost.replaceChildren(); } }
@@ -206,7 +207,7 @@ export function openPanel(title: string, rows: PanelRow[], note?: string, head?:
   panelHost.hidden = false;
   panelHost.replaceChildren(
     h('div', { class: 'hs-panel-head' }, h('span', {}, title), head ?? null, h('button', { class: 'hs-icon-btn', type: 'button', 'aria-label': 'Close', title: 'Close', onclick: closePanel }, '×')),
-    ...rows.map((r) => h('div', { class: 'hs-panel-row' + (r.picked ? ' picked' : '') }, h('span', { class: 'k' }, r.k), h('span', { class: r.tone }, r.v))),
+    ...rows.map((r) => h('div', { class: 'hs-panel-row' + (r.picked ? ' picked' : '') }, h('span', { class: 'k' }, r.skill ? skillMark(r.skill, r.k) : r.k), h('span', { class: r.tone }, r.v))),
     note ? h('p', { class: 'hs-note', style: 'padding-top:12px' }, note) : '',
   );
   (panelHost.querySelector('.picked input') as HTMLInputElement | null)?.focus();

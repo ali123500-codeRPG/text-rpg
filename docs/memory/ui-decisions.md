@@ -25,6 +25,10 @@ are in `docs/build-spec.md` ("### Play screen", "### Play screen motion").
   rating, a Character page section, a card figure), the icon stands in place of its name, and the name moves to the
   icon's tip and accessible name. Reason: the owner asked why they had to read the same thing twice; `show-dont-tell-ui`
   already says so. An icon shared by several things keeps its name shown; classes got placeholder icons of their own so the Class
-  line could drop its name (20/11/2026).
+  line could drop its name (20/11/2026). It holds on every screen, not only the Character page (21/11/2026): the Perks
+  page, Play's turn results and roll cards, the scenario-end gains, the creation screen's trees, skills and Starts, the
+  class tree and its unlock needs, gear compare, essences, the item page and the Power breakdown. Names stay in words
+  only inside tips, accessible names, pop-up titles and text sent to the model. `skillMark` and `treeIcon`
+  (`src/ui/itemIcons.ts`) draw them; `.skico` and `.trico` have one default size in `styles.css`.
 - Dates for rules stated in `docs/instructions.md` section 7: play and creation are PC only (12/11/2026); the
   library viewer also works on phones (15/11/2026); screens fill the window (10/11/2026).

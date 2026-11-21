@@ -12,9 +12,9 @@ import { CLASS_TIERS, type ClassTierKey } from '../scales';
 import { classMaxLevel } from '../library/spawn';
 import { levelTarget, spendXp } from '../engine/xp';
 import { PK } from '../library/perkIds';
-import { markIcon, skillName } from './creation';
+import { markIcon } from './creation';
 import { ended, h } from './kit';
-import { classIcon } from './itemIcons';
+import { classIcon, skillMark } from './itemIcons';
 import { openPop, closePop } from './pop';
 
 /** a class opening another: `via` says how ("its capstone", "level 5") */
@@ -25,7 +25,7 @@ export type ClassNode = {
   shown: 'have' | 'next';
   level: number; top: number; state?: 'current' | 'unlocked' | 'previous';
   /** where the class comes from when no class opens it: skills, a start, a god's blessing, any class at its top level */
-  source: string | null;
+  source: Bit[] | null;
   /** nothing opens from it */
   deadEnd: boolean;
   /** its capstone can open every class (Write Your Own Ending) */
@@ -45,21 +45,24 @@ export function classLinks(): ClassLink[] {
   return out;
 }
 
-const orList = (g: Record<string, number>): string => {
+type Bit = string | HTMLElement;
+/** "a or b": each skill as its icon (its name the tip), joined */
+const joined = (parts: Bit[][], by: string): Bit[] => parts.flatMap((p, i) => (i ? [by, ...p] : p));
+const orList = (g: Record<string, number>): Bit[] => {
   const e = Object.entries(g), same = e.every(([, n]) => n === e[0][1]);
-  return same ? `${e.map(([k]) => skillName(k)).join(' or ')} ${e[0][1]}` : e.map(([k, n]) => `${skillName(k)} ${n}`).join(' or ');
+  return same ? [...joined(e.map(([k]) => [skillMark(k)]), ' or '), ` ${e[0][1]}`] : joined(e.map(([k, n]) => [skillMark(k), ` ${n}`]), ' or ');
 };
 
 /** where a class comes from other than another class: skills, a blessing, a start, any class topping out */
-export function classSource(c: ClassDef): string | null {
-  const lib = getLibrary(), bits: string[] = [];
-  if (c.fallback) return 'any class at its top level';
-  if (c.blessedBy) bits.push(`a blessing from ${lib.gods?.[c.blessedBy]?.name ?? c.blessedBy}`);
-  bits.push(...Object.entries(c.unlock ?? {}).map(([k, n]) => `${skillName(k)} ${n}`), ...(c.unlockAny ?? []).map(orList));
-  if (c.unlockPerkWith?.hearingDb) bits.push('a perk that sharpens hearing');
-  if (bits.length) return bits.join(' and ');
+export function classSource(c: ClassDef): Bit[] | null {
+  const lib = getLibrary(), bits: Bit[][] = [];
+  if (c.fallback) return ['any class at its top level'];
+  if (c.blessedBy) bits.push([`a blessing from ${lib.gods?.[c.blessedBy]?.name ?? c.blessedBy}`]);
+  bits.push(...Object.entries(c.unlock ?? {}).map(([k, n]) => [skillMark(k), ` ${n}`]), ...(c.unlockAny ?? []).map(orList));
+  if (c.unlockPerkWith?.hearingDb) bits.push(['a perk that sharpens hearing']);
+  if (bits.length) return joined(bits, ' and ');
   // a start counts only for a class no other class opens
-  if (Object.values(lib.starts ?? {}).some((st) => st.classId === c.id) && !c.unlockClass && !c.orUnlocks) return 'a start';
+  if (Object.values(lib.starts ?? {}).some((st) => st.classId === c.id) && !c.unlockClass && !c.orUnlocks) return ['a start'];
   return null;
 }
 
@@ -126,14 +129,14 @@ export function classTreeView(s: GameState, after: () => void): HTMLElement {
     const node = (x: ClassNode) => h('button', {
       type: 'button', class: `ct-node ${x.shown}${x.target ? ' target' : ''}${x.deadEnd ? ' dead' : ''}`, 'data-class': x.id, 'aria-haspopup': 'dialog', title: `${x.name}: ${statusText(x)}`,
       onclick: (e: Event) => openClassCard(s, x.id, e.currentTarget as HTMLElement, () => { draw(); after(); }),
-    }, h('span', { class: 'ct-name' }, classIcon(x.id), h('b', {}, x.name),
+    }, h('span', { class: 'ct-name' }, classIcon(x.id, x.name),
       x.id === start ? markIcon('class_start', 'Started here', 'mk-i ct-mk start') : null,
       x.target ? markIcon('class_next', 'Next level here', 'mk-i ct-mk next') : null,
       !x.deadEnd && x.opensAll ? markIcon('class_any', 'Can open every class', 'mk-i ct-mk all') : null),
       cardText(x) ? h('span', { class: 'ct-st' }, cardText(x)) : null,
       // the card's name for a screen reader keeps the words its border shows
       x.state === 'current' || x.shown === 'next' ? h('span', { class: 'vh' }, x.shown === 'next' ? 'Locked' : 'Current') : null,
-      x.shown === 'next' && x.source ? h('span', { class: 'ct-src' }, `From ${x.source}`) : null,
+      x.shown === 'next' && x.source ? h('span', { class: 'ct-src' }, 'From ', ...x.source) : null,
       x.deadEnd ? h('span', { class: 'ct-chip dead' }, 'Dead end') : null);
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('class', 'ct-links');
@@ -213,7 +216,7 @@ export function openClassCard(s: GameState, id: string, opener: HTMLElement | nu
   const perkNames = (ids: string[] = []) => ids.map((x) => lib.perks[x]?.name ?? x).join(', ');
   const hidden = (cid: string) => !p.core.classes.some((x) => x.classId === cid) && !classTree(p).nodes.some((x) => x.id === cid);
   const from = links.filter((l) => l.to === id), to = links.filter((l) => l.from === id);
-  const row = (k: string, v: string) => [h('dt', {}, k), h('dd', {}, v)];
+  const row = (k: string, v: string | Bit[]) => [h('dt', {}, k), h('dd', {}, v)];
   openPop({ title: c.name, cls: 'ct-pop', opener, body: [
     c.story ? h('p', { class: 'ct-story' }, c.story) : null,
     h('dl', { class: 'gp-rows' },
@@ -221,7 +224,7 @@ export function openClassCard(s: GameState, id: string, opener: HTMLElement | nu
       ...(n ? row('Level', statusText(n)) : []),
       ...Object.entries(c.levelPerks ?? {}).flatMap(([lv, ids]) => row(`Level ${lv} perk`, perkNames(ids))),
       ...(c.capstone?.length ? row('Capstone', `${perkNames(c.capstone)} at level ${classMaxLevel(id)}`) : []),
-      ...row('Opens from', [...from.map((l) => `${name(l.from)} (${l.via})`), ...(n?.source ? [n.source] : [])].join('; ') || 'Only where a start begins'),
+      ...row('Opens from', ((o: Bit[][]) => (o.length ? joined(o, '; ') : 'Only where a start begins'))([...from.map((l) => [`${name(l.from)} (${l.via})`]), ...(n?.source ? [n.source] : [])])),
       ...row('Leads to', to.length ? to.map((l) => (hidden(l.to) ? `a class not shown yet (${l.via})` : `${name(l.to)} (${l.via})`)).join('; ')
         : opensAll(c) ? 'Its capstone can open every class' : 'Nothing: a dead end')),
     n?.pickable && !ended(s) ? (n.target

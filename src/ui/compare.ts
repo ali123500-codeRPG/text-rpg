@@ -59,10 +59,10 @@ export function compareRows(s: GameState, it: { id?: string }): PanelRow[] {
   const inst = p2.core.inventory.find((i) => i.id === it.id)!;
   const d = itemDef(s, inst.itemId);
   const rows: PanelRow[] = [];
-  const row = (k: string, a: number | null | undefined, b: number | null | undefined, before = '', after = '') => {
+  const row = (k: string, a: number | null | undefined, b: number | null | undefined, before = '', after = '', skill?: string) => {
     if (a == null || b == null || (a === b && before === after)) return;
     const n = b - a;
-    rows.push({ k, v: `${before}${num(a)} → ${after}${num(b)}${n ? ` ${n > 0 ? '▲ +' : '▼ −'}${num(Math.abs(n))}` : ''}`, tone: n > 0 ? 'cmp tone-good' : n < 0 ? 'cmp tone-bad' : 'cmp' });
+    rows.push({ k, ...(skill ? { skill } : {}), v: `${before}${num(a)} → ${after}${num(b)}${n ? ` ${n > 0 ? '▲ +' : '▼ −'}${num(Math.abs(n))}` : ''}`, tone: n > 0 ? 'cmp tone-good' : n < 0 ? 'cmp tone-bad' : 'cmp' });
   };
   const atk = safe(() => attackOf(s, p)), atk2 = safe(() => attackOf(s2, p2));
   if (atk && atk2) row('Standing attack', atk.value, atk2.value, atk.name === atk2.name ? '' : `${atk.name} `, atk.name === atk2.name ? '' : `${atk2.name} `);
@@ -71,7 +71,7 @@ export function compareRows(s: GameState, it: { id?: string }): PanelRow[] {
   if (d.weapon) row('Reach (m)', safe(() => longest(s, p)), safe(() => longest(s2, p2)));
   for (const part of d.armor?.covers ?? []) row(`Protection · ${partName(part).toLowerCase()}`, pieceOn(s, p, part)?.armor.reduction ?? 0, pieceOn(s2, p2, part)?.armor.reduction ?? 0);
   const skills = new Set((d.effects ?? []).filter((e) => e.kind === 'skill' && e.skill && e.skill !== '$mode').map((e) => (e.skill === ROLLED_SKILL ? rolledSkill(s, { id: inst.id }, e) : e.skill!)));
-  for (const k of skills) row(skillName(k), safe(() => effectiveSkill(s, p, k).value), safe(() => effectiveSkill(s2, p2, k).value));
+  for (const k of skills) row(skillName(k), safe(() => effectiveSkill(s, p, k).value), safe(() => effectiveSkill(s2, p2, k).value), '', '', k);
   row('Power', safe(() => power(s, p)), safe(() => power(s2, p2)));
   const head: PanelRow = { split: true, k: 'Compared with', v: off.length ? `your ${listWords(off.map((i) => safe(() => itemDef(s, i.itemId).name) ?? i.itemId))}` : 'nothing (a free slot)' };
   return [head, ...(rows.length ? rows : [{ k: 'Change', v: 'No figure changes', tone: 'tone-muted' }])];

@@ -14,7 +14,7 @@ import { createRng } from '../rng';
 import { SKILL_NAMES, skillName } from '../library/skillNames';
 import { classTree, skillOpen, treeOpen } from '../ruleset/access';
 import { h, openPanel, readouts, type Readout } from './kit';
-import { ICONS, startIcon, type IconName } from './itemIcons';
+import { ICONS, skillMark, startIcon, treeIcon, type IconName } from './itemIcons';
 import { preview } from './sheet';
 import { SK } from '../library/skillIds';
 import { ST } from '../library/startIds';
@@ -114,7 +114,7 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
     const sum = h('span', { class: 'tot hs-num' });
     sums.set(t.id, sum);
     const name = def?.name ?? t.id;
-    const sec = h('section', {}, h('div', { class: 'grp-h' }, h('i', { class: 'hs-sq', style: `background:var(--${t.c})` }), h('h2', { class: 'hs-section' }, name),
+    const sec = h('section', { style: `--t:var(--${t.c})` }, h('div', { class: 'grp-h' }, h('h2', { class: 'hs-section' }, treeIcon(t.id, name) ?? name),
       classTree(def?.access) ? h('span', { class: 'hs-chip' }, 'Class tree') : null, sum));
     for (const k of (def?.skills ?? []).filter((k) => open.includes(k))) {
       // the tag and flaw toggles sit right after the name: dim until set, then lit
@@ -127,7 +127,7 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
         else if (st.tags.has(k)) { st.tags.delete(k); fit(); } else st.tags.add(k);
         render();
       } }, tg('tag'), tg('flaw'));
-      const nm = h('div', { class: 'nm' }, h('span', { class: 'nm-l' }, h('b', SKILL_SUB[k] ? { title: SKILL_SUB[k][0].toUpperCase() + SKILL_SUB[k].slice(1) } : {}, skillName(k)), marks),
+      const nm = h('div', { class: 'nm' }, h('span', { class: 'nm-l' }, skillMark(k, skillName(k) + (SKILL_SUB[k] ? ` · ${SKILL_SUB[k]}` : '')), marks),
         floors[k] ? h('small', {}, `class floor ${floors[k]}`) : null);
       const range = h('input', { type: 'range', min: '0', max: '100', 'aria-label': skillName(k), oninput: (e: Event) => setVal(k, +(e.target as HTMLInputElement).value - (st.tags.has(k) ? CONFIG.CREATION_TAG_BONUS : 0)) });
       const row = h('div', { class: 'row', 'data-k': k }, nm,
@@ -235,8 +235,8 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
   const starts = h('div', { class: 'actions', role: 'group', 'aria-label': 'Start' }, Object.values(lib.starts).map((s) =>
     h('button', { class: s.id === startId ? 'hs-btn-main' : 'hs-btn-text', type: 'button', 'aria-pressed': String(s.id === startId), 'data-start': s.id,
       title: [`${creationPoints(s.id)} points, level ${startLevel(s.id)}`, ...startFacts(s.id).perks].join(' · '),
-      onclick: () => { if (s.id !== startId) switchTo(s.id); } }, startIcon(s),
-    [s.name, startFacts(s.id).tier, `${creationPoints(s.id)} pts`, `level ${startLevel(s.id)}`].filter(Boolean).join(' · '))));
+      onclick: () => { if (s.id !== startId) switchTo(s.id); } }, startIcon(s, s.name),
+    [startFacts(s.id).tier, `${creationPoints(s.id)} pts`, `level ${startLevel(s.id)}`].filter(Boolean).join(' · '))));
   /** why this start can't begin: no god gives its blessing (DX1), or no Threadbound item free in the picked world (WP2 b); '' if it can */
   function blockedWhy(id: string): string {
     if (startFacts(id).blocked) return startFacts(id).blocked;

@@ -29,7 +29,6 @@ import { charFocus, stateToken, NERVE_PASSES, NERVE_STILL, NERVE_UNTIL, coinIcon
 import { figurePulse } from './figure3d';
 import { isBrokenLevel, moraleLevel } from '../ruleset/morale';
 import { cantSteady } from '../engine/steady';
-import { skillName } from './creation';
 import { healCard, healIcon, partName, quickHeal, woundCard } from './healing';
 import { answering } from '../agents/answering';
 import { arrive, bar as barMove, count, cue, delta, finishAll, flare, impact, moving, ms, play, pulse, sentences, shake, slam, stamp, timeline } from './motion';
@@ -39,7 +38,7 @@ import { closeFull, closePop, openPop } from './pop';
 import { deckView, walkOrder, type SayMode } from './deckView';
 import { minimapPanel, type MinimapPoint } from './minimap';
 import { mapPick } from './map';
-import { ICONS, instanceIcon } from './itemIcons';
+import { ICONS, instanceIcon, skillMark } from './itemIcons';
 import { maybeOfferPop } from './essences';
 import { anyGains, gainsPanel, gainsSummary, honor, playGains } from './gains';
 import { working } from '../ruleset/body';
@@ -384,7 +383,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
 
   /** opens the Character page with its Perks board up */
   const seePerks = () => { charFocus.open = 'perks'; nav('stats'); };
-  const goldCard = (title: string, sub: string, action?: [string, () => void], levelUp = false, series?: string) => h('div', { class: 'perk-new', 'data-levelup': levelUp ? '' : undefined, 'data-series': series }, h('span', { class: 'st', 'aria-hidden': 'true' }, '✦'),
+  const goldCard = (title: string, sub: string | (string | Node)[], action?: [string, () => void], levelUp = false, series?: string) => h('div', { class: 'perk-new', 'data-levelup': levelUp ? '' : undefined, 'data-series': series }, h('span', { class: 'st', 'aria-hidden': 'true' }, '✦'),
     h('div', {}, title, h('small', {}, sub)), action ? h('button', { type: 'button', class: 'hs-btn-text', onclick: action[1] }, action[0]) : null);
 
   /** an achievement or scar earned this turn: its name, reward level and what it asks for; a click shows why it was
@@ -431,7 +430,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
 
   /** a roll line: whose roll (the player's own skill, or who rolled against the player), both tiers, the gap and the result */
   const checkLine = (c: NonNullable<LogLine['check']>, by?: string) => h('p', { class: 'check' + (by ? ' in' : '') }, checkIcon(c.kind),
-    h('span', { class: 'sk' }, by ? cap(by) : skillName(c.skill)), tierChip(c),
+    h('span', { class: 'sk' }, by ? cap(by) : skillMark(c.skill)), tierChip(c),
     c.against ? [h('span', { class: 'vs' }, `vs ${c.against.what}`), tierChip(c.against), h('span', { class: 'gap' }, [tierGap(c, c.against), ...(c.shifts ?? [])].join(' · '))] : null,
     c.result && h('span', { class: 'res' }, '→ ', ((o) => h('b', { class: o && struck(o) ? 'hit' : '', 'data-o': o ? String(OUTCOME_BEAT[o]) : '0' }, c.result))(outcomeOf(c.result))));
 
@@ -461,7 +460,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       // what you did at doors, gates and other barriers this turn: tried, opened, locked, picked
       ...(l.ways ?? []).map((w) => row('Way', w)),
       // a skill that went up this turn: "Strike +1" in gold, the same mark as the sheet's ▲ (playtest run 33)
-      gains.length ? row('Skills', ...gains.flatMap(([k, n], i) => [i ? ' · ' : '', h('b', { class: 'skill-up', title: 'Went up this turn' }, `▲ ${skillName(k)} +${n}`)])) : null,
+      gains.length ? row('Skills', ...gains.flatMap(([k, n], i) => [i ? ' · ' : '', h('b', { class: 'skill-up', title: 'Went up this turn' }, '▲ ', skillMark(k), ` +${n}`)])) : null,
       xp.length && s ? row('XP', xp.map((x) => `${x.amount > 0 ? '+' : '−'}${Math.round(Math.abs(x.amount))} ${xpSourceWords(s, x)}`).join(' · ')) : null,
       ...(l.heals ?? []).map(healCard),
       ...(l.wounds ?? []).filter((w) => !working(w.to)).map(woundCard),
@@ -474,7 +473,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       ...(l.levelUps ?? []).map((u) => goldCard('Level up', u.classId ? `${lib.classes[u.classId]?.name ?? 'Your class'} reached level ${u.level}` : `A bonus level: you reached level ${u.level}`, ['See perks', seePerks], true)),
       ...(l.achievements ?? []).map(achCard),
       // V2a: milestones a skill crossed on this turn; the card never names the perk
-      ...(l.unlocks ?? []).map((u) => goldCard('New perk unlocked', `${skillName(u.skill)} reached ${u.milestone}`, ['See perks', seePerks], false, perkSeries(u.milestone))),
+      ...(l.unlocks ?? []).map((u) => goldCard('New perk unlocked', [skillMark(u.skill), ` reached ${u.milestone}`], ['See perks', seePerks], false, perkSeries(u.milestone))),
       l.mechanics?.length ? h('details', { class: 'rolls' }, h('summary', {}, h('span', { class: 'hs-label' }, 'Rolls')),
         h('ul', {}, l.mechanics.map((m) => h('li', {}, m)))) : null,
     ].filter(Boolean) as HTMLElement[];

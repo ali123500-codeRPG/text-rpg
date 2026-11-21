@@ -427,8 +427,9 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 
 - **PS-250** Every skill tree shows at once, each in its own compact box (the boxes side by side, wrapping into rows; a
   box as wide as its skills need), with no tabs and no By effect view (Ali, page comment, 14/11/2026).
-- **PS-251** In a box each skill is a ladder of its seven milestones on a gold line showing true skill, the rail at the
-  left of its column with the perk names beside it (a long name wraps to a second line, PS-32).
+- **PS-251** In a box each skill is a ladder of its seven milestones on a gold line showing true skill, the skill's
+  icon, its value and its rail on one centre line. No perk name shows on the board: a milestone's tip names its perk,
+  and a click opens its card (PS-255).
 - **PS-252** The All-50/100/150 steps are dotted lines across the box. On narrow screens the ladders become horizontal
   tracks.
 - **PS-253** The Story / Effect toggle for the perk write-ups sits where they are written: in the perk card's head and
@@ -439,7 +440,11 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
   1 point". Mock-ups: https://claude.ai/artifact/TVfF7qs3WnDdDZzzM6Yjf5
 - **PS-256** Every perk the Perks tile counts shows on the board. Perks on no ladder of the character's skills (a
   class perk, a Start's blessing, an achievement's, a Threadbound item's, an All-step's, Hollowed) are listed under
-  Granted, beside Innate, each tagged with where it came from (BG-331; heldPerks and grantedPerks in src/ui/perks.ts).
+  Granted, under the tree boxes, each tagged with where it came from (BG-331; heldPerks and grantedPerks in
+  src/ui/perks.ts).
+- **PS-257** As on the Character page (PS-277), each box's heading is its tree's icon, centred over its ladders, and
+  each ladder (or track) starts with its skill's icon, both in the tree's colour, in place of their names; the perk
+  card's head shows the skill's icon and the milestone. Each name is its icon's tip and accessible name (skillMark, treeIcon in src/ui/itemIcons.ts).
 
 #### Journal page
 
@@ -532,7 +537,8 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
   kind; the loot pop-up shows each thing's icon.
 - **PS-304** Each class has one of its own (Unwritten Legend, Knight Trainee and Knight have placeholders), shown on
   the class tree, the circle by the name on the Character page and the creation screen's Starts (a Start shows its
-  class's; The Blessed shows a holy symbol). In the circle the current class's icon stands in place of its name, and its
+  class's; The Blessed shows a holy symbol). Everywhere a class or Start shows, its icon stands in place of its name
+  (the class tree's cards lead with it at 28 px, its marks smaller after it); in the circle the current class's icon stands in place of its name, and its
   colour says its tier (the class tree's tier hues: accent for tiers 0-2, perk purple for 3-4, gold for 5); its tip and
   accessible name give the class, its tier, its class level ("level 1 of 20") and where the next level goes, and a
   press opens the class tree (PROG-190). There is no class row under the XP bar. Class icons are tier-coloured wherever

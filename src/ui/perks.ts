@@ -12,6 +12,7 @@ import { skillName, TREE_VIEW } from './creation';
 import { PK } from '../library/perkIds';
 import { allStepNeed, skillsAt } from '../ruleset/allSteps';
 import { PERK_LINKS } from '../library/perkLinks';
+import { skillMark, treeIcon } from './itemIcons';
 
 // Story or Effect: the player picks which write-up a perk shows; kept per browser
 const readText = (): 'story' | 'rules' => { try { return localStorage.getItem('perkText') === 'rules' ? 'rules' : 'story'; } catch { return 'story'; } };
@@ -33,19 +34,19 @@ const pctOf = (top: number) => (v: number) => `${Math.min(100, (v / top) * 100).
 /** the boxes the Perks section draws, one per tree the actor has a skill in, in the tree order every page uses */
 export function treesOf(p: Actor) {
   const lib = getLibrary();
-  return TREE_VIEW.filter((t) => lib.trees[t.id]).map((t) => ({ id: t.id, name: lib.trees[t.id].name, skills: lib.trees[t.id].skills.filter((k) => p.core.skills[k] !== undefined) }))
+  return TREE_VIEW.filter((t) => lib.trees[t.id]).map((t) => ({ id: t.id, c: t.c, name: lib.trees[t.id].name, skills: lib.trees[t.id].skills.filter((k) => p.core.skills[k] !== undefined) }))
     .filter((t) => t.skills.length);
 }
 
-function node(skill: string, milestone: number, st: Show, label: boolean) {
+function node(skill: string, milestone: number, st: Show) {
   const d = st === 'own' || st === 'open' ? milestonePerk(skill, milestone) : undefined;
   const sel = ui.sel?.skill === skill && ui.sel.milestone === milestone;
   return h('button', {
     type: 'button', class: `pk-n ${st}${sel ? ' sel' : ''}`, 'data-k': `${skill}:${milestone}`, 'data-series': perkSeries(milestone), disabled: st === 'sealed',
     'aria-label': st === 'sealed' ? `${skillName(skill)} ${milestone}, sealed` : `${skillName(skill)} ${milestone}${d ? ', ' + d.name : st === 'empty' ? ', no perk yet' : ''}`,
-    title: `${seriesName(milestone)} ${milestone}${d ? ` · ${d.name}` : ''}`, // the name beside it may be cut short in a narrow box
+    title: `${seriesName(milestone)} ${milestone}${d ? ` · ${d.name}` : ''}`, // the perk's name shows here and on its card, not on the board
     onclick: () => { ui.sel = sel ? null : { skill, milestone }; redraw(); },
-  }, h('span', {}, String(milestone)), label && d ? h('em', {}, d.name) : null);
+  }, h('span', {}, String(milestone)));
 }
 
 /** the All-XXX marker: tree skills at the step, of the count the tree's rating needs (allStepNeed), once one is there; an inferior tree never earns one */
@@ -62,19 +63,19 @@ function ladders(p: Actor, treeId: string, skills: string[]) {
     skills.map((k) => {
       const v = trueSkill(p, k);
       return h('div', { class: 'pk-col' },
-        h('div', { class: 'pk-ch' }, h('b', {}, skillName(k)), h('span', {}, String(v))),
+        h('div', { class: 'pk-ch' }, skillMark(k, skillName(k)), h('span', {}, String(v))),
         h('div', { class: 'pk-rail' }, h('i', { class: 'pk-fill', style: `height:${pct(v)}` }),
-          milestonesUpTo(top).map((r) => h('div', { class: 'pk-at', style: `bottom:${pct(r)}` }, node(k, r, milestoneState(p, k, r), true)))));
+          milestonesUpTo(top).map((r) => h('div', { class: 'pk-at', style: `bottom:${pct(r)}` }, node(k, r, milestoneState(p, k, r))))));
     }));
 }
 
 function track(p: Actor, k: string, show: (r: number, st: MilestoneState) => Show) {
   const v = trueSkill(p, k), top = railTop(p), pct = pctOf(top);
   return h('div', { class: 'pk-tr' },
-    h('div', { class: 'pk-tl' }, h('b', {}, skillName(k)), h('span', {}, String(v))),
+    h('div', { class: 'pk-tl' }, skillMark(k, skillName(k)), h('span', {}, String(v))),
     h('div', { class: 'pk-tt' }, h('i', { class: 'pk-tf', style: `width:${pct(v)}` }),
       allStepsUpTo(top).map((m) => h('b', { class: 'pk-tm', style: `left:${pct(m)}` })),
-      milestonesUpTo(top).map((r) => h('div', { class: 'pk-ta', style: `left:${pct(r)}` }, node(k, r, show(r, milestoneState(p, k, r)), false)))));
+      milestonesUpTo(top).map((r) => h('div', { class: 'pk-ta', style: `left:${pct(r)}` }, node(k, r, show(r, milestoneState(p, k, r)))))));
 }
 
 /** perks the owner can switch on and off */
@@ -88,7 +89,7 @@ function card(s: GameState, p: Actor, api: GameApi) {
   const d = milestonePerk(skill, milestone);
   const pts = p.progression?.unspentPerkPoints ?? 0, acts = !ended(s); // YB5: a fallen character's board only reads
   // a floating card like the details pop-ups: dragged by its head, closed with ✕ or Esc, and it stays where it was put
-  const head = h('div', { class: 'pk-card-head' }, h('p', { class: 'k' }, `${skillName(skill)} · ${milestone}`), d?.rules ? textToggle() : null,
+  const head = h('div', { class: 'pk-card-head' }, h('p', { class: 'k' }, skillMark(skill, skillName(skill)), ` · ${milestone}`), d?.rules ? textToggle() : null,
     h('button', { type: 'button', class: 'hs-icon-btn', 'aria-label': 'Close', title: 'Close (Esc)', onclick: () => { ui.sel = null; redraw(); } }, '✕'));
   return h('aside', { class: 'pk-card', 'data-series': perkSeries(milestone), role: 'dialog', 'aria-modal': 'false', 'aria-label': d?.name ?? `${skillName(skill)} ${milestone}` },
     head,
@@ -197,12 +198,12 @@ export function perksSection(api: GameApi): HTMLElement {
       h('div', { class: 'pk-h' }, h('h2', {}, 'Perks'),
         h('span', { class: 'pk-pts' + (pts ? '' : ' none') }, `✦ ${pts} point${pts === 1 ? '' : 's'}`)),
       innate(p),
-      granted(p),
       linked(p),
       // every tree in its own box, side by side; a box is as wide as its skills need
-      trees.length ? h('div', { class: 'pk-trees' }, trees.map((t) => h('section', { class: 'pk-board', 'aria-label': t.name, style: `--n:${t.skills.length}` },
-        h('h3', {}, t.name), ladders(p, t.id, t.skills), h('div', { class: 'pk-trk' }, t.skills.map((k) => track(p, k, (_r, st) => st))))))
+      trees.length ? h('div', { class: 'pk-trees' }, trees.map((t) => h('section', { class: 'pk-board', 'aria-label': t.name, style: `--n:${t.skills.length};--t:var(--${t.c})` },
+        h('h3', {}, treeIcon(t.id, t.name) ?? t.name), ladders(p, t.id, t.skills), h('div', { class: 'pk-trk' }, t.skills.map((k) => track(p, k, (_r, st) => st))))))
         : h('p', { class: 'empty' }, 'No skills yet.'),
+      granted(p), // under the trees: the ladders are what the page is for
       card(s, p, api)];
     el.replaceChildren(...kids.filter((x): x is HTMLElement => !!x));
     place();

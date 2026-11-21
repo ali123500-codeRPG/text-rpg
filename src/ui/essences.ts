@@ -8,6 +8,7 @@ import { ESSENCE_GRADES } from '../scales';
 import { durationText, now } from '../time';
 import { askInPlace, ended, h } from './kit';
 import { skillName } from './creation';
+import { skillMark } from './itemIcons';
 import { openPop } from './pop';
 
 /** an offer's key while it waits: the same offer keeps it from turn to turn */
@@ -16,18 +17,19 @@ export const offerKey = (o: EssenceOffer): string => `${o.essence}:${o.turn}:${o
 const nameOf = (e: HeldEssence) => getLibrary().essences?.[e.essence]?.name ?? e.essence;
 const storyOf = (e: HeldEssence) => getLibrary().essences?.[e.essence]?.story ?? '';
 
-/** "+1 Dodge", one chip per skill the essence raises, then its trait and quirk by name (FP8: owned once while held) */
-export function essenceStats(e: HeldEssence): string[] {
+/** its trait and quirk by name (FP8: owned once while held) */
+const traitWords = (e: HeldEssence): string[] => {
   const row = getLibrary().essences?.[e.essence], perks = getLibrary().perks;
-  return [...Object.entries(e.points).map(([k, v]) => `+${v} ${skillName(k)}`),
-    ...(row?.trait ? [`Trait: ${perks[row.trait]?.name ?? row.trait}`] : []), ...(row?.quirk ? [`Quirk: ${perks[row.quirk]?.name ?? row.quirk}`] : [])];
-}
+  return [...(row?.trait ? [`Trait: ${perks[row.trait]?.name ?? row.trait}`] : []), ...(row?.quirk ? [`Quirk: ${perks[row.quirk]?.name ?? row.quirk}`] : [])];
+};
+/** "+1 Dodge", one per skill the essence raises, then its trait and quirk: the essence in words (offers, tests) */
+export const essenceStats = (e: HeldEssence): string[] => [...Object.entries(e.points).map(([k, v]) => `+${v} ${skillName(k)}`), ...traitWords(e)];
 
 function tile(e: HeldEssence, extra: (Node | string | null)[] = []): HTMLElement {
   return h('div', { class: 'ess-tile', title: storyOf(e) },
     h('div', { class: 'ess-top' }, h('span', { class: 'ess-gem', 'aria-hidden': 'true' }, '◆'), h('b', {}, nameOf(e)),
       h('span', { class: `ess-grade g-${e.grade}` }, ESSENCE_GRADES.name(e.grade))),
-    h('div', { class: 'ess-stats' }, essenceStats(e).map((t) => h('span', { class: 'ess-stat' }, t))), ...extra);
+    h('div', { class: 'ess-stats' }, Object.entries(e.points).map(([k, v]) => h('span', { class: 'ess-stat' }, `+${v} `, skillMark(k))), traitWords(e).map((t) => h('span', { class: 'ess-stat' }, t))), ...extra);
 }
 
 /** the buttons for one offer: Take it (or, with every slot full, Take it in place of each held one), Let it go */
