@@ -26,9 +26,9 @@ edge cases. Where a section repeats a rule from `AGENTS.md`, it is there to add 
 
 ## 2. IDs, parked items and bugs
 
-- Open questions, parked items and bugs are named only by fixed IDs: OQ-n, D-n, BG-n. A new one takes the next free
-  number: one past the highest ever used, never a gap left by a retired one. Answered or retired IDs are never
-  reused.
+- Open questions, parked items and bugs are named only by fixed IDs: OQ-n, D-n, BG-n. A new OQ-n or D-n takes the
+  next free number: one past the highest ever used, never a gap left by a retired one. A new BG-n is its claim issue's
+  number (Bugs, below). Answered or retired IDs are never reused.
 - **Parked items.** Anything the owner parks (a perk, a question, a feature, tuning) gets its own D-n the same turn,
   in the spec's "Deferred items" table with its options written out, plus banked rows in the library where it is
   content (perks, achievements, table rows).
@@ -36,27 +36,30 @@ edge cases. Where a section repeats a rule from `AGENTS.md`, it is there to add 
   `deferred-items-archive.md` or `bug-log-archive.md` (beside them in `docs/spec/`) in the PR that finishes it: built,
   settled, dropped, closed or merged for a D-n; fixed, won't fix or duplicate for a BG-n. `npm run spec -- <ID>` finds
   a row in either file.
-- **Bugs.** Every bug found or reported gets a BG-n and a row in the spec's "Bug log": its ID, one line on what was
-  wrong (at most 160 characters), its status and its claim issue (`#n`, section 4).
-  - Taking a number: one past the highest BG-n in the Bug log and its archive on the latest `main`, in the PR that adds the row. A
-    clash then shows up as a merge conflict. This holds for every agent.
+- **Bugs.** Every bug found or reported gets a claim issue (section 4) labelled `bug`, and the issue's number is its
+  ID: issue #1480 is BG-1480. The issues are the bug register: the title is one line on what was wrong (at most 160
+  characters), an open issue is an open bug, and a closed one is fixed (the PR's `Closes #n`), or won't fix or a
+  duplicate (closed as not planned, with a one-line reason). Open bugs:
+  `gh api 'repos/{owner}/{repo}/issues?labels=bug'`.
+  Reason: numbers taken as one past the highest in the Bug log clashed when two threads took one at once, and every
+  bug PR edited the same table and log, so independent fixes conflicted with each other. This holds for every agent.
+  - Numbers below 1000 are the old count. Their rows stay in the spec's "Bug log" and its archive and their entries
+    in `docs/bug-fix-log.md`, never renumbered; a fix of one still open there moves its row to the archive. No new
+    rows are added.
   - Investigate with the `root-cause-first` skill. Before choosing a fix, list every plausible cause (engine rule,
     agent prompt, view or narration data, numbers), check each against the logs, and keep only what the evidence
     shows.
   - Then find every action, actor kind (player and NPC) and code path that shares the cause, and fix them with one
     shared rule or table. Say in the PR which siblings you checked. Reason: fixing only the symptom a playtest showed
     left its siblings for the next run.
-  - A bug fix needs no OK from the owner. Write the cause and the fix once, in its `docs/bug-fix-log.md` entry; the
-    PR links that entry instead of repeating it, says `Closes #n`, and merges when every check is green.
-  - The claim issue exists before the first commit, so one commit carries the row, the entry and the fix: never a
-    second commit to write a PR number in. A row never says "this PR", a fixed row names its number, and a new row
-    is one line. Every row has this form; rows up to BG-326 name the PR,
-    and where one held more than its fix log entry, the entry ends with that row as filed.
+  - A bug fix needs no OK from the owner. Write the cause and the fix once, in a new file `docs/bugs/BG-n.md`; the PR
+    links that file instead of repeating it, says `Closes #n`, and merges when every check is green.
+  - The claim issue exists before the first commit, so one commit carries the file and the fix: never a second commit
+    to write a number in.
   - When a fix needs a design choice, still call it a bug: file the BG-n and ask the fix question with a
     recommendation. Never describe a broken game state as a pending design question.
-  - Every bug-fix PR adds an entry to `docs/bug-fix-log.md`, newest at the top: a `## BG-n` heading, then
-    `**What was wrong:**`, `**What was done:**` and `**Fixed by:**` with the claim issue (older entries name the PR)
-    Copy the shape of the entry above yours.
+  - The file is a `# BG-n` heading, then `**What was wrong:**`, `**Root cause:**` and `**What was done:**` (the
+    newest `docs/bug-fix-log.md` entries have this shape). The issue is the bug's number, so no "Fixed by" line.
 - When a function behaves differently for the player than for NPCs, check all its callers and report them. The
   player holds no stances or beliefs, so a one-direction check can silently skip the player.
 
@@ -247,8 +250,11 @@ The source of truth for every design decision.
   (`git checkout --ours` or `--theirs`), which drops every edit of the other side. Regenerate a generated file
   instead of merging it. Then search for conflict markers, stage only the files you resolved, and run
   `npm run sync -- --check ORIG_HEAD` after any rebase done by hand.
-- After pushing, check the PR: `gh api repos/<owner>/<repo>/pulls/<n> --jq .mergeable_state`. `dirty` means a
-  conflict, and a PR with a conflict gets no checks at all, so a silent PR is not a passing one.
+- After pushing and your local checks, wait on the PR with one call: `npm run pr:wait -- <n>`, or `-- <n> --merge` to
+  squash-merge it once green, at exactly the head that was checked. It stops at once on a conflict (a PR with a
+  conflict gets no checks at all, so a silent PR is not a passing one), a failed or cancelled check, a check still not
+  started 2 minutes after a push, or the PR closing; it keeps waiting while a check runs or GitHub is still working
+  out whether the PR merges, and gives up after 9 minutes (run it again). Do not wait with sleeps and repeated looks.
 - Testing: on your own machine, run `npm run typecheck` and `npm run test:near` once, after your last edit, and
   rerun only the files that failed. `test:near` runs
   the tests that use the changed files directly, plus the structural guards (tests that check code as text); tests

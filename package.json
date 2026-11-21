@@ -10,6 +10,7 @@
     "build": "node scripts/build.mjs",
     "spec": "node scripts/spec.ts",
     "sync": "node scripts/sync.ts",
+    "pr:wait": "node scripts/pr-wait.mjs",
     "skills-zip": "python3 tools/pack-skills.py",
     "perks-doc": "esbuild scripts/perks-doc.ts --bundle --platform=node --format=esm --outfile=dist/perks-doc.mjs --log-level=warning && node dist/perks-doc.mjs",
     "measure": "esbuild scripts/measure.ts --bundle --platform=node --format=esm --outfile=dist/measure.mjs --log-level=warning && node dist/measure.mjs",

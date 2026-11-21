@@ -1,6 +1,8 @@
 # Bug fix log
 
-Every fixed bug (BG-n): what was wrong, and what was done to fix it. Newest first.
+Every fixed bug of the old count (below BG-1000): what was wrong, and what was done to fix it. Newest first. Closed
+to new entries: a bug numbered from its claim issue has its own file, `docs/bugs/BG-n.md` (`docs/instructions.md`
+section 2).
 
 This is the one home of each bug's story: the Bug log row is one line and the PR links here. **Fixed by** names the
 claim issue (`#n`). Entries up to BG-326, which name the PR, are in `docs/bug-fix-log-archive.md`. Where an older Bug log row held more than its entry (a question

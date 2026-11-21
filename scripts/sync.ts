@@ -114,7 +114,7 @@ function main(args: string[]): number {
     return 1;
   }
   const code = check(oldHead);
-  if (code === 0) console.log(`Push with \`${push}\`, then check the PR is mergeable and its checks started.`);
+  if (code === 0) console.log(`Push with \`${push}\`, then wait on the PR with \`npm run pr:wait -- <n>\`.`);
   return code;
 }
 

@@ -25,10 +25,12 @@ project: "the owner" below is its designer and its only player.
 1. **The owner's game and saves are off-limits, except to read.** Reading the owner's saves and stories is always
    allowed, to find a bug's cause. Never play the published game, and never write or delete the owner's saves or
    stories, without the owner's OK. Publishing the game means build, test and publish only.
-2. **Every bug gets a number and its root cause.** Every bug gets a BG-n and a row in the spec's Bug log. Find the
-   root cause with the `root-cause-first` skill. Write the cause and the fix once, in the bug's `docs/bug-fix-log.md`
-   entry, and link that entry from the PR. A bug fix does not wait for the owner: it merges like any other PR (rule
-   5). A fix that needs a design choice is still a question to the owner first (rule 3).
+2. **Every bug gets a number and its root cause.** A bug's number is its claim issue's: issue #n, labelled `bug`, is
+   BG-n, and GitHub Issues are the bug register. Find the root cause with the `root-cause-first` skill. Write the
+   cause and the fix once, in the bug's own `docs/bugs/BG-n.md`, and link it from the PR. Numbers below 1000 are the
+   old count and keep their Bug log rows and `docs/bug-fix-log.md` entries. A bug fix does not wait for the owner:
+   it merges like any other PR (rule 5). A fix that needs a design choice is still a question to the owner first
+   (rule 3).
 3. **Do not invent mechanics or guess a rule.** A gap, or a request that can be read more than one way, is a question
    to the owner with a recommendation. Build only the clear parts. When the shape of a curve, formula or table is
    open, or a request gives a direction for a number but no amount, show options before building.
@@ -75,14 +77,14 @@ is fixed in your PR and named there; if you cannot tell which side is right, it 
   and what other agents do instead. One file per provider. The same folder keeps a dated record of Claude's old
   in-app instructions; it is history, not rules.
 - `docs/build-spec.md`: the index of the spec, the living design record. Each topic is its own file in `docs/spec/`,
-  so read only the ones a task needs. The "Deferred items" table (D-n), the "Bug log" (BG-n) and "Open questions"
-  (OQ-n) are `docs/spec/deferred-items.md`, `bug-log.md` and `open-questions.md`; finished D-n and closed BG-n rows
-  move to `deferred-items-archive.md` and `bug-log-archive.md`. Play screen rules are
+  so read only the ones a task needs. The "Deferred items" table (D-n), the "Bug log" (BG-n below 1000) and "Open
+  questions" (OQ-n) are `docs/spec/deferred-items.md`, `bug-log.md` and `open-questions.md`; finished D-n and closed
+  BG-n rows move to `deferred-items-archive.md` and `bug-log-archive.md`. Play screen rules are
   `docs/spec/part-2-turn-engine/play-screen.md` and `play-screen-motion.md`.
 - `docs/systems.md`: start a task here. Each game system's spec topics, decision history, source files and nearest
   tests.
-- `docs/bug-fix-log.md`: what each fixed bug was and what was done. Newest first; entries up to BG-326 are in
-  `docs/bug-fix-log-archive.md`.
+- `docs/bugs/BG-n.md`: what each fixed bug was, its cause and what was done, one file per bug. Bugs below BG-1000
+  are in `docs/bug-fix-log.md` (entries up to BG-326 in `docs/bug-fix-log-archive.md`).
 - `docs/memory/README.md`: index of topic files with the owner's decisions and agents' checked working notes.
 - `docs/glossary.md`: IDs, names and abbreviations.
 - `docs/skills.md`: every skill the project uses and where its master copy lives.

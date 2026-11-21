@@ -1,8 +1,13 @@
 # Changelog
 
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
-`.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bug-fix-log.md`.
+`.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bugs/`.
 
+- 21/11/2026: `AGENTS.md` rule 2, `docs/instructions.md` sections 2 and 8, `docs/providers/claude.md` and `codex.md`:
+  a new bug's BG-n is its claim issue's number (label `bug`), the issues are the bug register, and each fix writes
+  its own `docs/bugs/BG-n.md`; no new Bug log rows or `docs/bug-fix-log.md` entries. PRs are waited on and merged with
+  `npm run pr:wait -- <n> --merge`. The owner: "Eliminate race-prone manual bug-number allocation. Prefer using the
+  existing GitHub claim issue's unique identifier" and "Replace blind CI polling with state-aware PR monitoring".
 - 21/11/2026: `design-spatial` trimmed to what the game uses (render and look, the overflow gate, the audit, optical
   craft; about 1.5k tokens instead of 5k), and its fresh-eyes subagent runs only for new screens and layout changes, not
   small changes (`docs/instructions.md` section 7). The owner, on the two ways offered to cut its token cost: "apply
