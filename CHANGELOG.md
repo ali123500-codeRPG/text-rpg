@@ -3,6 +3,9 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bugs/`.
 
+- 21/11/2026: `docs/providers/claude.md` "Playtests and model-backed tests": the signed-in `claude` client is on the
+  main account only; threads on the other account follow the "Other agents" line. The owner answered PQ14 "a."
+  ("Note that it holds on the main account only").
 - 21/11/2026: `AGENTS.md` rule 8 and the `rpg-map` skill: a zone (title) only names a space and never decides where
   something is or is drawn, how marks are placed, grouped, merged or hidden, who is near, or what can be reached. The
   owner, on the Questions hub page "One continuous map (D-1558)", ZR1: "a.", after "why are you insisting on

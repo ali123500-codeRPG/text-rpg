@@ -9,3 +9,5 @@ given, so do not file or flag them again. Add a line here whenever the owner con
   allows. Kept as it is.
 - **The narrator may phrase the player's lines like an NPC's** (09/11/2026), as long as the intent matches what the
   player entered.
+- **A first scenario's achievements can lift several levels at once** (21/11/2026). Growth waits for the scenario's end
+  (D-226), so the trivial firsts of a first job all land together; the curve stays as it is (PQ7 a).
