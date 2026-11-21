@@ -165,8 +165,14 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
 - **SHEET-106** While no god gives a Tier V blessing the start can't begin, and the screen greys it out (validateBuild).
 - **SHEET-107** **Blessed classes**: a variant per god, "Blessed by X", tier 2 (Seasoned); one opens (unlocked, level 0)
   for any character that god blesses (DX1).
-- **SHEET-108** Today only Blessed by Imbra (CL10); its class perk and capstone, about earning a higher blessing from
-  the god, are to come.
+- **SHEET-108** Today only Blessed by Imbra (CL10); its capstone, about earning a higher blessing from the god, is to
+  come.
+- **SHEET-537** A Blessed class gives, at class level 1, a random Tier I blessing of its god (ClassDef.levelBlessings,
+  rolled in classPerks: seeded by the story id at creation, by the character and turn on a level up) (domp,
+  21/11/2026). While a god has no Tier I blessing, its Blessed class gives none at level 1.
+- **SHEET-538** Imbra's Tier I blessing is Imbra's Measure (PK185; name and story placeholders): the true skill every
+  held essence gives is raised by CONFIG.IMBRA_ESSENCE_BOOST (PerkDef.essenceBoost, read by essenceSkill; several
+  boosts add in full) (domp, 21/11/2026: "increase stats from essence by 10%").
 - **SHEET-109** A character's stranger label is its start class's label (ClassDef.label).
 
 #### Class perks, IDs, tiers and unlocks

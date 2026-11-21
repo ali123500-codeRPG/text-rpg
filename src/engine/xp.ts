@@ -138,7 +138,7 @@ function levelUp(p: Actor, turn: number): XpAward['levelUp'] & {} {
   }
   pick.level += 1;
   if (pick.level === classMaxLevel(pick.classId)) offerCapstones(p, pick.classId);
-  p.core.perks.push(...classPerks(pick.classId, pick.level - 1, pick.level, turn).filter((x) => !p.core.perks.some((o) => o.perkId === x.perkId))); // class-level perks, once each
+  p.core.perks.push(...classPerks(pick.classId, pick.level - 1, pick.level, turn, `${p.id}:${turn}`).filter((x) => !p.core.perks.some((o) => o.perkId === x.perkId))); // class-level perks, once each
   if (pr.capstoneOptions?.[pick.classId]) for (const x of capstonePerks(p, pick.classId)) x.dormant = true; // inactive until the player picks
   if (perkPointAt(charLevel(p))) pr.unspentPerkPoints += 1;
   return { classId: pick.classId, level: charLevel(p) };

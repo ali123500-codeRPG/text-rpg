@@ -8,7 +8,7 @@
 // The links are read from the library's unlock rules (ClassDef.unlockClass, orUnlocks), so a new class links itself.
 import type { Actor, ClassDef, GameState } from '../types';
 import { getLibrary } from '../library';
-import { CLASS_TIERS, type ClassTierKey } from '../scales';
+import { BLESSING_TIERS, CLASS_TIERS, type ClassTierKey } from '../scales';
 import { classMaxLevel } from '../library/spawn';
 import { levelTarget, spendXp } from '../engine/xp';
 import { PK } from '../library/perkIds';
@@ -224,6 +224,7 @@ export function openClassCard(s: GameState, id: string, opener: HTMLElement | nu
       ...row('Tier', CLASS_TIERS.name(c.tier)),
       ...(n ? row('Level', statusText(n)) : []),
       ...Object.entries(c.levelPerks ?? {}).flatMap(([lv, ids]) => row(`Level ${lv} perk`, perkNames(ids))),
+      ...Object.entries(c.levelBlessings ?? {}).flatMap(([lv, t]) => row(`Level ${lv} blessing`, `a random ${BLESSING_TIERS.name(t)} blessing of ${lib.gods?.[c.blessedBy ?? '']?.name ?? 'its god'}`)),
       ...(c.capstone?.length ? row('Capstone', [...perkNames(c.capstone), ` at level ${classMaxLevel(id)}`]) : []),
       ...row('Opens from', ((o: Bit[][]) => (o.length ? joined(o, '; ') : 'Only where a start begins'))([...from.map((l) => [`${name(l.from)} (${l.via})`]), ...(n?.source ? [n.source] : [])])),
       ...row('Leads to', to.length ? to.map((l) => (hidden(l.to) ? `a class not shown yet (${l.via})` : `${name(l.to)} (${l.via})`)).join('; ')
