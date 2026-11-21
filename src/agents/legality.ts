@@ -44,6 +44,8 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
   const inside = (c?: ContainerView) => c?.contents?.map((x) => x.id) ?? [];
   const ground = new Set([view.zone, ...view.zones].flatMap((z) => z.groundItems.flatMap((g) => [g.id, ...inside(g.container)])));
   const seenItems = new Set(view.actors.flatMap((a) => a.gear.flatMap((g) => [g.id, ...inside(g.container)])));
+  // BF34/BG-1546: a take names what its target holds out to the player, or something seen on them
+  const takeable = (t?: PlayerView['actors'][number]) => (t ? [...(t.holdsOut ? [t.holdsOut.item] : []), ...t.gear.flatMap((g) => [g.id, ...inside(g.container)])] : []);
   const items = new Set([...own.flatMap((i) => [i.id, ...inside(i.container)]), ...ground]);
   // OD2: furniture the player can see is something to act on (a lever, a shelf, a stuck hatch)
   const furniture = new Set([view.zone, ...view.zones].flatMap((z) => (z.furniture ?? []).map((f) => f.id)));
@@ -115,7 +117,8 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
     // BG-155: or of a seller known from before, out of clear sight now (lastSeen)
     // FL2: a filch names something seen on its target or in a container, or one of a seller's wares
     const wares = a.type === 'filch' ? new Set([...items, ...seenItems, ...(view.actors.find((x) => x.id === a.target)?.wares?.map((w) => w.id) ?? [])])
-      : a.type === 'buy' || a.type === 'barter' ? new Set((view.actors.find((x) => x.id === a.target)?.wares ?? view.lastSeen?.find((x) => x.id === a.target)?.wares)?.map((w) => w.id) ?? []) : null;
+      : a.type === 'buy' || a.type === 'barter' ? new Set((view.actors.find((x) => x.id === a.target)?.wares ?? view.lastSeen?.find((x) => x.id === a.target)?.wares)?.map((w) => w.id) ?? [])
+      : a.type === 'take' ? new Set([...items, ...takeable(view.actors.find((x) => x.id === a.target))]) : null; // BF34/BG-1546: what they hold out or carry
     // BG-145: a buy names the ware; with one ware it is that one, else the player is asked which (never a refused buy)
     if (a.type === 'buy' && a.item === null && wares) { if (wares.size === 1) a.item = [...wares][0]; else illegal.push(`action.ware ${a.target}`); }
     if (a.item !== null && !(wares ? wares.has(a.item) : items.has(a.item))) illegal.push(`action.item ${a.item}`);
@@ -172,8 +175,9 @@ export function knownIds(view: NpcViewBase) {
   const ground = new Set(view.zones.flatMap((z) => z.groundItems.flatMap((g) => [g.id, ...(g.container?.contents?.map((x) => x.id) ?? [])]))); // BF13: what an open container shows lies there too
   for (const g of view.self.gear) for (const x of g.container?.contents ?? []) ground.add(x.id); // PI1: what is in one's own sack is taken out with pick_up
   const seenGear = new Set(view.seen.flatMap((s) => s.gear.map((g) => g.id)));
+  const heldOut = new Set(view.seen.flatMap((s) => (s.holdsOut ? [s.holdsOut.item] : []))); // BF34/BG-1546: what is held out to it
   const walls = new Set(view.zones.flatMap((z) => (z.walls ?? []).map((w) => w.id))); // BW12 a: walls of its own title it could break
-  return { actors, zones, own, ground, seenGear, walls };
+  return { actors, zones, own, ground, seenGear, heldOut, walls };
 }
 
 type NpcOut = {
@@ -203,7 +207,7 @@ export function checkNpcLegality(out: NpcOut, view: NpcViewBase, world: Set<stri
   if (a.target !== null && !knows(a.target)) orderError = world.has(a.target) ? 'view_leak' : 'invalid_target';
   else if (WAY_ORDERS.includes(a.type) && a.target !== null && !k.zones.has(a.target)) orderError = 'invalid_target'; // BG-128
 
-  if (a.item !== null && !k.own.has(a.item) && !k.ground.has(a.item) && !(a.type === 'filch' && k.seenGear.has(a.item))) { // FL7: a filch names what it saw on someone
+  if (a.item !== null && !k.own.has(a.item) && !k.ground.has(a.item) && !(a.type === 'filch' && k.seenGear.has(a.item)) && !(a.type === 'take' && (k.seenGear.has(a.item) || k.heldOut.has(a.item)))) { // FL7: a filch names what it saw on someone; BF34: a take that, or what is held out to it
     errors.push('invalid_gear');
     a.item = null;
     a.mode = null;
