@@ -103,8 +103,8 @@ export const ACTORS = {
   OFFER_BRIBE_MOD: 10, // TF10: modifier on the briber's roll per doubling of the coin over that price (as much less per halving)
   /** NT3: each earlier try of the same speech kind at the same listener this engagement, on the speaker's roll */
   REPEAT_TRY: 20, // % of the average roll per earlier try (D-76)
-  /** DS6 (PLACEHOLDER, 0 until DS8 is answered): a weapon in hand on the speaker's own roll, % of the average roll; up on a threat, down on persuading and haggling */
-  STEEL_SPEECH: { [SK.intimidation]: 0, [SK.persuasion]: 0, [SK.barter]: 0 } as Record<string, number>,
+  /** DS6, DS8 b: a weapon in hand on the speaker's own roll, % of the average roll; up on a threat, down on persuading and haggling */
+  STEEL_SPEECH: { [SK.intimidation]: 10, [SK.persuasion]: -10, [SK.barter]: -10 } as Record<string, number>,
   HARD_BARGAIN_BUY: 0.9,
   HARD_BARGAIN_SELL: 1.1,
   SELL_SHARE: 0.5, // SL1: a Trader pays this share of an item's value (rounded down, at least 1)

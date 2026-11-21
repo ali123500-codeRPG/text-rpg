@@ -7,6 +7,10 @@ import { actor, makeVillage, place } from '../harness';
 import { intent, play } from './w4-kit';
 import { armed } from '../../src/engine/steel';
 import { stance } from '../../src/engine/relations';
+import { attackOf, standing } from '../../src/ui/charsheet';
+import { reachesOf } from '../../src/views';
+import { rollSetup } from '../../src/ruleset';
+import { SK } from '../../src/library/skillIds';
 
 const sword = (s: ReturnType<typeof makeVillage>) => s.player.core.inventory.find((i) => i.equippedIn?.some((e) => e.startsWith('grip:')))!;
 
@@ -58,4 +62,21 @@ it('DS5: sheathing before a hostile AI-run foe offers it a stand-down', () => {
   expect(g.mind!.control).toBe('agent');
   play(s, { intent: intent({ action: { type: 'talk', target: 'guard_1' }, gear: [{ op: 'stow', item: sword(s).id }] }) });
   expect(s.offers?.pending).toContainEqual(expect.objectContaining({ from: 'player', to: 'guard_1', sheathed: true }));
+});
+
+it('DS7: what is shown for the player reads as it fights: sheathed shows the same attack, defense and reach as drawn', () => {
+  const s = makeVillage({ playerZone: 'tav_common' });
+  const drawn = { atk: attackOf(s, s.player), def: standing(s, s.player), reach: reachesOf(s, s.player) };
+  for (const i of s.player.core.inventory) if (i.equippedIn?.some((e) => e.startsWith('grip:'))) delete i.equippedIn;
+  expect({ atk: attackOf(s, s.player), def: standing(s, s.player), reach: reachesOf(s, s.player) }).toEqual(drawn);
+});
+
+it('DS6/DS8: steel in hand lifts the speaker\'s threat and weighs on persuading and haggling', () => {
+  const s = makeVillage({ playerZone: 'tav_common' });
+  const steel = (skill: string) => rollSetup({ actorId: 'player', skill, modifiers: [], tierShifts: [] }, s).modifiers.find((m) => m.source === 'Steel in hand')?.value ?? 0;
+  expect(steel(SK.intimidation)).toBeGreaterThan(0);
+  expect(steel(SK.persuasion)).toBeLessThan(0);
+  expect(steel(SK.barter)).toBeLessThan(0);
+  for (const i of s.player.core.inventory) if (i.equippedIn?.some((e) => e.startsWith('grip:'))) delete i.equippedIn;
+  expect(steel(SK.intimidation)).toBe(0); // sheathed: words only
 });

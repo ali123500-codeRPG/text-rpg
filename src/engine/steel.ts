@@ -25,6 +25,24 @@ export const armed = (state: GameState, a: Actor): boolean => heldWeapons(state,
 /** the gear ops by which an order draws or sheathes on purpose */
 const steelOps = (ops: GearOp[]) => ops.some((op) => op.op === 'draw' || op.op === 'stow' || op.op === 'swap');
 
+const fought = new Map<string, Record<string, string[]>>();
+/** DS7 (drawing is social, never a gate): the actor as it fights: itself with steel in hand, else a copy holding the set
+ * it would draw (drawToFight). The figures shown for it (standing attack and defense, reach) read this, never only what is
+ * in hand. Remembered by sheet, so a view built every turn does not rate the sets again. */
+export function asFought(state: GameState, a: Actor): Actor {
+  if (armed(state, a)) return a;
+  const c: Actor = { ...a, core: { ...a.core, inventory: a.core.inventory.map((i) => ({ ...i })) } };
+  const key = JSON.stringify([c.core.inventory.map((i) => [i.id, i.itemId, i.equippedIn]), a.core.skills, a.core.perks, a.core.condition.parts]);
+  const hit = fought.get(key);
+  if (hit) for (const i of c.core.inventory) { if (hit[i.id]) i.equippedIn = hit[i.id]; }
+  else {
+    readied(state, c, true);
+    if (fought.size > 50) fought.clear();
+    fought.set(key, Object.fromEntries(c.core.inventory.filter((i) => isHeld(i)).map((i) => [i.id, i.equippedIn!])));
+  }
+  return c;
+}
+
 /** DS2/DS7: `a` (attacked, or attacking) takes up its weapons if it holds none: the one its order names when it carries it,
  * else the set it carries that rates highest, into its free grips. Free and instant. */
 export function drawToFight(state: GameState, a: Actor, named?: string | null): void {

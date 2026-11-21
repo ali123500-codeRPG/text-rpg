@@ -60,6 +60,7 @@ import { offeredRoutines } from '../minds/routines';
 import { coinWords, countWords, isSeller, offerList, wareList } from '../engine/trade';
 import { dueText, payText } from '../engine/quests';
 import { pressedWords, tellFor, tookWords } from '../engine/speech';
+import { asFought } from '../engine/steel';
 import { canDemand, canOffer, OFFER_WORDS, offersTo, SHEATHED_OFFER, speaks } from '../engine/offer';
 import { farBelow, FINISH_STOP_WORDS, type FinishStop } from '../engine/finish';
 import { fightingWith } from '../engine/engagement';
@@ -309,10 +310,10 @@ const seemingHealth = (viewer: Actor, a: Actor): HealthLevel => (fooledBy(viewer
  * only once aware. */
 
 /** BG-306: the people `a` is aware of and perceived this turn or last (seen or heard) whom one move and its melee reach
- * would bring a blow to this turn: metres by the walking path, in any zone. One that holds back (D-205 b) never closes in:
+ * would bring a blow to this turn (with the steel it would draw, DS7): metres by the walking path, in any zone. One that holds back (D-205 b) never closes in:
  * only a step and its reach (RD5's strike distance) */
 function withinStrike(state: GameState, a: Actor, back: boolean): { withinStrike?: string[] } {
-  const reach = (back ? CONFIG.HOSTILE_NEAR_STEP_M : turnMetres(state, a, 'move')) + meleeReachM(state, a), k = a.mind?.knowledge ?? {};
+  const reach = (back ? CONFIG.HOSTILE_NEAR_STEP_M : turnMetres(state, a, 'move')) + meleeReachM(state, asFought(state, a)), k = a.mind?.knowledge ?? {};
   const ids = allActors(state).filter((x) => x !== a && atLeast(k[x.id]?.status, 'aware') && (k[x.id]?.lastSeenTurn ?? -Infinity) >= state.turn - 1
     && (distOrNull(state, a, x) ?? Infinity) <= reach).map((x) => x.id).sort();
   return ids.length ? { withinStrike: ids } : {};
@@ -608,9 +609,10 @@ function doorName(state: GameState, p: Actor, from: string, to: string): string 
 const THEN_NAME: Record<string, string> = { pick: 'pick a lock', open: 'open', filch: 'filch', sleep: 'sleep', hold: 'pick up' };
 const thenName = (state: GameState, t: NonNullable<NonNullable<Actor['walking']>['then']>): string =>
   t.way ? t.way.op : t.type === 'break' ? (findContainer(state, t.target) ? 'force open' : 'break through') : THEN_NAME[t.type] ?? t.type;
-/** each weapon in the player's hands at its longest reach, longest first (natural attacks and fists left out) */
-export function reachesOf(state: GameState, p: Actor): { reaches?: { name: string; metres: number }[] } {
-  const best = new Map<string, number>(); // by name, so two daggers read once
+/** each weapon the player fights with at its longest reach, longest first (natural attacks and fists left out): those in
+ * hand, or while sheathed the set an attack would draw (DS7) */
+export function reachesOf(state: GameState, p0: Actor): { reaches?: { name: string; metres: number }[] } {
+  const best = new Map<string, number>(), p = asFought(state, p0); // by name, so two daggers read once
   for (const m of usableModes(state, p)) {
     const inst = p.core.inventory.find((i) => i.id === m.itemId);
     if (!inst) continue; // natural attacks
@@ -728,7 +730,7 @@ function baseView(state: GameState, actorId: string): BaseView {
   const a = need(state, actorId);
   if (!a.mind) throw new Error(`actor ${actorId} has no mind`);
   const m = a.mind;
-  const attackSkill = fallbackAttackSkill(state, a); // BG-258: the held weapon's first
+  const attackSkill = fallbackAttackSkill(state, asFought(state, a)); // BG-258: the held weapon's first; DS7: or the one it would draw
   // BF67: a line said beside a deed (a bark) is real speech: those who hear it get its words, and the one who said it sees it in
   // what it said. It still copies no belief (perception's updateBeliefs).
   const history = [...(state.recentEvents ?? []), ...state.events];
