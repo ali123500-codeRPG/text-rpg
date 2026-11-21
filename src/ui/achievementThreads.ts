@@ -4,7 +4,8 @@
 // (Sight, Influence…), and fold away under the trunk. Clicking a chain's name or a knot opens the side panel.
 import type { AchievementDef, GameState } from '../types';
 import { getLibrary } from '../library';
-import { achievementInfo, achievementName, earnedAtText, kindName } from '../engine/xp';
+import { achievementInfo, achievementName, achLevel, earnedAtText, kindName } from '../engine/xp';
+import { achBand } from '../ruleset/achRewards';
 import { branchLabel, chainRows, chainTag, endInSight, heldChains, isBareHead, type HeldChain } from '../ruleset/achChains';
 import { ACH_HEAD_NAMES } from '../library/achievementIds';
 import { h, openPanel, plural, type PanelRow } from './kit';
@@ -100,7 +101,9 @@ function threadEl(s: GameState, t: Thread, scars: boolean): HTMLElement {
   const more = t.endless || t.knots.some((k) => k.state === 'later');
   const knots = t.knots.filter((k) => k.state !== 'later').flatMap((k, i) => {
     const title = k.state === 'held' ? `${k.name}, level ${k.level}` : `Next level: ${k.label}${t.need ? ` (${fmt(t.have ?? 0)} of ${fmt(t.need)})` : ''}`;
-    const knot = h('button', { type: 'button', class: `th-knot ${k.state}`, 'aria-label': title, title, onclick: () => knotPanel(s, k, scars) },
+    // M-38c: a held knot is drawn by its prominence band (AV4)
+    const d = lib()[k.key], band = k.state === 'held' && d ? achBand(achLevel(d, k.of)) : undefined;
+    const knot = h('button', { type: 'button', class: `th-knot ${k.state}`, 'data-band': band, 'aria-label': title, title, onclick: () => knotPanel(s, k, scars) },
       h('span', { class: 'th-bead', 'aria-hidden': 'true' }, k.level),
       h('span', { class: 'th-at' }, k.state === 'next' && t.need ? `${fmt(t.have ?? 0)} / ${fmt(t.need)}` : k.label));
     // the stretch of thread before this knot: whole when this knot is held, part-filled up to the next knot

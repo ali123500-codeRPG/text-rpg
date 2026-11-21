@@ -167,7 +167,7 @@ question IDs, BG/D numbers) sits in one trailing parenthesis.
   Heavens Kneel to <tree>"; inferior trees earn none (D-165).
 - **PROG-107** The achievements table is treated like a scale table: saves keep only the row key and what it names, so a
   rename or a new reward level edits only the table.
-- **PROG-108** Each achievement has a reward level, an ordered scale like tiers: −1 to XV (D-179).
+- **PROG-108** Each achievement has a reward level, an ordered scale like tiers: −2 to XV (D-179; −2 from BS2 b, Bested). Its level also sets how prominently it shows: Minor, Notable, Major or Legendary (play screen motion M-38c).
 - **PROG-109** One equation gives every level its XP, for achievements and quests alike, with no top: XP = 50 × ((p + 2)
   ÷ 2)³, where p is the level's place (0 = level 0, I = 1, −1 = −1). So −1 6, 0 50, I 169, II 400, III 781, IV 1,350, V
   2,144, VI 3,200, X 10,800, XV 30,706 (CONFIG.REWARD_XP_CURVE, read only through rewardXp; REWARD_LEVELS in

@@ -7,7 +7,7 @@ import { CONFIG } from '../config';
 import { getLibrary } from '../library';
 import { dayOf, now } from '../time';
 import { skillName } from '../library/skillNames';
-import { INTELLIGENCE, REWARD_LEVELS } from '../scales';
+import { ACH_BANDS, INTELLIGENCE, REWARD_LEVELS, type AchBand } from '../scales';
 import { groupsOf } from '../library/functionNames';
 import { SENSE_SKILL } from '../library/skillIds';
 import { levelMaxPct } from './body';
@@ -264,6 +264,11 @@ const TOP = () => REWARD_LEVELS.keys.length - 1;
 export const rewardPos = (key: string): number => (REWARD_LEVELS.has(key) ? REWARD_LEVELS.pos(key as 'i') : -1);
 export const rewardKeyAt = (pos: number): string => REWARD_LEVELS.at(Math.min(TOP(), Math.max(0, pos)));
 export const rewardName = (key: string): string => (REWARD_LEVELS.has(key) ? REWARD_LEVELS.name(key as 'i') : key);
+/** AV1: the prominence band of a reward level: the highest band whose first level (CONFIG.ACH_BAND_FROM) it reaches */
+export function achBand(level: string): AchBand {
+  const p = rewardPos(level);
+  return ACH_BANDS.keys.filter((b) => b !== 'minor' && p >= rewardPos(CONFIG.ACH_BAND_FROM[b as Exclude<AchBand, 'minor'>])).at(-1) ?? 'minor';
+}
 /** the XP of the reward level at place p (0 = level 0, I = 1, −1 = −1): the one reward-XP equation. A fixed part
  * (REWARD_XP_CURVE) plus a share of `need`, the earner's XP to the next level (ACH_LEVEL_SHARE, AL1-AL8); need 0 = the fixed part */
 export function rewardXpAt(p: number, need = 0): number {

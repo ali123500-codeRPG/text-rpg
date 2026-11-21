@@ -14,11 +14,11 @@ import { itemValue } from '../ruleset/value';
 import { ruleMet } from '../ruleset/access';
 import { partStates, working } from '../ruleset/body';
 import { functionName, groupName, groupsOf } from '../library/functionNames';
-import { CLASS_TIERS, HEALTH_LEVELS, TIERS } from '../scales';
+import { CLASS_TIERS, HEALTH_LEVELS, TIERS, type AchBand } from '../scales';
 import { tierName } from '../ruleset';
 import { PK } from '../library/perkIds';
 import { skillName } from '../library/skillNames';
-import { achLevel, achXp, bonusLevelsOwed, freeLevelsOwed, rewardLines, rewardName } from '../ruleset/achRewards';
+import { achBand, achLevel, achXp, bonusLevelsOwed, freeLevelsOwed, rewardLines, rewardName } from '../ruleset/achRewards';
 import { ACH_RULE_ONE, ACH_RULE_TEXT } from '../library/achievementIds';
 import { r1 } from '../words';
 import { levelCost, perkPointAt, xpToReach } from '../ruleset/levels';
@@ -485,12 +485,12 @@ export function earnedAtText(state: GameState, d: AchievementDef, of?: string): 
 export function achievementInfo(state: GameState, a: { id: string; key?: string; of?: string; name?: string; turn: number; reached?: number }) {
   const d = a.key ? getLibrary().achievements?.[a.key] : undefined;
   const name = achievementName(state, a);
-  if (!d) return { id: a.id, name, level: '', levelName: '', xp: 0, scar: false, earnedAt: '', why: '', rewards: [] as string[] };
+  if (!d) return { id: a.id, name, level: '', levelName: '', band: 'minor' as AchBand, xp: 0, scar: false, earnedAt: '', why: '', rewards: [] as string[] };
   const level = achLevel(d, a.of), earnedAt = earnedAtText(state, d, a.of);
   // the value reached is named only when it went past what the row needs (a high-water mark like a 137-point power gap)
   const reached = a.reached === undefined ? undefined : r1(a.reached);
   const why = reached !== undefined && !d.every && reached !== d.count
     ? `Turn ${a.turn}: you reached ${fmtCount(reached)}; this needs ${earnedAt}.`
     : `Turn ${a.turn}: you reached ${earnedAt}.`;
-  return { id: a.id, name, level, levelName: rewardName(level), xp: state.player.progression?.xpLog?.find((x) => x.source === `achievement:${a.id}`)?.amount ?? achXp(d, a.of), scar: !!d.scar, earnedAt, why, rewards: rewardLines(d) };
+  return { id: a.id, name, level, levelName: rewardName(level), band: achBand(level), xp: state.player.progression?.xpLog?.find((x) => x.source === `achievement:${a.id}`)?.amount ?? achXp(d, a.of), scar: !!d.scar, earnedAt, why, rewards: rewardLines(d) };
 }

@@ -82,7 +82,7 @@ export type FallenCharacter = import('./state').FameEntry & { owner: import('./s
 /** the blow that dropped the player, in words the player knows: by = the attacker as perceived ('someone' if unseen) */
 export type DownedBy = { by: string; weapon: string | null; part: string | null; outcome: string; unseen?: true };
 
-export type AchievementNote = { id: string; name: string; level?: string; levelName?: string; xp?: number; scar?: boolean; earnedAt?: string; why?: string; rewards?: string[] };
+export type AchievementNote = { id: string; name: string; level?: string; levelName?: string; band?: import('../scales').AchBand; xp?: number; scar?: boolean; earnedAt?: string; why?: string; rewards?: string[] };
 /** one healing of the player: the health level and each body part that changed state. better: health went up without
  * changing level or any part state (a bandage on a light wound) */
 export type HealNote = { source: string; from: HealthLevelKey; to: HealthLevelKey; parts: { id: string; from: PartStateKey; to: PartStateKey }[]; better?: boolean };

@@ -228,7 +228,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const list = h('div', { class: 'log', role: 'log', 'aria-label': 'Story', tabindex: '0' });
   const waiting = h('p', { class: 'working', role: 'status' });
   // SD1: while a turn that ended a scenario is still running, the ending's rule is drawn here, under the player's line
-  const story = h('div', { class: 'story' }, h('div', { class: 'col' }, list, waiting));
+  const story = h('div', { class: 'story' }, h('div', { class: 'col' }, h('span', { class: 'honor-edge', 'aria-hidden': 'true' }), list, waiting));
   const notices = h('div', { class: 'notices' });
   const input = h('input', { class: 'hs-input', id: 'cmd', autocomplete: 'off', 'aria-label': 'Say or type what you do', 'aria-describedby': 'cmd-hint' });
   const PLACEHOLDER = 'What do you do or say?';
@@ -391,7 +391,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
    * earned, its XP and its rewards in a details pop-up. Scars carry the danger colour and a different mark. */
   const achCard = (a: AchievementNote) => {
     const kind = a.scar ? 'Scar' : 'Achievement';
-    const card = h('div', { class: `perk-new ach${a.scar ? ' scar' : ''}`, role: 'button', tabindex: '0', 'data-ach': a.id,
+    const card = h('div', { class: `perk-new ach${a.scar ? ' scar' : ''}`, role: 'button', tabindex: '0', 'data-ach': a.id, 'data-band': a.band,
       'aria-label': `${kind}: ${a.name}${a.levelName ? `, tier ${a.levelName}` : ''}. Show why you earned it` },
       h('span', { class: 'st', 'aria-hidden': 'true' }, a.scar ? '✶' : '✦'),
       h('div', { class: 'ach-txt' }, h('span', { class: 'ach-k' }, kind, a.levelName ? h('span', { class: 'ach-lv', title: 'Reward tier: it sets the XP and grows with how hard it is to earn' }, `Tier ${a.levelName}`) : null),
