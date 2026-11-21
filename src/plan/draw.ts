@@ -10,7 +10,7 @@ import { getLibrary } from '../library';
 import { BK, FU, LS, OP, WK } from '../library/tableIds';
 import { LIGHT } from '../scales';
 import { compassOf, placeZones, type PlaceInput, type PlaceJoin } from '../scenario/geometry';
-import { areaOf, bandOutline, boxOf, dist, lerp, middleOf, nearestEdge, NEAR_M, outward, rectOutline, sharedSides, sidesOf } from './geom';
+import { areaOf, bandOutline, boxOf, dist, inOutline, lerp, middleOf, nearestEdge, NEAR_M, outward, rectOutline, sharedSides, sidesOf } from './geom';
 import { roofed, topFor, inTitle } from './where';
 import { paintWall, wallAt } from './walls';
 import { planChanged } from './stamp';
@@ -40,14 +40,32 @@ export function wayKindOf(o: Opening): WayKind {
   return o.kind === OP.window ? 'window' : o.kind === OP.gap ? 'open' : 'door';
 }
 
+/** BG-1679: line less its ends inside `ground` (the titles there), each end moved to where the line leaves them; the whole
+ *  line when it never leaves them */
+function outOf(line: Pt[], ground: Zone[]): Pt[] {
+  const inside = (p: Pt) => ground.some((g) => inOutline(p, g.outline, 0));
+  const cut = (pts: Pt[]): Pt[] => {
+    const i = pts.findIndex((p) => !inside(p));
+    if (i <= 0) return pts;
+    let a = pts[i - 1], b = pts[i]; // a inside, b out: halve the step to the edge
+    for (let n = 0; n < 30; n++) { const m = lerp(a, b, 0.5); if (inside(m)) a = m; else b = m; }
+    return [b, ...pts.slice(i)];
+  };
+  if (!line.some((p) => !inside(p))) return line;
+  return cut(cut(line).reverse()).reverse();
+}
+
 /** PZ14 a: makes titles from specs (each joins its place and the stage) and the openings of their ways; an opening to a
  * title not drawn yet waits for drawPlan. A way to a title that already has a way to it keeps the one there (WI5 a). */
 export function addTitles(state: GameState, specs: TitleSpec[]): Draft {
   const draft: Draft = { titles: [], specs: new Map() };
   for (const sp of specs) {
     const { outline, rect, floor, top, roof: _r, walls: _w, light: _l, aspect: _a, ways: _ways, furniture: _f, line, ...rest } = sp;
-    const z: Zone = { ...rest, outline: outline ?? (rect ? rectOutline(rect) : []), floor: floor ?? NaN, top: top ?? NaN, ...(line ? { line } : {}) };
-    if (!z.outline.length && line) z.outline = bandOutline(line, CONFIG.ROAD_WIDTH_M);
+    // BG-1679: a road drawn along a line starts and ends where the line leaves ground already drawn (a land road's line
+    // starts on its settlement's site point, among that settlement's titles), never partly over another title (MAP-11)
+    const own = line && !outline && !rect ? outOf(line, state.zones.filter((o) => o.outline.length && !(Math.abs(o.floor) >= CONFIG.STOREY_HEIGHT / 2))) : line;
+    const z: Zone = { ...rest, outline: outline ?? (rect ? rectOutline(rect) : []), floor: floor ?? NaN, top: top ?? NaN, ...(own ? { line: own } : {}) };
+    if (!z.outline.length && own) z.outline = bandOutline(own, CONFIG.ROAD_WIDTH_M);
     if (z.area === undefined && z.outline.length) z.area = areaOf(z.outline);
     draft.titles.push(z);
     draft.specs.set(z.id, sp);
