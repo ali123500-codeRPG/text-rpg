@@ -200,10 +200,11 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 - **PS-110** Creation screen: the approved layout at https://claude.ai/artifact/HW45ivigqwZ5VDo4PWPv9u (Part 4 §4,
   Player creation). The story starts from it.
 - **PS-492** The creation screen's figures sit in one build bar, pinned to the top of the page while the skill points are
-  spent: points left (its number, "of N left" and a meter), the tag and flaw marks lit for each one set, HP, standing
+  spent: points left (its number, "of N left" and a meter), the tag and flaw marks lit for each one set, the Starting
+  total ("total"; Potential is not shown at creation), HP, standing
   attack, standing defense shown by the icon of the skill that wins it (parry, block or dodge), the slime estimate
   ("≈ swings : ≈ slams", which opens the estimate's input), and Begin the story at its end. Every explanation is the
-  figure's tip; the Starting total against Potential is the points' tip. A "Needs attention" line shows under the bar,
+  figure's tip. A "Needs attention" line shows under the bar,
   so the button never moves (option B on the critique page "Creation stat row", picked by the owner).
 - **PS-493** The creation screen's race and gender picks show as icons, the word in each one's tip and accessible name:
   a race by its ear (Human a round ear, Elf a pointed one; a race with no icon yet shows its name), a gender by its sign
