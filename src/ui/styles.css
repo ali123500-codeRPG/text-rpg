@@ -1765,3 +1765,7 @@ button.eq-name:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .mm-full .mm-floor { display: none; }
 .mm-full .mm-foot { background: color-mix(in srgb, var(--surface) 85%, transparent); }
 .mm-tag { fill: none; stroke: none; pointer-events: none; }
+/* a body part's icon in place of its name (partMark): a left part mirrored, a numbered leg's number after it */
+.ptico { display: inline-flex; align-items: center; gap: 1px; height: 20px; vertical-align: -5px; color: inherit; }
+.ptico svg { width: 20px; height: 20px; flex: none; display: block; }
+.ptico[data-side="left"] svg { transform: scaleX(-1); }

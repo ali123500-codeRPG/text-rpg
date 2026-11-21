@@ -13,7 +13,7 @@ import { h, safe, type boxOf } from './kit';
 import { closePop, openPop } from './pop';
 import { deck, thingActions, type Choice, type DeckAction, type DeckCtx, type MapPeople, type MapThing, type Order, type Pick } from './deck';
 import { openLoot } from './loot';
-import { ICONS, instanceIcon } from './itemIcons';
+import { ICONS, instanceIcon, partMark } from './itemIcons';
 import { AGAINST_NATURE } from './ideaLeans';
 import type { MinimapPoint } from './minimap';
 
@@ -86,7 +86,7 @@ export function deckView(api: GameApi, o: {
     if (picks.length === 1 && next.key !== 'target') { run(a, { ...c, [next.key]: picks[0].id }, opener); return; }
     openPop({ title: next.title, opener, cls: 'deck-pick', body: [h('div', { class: 'dk-picks', role: 'list' }, picks.map((p: Pick) =>
       h('button', { type: 'button', class: 'dk-pick' + (p.hot ? ' hot' : ''), role: 'listitem', onclick: () => run(a, { ...c, [next.key]: p.id }, opener) },
-        h('b', {}, p.label), p.note ? h('small', {}, p.note) : null)))] });
+        p.part ? partMark(p.id, p.label) : h('b', {}, p.label), p.note ? h('small', {}, p.note) : null)))] });
   }
 
   /** AD14, MAP-85: a click on someone in Who's here, or on a thing on either map: every deck action for it, the thing

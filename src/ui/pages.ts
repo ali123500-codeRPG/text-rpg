@@ -19,7 +19,7 @@ import { othersHealthWord } from '../ruleset';
 import { buildPlayerView, callName, factText, questGoalText } from '../views';
 import { ESSENCE_ABOUT, essencesBody, essencesSummary } from './essences';
 import { chainCard, chainViews, foldAll, type ChainView } from './achievementThreads';
-import { tipOff, tipOn, boxOf, fitInView, closePanel, groupedTable, playDraft, type PanelRow, h, viewSize, natural, openPanel, plural, unitOf, visPass, visTiles, iconMark, type Col, type TGroup, type TRow, type VisState, type VisTile, safe, ended } from './kit';
+import { tipOff, tipOn, boxOf, fitInView, closePanel, groupedTable, playDraft, type PanelRow, h, viewSize, natural, openPanel, plural, unitOf, visPass, visTiles, iconMark, rowKey, type Col, type TGroup, type TRow, type VisState, type VisTile, safe, ended } from './kit';
 import { charCard, charFocus, gearNote, invFocus, treeBars } from './charsheet';
 import { closePop, fullOpen, openFull, openPop } from './pop';
 import { personalityBlock, signaturesBox } from './personality';
@@ -143,7 +143,7 @@ function openGearPop(s: GameState, opener?: HTMLElement | null): void {
 /** one piece of gear: its exact stats (the Inventory's rows), a way back to the list, and a link to it in the Inventory */
 function openItemPop(s: GameState, i: ItemInstance, opener?: HTMLElement | null): void {
   openPop({ title: cap(safe(() => pieceName(s, i)) ?? i.itemId), cls: 'gear-pop', opener, body: [
-    h('dl', { class: 'gp-rows' }, itemRows(s, i).flatMap((r) => [h('dt', { class: r.split ? 'split' : undefined }, r.k), h('dd', { class: [r.split ? 'split' : '', r.tone ?? ''].join(' ').trim() || undefined }, r.v)])),
+    h('dl', { class: 'gp-rows' }, itemRows(s, i).flatMap((r) => [h('dt', { class: r.split ? 'split' : undefined }, rowKey(r)), h('dd', { class: [r.split ? 'split' : '', r.tone ?? ''].join(' ').trim() || undefined }, r.v)])),
     h('div', { class: 'actions' },
       h('button', { type: 'button', class: 'hs-btn-text', onclick: () => openGearPop(s, opener) }, '‹ All gear'),
       h('a', { href: '#inv', class: 'hs-btn-text', onclick: () => { invFocus.id = i.id; closePop(); } }, 'Open in Inventory')),
@@ -260,7 +260,7 @@ export function showTip(s: GameState, it: ItemInstance, at: HTMLElement) {
   tipEl ??= document.body.appendChild(h('div', { class: 'itip', role: 'tooltip', hidden: true }));
   tipEl.dataset.kind = d.kind;
   tipEl.replaceChildren(h('p', { class: 'itip-name' }, cap(countWords(it.itemId, safe(() => pieceName(s, it)) ?? d.name, it.qty))),
-    h('dl', {}, ...itemRows(s, it).flatMap((r) => [h('dt', { class: r.split ? 'split' : undefined }, r.k), h('dd', { class: [r.split ? 'split' : '', r.tone ?? ''].join(' ').trim() || undefined }, r.v)])));
+    h('dl', {}, ...itemRows(s, it).flatMap((r) => [h('dt', { class: r.split ? 'split' : undefined }, rowKey(r)), h('dd', { class: [r.split ? 'split' : '', r.tone ?? ''].join(' ').trim() || undefined }, r.v)])));
   tipEl.hidden = false;
   const r = boxOf(at), w = tipEl.offsetWidth;
   fitInView(tipEl, r.right + 12 + w < viewSize().w ? r.right + 12 : r.left - 12 - w, r.top);

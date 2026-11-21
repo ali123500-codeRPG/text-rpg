@@ -8,7 +8,7 @@ import { makeVillage, lay } from '../harness';
 import type { GameState } from '../../src/types';
 import { groundIn } from '../../src/engine/ground';
 
-const text = (s: GameState, id: string) => compareRows(s, { id }).map((r) => `${r.k}: ${String(r.v)}`);
+const text = (s: GameState, id: string) => compareRows(s, { id }).map((r) => `${r.k}${r.part ? ` · ${r.part}` : ''}: ${String(r.v)}`);
 const give = (s: GameState, itemId: string) => { const it = { id: `t_${itemId}`, itemId, qty: 1 }; s.player.core.inventory.push(it); return it; };
 
 describe('gear compare (P1)', () => {
