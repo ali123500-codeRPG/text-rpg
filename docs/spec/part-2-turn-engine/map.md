@@ -63,7 +63,8 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   room from them, so it never pushes a mark aside; furniture never covers it (MAP-25), and things on the ground may sit on
   it as stairs do (MAP-86) (MZ2-MZ4; RM6 a).
 - **MAP-23** When marks collide, yield in this order (first wins): player token, place titles, other tokens, exit notes,
-  icons.
+  icons. Your pin and people with a point shrink before they yield, your pin first and never merged (MAP-25; RM29 c,
+  RM30 b; Ali, 21/11/2026, Questions hub page "Map rules revision").
 - **MAP-24** An exit's note is its target's name only, attached to its exit ("the gate to the lane"). Its state (not
   been through, locked, where it leads) is in its tip and the zone card: the dotted arrow already shows an exit not been
   through, and the badge a barrier (MAP-36) (RM2 a; Ali, 20/11/2026, Questions hub page "Map rules revision").
@@ -87,9 +88,19 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   its badge, stepping aside only where the room has no spot for it), with a "+n" badge on that people disc, n the people it
   stands for beyond the one shown (the first in the zone's order); two people show "+1". The badge is a pill as tall as the
   disc against its right edge, and the disc and badge are one token for the checker. Its hover and accessible name list
-  every name, and a click asks which of them, then lists what to do to that one. Your pin keeps its size and is never in a
-  group. Zooming in splits a group again. A to-scale body (GSM-193) keeps its size and steps aside as before; someone out
-  of full sight is not sized or grouped yet (RM27 b; Ali, 21/11/2026, Questions hub page "Map rules revision").
+  every name, and a click asks which of them, then lists what to do to that one. Zooming in splits a group again. A
+  to-scale body (GSM-193) keeps its size and steps aside as before (RM27 b; Ali, 21/11/2026, Questions hub page "Map rules
+  revision"). Your pin (an 18 px disc) shrinks by the same rule, from your point at the zoom drawn, down to the same
+  smallest size, its facing tip and core in proportion: it is first in the order, so it takes the largest size clear of
+  the marks already placed (the walls' doors) and of every person with a point at the same size (a group's disc at its
+  full size), and people it would overlap even at the smallest size do not shrink it, as they step aside for it (MAP-23).
+  With no size clear of the marks already placed it keeps its full size and steps aside as before. It is never in a group
+  (RM29 c; Ali, 21/11/2026, Questions hub page "Map rules revision"). Someone last seen or heard at a point (MAP-68) is
+  sized and grouped the same way, after the people in full sight and only with each other, never with someone in full
+  sight: their group is one dashed disc with the same "+n" badge, hover and click list, and every one of their dashed
+  "somewhere here" circles is kept. Sizing runs over both: groups first, people in full sight before people last seen,
+  then each person against the marks placed and the people still to place. People with no known point keep their row
+  (RM30 b; Ali, 21/11/2026, Questions hub page "Map rules revision").
 - **MAP-26** To scale, a place's map is laid out by code at the zoom shown and drawn on one screen-pixel layer. No mark
   covers another at any zoom, and the first view fits the whole map with everything inside it (src/ui/mapPlan.ts).
 - **MAP-27** Merged into MAP-13, MAP-25 and MAP-68 (RM7 a).
@@ -170,7 +181,9 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   one disc for a group where they stand too close to draw apart (MAP-25; RM27 b). Someone only heard or
   glimpsed, or last seen, is their dashed disc at the point where the character last saw or heard them (the journal's
   last spot, BG-125), inside a faint dashed 2 m "somewhere here" circle (2 m its radius, as the question's picture
-  measured it: CONFIG.LAST_SEEN_RADIUS_M, a placeholder), with "somewhere here" on hover. Someone with no known point
+  measured it: CONFIG.LAST_SEEN_RADIUS_M, a placeholder), with "somewhere here" on hover. Those dashed discs shrink, and merge only with each other into one dashed
+  disc with a "+n" badge, their circles kept, as MAP-25 sets (RM30 b; Ali, 21/11/2026, Questions hub page "Map rules
+  revision"). Someone with no known point
   stays in a row above their zone's south wall. How the circle should grow or change is parked (D-424) (Actor.pos,
   MapPerson.at and MapPerson.lastAt; Ali,
   13/11/2026; RM4 a, RM7 a; Ali, 20/11/2026, Questions hub page "Map rules revision").

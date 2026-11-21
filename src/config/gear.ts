@@ -164,7 +164,8 @@ export const GEAR = {
   MINIMAP_ZOOM_M: [10, 15, 25, 40, 60, 100],
   MINIMAP_MIN_M: 0.5,
   /** MAP-25 (RM27 b, placeholder: the middle of the smallest sizes offered, 10 / 7 / 5 px): the smallest diameter in screen
-   *  pixels a person's disc shrinks to where people would overlap; past it, the people still overlapping show as one disc */
+   *  pixels a person's disc, and your pin's (RM29 c), shrinks to where it would overlap; past it, the people still
+   *  overlapping show as one disc */
   MAP_WHO_MIN_D_PX: 7,
   /** MQ7 a: how long a touch is held on the map before it opens the zone's card. Android's long-press timeout is 400 ms
    * (ViewConfiguration.getLongPressTimeout), iOS's long-press gesture 0.5 s (UILongPressGestureRecognizer) */

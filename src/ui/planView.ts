@@ -250,7 +250,7 @@ export function planView(api: GameApi, opts: PlanOpts) {
     }
     for (const t of sc.tokens) {
       if (!within(t, inView)) continue;
-      if (t.you) { const g = pin(t.cx, t.cy, d.youTitle ?? 'You are here', d.facing); g.setAttribute('data-role', 'token'); g.setAttribute('data-id', 'you'); gTokens.append(g); continue; }
+      if (t.you) { const g = pin(t.cx, t.cy, d.youTitle ?? 'You are here', d.facing, t.r); g.setAttribute('data-role', 'token'); g.setAttribute('data-id', 'you'); gTokens.append(g); continue; }
       const who = t.who!, c = t.cap, tok = { 'data-role': 'token', 'data-id': t.id };
       // BG-324: the disc (GSM-193: or the body's capsule) alone is the token the checker measures; its icon (MAP-69) sits inside it
       const capRect = (q: NonNullable<typeof c>, at: Record<string, string | number>) => s('rect', { x: t.cx - q.len / 2, y: t.cy - q.wide / 2, width: q.len, height: q.wide, rx: Math.min(q.len, q.wide) / 2, transform: `rotate(${q.deg} ${t.cx} ${t.cy})`, ...at });
@@ -262,7 +262,7 @@ export function planView(api: GameApi, opts: PlanOpts) {
       // RM27 b: a disc for a group is one token with its "+n" badge, and its click picks one of them first
       const b = t.badge, many: Record<string, string> = t.group ? { 'data-thing': 'people', 'data-of': t.group.map((w) => w.id).join('|'), 'data-names': t.group.map((w) => w.name).join('|') } : { 'data-thing': 'person', 'data-of': who.id };
       const g = s('g', { class: `map-who plan-who${who.now && !who.lastAt ? '' : ' last'}${who.at ? ' at' : ''}`, 'data-zone': t.zoneId, ...many, tabindex: 0, role: 'button', 'aria-label': `${t.title}: what to do` },
-        ...(t.ring ? [s('circle', { class: 'map-who-ring', cx: t.ring.cx, cy: t.ring.cy, r: t.ring.r })] : []),
+        ...(t.rings ?? []).map((q) => s('circle', { class: 'map-who-ring', cx: q.cx, cy: q.cy, r: q.r })),
         // the checker measures the disc and the badge's pill; the letters' ink sits inside the pill
         s('g', b ? tok : {}, ...hitArea, b ? s('circle', { cx: t.cx, cy: t.cy, r: t.r }) : shape, iconMark(who.icon, t.cx, t.cy, iconPx, 'map-who-icon'),
           ...(b ? [s('rect', { x: b.x0, y: b.y0, width: b.x1 - b.x0, height: b.y1 - b.y0, rx: (b.y1 - b.y0) / 2 })] : [])),
