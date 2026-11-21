@@ -58,7 +58,8 @@ project: "the owner" below is its designer and its only player.
     text. Why a rule changed belongs in the PR and the spec. A
     question ID or a D-n in a comment is fine.
 12. **A parked item gets its ID the same turn.** Anything the owner parks gets a D-n row in the spec's "Deferred items"
-    table, holding the owner's own words. Options only where the owner gave them; add no context or reading of your own.
+    table (a PP-n or AA-n row instead when it is about perks or achievements, `docs/instructions.md` section 2),
+    holding the owner's own words. Options only where the owner gave them; add no context or reading of your own.
 
 ## Order of authority
 

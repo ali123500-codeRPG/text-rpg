@@ -3,6 +3,10 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bugs/`.
 
+- 21/11/2026: `AGENTS.md` rule 12 and `docs/instructions.md` section 2: parked achievement ideas get their own list, AA-n
+  in `docs/spec/achievement-ideas.md`, and every parked idea is sorted by subject when parked (perks PP-n,
+  achievements AA-n, anything else D-n). The owner: "similar to the perks, have a separate ID for parked ideas related
+  to achievements. make sure future parked ideas will follow the same segregation."
 - 21/11/2026: `docs/instructions.md` section 7, `.github/pull_request_template.md`, `scripts/pr-rule.mjs`: every PR that
   changes `src/ui` has a `## Design` part (skills used, screens rendered, where a moved element now sits), and the
   `pr-rule` check fails it without one; every control carries a house class on itself and only classes that exist;

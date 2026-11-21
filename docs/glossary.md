@@ -10,6 +10,9 @@ with where its full meaning lives. A term's rules are never defined here.
   closed GitHub issue.
 - **PP-n**: a parked perk idea. One row each in the "Perk ideas" table (`docs/spec/perk-ideas.md`; finished ones in
   the Deferred items archive). A row moved from the Deferred items table keeps its number (D-189 became PP-189).
+- **AA-n**: a parked achievement idea. One row each in the "Achievement ideas" table
+  (`docs/spec/achievement-ideas.md`; finished ones in the Deferred items archive). A row moved from the Deferred items
+  table keeps its number (D-124 became AA-124).
 - **BG-n**: a bug. n is its claim issue's number (label `bug`); the issue is its register entry and its story is
   `docs/bugs/BG-n.md`. Below 1000, the old count: a row in the spec's "Bug log" (`docs/spec/bug-log.md`; closed ones in
   `bug-log-archive.md`) and a story in `docs/bug-fix-log.md`.
