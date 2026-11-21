@@ -1200,7 +1200,10 @@ export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverV
   // WI8 a: the ground around the player and the target (the frontier's edge too), not the whole world
   // BG-1615: by metres from the player's point and the points where the ways out to the frontier are left
   const edges: Located[] = target.frontierKey ? state.openings.filter((o) => o.frontier && o.joins[1] === target.frontierKey && Number.isFinite(o.at.x)).map((o) => ({ zone: o.joins[0], pos: o.at, floor: o.floor })) : [];
-  const from = [...(start ? [] : [placeOf(state.player)]), ...edges];
+  // at the story's start or an arrival the player stands nowhere yet: from the middles of the target place's own titles,
+  // where the player is about to be
+  const arriving: Located[] = start ? state.zones.filter((z) => z.placeId === target.placeId && z.outline?.length).map((z) => ({ zone: z.id, pos: middle(z), floor: z.floor })) : [];
+  const from = [...(start ? arriving : [placeOf(state.player)]), ...edges];
   const onStage = state.actors.filter((a) => from.some((f) => (distOrNull(state, f, a) ?? Infinity) <= CONFIG.PLAN_VIEW_M));
   // the titles near, and the title each one cast stands in, so no one is left out of its place
   const stage = new Set([...nearbyZones(state, from).map((z) => z.id), ...onStage.map((a) => a.zone)]);
