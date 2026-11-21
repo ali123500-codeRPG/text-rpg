@@ -226,12 +226,12 @@ function labelCells(root: HTMLElement): void {
   }
 }
 
-// ---------- Body figure: a body type's parts, tinted by impact or lit when an item covers them ----------
+// ---------- Body figure: a body type's parts in one colour, or lit where an item covers them ----------
 const IMPACT_TONE: Record<string, string> = { essential: 'lv-ess', normal: 'lv-norm', non_essential: 'lv-non' };
-/** each tone's colour on the 3D figure (the same tokens the key chips use) */
-const TONE_TOKEN: Record<string, string> = { 'lv-ess': '--danger', 'lv-norm': '--accent', 'lv-non': '--c3', 'lv-on': '--accent', 'lv-off': '--rule' };
+/** the 3D figure's colours: one for the whole body, or covered against uncovered on an armor card */
+const TONE_TOKEN: Record<string, string> = { 'lv-on': '--accent', 'lv-off': '--rule' };
 /** BV1 b: the 3D figure of a body type (its built shape) or a race (its model), turnable; a click names the part */
-function figure(ct: BodyType | undefined, cls: (part: string) => string, raceId?: string): HTMLElement | null {
+function figure(ct: BodyType | undefined, cls: (part: string) => string = () => 'lv-on', raceId?: string): HTMLElement | null {
   if (!ct) return null;
   const key = figureKey(raceId, ct.id), out = h('p', { class: 'bf-out', 'aria-live': 'polite' });
   const size = bodySize(ct, raceId ? lib.races?.[raceId] : undefined), name = (id: string) => (id === 'general' ? ct.general.name : label(id));
@@ -242,7 +242,6 @@ function figure(ct: BodyType | undefined, cls: (part: string) => string, raceId?
   // BV12 b: a model's credit wherever it is shown (CC-BY asks for it)
   return h('div', { class: 'lv-fig' }, f, out, credit ? h('p', { class: 'lv-credit' }, 'Model: ', h('a', { href: credit.url, target: '_blank', rel: 'noopener' }, credit.title), ` by ${credit.author} (${credit.licence})`) : null);
 }
-const impactOf = (ct: BodyType, part: string) => (part === 'general' ? 'essential' : ct.parts.find((p) => p.id === part)?.impact ?? 'normal');
 
 // ---------- Gear ----------
 const ACTIVE: Record<ItemEffect['active'], string> = { worn: 'when worn', held: 'when held', inUse: 'while in use', carried: 'when carried' };
@@ -585,7 +584,7 @@ function races(): HTMLElement[] {
   return [h('div', { class: 'lv-grid' }, Object.values(lib.races ?? {}).map((r) => {
     const ct = lib.bodyTypes[r.bodyTypeId];
     return card('races', r.id, r, r.name, [chip(INTELLIGENCE.name(r.intelligence), toneFor('Intelligence', INTELLIGENCE.name(r.intelligence)))],
-      h('div', { class: 'lv-armor' }, figure(ct, (p) => IMPACT_TONE[impactOf(ct, p)], r.id), h('div', {},
+      h('div', { class: 'lv-armor' }, figure(ct, undefined, r.id), h('div', {},
         row('Body', link('bodyTypes', r.bodyTypeId, lib.bodyTypes[r.bodyTypeId]?.name ?? r.bodyTypeId)),
         row('HP multiplier', `×${r.hpMultiplier}`),
         row('Intelligence', INTELLIGENCE.name(r.intelligence)),
@@ -601,7 +600,7 @@ function races(): HTMLElement[] {
 function bodyTypes(): HTMLElement[] {
   return [h('p', { class: 'hs-note' }, h('span', { class: 'lv-key lv-ess' }), 'essential ', h('span', { class: 'lv-key lv-norm' }), 'normal ', h('span', { class: 'lv-key lv-non' }), 'non-essential part'),
     h('div', { class: 'lv-grid wide' }, Object.values(lib.bodyTypes).map((c) => card('bodyTypes', c.id, c, c.name, [chip(c.general.size, toneFor('Size', c.general.size))],
-      h('div', { class: 'lv-armor' }, figure(c, (p) => IMPACT_TONE[impactOf(c, p)]), h('div', {},
+      h('div', { class: 'lv-armor' }, figure(c), h('div', {},
         row('General area', `${c.general.name} · ${c.general.size}`),
         ...(c.size ? [row('Size', `${c.size.lengthM} × ${c.size.widthM} × ${c.size.heightM} m (length × width × height), ${+volumeM3(c.size).toFixed(2)} m³`)] : []),
         row('Natural attacks', c.naturalAttacks.length ? val(c.naturalAttacks.map((a) => `${a.name ?? a.id} (${skillName(a.skill ?? '')})`)) : none('none')),
