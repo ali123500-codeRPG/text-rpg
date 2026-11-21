@@ -1,4 +1,4 @@
-// AE6 (RY1–RY5): a readied order. The player holds (after any move) and one step waits for a condition (READY_ON); the
+// AE6 (RY1–RY5, RQ3 a): a readied order. The actor (the player or an NPC) holds (after any move) and one step waits for a condition (READY_ON); the
 // moment it comes true the step plays by itself as the main action. This file says when a condition has come true; the
 // turn engine (resolve.ts) watches it within a fight turn and on the world clock outside one, and plays the step.
 import type { Actor, GameEvent, GameState } from '../types';

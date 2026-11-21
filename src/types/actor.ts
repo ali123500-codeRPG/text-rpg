@@ -77,7 +77,7 @@ export type Actor = {
   /** AT49: the player's walk not yet at its goal, carried on by the next turns until another move or action is ordered;
    * then (MQ8, MQ15 a): the action it walks to do, done where it ends */
   walking?: NonNullable<import('./agents').Intent['move']> & { then?: WalkThen };
-  /** AE6: the player's readied step, waiting for `when`; `waited`: fight seconds held so far (CONFIG.READY_MAX_S) */
+  /** AE6: a readied step (the player's, or an NPC's, RQ3 a), waiting for `when`; `waited`: fight seconds held so far (CONFIG.READY_MAX_S) */
   readied?: { when: import('../scales').ReadyWhen; order: import('./ruleset').Order; waited: number };
   /** RE1 (BG-291): minutes travelled on roads since the last encounter roll, carried from trip to trip; a full TRAVEL_LEG_MIN rolls */
   roadMin?: number;

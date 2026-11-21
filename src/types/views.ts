@@ -220,6 +220,7 @@ export type ActorView = {
     attackSkill: string; // BG-258: the held weapon's skill, else fallback.attackSkill (template, else body type)
     bodyAttacks?: BodyAttackView[]; // BG-193
     perkMoves?: PerkMoveView[]; // TC49: the perk moves it owns, offered to its agent as to the player
+    readied?: { type: string; target: string | null; when: import('../scales').ReadyWhen }; // AE6 (RQ3 a): its readied step, still waiting
     playingDead?: true; // TC32 a: lying as if Down; anything but a still hold gets it up
     /** elapsed (NW10): game minutes since it started; dayPart: the time of day now */
     routine?: { id: string; anchorTurn: number; elapsed: number; dayPart: import('../scales').TimeOfDay };

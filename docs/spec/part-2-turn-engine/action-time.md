@@ -259,7 +259,9 @@ AE6 (RY1–RY5, #1645): the rules are in Action economy, AE6; this is how the tu
 resolve.ts).
 
 - **ACT-340** **The hold.** A readied order is a hold that spends no main time, so the step has the turn's time when it
-  fires. It is watched from where the player stands after the turn's move; on later held turns, from the turn's start.
+  fires. It is watched from where its actor stands after the turn's move; on later held turns, from the turn's start.
+  The player and NPCs ready alike (RQ3 a, #1682); each readied step is watched on its own, in initiative order, and a
+  step that plays is itself checked against the others (an NPC's thrust can set off the player's step waiting on it).
 - **ACT-341** **In a fight: the check.** A fight turn is not played second by second: each actor's walk is applied whole,
   then its action. The condition is checked after each actor's walk and after each action (and each repeat blow). Its
   moment is when that walk or action ended, by the turn's end at most (a dash pays move and main seconds side by side, so
@@ -279,6 +281,10 @@ resolve.ts).
 - **ACT-345** **Outside a fight** the readied order is the wait until someone appears (BG-231, WAIT\_SOMEONE\_MAX\_H at
   most), and the stretch also stops when the condition comes true: the step plays there with fresh pools, as a walk's
   action does on arrival (actThere). A wait that runs out drops it; one stopped for anything else keeps it (RQ4 a).
+- **ACT-346** **NPCs' held turns.** An NPC whose readied step waits holds on each turn its agent gives no new order (it
+  comes before its combat list, after a fired trigger or a broken nerve, which drop it), for CONFIG.READY\_MAX\_S at most
+  as the player's. Outside a fight an NPC's readied step is watched through the turn it is given, then dropped: the
+  world-clock wait (ACT-345) is the player's.
 
 #### Initiative (stage 2)
 

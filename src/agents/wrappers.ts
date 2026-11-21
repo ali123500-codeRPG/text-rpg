@@ -6,7 +6,7 @@ import type {
 import { FIXED } from './prompts';
 import { checkIntent, checkNarrator, checkPlanner, checkResponder, checkStagePlan, checkVoice } from './schema';
 import { formatDialogueView, formatNarrationView, formatOppositionView, formatPlayerView, formatResponderInput, formatWeaverView, type Answering } from './format';
-import { checkNpcLegality, checkParserLegality, spokenOnly, illegalClarify, routineAllowed, type NpcViewBase } from './legality';
+import { checkNpcLegality, checkParserLegality, knownIds, spokenOnly, illegalClarify, routineAllowed, type NpcViewBase } from './legality';
 import { fallbackNarration, factCheck, leakScan, mentions, type LeakContext } from './narration';
 import { runAgent, type AgentCtx, type Attempt, type RunResult } from './call';
 
@@ -123,6 +123,16 @@ function perkMoveFor(view: OppositionView, v: { perkMove?: PlannerOutput['perkMo
   if (m.action && v.action.type !== 'hold') v.action = { ...v.action, type: 'hold', target: null, skill: null, item: null, mode: null };
 }
 
+/** AE6 (RQ3 a): a readied step waits on someone it knows of, a band, or anyone; never a hold or talk, which
+ * have no moment to wait for. Anything else is dropped (invalid_ready) and the action plays at once */
+function readyFor(view: OppositionView, v: { when?: PlannerOutput['when']; action: NpcAction }, errors: string[]): void {
+  const w = v.when;
+  if (!w) return;
+  const k = knownIds(view), bands = [view.band.id, ...Object.keys(view.band.relations)];
+  const who = (x: string | undefined) => !x || x === 'anyone' || k.actors.has(x) || bands.includes(x);
+  if (['hold', 'talk'].includes(v.action.type) || !who(w.who) || !who(w.at)) { errors.push('invalid_ready'); v.when = null; }
+}
+
 export type PlannerCallOpts = { signal?: AbortSignal; world: Set<string> };
 
 /** OppositionView. null = no usable order (the engine runs the type's combat list). */
@@ -134,6 +144,7 @@ export async function callPlanner(view: OppositionView, ctx: AgentCtx, opts: Pla
     const errors = [...leg.errors];
     planUpdateFor(view, v, errors);
     perkMoveFor(view, v, errors);
+    readyFor(view, v, errors);
     pending = errors;
     return { kind: 'ok', value: v };
   };
@@ -185,6 +196,7 @@ export async function callResponder(
     }
     planUpdateFor(view, v, extra);
     perkMoveFor(view, v, extra);
+    readyFor(view, v, extra);
     return { kind: 'ok', value: v };
   };
   const run = await runAgent(ctx, {

@@ -59,6 +59,7 @@ const gearOp = obj<{ op: GearOp['op']; item: string; from?: string; into?: strin
 const GEAR = nul(arr(gearOp));
 const STANCE = nul(obj<{ toward: string; step: 'friendlier' | 'colder' }>({ toward: str, step: oneOf(['friendlier', 'colder'] as const) }));
 
+const readyWhen = (v: unknown, p: string, e: string[]) => (v === undefined ? undefined : nul(obj<ReadyWhen>({ on: oneOf(READY_ON), who: str, at: str }, ['at']))(v, p, e)) as Intent['when']; // AE6
 const intent = obj<Intent>({
   move: nul(obj<{ toZone: string; after?: boolean; spot?: MoveSpot | null; jump?: boolean; behind?: boolean }>({ toZone: str, after: bool, jump: bool, behind: bool,
     spot: nul(obj<MoveSpot>({ near: str, awayFrom: str, side: str, follow: bool, keep: KEEP }, ['near', 'awayFrom', 'side', 'follow', 'keep'])) }, ['after', 'spot', 'jump', 'behind'])),
@@ -82,7 +83,7 @@ const intent = obj<Intent>({
   }, ['qty', 'for', 'demand', 'aimed', 'noSkillFits', 'grade', 'fall'])),
   perkMove: nul(obj<{ perk: string; target: string | null }>({ perk: str, target: nul(str) })),
   warn: nul(str),
-  when: (v, p, e) => (v === undefined ? undefined : nul(obj<ReadyWhen>({ on: oneOf(READY_ON), who: str, at: str }, ['at']))(v, p, e)) as Intent['when'], // AE6
+  when: readyWhen, // AE6
   defense: (v, p, e) => (v === undefined ? undefined : nul(oneOf(['dodge', 'block', 'parry'] as const))(v, p, e)) as Intent['defense'], // RY7
   way: nul(obj<NonNullable<Intent['way']>>({ toZone: str, op: oneOf(WAY_OPS) })),
   gear: GEAR,
@@ -150,7 +151,7 @@ const acceptYield = yields;
 const letsSearch = (v: unknown, p: string, e: string[]) => (v === undefined ? undefined : nul(str)(v, p, e)) as string | null; // BF16
 const spare = yields; // D-239
 const standDown = yields; // TF15
-const MEMORY_KEYS = ['memory', 'agreement', 'endAgreements', 'questEnd', 'spar', 'yields', 'letsSearch', 'acceptYield', 'standDown', 'spare', 'headTo', 'lead', 'goals', 'steps', 'perkMove'] as ('memory' | 'agreement' | 'endAgreements' | 'questEnd' | 'spar' | 'yields' | 'letsSearch' | 'acceptYield' | 'standDown' | 'spare' | 'headTo' | 'lead' | 'goals' | 'steps' | 'perkMove')[];
+const MEMORY_KEYS = ['memory', 'agreement', 'endAgreements', 'questEnd', 'spar', 'yields', 'letsSearch', 'acceptYield', 'standDown', 'spare', 'headTo', 'lead', 'goals', 'steps', 'perkMove', 'when'] as ('memory' | 'agreement' | 'endAgreements' | 'questEnd' | 'spar' | 'yields' | 'letsSearch' | 'acceptYield' | 'standDown' | 'spare' | 'headTo' | 'lead' | 'goals' | 'steps' | 'perkMove' | 'when')[];
 const npcPerkMove = nul(obj<{ perk: string; target: string | null }>({ perk: str, target: nul(str) })); // TC49
 const headTo = nStr; // NW2
 // UG5/UG16: a goal holder's goals met, failed or added, and its next steps
@@ -164,9 +165,9 @@ const goalStep = obj<GoalStep>({ go: str, lead: str, routine: str, wait: (v, p, 
 const steps = nul(arr(goalStep));
 const lead = nStr; // BF4
 const npcMove = nul(obj<{ toZone: string; after?: boolean; speakAt?: 'end' }>({ toZone: str, after: bool, speakAt: oneOf(['end'] as const) }, ['after', 'speakAt']));
-const planner = obj<PlannerOutput>({ action: npcAction, move: npcMove, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields, letsSearch, acceptYield, standDown, spare, headTo, lead, goals: goalOps, steps, perkMove: npcPerkMove }, ['move', ...MEMORY_KEYS]);
+const planner = obj<PlannerOutput>({ action: npcAction, move: npcMove, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields, letsSearch, acceptYield, standDown, spare, headTo, lead, goals: goalOps, steps, perkMove: npcPerkMove, when: readyWhen }, ['move', ...MEMORY_KEYS]);
 const responder = obj<ResponderOutput>({
-  action: npcAction, move: npcMove, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields, letsSearch, acceptYield, standDown, spare, headTo, lead, goals: goalOps, steps, perkMove: npcPerkMove,
+  action: npcAction, move: npcMove, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields, letsSearch, acceptYield, standDown, spare, headTo, lead, goals: goalOps, steps, perkMove: npcPerkMove, when: readyWhen,
   reveals: (v, p, e) => (v === undefined || v === null ? [] : arr(str)(v, p, e)),
 }, ['move', ...MEMORY_KEYS]);
 const voice = obj<VoiceOutput>({
