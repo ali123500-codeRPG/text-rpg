@@ -17,7 +17,7 @@
 // limits on where a blow may land, parry strike-backs, fatigue, and situational modifiers (light, cover, numbers). A
 // missile is read against the standing defense as if it could stop it; the blows a longer reach lands while the soldier
 // closes count through `range`.
-import type { Actor, AttackMode, DefenseKind, GameState, ItemDef } from '../types';
+import type { Actor, AttackMode, DefenseKind, GameState, ItemDef, ItemInstance } from '../types';
 import { CONFIG } from '../config';
 import { HEALTH_LEVELS, TIERS, type HealthLevelKey } from '../scales';
 import { getLibrary, itemDef } from '../library';
@@ -28,22 +28,43 @@ import { SK, DEFENSE_SKILL } from '../library/skillIds';
 import { IF } from '../library/tableIds';
 import { PK } from '../library/perkIds';
 import { armorLayers, blowDamage, defenseOwnMods, gapShiftsOf, hostileCloseMods, ladder, sumShifts, rollSetup, throughArmor, weaponHitMods, type ArmorLayer } from '../ruleset';
-import { hitTable, totalHp } from '../ruleset/body';
+import { freeGrips, hitTable, totalHp } from '../ruleset/body';
 import { fearCost, healthFear, maxMorale, tierCostMult } from '../ruleset/morale';
-import { blockItem, defenseItem, modeSkill, usableDefense, usableModes } from '../ruleset/gear';
+import { blockItem, defenseItem, gripSlot, isGripSlot, isHeld, isWorn, modeSkill, usableDefense, usableModes } from '../ruleset/gear';
 import { boostAdd, hasPerk } from '../ruleset/perks';
 import { chainRewards } from '../ruleset/achRewards';
 import { attackSecs, rollOdds, tierOdds } from '../ruleset/expect';
 import { moveSpeed } from './speed';
 
-/** a copy of the actor as it would start a fight: unhurt, calm, rested, shields whole, no marks, holds or pressure */
-export function freshCopy(a: Actor, id: string): Actor {
+/** a copy of the actor as it would start a fight: unhurt, calm, rested, shields whole, no marks, holds or pressure, and
+ * with its weapons drawn (BG-1583): the most-full set of the weapons and shields it carries that rates highest is in hand */
+export function freshCopy(state: GameState, a: Actor, id: string): Actor {
   const c: Actor = structuredClone({ ...a, mind: undefined, journal: undefined, progression: a.progression ? { ...a.progression, xpLog: [] } : undefined });
   c.id = id;
   c.core.condition = { hpLostPct: 0, parts: {}, status: [], moraleLost: 0 };
   c.core.inventory = c.core.inventory.map((i) => (i.pools?.shield === undefined ? i : { ...i, pools: { ...i.pools, shield: 100 } }));
   for (const k of ['engagement', 'perkMarks', 'playingDead', 'playDeadOpen', 'feint', 'asleep', 'heldBy', 'holding', 'pressure', 'react', 'carry'] as const) delete (c as Record<string, unknown>)[k];
   c.posture = 'open' as never;
+  return readied(state, c);
+}
+
+/** BG-1583: `c` holding, of every most-full set of the weapons and shields it carries that its grips can hold, the one
+ * whose combat level is highest (the first on a tie); with one such set, that set */
+function readied(state: GameState, c: Actor): Actor {
+  for (const i of c.core.inventory) if (isHeld(i)) delete i.equippedIn;
+  const grips = freeGrips(state, c).map(gripSlot), need = (i: ItemInstance) => itemDef(state, i.itemId).grips ?? 1;
+  const arms = c.core.inventory.filter((i) => { const d = itemDef(state, i.itemId); return (!!d.weapon || !!d.shield) && !isWorn(i) && need(i) <= grips.length; });
+  const sets = new Map<string, ItemInstance[]>(); // keyed by the pieces' ids, so two of the same piece are one set
+  const grow = (from: number, set: ItemInstance[], used: number): void => {
+    for (let k = from; k < arms.length; k++) if (used + need(arms[k]) <= grips.length) grow(k + 1, [...set, arms[k]], used + need(arms[k]));
+    if (arms.every((i) => set.includes(i) || used + need(i) > grips.length)) sets.set(set.map((i) => i.itemId).sort().join(), set);
+  };
+  grow(0, [], 0);
+  const put = (set: ItemInstance[]) => { let g = 0; for (const i of arms) delete i.equippedIn; for (const i of set) i.equippedIn = grips.slice(g, (g += need(i))); };
+  let best: ItemInstance[] = [], top = -Infinity;
+  if (sets.size > 1) for (const set of sets.values()) { put(set); const L = combatParts(state, c).level; if (L > top) { top = L; best = set; } }
+  else best = [...sets.values()][0] ?? [];
+  put(best);
   return c;
 }
 
@@ -229,8 +250,8 @@ function wholeSkills(a: Actor): Actor {
   if (Object.values(sk).every((x) => Number.isInteger(x.raw))) return a;
   return { ...a, core: { ...a.core, skills: Object.fromEntries(Object.entries(sk).map(([k, x]) => [k, { ...x, raw: Math.round(x.raw) }])) } };
 }
-/** the sheet that sets a combat level: everything but the moment (condition, marks, holds) and XP-only achievements */
-const sheetKey = (a: Actor): string => JSON.stringify([a.core.raceId, a.core.bodyTypeId, a.core.prefix, a.core.skills, a.core.perks, a.core.classes, a.core.inventory.map((i) => [i.itemId, i.equippedIn, i.boundTo]), a.core.standingDefense, a.core.bornDay, a.core.hollowed, (a.progression?.achievements ?? []).filter((x) => !x.replacedBy && countsInFight(x.key)).map((x) => x.key).sort()]);
+/** the sheet that sets a combat level: everything but the moment (condition, marks, holds, what is in hand) and XP-only achievements */
+const sheetKey = (a: Actor): string => JSON.stringify([a.core.raceId, a.core.bodyTypeId, a.core.prefix, a.core.skills, a.core.perks, a.core.classes, a.core.inventory.map((i) => [i.itemId, i.equippedIn?.filter((e) => !isGripSlot(e)), i.boundTo]), a.core.standingDefense, a.core.bornDay, a.core.hollowed, (a.progression?.achievements ?? []).filter((x) => !x.replacedBy && countsInFight(x.key)).map((x) => x.key).sort()]);
 /** an achievement that can change a fight: one with a reward beyond XP, or a defeats row (Bane and total-defeats roll
  * bonuses). XP-only rows leave the sheet's combat level as it was, so earning one does not work it out afresh. */
 function countsInFight(key: string | undefined): boolean {
@@ -244,7 +265,7 @@ export function combatLevel(state: GameState, a0: Actor): number {
   const a = wholeSkills(a0), key = sheetKey(a);
   const hit = cache.get(key);
   if (hit !== undefined) return hit;
-  const L = combatParts(state, freshCopy(a, a.id)).level;
+  const L = combatParts(state, freshCopy(state, a, a.id)).level;
   cache.set(key, L);
   return L;
 }
