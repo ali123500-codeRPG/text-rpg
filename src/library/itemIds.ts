@@ -30,6 +30,12 @@ export const IT = {
   leather_gloves: 'IT82', mail_mittens: 'IT83', plate_gauntlets: 'IT84', peerless_gauntlets: 'IT85',
   war_spear: 'IT86', // IC6 a: the two-handed spear beside the one-handed one
   sledgehammer: 'IT87', pick: 'IT88', // BW22 a: breaking tools
+  // CG4: Crude pieces for the gear classes that had none
+  splitting_maul: 'IT89', stick_bow: 'IT90', green_wood_bow: 'IT91', rickety_crossbow: 'IT92', patched_mail: 'IT93',
+  rusted_scale_coat: 'IT94', plank_shield: 'IT95', rag_wraps: 'IT96',
+  bent_wire_picks: 'IT97', // CG1 b: Filching's Crude tool
 } as const;
 /** BW22 a: the tag that makes an item a breaking tool (a sledgehammer, a pick) */
 export const BREAK_TOOL_TAG = 'break_tool';
+/** CG1-CG3: a Crude piece creation gives for a gear-class skill the build put points in (starterKit) */
+export const CRUDE_KIT_TAG = 'crude_kit';

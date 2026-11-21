@@ -10,7 +10,7 @@ import { ROLLED_SKILL, SK } from './skillIds';
 import { ACH } from './achievementIds';
 import { FN } from './functionIds';
 import { PK } from './perkIds';
-import { BREAK_TOOL_TAG, IT } from './itemIds';
+import { BREAK_TOOL_TAG, CRUDE_KIT_TAG, IT } from './itemIds';
 import { armorMultiplier, armorStop, shieldPool } from './gearScale';
 
 /** SZ8: what a standard Humanoid's arm reaches past its body (0.625 m); a held weapon's library reach is this plus its length */
@@ -106,14 +106,30 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
     effects: [KIT()],
     weapon: { modes: [mode({ id: AM.stab, tree: 'melee', class: 'light', grips: 1 })] } },
   // IR8: an armor piece covers a body part when its real garment covers most of it, with the source on the row
-  // Crude gear: level Crude needs 0. Only the clothes are in the starter kit; the crude weapons are library
-  // items outside it. Clothes stop nothing and cost no Dodge (placeholders).
+  // Crude gear: level Crude needs 0, stops nothing and costs no Dodge (placeholders). The clothes are in everyone's
+  // starter kit; every other Crude piece (CRUDE_KIT_TAG) comes only for a skill the build put points in (starterKit).
   { id: IT.crude_clothes, level: 'crude', gearClass: GC.armor_light, gearType: GT.cuirass, tags: ['starter'], kind: 'armor', name: 'rough clothes', look: 'rough homespun clothes', bulk: 1, slot: 'armor',
     armor: ARMOR('light', 'crude') },
-  { id: IT.cudgel, level: 'crude', gearClass: GC.melee_medium, gearType: GT.short, kind: 'weapon', name: 'cudgel', look: 'a knotted wooden cudgel', bulk: 2, grips: 1, effects: [KIT()],
+  { id: IT.cudgel, level: 'crude', gearClass: GC.melee_medium, gearType: GT.short, tags: [CRUDE_KIT_TAG], kind: 'weapon', name: 'cudgel', look: 'a knotted wooden cudgel', bulk: 2, grips: 1, effects: [KIT()],
     weapon: { modes: [mode({ id: AM.club, tree: 'melee', class: 'medium', grips: 1 })] } },
-  { id: IT.rusty_knife, edge: true, level: 'crude', gearClass: GC.melee_light, gearType: GT.knife, kind: 'weapon', name: 'rusty knife', look: 'a rusty knife', bulk: 1, grips: 1, effects: [KIT()],
+  { id: IT.rusty_knife, edge: true, level: 'crude', gearClass: GC.melee_light, gearType: GT.knife, tags: [CRUDE_KIT_TAG], kind: 'weapon', name: 'rusty knife', look: 'a rusty knife', bulk: 1, grips: 1, effects: [KIT()],
     weapon: { modes: [mode({ id: AM.slash, tree: 'melee', class: 'light', grips: 1 })] } },
+  // CG4: one Crude piece for each gear class that had none (Improvised is exempt, as from the starter kit)
+  { id: IT.splitting_maul, level: 'crude', gearClass: GC.melee_heavy, gearType: GT.great, tags: [CRUDE_KIT_TAG], kind: 'weapon', name: 'splitting maul', look: 'a heavy wood-splitting maul', bulk: 3, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.club, tree: 'melee', class: 'heavy', grips: 2 })] } },
+  { id: IT.stick_bow, level: 'crude', gearClass: GC.ranged_light, gearType: GT.short_bow, tags: [CRUDE_KIT_TAG], kind: 'weapon', shotTime: DU.bow_light, name: 'stick bow', look: 'a rough-cut stick bow', bulk: 2, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'light', grips: 2 })] } },
+  { id: IT.green_wood_bow, level: 'crude', gearClass: GC.ranged_medium, gearType: GT.flatbow, tags: [CRUDE_KIT_TAG], kind: 'weapon', shotTime: DU.bow_medium, name: 'green-wood bow', look: 'a bow of unseasoned green wood', bulk: 3, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'medium', grips: 2 })] } },
+  { id: IT.rickety_crossbow, level: 'crude', gearClass: GC.ranged_heavy, gearType: GT.crossbow_light, tags: [CRUDE_KIT_TAG], kind: 'weapon', shotTime: DU.crossbow_shot, spanTime: DU.span_light, name: 'rickety crossbow', look: 'a rickety, much-mended crossbow', bulk: 3, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', grips: 2 })] } },
+  { id: IT.patched_mail, level: 'crude', gearClass: GC.armor_medium, gearType: GT.cuirass, tags: [CRUDE_KIT_TAG], kind: 'armor', name: 'patched mail shirt', look: 'a mail shirt patched with mismatched rings', bulk: 3, slot: 'armor',
+    armor: ARMOR('medium', 'crude') },
+  { id: IT.rusted_scale_coat, level: 'crude', gearClass: GC.armor_heavy, gearType: GT.coat, tags: [CRUDE_KIT_TAG], kind: 'armor', name: 'rusted scale coat', look: 'a coat of rusted, missing scales', bulk: 3, slot: 'armor',
+    armor: ARMOR('heavy', 'crude') },
+  { id: IT.plank_shield, level: 'crude', gearClass: GC.shield, tags: [CRUDE_KIT_TAG], kind: 'shield', name: 'plank shield', look: 'a shield of nailed planks', bulk: 2, grips: 1, effects: [KIT(SK.block)], shield: POOL('crude') },
+  { id: IT.rag_wraps, level: 'crude', gearClass: GC.gauntlets, gearType: GT.fist, tags: [CRUDE_KIT_TAG], kind: 'weapon', name: 'rag hand wraps', look: 'rags wound tight round the hands', bulk: 1, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.punch, tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, grips: 1 })] } },
   { id: IT.gambeson, level: 'common', gearClass: GC.armor_light, gearType: GT.coat, tags: ['starter'], kind: 'armor', name: 'gambeson', look: 'a quilted gambeson', bulk: 2, slot: 'armor', effects: WEIGHT(),
     armor: { ...ARMOR('light', 'common') } }, // IR8: a padded, sleeved jacket to the hips or thigh (Wikipedia "Gambeson")
   { id: IT.mail_hauberk, level: 'fine', gearClass: GC.armor_medium, gearType: GT.coat, tags: ['starter'], kind: 'armor', name: 'mail hauberk', look: 'a mail hauberk', bulk: 3, slot: 'armor', effects: WEIGHT(),
@@ -241,6 +257,8 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
     effects: [{ kind: 'rollMod', roll: 'event', value: 5, active: 'carried', scope: 'any' }] },
   { id: IT.lockpicks, kind: 'tool', name: 'lockpicks', look: 'a roll of lockpicks', bulk: 0, grips: 1,
     effects: [{ kind: 'skill', skill: SK.filching, value: 25, active: 'inUse', scope: 'withItem' }] }, // only while picking a lock with them
+  { id: IT.bent_wire_picks, kind: 'tool', tags: [CRUDE_KIT_TAG], name: 'bent-wire picks', look: 'a twist of bent wires', bulk: 0, grips: 1,
+    effects: [{ kind: 'skill', skill: SK.filching, value: 10, active: 'inUse', scope: 'withItem' }] }, // CG1 b: half the lockpicks' bonus, only while picking
   // BW22 a: breaking tools. In use (held in both grips) each adds CONFIG.BREAK_TOOL_KG to the breaker's force (src/ruleset/breaking.ts)
   { id: IT.sledgehammer, kind: 'tool', name: 'sledgehammer', look: 'a long-hafted iron sledgehammer', bulk: 2, grips: 2, tags: [BREAK_TOOL_TAG] },
   { id: IT.pick, kind: 'tool', name: 'pick', look: 'a heavy iron pick on an ash haft', bulk: 2, grips: 2, tags: [BREAK_TOOL_TAG] },

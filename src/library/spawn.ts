@@ -8,14 +8,14 @@ import { skillOpen } from '../ruleset/access';
 import { skillCap } from '../ruleset/skillCap';
 import { burdenTotal } from '../ruleset/burdenTotal';
 import { grantThreadboundItem, syncThreadboundItemPerks } from '../ruleset/threadboundItems';
-import { itemLevel, requirement, shortBy, skillToward } from '../ruleset/requirements';
+import { itemLevel, requiredSkill, requirement, shortBy, skillToward } from '../ruleset/requirements';
 import { CLASS_TIERS, equipPos, GRANDEUR, NERVE_LINES, RANKS, type GrandeurKey, type LifeStageKey, type RankKey, type TalentKey } from '../scales';
 import { ageFloor, rollBornDay } from '../ruleset/age';
 import { DAY_MINUTES, now } from '../time';
 import { createRng, textSeed } from '../rng';
 import { SK, DEFENSE_SKILL } from './skillIds';
 import { skillName } from './skillNames';
-import { IT } from './itemIds';
+import { CRUDE_KIT_TAG, IT } from './itemIds';
 import { perkPointsUpTo } from '../ruleset/levels';
 import { milestonePerk, milestoneState, trueSkill } from '../ruleset/perks';
 import { syncPerkLinks } from '../ruleset/perkLinks';
@@ -537,13 +537,16 @@ export function newPlayer(startId = PLAYER_START, storyId?: string, raceId: stri
 }
 
 /** The starter kit: after creation the player gets, for each gear class, the highest-level item tagged 'starter'
- * whose equip requirement their skills meet (every class has a Common 25 and a Fine 50 piece). Worn: the highest-level
- * armor met, and a plain pack (CT7) that holds the rest; weapons and shields start sheathed (DS2). */
+ * whose equip requirement their skills meet (every class has a Common 25 and a Fine 50 piece), or else its Crude piece
+ * when the class's skill has CRUDE_KIT_MIN_SKILL own points, and a Crude tool for the skill it helps (CG1-CG3). Worn: the highest-level armor met, and a plain
+ * pack (CT7) that holds the rest; weapons and shields start sheathed (DS2). */
 export function starterKit(a: Actor): ItemInstance[] {
   const lib = getLibrary();
   const lvl = (d: ItemDef) => equipPos(itemLevel(d) ?? 'crude');
+  const kitSkill = (d: ItemDef) => requiredSkill(d) ?? d.effects?.find((e) => e.kind === 'skill')?.skill; // a Crude tool: the skill it helps (CG1 b)
+  const own = (d: ItemDef) => (a.core.skills[kitSkill(d) ?? '']?.raw ?? 0) >= CONFIG.CRUDE_KIT_MIN_SKILL; // CG2: stand-ins do not count
   const top = new Map<string, ItemDef>(); // per gear class, only the highest level met
-  for (const d of Object.values(lib.items)) if (d.tags?.includes('starter') && !shortBy(a, d)) {
+  for (const d of Object.values(lib.items)) if ((d.tags?.includes('starter') && !shortBy(a, d)) || (d.tags?.includes(CRUDE_KIT_TAG) && own(d))) {
     const k = d.gearClass ?? d.id, b = top.get(k);
     if (!b || lvl(d) > lvl(b)) top.set(k, d);
   }
@@ -700,7 +703,8 @@ export function createPlayer(build: CreationBuild, storyId: string, opts: { prev
       ...newPlayer(build.startId ?? PLAYER_START, storyId, build.raceId),
       skills,
       condition: { hpLostPct: 0, parts: fullParts(null, getLibrary().races?.[build.raceId ?? PLAYER_RACE]?.bodyTypeId ?? BT.humanoid), status: [] },
-      inventory: [{ id: 'player_coin', itemId: IT.coin, qty: CONFIG.STARTING_COIN }, { id: 'player_bandage', itemId: IT.bandage, qty: CONFIG.STARTING_BANDAGES }],
+      inventory: [{ id: 'player_coin', itemId: IT.coin, qty: CONFIG.STARTING_COIN }, { id: 'player_bandage', itemId: IT.bandage,
+        qty: CONFIG.STARTING_BANDAGES + (startRaw(build, SK.healing) >= CONFIG.CRUDE_KIT_MIN_SKILL ? CONFIG.CRUDE_KIT_BANDAGES : 0) }], // CG1 b
       // GAP: [Proposed] default is the higher effective skill; effective skill is W2's, so raw is compared here (the game re-picks at start)
       standingDefense: rawDefense((id) => startRaw(build, id)),
       personality: structuredClone(build.personality ?? { nerve: 0, traits: {}, values: [] }), // PL14

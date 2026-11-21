@@ -21,6 +21,8 @@ export const GEAR = {
   EQUIP_BEYOND_STEP: PAST_100_STEP,
   /** EQ12 c: every roll with an item you fall short on is one outcome step worse per this many points short (or part of it) */
   EQUIP_SHORT_STEP: 10,
+  /** CG2: a gear-class skill's own points on a new sheet at or above this give that class's Crude piece (starterKit) */
+  CRUDE_KIT_MIN_SKILL: 2,
   /** LG23 a: worn armor lowers Dodge and Parry alike by this × the piece's requirement (its need), by weight: a Fine (need 50)
    * piece costs −5 light, −10 medium, −20 heavy; a Masterwork one twice that (placeholders) */
   ARMOR_DEFENSE_COST: { light: -0.1, medium: -0.2, heavy: -0.4 } as Record<string, number>,

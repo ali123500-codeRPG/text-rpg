@@ -57,6 +57,8 @@ export const CLOCK = {
   TIME_TAGS: { dawn: ['day', 'night'], morning: ['day'], afternoon: ['day'], dusk: ['day', 'night'], evening: ['night'], night: ['night'] } as Record<string, string[]>, // T3b: routine-set time tags that fit
   REST_HEAL_PCT: 25,
   STARTING_BANDAGES: 2, // H2 (placeholder)
+  /** CG1 b: more bandages at creation for a build with CRUDE_KIT_MIN_SKILL own points in Medicine (placeholder) */
+  CRUDE_KIT_BANDAGES: 2,
   CLINIC_HEAL_PCT: 100,
   /** NR34 (placeholders): Heal opens at this true Healing; it gives back this share of the target's missing health (and of
    * each part's missing share) by the Healing roll's tier, plus HEAL_PAST_STEP for each step past Critical Success.
