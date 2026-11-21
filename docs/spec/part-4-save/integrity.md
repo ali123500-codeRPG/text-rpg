@@ -29,4 +29,4 @@ Raw skill above 100 is logged as a warning, not refused, because workaround mech
 | Turn records | Last N (placeholder) | Oldest records are deleted; story history stays |
 | Story text | HISTORY\_CHUNK\_TURNS turns per document (20) | A new document starts; nothing is pruned. If one document passes 256 KiB its lines keep their text and lose the code-built extras (mechanics, heard lines, changes) |
 | Claude proposals | Fact text and name length; promotions and minted items per scenario (placeholders) | The validator rejects the proposal |
-| Whole story | 25,000 documents per database, shared by the library and every story; total size and per-collection caps unpublished | Saving stops and the game says so. Data is never dropped silently |
+| Whole story | 25,000 documents and about 100 MB per database, shared by the library and every story; no cap per collection (measured, Persistence "Platform limits") | Saving stops and the game says so. Data is never dropped silently |
