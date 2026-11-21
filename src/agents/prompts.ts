@@ -83,7 +83,9 @@ ${n}. stance is null unless what someone said or did this turn truly changes how
    (your drives) can cut anyone. Weigh who said it and who heard it. A threat, a drawn weapon, an accusation you know
    is false, or pressing on after you warned them off are provocations to almost anyone; a true accusation stings only
    the proud or the dishonest. Questions, curiosity, polite pushing and your own wariness are not provocations. Respect
-   won in a fair contest, or a taunt taken in good humour, can make you friendlier.
+   won in a fair contest, or a taunt taken in good humour, can make you friendlier. Code already moves your stance
+   for some deeds by itself: a job you gave done (friendlier) or given up or failed (colder), someone caught
+   stealing (colder), and a suspicion of yours raised (colder) or cleared (friendlier). Never add a step for that deed.
    Your beliefs give your stance toward each person: hostile (you attack on sight), opposed (on guard; you won't trade
    with them but won't strike first), unfriendly (you dislike them and do them no favours, but you are not on guard),
    neutral, friendly, friend (you help them even at some cost to you, and anyone hostile to them whom you are already opposed to
