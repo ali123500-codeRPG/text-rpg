@@ -161,7 +161,8 @@ Read when: a skill is missing from the account, changes, or its scripts must run
 
 - The owner's Claude account holds a copy of every skill in `docs/skills.md`. The repo's `.agents/skills/` copy is the
   master for the owner's own skills. A change to one is a PR here first; the account copy is then updated to match
-  through a skill proposal the owner saves.
+  through a skill proposal the owner saves, and the zip of each changed skill (`docs/instructions.md` section 8) is sent
+  with SendUserFile (attach) in the same reply.
 - Claude Code loads skills from `.claude/skills/` and from the account, not from `.agents/skills/`. Here
   `.claude/skills/<name>` links to `.agents/skills/<name>`. A cloud session outside a project, and Claude Code on a
   computer, load those links. A project thread loads skills only from the account: open the `SKILL.md` named in
