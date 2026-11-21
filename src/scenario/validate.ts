@@ -593,7 +593,12 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
         const w = e.when as EndCheck | undefined;
         switch (w?.kind) {
           case 'band_out': if (!isBand(w.band)) serr('scenario_ending', `${where}: band ${w.band} unknown`); break;
-          case 'reach': case 'leave': case 'clear': if (!isPlace(w.place) && !isZone(w.place)) serr('scenario_ending', `${where}: place ${w.place} unknown`); break;
+          case 'reach': case 'leave': case 'clear':
+            if (!isPlace(w.place) && !isZone(w.place)) serr('scenario_ending', `${where}: place ${w.place} unknown`);
+            if (w.kind === 'reach' && w.actor !== undefined && !isActor(w.actor)) serr('scenario_ending', `${where}: actor ${w.actor} unknown`); // BG-1508
+            if (w.kind === 'reach' && w.band !== undefined && !isBand(w.band)) serr('scenario_ending', `${where}: band ${w.band} unknown`);
+            if (w.kind === 'clear' && w.by !== undefined && w.by !== 'you' && w.by !== 'other') serr('scenario_ending', `${where}: by must be you or other`);
+            break;
           case 'find': if (!isActor(w.actor)) serr('scenario_ending', `${where}: actor ${w.actor} unknown`); break;
           // BG-222: items made in play (IT26_m39_0) are known too, through the same lookup as the rest of the game
           case 'hold': if (!itemKnown(w.item)) serr('scenario_ending', `${where}: item ${w.item} unknown`); break;
