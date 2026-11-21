@@ -470,9 +470,11 @@ type ActivityDef = {
   relevant to the player are simulated in full: they get an order, act and make events. An NPC is relevant when (1) it
   is in the player's senses or has the player in its own; (2) its mind is on the player: it follows them, believes in
   them at Tracking or above, heads to where it thinks they are, or holds a goal or a plan trigger that names them; (3)
-  it is in a fight or within sense range of a foe; (4) it is within sense range of anyone under 1 to 3; or something
+  it is in a fight or within sense range of a foe; (4) it is within sense range of anyone under 1 to 3; or the player's intent names it (its target, whom it speaks
+  to, walks near or buys for); or something
   other than its routine takes its turn (a trigger, its agent, an alert, flight, a long action, a hold, a suspicion, a
-  draw). The rest get no order that turn: their routines move them at the turn's end by the catch-up above, and they
+  draw); or it stands at the edge of unbuilt ground, where its step in starts the building (NW3) and the catch-up
+  stops. The rest get no order that turn: their routines move them at the turn's end by the catch-up above, and they
   still perceive what relevant actors do. Worked out afresh every turn (src/engine/tiers.ts); nothing about it is
   saved.
 - **GSM-264** On a turn that took one action's time, each leg of the catch-up is a move event like any walk, perceived

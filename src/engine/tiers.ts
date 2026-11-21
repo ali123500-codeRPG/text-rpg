@@ -18,19 +18,22 @@ import { perceivesNow } from './yield';
 /** the ids of everyone simulated in full this turn: the player, and each NPC that (1) is in the player's senses or has the
  * player in its own; (2) has its mind on the player (follows them, believes in them at Tracking or above, heads to where it
  * thinks they are, or holds a goal or a plan trigger that names them); (3) is in a fight or within sense range of a foe;
- * (4) is within sense range of anyone under 1 to 3. Also anyone whose turn something other than its routine takes (a trigger,
- * its agent, an alert, flight, a long action, a hold, a suspicion, a draw), so nothing under way is cut off. */
-export function relevantActors(state: GameState, input: Pick<TurnInput, 'agentOutputs' | 'spokespeople' | 'fired'>): Set<string> {
+ * (4) is within sense range of anyone under 1 to 3. Also anyone the player's intent names, and anyone whose turn something other than its routine takes (a trigger,
+ * its agent, an alert, flight, a long action, a hold, a suspicion, a draw), so nothing under way is cut off, and anyone at the edge of unbuilt ground, whose step
+ * into it starts its building (NW3), which the catch-up, stopping there, would not. */
+export function relevantActors(state: GameState, input: Pick<TurnInput, 'intent' | 'agentOutputs' | 'spokespeople' | 'fired'>): Set<string> {
   const p = state.player;
   const npcs = state.actors.filter(isActive);
   const out = new Set<string>([p.id]);
   const near = senseRange(state);
-  const taken = new Set<string>([...(input.fired ?? []).map((o) => o.actorId), ...input.agentOutputs.map((o) => o.actorId), ...input.spokespeople, ...(state.pending?.engaged ?? [])]);
+  const taken = new Set<string>([...(input.fired ?? []).map((o) => o.actorId), ...input.agentOutputs.map((o) => o.actorId), ...input.spokespeople, ...(state.pending?.engaged ?? []),
+    ...named(input.intent)]);
+  const edge = new Set(state.openings.filter((o) => o.frontier).map((o) => o.joins[0]));
   const holding = new Set(state.actors.map((a) => a.heldBy).filter((h): h is string => !!h));
   for (const a of npcs) {
     const m = a.mind;
     const busyTurn = taken.has(a.id) || !!m?.alarm?.onAlertDue || !!m?.moraleState || !!a.busy || !!a.heldBy || holding.has(a.id)
-      || !!(m?.suspects && Object.keys(m.suspects).length) || !!drawnTo(state, a) || isEngaged(state, a);
+      || !!(m?.suspects && Object.keys(m.suspects).length) || !!drawnTo(state, a) || isEngaged(state, a) || edge.has(a.zone);
     if (busyTurn || mindOnPlayer(state, a) || near(p, a)) out.add(a.id);
   }
   // 3: a foe pair within sense range of each other, either way
@@ -45,6 +48,10 @@ export function relevantActors(state: GameState, input: Pick<TurnInput, 'agentOu
 }
 
 /** 2: its mind is on the player */
+/** whom the player's intent names this turn: its target, the one it buys for or walks near or away from, those it speaks to */
+const named = (i: TurnInput['intent']): string[] =>
+  [i?.action?.target, i?.action?.for, i?.perkMove?.target, i?.move?.spot?.near, i?.move?.spot?.awayFrom, ...(i?.addressees ?? [])].filter((x): x is string => !!x);
+
 function mindOnPlayer(state: GameState, a: Actor): boolean {
   const p = state.player, m = a.mind;
   if (!m) return false;
