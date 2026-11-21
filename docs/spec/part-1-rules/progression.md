@@ -222,7 +222,7 @@ question IDs, BG/D numbers) sits in one trailing parenthesis.
   power ÷ the player's power), each foe's power taken when it fell and the player's at hand-in (QX4), so easy hunts pay
   little to a strong player (QX2).
 - **PROG-133** Other jobs are not cut: their reward level already comes from the scenario's grade (QX3).
-- **PROG-134** Sizing quest XP to the player's level is parked (D-180). See Quests below.
+- **PROG-134** Quest XP is sized to the player's level by the achievement level share (ACH\_LEVEL\_SHARE, AL4); the larger quest-only shares were closed (D-180 a). See Quests below.
 
 #### Levels
 

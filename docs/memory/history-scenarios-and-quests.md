@@ -8,7 +8,7 @@ Kind: context. What was asked, what was decided and which PR built it, oldest fi
   turn, and one is open per giver (#242). Quest achievements and the first scar followed (#245). A defeat
   job pays less when the foes were weak for the player; jobs with no foes are not cut, because the reward
   grade already covers that (#343). Deferred: multi-step quests (D-140), the player's own goals (D-141),
-  quests held by NPCs (D-142). Parked: quest XP sized to the level (D-180).
+  quests held by NPCs (D-142). Quest XP sized to the level (D-180) was closed: the achievement level share already does it.
 - **Event roll review (11/11/2026; ER1-ER5).** Encounters can be good or bad like any event roll (#409). The
   tier sets the balance of gain against challenge, a Near Miss tilts bad, and the roll shows on the rolls
   line (#447). The event roll reads the normal roll table, so only naturals reach criticals (#449).

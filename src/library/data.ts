@@ -274,7 +274,7 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   sk(SK.resolve, TR.fortitude, [FN.morale], []),
   sk(SK.stamina, TR.fortitude, [FN.stamina], []),
   // Armor – Conventional (AR1–AR3): one skill per armor weight, function armor in the Defense group.
-  // What the skill does while worn (AR4) and how it improves (AR5) are parked (D-184); equip requirements will read it.
+  // While worn the skill meets the piece's need (equip requirements, EQ12 c); it improves from hits on armored parts (AR5).
   sk(SK.light_armor, TR.armor, [FN.armor], []),
   sk(SK.medium_armor, TR.armor, [FN.armor], []),
   sk(SK.heavy_armor, TR.armor, [FN.armor], []),

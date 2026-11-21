@@ -9,7 +9,7 @@ Part 2); every number is in `src/config.ts` and the library's fears and composur
   #290). Fears cost morale by a library table; downing a foe gives some back. At Broken an actor cannot
   attack, grab, filch or walk toward a foe; walking away, talking, begging and yielding still work. A new
   character starts with no Resolve, and doing badly there is intended. Slimes stopped being fearless (#296).
-  Deferred: a Shattered level (D-161), other morale effects such as encouragement (D-162).
+  Deferred then closed (21/11/2026): a Shattered level (D-161, built as Cowering) and other morale effects such as encouragement (D-162, covered by the rally perks and steadying).
 - **The player's yield (10/11/2026; D-147, D-186).** A yield command in real fights: foes of an Intelligent
   race run by an agent answer, and no answer means refused. A taken yield is a truce for the scenario and
   counts as defeated. Attacking after yielding must be impossible, so attacks are blocked both ways (#291).
