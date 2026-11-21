@@ -20,7 +20,8 @@ edge cases. Where a section repeats a rule from `AGENTS.md`, it is there to add 
   rows say "Agreed, not built"), holding the answer and its question IDs. When it is built, the spec rule cites the
   IDs and the row becomes Built. Memory notes and the Questions hub link to the row and hold no second copy.
 - An old "Build Spec v0.6" page exists outside the repo. It is the outdated original: never use it.
-- Do not invent mechanics. Report a gap as a question with a recommendation (section 5).
+- Inventing new things for the game is the job (`AGENTS.md` rule 3): report a gap as a question whose options are
+  whole proposals, with concrete values and a recommendation (section 5). Only the in-game agents never invent.
 - When reading the code cannot settle what a rule or perk does, run it: write a throwaway test with `tests/harness`,
   print measured results on the latest `main`, delete the test, and report the numbers. A code reading alone goes stale.
 
@@ -151,7 +152,8 @@ The source of truth for every design decision.
   - Quote each question, its options and the owner's answer in the PR that acts on it. The spec cites question IDs
     as the source of a decision, so the PR is where a reader finds them.
 - **A direction without an amount** ("a bit longer", "harsher early on") is a question, not a number to pick. Offer
-  values or shapes with their measured effect. Reason: merging without review rests on the build matching what the
+  values or shapes with their measured effect. Propose the values yourself: an option never leaves an amount blank
+  ("say how much"), and a reward option names its reward and amount, not "XP only" for want of an idea. Reason: merging without review rests on the build matching what the
   owner meant, and a guessed rule breaks that.
 - Build the question page or list at once and give the link. Do not ask whether the owner wants one.
 - Give each questionnaire its own two-letter ID prefix and number its questions (RH1, RH2). IDs are never reused.
