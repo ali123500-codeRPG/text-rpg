@@ -10,7 +10,7 @@ import { resolveTurn } from '../../src/engine';
 import { ScenarioDirector } from '../../src/scenario';
 import { grovePlan, VirtualClock } from '../../src/scenario/fixtures';
 import { buildActorView } from '../../src/views';
-import { routineOrder } from '../../src/minds';
+import { headTo, routineOrder } from '../../src/minds';
 import { zoneById } from '../../src/engine/relations';
 import { waysOut } from '../../src/plan/where';
 import { addFrontier } from '../../src/plan/draw';
@@ -20,7 +20,7 @@ const go = (to: string): Intent => ({ ...idle, move: { toZone: to } });
 const turn = (s: GameState, intent: Intent = idle) => { s.turn += 1; return resolveTurn(s, { intent, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(1)); };
 const village = (playerZone: string) => makeVillage({ playerZone, without: ['slime_1', 'slime_2', 'patron_1'] });
 /** the guard stands at the field's far edge, heading into the woods */
-const guardToWoods = (s: GameState) => byWay(s, 'guard_1', 'field_far', 'woods');
+const guardToWoods = (s: GameState) => { const g = byWay(s, 'guard_1', 'field_far', 'woods'); headTo(s, g, 'woods'); return g; };
 const flush = () => new Promise((r) => setTimeout(r, 0)); // every pending background step settles
 
 describe('208 NPCs and unbuilt frontiers (NW3, NW8)', () => {
@@ -54,7 +54,7 @@ describe('208 NPCs and unbuilt frontiers (NW3, NW8)', () => {
     const s = village('tav_cellar');
     addFrontier(s, zoneById(s, 'gate_inner')!, 'east_road', 'the east road');
     const g = guardToWoods(s);
-    byWay(s, 'trader', 'gate_inner', 'east_road');
+    headTo(s, byWay(s, 'trader', 'gate_inner', 'east_road'), 'east_road');
     turn(s);
     expect((s.scratch?.frontierWaits as unknown[]).length).toBe(2);
     const weave = vi.fn(async (_v: WeaverView) => null as StagePlan | null);
