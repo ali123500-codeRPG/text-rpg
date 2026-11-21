@@ -13,7 +13,7 @@ import { isActive, zoneById } from '../engine/relations';
 import type { FrontierWait } from '../engine/resolve';
 import type { PlanContext, PlanError } from './index';
 import { stageFrontiers, validateStagePlan } from './validate';
-import { applyFallbackStage, applyStagePlan, beginScenario, ensurePlace, openingEvents, stealthyArrival } from './apply';
+import { applyFallbackStage, applyStagePlan, beginScenario, ensurePlace, openingEvents, placeNewcomer, stealthyArrival } from './apply';
 import { frontiersNearPlayer } from './stage';
 import { addRegion, regionCallView, tidyBrief, type RegionCallView } from '../land/brief';
 import { squaresWanted } from '../land/edge';
@@ -164,6 +164,7 @@ export class ScenarioDirector {
     const wake = state.stage.breakCause === 'knocked_out'; // D-54
     // HF26: a new character standing nowhere yet, in a world that already has ground
     const arrive = !state.player.zone && state.places.some((p) => p.zones.length);
+    if (arrive) placeNewcomer(state); // WT16 a: placed first, so the Weaver measures its ground from their real point
     beginScenario(state, eventRoll.tier, eventRoll.beyond);
     return { wake, arrive };
   }

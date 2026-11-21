@@ -541,10 +541,9 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
   }
   for (const t of arr(seeds.triggers)) checkTrigger('seeds.triggers', t);
   if (ctx.wake && !zones.length) err('wake_needs_zone', 'the player wakes somewhere safe: plan at least one new zone; the first one is where they wake');
-  // BG-273 (BF82 a): a new character arrives somewhere on the stage they find, or in a new zone; a new zone is not required
-  // BG-1549: at story start (the player in no zone yet) arriveAt is where the player starts
-  if ((ctx.arrive || !zoneById(state, state.player.zone)) && plan.arriveAt !== undefined && !isZone(plan.arriveAt)) err('bad_arrival', `arriveAt ${plan.arriveAt} unknown: an area id from WEAVER_VIEW.places or a new zone's key`);
-  if (ctx.arrive && plan.arriveAt === undefined && !zones.length) err('arrive_needs_spot', 'a new character arrives: set arriveAt to the area where they arrive (an area id from WEAVER_VIEW.places, or a new zone\'s key)');
+  // BG-1549: at story start (the player in no zone yet) arriveAt is where the player starts; a newcomer is placed before
+  // the plan (WT16 a)
+  if (!zoneById(state, state.player.zone) && plan.arriveAt !== undefined && !isZone(plan.arriveAt)) err('bad_arrival', `arriveAt ${plan.arriveAt} unknown: an area id from WEAVER_VIEW.places or a new zone's key`);
   for (const [i, sp] of arr(plan.spars).entries()) {
     const ids = arr(sp.sides).flatMap((x) => arr(x));
     if (arr(sp.sides).length < 2 || arr(sp.sides).some((x) => !arr(x).length)) err('bad_spar', `spar ${i}: needs two sides or more, none empty`);

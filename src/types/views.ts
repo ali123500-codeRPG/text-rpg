@@ -430,7 +430,7 @@ export type WeaverView = {
   player: { level: number; pronouns?: Pronouns; currentClass: { id: string; name: string } | null; health: HealthLevel;
     /** HF9: rating + gear rating, to set a unique's power against */
     power: number;
-    /** NW6: where the player stands (place and area); null at story start, where the plan's arriveAt puts them (BG-1549) */
+    /** NW6: where the player stands (place and area); null at a new world's story start, where the plan's arriveAt puts them (BG-1549); a newcomer is placed before the call (WT16 a) */
     standsIn: { place: string; placeName: string; area: string } | null;
     /** WP2: the Threadbound items bound to the player (hidden side) */
     threadbound?: string[] };

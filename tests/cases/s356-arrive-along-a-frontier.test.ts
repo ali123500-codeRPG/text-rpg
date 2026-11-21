@@ -27,14 +27,14 @@ const plan = (view: WeaverView, more: Partial<StagePlan>): StagePlan => ({
   ...more,
 });
 
-it('an arrival zone keyed as a frontier builds that frontier: one way in, the frontier\'s own, and the hero arrives on it', async () => {
+it('a newcomer\'s plan zone keyed as a frontier builds that frontier: one way in, the frontier\'s own', async () => {
   const s = newcomer();
   const label = waysOut(s, 'field_far').find((l) => l.to === 'woods' && l.frontier)!.label;
   const errors: string[][] = [];
   const d = new ScenarioDirector({ clock: new VirtualClock(), weave: async (view, errs) => {
     errors.push((errs ?? []).map((e) => e.code));
     expect(view.places.flatMap((p) => p.areas).flatMap((a) => a.links).some((l) => l.to === 'woods' && l.frontier)).toBe(true); // the Weaver sees the way
-    return plan(view, { arriveAt: 'woods', zones: [{ key: 'woods', place: 'field', kind: ZK.yard, name: 'the woods path', look: 'a path under the trees', ways: [{ to: 'field_far', label: 'back out to the field' }] }] });
+    return plan(view, { zones: [{ key: 'woods', place: 'field', kind: ZK.yard, name: 'the woods path', look: 'a path under the trees', ways: [{ to: 'field_far', label: 'back out to the field' }] }] });
   } });
   await d.startScenario(s, forcedRng([50, 50, 50, 50]));
   expect(errors).toEqual([[]]); // accepted at once
@@ -43,5 +43,4 @@ it('an arrival zone keyed as a frontier builds that frontier: one way in, the fr
   expect(ways[0].frontier).toBeUndefined();
   expect(zoneById(s, 'woods')!.name).toBe('the woods path');
   expect(s.zones.some((z) => z.id.startsWith('woods_'))).toBe(false); // no copy beside it
-  expect(s.player.zone).toBe('woods');
 });
