@@ -10,6 +10,16 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the spec's bug log, docs/spec/bug-log.md, has one. Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-351
+
+**What was wrong:** A rank-5 sergeant composed from Soldier and Town folk spawned with its two rank traits (Second Wind, Insomniac). After one perk was added to the Soldier trait pool and the story was loaded again, it held three: the new draw's Hidden Strike was added and nothing was taken away. Raising a rank's count in RANK_TRAITS did the same; lowering it removed nothing.
+
+**Root cause:** `refreshCopies` (`src/library/spawn.ts`) ran on every story load and backup restore and called `templatePerks(t, a.id)`, which draws the rank traits again from the current pools (seeded by template and actor id), then added every perk the NPC lacked. A changed pool or count changes that draw, so a copy gained the new pick while keeping the old one. Had the draw ever lost its seed, every load would have added another trait until the NPC held its whole pool.
+
+**What was done:** The load step now calls `templatePerks(t)` without the actor id, which returns only the template's own perks (its listed perks, and Keen Ear for a patrol). Rank traits are drawn once, at spawn, and kept (the owner's choice, "Freeze at spawn"); a pool or count edit reaches new NPCs only. NPCs in existing saves keep any traits they already gained. SHEET-376 says so. Checked with a temporary test (deleted): a sergeant keeps its two traits through a pool edit and repeated loads.
+
+**Fixed by:** #1430
+
 ## BG-350
 
 **What was wrong:** On `?fake=1&stage=one-room` with a person standing at their point in the 20 m² storeroom (5 × 4 m), the person was drawn outside the room at every zoom, even at the closest, where the room is 150 × 120 px. With two people there the minimap also logged "MAP-32 exit exit:cell.store:cell.hall found no room for its arrow and note" at 25 m and 40 m, and on the Map at 100 m. MAP-25 places each mark inside a zone at the widest of the set zooms (PLACE_KS) that has room for it; MAP-68 puts everyone in full sight at their own point.
