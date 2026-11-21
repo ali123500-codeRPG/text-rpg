@@ -1314,7 +1314,7 @@ export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView,
       const pk = packetOf(e);
       check = {
         kind: 'attack', skill: a.attack.skill, ...tierPart(a.attack),
-        ...(a.defense && a.defenseType ? { against: { what: `${views.callName(s, 'player', a.targetId)}’s ${a.defenseType}`, ...tierPart(a.defense) } } : {}),
+        ...(a.defense && a.defenseType ? { against: { what: `${views.callName(s, 'player', a.targetId)}’s`, skill: a.defense.skill, ...tierPart(a.defense) } } : {}),
         ...shiftsPart(s, a.gapShifts, 'player', a.targetId),
         result: blowResult(a, pk),
       };
@@ -1342,7 +1342,7 @@ export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView,
     if (e.attack && e.attack.targetId === 'player' && e.attack.attackerId !== 'player') {
       const a = e.attack;
       incoming.push({ by: pk?.actor ?? 'someone', kind: 'attack', skill: a.attack.skill, ...tierPart(a.attack),
-        ...(a.defense && a.defenseType ? { against: { what: `your ${a.defenseType}`, ...tierPart(a.defense) } } : {}),
+        ...(a.defense && a.defenseType ? { against: { what: 'your', skill: a.defense.skill, ...tierPart(a.defense) } } : {}),
         ...shiftsPart(s, a.gapShifts, a.attackerId, 'player'),
         result: blowResult(a, pk) });
     } else if (e.contest && e.actorId !== 'player' && e.id !== checkEv) {
@@ -1351,7 +1351,7 @@ export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView,
       if (!mine) continue;
       const other = mine === c.a ? c.b : c.a;
       const result = c.winner === 'tie' ? 'a tie' : (c.winner === 'a') === (mine === c.a) ? 'you win' : 'you lose';
-      incoming.push({ by: views.callName(s, 'player', other.actorId), kind: 'contest', skill: other.skill, ...tierPart(other), against: { what: `your ${skillName(mine.skill).toLowerCase()}`, ...tierPart(mine) }, result });
+      incoming.push({ by: views.callName(s, 'player', other.actorId), kind: 'contest', skill: other.skill, ...tierPart(other), against: { what: 'your', skill: mine.skill, ...tierPart(mine) }, result });
     }
   }
   if (incoming.length) out.incomingChecks = incoming;
