@@ -247,7 +247,8 @@ export function presetPersonality(t: NpcTemplate, actorId?: string): Personality
   out.values = [...new Set([...(t.personality?.values ?? []), ...(role?.leans?.values ?? []), ...(theme?.leans?.values ?? [])])].slice(0, CONFIG.DRIVES_SHOWN);
   if (actorId && role?.kind !== 'beast') {
     const rng = createRng(templateSeed(`${t.id}:${actorId}:personality`));
-    for (const k of Object.keys(lib.personalityAxes ?? {}).sort()) {
+    // numeric order (PA2 before PA10), so a new axis draws after the older ones and leaves their spread as it was
+    for (const k of Object.keys(lib.personalityAxes ?? {}).sort((x, y) => x.localeCompare(y, 'en', { numeric: true }))) {
       const v = Math.max(-100, Math.min(100, (out.traits[k] ?? 0) + Math.round((rng.next() * 2 - 1) * CONFIG.PERSONALITY_SPREAD)));
       if (v) out.traits[k] = v; else delete out.traits[k];
     }

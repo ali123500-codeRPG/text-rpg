@@ -14,6 +14,7 @@ import { SK } from '../library/skillIds';
 import { CP, FR } from '../library/tableIds';
 import { calm } from './heal';
 import { allActors, atLeast, atLeastStance, isActive, onSightPerks, stance, wary } from './relations';
+import { setStanceWhole } from './regard';
 import { STANCES, TIERS } from '../scales';
 import { probe } from './yield';
 import { distM, withinM, placeOf } from './position';
@@ -156,7 +157,7 @@ export function liftBreak(state: GameState, a: Actor): boolean {
   const m = a.mind;
   if (m?.moraleState !== 'broken' || moraleLost(a) >= maxMorale(a)) return false;
   delete m.moraleState;
-  for (const [id, st] of Object.entries(m.overrides ?? {})) if (st === 'yielded') m.overrides![id] = 'hostile';
+  for (const [id, st] of Object.entries(m.overrides ?? {})) if (st === 'yielded') setStanceWhole(state, a, id, 'hostile');
   return true;
 }
 

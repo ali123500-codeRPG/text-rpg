@@ -666,12 +666,14 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
 - **SHEET-395** Resolve 100 and up is superhuman; past it, every NERVE\_BEYOND\_STEP (50) adds a + (Ali, PL3; PL20).
 - **SHEET-396** The morale level is the mood and never moves the tier (PL4).
 - **SHEET-397** Names are set by the lore thread (PL18).
-- **SHEET-398** **Personality** (how a character behaves): eight axes from −100 to +100, with no cap on their number, a
+- **SHEET-398** **Personality** (how a character behaves): ten axes from −100 to +100, with no cap on their number, a
   library table (PA…) with a behaviour hint on each end (D-329; PL6, PL7).
 - **SHEET-399** The axes: Honesty (deceitful ↔ honest), Pride (humble ↔ proud), Temper (patient ↔ quick to anger),
   Sociability (quiet ↔ talkative), Discipline (impulsive ↔ disciplined), Curiosity (set in their ways ↔ curious), Levity
   (earnest ↔ playful; from the personality voice tests), Assertiveness (meek ↔ assertive; from the Rudeus voice test,
-  NX1).
+  NX1), Attachment (detached ↔ attached; HEXACO Emotionality's sentimentality and dependence) and Forgivingness (vengeful
+  ↔ forgiving). The last two also set numbers on stances: Attachment scales stance moves on bonds and Forgivingness how
+  fast a grudge fades ("Stance" under "Information model" in Part 2; D-206, BN3 a, BN4 a).
 - **SHEET-400** A new axis starts with no archetype target, so it shows only as a "but" and never changes which
   archetype a character gets; a target is added only when a test shows an archetype needs one (NX2).
 - **SHEET-401** A line still shows at most 3 "buts" (NX3).

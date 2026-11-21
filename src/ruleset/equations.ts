@@ -289,5 +289,18 @@ export function equations(lib: Library): EquationGroup[] {
         formula: 'a scenario you resolve at Great Success or better, in which you beat no foe whose race or body type has essences, offers a deed essence',
         notes: ['It is built on the skill you used most in that scenario.'] },
     ] },
+    { key: 'stances', title: 'Stances', about: 'D-206: how strongly someone feels about another, and how a grudge fades.', equations: [
+      { name: 'Regard', at: 'stepOfRegard · moveRegard · src/engine/regard.ts',
+        formula: `regard runs −100 to +100; the step edges, coldest first, are ${CONFIG.REGARD_EDGES.join(', ')} (a score on an edge counts toward neutral); one step said or done moves it ±${n(CONFIG.REGARD_STEP)} × the Attachment factor`,
+        terms: [[n(CONFIG.REGARD_STEP), 'CONFIG.REGARD_STEP'], ['middle', `a stance set whole (a cast, a band, an attack) sits at its step's middle (CONFIG.REGARD_MID: friend ${CONFIG.REGARD_MID.friend}, hostile ${CONFIG.REGARD_MID.hostile})`]],
+        notes: ['Strength is how deep the score sits in its step, by thirds from the side nearer neutral: slight, plain or strong.'] },
+      { name: 'Attachment factor', at: 'moveRegard · src/engine/regard.ts',
+        formula: `friendlier × (1 + A ÷ ${n(CONFIG.ATTACHMENT_DIVISOR)}); colder on a friendly or warmer stance × (1 − A ÷ ${n(CONFIG.ATTACHMENT_DIVISOR)})`,
+        terms: [['A', 'the Attachment axis, −100 (detached) to +100 (attached)']] },
+      { name: 'Grudge fading', at: 'fadeStances · src/engine/regard.ts',
+        formula: `after ${n(CONFIG.FADE_PAUSE_DAYS)} game days with no move between the two, a grudge fades ${n(CONFIG.GRUDGE_FADE)} × (1 + F ÷ ${n(CONFIG.FORGIVENESS_DIVISOR)}) points a day back to the band's stance`,
+        terms: [['F', 'the Forgivingness axis, −100 (vengeful: never) to +100 (forgiving)']],
+        notes: [`A grudge over an attack on oneself fades no warmer than the middle of ${CONFIG.ATTACK_GRUDGE_FLOOR}.`, 'Bonds never fade.'] },
+    ] },
   ];
 }

@@ -55,8 +55,10 @@ export function countsInFight(actor: Actor): boolean {
 
 /** stance(a, b) = a's override for b, else the relation of a's band to b's band. Same band: friendly. */
 export function stance(state: GameState, a: Actor, b: Actor): Stance {
-  const o = a.mind?.overrides?.[b.id];
-  if (o) return o;
+  return a.mind?.overrides?.[b.id] ?? baseStance(state, a, b);
+}
+/** the stance a would hold toward b with no override of its own: its band's (D-206: a personal grudge fades back to it) */
+export function baseStance(state: GameState, a: Actor, b: Actor): Stance {
   if (a.bandId === b.bandId) return 'friendly';
   const s = bandById(state, a.bandId)?.relations[b.bandId] ?? 'neutral';
   // an achievement's first-sight reward: a hunted kind meets b wary until b attacks it (the attack sets a hostile override)

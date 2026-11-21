@@ -1,6 +1,6 @@
 // Agent side effects, applied when the turn resolves. Every model output is a request; the engine decides.
 import type { Actor, AgreementMade, GameEvent, GameState, Trigger } from '../types';
-import { STANCES } from '../scales';
+import { moveRegard } from './regard';
 import { CONFIG } from '../config';
 import { calmBandmatesSwitch, headTo, letSearch, switchRoutine } from '../minds';
 import { actorById, allActors, countsInFight, hostile, isEngaged, knowsName, nameBook, stance } from './relations';
@@ -83,12 +83,10 @@ export function loseNerve(state: GameState, a: Actor, r: 'broken' | 'surrendered
 /** actions that are only words or waiting: an answer made of them sets no errand going (BG-180) */
 const WORDS_ONLY = new Set(['hold', 'talk', 'persuade', 'deceive', 'intimidate', 'barter']);
 
-/** one stance step toward `other`; a yielded actor steps from opposed: talked colder it fights again, warmer it lets the grudge go (Q1) */
+/** one stance step toward `other`, on the regard score (D-206, engine/regard.ts); a yielded actor steps from opposed:
+ * talked colder it fights again, warmer it lets the grudge go (Q1) */
 export function stepStance(state: GameState, a: Actor, other: Actor, step: 'friendlier' | 'colder'): void {
-  if (!a.mind) return;
-  const cur = stance(state, a, other);
-  const i = STANCES.pos(cur === 'yielded' ? 'opposed' : cur) + (step === 'friendlier' ? 1 : -1);
-  a.mind.overrides = { ...(a.mind.overrides ?? {}), [other.id]: STANCES.at(i) };
+  moveRegard(state, a, other, step);
 }
 
 /** PM3/PM4: a deal; QT1/QT3/QT16: a job in a deal with the player becomes a quest once the giver heard the player accept */

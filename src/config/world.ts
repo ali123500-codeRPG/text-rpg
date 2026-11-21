@@ -50,6 +50,24 @@ export const WORLD = {
   /** FL5: stance steps colder when caught: the owner, and every other watcher who caught it */
   FILCH_CAUGHT_OWNER_STEPS: 2,
   FILCH_CAUGHT_WITNESS_STEPS: 1,
+  // ---- D-206 regard: the score under a personal stance (BN1–BN5; placeholders) ----
+  /** BN1 a: the edges between neighbouring STANCES steps on the regard score (−100 to +100), coldest first: neutral runs
+   * −15 to 15, friendly to 45, friend to 75 and loyal above; the cold side mirrors it. A score on an edge counts toward neutral */
+  REGARD_EDGES: [-75, -45, -15, 15, 45, 75] as number[],
+  /** BN1 a: where a stance set whole (a scenario's cast, a band's relation, an attack) sits on the score: its step's middle */
+  REGARD_MID: { hostile: -88, opposed: -60, unfriendly: -30, neutral: 0, friendly: 30, friend: 60, loyal: 88 } as Record<import('../scales').StanceKey, number>,
+  /** BN1 a: one stance step said by an agent, or done by a deed, moves the score this far */
+  REGARD_STEP: 20,
+  /** BN2 a: game days with no new move between two before a grudge starts to fade */
+  FADE_PAUSE_DAYS: 3,
+  /** BN2 a: points a game day a grudge fades back toward what the band relation gives (bonds never fade) */
+  GRUDGE_FADE: 2,
+  /** BN2 a: a grudge over an attack on oneself fades no warmer than this step's middle */
+  ATTACK_GRUDGE_FLOOR: 'unfriendly' as import('../scales').StanceKey,
+  /** BN3 a: Attachment A scales friendlier moves by 1 + A / this, and colder moves on a friendly or warmer stance by 1 − A / this */
+  ATTACHMENT_DIVISOR: 200,
+  /** BN4 a: Forgivingness F scales how fast a grudge fades by 1 + F / this (0 at −100: never forgives) */
+  FORGIVENESS_DIVISOR: 100,
   STOREY_HEIGHT: 3, // placeholder: metres one flight of stairs climbs: a title up or down a way of kind up or down sits this far above or below (PZ7)
   // ---- PZ1-PZ17 titles and the floor plan (src/plan); placeholders unless a source is given ----
   /** PZ1 a: how high a title under the open sky reaches above its floor (its space's top), so the smallest space wins */

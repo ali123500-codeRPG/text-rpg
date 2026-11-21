@@ -15,6 +15,8 @@ import { suspect } from '../../src/engine/suspicion';
 import { IT } from '../../src/library/itemIds';
 import { SK } from '../../src/library/skillIds';
 import { STANCES } from '../../src/scales';
+import { CONFIG } from '../../src/config';
+import { midOf, regardOf } from '../../src/engine/regard';
 
 const setup = (inside: { id: string; itemId: string; stolenFrom?: string }[] = [{ id: 'cup', itemId: IT.curio }]) => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
@@ -45,11 +47,13 @@ it('GD2/GD3/GD4 a: a guard whose search finds a locked container suspects its ca
 
 it('GD1/GD4 a: stolen goods inside are caught; forbidden goods too', () => {
   const stolen = setup([{ id: 'ring', itemId: IT.charmed_ring, stolenFrom: 'patron_1' }]);
-  const before = pos(stolen.s, stolen.g);
+  const before = pos(stolen.s, stolen.g), mid = midOf(stance(stolen.s, stolen.g, stolen.s.player));
   searched(stolen.s);
   openBox(stolen.s);
   expect(stolen.g.mind!.suspects?.player).toBeUndefined();
-  expect(pos(stolen.s, stolen.g)).toBeLessThan(before - 1);
+  // D-206 BN1 a: the suspicion's step is kept and the catch adds the witness's steps, each REGARD_STEP on the score
+  expect(regardOf(stolen.s, stolen.g, 'player')).toBe(mid - (1 + CONFIG.FILCH_CAUGHT_WITNESS_STEPS) * CONFIG.REGARD_STEP);
+  expect(pos(stolen.s, stolen.g)).toBeLessThan(before);
   expect(stolen.s.hidden.memory.guard_1?.some((m) => /caught .* steal/.test(m.text))).toBe(true);
   const banned = setup([{ id: 'blade', itemId: IT.dagger }]);
   banned.s.stage.forbidden = [IT.dagger];

@@ -467,6 +467,7 @@ import {
   logCode,
   loseNerve,
 } from './effects';
+import { fadeStances, setStanceWhole } from './regard';
 import {
   falseName,
   r1,
@@ -952,7 +953,7 @@ function setAttackOverrides(state: GameState, ev: GameEvent): void {
     // CS5: a bandmate must perceive the attack fully (a partial event names no attacker)
     const saw = ev.perception[p.id]?.level === 'full';
     if (!felt && (self ? !saw && !atLeast(p.mind.knowledge[ev.actorId]?.status, 'aware') : p.bandId !== target.bandId || !saw)) continue;
-    p.mind.overrides = { ...(p.mind.overrides ?? {}), [ev.actorId]: 'hostile' };
+    setStanceWhole(state, p, ev.actorId, 'hostile', self); // D-206 BN2 a: a grudge over an attack on itself fades only so far
   }
 }
 
@@ -3740,6 +3741,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
     const fired = busyCheck(state, x, startPos, ctx.turnS, ctx.events);
     if (fired) { x.busy!.alert = true; logCode(state, 'busy_alert', { actorId: x.id, why: fired.why, by: fired.by }); }
   }
+  fadeStances(state); // D-206 BN2 a: grudges fade with game time
   noteTurnEnd(state); // AT15: timers count game time from turn stamps
   state.events.push(...ctx.events);
   return ctx.events;

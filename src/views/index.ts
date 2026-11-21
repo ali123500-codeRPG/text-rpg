@@ -35,6 +35,7 @@ import { attended, attentionSteps } from '../perception/attention';
 import { madeOutBySight } from '../perception/madeOut';
 import { atChaseLine, chaseLost, chaseZones } from '../engine/chase';
 import { actorById, allActors, knowsName, labelFor, nameFor, atLeast, bandById, heldBy, isActive, isAsleep, hostile, perceivedZoneIds, seesAcross, sparring, stance, zoneById } from '../engine/relations';
+import { strengthOf } from '../engine/regard';
 import { knownDestinations } from '../engine/trail';
 import { agreementsOf } from '../engine/memory';
 import { talkingWith } from '../engine/speech';
@@ -755,7 +756,8 @@ function baseView(state: GameState, actorId: string): BaseView {
       ...(b.lastKnownZone !== undefined ? { lastKnownZone: b.lastKnownZone } : {}),
       ...(b.lastSeenTurn !== undefined ? { lastSeenTurn: b.lastSeenTurn } : {}),
       source: b.source, revealed: [...b.revealed],
-      stance: stance(state, a, other), hostile: hostile(state, a, other), ...(sparring(state, a, other) ? { sparring: true as const } : {}),
+      stance: stance(state, a, other), ...(strengthOf(state, a, about) ? { strength: strengthOf(state, a, about)! } : {}), // D-206 BN5 a
+      hostile: hostile(state, a, other), ...(sparring(state, a, other) ? { sparring: true as const } : {}),
       ...(chaseLost(b) ? { lost: true as const } : {}),
       active: isActive(other) && !fooledBy(a, other), label: callName(state, a.id, about), // TC32 a: one fooled by Play Dead takes it for Down
       ...(about === state.player.id && nameFor(state, a, other) ? { name: nameFor(state, a, other)! } : {}), // BG-95: the player's name, once heard (NM3: or the false one believed)
@@ -998,7 +1000,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ...(full && e.steady ? { steady: e.steady.points > 0 ? 'calmer' : e.steady.points < 0 ? 'worse' : 'no change', ...(e.steady.buff ? { mentallySteady: true as const } : {}) } : {}), // SY1: in words, never points
       ...(full && e.extract ? { extract: { essence: getLibrary().essences?.[e.extract.essence]?.name ?? 'an essence' } } : {}), // DX3
       ...(full && e.obstacle?.gate === 'out' ? { beyond: true as const } : {}), // OD1 b: out of the actor's reach, no roll
-      ...(e.read && e.actorId === me ? { read: { mood: e.read.mood, feels: e.read.feels, hiding: e.read.hiding } } : {}), // BF97 a: only the player's own read of someone
+      ...(e.read && e.actorId === me ? { read: { mood: e.read.mood, feels: e.read.feels, ...(e.read.strength ? { strength: e.read.strength } : {}), hiding: e.read.hiding } } : {}), // BF97 a: only the player's own read of someone (D-206 BN5 a: with its strength)
       ...(full && e.obstacle && e.obstacle.gate !== 'out' ? { graded: true as const } : {}), // OD5: its tier says what the act did
       ...(full && e.mishap ? { mishap: { kind: e.mishap.kind, ...(e.mishap.item ? { item: itemName(state, e.mishap.item) ?? 'something' } : {}) } } : {}), // OD5
       ...(full && e.fall ? { fall: { metres: e.fall.metres, landing: e.fall.landing } } : {}),

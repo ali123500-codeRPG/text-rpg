@@ -292,7 +292,7 @@ describe('agent side effects', () => {
     expect(s.player.journal!.secretsKnown).toEqual(['mine']);
     expect(s.log.map((l) => l.code)).toEqual(expect.arrayContaining(['invalid_stance', 'invalid_reveal']));
   });
-  it('RS4: one colder step from neutral is unfriendly (not on guard); the next is opposed (wary)', () => {
+  it('RS4: one colder step from neutral is unfriendly (not on guard); D-206 BN1 a: steps are REGARD_STEP on 30-point bands, so the third is opposed (wary)', () => {
     s.player.zone = 'tav_counter';
     const colder = () => {
       const ex = resolveSpeech(s, intent({ action: { type: 'talk' } }), ['trader'], createRng(1));
@@ -307,6 +307,8 @@ describe('agent side effects', () => {
     colder();
     expect(stance(s, actor(s, 'trader'), s.player)).toBe('unfriendly');
     expect(wary(s, actor(s, 'trader'), s.player)).toBe(false);
+    colder();
+    expect(stance(s, actor(s, 'trader'), s.player)).toBe('unfriendly'); // −40: still in unfriendly's band
     colder();
     expect(stance(s, actor(s, 'trader'), s.player)).toBe('opposed');
     expect(wary(s, actor(s, 'trader'), s.player)).toBe(true);

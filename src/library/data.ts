@@ -552,6 +552,9 @@ export function prototypeLibrary(): Library {
       [PA.curiosity]: { id: PA.curiosity, name: 'Curiosity', low: 'set in their ways', high: 'curious', lowHint: 'sticks to what they know, distrusts the new', highHint: 'wants to know how things work, asks and pokes' },
       [PA.levity]: { id: PA.levity, name: 'Levity', low: 'earnest', high: 'playful', lowHint: 'takes things seriously, rarely jokes', highHint: 'jokes and teases, and talks lightly even about serious things' },
       [PA.assertiveness]: { id: PA.assertiveness, name: 'Assertiveness', low: 'meek', high: 'assertive', lowHint: 'gives way to those above them, asks rather than pushes', highHint: 'takes charge and pushes for what they want, even with those above them' },
+      // D-206 BN3 a, BN4 a: they also scale stance moves and how fast a grudge fades (src/engine/regard.ts)
+      [PA.attachment]: { id: PA.attachment, name: 'Attachment', low: 'detached', high: 'attached', lowHint: "keeps people at arm's length, moves on fast", highHint: 'bonds deeply, leans on those close, takes losing them hard' },
+      [PA.forgivingness]: { id: PA.forgivingness, name: 'Forgivingness', low: 'vengeful', high: 'forgiving', lowHint: 'holds a grudge and waits to settle it', highHint: 'lets a wrong go once it is past' },
     },
     values: Object.fromEntries(Object.entries(VL).map(([k, id]) => [id, { id, name: k, hint: VALUE_HINTS[k as keyof typeof VL] }])),
     // archetypes: the nearest target (six axes, Nerve, and the drives counted ARCHETYPE_VALUE_WEIGHT times) is the
