@@ -3007,6 +3007,8 @@ const inReach = (state: GameState, a: Actor, o: Order, from: Located = a) => { c
 /** FR4 (the NEEDS table): where this turn's action is done and whether the actor is near enough: a foe within the attack's
  * reach (melee), someone to hand to within both grip reaches, the doorway of a way worked, picked or tried within grip
  * reach; with none, the first item to pick up out of reach. null: nothing to close in on. */
+/** FR2: the actions on someone that pass a thing between two hands, so both grip reaches count (handover.ts, trade.ts orderReaches) */
+const HANDED = new Set(['give', 'take', 'buy', 'sell', 'repair']);
 function reachOf(state: GameState, a: Actor, o: Order): { at: Located; m: number; toward?: string; ok: () => boolean } | null {
   const door = (to: string | null | undefined): Located | null => {
     if (!to || !wayTo(state, a.zone, to)) return null;
@@ -3022,7 +3024,7 @@ function reachOf(state: GameState, a: Actor, o: Order): { at: Located; m: number
     if (m) return { at: t, m: closeInM(m.mode.reach), toward: t.id, ok: () => inReach(state, a, o) };
   }
   if (o.type === 'search' && t && t !== a && openToGrip(state, a, t)) return grip(t, 0, t.id); // BG-152: a body, a sleeper or a yielded foe is searched hands-on
-  if (need === 'grip' && t && t !== a) return grip(t, o.type === 'restrain' || o.type === 'use_item' || o.type === 'filch' ? 0 : gripReachM(state, t), t.id); // handed over: both grip reaches; a grab (BF5), tending (BF13) or a filch (FL2): the user's
+  if (need === 'grip' && t && t !== a) return grip(t, HANDED.has(o.type) ? gripReachM(state, t) : 0, t.id); // handed over: both grip reaches; anything done to them (a grab BF5, tending BF13, a filch FL2, an extraction DX2): the user's (BG-1493)
   const wallJob = o.type === 'break' && !t ? breakJob(state, a, o.target) : undefined; // BW12 a: a spot on a wall
   const d = need === 'grip' && !t ? findContainer(state, o.target)?.at ?? (typeof wallJob === 'object' && wallJob.kind === 'wall' ? jobAt(state, a, wallJob) : null) ?? door(o.target) : null; // CT3: a container, or a door
   if (d) return grip(d);
