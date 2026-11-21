@@ -4,6 +4,7 @@
 // the owner turns suspicious of the watcher there. Each watcher sets it off at most once a scenario, and is rolled against
 // at most once every HUNCH_EVERY_ROUNDS rounds of game time (AT74).
 import type { Actor, ContestResult, GameState, Rng } from '../types';
+import { ofOurs } from './belonging';
 import { hasPerk, markUse, ruleset } from '../ruleset';
 import { PK } from '../library/perkIds';
 import { SK } from '../library/skillIds';
@@ -20,7 +21,7 @@ export type Hunch = { owner: Actor; watcher: Actor; contest: ContestResult; felt
 /** someone watching `owner` unseen who means it harm: opposed or hostile to it, aware of it and in sight of it, and the
  * owner is unaware of them */
 export function hiddenWatcher(state: GameState, owner: Actor, w: Actor): boolean {
-  if (w.id === owner.id || !isActive(w) || (!!w.bandId && w.bandId === owner.bandId) || !wary(state, w, owner)) return false;
+  if (w.id === owner.id || !isActive(w) || ofOurs(state, w, owner) || !wary(state, w, owner)) return false;
   if (!atLeast(beliefStatus(state, w, owner), 'aware')) return false;
   // RD3, BG-315 (BF101 a): any distance, as long as the line from the watcher's eyes to the owner is clear (over a fence too)
   return sightDistM(state, w, owner) !== Infinity && beliefStatus(state, owner, w) === 'unaware';

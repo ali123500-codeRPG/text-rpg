@@ -17,6 +17,7 @@
 //   WN9 a: the player warns its allies the same way (the deck's Warn act sets Order.warn).
 //   D-51 b: outside a fight, a code-run companion following the player gives the same warning, once per foe and trick.
 import type { Actor, Effect, GameEvent, GameState, Order, RollResult, Rng, TierShift } from '../types';
+import { ofOurs } from './belonging';
 import { CONFIG } from '../config';
 import { INTELLIGENCE, type IntelligenceKey } from '../scales';
 import { getLibrary } from '../library';
@@ -47,7 +48,7 @@ export function warnVoice(state: GameState, a: Actor): 'words' | 'cry' | null {
 
 /** who takes a's warning in: its allies (same band, or friendly either way for the player, who holds no stances) */
 const allyOf = (state: GameState, x: Actor, a: Actor): boolean =>
-  x !== a && isActive(x) && !foe(state, x, a) && ((!!x.bandId && x.bandId === a.bandId) || warm(stance(state, x, a)) || (x.kind === 'player' && warm(stance(state, a, x))));
+  x !== a && isActive(x) && !foe(state, x, a) && (ofOurs(state, x, a) || warm(stance(state, x, a)) || (x.kind === 'player' && warm(stance(state, a, x))));
 
 /** WN7 a: x hears a's warning: words clearly, a cry at all */
 const reaches = (state: GameState, a: Actor, x: Actor, voice: 'words' | 'cry'): boolean => {

@@ -7,6 +7,7 @@
 // opposed is an offer to stand down that an AI-run foe or the player answers (DS5, engine/offer.ts). Power rates every
 // actor as drawn whatever it holds (BG-1583).
 import type { Actor, GameEvent, GameState, GearOp, ItemInstance, Order } from '../types';
+import { ofOurs } from './belonging';
 import { itemDef } from '../library';
 import { isHeld, isWorn, modeSkill } from '../ruleset/gear';
 import { readied } from './combatLevel';
@@ -102,11 +103,11 @@ export function steelDeed(state: GameState, a: Actor, ev: GameEvent, ops: GearOp
   if (ev.kind === 'draw_weapon') {
     if (a.engagement?.kinds.includes('fight')) return;
     const t = ev.target ? actorById(state, ev.target) : undefined;
-    if (t?.mind && saw(t) && t.bandId !== a.bandId) {
+    if (t?.mind && saw(t) && !ofOurs(state, t, a)) {
       stepStance(state, t, a, 'colder');
       applyMemoryOps(state, t, { add: [`${nameFor(state, t, a) ?? 'A stranger'} drew a weapon on me.`], drop: [] });
     }
-    if (inSettlement(state, a)) for (const g of state.actors) if (isGuard(g) && g.mind && g.bandId !== a.bandId && saw(g)) raiseAlarm(state, g);
+    if (inSettlement(state, a)) for (const g of state.actors) if (isGuard(g) && g.mind && !ofOurs(state, g, a) && saw(g)) raiseAlarm(state, g);
     logCode(state, 'steel_drawn_at', { actorId: a.id, ...(t ? { target: t.id } : {}) });
     return;
   }

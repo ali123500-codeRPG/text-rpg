@@ -33,7 +33,7 @@ import * as save from '../save';
 import type { Store } from '../save';
 import { actorBody, getLibrary, hasTemplate, itemDef, npcTemplate } from '../library';
 import { RO } from '../library/npcLayerIds';
-import { fightingWith } from '../engine/engagement';
+import { fightingWith, onFightSide } from '../engine/engagement';
 import { actorById, allActors, isActive, zoneById } from '../engine/relations';
 import { skillName } from '../library/skillNames';
 import { createPlayer, refreshCopies, validateBuild } from '../library/spawn';
@@ -1103,10 +1103,10 @@ export function plannerActors(s: GameState): string[] {
     .map((a) => a.id);
 }
 
-/** NV1 b: a's own side (itself and its bandmates) and their foes, while a fights someone */
+/** NV1 b: a's own side (itself and everyone on its side of the fight, BEL-27) and their foes, while a fights someone */
 function fightSides(s: GameState, a: Actor): Actor[] {
-  const all = allActors(s), fights = (x: Actor) => all.some((y) => fightingWith(s, x, y) || fightingWith(s, y, x));
-  const side = all.filter((x) => x === a || (!!a.bandId && x.bandId === a.bandId && fights(x)));
+  const all = allActors(s);
+  const side = all.filter((x) => x === a || onFightSide(s, a, x));
   return all.filter((x) => side.includes(x) || side.some((m) => fightingWith(s, m, x) || fightingWith(s, x, m)));
 }
 export const inFight = (s: GameState, a: Actor): boolean => fightSides(s, a).length > 1;

@@ -1,6 +1,8 @@
 // BF79: a broken nerve may walk or run away, never toward a foe; at Cowering (below Broken) it may not walk at all.
 // One rule for every walk: the player's, an NPC's, a flee (resolve.ts walk asks it before any walk runs).
 import type { Actor, GameState } from '../types';
+import { ofOurs } from './belonging';
+import { onFightSide } from './engagement';
 import { isBrokenLevel, isCoweringLevel, moraleLevel } from '../ruleset/morale';
 import { allActors, countsInFight, foe, isActive, stance, warm } from './relations';
 import { distOrNull, M_EPS, type Located, placeOf } from './position';
@@ -36,7 +38,7 @@ export function walksAway(state: GameState, a: Actor, goal: Located): boolean {
 export function fallBackOwner(state: GameState, a: Actor): Actor | undefined {
   const at = (x: Actor): Located => (placeOf(x));
   return allActors(state)
-    .filter((o) => o !== a && isActive(o) && !nerveBroken(o) && hasPerk(o, PK.fall_back_on_me) && (o.bandId === a.bandId || warm(stance(state, a, o)))
+    .filter((o) => o !== a && isActive(o) && !nerveBroken(o) && hasPerk(o, PK.fall_back_on_me) && (ofOurs(state, a, o) || onFightSide(state, a, o) || warm(stance(state, a, o)))
       && hearsClearly(state, at(o), a, VOLUME_NOISE.shout))
     .map((o) => ({ o, d: distOrNull(state, a, o) ?? Infinity }))
     .sort((x, y) => x.d - y.d || x.o.id.localeCompare(y.o.id))[0]?.o;

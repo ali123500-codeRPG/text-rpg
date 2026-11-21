@@ -1,5 +1,6 @@
 // W3 — Perception per event, the single belief writer, communication events, belief decay.
 import type { Actor, Belief, BeliefStatus, CheckResult, ContestResult, AttackResult, Cue, GameEvent, GameState, Perception, Pt3, Rng } from '../types';
+import { ofOurs } from '../engine/belonging';
 import { SPEECH_ACTIONS } from '../types';
 import { CONFIG } from '../config';
 import { AWARENESS, GRADE_LEVELS, HIT_OUTCOMES, NOISE, type GradeLevel, type NoiseKey } from '../scales';
@@ -305,7 +306,7 @@ export function computePerception(event: GameEvent, state: GameState, _rng: Rng)
     const min = state.player.posture === 'stealthy' ? 'aware' : 'suspicious';
     if (event.actorId === state.player.id && a.id !== state.player.id && !atLeast(a.mind?.knowledge[state.player.id]?.status, min)) continue;
     // NS2: a stealthy NPC's events reach only its band and those who see it
-    if (s && s.kind !== 'player' && s.posture === 'stealthy' && a.id !== s.id && a.bandId !== s.bandId && !atLeast(beliefStatus(state, a, s), 'aware')) continue;
+    if (s && s.kind !== 'player' && s.posture === 'stealthy' && a.id !== s.id && !ofOurs(state, a, s) && !atLeast(beliefStatus(state, a, s), 'aware')) continue;
     const p = perceptionOf(event, state, a);
     if (p) out[a.id] = p;
   }
@@ -387,7 +388,7 @@ export function updateBeliefs(state: GameState, update: BeliefUpdate): void {
     });
     if (e.kind === 'attack' && e.target) {
       const target = actorById(state, e.target);
-      if (target && !e.spar && (target.id === o.id || target.bandId === o.bandId)) setStanceWhole(state, o, e.actorId, 'hostile', target.id === o.id); // SP1: not a sparring blow; D-206 BN2 a: an attack on itself
+      if (target && !e.spar && (target.id === o.id || ofOurs(state, o, target))) setStanceWhole(state, o, e.actorId, 'hostile', target.id === o.id); // SP1: not a sparring blow; D-206 BN2 a: an attack on itself
       const inst = e.attack?.weaponId ?? e.itemId;
       const item = inst ? sender.core.inventory.find((i) => i.id === inst) : undefined;
       if (p.level === 'full' && item && itemDef(state, item.itemId).concealed) write(o, e.actorId, { revealed: [`item:${item.id}`] });

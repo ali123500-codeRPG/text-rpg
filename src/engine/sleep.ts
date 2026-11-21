@@ -5,6 +5,7 @@
 // someone hostile shouts to wake its sleeping bandmates (code, no Claude call). The player's sleep and night watch are
 // run in src/engine/resolve.ts (runNight), which steps the clock and stops it when someone hostile comes near.
 import type { Actor, Furniture, GameEvent, GameState, Night, Order, Rng } from '../types';
+import { ofOurs } from './belonging';
 import { CONFIG } from '../config';
 import { NOISE, type NoiseKey } from '../scales';
 import { now } from '../time';
@@ -162,7 +163,7 @@ export function wakeCalls(state: GameState): Order[] {
   const out: Order[] = [];
   for (const w of state.actors) {
     if (!w.mind || !isActive(w) || isAsleep(w) || w.mind.moraleState) continue;
-    const sleepers = allActors(state).filter((x) => x !== w && isAsleep(x) && x.bandId === w.bandId && soundCarries(state, x, w, VOLUME_NOISE.shout));
+    const sleepers = allActors(state).filter((x) => x !== w && isAsleep(x) && ofOurs(state, w, x) && soundCarries(state, x, w, VOLUME_NOISE.shout));
     if (!sleepers.length) continue;
     const threat = allActors(state).find((t) => isActive(t) && !isAsleep(t) && (hostile(state, t, w) || sleepers.some((s) => hostile(state, t, s))) && atLeast(beliefStatus(state, w, t), 'aware'));
     if (threat) out.push({ actorId: w.id, type: 'call_help', target: null, skill: null, intent: 'wake the sleepers', source: 'routine' });

@@ -1,6 +1,7 @@
 // The coming-near check (AT67, AT68): while time runs on in a stretch (a rest, a wait, a long turn), what makes it stop and
 // give the watcher the turn. Run on what the watcher perceives now, about people outside its band, never on hostility.
 import type { Actor, GameEvent, GameState } from '../types';
+import { ofOurs } from './belonging';
 import { CONFIG } from '../config';
 import { NOISE, type BodyPoseKey } from '../scales';
 import { itemDef } from '../library';
@@ -22,7 +23,7 @@ export const warnS = (w: NearWatch): number => CONFIG.READY_S[w.pose] + CONFIG.D
 
 /** people outside the watcher's band, up and about */
 const outsiders = (state: GameState, w: Actor): Actor[] =>
-  allActors(state).filter((x) => x !== w && isActive(x) && !(w.bandId && x.bandId === w.bandId));
+  allActors(state).filter((x) => x !== w && isActive(x) && !ofOurs(state, w, x));
 /** asleep, the watcher notices only contact (what would wake it, AT61/AT71) */
 const perceived = (state: GameState, w: Actor, x: Actor): boolean => !isAsleep(w) && perceivesNow(state, w, x, 'faint');
 /** weapons held in a Grip part */
