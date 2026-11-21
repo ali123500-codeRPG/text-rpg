@@ -507,6 +507,8 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
         state.player.walking = { toZone: text.split(/\s+/)[1] || 'tav_upstairs' };
       }
       if (/^stop\b/i.test(text)) { delete state.player.walking; delete state.player.followLost; }
+      // "ready" leaves a readied blow on Bren, waiting for him to come within reach, to show its line in the Say box (AE6, RQ1 a)
+      if (/^ready\b/i.test(text)) state.player.readied = { when: { on: 'closes', who: 'guard_1' }, order: { actorId: 'player', type: 'attack', target: 'guard_1', skill: null, intent: '', source: 'player' }, waited: 0 };
       // "follow" has you following Bren up to the landing (BG-190); "lose" loses him there, slipped out of sight
       if (/^follow\b/i.test(text)) {
         delete state.player.followLost;
@@ -561,5 +563,6 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     renounceVow(id) { if (state && renounceVow(state, id)) emit(); },
     setSignatures(lines) { if (state) { setSignatures(state.player, lines); emit(); } },
     setDefense(kind) { if (state) { state.player.core.standingDefense = kind; emit(); } },
+    cancelReady() { if (state) { delete state.player.readied; emit(); } },
   };
 }

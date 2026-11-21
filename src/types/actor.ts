@@ -71,10 +71,14 @@ export type Actor = {
     watch?: Record<string, { sneaking: boolean; closing: boolean; armed: number }>;
     /** AT47/AT67: its coming-near check fired: it is asked for a new order next turn */
     alert?: true;
+    /** AE6 (RY5 b): a readied step that fired too late in its turn: it finishes first thing next turn, whatever is ordered */
+    ready?: import('./ruleset').Order;
   };
   /** AT49: the player's walk not yet at its goal, carried on by the next turns until another move or action is ordered;
    * then (MQ8, MQ15 a): the action it walks to do, done where it ends */
   walking?: NonNullable<import('./agents').Intent['move']> & { then?: WalkThen };
+  /** AE6: the player's readied step, waiting for `when`; `waited`: fight seconds held so far (CONFIG.READY_MAX_S) */
+  readied?: { when: import('../scales').ReadyWhen; order: import('./ruleset').Order; waited: number };
   /** RE1 (BG-291): minutes travelled on roads since the last encounter roll, carried from trip to trip; a full TRAVEL_LEG_MIN rolls */
   roadMin?: number;
   /** BG-190: the player lost the one they were following this turn: who, why, and the zone they last had them in */

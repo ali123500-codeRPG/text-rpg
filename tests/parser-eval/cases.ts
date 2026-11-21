@@ -63,4 +63,15 @@ export const CASES: { line: string; bug?: string; check: Check }[] = [
   { line: 'When the patron comes at me, I parry his strike and riposte.', bug: 'RY6', check: all(noClarify, noMove, (p) => need(!i(p)?.action, 'no action: hold ground'),
     (p) => need(!(i(p)?.deferred ?? []).some((d) => /\bwhen\b|parry|riposte/i.test(d)), 'no defence and no "when" deferred')) },
   { line: 'I\'ll parry his blows from now on.', bug: 'RY7', check: all(nothingDeferred, (p) => need(i(p)?.defense === 'parry', 'defense parry')) },
+  // AE6 (RY3 b): a readied action is the action with "when", never a wait and never deferred
+  ...([
+    ['When the patron comes at me, I hit him.', 'moves', 'patron_1'],
+    ['If the patron draws a weapon, I punch him.', 'draws', 'patron_1'],
+    ['Let the patron come within reach, then strike him.', 'closes', 'patron_1'],
+    ['If the patron attacks me, I hit him back.', 'attacks', 'patron_1'],
+    ['Attack the first one who walks in through the front door.', 'comes', 'anyone'],
+    ['When the patron leaves, I shout after him to come back.', 'leaves', 'patron_1'],
+  ] as const).map(([line, on, who]) => ({ line, bug: 'AE6', check: all(noClarify, nothingDeferred, (p: Parsed) => need(i(p)?.when?.on === on && i(p)?.when?.who === who && !!i(p)?.action && i(p)?.action?.type !== 'wait', `readied action, when ${on} ${who}`)) })),
+  { line: 'Step into the doorway and wait for the patron to come at me, then hit him.', bug: 'AE6', check: all(noClarify, nothingDeferred, (p) => need(!!i(p)?.move && i(p)?.when?.on === 'moves' && i(p)?.action?.type === 'attack', 'a move, then a readied attack')) },
+  { line: 'When the patron stops talking, I hit him.', bug: 'D-1644', check: all(noClarify, (p) => need(!i(p)?.when && !i(p)?.action && (i(p)?.deferred ?? []).length === 1 && !/\bwhen\b/i.test(i(p)!.deferred[0]), 'no readied action: hold, the deed deferred without its "when"')) },
 ];

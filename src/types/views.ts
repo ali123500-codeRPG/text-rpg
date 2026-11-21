@@ -128,6 +128,8 @@ export type PlayerView = {
     doing?: DoingView; // AT2/AT11a: the long action the player is at (the same order again carries it on)
     walking?: WalkingView; // AT49: a walk still on its way: a turn with no move and no action carries it on
     following?: FollowingView; // BG-190
+    /** AE6: a readied step waiting for its condition: a turn with no move and no action keeps it waiting */
+    readied?: { type: string; target: string | null; when: import('../scales').ReadyWhen };
     /** how far each weapon in hand reaches at its longest, in metres (Who's here hover: in reach or not) */
     reaches?: { name: string; metres: number }[];
     bodyAttacks?: BodyAttackView[]; // BG-193: the body's own attacks (fists, a grapple), named by mode even with a weapon in hand

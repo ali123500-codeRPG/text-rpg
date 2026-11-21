@@ -116,6 +116,7 @@ function nerveBlocksAll(s: GameState, i: Intent): boolean {
   return wants && !allowed;
 }
 export const ASLEEP_TEXT = '(asleep)';
+export const READY_TEXT = '(waiting)'; // AE6 (RQ2 a): a fight turn the game plays while a readied step waits
 export const DOWN_TEXT = '(down)'; // D-239: the turn the foes decide whether to spare the downed player
 /** IQ7 a: said when Finish the fight is asked for with no fight far below the player */
 export const FINISH_REFUSED = 'There is no fight here so far below you that it can be played out in one go.';
@@ -140,6 +141,7 @@ export function createGame(deps: GameDeps): Game {
   let rateLimited = false;
   let aimNext = false;
   let yieldNext = false; // MB40: /yield
+  let readyStops = false; // AE6: something new happened in the last turn while a readied step waited (orderStops)
   let lastDisplayAt = clock.now();
   let turnLog: AgentTurnLog[] = [];
   let lastLog: AgentTurnLog[] = [];
@@ -490,6 +492,7 @@ export function createGame(deps: GameDeps): Game {
     yieldNext = false;
     const queue = [...(intent.deferred ?? []), ...rest];
     const queueStops = queue.length > 0 && engine.orderStops(s, watch, events, spokespeople);
+    readyStops = !!s.player.readied && engine.orderStops(s, watch, events, spokespeople);
     await finishTurn(s, events, { playerInput: text, rngBefore, aimed, intent, gearBefore, coinBefore, brokenBefore, partsBefore, zonesBefore, doingBefore, queue, queueStops, ...(ended ? { ended } : {}) }, spokespeople.length ? submitAt : null);
   }
 
@@ -737,6 +740,9 @@ export function createGame(deps: GameDeps): Game {
       // moves the clock on; a turn that doesn't (nothing left to run) waits for you
       for (let t = -1; state?.player.asleep && !stopped && gameNow(state) > t; ) { t = gameNow(state); await playTurn(ASLEEP_TEXT, false, undefined, engine.queuedSteps(lines)); }
       if (state?.mercy && !stopped) await playTurn(DOWN_TEXT, false); // D-239: the foes answer while you lie there
+      // AE6 (RY4 a): in a fight the game plays a readied order's held turns by itself until the step fires, it has waited
+      // CONFIG.READY_MAX_S (the engine drops it) or something new stops it (orderStops, as a queued order)
+      for (let t = -1; state?.player.readied && state.mode === 'tactical' && !readyStops && !stopped && state.turn > t; ) { t = state.turn; await playTurn(READY_TEXT, false, ASLEEP_INTENT); }
     } catch (e) {
       if (e instanceof StopPlay) stop(e.code);
       else throw e;
@@ -1039,6 +1045,7 @@ export function createGame(deps: GameDeps): Game {
     renounceVow(id) { if (state && !busy && renounceVow(state, id)) { amend((x) => { renounceVow(x, id); }); emit(); } },
     setSignatures(lines) { if (state && !busy) { setSignatures(state.player, lines); amend((x) => setSignatures(x.player, lines)); emit(); } },
     setDefense(kind) { if (state && !busy) { state.player.core.standingDefense = kind; amend((x) => { x.player.core.standingDefense = kind; }); emit(); } },
+    cancelReady() { if (state?.player.readied && !busy) { delete state.player.readied; amend((x) => { delete x.player.readied; }); emit(); } },
     adopt(s) {
       abortBackground();
       state = s;

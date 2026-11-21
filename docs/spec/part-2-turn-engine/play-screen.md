@@ -312,6 +312,9 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
   it in the box, selected, so typing over it starts afresh; nothing is sent until Send.
 - **PS-176** The next step of a queued order shows the same way with "Next step of your order · Enter plays it, Esc
   drops the rest" and Play it and Drop the rest: Enter in the empty box sends it (D-20 b).
+- **PS-491** A readied order shows under the box while it waits ("Waiting to strike the guard · when the guard
+  comes within reach · Esc cancels", with Cancel); Esc in the empty box or Cancel drops it (AE6, RQ1 a; src/ui/play.ts
+  readyWords).
 - **PS-177** PageUp and PageDown scroll the story while the box has focus.
 
 #### Clarifying questions
