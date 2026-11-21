@@ -4,11 +4,16 @@
 // keeps it louder. The listener hears it while it is at least HEARING_FLOOR_DB
 // and clearly (who and what) from CLEAR_ABOVE_FLOOR_DB over it (per-zone background noise is parked: D-231).
 import { CONFIG } from '../config';
-import type { NoiseKey } from '../scales';
+import { NOISE, type NoiseKey } from '../scales';
 import type { Actor, GameState, Perception } from '../types';
 import { floorGap, leastGapM, pointAt, walkThrough, withinM, type Located } from '../engine/position';
 import { actorBody } from '../library';
 import { lineLoss, openingLoss } from '../plan/line';
+
+/** D-214: `noise` moved `steps` levels (down to Silent), a step louder climbing no higher than CONFIG.NOISE_STEP_TOP (a noise
+ * already past it stays where it is) */
+export const stepNoise = (noise: NoiseKey, steps: number): NoiseKey =>
+  NOISE.at(Math.min(NOISE.pos(noise) + steps, Math.max(NOISE.pos(CONFIG.NOISE_STEP_TOP), NOISE.pos(noise))));
 
 /** NV5: the noise of a spoken line by its volume (one table for the player's and NPCs' lines) */
 export const VOLUME_NOISE = { whisper: 'hushed', normal: 'normal', shout: 'loud' } as const satisfies Record<import('../types').Volume, NoiseKey>;

@@ -188,7 +188,7 @@ export const BODY_POSES = scale([['lying', 'Lying'], ['sitting', 'Sitting'], ['s
 export type BodyPoseKey = (typeof BODY_POSES.keys)[number];
 /** how loud an event is, quietest first; each level's decibels are CONFIG.NOISE_DB, its real reference the library's noiseLevels row,
  * and how well it is heard comes from perception/noise.ts (hearingOf) */
-export const NOISE = scale([['silent', 'Silent'], ['faint', 'Faint'], ['hushed', 'Hushed'], ['quiet', 'Quiet'], ['murmur', 'Murmur'], ['normal', 'Normal'], ['raised', 'Raised'], ['loud', 'Loud'], ['blaring', 'Blaring'], ['deafening', 'Deafening']]);
+export const NOISE = scale([['silent', 'Silent'], ['faint', 'Faint'], ['hushed', 'Hushed'], ['quiet', 'Quiet'], ['murmur', 'Murmur'], ['normal', 'Normal'], ['raised', 'Raised'], ['loud', 'Loud'], ['blaring', 'Blaring'], ['deafening', 'Deafening'], ['thunderous', 'Thunderous'], ['shattering', 'Shattering'], ['cataclysmic', 'Cataclysmic']]);
 export type NoiseKey = (typeof NOISE.keys)[number];
 /** HB4: how sound crosses a wall or barrier kind: open passes it with no loss; the rest lose what their material does at
  * its thickness (D-199 a, plan/line.ts soundLossDb) */

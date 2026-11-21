@@ -19,7 +19,7 @@ import { NOISE, type AttentionKey, type NoiseKey } from '../scales';
 import { markUse, ruleset, situational, fnRoller, tierLevel, toContest } from '../ruleset';
 import { perkSum } from '../ruleset/perks';
 import { pctMod } from '../ruleset/body';
-import { hearingOf } from '../perception/noise';
+import { hearingOf, stepNoise } from '../perception/noise';
 import { sightAt } from '../perception';
 import type { Located } from './position';
 import { allActors, isActive, isAsleep, nameFor, zoneById } from './relations';
@@ -45,7 +45,7 @@ export const filchSize = (bulk: number): number | null => (bulk <= CONFIG.FILCH_
 /** the contest for one try at `at` (where the hand goes in), against everyone who could notice it */
 export function filchContest(state: GameState, a: Actor, owner: Actor | undefined, at: Located, bulk: number, rng: Rng, events: GameEvent[]): Filched {
   const F = ruleset.roll({ actorId: a.id, skill: FN.filching, fn: FN.filching, modifiers: [], tierShifts: [], rollKind: 'stealth', contest: true }, state, rng);
-  const noise = NOISE.at(NOISE.pos(CONFIG.FILCH_NOISE) + Math.max(0, tierLevel('near_miss') - tierLevel(F)));
+  const noise = stepNoise(CONFIG.FILCH_NOISE, Math.max(0, tierLevel('near_miss') - tierLevel(F)));
   const perception: GameEvent['perception'] = { [a.id]: { level: 'full', cue: 'sight' } };
   const caught: Actor[] = [], suspicious: Actor[] = [];
   const act: ActContest[] = [];

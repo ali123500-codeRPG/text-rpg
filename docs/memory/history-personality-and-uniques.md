@@ -40,5 +40,5 @@ archetypes are library tables.
   target is perceived, never by time of day; long turns run queued steps by code (#669).
 - **Voice acting (11/11/2026).** Asked for acted voices. A paid engine was chosen and parked (D-212), with
   two other routes (D-209, D-210); a free one was wired through a relay connector (#452, #467, #549) and then
-  parked too, leaving Claude's voices only (#563). D-209 and D-212 closed (21/11/2026): "claude is the default choice
+  parked too, leaving Claude's voices only (#563). D-209, D-210 and D-212 closed (21/11/2026): "claude is the default choice
   and it's good so far." The relay's key and path are never committed.
