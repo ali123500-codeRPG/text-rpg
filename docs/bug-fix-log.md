@@ -10,6 +10,16 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the spec's bug log, docs/spec/bug-log.md, has one. Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-356
+
+**What was wrong:** On the Map, someone last seen at a spot was drawn off the centre of their dashed "somewhere here" ring. In the owner's view of Brackwater green, at 43 px a metre, the disc sat 13 px right of and 6 px above the ring's centre. The drift grew as you zoomed in: on bent-nail it was 0 px at zoom 1, 6 px at 2 and 30 px at 6. People in full sight drifted off their own point the same way (18 px at zoom 4), and so did your pin (up to 73 px). MAP-23 and MAP-68 put you and each person at their own point.
+
+**Root cause:** `layout` in `src/ui/mapPlan.ts` placed you and every person first at `spotOf(...)`: the spot they got at a wider zoom (BG-216), carried across as a share of the zone measured inside a margin of a fixed number of pixels (`shareOf`/`fromShare`). That margin does not grow with the zoom, so the carried spot is not the same point in metres, and it moves further off as you zoom in. Their own point was used only when no carried spot existed. The ring is drawn at the true point, so the gap showed. Furniture and ground items are meant to be carried this way (MAP-25, MAP-86) and are unchanged.
+
+**What was done:** You and each person with a known point (in sight, or last seen at a spot) are now placed from that point at the zoom drawn. If it is not free there, the nearest free spot in the zone is used, and only then a spot outside it, as before (MAP-25: only the zoom drawn steps them aside). People with no known point keep the carried spot in their row. Checked with a temporary test (deleted) over ten zooms on the three test stages: every last-seen disc sits on its ring's centre and every person on their point, from zoom 0.75 in. At 0.5 the bent-nail storeroom is too small and they step aside, and your pin sits on your point except where it was pushed inside the wall before. `map-plan.test.ts`, `map.smoke` and `play.smoke` pass.
+
+**Fixed by:** #1449
+
 ## BG-355
 
 **What was wrong:** On the Map test stages (`?fake=1&stage=bent-nail|one-room|long-names`, MAP-52), every plain door's opening named a barrier record that did not exist: 4 of 6 doors on bent-nail and all 9 on long-names. Those doors drew as open gaps, their exits in the zone card did not say "door", and walking and door actions treated them as doorways. So the Map's automated check never looked at a shut plain door.

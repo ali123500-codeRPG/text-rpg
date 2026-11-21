@@ -283,7 +283,8 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
   const here = zones.find((x) => x.z.here);
   if (here) {
     const b = here.box, at = here.z.you ? { x: here.z.you.x * PX_PER_M * k, y: -here.z.you.y * PX_PER_M * k } : { x: b.x1 - PIN_R - 4, y: b.y0 + PIN_R + 4 };
-    const p = keep(spotOf('you', b, PIN_R + 2), PIN_R, b) ?? nearFree(at.x, at.y, PIN_R, b) ?? { cx: Math.min(b.x1, Math.max(b.x0, at.x)), cy: Math.min(b.y1, Math.max(b.y0, at.y)) };
+    // BG-356: with a point of your own, placed from it at this zoom: a spot carried as a share of the zone drifts off it
+    const p = keep(here.z.you ? { cx: at.x, cy: at.y } : spotOf('you', b, PIN_R + 2), PIN_R, b) ?? nearFree(at.x, at.y, PIN_R, b) ?? { cx: Math.min(b.x1, Math.max(b.x0, at.x)), cy: Math.min(b.y1, Math.max(b.y0, at.y)) };
     tokens.push({ id: 'you', zoneId: here.z.id, ...p, r: PIN_R, ...disc(p.cx, p.cy, PIN_R), you: true, title: 'You are here' });
     take(disc(p.cx, p.cy, PIN_R), 'token');
     take(disc(p.cx, p.cy, PIN_TIP), 'tip'); // its facing point, whichever way you face
@@ -338,17 +339,17 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
     const zb = x.box, row = x.z.people.filter((p) => !p.at), at = x.z.people.filter((p) => p.at);
     for (const who of at) {
       const cap = capsule(who, k), [hx, hy] = cap ? half(hitCap(cap)) : [WHO_R, WHO_R], [dx, dy] = cap ? half(cap) : [WHO_R, WHO_R];
-      // MAP-25 (BG-350): placed at the first of PLACE_KS with room in their zone; only the zoom drawn steps them aside.
+      // MAP-25 (BG-350, BG-356): placed from their own point at the zoom drawn, which alone steps them aside.
       // RM26 b: a person may stand on your pin's facing tip, never on its disc
       const own = { x: who.at!.x * PX_PER_M * k, y: -who.at!.y * PX_PER_M * k };
-      const p = keep(spotOf(`who:${who.id}`, zb, hx + 2), hx, zb, hy, freeOfTip) ?? nearFree(own.x, own.y, hx, zb, hx + 2, hy, freeOfTip) ?? (final ? outsideNear(own.x, own.y, hx, hy, freeOfTip) : null);
+      const p = nearFree(own.x, own.y, hx, zb, hx + 2, hy, freeOfTip) ?? (final ? outsideNear(own.x, own.y, hx, hy, freeOfTip) : null);
       if (p) { tokens.push({ id: `who:${who.id}`, zoneId: x.z.id, ...p, r: WHO_R, ...disc(p.cx, p.cy, dx, dy), who, title: who.name, ...(cap ? { cap } : {}) }); take(disc(p.cx, p.cy, hx, hy), 'token'); }
     }
     const band = row.filter((p) => !p.lastAt);
     row.forEach((who) => {
       const i = band.indexOf(who), pt = who.lastAt && { x: who.lastAt.x * PX_PER_M * k, y: -who.lastAt.y * PX_PER_M * k };
       const cx = pt ? pt.x : (zb.x0 + zb.x1) / 2 + (i - (band.length - 1) / 2) * (2 * WHO_R + 4), cy = pt ? pt.y : zb.y1 - WHO_R - 4;
-      const p = keep(spotOf(`who:${who.id}`, zb, WHO_R + 2), WHO_R, zb, WHO_R, freeOfTip) ?? nearFree(cx, cy, WHO_R, zb, WHO_R + 2, WHO_R, freeOfTip) ?? outsideNear(cx, pt ? cy : zb.y1 + WHO_R + 4, WHO_R, WHO_R, freeOfTip);
+      const p = (pt ? undefined : keep(spotOf(`who:${who.id}`, zb, WHO_R + 2), WHO_R, zb, WHO_R, freeOfTip)) ?? nearFree(cx, cy, WHO_R, zb, WHO_R + 2, WHO_R, freeOfTip) ?? outsideNear(cx, pt ? cy : zb.y1 + WHO_R + 4, WHO_R, WHO_R, freeOfTip);
       tokens.push({ id: `who:${who.id}`, zoneId: x.z.id, ...p, r: WHO_R, ...disc(p.cx, p.cy, WHO_R), who,
         title: pt ? `${who.name}: somewhere here` : who.now ? `${who.name}: somewhere in here` : `${who.name} (last seen)`,
         ...(pt ? { ring: { cx: pt.x, cy: pt.y, r: CONFIG.LAST_SEEN_RADIUS_M * PX_PER_M * k } } : {}) });
