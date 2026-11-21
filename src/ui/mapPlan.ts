@@ -90,6 +90,9 @@ export type PlanInput = {
   awayName: (zoneId: string) => string | undefined;
   /** your body's width in metres (KnownMap.youWidthM), your pin's width (MAP-23); a person's when not given */
   youWidthM?: number;
+  /** D-1558: the view origin in metres, drawn at the layout's (0, 0), so screen numbers stay small kilometres out (float
+   *  precision); the world's own origin when not given */
+  o?: { x: number; y: number };
 };
 
 const STAIR_R = 10, FURN_R = 9, ITEM_R = 8, WHO_R = 7;
@@ -123,10 +126,11 @@ const wayKey = (w: MapWay) => `way:${w.shut}${w.key ? '-key' : ''}`;
 /** a barrier in a few words, for exit notes */
 const shutWord = (w?: MapWay) => (w?.shut === 'locked' && w.key ? 'locked, your key' : w?.shut ?? '');
 
-/** the zone's rectangle on screen at zoom k (y down) */
-export function zoneBox(z: MapZone, k: number): Box {
+const O0 = { x: 0, y: 0 };
+/** the zone's rectangle on screen at zoom k (y down), from the view origin o */
+export function zoneBox(z: MapZone, k: number, o = O0): Box {
   const r = z.rect!, s = PX_PER_M * k;
-  return { x0: r2((r.x - r.w / 2) * s), y0: r2(-(r.y + r.d / 2) * s), x1: r2((r.x + r.w / 2) * s), y1: r2(-(r.y - r.d / 2) * s) };
+  return { x0: r2((r.x - r.w / 2 - o.x) * s), y0: r2(-(r.y + r.d / 2 - o.y) * s), x1: r2((r.x + r.w / 2 - o.x) * s), y1: r2(-(r.y - r.d / 2 - o.y) * s) };
 }
 
 /** a text cut to fit `max` pixels with an ellipsis (MAP-21: the last resort; the full name goes in its tooltip) */
@@ -164,7 +168,7 @@ export function planScene(inp: PlanInput): Scene {
   // those spots; zoomed out past where a mark was placed, it shows only where it covers nothing
   let ref: Scene | undefined;
   // MAP-25: the zone names at each of those zooms, so furniture is placed clear of them there and at every closer one
-  const names = PLACE_KS.map((k) => zoneNames(inp.zones.filter((z) => z.rect).map((z) => ({ z, box: zoneBox(z, k) })), k, inp.measure));
+  const names = PLACE_KS.map((k) => zoneNames(inp.zones.filter((z) => z.rect).map((z) => ({ z, box: zoneBox(z, k, inp.o) })), k, inp.measure, inp.o));
   const placedAt = new Map<string, number>(); // the set zoom each piece and thing was placed at
   for (const k of PLACE_KS) {
     ref = layout({ ...inp, k }, ref, false, names);
@@ -174,7 +178,7 @@ export function planScene(inp: PlanInput): Scene {
 }
 
 /** zone names (MZ2, MAP-20): a background layer the marks may sit on, so a name takes no room and pushes no mark (BG-216) */
-function zoneNames(zones: Pick<SZone, 'z' | 'box'>[], k: number, measure: Measure): SLabel[] {
+function zoneNames(zones: Pick<SZone, 'z' | 'box'>[], k: number, measure: Measure, o = O0): SLabel[] {
   const labels: SLabel[] = [];
   /** BG-313: the biggest seen rectangle of a title (its seen rows of one width stacked), on screen: its name sits there */
   const seenBox = (runs: SeenRun[]): Box | undefined => {
@@ -185,7 +189,7 @@ function zoneNames(zones: Pick<SZone, 'z' | 'box'>[], k: number, measure: Measur
       else rects.push({ ...r });
     }
     const best = rects.sort((a, b) => (b.x1 - b.x0) * (b.y1 - b.y0) - (a.x1 - a.x0) * (a.y1 - a.y0))[0];
-    return best && { x0: r2(best.x0 * PX_PER_M * k), x1: r2(best.x1 * PX_PER_M * k), y0: r2(-best.y1 * PX_PER_M * k), y1: r2(-best.y0 * PX_PER_M * k) };
+    return best && { x0: r2((best.x0 - o.x) * PX_PER_M * k), x1: r2((best.x1 - o.x) * PX_PER_M * k), y0: r2(-(best.y1 - o.y) * PX_PER_M * k), y1: r2(-(best.y0 - o.y) * PX_PER_M * k) };
   };
   for (const x of zones) {
     if (x.z.seen && !x.z.seen.length) continue; // BG-313: a title the character has seen none of shows no name
@@ -216,8 +220,8 @@ const fromShare = (f: number, a: number, b: number, inset: number) => (b - a - 2
  *  here, is hidden (listed in `dropped`) rather than placed anew; `names`: the zone names at each of PLACE_KS; `placedAt`:
  *  the set zoom each piece and thing was placed at */
 function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: Box[][], placedAt?: Map<string, number>): Scene {
-  const { k, measure } = inp;
-  const zones: SZone[] = inp.zones.filter((z) => z.rect).map((z) => ({ z, box: zoneBox(z, k) }));
+  const { k, measure } = inp, o = inp.o ?? O0;
+  const zones: SZone[] = inp.zones.filter((z) => z.rect).map((z) => ({ z, box: zoneBox(z, k, o) }));
   const byId = new Map(zones.map((x) => [x.z.id, x]));
   const used = new Set<string>();
   for (const { z } of zones) {
@@ -263,7 +267,7 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
   // across the wall it is in: a door's leaf, a gap between posts for a way with no door, or its barrier's mark. Both titles
   // of a doorway read the same opening, drawn once.
   const doors: SDoor[] = [];
-  const px = (q: { x: number; y: number }) => ({ x: r2(q.x * PX_PER_M * k), y: r2(-q.y * PX_PER_M * k) });
+  const px = (q: { x: number; y: number }) => ({ x: r2((q.x - o.x) * PX_PER_M * k), y: r2(-(q.y - o.y) * PX_PER_M * k) });
   /** BG-313: the character has seen this doorway from title x: the fog holds the floor just inside it */
   const doorSeen = (x: SZone, l: MapLink) => !l.at || !x.z.seen || seenIn(x.z.seen, l.out ? { x: l.at.x - l.out[0] * 0.3, y: l.at.y - l.out[1] * 0.3 } : l.at);
   const drawnDoor = new Map<string, SDoor>();
@@ -298,7 +302,7 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
   if (here) {
     const b = here.box, pr = ((inp.youWidthM ?? HUMANOID_SIZE.widthM) * PX_PER_M * k) / 2;
     // BG-356: with a point of your own, placed from it at this zoom: a spot carried as a share of the zone drifts off it
-    const p = here.z.you ? { cx: here.z.you.x * PX_PER_M * k, cy: -here.z.you.y * PX_PER_M * k }
+    const p = here.z.you ? { cx: (here.z.you.x - o.x) * PX_PER_M * k, cy: -(here.z.you.y - o.y) * PX_PER_M * k }
       : keep(spotOf('you', b, pr + 2), pr, b) ?? nearFree(b.x1 - pr - 4, b.y0 + pr + 4, pr, b) ?? { cx: b.x1 - pr - 4, cy: b.y0 + pr + 4 };
     tokens.push({ id: 'you', zoneId: here.z.id, ...p, r: pr, ...disc(p.cx, p.cy, pr), you: true, title: 'You are here' });
     take(disc(p.cx, p.cy, pr), 'token');
@@ -317,14 +321,14 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
     const away = l.known && !other ? inp.awayName(l.to) : undefined;
     stubs.push({ x, l, ...(l.opening && drawnDoor.has(l.opening) ? { door: drawnDoor.get(l.opening) } : {}), ...(away ? { away } : {}), ...(other ? { other } : {}) });
   }
-  const labels = zoneNames(zones, k, measure);
+  const labels = zoneNames(zones, k, measure, o);
 
   // ---- place outlines and titles (MAP-13): the place's own ground, padded and joined, its title above the top-left corner
   const places: SPlace[] = [];
   for (const p of inp.places) {
     const zs = zones.filter((x) => p.zones.some((z) => z.id === x.z.id));
     // BG-313: a place's outline goes round only the ground seen in it, so it never tells how far an unseen yard runs
-    const seenBoxes = zs.flatMap((x) => (x.z.seen ? x.z.seen.map((r) => ({ x0: r2(r.x0 * PX_PER_M * k), x1: r2(r.x1 * PX_PER_M * k), y0: r2(-r.y1 * PX_PER_M * k), y1: r2(-r.y0 * PX_PER_M * k) })) : [x.box]));
+    const seenBoxes = zs.flatMap((x) => (x.z.seen ? x.z.seen.map((r) => ({ x0: r2((r.x0 - o.x) * PX_PER_M * k), x1: r2((r.x1 - o.x) * PX_PER_M * k), y0: r2(-(r.y1 - o.y) * PX_PER_M * k), y1: r2(-(r.y0 - o.y) * PX_PER_M * k) })) : [x.box]));
     const fp = footprint(seenBoxes, zones.filter((x) => !zs.includes(x)).map((x) => x.box), placePad(p.depth)), top = topEdge(fp);
     if (!top) continue;
     const box = union(cellsOf(fp));
@@ -357,7 +361,7 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
   for (const who of inp.people) {
     const q = who.at ?? who.lastAt;
     if (!q) continue;
-    const cx = q.x * PX_PER_M * k, cy = -q.y * PX_PER_M * k, zoneId = roomOf(q)?.z.id ?? '';
+    const cx = (q.x - o.x) * PX_PER_M * k, cy = -(q.y - o.y) * PX_PER_M * k, zoneId = roomOf(q)?.z.id ?? '';
     // RX1 a: out of full sight, the body last seen clearly (MapPerson.body); never seen clearly, a disc of a set size
     const cap = who.body && capsule(who.body, k), [dx, dy] = cap ? half(cap) : [WHO_R, WHO_R];
     const rings = who.at ? undefined : [{ cx, cy, r: CONFIG.LAST_SEEN_RADIUS_M * PX_PER_M * k }];
@@ -450,7 +454,7 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
       if (x.z.seen && !seenIn(x.z.seen, f)) continue; // BG-313: furniture only where the character has seen
       if (round !== undefined && home(`furn:${f.id}`) !== round) continue;
       const kept = spotOf(`furn:${f.id}`, x.box, FURN_R + 3);
-      const p = final ? (kept && free(disc(kept.cx, kept.cy, FURN_R)) ? kept : null) : kept ?? nearFree(f.x * PX_PER_M * k, -f.y * PX_PER_M * k, FURN_R, x.box, FURN_R + 3);
+      const p = final ? (kept && free(disc(kept.cx, kept.cy, FURN_R)) ? kept : null) : kept ?? nearFree((f.x - o.x) * PX_PER_M * k, -(f.y - o.y) * PX_PER_M * k, FURN_R, x.box, FURN_R + 3);
       if (!p) { dropped.push(f.id); continue; }
       furniture.push({ id: `furn:${f.id}`, zoneId: x.z.id, kind: f.kind, name: f.name, ...p, ...disc(p.cx, p.cy, FURN_R) });
       take(disc(p.cx, p.cy, FURN_R), 'icon');
@@ -462,7 +466,7 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
       if (x.z.seen && !seenIn(x.z.seen, t)) continue;
       const id = `item:${t.id}`, kept = spotOf(id, x.box, ITEM_R + 3);
       if (round !== undefined && home(id) !== round) continue;
-      const p = final ? (kept && clear(disc(kept.cx, kept.cy, ITEM_R)) ? kept : null) : kept ?? nearFree(t.x * PX_PER_M * k, -t.y * PX_PER_M * k, ITEM_R, x.box, ITEM_R + 3, ITEM_R, clear);
+      const p = final ? (kept && clear(disc(kept.cx, kept.cy, ITEM_R)) ? kept : null) : kept ?? nearFree((t.x - o.x) * PX_PER_M * k, -(t.y - o.y) * PX_PER_M * k, ITEM_R, x.box, ITEM_R + 3, ITEM_R, clear);
       if (!p) { dropped.push(t.id); continue; }
       items.push({ id, of: t.id, zoneId: x.z.id, name: t.name, icon: t.icon, ...(t.kind ? { kind: t.kind } : {}), ...p, ...disc(p.cx, p.cy, ITEM_R) });
       take(disc(p.cx, p.cy, ITEM_R), 'icon');
