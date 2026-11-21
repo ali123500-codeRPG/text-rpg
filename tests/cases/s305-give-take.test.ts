@@ -9,6 +9,7 @@ import { act, intent, play, plannerOut } from './w4-kit';
 import { IT } from '../../src/library/itemIds';
 import { buildPlayerView } from '../../src/views';
 import { deck } from '../../src/ui/deck';
+import { checkParserLegality } from '../../src/agents/legality';
 
 // BF68: the patron sleeps through the morning; in the evening it drinks at its seat
 const tavern = () => { const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] }); s.clocks.time = CONFIG.TIME_OF_DAY_FROM.evening; return s; };
@@ -26,6 +27,8 @@ it('Wren holds the charm out from his sack; it stays his until the player takes 
   expect(buildPlayerView(s).actors.find((a) => a.id === w.id)?.holdsOut?.item).toBe('charm_1');
   const take = deck({ pv: buildPlayerView(s), s }).flatMap((g) => g.actions).find((a) => a.kind === 'take')!;
   expect(take.steps[1].key === 'item' && take.steps[1].picks({ target: w.id })[0]).toMatchObject({ id: 'charm_1', hot: true });
+  // BG-1546: the Parser's and the deck's gate lets the take name what is held out (play() below skips that gate)
+  expect(checkParserLegality(intent({ action: { type: 'take', target: w.id, item: 'charm_1' } }), buildPlayerView(s)).illegal).toEqual([]);
   play(s, { intent: intent({ action: { type: 'take', target: w.id, item: 'charm_1' } }) });
   expect(has(s.player, 'charm_1')).toBe(true);
   expect(has(w, 'charm_1')).toBe(false);
