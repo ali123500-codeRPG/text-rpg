@@ -3,6 +3,9 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bugs/`.
 
+- 21/11/2026: `docs/providers/claude.md` and `codex.md`: an agent that cannot publish the game page or the library
+  viewer no longer says in PRs or reports that they need a republish; the owner republishes when they choose. The
+  owner: "the publishing is none of your concern, and if a rule says it is adjust the rule".
 - 21/11/2026: `AGENTS.md` rule 12 and `docs/instructions.md` section 2: a parked D-n row holds the owner's own words,
   with options only where the owner gave them; no context or options of the agent's own. The owner: "I only told
   you to park the idea not add your own interpretation to it", then "Change it" on a decision card.
