@@ -2,7 +2,7 @@
 // so it opens even when no story is running, which is right after a reset. HF34 a: "Send to NPC template" puts the
 // character's echo sheet on the library send list and wakes Claude, who adds it to the code library by PR.
 import type { FallenCharacter, GameApi, GameState } from '../types';
-import { claudeComments, h, type CommentsApi } from './kit';
+import { claudeComments, h, tint, type CommentsApi } from './kit';
 import { fellFacts, fellLine } from './fell';
 import { gradeLetter } from '../ruleset/reportCard';
 import { GRADE_LETTERS } from '../scales';
@@ -29,7 +29,7 @@ const bestSkill = (s: { name: string; value: number }) => {
 /** a report card line: the line's icon in place of its name (name and grade in its tip and accessible name), then its letter */
 const rcChip = (c: FallenCharacter, [k, icon, name]: (typeof RC_LINES)[number]) => {
   const g = gradeLetter(c.card[k]);
-  return h('span', { class: `rc-g tier ${gradeTone(c.card[k])}`, role: 'img', title: `${name} ${g}`, 'aria-label': `${name} ${g}` }, itemIcon(icon, undefined, 'skico'), g);
+  return h('span', { class: `rc-g tier ${gradeTone(c.card[k])}`, role: 'img', title: `${name} ${tint(({ great: 'ok', ok: 'accent', near: 'warn', bad: 'danger' } as Record<string, string>)[gradeTone(c.card[k])], g)}`, 'aria-label': `${name} ${g}` }, itemIcon(icon, undefined, 'skico'), g);
 };
 
 /** YB5: a game handle on a fallen character's story as it ended: it reads, and nothing on the page can act through it */

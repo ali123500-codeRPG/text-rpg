@@ -36,7 +36,8 @@ import { GRADES } from '../types/core';
 /** earnedAtText only reads state to name a granted kind; the library shows definitions, so it passes none */
 const NO_STATE = {} as GameState;
 import { itemLevel, requirement } from '../ruleset/requirements';
-import { claudeComments, fmtDate, h, iconMark, mountTip } from './kit';
+import { claudeComments, fmtDate, h, iconMark, mountTip, tint } from './kit';
+import { skillTone } from './tipTones';
 import { ICON_ART } from './iconArt';
 import { toneTable } from './libraryTones';
 import { skillName } from './creation';
@@ -390,7 +391,7 @@ function showPane(key: string): void {
   drawBar(); paint(); filter();
 }
 
-const cell = (d: PerkDef) => h('a', { class: `lv-cell${d.built ? '' : ' unbuilt'}${d.quirk ? ' quirk' : ''}`, href: `#perks/${d.id}`, title: d.quirk ? 'Quirk' : undefined, style: `--tg: var(${toneFor('Effect', d.effect ?? '') ?? '--c3'})` }, d.name);
+const cell = (d: PerkDef) => h('a', { class: `lv-cell${d.built ? '' : ' unbuilt'}${d.quirk ? ' quirk' : ''}`, href: `#perks/${d.id}`, title: d.quirk ? tint(toneFor('State', 'quirk')?.slice(2) ?? 'danger', 'Quirk') : undefined, style: `--tg: var(${toneFor('Effect', d.effect ?? '') ?? '--c3'})` }, d.name);
 const grid = (corner: string, cols: string[], rows: [string, (col: string) => PerkDef[]][]) => h('div', { class: 'lv-ladder' }, h('table', { class: 'hs-tbl' },
   h('thead', {}, h('tr', {}, h('th', {}, corner), cols.map((c) => h('th', {}, c)))),
   h('tbody', {}, rows.map(([name, at]) => h('tr', {}, h('td', {}, h('b', {}, name)), cols.map((c) => h('td', {}, at(c).map(cell))))))));
@@ -939,7 +940,7 @@ function actSide(s: ActSide | null): Node {
   const parts: Node[] = [
     ...(s.weapon ? [h('span', {}, 'Weapon skill')] : []),
     ...(s.skills ?? []).map((id) => link('skills', id, skillName(id))),
-    ...(s.fns ?? []).map((f) => { const of = fnSkills(f).map(skillName).join(', '); return h('span', { class: 'lv-fn', title: of, 'aria-label': `${functionName(f)}: ${of}` }, functionName(f)); }),
+    ...(s.fns ?? []).map((f) => { const of = fnSkills(f).map((k) => tint(skillTone(k), skillName(k))).join(', '); return h('span', { class: 'lv-fn', title: of, 'aria-label': `${functionName(f)}: ${of}` }, functionName(f)); }),
     ...(s.text ? [h('span', {}, s.text)] : []),
   ];
   return h('span', {}, ...parts.flatMap((n, i) => (i ? [' or ', n] : [n])));

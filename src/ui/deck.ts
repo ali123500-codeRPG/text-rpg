@@ -8,13 +8,13 @@ import { SK } from '../library/skillIds';
 import { skillName } from '../library/skillNames';
 import { CONFIG } from '../config';
 import { tint } from './kit';
-import { skillTone } from './tipTones';
+import { perkTone, skillTone, TONE } from './tipTones';
 import type { GameState, Intent, Personality, PlayerView } from '../types';
 import { HEALTH_LEVELS } from '../scales';
 import { isDownLevel, othersHealthWord } from '../ruleset';
 import { canHeal } from '../ruleset/body';
 import { isHeld } from '../ruleset/slots';
-import { actorBody, perkName } from '../library';
+import { actorBody, getLibrary, perkName } from '../library';
 import { cantSteady } from '../engine/steady';
 import { minutesSinceRest } from '../engine/heal';
 import { cantExtract } from '../engine/extract';
@@ -161,10 +161,10 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
     }
     // SY1: in a fight, above Broken and not within its cooldown: one morale roll as the action
     const why = s ? cantSteady(s, s.player) : 'not_in_fight';
-    if (why === null || why === 'too_soon') add('steady', 'fight', 'Steady yourself', [], () => order('Steady yourself', { action: act('steady') }), { note: 'a morale roll',
+    if (why === null || why === 'too_soon') add('steady', 'fight', 'Steady yourself', [], () => order('Steady yourself', { action: act('steady') }), { note: `a ${tint(TONE.morale, 'morale')} roll`,
       ...(why === 'too_soon' ? { limit: waiting(secondsSince(s!, s!.player.core.condition.steadiedTurn!), CONFIG.STEADY_COOLDOWN_S, 's') } : {}) });
     const extractable = s ? seen.filter((a) => a.level === 'full' && cantExtract(s, s.player, s.actors.find((x) => x.id === a.id)) === null) : [];
-    if (extractable.length) add('extract', 'fight', perkName(PK.extract_essence), [who('From whom?', extractable)], (c) => order(`Pull the essence from ${them(c)}`, { action: act('extract', { target: c.target! }) }), { note: 'take their essence' });
+    if (extractable.length) add('extract', 'fight', perkName(PK.extract_essence), [who('From whom?', extractable)], (c) => order(`Pull the essence from ${them(c)}`, { action: act('extract', { target: c.target! }) }), { note: `take their ${tint(TONE.essence, 'essence')}` });
   }
   // MB40/SP5: give up the fight or spar you are in; TF11: take a foe's offer to stop
   if (fight || pv.player.spar || broken) add('yield', broken ? 'getaway' : 'fight', 'Yield', [], () => order('I yield', { yields: true }), { note: 'ends the fight if they take it' });
@@ -177,12 +177,14 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
       (c) => order(`Talk to ${them(c)}`, { action: act('talk', { target: c.target! }), addressees: [c.target!] }));
     const speech = (kind: DeckKind, type: Act['type'], label: string, note: string, list = talkers, demand = false) => add(kind, 'talk', label, [who(`${label} whom?`, list), { key: 'words', title: 'What do you say?' }],
       (c) => order(c.words!, { action: act(type, { target: c.target!, ...(demand ? { demand: 'yield' as const } : {}) }), spoken: c.words!, addressees: [c.target!] }), { note });
-    speech('persuade', 'persuade', 'Persuade', up.some((a) => a.talkDown) ? 'talk a foe down · easier once they are hurt or scared' : 'your words, Persuasion');
-    speech('deceive', 'deceive', 'Lie to', up.some((a) => a.talkDown) ? `a lie to end it · ${skillName(SK.falsehood)} against their Insight` : `${skillName(SK.falsehood)} against their Insight`);
-    speech('intimidate', 'intimidate', 'Threaten', tint(skillTone(SK.intimidation), 'Intimidation'), up); // BF86: a threat needs no words, so beasts too
-    speech('barter', 'barter', 'Haggle with', up.some((a) => a.talkDown) ? 'pay a foe to stop: name the coin' : 'Barter');
+    // a skill named in a note (the action's tip) is tinted its tree's colour (HU3)
+    const sk = (id: string, name = skillName(id)) => tint(skillTone(id), name);
+    speech('persuade', 'persuade', 'Persuade', up.some((a) => a.talkDown) ? 'talk a foe down · easier once they are hurt or scared' : `your words, ${sk(SK.persuasion, 'Persuasion')}`);
+    speech('deceive', 'deceive', 'Lie to', up.some((a) => a.talkDown) ? `a lie to end it · ${sk(SK.falsehood)} against their ${sk(SK.insight, 'Insight')}` : `${sk(SK.falsehood)} against their ${sk(SK.insight, 'Insight')}`);
+    speech('intimidate', 'intimidate', 'Threaten', sk(SK.intimidation, 'Intimidation'), up); // BF86: a threat needs no words, so beasts too
+    speech('barter', 'barter', 'Haggle with', up.some((a) => a.talkDown) ? 'pay a foe to stop: name the coin' : sk(SK.barter, 'Barter'));
     const demandable = talkers.filter((a) => a.demandYield);
-    if (demandable.length) speech('demand', 'persuade', 'Demand surrender', 'Persuasion; a bigger win', demandable, true);
+    if (demandable.length) speech('demand', 'persuade', 'Demand surrender', `${sk(SK.persuasion, 'Persuasion')}; a bigger win`, demandable, true);
   }
   if (fullTalkers.length && inv.length) add('give', 'talk', 'Give', [who('Give to whom?', fullTalkers), { key: 'item', title: 'Give what?', picks: () => inv.map(invPick) }],
     (c) => order(`Give ${theItem(item(c.item!)?.name ?? '')} to ${them(c)}`, { action: act('give', { target: c.target!, item: c.item! }) }));
@@ -270,7 +272,7 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
   const heal = inv.filter((i) => healIds.has(i.itemId));
   // NR34: Heal opens at true Healing 50; on yourself or anyone you see in full
   if (s && canHeal(s.player)) add('heal', 'use', 'Heal', [{ key: 'target', title: 'Heal whom?', picks: () => [{ id: '', label: 'Yourself' }, ...full.map(person)] }],
-    (c) => order(`Heal ${c.target ? them(c) : 'myself'}`, { action: act('heal', { target: c.target || null }) }), { note: 'a Healing roll' });
+    (c) => order(`Heal ${c.target ? them(c) : 'myself'}`, { action: act('heal', { target: c.target || null }) }), { note: `a ${tint(skillTone(SK.healing), 'Healing')} roll` });
   if (heal.length) add('use_item', 'use', 'Treat wounds', [{ key: 'item', title: 'With what?', picks: () => heal.map(invPick) }, { key: 'target', title: 'Treat whom?', picks: () => [{ id: '', label: 'Yourself' }, ...full.map(person)] }],
     (c) => order(`Use ${theItem(item(c.item!)?.name ?? '')} on ${c.target ? them(c) : 'myself'}`, { action: act('use_item', { item: c.item!, target: c.target || null }) }));
   // D-89: mend a worn shield or armor piece yourself (Handiwork; a forge you may use within reach doubles it) or have a smith do it
@@ -301,14 +303,14 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
   if (locked.length || lockedWays.length) add('pick', 'use', 'Pick a lock', [{ key: 'target', title: 'Which lock?', picks: () => [...locked.map((g) => ({ id: g.id, label: cap(g.name) })), ...lockedWays.map((l) => ({ id: l.to, label: cap(l.label) }))] }],
     (c) => order(`Pick the lock of ${locked.find((g) => g.id === c.target)?.name ?? pv.zone.links.find((l) => l.to === c.target)?.label ?? ''}`, { action: act('pick', { target: c.target! }) }));
   if (locked.length) add('break', 'use', 'Force open', [{ key: 'target', title: 'Force what?', picks: () => locked.map((g) => ({ id: g.id, label: cap(g.name) })) }],
-    (c) => order(`Force ${theItem(locked.find((g) => g.id === c.target)?.name ?? '')} open`, { action: act('break', { target: c.target! }) }), { note: 'loud' });
+    (c) => order(`Force ${theItem(locked.find((g) => g.id === c.target)?.name ?? '')} open`, { action: act('break', { target: c.target! }) }), { note: tint(TONE.caution, 'loud') });
   // BW12 a: a door, gate, grate, shutters or rubble on a way (not already broken through), or a wall of the player's title
   const breakWays = pv.zone.links.filter((l) => l.way && !('broken' in l.way && l.way.broken === 'destroyed'));
   const breakWalls = pv.zone.walls ?? [];
   if (breakWays.length || breakWalls.length) add('break', 'use', 'Break through', [{ key: 'target', title: 'Break through what?', picks: () => [
     ...breakWays.map((l) => ({ id: l.to, label: cap(`${l.way!.kind}: ${l.label}`) })),
     ...breakWalls.map((w) => ({ id: w.id, label: cap(`${w.of} wall, to ${w.behind}`), ...(w.broken ? { note: `${Math.round(w.broken * 100)}% through` } : {}) }))] }],
-  (c) => order(`Break through ${pv.zone.links.find((l) => l.to === c.target)?.label ?? `the ${breakWalls.find((w) => w.id === c.target)?.of ?? ''} wall`}`, { action: act('break', { target: c.target! }) }), { note: 'loud · long' });
+  (c) => order(`Break through ${pv.zone.links.find((l) => l.to === c.target)?.label ?? `the ${breakWalls.find((w) => w.id === c.target)?.of ?? ''} wall`}`, { action: act('break', { target: c.target! }) }), { note: `${tint(TONE.caution, 'loud')} · long` });
   if (!fight) {
     add('wait', 'use', 'Wait', [{ key: 'time', title: 'Wait until?', picks: () => [{ id: '', label: 'A moment', note: 'see what happens' }, { id: 'someone', label: 'Someone comes' }, ...['dawn', 'morning', 'afternoon', 'dusk', 'evening', 'night'].map((t) => ({ id: t, label: cap(t) }))] }],
       (c) => c.time ? order(c.time === 'someone' ? 'Wait for someone to come' : `Wait until ${c.time}`, { action: act('wait', { target: c.time }) }) : order('Wait and see', {}));
@@ -325,7 +327,8 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
   // ---- Perks (AE5/AE8: perk moves; a free one goes beside the turn, an action one is the turn) ----
   for (const m of pv.player.perkMoves ?? []) {
     const label = PERK_LABEL[m.id] ?? m.name;
-    const extra = { note: m.name };
+    const at = getLibrary().perks[m.id]?.ladder?.milestone;
+    const extra = { note: tint(at ? perkTone(at) : undefined, m.name) }; // the perk's name in its series colour
     if (m.used) add('perk', 'perks', label, [], () => order(label, { perkMove: { perk: m.id, target: null } }), { ...extra, limit: { used: true, tip: 'Used this fight' } });
     else if (!m.inRange) add('perk', 'perks', label, [], () => order(label, { perkMove: { perk: m.id, target: null } }), extra);
     else if (m.inRange.length) add('perk', 'perks', label, [who(`${label}: whom?`, up.filter((a) => m.inRange!.includes(a.id)))], (c) => order(`${label}: ${them(c)}`, { perkMove: { perk: m.id, target: c.target! } }), extra);

@@ -8,7 +8,8 @@ import { achievementInfo, achievementName, achLevel, earnedAtText, kindName } fr
 import { achBand } from '../ruleset/achRewards';
 import { branchLabel, chainRows, chainTag, endInSight, heldChains, isBareHead, type HeldChain } from '../ruleset/achChains';
 import { ACH_HEAD_NAMES } from '../library/achievementIds';
-import { h, openPanel, plural, type PanelRow } from './kit';
+import { h, openPanel, plural, tint, type PanelRow } from './kit';
+import { TONE } from './tipTones';
 import { cap } from '../words';
 import { roman } from '../scales';
 
@@ -100,7 +101,7 @@ function threadEl(s: GameState, t: Thread, scars: boolean): HTMLElement {
   const pct = t.need ? Math.max(0, Math.min(100, Math.round(100 * (t.have ?? 0) / t.need))) : 0;
   const more = t.endless || t.knots.some((k) => k.state === 'later');
   const knots = t.knots.filter((k) => k.state !== 'later').flatMap((k, i) => {
-    const title = k.state === 'held' ? `${k.name}, level ${k.level}` : `Next level: ${k.label}${t.need ? ` (${fmt(t.have ?? 0)} of ${fmt(t.need)})` : ''}`;
+    const title = k.state === 'held' ? `${tint(scars ? TONE.scar : TONE.achievement, k.name)}, level ${k.level}` : `Next level: ${k.label}${t.need ? ` (${fmt(t.have ?? 0)} of ${fmt(t.need)})` : ''}`;
     // M-38c: a held knot is drawn by its prominence band (AV4)
     const d = lib()[k.key], band = k.state === 'held' && d ? achBand(achLevel(d, k.of)) : undefined;
     const knot = h('button', { type: 'button', class: `th-knot ${k.state}`, 'data-band': band, 'aria-label': title, title, onclick: () => knotPanel(s, k, scars) },

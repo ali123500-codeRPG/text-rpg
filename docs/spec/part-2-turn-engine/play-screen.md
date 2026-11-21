@@ -140,6 +140,18 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 - **PS-82** Every hover label in the game and the library viewer is this tip; the browser's own tooltip never shows. A
   `title` moves to `data-tip` on first hover; screen readers keep it as the element's name, or its description when it
   has a name.
+- **PS-496** Tip colours (OW1 a, HU1 a, HU2 a, HU3 a): the tip is the game's dark panel (--surface, a thin --rule border,
+  --shadow-toast), and the words in it that name something with a colour of its own take that colour, bold. Only those
+  words: plain words, distances, times, numbers, how-to text and every control's name stay the tip's text colour. Code
+  marks them with `tint(tone, words)` (src/ui/kit.ts); the tone comes from `src/ui/tipTones.ts`, the one table of
+  what takes which colour. Screen readers get the plain words (`tipPlain`).
+- **PS-497** The colour table (HU3 a), each the colour the thing already has on the screen: a skill its tree's colour;
+  a health level its place on the health track (--lv0 to --lv7) and a body part's state its colour on the figure;
+  morale c5, stamina c7, a time of day its icon's colour; a roll result its tier chip's colour; a perk its series
+  colour (--perk-20 gold, --perk-40 violet), an essence --essence, achievements and quests --scenario-mark, scars
+  --danger; a class its tier's hue; ties (organizations, titles, who holds a place) --tie (olive, c13), which no tree
+  or level uses; gains and ready --ok, costs and cautions --warn, harm and can't --danger. A new kind of thing in a tip
+  takes the colour it has on the screen; one with none yet stays plain until the owner gives it one.
 - **PS-83** Choice states: Available (normal, with its verb button), Can't afford (shows the shortfall: "needs 1 more
   point", "12 copper short"), Locked (a known requirement not met, shown), Sealed (unknown: a number only) (P5; K4).
 - **PS-84** Each says its word or shape; none is colour alone, and Locked is never used on a sealed perk (P5).

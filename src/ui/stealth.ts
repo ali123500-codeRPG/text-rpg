@@ -4,7 +4,8 @@
 // DS6: beside it, while a weapon is in the player's hand, a "Weapon drawn" badge in the Melee tree's colour; sheathed, none.
 import { POSTURES } from '../scales';
 import { CONFIG } from '../config';
-import { h, lineIcon } from './kit';
+import { h, lineIcon, tint } from './kit';
+import { TONE } from './tipTones';
 import { ICONS } from './itemIcons';
 
 type Kind = 'sneak' | 'unseen';
@@ -30,5 +31,5 @@ export const stealthBadge = () =>
 export function drawnBadge(): HTMLElement {
   const i = h('i', { class: 'dr-i', 'aria-hidden': 'true' });
   i.innerHTML = ICONS.sword;
-  return h('span', { class: 'drawn-b', role: 'status', title: 'A weapon is in your hand. Outside a fight people read it as a threat; put it away to talk in peace.' }, i, 'Weapon drawn');
+  return h('span', { class: 'drawn-b', role: 'status', title: `A weapon is in your hand. Outside a fight people read it as a ${tint(TONE.caution, 'threat')}; put it away to talk in peace.` }, i, 'Weapon drawn');
 }

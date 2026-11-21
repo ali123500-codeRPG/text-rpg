@@ -18,6 +18,12 @@ export const partTone = (st: PartState | string): string => ['lv0', 'lv2', 'lv5'
 export const tierTone = (t: TierRoll): string => (tierAtLeast(t, 'great_success') ? 'ok' : tierAtLeast(t, 'success') ? 'accent' : tierAtLeast(t, 'near_miss') ? 'warn' : 'danger');
 /** a perk: its series colour, by the milestone it is taken at */
 export const perkTone = (milestone: number): string => `perk-${perkSeries(milestone)}`;
+/** a perk by its id: its series colour; a perk off the skill ladders stays plain */
+export const perkIdTone = (perkId: string): string | undefined => { const at = getLibrary().perks[perkId]?.ladder?.milestone; return at ? perkTone(at) : undefined; };
+/** a time of day: its colour on the header's icon */
+export const todTone = (key: string): string => ({ dawn: 'c4', morning: 'scenario-mark', afternoon: 'scenario-mark', dusk: 'c7' } as Record<string, string>)[key] ?? 'accent';
+/** a class: its tier's hue, as on the class icon (accent for tiers 0-2, perk violet for 3-4, gold for 5) */
+export const classTone = (tier: string | undefined): string => { const n = Number(String(tier ?? '').replace(/\D/g, '')) || 0; return n >= 5 ? 'scenario-mark' : n >= 3 ? 'perk-40' : 'accent'; };
 /** the rest, by meaning */
 export const TONE = {
   tie: 'tie', // organizations, titles, who holds a place

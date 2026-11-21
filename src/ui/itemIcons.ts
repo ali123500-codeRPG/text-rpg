@@ -13,6 +13,8 @@ import { ICON_ART, type IconName } from './iconArt';
 import { instanceItem } from '../views';
 import { skillName } from '../library/skillNames';
 import { partName } from '../ruleset/body';
+import { tint } from './kit';
+import { skillTone } from './tipTones';
 
 export const ICONS = ICON_ART;
 /** IC5: the credit the icons' licence asks for, shown on the GM page */
@@ -113,7 +115,7 @@ export function instanceIcon(s: GameState, instanceId: string, cls?: string): HT
 export const skillMark = (skillId: string, name = skillName(skillId)): HTMLElement => {
   const el = skillIcon(skillId);
   if (!el) return Object.assign(document.createElement('b'), { textContent: name });
-  el.setAttribute('role', 'img'); el.title = name; el.setAttribute('aria-label', name);
+  el.setAttribute('role', 'img'); el.setAttribute('data-tip', tint(skillTone(skillId), name)); el.setAttribute('aria-label', name);
   return el;
 };
 const PART_ICON: Record<string, IconName> = {

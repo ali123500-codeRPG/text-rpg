@@ -21,7 +21,8 @@ import { actorBody, getLibrary, perkName } from '../library';
 import type { TierRoll } from '../types';
 import { fellFacts, fellLine } from './fell';
 import { autopilotBar } from './autopilot';
-import { boxOf, h, tint, dragScroll, lineIcon, playDraft, viewSize, safe, turnShown } from './kit';
+import { boxOf, h, tint, tipPlain, dragScroll, lineIcon, playDraft, viewSize, safe, turnShown } from './kit';
+import { healthTone, perkIdTone, TONE } from './tipTones';
 import { perkSeries } from './perks';
 import { drawnBadge, stealthBadge, stealthyTip } from './stealth';
 import { dayOf, now, timeOfDay, timeView } from '../time';
@@ -685,12 +686,12 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       // FT17: others' fatigue, only from Exhausted down, as the level word (never points or the breath line)
       a.fatigue ? h('span', { class: 'st tired', 'data-st': 'fatigue', title: 'How worn out they look' }, a.fatigue) : null,
       // A13 Read Wounds: their Damaged parts
-      ...(a.damaged ?? []).map((pt) => h('span', { class: 'st warn', title: perkName(PK.read_wounds) }, partMark(pt), ' damaged')));
+      ...(a.damaged ?? []).map((pt) => h('span', { class: 'st warn', title: tint(perkIdTone(PK.read_wounds), perkName(PK.read_wounds)) }, partMark(pt), ' damaged')));
     // YB3 c: a band-mate in sight shows its health and morale as two thin bars, the level words in their tips
     const fill = (pos: number, end: number) => Math.max(0, Math.round(100 * (1 - pos / end)));
     const mateBars = (a: PlayerView['actors'][number]) => h('span', { class: 'mate-bars' },
-      a.health ? h('span', { class: 'cs-hptrack', role: 'img', title: `Health: ${HEALTH_LEVELS.name(a.health)}`, 'aria-label': `Health: ${HEALTH_LEVELS.name(a.health)}` }, h('b', { style: `width:${fill(HEALTH_LEVELS.pos(a.health), HEALTH_LEVELS.pos('incapacitated'))}%` })) : null,
-      a.morale ? h('span', { class: 'cs-hptrack cs-morale', role: 'img', title: `Morale: ${a.morale}`, 'aria-label': `Morale: ${a.morale}` }, h('b', { style: `width:${fill(MORALE_LEVELS.pos(MORALE_LEVELS.keyOf(a.morale) ?? 'calm'), MORALE_LEVELS.pos('broken'))}%` })) : null);
+      a.health ? h('span', { class: 'cs-hptrack', role: 'img', title: `Health: ${tint(healthTone(a.health), HEALTH_LEVELS.name(a.health))}`, 'aria-label': `Health: ${HEALTH_LEVELS.name(a.health)}` }, h('b', { style: `width:${fill(HEALTH_LEVELS.pos(a.health), HEALTH_LEVELS.pos('incapacitated'))}%` })) : null,
+      a.morale ? h('span', { class: 'cs-hptrack cs-morale', role: 'img', title: `Morale: ${tint(TONE.morale, a.morale)}`, 'aria-label': `Morale: ${a.morale}` }, h('b', { style: `width:${fill(MORALE_LEVELS.pos(MORALE_LEVELS.keyOf(a.morale) ?? 'calm'), MORALE_LEVELS.pos('broken'))}%` })) : null);
     const cell = (a: PlayerView['actors'][number]) => h('div', { class: 'pp' + (foe(a) ? ' foe' : '') + (pins.has(a.id) ? ' pinned' : ''), role: 'listitem button', 'data-who': cap(a.name ?? a.label), 'data-id': a.id, tabindex: '0', title: tipOf(a) },
       h('span', { class: 'dot', 'aria-hidden': 'true' }),
       h('b', {}, cap(a.name ?? a.label), headMark(a.id), handIn.has(a.id) ? h('span', { class: 'q-ready', title: 'A quest for them is ready to hand in', 'aria-label': ', a quest for them is ready to hand in' }, ' ✓') : null), // the name (BG-30's edit had put it inside the comment, so the row lost every name)
@@ -848,7 +849,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     return {
       who: Object.fromEntries(Array.from(who.querySelectorAll('[data-who]')).map((x) => [x.getAttribute('data-who')!, text(x)])),
       // the sun's tip carries the clock, which moves every turn: only a new day or time of day gives it a beat
-      head: Object.fromEntries(Array.from(title.querySelectorAll('[data-mh]')).map((x) => [x.getAttribute('data-mh')!, x.getAttribute('data-mh') === 'tod' ? (x.getAttribute('data-tip') ?? '').replace(/ · [0-9:]+$/, '') : text(x)])),
+      head: Object.fromEntries(Array.from(title.querySelectorAll('[data-mh]')).map((x) => [x.getAttribute('data-mh')!, x.getAttribute('data-mh') === 'tod' ? tipPlain(x.getAttribute('data-tip') ?? '').replace(/ · [0-9:]+$/, '') : text(x)])),
       heal: healBtn.hidden ? '' : text(healBtn),
     };
   }
