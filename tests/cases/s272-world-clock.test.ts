@@ -55,6 +55,21 @@ describe('272 the world clock', () => {
     expect(s.player.core.condition.hpLostPct).toBeLessThan(50);
     expect(mechanicsLines(s, ev)).toContain('Rest stopped after 1 min: someone is coming at you');
   });
+  it('D-246 a: the player\'s setting: only contact lets someone closing in go on; anyone noticed stops it for a newcomer who is not closing in', () => {
+    const coming = (stop: 'contact' | 'noticed', tracking: boolean) => {
+      const s = tavern();
+      s.settings.skipStop = stop;
+      const w = wim(s);
+      w.zone = 'street_square';
+      unplace(s, w);
+      headTo(s, w, 'tav_common', 'weaver');
+      if (tracking) w.mind!.knowledge.player = { status: 'tracking', lastKnownZone: 'tav_common', lastSeenTurn: s.turn, source: 'seen', revealed: [] } as never;
+      play(s, { intent: rest });
+      return stopped(s);
+    };
+    expect(coming('contact', true)?.why).not.toBe('closing');
+    expect(coming('noticed', false)).toMatchObject({ kind: 'rest', why: 'appeared', by: ['patron_1'] });
+  });
   it('AT67: a plain wait runs to the next time of day, and its time shows', () => {
     const s = tavern();
     startClock(s, 'morning');
