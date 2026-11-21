@@ -42,7 +42,11 @@ Saves of schema 16 and older move each person's share to their page and fold the
 
 - 256 KiB per document, 32 levels deep; paths up to 16 segments of 200 bytes.
 - No transactions; last writer wins. Hence the bookmark commit.
-- An artifact's database holds at most 25,000 documents in total, shared by the library and every story. Documents per collection, total size and write rate are also capped, but those numbers are not published.
+- An artifact's database holds at most 25,000 documents in total, shared by the library and every story. The other caps are not published; measured 21/11/2026 in a throwaway page (OQ-9, contract 0.2.98):
+  - Total size: about 100 MB. It refused the 416th document of 240,000 bytes, with 95 MiB of document bodies stored. Over it, creating a document, or growing one, fails with quota\_exceeded ("reached its storage limit"); deleting frees room.
+  - Documents per collection: no separate cap. One collection held 24,486 documents and the next create failed only at 25,000 in the whole database ("database is full").
+  - Write rate: no limit met. A write takes about 0.3 s, so writes one at a time reach about 3.5 a second; 8, 32 and 128 in flight reached about 21, 35 and 45 a second, none refused. Rewriting one document in a loop also ran at about 3.5 a second.
+  - So size runs out long before the document count: 25,000 documents average 4 KiB each at the size cap.
 - Leases give a single-writer lock.
 
 **Undo.** One turn. It points head back at the previous bookmark and drops that turn's record. The RNG does not roll back: the engine page keeps the undone turn's RNG state, so a retried action rolls new dice. Undo after a library edit is allowed; the restored state uses the new library from the next turn. Undoing the turn that started a scenario rerolls the event roll and runs Agent Weaver again, like any other dice. Undoing a turn that crossed a frontier reuses the held extension, if this session still holds it.

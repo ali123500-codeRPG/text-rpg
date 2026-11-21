@@ -18,6 +18,6 @@ One player, signed in to the same Claude account on every PC. Backups run on the
 - Backups are written only by engine code or the scheduled task, never by an agent.
 - A restore runs the same checks as a load (section 8). It first backs up the save it replaces, as a migration does (YS1 c), unless that save's pages no longer read back or it is the backup's own turn. Then it writes a new head pointing at the backup's pages, with no undo bookmark.
 - The GM view lists backups and restores one on request. Backups are never shown to the player during play, so they can't spoil hidden plans or secrets. The one exception is a refused load: the creation screen offers the story's backups by turn number as ways back (section 10).
-- In-database backups count toward the 25,000-document cap; size BACKUP\_EVERY and K together with N (OQ-9).
+- In-database backups count toward the 25,000-document cap and the database's size cap of about 100 MB (Persistence, "Platform limits"). Size binds first: each backup holds a whole copy of the story's pages, so backups are about two thirds of a story's size and K is the setting that matters; size BACKUP\_EVERY and K together with N (OQ-9).
 - Optional manual copy: an owner-only "Download backup" button in the GM view. It asks to confirm each time, so it supplements the automatic layers rather than replacing them.
 - Before relying on the off-artifact layer, the build confirms that a scheduled task can read the game's database and write the backup artifact's database.
