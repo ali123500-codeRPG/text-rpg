@@ -10,6 +10,7 @@ import { GD } from '../../src/library/godIds';
 import { ST } from '../../src/library/startIds';
 import { PK } from '../../src/library/perkIds';
 import { makeVillage } from '../harness';
+import { CONFIG } from '../../src/config';
 import { essenceSkill } from '../../src/ruleset/perks';
 import { SK } from '../../src/library/skillIds';
 
@@ -25,12 +26,12 @@ describe('308 Starts and the blessed start', () => {
     expect(p.core.classes[0].classId).toBe(CL.blessed_by_imbra);
   });
 
-  it('a Blessed class gives a random Tier I blessing of its god at level 1; Imbra\'s raises what essences give by 10%', () => {
+  it('a Blessed class gives a random Tier I blessing of its god at level 1; Imbra\'s raises what essences give by IMBRA_ESSENCE_BOOST', () => {
     const p = createPlayer(recommendedBuild(ST.blessed), 's2');
-    expect(p.core.perks).toContainEqual({ perkId: PK.passing_glance, source: 'class', gainedTurn: 0 });
+    expect(p.core.perks).toContainEqual({ perkId: PK.essence_affinity, source: 'class', gainedTurn: 0 });
     p.progression!.essences = [{ essence: 'x', grade: 'common', points: { [SK.dodge]: 10 }, turn: 0 }];
-    expect(essenceSkill(p, SK.dodge)).toBeCloseTo(11);
-    p.core.perks = p.core.perks.filter((x) => x.perkId !== PK.passing_glance);
+    expect(essenceSkill(p, SK.dodge)).toBeCloseTo(10 * (1 + CONFIG.IMBRA_ESSENCE_BOOST));
+    p.core.perks = p.core.perks.filter((x) => x.perkId !== PK.essence_affinity);
     expect(essenceSkill(p, SK.dodge)).toBe(10);
   });
 

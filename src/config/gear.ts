@@ -92,8 +92,8 @@ export const GEAR = {
   GROWTH_LOW_LEVEL_BELOW: 5,
   /** growth proposal 2 (essences; placeholders). Points = max(1, round(ESSENCE_SHARE × source skill × grade multiplier)) */
   ESSENCE_SHARE: 0.07,
-  /** Imbra's Tier I blessing (A Passing Glance): the true skill held essences give is raised by this share */
-  IMBRA_ESSENCE_BOOST: 0.1,
+  /** Imbra's Tier I blessing (Essence Affinity): the true skill held essences give is raised by this share */
+  IMBRA_ESSENCE_BOOST: 0.05,
   ESSENCE_GRADE_MULT: { common: 1, fine: 1.5, rare: 2.5, epic: 4, legendary: 6 } as Record<string, number>,
   /** each grade past the last row multiplies the last row's multiplier by this */
   ESSENCE_GRADE_PAST_MULT: 1.5,
