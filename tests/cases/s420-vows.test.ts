@@ -1,4 +1,4 @@
-// 419 Vows (D-141, VW1–VW9): a vow form from the Witness is read by code (refused when code can't check it, it is
+// 420 Vows (D-141, VW1–VW9): a vow form from the Witness is read by code (refused when code can't check it, it is
 // already met, or the cap is reached); a sworn vow is checked each turn: kept pays its stake's Thread, broken (a
 // restraint's act, a missed deadline, renouncing) takes the same Thread, into debt if need be.
 import { describe, expect, it } from 'vitest';
@@ -15,7 +15,7 @@ import { intent, play } from './w4-kit';
 const NO_THEFT: VowForm = { line: 'Steal nothing for three days', goal: { kind: 'restraint', act: 'filch' }, stake: 'II', days: 3 };
 const xp = (s: GameState) => s.player.progression!.xp;
 
-describe('419 vows', () => {
+describe('420 vows', () => {
   it('VW3/VW4/VW6/VW7: code reads the form, and refuses what it cannot check, a goal already met, a bad deadline or a vow past the cap', () => {
     const s = makeVillage();
     expect(readVow(s, NO_THEFT)).toMatchObject({ vow: { goal: { kind: 'restraint', act: 'filch' }, stake: 'ii', state: 'active' } });
