@@ -15,4 +15,4 @@ Settled by Ali 07/11/2026 ("Sense of time: options", T1–T11; settles D-101).
   - Alarm systems (bells, tripwires, watchdogs) are parked (D-230).
 - **Starting time (T8):** the Weaver's first plan names `timeOfDay`, and code sets the clock to its start on day 1. After that a plan may only name the current one (bad\_time otherwise).
 - **Shown (T11):** the Play header reads "Turn 5 · Day 2 · Evening · …"; its look is the designer's.
-- **Later:** NPC needs such as hunger and sleep (T10, not planned). Travel time for long journeys is the Travel section below.
+- **Later:** NPC needs such as hunger and sleep (T10, not planned). Travel time for long journeys is the Travel topic (travel.md).
