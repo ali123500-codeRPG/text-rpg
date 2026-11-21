@@ -309,13 +309,12 @@ type Band = {                   // a small group: a guard post, a gang, a househ
 - **GSM-191** A body goes through when the narrower of its length and width fits the width (it turns sideways) and its
   height ducked to DUCK_SHARE (0.5) fits the height; ducking costs no time; crawling is parked (D-369).
 - **GSM-192** A walk never plans through a way too small for the walker (fitsThrough).
-- **GSM-193** On the map and minimap, someone seen clearly at their own point whose body is bigger than its token is
-  drawn as a token of the body's own size and shape: a capsule, its length along the way it faces, with nothing outside
-  it. The capsule takes the body's true width, even when narrower than the disc; its icon (MAP-69) shrinks to fit
-  inside it. A capsule narrower than the disc keeps an unseen hit area the disc's width, so it stays as easy to click,
-  and the layout keeps that wider box clear of other marks; the map's checker measures the drawn capsule (BG-324)
-  (SZ16; RM13 c, RM17 b: "you can narrow the icon no?", Ali, 20/11/2026, Questions hub page "Map rules revision";
-  capsule and hitCap in ui/mapPlan; MapPerson.body).
+- **GSM-193** On the map and minimap, someone seen clearly at their own point is drawn as their body's own size and
+  shape at the zoom shown: a capsule, its length along the way it faces and its true width across, with nothing outside
+  it and no smallest size; its icon (MAP-69) scales with it, fitted inside it. A click lands only on the drawn capsule
+  (MAP-25) (SZ16; RM13 c, RM17 b: "you can narrow the icon no?", Ali, 20/11/2026, Questions hub page "Map rules
+  revision"; OM4b a, Ali, 21/11/2026, Questions hub page "One continuous map (D-1558)", which drops RM17 b's wider hit
+  area; capsule in ui/mapPlan; MapPerson.body).
 
 #### State shapes
 

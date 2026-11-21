@@ -80,8 +80,9 @@ continuous map (D-1558)"). Rules below that still lay marks out zone by zone are
   room from them, so it never pushes a mark aside; furniture never covers it (MAP-25), and things on the ground may sit on
   it as stairs do (MAP-86) (MZ2-MZ4; RM6 a).
 - **MAP-23** When marks collide, yield in this order (first wins): player token, place titles, other tokens, exit notes,
-  icons. Your pin and people with a point shrink before they yield, your pin first and never merged; its facing tip
-  shrinks with it. Your pin is drawn above every other mark (MAP-25; RM29 c, RM30 b, RM33 a; Ali, 21/11/2026, Questions hub page "Map rules revision").
+  icons. Your pin and people never yield: each stands at their own point at their body's real size (MAP-25), and other
+  marks keep clear of them. Your pin is drawn above every other mark, its facing tip scaling with it (OM4b a; Ali, 21/11/2026, Questions hub page "One continuous map (D-1558)"; RM33 a, on the
+  owner's condition: "one thing to keep is the pin indicating the direction I am facing").
 - **MAP-24** An exit's note is its target's name only, attached to its exit ("the gate to the lane"). Its state (not
   been through, locked, where it leads) is in its tip and the zone card: the dotted arrow already shows an exit not been
   through, and the badge a barrier (MAP-36) (RM2 a; Ali, 20/11/2026, Questions hub page "Map rules revision").
@@ -93,33 +94,18 @@ continuous map (D-1558)"). Rules below that still lay marks out zone by zone are
   the zone's name, it is left off in its own spot (listed in the zone's card) and comes back there when you zoom in.
   A piece of furniture is placed clear of the names at its zoom and of the name each closer set zoom shows, at its own
   size, so zooming in never covers it (src/ui/mapPlan.ts). Zoomed out past where a piece or a thing on the ground was
-  placed, it shows only where it covers nothing, after the ones placed at that zoom or wider. Furniture is also left off when its zone has no free spot, so in a very small zone it shows only in the card (RM20 a). The player and people are never hidden; they step aside
-  only then (BG-216; WF10 a; RM6 a, RM7 a; Ali, 20/11/2026, Questions hub page "Map rules revision"). A person stays
-  inside their room at their point even where your pin's facing tip reaches: their disc may touch or overlap the pin's
-  tip, never the pin's disc, and the checker (MAP-22, MAP-31) measures only the pin's disc against a person (RM26 b;
-  Ali, 21/11/2026, Questions hub page "Map rules revision"). Where a person's disc at their point would overlap another
-  person's or another mark at the zoom drawn, it shrinks, a pixel of diameter at a time, only as far as it must, down to
-  the smallest size (CONFIG.MAP_WHO_MIN_D_PX, 7 px, a placeholder); each person is sized against the marks already placed
-  and the people still to place at the same size, in order. People whose discs would still overlap each other at
-  the smallest size are one disc for the group, at the full size, at the mean of their points (kept inside the room with
-  its badge, stepping aside only where the room has no spot for it), with a "+n" badge on that people disc, n the people it
-  stands for beyond the one shown (the first in order); two people show "+1". The badge is a pill as tall as the
-  disc against its right edge, and the disc and badge are one token for the checker. Its hover and accessible name list
-  every name, and a click asks which of them, then lists what to do to that one. Zooming in splits a group again. A
-  to-scale body (GSM-193) keeps its size and steps aside as before (RM27 b; Ali, 21/11/2026, Questions hub page "Map rules
-  revision"). Your pin (an 18 px disc) shrinks by the same rule, from your point at the zoom drawn, down to the same
-  smallest size, its facing tip and core in proportion: it is first in the order, so it takes the largest size clear of
-  the marks already placed (the walls' doors) and of every person with a point at the same size (a group's disc at its
-  full size), and people it would overlap even at the smallest size do not shrink it, as they step aside for it (MAP-23).
-  With no size clear of the marks already placed it keeps its full size and steps aside as before. It is never in a group
-  (RM29 c; Ali, 21/11/2026, Questions hub page "Map rules revision"). Someone last seen or heard at a point (MAP-68) is
-  sized and grouped the same way, after the people in full sight and only with each other, never with someone in full
-  sight: their group is one dashed disc with the same "+n" badge, hover and click list, and every one of their dashed
-  "somewhere here" circles is kept. Sizing runs over both: groups first, people in full sight before people last seen,
-  then each person against the marks placed and the people still to place (RM30 b; Ali, 21/11/2026, Questions hub page
-  "Map rules revision"). Only people in the same room merge, or people over the void with each other (MAP-68).
+  placed, it shows only where it covers nothing, after the ones placed at that zoom or wider. Furniture is also left off when its zone has no free spot, so in a very small zone it shows only in the card (RM20 a). The player and people are never hidden
+  (BG-216; WF10 a; RM6 a, RM7 a; Ali, 20/11/2026, Questions hub page "Map rules revision"). People and your pin are drawn
+  to scale, as walls and doors are (MAP-14), with no smallest size: far out they are specks, and they never shrink in
+  steps, merge into a group or step aside. Each stands at their own point and may overlap another person, your pin or any
+  other mark; the marks placed after them (exit notes, stairs, furniture, things on the ground) keep clear of them, and
+  the checker (MAP-22, MAP-31) does not measure people or your pin against any mark. A click lands only on a person's own
+  drawn shape; to click on someone small, you zoom in. Your pin is a disc as wide as your body (KnownMap.youWidthM), its
+  facing tip, core and outline in proportion (pin in src/ui/map.ts) (OM4b a; Ali, 21/11/2026, Questions hub page "One continuous map (D-1558)": "a, I really like a. if I want to click on
+  someone I will zoom in"; this replaces RM26 b, RM27 b, RM29 c and RM30 b).
 - **MAP-26** To scale, a place's map is laid out by code at the zoom shown and drawn on one screen-pixel layer. No mark
-  covers another at any zoom, and the first view fits the whole map with everything inside it (src/ui/mapPlan.ts).
+  covers another at any zoom, people and your pin aside (MAP-25), and the first view fits the whole map with everything
+  inside it (src/ui/mapPlan.ts).
 - **MAP-27** Merged into MAP-13, MAP-25 and MAP-68 (RM7 a).
 
 #### Symbols and states
@@ -200,25 +186,27 @@ continuous map (D-1558)"). Rules below that still lay marks out zone by zone are
 - **MAP-68** People on the plan: everyone the character perceives is drawn at their own point in metres, on the map of
   their floor, whether or not seen ground or any title on the map is there: over the void too. The title they are listed
   in plays no part in where they are drawn (Ali, 21/11/2026, this thread: "why does it matter if it is seen or not, you
-  can draw them over the void."). Everyone in full sight stands at their own point (SeenActor.body), as you do, their
-  disc smaller or one disc for a group where they stand too close to draw apart (MAP-25; RM27 b). Someone only heard or
+  can draw them over the void."). Everyone in full sight stands at their own point (SeenActor.body), as you do, drawn as
+  their body's real footprint at the zoom shown: a capsule its length along the way they face and its width across
+  (GSM-193), with no smallest size (MAP-25; OM4b a; Ali, 21/11/2026, Questions hub page "One continuous map (D-1558)"). Someone only heard or
   glimpsed, or last seen, is their dashed disc at the point where the character last saw or heard them (the journal's
   last spot, BG-125), inside a faint dashed 2 m "somewhere here" circle (2 m its radius, as the question's picture
-  measured it: CONFIG.LAST_SEEN_RADIUS_M, a placeholder), with "somewhere here" on hover. Those dashed discs shrink, and
-  merge only with each other into one dashed disc with a "+n" badge, their circles kept, as MAP-25 sets (RM30 b; Ali,
-  21/11/2026, Questions hub page "Map rules revision"). Someone whose point lies in a title on the map stays inside its
-  walls: the title whose outline holds the point (the smallest, MAP-11), found from the point and the outlines, never
-  from the title listing them (RM26 b). Over the void there are no walls to keep inside: they stand at their point and
-  step aside only where they would overlap another mark. The map of a place shows the people listed in it or in a place
+  measured it: CONFIG.LAST_SEEN_RADIUS_M, a placeholder), with "somewhere here" on hover. The view gives no size for
+  someone out of full sight, so their dashed disc keeps its set size (14 px) for now and does not scale; what size they
+  take is an open question (see "Open discrepancies"). Like everyone, they never shrink, merge or step aside (MAP-25).
+  A zone's card names the people whose point lies in the title whose outline holds it (the smallest, MAP-11), found from
+  the point and the outlines, never from the title listing them. The map of a place shows the people listed in it or in a place
   inside it (MapPerson.root), on the floor their point is on (MapPerson.height). Every actor has a point (BG-1528);
   someone the map still gets with no point (an old save) is not drawn, and only the card of the title listing them names
   them. How the circle should grow or change is parked (D-424) (Actor.pos, KnownMap.people, MapPerson.at and
   MapPerson.lastAt; Ali, 13/11/2026; RM4 a, RM7 a; Ali, 20/11/2026, Questions hub page "Map rules revision"; Ali,
   21/11/2026, this thread).
-- **MAP-69** Each person's disc shows an icon for what the character can see on them first: what they hold or wear
+- **MAP-69** Each person's mark (their body's capsule, or a dashed disc out of full sight) shows an icon for what the character can see on them first: what they hold or wear
   that stands out (a weapon, armour, a tool of their trade), else what they are (a person, a beast, a slime). It uses
   only what is seen, never a hidden role, and the set of icons has enough variety that people in one scene differ.
-  Pointing at it shows the name or description they are known by beside it. The discs sit above every tile, so a
+  The icon scales with the body, fitted inside its narrower side (WHO_ICON_SHARE in src/ui/mapPlan.ts, the share the icon
+  took of the old disc), so far out it is too small to make out; when it should be left off is an open question (see
+  "Open discrepancies"; OM4b a; Ali, 21/11/2026, Questions hub page "One continuous map (D-1558)"). Pointing at it shows the name or description they are known by beside it. These marks sit above every tile, so a
   neighbouring zone never hides one. In order: what they hold (a weapon or tool), a shield, armour past plain clothes,
   wares they offer; else their race or body (a person, a dog, a wolf, a bear, a boar, a horse, a big cat, a lion, a
   hyena, a lizard, a snake, a spider, a dragon, a slime). A plain person follows what the screen already shows of them
@@ -327,4 +315,8 @@ continuous map (D-1558)"). Rules below that still lay marks out zone by zone are
 
 #### Open discrepancies
 
-None open.
+- Out of full sight, someone's size: the view gives a body size only for someone seen clearly (SeenActor.body), and
+  neither their race nor their size for someone glimpsed, heard or last seen, so their dashed disc keeps its set 14 px
+  and does not scale (MAP-68; OM4b a; Ali, 21/11/2026, Questions hub page "One continuous map (D-1558)"). A question to the owner.
+- A person's icon too small to read: no rule sets when an icon is left off, so it scales down with no limit (MAP-69;
+  OM4b a; Ali, 21/11/2026, Questions hub page "One continuous map (D-1558)"). A question to the owner.

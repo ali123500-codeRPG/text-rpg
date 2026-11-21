@@ -10,7 +10,7 @@ import { seenIn, type SeenRun } from '../plan/fog';
 import { areaOf, inOutline } from '../plan/geom';
 import { verticalOf } from '../scenario/heights';
 import { CONFIG } from '../config';
-import { listWords } from '../words';
+import { HUMANOID_SIZE } from '../library/bodySize';
 import { PX_PER_M, buildingCheck, cellsOf, footprint, placePad, type Box, type Footprint } from '../plan/footprint';
 
 export { PX_PER_M, type Box };
@@ -57,16 +57,11 @@ export type SStair = Box & { id: string; zoneId: string; cx: number; cy: number;
 export type SFurn = Box & { id: string; zoneId: string; kind: string; name: string; cx: number; cy: number };
 /** MAP-86: a thing on the ground; of: its item instance id (MAP-85's deck target), icon and kind as in MapThingMark */
 export type SItem = Box & { id: string; of: string; zoneId: string; name: string; icon: MapThingMark['icon']; kind?: string; cx: number; cy: number };
-/** `cap` (GSM-193): a body bigger than its disc is drawn as a capsule of its own size, `len` px along the way it faces
- *  (`deg`, screen degrees) and `wide` px across, its true width even when narrower than the disc (RM17 b); the box is the
- *  turned capsule's */
+/** `cap` (GSM-193; OM4b a): someone in full sight is drawn as their body's own capsule at the zoom shown, `len` px along
+ *  the way they face (`deg`, screen degrees) and `wide` px across, with no smallest size; the box is the turned capsule's */
 export type SToken = Box & { id: string; zoneId: string; cx: number; cy: number; r: number; you?: true; who?: MapPerson; title: string; cap?: { len: number; wide: number; deg: number };
-  /** MAP-68: the faint "somewhere here" circle round the point someone out of full sight was last perceived at, one for
-   *  each person a group of them stands for (RM30 b) */
-  rings?: { cx: number; cy: number; r: number }[];
-  /** RM27 b: a disc standing for people too close to draw apart at this zoom, `who` the one shown; its "+n" badge (n: the
-   *  others), whose box is part of the token's */
-  group?: MapPerson[]; badge?: Box & { text: string } };
+  /** MAP-68: the faint "somewhere here" circle round the point someone out of full sight was last perceived at */
+  rings?: { cx: number; cy: number; r: number }[] };
 export type Scene = {
   zones: SZone[]; places: SPlace[]; labels: SLabel[]; doors: SDoor[]; exits: SExit[];
   stairs: SStair[]; furniture: SFurn[]; items: SItem[]; tokens: SToken[];
@@ -93,11 +88,16 @@ export type PlanInput = {
   measure: Measure;
   /** the name of the top-level place a known zone off this map sits in, for exits that open another map */
   awayName: (zoneId: string) => string | undefined;
+  /** your body's width in metres (KnownMap.youWidthM), your pin's width (MAP-23); a person's when not given */
+  youWidthM?: number;
 };
 
-const STAIR_R = 10, FURN_R = 9, ITEM_R = 8, WHO_R = 7, BADGE_PAD = 4;
-/** your pin's disc at its full size (RM29 c: it shrinks as people do), and how far its facing point reaches from its centre: other marks keep clear of the point too, people of the disc only (RM26 b) */
+const STAIR_R = 10, FURN_R = 9, ITEM_R = 8, WHO_R = 7;
+/** your pin's shape: its disc's radius and how far its facing point reaches from its centre, in proportion (RM33 a); on a
+ *  place's plan the disc is your body's width at the zoom shown (OM4b a), elsewhere this size */
 export const PIN_R = 9, PIN_TIP = 15;
+/** MAP-69: the share of a body's narrower side its icon takes, as the 10 px icon took of the 14 px disc */
+export const WHO_ICON_SHARE = (2 * WHO_R - 4) / (2 * WHO_R);
 /** gap between a mark and anything near it, a label and its zone's walls (MAP-20) */
 const GAP = 2, PAD = 7; // PAD: 6 px (MAP-20) plus the hair the drawn zone sits inside its walls
 /** a wall's drawn thickness, as styles.css strokes .map-edge.wall: a door is as thick across its wall (MAP-14) */
@@ -108,14 +108,11 @@ const disc = (cx: number, cy: number, r: number, ry = r): Box => ({ x0: cx - r, 
 const runsArea = (rs: { x0: number; x1: number; y0: number; y1: number }[]) => rs.reduce((a, r) => a + (r.x1 - r.x0) * (r.y1 - r.y0), 0);
 const r2 = (v: number) => Math.round(v * 100) / 100;
 const union = (bs: Box[]): Box => bs.reduce((a, b) => ({ x0: Math.min(a.x0, b.x0), y0: Math.min(a.y0, b.y0), x1: Math.max(a.x1, b.x1), y1: Math.max(a.y1, b.y1) }), { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity });
-/** GSM-193 (SZ16): the capsule a body bigger than its disc is drawn as at zoom k, none for a body the disc covers */
-function capsule(who: MapPerson, k: number): SToken['cap'] {
-  const b = who.body, s = PX_PER_M * k;
-  if (!b || Math.max(b.lengthM, b.widthM) * s <= 2 * WHO_R) return undefined;
-  return { len: Math.max(b.lengthM * s, 2 * WHO_R), wide: b.widthM * s, deg: (Math.atan2(-b.facing[1], b.facing[0]) * 180) / Math.PI };
+/** GSM-193 (SZ16; OM4b a): the capsule a body is drawn as at zoom k, its own size with no smallest */
+function capsule(b: NonNullable<MapPerson['body']>, k: number): NonNullable<SToken['cap']> {
+  const s = PX_PER_M * k;
+  return { len: b.lengthM * s, wide: b.widthM * s, deg: (Math.atan2(-b.facing[1], b.facing[0]) * 180) / Math.PI };
 }
-/** RM17 b: the capsule a click lands on, never narrower than the disc; the layout keeps it clear so hit areas never overlap */
-export const hitCap = (c: NonNullable<SToken['cap']>) => ({ ...c, wide: Math.max(c.wide, 2 * WHO_R) });
 /** half the width and height of the box around a turned capsule (its rectangle's corners, as the browser measures it) */
 const half = (c: NonNullable<SToken['cap']>) => {
   const a = (c.deg * Math.PI) / 180, co = Math.abs(Math.cos(a)), si = Math.abs(Math.sin(a));
@@ -231,8 +228,6 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
   // every mark placed so far, with its role: later marks keep clear of them
   const taken: { box: Box; role: 'label' | 'token' | 'icon' | 'exit' | 'title' | 'tip' }[] = [];
   const free = (b: Box) => !taken.some((t) => hit(t.box, b, GAP));
-  /** MAP-25 (RM26 b): people may touch or overlap your pin's facing tip, never its disc */
-  const freeOfTip = (b: Box) => !taken.some((t) => t.role !== 'tip' && hit(t.box, b, GAP));
   const overZone = (b: Box, except?: string) => zones.some((x) => x.z.id !== except && hit(x.box, b));
   const take = (box: Box, role: typeof taken[number]['role']) => { taken.push({ box, role }); return box; };
   const textBox = (text: string, kind: TextKind) => ({ w: Math.ceil(measure(text, kind)) + 2 * TEXT[kind].pad, h: TEXT[kind].h });
@@ -297,57 +292,17 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
     used.add(way?.shut ? 'door' : kind);
     if (way?.shut) used.add(wayKey(way));
   }
-  // ---- people with a point (MAP-68), worked out before your pin, which is sized against them: at their own point when the
-  // character sees exactly where, else at the point they were last seen or heard (RM30 b)
-  // RM27 b, RM29 c: the sizes a disc tries where it would overlap, a pixel of diameter less each step, down to the smallest
-  const minR = CONFIG.MAP_WHO_MIN_D_PX / 2, steps = (r0: number) => [...new Set([...Array.from({ length: Math.floor(2 * (r0 - minR)) + 1 }, (_, i) => r0 - i / 2), minR])];
-  const own = (w: MapPerson) => { const q = (w.at ?? w.lastAt)!; return { x: q.x * PX_PER_M * k, y: -q.y * PX_PER_M * k }; };
-  const inRoom = (zb: Box | undefined, o: { x: number; y: number }, r: number) => (zb ? { cx: Math.min(zb.x1 - r - 2, Math.max(zb.x0 + r + 2, o.x)), cy: Math.min(zb.y1 - r - 2, Math.max(zb.y0 + r + 2, o.y)) } : { cx: o.x, cy: o.y });
-  const centre = (g: MapPerson[]) => ({ x: g.reduce((a, w) => a + own(w).x, 0) / g.length, y: g.reduce((a, w) => a + own(w).y, 0) / g.length });
-  /** RM27 b: the "+n" badge on a disc standing for a group of people: a pill as tall as the disc against its right edge,
-   *  its letters the exit notes', their ink inside it */
-  const badgeAt = (cx: number, cy: number, text: string): NonNullable<SToken['badge']> => ({ x0: cx + WHO_R - 3, y0: cy - WHO_R, x1: cx + WHO_R - 3 + Math.ceil(measure(text, 'note')) + 2 * BADGE_PAD, y1: cy + WHO_R, text });
-  /** a group's disc at (cx, cy) with its badge, one token */
-  const groupBox = (g: MapPerson[], cx: number, cy: number) => union([disc(cx, cy, WHO_R), badgeAt(cx, cy, `+${g.length - 1}`)]);
-  /** RM27 b, RM30 b: a room's people (or those over the void) whose discs would still overlap at the smallest size are one
-   *  disc for the group, at the mean of their points, at the full size; grouped pair by pair, in order, until no two overlap */
-  const groupsOf = (zb: Box | undefined, ps: MapPerson[]) => {
-    const groups = ps.map((w) => [w]);
-    const discOf = (g: MapPerson[]) => { const r = g.length > 1 ? WHO_R : minR, p = inRoom(zb, centre(g), r); return disc(p.cx, p.cy, r); };
-    for (let i = 0; i < groups.length; i++) for (let j = i + 1; j < groups.length; j++) {
-      if (hit(discOf(groups[i]), discOf(groups[j]), GAP)) { groups[i].push(...groups.splice(j, 1)[0]); i = -1; break; }
-    }
-    return groups.map((g) => g.sort((a, b) => ps.indexOf(a) - ps.indexOf(b)));
-  };
-  // RM26 b: the room a person stands in is the zone on this floor whose outline holds their point (the smallest: MAP-11
-  // zones nest), whatever title lists them; over the void (no zone there) they have no walls to keep inside
-  const roomOf = (q: { x: number; y: number }) => zones.filter((x) => x.z.outline?.length && inOutline(q, x.z.outline, 0.01)).sort((a, b) => areaOf(a.z.outline!) - areaOf(b.z.outline!))[0];
-  const rooms = new Map<string, { zb?: Box; ps: MapPerson[] }>();
-  for (const w of inp.people) {
-    const q = w.at ?? w.lastAt, x = q && roomOf(q), id = x ? x.z.id : '';
-    if (!q) continue;
-    if (!rooms.has(id)) rooms.set(id, { ...(x ? { zb: x.box } : {}), ps: [] });
-    rooms.get(id)!.ps.push(w);
-  }
-  // RM30 b: people in full sight and people last seen merge only among their own kind; a to-scale body is never a disc (GSM-193)
-  const crowds = new Map([...rooms].map(([id, x]) => [id, [x.ps.filter((p) => p.at && !capsule(p, k)), x.ps.filter((p) => !p.at)].map((ps) => groupsOf(x.zb, ps))]));
-  // ---- you (MAP-23: first of the marks; only the walls' doors, fixed to their walls, come before), at your own point
+  // ---- you (MAP-23: first of the marks; only the walls' doors, fixed to their walls, come before), at your own point, at
+  // your body's width at this zoom with no smallest size, never moved for another mark (OM4b a, RM29 c)
   const here = zones.find((x) => x.z.here);
   if (here) {
-    const b = here.box, at = here.z.you ? { x: here.z.you.x * PX_PER_M * k, y: -here.z.you.y * PX_PER_M * k } : { x: b.x1 - PIN_R - 4, y: b.y0 + PIN_R + 4 };
-    // RM29 c: from your point, the largest size clear of the marks placed and of the people still to place at the same size
-    // (a group at its full size), as each person is sized; people it would overlap even at the smallest size step aside for
-    // it (MAP-23), so it does not shrink for them. Never merged; with no size clear of the marks placed, at the full size
-    const crowd = [...crowds].flatMap(([id, gs]) => gs.flat().map((g) => ({ zb: rooms.get(id)!.zb, g })));
-    const clear = (r: number, { zb, g }: (typeof crowd)[number]) => { const d = disc(at.x, at.y, r), pr = Math.min(r, WHO_R), q = inRoom(zb, centre(g), g.length > 1 ? WHO_R : pr); return !hit(d, g.length > 1 ? groupBox(g, q.cx, q.cy) : disc(q.cx, q.cy, pr), GAP); };
-    const near = crowd.filter((c) => clear(minR, c));
-    const r = here.z.you ? steps(PIN_R).find((q) => free(disc(at.x, at.y, q)) && near.every((c) => clear(q, c))) : undefined;
+    const b = here.box, pr = ((inp.youWidthM ?? HUMANOID_SIZE.widthM) * PX_PER_M * k) / 2;
     // BG-356: with a point of your own, placed from it at this zoom: a spot carried as a share of the zone drifts off it
-    const p = r !== undefined ? { cx: at.x, cy: at.y } : keep(here.z.you ? { cx: at.x, cy: at.y } : spotOf('you', b, PIN_R + 2), PIN_R, b) ?? nearFree(at.x, at.y, PIN_R, b) ?? { cx: Math.min(b.x1, Math.max(b.x0, at.x)), cy: Math.min(b.y1, Math.max(b.y0, at.y)) };
-    const pr = r ?? PIN_R;
+    const p = here.z.you ? { cx: here.z.you.x * PX_PER_M * k, cy: -here.z.you.y * PX_PER_M * k }
+      : keep(spotOf('you', b, pr + 2), pr, b) ?? nearFree(b.x1 - pr - 4, b.y0 + pr + 4, pr, b) ?? { cx: b.x1 - pr - 4, cy: b.y0 + pr + 4 };
     tokens.push({ id: 'you', zoneId: here.z.id, ...p, r: pr, ...disc(p.cx, p.cy, pr), you: true, title: 'You are here' });
     take(disc(p.cx, p.cy, pr), 'token');
-    take(disc(p.cx, p.cy, (pr * PIN_TIP) / PIN_R), 'tip'); // its facing point, whichever way you face, in proportion to its disc
+    take(disc(p.cx, p.cy, (pr * PIN_TIP) / PIN_R), 'tip'); // its facing point, whichever way you face, in proportion to its disc (RM33 a)
     used.add('you');
   }
 
@@ -393,50 +348,28 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
     used.add('place');
   }
 
-  // ---- other people (MAP-68): each at their own point, whether or not seen ground or any zone is there; out of full
-  // sight, at the point they were last seen or heard, in a "somewhere here" circle
-  const sizes = steps(WHO_R);
-  for (const [zoneId, room] of rooms) {
-    const zb = room.zb, crowd = crowds.get(zoneId)!.flat();
-    /** inside the room's walls when it has some (RM26 b), else free to step aside anywhere: over the void, at the point and
-     *  aside only where it would overlap. `step`, `within`: as nearFree's */
-    const aside = (cx: number, cy: number, rx: number, ry: number, ok: (b: Box) => boolean, step?: number, within = ok) =>
-      (zb && nearFree(cx, cy, rx, zb, rx + 2, ry, within, step)) || (final || !zb ? outsideNear(cx, cy, rx, ry, ok) : null);
-    /** MAP-68: the "somewhere here" circle round the point someone out of full sight was last perceived at */
-    const ringsOf = (g: MapPerson[]) => (g[0].at ? {} : { rings: g.map((w) => ({ cx: own(w).x, cy: own(w).y, r: CONFIG.LAST_SEEN_RADIUS_M * PX_PER_M * k })) });
-    // MAP-25 (BG-350, BG-356): placed from their own point at the zoom drawn. RM26 b: a person may stand on your pin's
-    // facing tip, never on its disc
-    for (const who of room.ps.filter((p) => p.at && capsule(p, k))) {
-      const cap = capsule(who, k)!;
-      // GSM-193: a to-scale body keeps its size, and alone steps aside where its point is taken
-      const [hx, hy] = half(hitCap(cap)), [dx, dy] = half(cap), o = own(who);
-      const p = aside(o.x, o.y, hx, hy, freeOfTip);
-      if (p) { tokens.push({ id: `who:${who.id}`, zoneId, ...p, r: WHO_R, ...disc(p.cx, p.cy, dx, dy), who, title: who.name, cap }); take(disc(p.cx, p.cy, hx, hy), 'token'); }
+  // ---- other people (MAP-68; OM4b a): each at their own point, whether or not seen ground or any zone is there, and never
+  // moved: they may overlap each other and any mark. In full sight, their body's own capsule at this zoom, with no smallest
+  // size; out of full sight, at the point they were last seen or heard, in a "somewhere here" circle
+  // RM26 b: the room a person stands in is the zone on this floor whose outline holds their point (the smallest: MAP-11
+  // zones nest), whatever title lists them; over the void (no zone there) none
+  const roomOf = (q: { x: number; y: number }) => zones.filter((x) => x.z.outline?.length && inOutline(q, x.z.outline, 0.01)).sort((a, b) => areaOf(a.z.outline!) - areaOf(b.z.outline!))[0];
+  for (const who of inp.people) {
+    const q = who.at ?? who.lastAt;
+    if (!q) continue;
+    const cx = q.x * PX_PER_M * k, cy = -q.y * PX_PER_M * k, zoneId = roomOf(q)?.z.id ?? '';
+    if (who.at && who.body) {
+      const cap = capsule(who.body, k), [dx, dy] = half(cap);
+      tokens.push({ id: `who:${who.id}`, zoneId, cx, cy, r: Math.min(cap.len, cap.wide) / 2, ...disc(cx, cy, dx, dy), who, title: who.name, cap });
+      take(disc(cx, cy, dx, dy), 'token');
+    } else {
+      // shortcut: out of full sight the view gives no body size, so the disc keeps its set size; a size for them is a question to the owner
+      const rings = [{ cx, cy, r: CONFIG.LAST_SEEN_RADIUS_M * PX_PER_M * k }];
+      tokens.push({ id: `who:${who.id}`, zoneId, cx, cy, r: WHO_R, ...disc(cx, cy, WHO_R), who, title: `${who.name}: somewhere here`, rings });
+      take(disc(cx, cy, WHO_R), 'token');
     }
-    // RM27 b, RM30 b: a group, people in full sight first, then people last seen, is one disc at the full size with its badge
-    for (const g of crowd.filter((q) => q.length > 1)) {
-      const c = centre(g), text = `+${g.length - 1}`, whole = (b: Box) => groupBox(g, (b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2);
-      // the badge too inside the room; searched pixel by pixel, as the disc and its badge need a wider spot than a lone disc
-      const clear = (b: Box) => freeOfTip(whole(b)), ok = (b: Box) => { const u = whole(b); return !!zb && u.x1 <= zb.x1 - 2 && u.y0 >= zb.y0 + 2 && u.y1 <= zb.y1 - 2 && clear(b); };
-      const p = aside(c.x, c.y, WHO_R, WHO_R, clear, 1, ok);
-      if (!p) continue;
-      const box = whole(disc(p.cx, p.cy, WHO_R)), names = listWords(g.map((w) => w.name));
-      tokens.push({ id: `who:${g.map((w) => w.id).join('+')}`, zoneId, ...p, r: WHO_R, ...box, who: g[0], group: g, badge: badgeAt(p.cx, p.cy, text), title: g[0].at ? names : `${names}: somewhere here`, ...ringsOf(g) });
-      take(box, 'token');
-    }
-    // RM27 b, RM30 b: everyone else at their own point, at the largest size clear of every mark and of the people still to
-    // place at that size; blocked by another mark even at the smallest, stepping aside at the full size as before
-    const singles = crowd.filter((q) => q.length === 1).map((q) => q[0]);
-    singles.forEach((who, i) => {
-      const o = own(who), later = singles.slice(i + 1).map(own);
-      const fits = (r: number) => { const p = inRoom(zb, o, r), b = disc(p.cx, p.cy, r); return freeOfTip(b) && later.every((l) => { const q = inRoom(zb, l, r); return !hit(b, disc(q.cx, q.cy, r), GAP); }) ? p : null; };
-      let r = WHO_R, p: { cx: number; cy: number } | null = null;
-      for (const s of sizes) if ((p = fits(s))) { r = s; break; }
-      p ??= aside(o.x, o.y, WHO_R, WHO_R, freeOfTip);
-      if (p) { tokens.push({ id: `who:${who.id}`, zoneId, ...p, r, ...disc(p.cx, p.cy, r), who, title: who.at ? who.name : `${who.name}: somewhere here`, ...ringsOf([who]) }); take(disc(p.cx, p.cy, r), 'token'); }
-    });
-    if (room.ps.some((p) => !p.at)) used.add('who-last');
-    if (room.ps.some((p) => p.now)) used.add('who');
+    if (!who.at) used.add('who-last');
+    if (who.now) used.add('who');
   }
   /** a free spot for a disc near (cx, cy), searching outward without a zone to stay in */
   function outsideNear(cx: number, cy: number, r: number, ry = r, ok = free): { cx: number; cy: number } {

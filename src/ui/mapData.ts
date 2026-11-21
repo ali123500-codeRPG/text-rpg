@@ -20,7 +20,7 @@ import { OP } from '../library/tableIds';
 import { barrierOn, barrierView } from '../engine/barriers';
 import { landSeen } from '../land/sight';
 import { plural } from './kit';
-import { itemDef } from '../library';
+import { actorBody, itemDef } from '../library';
 import { CONFIG } from '../config';
 import { LIFE_STAGES } from '../scales';
 
@@ -95,7 +95,8 @@ type Pt = { x: number; y: number };
 export type MapPlace = { id: string; name: string; kind: string; parentId: string | null; depth: number; zones: MapZone[]; facts: string[] };
 /** WZ4 a region's land as the character knows it: the cells made out, and the sites known by word only (drawn faint) */
 export type MapLand = { region: import('../types').Region; seen: (i: number) => boolean; faint: Set<string>; /** changes when the cells seen do */ key: string };
-export type KnownMap = { placeId: string; zoneId: string; places: MapPlace[]; land?: MapLand[]; people: MapPerson[] };
+/** youWidthM: your own body's width in metres, your pin's width on the plan (MAP-23; OM4b a) */
+export type KnownMap = { placeId: string; zoneId: string; places: MapPlace[]; land?: MapLand[]; people: MapPerson[]; youWidthM?: number };
 
 /** FR5: a zone's furniture with its points, for the map's icons */
 function furnitureOn(s: GameState, zoneId: string): Pick<MapZone, 'furniture'> {
@@ -249,7 +250,7 @@ export function knownMap(s: GameState): KnownMap {
   // WZ4: each region's land the character has made out; a site is known by word once its place is (the Journal's)
   const land: MapLand[] = (s.regions ?? []).map((r) => ({ region: r, seen: landSeen(s, r.id), faint: new Set(r.sites.filter((x) => x.placeId && ids.has(x.placeId)).map((x) => x.id)),
     key: `${r.id}:${s.player.journal?.landSeen?.[r.id] ?? ''}` }));
-  const km: KnownMap = { placeId: p.placeId, zoneId: p.zone, places: order, land, people: [] };
+  const km: KnownMap = { placeId: p.placeId, zoneId: p.zone, places: order, land, people: [], youWidthM: actorBody(s, p).size.widthM };
   // the top-level place whose map shows someone: the nearest known place over the one their title is in
   const knownAbove = (pl?: string) => { for (let n = 0; pl && !ids.has(pl) && n < 20; n++) pl = byId.get(pl)?.parentId ?? undefined; return pl && ids.has(pl) ? pl : undefined; };
   km.people = people.map(({ zone, ...w }) => { const pl = knownAbove(zoneById(s, zone)?.placeId); return { ...w, ...(pl ? { root: rootPlace(km, pl) } : {}), ...(w.at || w.lastAt ? {} : { listed: zone }) }; });
