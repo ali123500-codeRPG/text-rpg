@@ -56,6 +56,11 @@ type Band = {                   // a small group: a guard post, a gang, a househ
   polygon in metres, x east and y north, corners counter-clockwise) between a bottom and a top height (Zone.floor and
   Zone.top, metres above the ground outside), so each floor of a building can be named on its own (PZ1 a, as a 3D
   space).
+  Its look names only things the title has: an opening only when it is one of its ways, furniture or a container only
+  when its furniture has it; any other thing is left out, so the Narrator, which may repeat a look, never shows an exit
+  or a container that is not there. This holds for every look an agent writes (the Weaver's and World builder's
+  shared schema notes in `src/agents/prompts.ts`) and every library layout (`src/library/layouts.ts`) (PQ12 a,
+  Questions hub "Simulated playtest (AA-108): fixes that need your call").
 - **GSM-23** A point's title is the smallest space that holds it: a booth drawn inside a hall reads as the booth
   (`src/plan/where.ts` zoneAt). A point on a wall that the title someone is in shares with another (a doorway) stays
   in the title they are in, so standing in a doorway never moves anyone into the room beside it (BG-1506).
