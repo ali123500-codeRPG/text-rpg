@@ -1394,6 +1394,9 @@ button.eq-name:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .g-label { line-height: 24px; }
 .g-items { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--space-3) var(--space-4); }
 .g-items > .perk-new { margin: 0; }
+/* M-38c: a Legendary achievement takes the whole row of the gains moment; a Minor row stays one line high where it fits */
+.g-items > .perk-new.ach[data-band="legendary"] { grid-column: 1 / -1; }
+.g-items > .perk-new.ach[data-band="minor"] { align-self: center; }
 /* a skill that went up: its name, its new value, the gain in gold, and its bar */
 .g-skill { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: "n num up" "bar bar bar"; align-items: baseline; gap: 6px var(--space-3);
   padding: 10px 12px; border-radius: var(--r-lg); background: color-mix(in srgb, var(--surface) 70%, transparent); }
