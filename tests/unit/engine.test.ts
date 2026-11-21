@@ -111,7 +111,7 @@ vi.mock('../../src/perception', async () => {
 
 vi.mock('../../src/views', () => ({
   seesClearlyNow: () => true,
-  routineView: (_s: GameState, a: Actor) => ({ self: { zone: a.zone, slots: {} }, beliefs: [], map: [] }), // no routine, as the view below
+  routineView: (_s: GameState, a: Actor) => ({ self: { zone: a.zone, slots: {} }, beliefs: [] }), // no routine, as the view below
   buildActorView: (state: GameState, id: string) => {
     const a = state.actors.find((x) => x.id === id)!;
     return { turn: state.turn, self: { id, zone: a.zone, slots: {}, broken: a.mind?.moraleState === 'broken', surrendered: a.mind?.moraleState === 'surrendered' }, perceived: [], beliefs: [], map: [] }; // BF79: a broken one's flight reads its beliefs and map

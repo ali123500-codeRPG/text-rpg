@@ -15,13 +15,6 @@ export const offeredRoutines = (own: string[] | undefined): string[] => [...new 
 /** NW2: the shared routine an agent's headTo switches an NPC to: it walks to slot 'dest', then back to its routine */
 export const HEAD_TO = 'head_to';
 
-/** NW2: where a head_to walk goes: the destination zone, or for a frontier the zone with a way into it nearest by its walk
- * (self.headEdge, views/ways.ts; it steps through from there); null when the destination is not on its map */
-function headGoal(view: RoutineInput, dest: string): { zone: string; frontier?: string } | null {
-  if (view.map.some((z) => z.id === dest)) return { zone: dest };
-  return view.self.headEdge ? { zone: view.self.headEdge, frontier: dest } : null;
-}
-
 export type Stop = { slot: string; zone: string; minutes: number; activity: string; unbound?: true };
 
 /** NW10: a routine's steps at a time of day: its own for that time, else its steps for any time */
@@ -61,9 +54,8 @@ export function desiredState(view: RoutineInput): { zone: string; activity: stri
     return { zone: b?.lastKnownZone ?? view.self.zone, activity: r.activity ?? 'rest' };
   }
   if (r.kind === 'head') {
-    const dest = view.self.slots.dest;
-    const g = headGoal(view, (Array.isArray(dest) ? dest[0] : dest) ?? view.self.zone);
-    // a destination gone from its map (or never bound): it stays where it is until code sends it back
+    // NW2: self.headGoal (views/ways.ts); a destination gone (or never bound): it stays where it is until code sends it back
+    const g = view.self.headGoal;
     return { zone: g?.zone ?? view.self.zone, activity: r.activity ?? 'walk', ...(g?.frontier ? { frontier: g.frontier } : {}) };
   }
   if (r.kind === 'wait') {
@@ -103,8 +95,7 @@ export function followMove(view: ActorView): string | null {
 function headFrontier(view: ActorView): string | null {
   const cur = view.self.routine;
   if (!cur || getRoutine(cur.id).kind !== 'head') return null;
-  const dest = view.self.slots.dest;
-  const g = headGoal(view, (Array.isArray(dest) ? dest[0] : dest) ?? view.self.zone);
+  const g = view.self.headGoal;
   return g?.frontier && g.zone === view.self.zone ? g.frontier : null;
 }
 

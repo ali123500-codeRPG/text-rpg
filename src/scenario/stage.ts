@@ -1,9 +1,10 @@
 // WI8 a: the stage keeps no list of zones. Every built zone in the world is live for every system; only what a planner or
-// an NPC agent is shown is bounded, by nearbyZones.
+// an NPC agent is shown is bounded, by nearbyZones, in metres from the points that matter.
 import { waysOut } from '../plan/where';
+import { nearestEdge } from '../plan/geom';
 import type { GameState, Zone } from '../types';
-import { topPlace, zoneById } from '../engine/relations';
-import { distOrNull } from '../engine/position';
+import { zoneById } from '../engine/relations';
+import { inside, pathM, wayLeftM, type Located } from '../engine/position';
 import { CONFIG } from '../config';
 
 /** unbuilt frontier keys linked from the player's zone */
@@ -14,13 +15,19 @@ export function frontiersNearPlayer(state: GameState): string[] {
   return out;
 }
 
-/** WI8 a: the ground shown to a planner or an agent: every zone of the settlement or road (top-level place) over each of
- * `places`, and every zone within PLAN_VIEW_M metres of `origins` by the walking path (BG-305), in world order */
-export function nearbyZones(state: GameState, origins: string[], places: string[]): Zone[] {
-  const roots = new Set(places.map((p) => topPlace(state, p)).filter(Boolean));
-  const out = new Set<string>();
-  for (const p of state.places) if (roots.has(topPlace(state, p.id))) for (const z of p.zones) out.add(z.id);
-  const from = origins.filter((z) => zoneById(state, z));
-  for (const z of state.zones) if (!out.has(z.id) && from.some((o) => (distOrNull(state, { zone: o }, { zone: z.id }) ?? Infinity) <= CONFIG.PLAN_VIEW_M)) out.add(z.id);
-  return state.zones.filter((z) => out.has(z.id));
+/** BG-1615: metres from point `f` to title `z`'s nearest point by the walking path: 0 standing in it, else the walk to
+ * where it gets in (wayLeftM), or failing that to its middle; Infinity with no walk, or when even the straight line to
+ * its nearest edge is past `limit` (a walk is never shorter) */
+function walkInM(state: GameState, f: Located, z: Zone, limit: number): number {
+  if (!z.outline?.length || !f.pos) return Infinity;
+  if (f.zone === z.id || inside(z, f.pos)) return 0;
+  if (nearestEdge(f.pos, z.outline).d > limit) return Infinity;
+  try { return wayLeftM(state, f, z.id, undefined, true) ?? pathM(state, f, { zone: z.id }); } catch { return Infinity; }
+}
+
+/** WI8 a: the ground shown to a planner or an agent: every title whose nearest point lies within PLAN_VIEW_M metres of
+ * one of the points `from` by the walking path (BG-305, BG-1615: never a whole place by its title), in world order */
+export function nearbyZones(state: GameState, from: Located[]): Zone[] {
+  const pts = from.filter((f) => f.pos && zoneById(state, f.zone));
+  return state.zones.filter((z) => pts.some((f) => walkInM(state, f, z, CONFIG.PLAN_VIEW_M) <= CONFIG.PLAN_VIEW_M));
 }
