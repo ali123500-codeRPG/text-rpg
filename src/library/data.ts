@@ -395,7 +395,7 @@ export function prototypeLibrary(): Library {
       // unlocks at Commoner's top level (its Start, ST3, was removed: CC3)
       [CL.a_nobody]: { id: CL.a_nobody, personality: { [PA.pride]: -CONFIG.ACH_PERSONALITY_STEP }, name: 'A Nobody', tier: 'tier_2', label: 'a nobody', story: 'Nobody watches a nobody, and you have learned to use that.', floors: {}, unlockClass: { [CL.commoner]: 'max' },
         levelPerks: { 1: [PK.quick_study] }, capstone: [PK.every_fall_a_lesson] },
-      // CB1-CB7: between A Nobody and Unwritten Legend; opens at A Nobody's top level (no skill road), Late Bloom at 1; its capstone is parked (D-360)
+      // CB1-CB7: between A Nobody and Unwritten Legend; opens at A Nobody's top level (no skill road), Late Bloom at 1; its capstone is parked (CI-360)
       [CL.a_somebody]: { id: CL.a_somebody, personality: { [PA.pride]: CONFIG.ACH_PERSONALITY_STEP }, name: 'A Somebody', tier: 'tier_3', label: 'a somebody', story: 'People finally know your name, though most of them still get it wrong.', floors: {},
         unlockClass: { [CL.a_nobody]: 'max' }, levelPerks: { 1: [PK.late_bloom] } },
       // PY2: every NPC that sells has this class; Barter 20 unlocks it

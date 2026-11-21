@@ -3,6 +3,10 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bugs/`.
 
+- 21/11/2026: `AGENTS.md` rule 12 and `docs/instructions.md` section 2: parked class ideas get CI-n rows in
+  `docs/spec/class-ideas.md`, and a table at the top of `docs/spec/deferred-items.md` shows which ID holds which kind of
+  parked idea. The owner, Questions hub page "Open parked items 2", D-157: "a, give class ideas their own ID in parked
+  items, Make sure there is a table showing which ID holds which type of parked idea."
 - 21/11/2026: `docs/instructions.md` sections 4 and 8: a task that grows big within its scope uses helper agents;
   work of a different scope goes to its own thread. The owner, in the DS1–DS7 thread: "make it a standing rule as
   well if the tasks gets big within the same scope, use helper agents, if the scope is different, separate the scope

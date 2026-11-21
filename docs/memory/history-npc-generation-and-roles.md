@@ -34,7 +34,7 @@ are library data, and every number is in `src/config.ts`.
   are the owner's own set numbers, not derived from the XP curve (#907); city rosters and named presets
   (#935, #937). A training simulation found about half of all XP comes from achievements, and that a
   character with every skill at nothing never learns a weapon. Parked: what Heal costs (D-340), the Leader's
-  class (D-341), wares by role (D-346), Dire body size (D-354).
+  class (CI-341), wares by role (D-346), Dire body size (D-354).
 - **Cast power readings (21/11/2026; Questions hub "Cast power check" CK6, CK7, CK9, CK10; D-32).** The challenge
   grade stays the Weaver's declared severity, not a power measure; code logs danger to the player, local pressure
   against the place's usual hostile group and an exceptional rank beside it, and the off-band flag is gone. Bad luck

@@ -141,7 +141,7 @@ export type ClassDef = {
   unlockAny?: Record<string, number>[];
   /** unlocks only for a character with an active perk whose listed numbers reach these (Guard: hearingDb, any perk that sharpens hearing) */
   unlockPerkWith?: { hearingDb?: number };
-  /** class levels other classes must reach before this class unlocks; 'max' = that class's top level (kept for D-159) */
+  /** class levels other classes must reach before this class unlocks; 'max' = that class's top level (kept for CI-159) */
   unlockClass?: Record<string, number | 'max'>;
   /** other ways in: the class also unlocks when every rule of any one of these holds (Knight: Knight Trainee at its top level) */
   orUnlocks?: { unlock?: Record<string, number>; unlockAny?: Record<string, number>[]; unlockClass?: Record<string, number | 'max'> }[];
