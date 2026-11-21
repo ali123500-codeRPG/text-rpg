@@ -365,7 +365,7 @@ resolve.ts).
 - **ACT-242** **Unseen fights.** A fight the player can't perceive runs on code rules every step, with no Planner calls
   (AT55).
 - **ACT-243** **Trips.** A road trip runs on this clock too (see Travel, Legs) (RE5, built).
-- **ACT-244** **Walks off the road** are trips too; their encounter odds are parked (AT24, D-245).
+- **ACT-244** **Walks off the road** in a trip count toward its legs on open land and roll at the wild rate (D-245 a; Travel, Legs). A walk whose route uses no road is not a trip in the code (tripGoal), so it rolls nothing; how far to take that is parked with IWD-245.
 - **ACT-245** **Build notes.** Timers count elapsed time at every step; engaged or hunting NPCs follow their fallback
   orders on coarse steps; scenario endings, leaving the ground, free-roam starts and reach and find quest goals are
   checked at every step, and a scenario break stops the clock; what the player is told is one summary of time spent,
