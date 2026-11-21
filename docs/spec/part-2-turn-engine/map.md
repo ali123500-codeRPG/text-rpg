@@ -180,6 +180,16 @@ continuous map (D-1558)"). Rules below that still lay marks out zone by zone are
   has (lowest at the bottom), each named ("Ground level", "3 m up"), with "· you" at yours; it is hidden when the map
   has one height. The slider shows heights below ground too (a cellar or dungeon, "3 m down") once one is known
   (mapHeights, src/ui/map.ts).
+- **MAP-87** The Map has a 3D view of the same plan: a **3D** button after ⤢ (pressed while on) stands every wall of
+  the height shown up from its line, to its own height above that floor (Wall.top), drawn this share of its metres up
+  the screen and this share to the right (CONFIG.MAP_3D_RISE, CONFIG.MAP_3D_LEAN, placeholders), so north stays up and
+  the layout, the names, the marks, the clicks and the checker are those of the flat plan. A wall is see-through, so it
+  hides no floor or mark, and it stands only over ground seen, faded where only remembered (MAP-16, MAP-33); each door,
+  gap or window is a hole in it to scale (Opening.widthM, heightM, sillM; MAP-14). People, furniture and things stay
+  flat marks at their points. The walls rise out of the plan and sink back in one transform move (--m-scenario,
+  M-70); pan, zoom and clicks work as in the flat view, and the minimap stays flat. It still shows one height at a
+  time (MAP-66); how heights and people's heights show in it is open (D-421, D-1634) (wallFaces, src/ui/planView.ts;
+  TD1 a, TD2 a; Ali, 21/11/2026, Questions hub page "A 3D view of the Map (D-421)").
 - **MAP-67** On the to-scale plan each piece of furniture is a small line glyph for its kind on a disc at its point,
   kept inside its walls, and left off where it would cover the zone's name (MAP-25). Hover names it and the zone card
   lists it under Furniture (src/ui/furnitureIcons.ts, one per FU kind; FR5; RM1 b, RM6 a).

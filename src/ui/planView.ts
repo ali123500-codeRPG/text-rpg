@@ -85,21 +85,29 @@ export function planView(api: GameApi, opts: PlanOpts) {
   // SD4: how to use it is the map's tip and name, not a line under it
   const svg = s('svg', { class: `mm-svg${full ? ' map-svg' : ''}`, tabindex: 0, role: 'group', 'aria-label': `${full ? 'Map' : 'Minimap'}. ${HINT}` }) as SVGSVGElement;
   const fogId = `pv-fog-${++fogIds}`;
-  const world = s('g'), gFog = s('defs'), gAreas = s('g'), gZones = s('g', { class: 'map-zones', 'clip-path': `url(#${fogId})`, mask: `url(#${fogId}-now)` }), gNames = s('g', { class: 'map-names', 'aria-hidden': 'true' });
+  const world = s('g'), gFog = s('defs'), gAreas = s('g'), gFaces = s('g', { class: 'map-faces', 'aria-hidden': 'true' }), gZones = s('g', { class: 'map-zones', 'clip-path': `url(#${fogId})`, mask: `url(#${fogId}-now)` }), gNames = s('g', { class: 'map-names', 'aria-hidden': 'true' });
   const gScale = s('g', { class: 'map-scale', 'aria-hidden': 'true' }), gRing = s('g'), gMarks = s('g', { class: 'map-marks' }), gPath = s('g'), gTokens = s('g');
-  world.append(gFog, gAreas, gZones, gNames, gRing, gMarks, gPath, gTokens);
+  world.append(gFog, gAreas, gZones, gFaces, gNames, gRing, gMarks, gPath, gTokens);
   svg.append(s('defs', {},
     s('marker', { id: `${fogId}-arrow`, viewBox: '0 0 10 10', refX: 8, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }, s('path', { d: 'M0 0 10 5 0 10z', class: 'map-arrowhead' }))),
   s('title', {}, HINT), world, gScale);
   const floorEl = h('span', { class: 'mm-floor' });
   const tool = (label: string, title: string, on: () => void, open?: string) => h('button', { type: 'button', 'data-tip': title, 'aria-label': title, 'data-open': open, onclick: on }, label);
   const key = full ? keyTool('mm-key-btn') : null; // MAP-30: the Map's key, beside its zoom buttons
+  // MAP-87 (TD2 a): the Map's 3D button; the walls rise out of the plan and sink back (the minimap stays flat)
+  let d3 = false;
+  const d3btn = full ? tool('3D', 'Walls standing', () => {
+    d3 = !d3; d3btn!.setAttribute('aria-pressed', String(d3));
+    if (!d3) { svg.classList.remove('d3'); return; } // they sink; the next render leaves them out
+    render(); requestAnimationFrame(() => svg.classList.add('d3'));
+  }) : null;
+  d3btn?.setAttribute('aria-pressed', 'false');
   const say = h('span', { class: 'mm-say' }), carried = h('span', { class: 'mm-carry' });
   const go = h('button', { type: 'button', class: 'mm-go', hidden: true, onclick: () => plan && !api.busy() && opts.onWalk(point(plan)) }, 'Just go');
   const el = h('section', { class: `mm${full ? ' mm-full' : ''}`, 'aria-label': full ? 'Map of this place' : 'Minimap' },
     h('div', { class: 'mm-head' }, floorEl,
       ...(key ? [key.list] : []), h('span', { class: 'mm-tools' }, ...(key ? [key.btn] : []), tool('+', 'Zoom in', () => zoom(-1)), tool('−', 'Zoom out', () => zoom(1)), tool('◎', full ? 'Find me' : 'Back to you', recentre),
-        full ? tool('⤢', 'Show the whole map', () => opts.onExpand()) : tool('⤢', 'Open the full map', () => opts.onExpand(), 'map'))),
+        full ? tool('⤢', 'Show the whole map', () => opts.onExpand()) : tool('⤢', 'Open the full map', () => opts.onExpand(), 'map'), ...(d3btn ? [d3btn] : []))),
     svg, h('div', { class: 'mm-foot' }, say, go, carried));
 
   // each mark's <title> is its hover text, shown as the game's tip (mountTip)
@@ -163,6 +171,58 @@ export function planView(api: GameApi, opts: PlanOpts) {
     g.append(...fm.walls, s('title', {}, `${cap(z.name)}: ${Math.round(z.rect!.w)} × ${Math.round(z.rect!.d)} m`));
     return g;
   }
+  /** MAP-87 (TD1 a): each wall standing up from its line, see-through, leaning CONFIG.MAP_3D_LEAN and rising CONFIG.MAP_3D_RISE
+   *  of its height to the screen's up, each door, gap or window a hole to scale; only over ground seen, faded where only
+   *  remembered (MAP-16, MAP-33). A wall two titles share is drawn once, the far ones first */
+  function wallFaces(zones: MapZone[]): SVGElement[] {
+    const done = new Set<string>(), out: { y: number; g: SVGElement }[] = [];
+    const v = { x: CONFIG.MAP_3D_LEAN * K(), y: -CONFIG.MAP_3D_RISE * K() };
+    for (const z of zones) for (const w of z.walls ?? []) {
+      const top = w.topM ?? 0, L = Math.hypot(w.b.x - w.a.x, w.b.y - w.a.y);
+      const id = [w.a, w.b].map((q) => `${q.x.toFixed(2)},${q.y.toFixed(2)}`).sort().join('|');
+      if (!w.id || top <= 0 || L < 0.01 || done.has(id)) continue;
+      done.add(id);
+      const u = { x: (w.b.x - w.a.x) / L, y: (w.b.y - w.a.y) / L }, a = px(w.a);
+      // the seen and in-sight stretches of its foot (MAP-16, MAP-33), as distances along it
+      const along = (rs: { x0: number; x1: number; y0: number; y1: number }[]) => rs.flatMap((r) => {
+        let t0 = 0, t1 = L;
+        for (const [p0, d0, lo, hi] of [[w.a.x, u.x, r.x0, r.x1], [w.a.y, u.y, r.y0, r.y1]]) {
+          if (Math.abs(d0) < 1e-9) { if (p0 < lo - 0.05 || p0 > hi + 0.05) return []; continue; }
+          const q0 = (lo - 0.05 - p0) / d0, q1 = (hi + 0.05 - p0) / d0;
+          t0 = Math.max(t0, Math.min(q0, q1)); t1 = Math.min(t1, Math.max(q0, q1));
+        }
+        return t1 > t0 ? [[t0, t1]] : [];
+      });
+      const seen = z.seen ? along(z.seen) : [[0, L]], sight = z.sight ? along(z.sight) : seen;
+      const cuts = [...new Set([0, L, ...seen.flat(), ...sight.flat()])].sort((p, q) => p - q);
+      const holes = z.links.filter((l) => l.at && l.widthM && !l.stairs && Math.abs((l.at.x - w.a.x) * u.y - (l.at.y - w.a.y) * u.x) < 0.3)
+        .map((l) => { const c = (l.at!.x - w.a.x) * u.x + (l.at!.y - w.a.y) * u.y; return { s0: c - l.widthM! / 2, s1: c + l.widthM! / 2, h0: l.sillM ?? 0, h1: Math.min(top, (l.sillM ?? 0) + (l.heightM ?? top)) }; });
+      // the seen stretches, each run of one tone joined, so a face has no seam at every fog square
+      const parts: { s0: number; s1: number; now: boolean }[] = [];
+      for (let i = 0; i + 1 < cuts.length; i++) {
+        const m = (cuts[i] + cuts[i + 1]) / 2, inn = (rs: number[][]) => rs.some(([p, q]) => m >= p && m <= q), last = parts[parts.length - 1];
+        if (cuts[i + 1] - cuts[i] < 0.01 || !inn(seen)) continue;
+        if (last && Math.abs(last.s1 - cuts[i]) < 0.01 && last.now === inn(sight)) last.s1 = cuts[i + 1]; else parts.push({ s0: cuts[i], s1: cuts[i + 1], now: inn(sight) });
+      }
+      for (const { s0, s1, now } of parts) {
+        // the face as rectangles in metres along it and up it, around each hole
+        const rects: number[][] = [], hs = holes.filter((x) => x.s1 > s0 && x.s0 < s1).sort((p, q) => p.s0 - q.s0);
+        let at = s0;
+        for (const x of hs) {
+          const h0 = Math.max(s0, x.s0), h1 = Math.min(s1, x.s1);
+          if (h0 > at) rects.push([at, h0, 0, top]);
+          if (x.h0 > 0) rects.push([h0, h1, 0, x.h0]);
+          if (x.h1 < top) rects.push([h0, h1, x.h1, top]);
+          at = Math.max(at, h1);
+        }
+        if (at < s1) rects.push([at, s1, 0, top]);
+        const rise = s('g', { class: 'rise' }, ...rects.map(([x0, x1, y0, y1]) => s('rect', { x: x0, y: y0, width: x1 - x0, height: y1 - y0 })),
+          s('line', { class: 'top', x1: s0, y1: top, x2: s1, y2: top }));
+        out.push({ y: Math.max(a.y, px(w.b).y), g: s('g', { class: `map-face ${w.cls}${now ? '' : ' faded'}`, transform: `matrix(${u.x * K()} ${-u.y * K()} ${v.x} ${v.y} ${a.x} ${a.y})` }, rise) });
+      }
+    }
+    return out.sort((p, q) => p.y - q.y).map((x) => x.g);
+  }
   const textMark = (b: { x0: number; y0: number; x1: number; y1: number; full: string; cut: boolean; lines: string[] }, cls: string, attrs: Record<string, string | number>, kind: 'label' | 'title' | 'note') => {
     const st = TEXT[kind], first = (b.y0 + b.y1) / 2 - ((b.lines.length - 1) * st.line) / 2 + st.size * 0.36, x = (b.x0 + b.x1) / 2;
     return s('g', { class: cls, ...attrs, ...(b.cut ? { 'aria-label': b.full } : {}) },
@@ -173,7 +233,7 @@ export function planView(api: GameApi, opts: PlanOpts) {
   const exitAttrs = (zoneId: string, label: string) => ({ 'data-exit': label, 'data-exit-from': zoneId, tabindex: 0, role: 'button', 'aria-label': `${label}: unexplored, click for Move to here` });
 
   function render() {
-    for (const g of [gAreas, gZones, gNames, gRing, gMarks, gTokens]) g.replaceChildren();
+    for (const g of [gAreas, gZones, gFaces, gNames, gRing, gMarks, gTokens]) g.replaceChildren();
     gFog.replaceChildren();
     if (!d) { scene = null; gPath.replaceChildren(); foot(); return; }
     const { w, h: hh } = size();
@@ -190,6 +250,7 @@ export function planView(api: GameApi, opts: PlanOpts) {
       gAreas.append(s('g', { class: `map-area real${p.id === d.focus ? ' on' : ''}`, 'data-area': p.id, 'aria-label': `${p.name}: a place on this map` },
         s('path', { d: p.outline, ...(cut ? {} : { 'data-role': 'place', 'data-id': p.id }) }), ...(cut ? [r(c, { class: 'mm-tag', 'data-role': 'place', 'data-id': p.id })] : [])));
     }
+    if (d3) gFaces.append(...wallFaces(sc.zones.filter((x) => clip(x.box, vb)).map((x) => x.z)));
     const labels = new Map(sc.labels.map((l) => [l.zoneId, l]));
     /** each name as drawn: a name partly out of view is fitted again to the part of its seen room in view (BG-348), so furniture is checked again */
     const names: Box[] = [];

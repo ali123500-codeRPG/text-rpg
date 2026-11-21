@@ -34,7 +34,9 @@ export type MapWay = { kind: string; shut?: 'locked' | 'barred' | 'blocked'; ope
  *  shared by both titles' links; widthM: its width along its wall (Opening.widthM); wall: a wall stands where it is cut; stairs: a way up or down (OP stairs), up
  *  when its other end is higher */
 export type MapLink = { to: string; label: string; sight: boolean; frontier: boolean; known: boolean; otherPlace?: string; way?: MapWay;
-  at?: Pt; out?: [number, number]; opening?: string; widthM?: number; wall?: true; stairs?: true; up?: boolean };
+  at?: Pt; out?: [number, number]; opening?: string; widthM?: number; wall?: true; stairs?: true; up?: boolean;
+  /** MAP-87: the opening's height and sill (Opening.heightM, sillM), its hole in the 3D view's wall */
+  heightM?: number; sillM?: number };
 /** MAP-68: everyone the character perceives, each at their own point in metres in the map's frame, wherever it lies:
  * at, for someone in full sight, where they stand (SeenActor.body); lastAt, for someone only heard or glimpsed, or last
  * seen, where the character last perceived them (the journal's last spot, BG-125); with neither (an old save) they are
@@ -69,7 +71,8 @@ export type MapZone = {
   /** PZ1: the title's outline in metres (counter-clockwise), drawn as its floor */
   outline?: Pt[];
   /** PZ2: the stretches of its outline and what stands on each, as a map class (wall, low, window, open: WALL_CLASS) */
-  walls?: { a: Pt; b: Pt; cls: WallClass; /** the state wall standing there (none on an open stretch): MAP-85's wall target */ id?: string }[];
+  walls?: { a: Pt; b: Pt; cls: WallClass; /** the state wall standing there (none on an open stretch): MAP-85's wall target */ id?: string;
+    /** MAP-87: how high it stands above this floor (Wall.top) */ topM?: number }[];
   light?: string; cover?: string; links: MapLink[]; items: string[];
   /** FR5: the furniture standing there, each at its point in the frame of rect; kind is a furniture kind id (FU), for its icon */
   furniture?: { id: string; name: string; kind: string; x: number; y: number }[];
@@ -127,12 +130,12 @@ export function wallsOn(s: GameState, z: import('../types').Zone): NonNullable<M
       const p = toSegment(w.a, a, b), q = toSegment(w.b, a, b);
       if (p.d > WALL_ON_M || q.d > WALL_ON_M) return [];
       const t0 = Math.max(0, Math.min(p.t, q.t)), t1 = Math.min(1, Math.max(p.t, q.t));
-      return t1 - t0 > NEAR_M / len ? [{ t0, t1, cls: WALL_CLASS[w.kind] ?? 'wall', id: w.id }] : [];
+      return t1 - t0 > NEAR_M / len ? [{ t0, t1, cls: WALL_CLASS[w.kind] ?? 'wall', id: w.id, topM: w.top - z.floor }] : [];
     }).sort((x, y) => x.t0 - y.t0);
     let t = 0;
     for (const w of on) {
       if (w.t0 > t + NEAR_M / len) out.push({ a: lerp(a, b, t), b: lerp(a, b, w.t0), cls: 'open' });
-      if (w.t1 > t) out.push({ a: lerp(a, b, Math.max(t, w.t0)), b: lerp(a, b, w.t1), cls: w.cls, id: w.id });
+      if (w.t1 > t) out.push({ a: lerp(a, b, Math.max(t, w.t0)), b: lerp(a, b, w.t1), cls: w.cls, id: w.id, topM: w.topM });
       t = Math.max(t, w.t1);
     }
     if (t < 1 - NEAR_M / len) out.push({ a: lerp(a, b, t), b: { ...b }, cls: 'open' });
@@ -221,7 +224,7 @@ export function knownMap(s: GameState): KnownMap {
       const o = l.opening, stairs = o.kind === OP.stairs, hi = Math.max(o.floor, o.to?.floor ?? o.floor);
       const end = stairs && o.to && Math.abs(o.to.floor - z.floor) < Math.abs(o.floor - z.floor) ? o.to : o.at, out = stairs ? undefined : outOf(z, o.at);
       return { to: l.to, label: l.label, sight: seesAcross(s, l), frontier: !!l.frontier && !to, known: known.has(l.to), ...(otherPlace ? { otherPlace } : {}), ...(way ? { way } : {}),
-        at: { x: end.x, y: end.y }, ...(out ? { out } : {}), opening: o.id, widthM: o.widthM, ...(o.wall ? { wall: true as const } : {}), ...(stairs ? { stairs: true as const, up: z.floor < hi - 0.01 } : {}) };
+        at: { x: end.x, y: end.y }, ...(out ? { out } : {}), opening: o.id, widthM: o.widthM, heightM: o.heightM, ...(o.sillM ? { sillM: o.sillM } : {}), ...(o.wall ? { wall: true as const } : {}), ...(stairs ? { stairs: true as const, up: z.floor < hi - 0.01 } : {}) };
     });
     const placed = !!z.outline?.length, box = placed ? boxOf(z.outline) : undefined;
     const you = id === p.zone && p.pos && placed ? { x: p.pos.x, y: p.pos.y } : undefined;
