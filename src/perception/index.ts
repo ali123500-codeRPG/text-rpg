@@ -220,9 +220,17 @@ export function noteSightings(event: GameEvent, state: GameState): void {
   const cs = (p.journal.clearSight ??= {});
   if (per) (p.journal.lastKnown ??= {})[event.actorId] = event.zone; // BG-28: seen or heard, the last place known
   if (per && event.pos) (p.journal.lastSpot ??= {})[event.actorId] = { ...event.pos, floor: zoneById(state, event.zone)?.floor ?? 0 }; // BG-125; an event with no point (none: ZP1) never erases a known one
-  if (per?.level === 'full' && per.cue === 'sight') cs[event.actorId] = event.zone;
+  if (per?.level === 'full' && per.cue === 'sight') { cs[event.actorId] = event.zone; noteBody(state, actorById(state, event.actorId)); }
   else if (event.kind === 'move' || event.kind === 'flee') delete cs[event.actorId];
   if (!per && (event.kind === 'move' || event.kind === 'flee') && actorById(state, event.actorId)?.posture === 'stealthy') updateBeliefs(state, { kind: 'lost', observerId: p.id, aboutId: event.actorId });
+}
+
+/** MAP-68 (RX1 a): the player saw `a` clearly: its body's floor size and facing then, kept for the Map (journal.lastBody) */
+export function noteBody(state: GameState, a: Actor | undefined): void {
+  const j = state.player.journal;
+  if (!j || !a) return;
+  const size = actorBody(state, a).size;
+  (j.lastBody ??= {})[a.id] = { lengthM: size.lengthM, widthM: size.widthM, facing: a.facing ?? [0, 1] };
 }
 
 /** NS2–NS4: what `o` believes about `about`. NPCs read their knowledge; the player simply sees open actors and
@@ -262,7 +270,7 @@ export function lookAround(state: GameState): string[] {
     if (a.id === p.id) continue;
     const d = seeingM(state, p, a);
     // BG-279: a good look is this turn's make-out of everyone it shows, so their own move later this turn keeps them seen
-    if (inLookReach(d)) { cs[a.id] = a.zone; recordMadeOut(state, p.id, a.id, FN.sight, true); (p.journal.lastKnown ??= {})[a.id] = a.zone; if (a.pos) (p.journal.lastSpot ??= {})[a.id] = { ...a.pos, floor: zoneById(state, a.zone)?.floor ?? 0 }; shown.push(a.id); }
+    if (inLookReach(d)) { cs[a.id] = a.zone; recordMadeOut(state, p.id, a.id, FN.sight, true); (p.journal.lastKnown ??= {})[a.id] = a.zone; if (a.pos) (p.journal.lastSpot ??= {})[a.id] = { ...a.pos, floor: zoneById(state, a.zone)?.floor ?? 0 }; noteBody(state, a); shown.push(a.id); }
   }
   return shown;
 }

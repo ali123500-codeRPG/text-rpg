@@ -378,6 +378,9 @@ export type Journal = {
   lastKnown?: Record<ActorId, string>;
   /** BG-125: the point (and floor) where the player last perceived each actor, when the event had one */
   lastSpot?: Record<ActorId, import('./core').Pt3>;
+  /** MAP-68 (RX1 a): the body the player last saw clearly of each actor, its floor size in metres and the way it faced
+   *  (as SeenActor.body): the Map draws someone out of full sight this size at lastSpot */
+  lastBody?: Record<ActorId, { lengthM: number; widthM: number; facing: [number, number] }>;
   /** NS2/NS4: the player's belief about each stealthy actor (open actors are simply seen) */
   stealthSeen?: Record<ActorId, BeliefStatus>;
   /** WN2/WN11: the tricks the player saw through or was warned of, by whose (engine/warnings.ts); as NPCs' ruse facts */

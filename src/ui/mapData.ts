@@ -40,7 +40,7 @@ export type MapLink = { to: string; label: string; sight: boolean; frontier: boo
  * seen, where the character last perceived them (the journal's last spot, BG-125); with neither (an old save) they are
  * not drawn and only the card of the title they are listed in names them (listed). height: the floor their point is on;
  * root: the top-level place whose map shows them; body (SZ16): its floor size in metres and the way it faces, for
- * someone seen clearly at their own point */
+ * someone seen clearly at their own point, or out of full sight the body last seen clearly (journal.lastBody, RX1 a) */
 export type MapPerson = { id: string; name: string; now: boolean; at?: { x: number; y: number }; lastAt?: { x: number; y: number }; body?: { lengthM: number; widthM: number; facing: [number, number] }; icon: IconName;
   height: number; root?: string; listed?: string };
 /** MAP-69: the icon for what the character sees on someone first: what they hold (a weapon or a tool), a shield, armour
@@ -193,10 +193,11 @@ export function knownMap(s: GameState): KnownMap {
   // people (MAP-68): seen now (PlayerView) and last seen, each at their own point; the title they are listed in only
   // says which top-level place's map shows them (root, below)
   const people: (MapPerson & { zone: string })[] = [];
-  /** MAP-68: out of full sight, the point where the character last saw or heard them, on its own floor */
-  const lastAt = (id: string, zone: string): Pick<MapPerson, 'lastAt' | 'height'> => {
-    const spot = p.journal?.lastSpot?.[id];
-    return spot ? { lastAt: { x: spot.x, y: spot.y }, height: spot.floor } : { height: heightOf(zoneById(s, zone)) };
+  /** MAP-68: out of full sight, the point where the character last saw or heard them, on its own floor, and the body last
+   *  seen clearly (RX1 a), if ever */
+  const lastAt = (id: string, zone: string): Pick<MapPerson, 'lastAt' | 'height' | 'body'> => {
+    const spot = p.journal?.lastSpot?.[id], body = p.journal?.lastBody?.[id];
+    return spot ? { lastAt: { x: spot.x, y: spot.y }, height: spot.floor, ...(body ? { body: { ...body } } : {}) } : { height: heightOf(zoneById(s, zone)) };
   };
   for (const a of pv?.actors ?? []) {
     if (a.id === p.id) continue;

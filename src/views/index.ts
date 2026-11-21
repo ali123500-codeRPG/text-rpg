@@ -52,7 +52,7 @@ import { tacticsWord } from './tactics';
 import { fallBackOwner } from '../engine/nerve';
 import { PERK_MOVES, fallbackAttackSkill, hasPerk, healthLevel, isDownLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
 import { itemHolders, summonableThreadboundItems } from '../ruleset/threadboundItems';
-import { beliefStatus, hearsWords, isComm, soundOf, spotInSight } from '../perception';
+import { beliefStatus, hearsWords, isComm, noteBody, soundOf, spotInSight } from '../perception';
 import { hearingOf } from '../perception/noise';
 import { perkSum } from '../ruleset/perks';
 import { skillName } from '../library/skillNames';
@@ -191,7 +191,7 @@ export const seesClearlyNow = (state: GameState, viewer: Actor, id: string): boo
  * its views would otherwise half see someone the narration just named */
 export function keepClearSight(state: GameState, events: GameEvent[]): void {
   const cs = state.player.journal ? (state.player.journal.clearSight ??= {}) : undefined;
-  if (cs) for (const a of seenActors(state, state.player, events)) if (a.level === 'full') cs[a.id] = a.zone;
+  if (cs) for (const a of seenActors(state, state.player, events)) if (a.level === 'full') { cs[a.id] = a.zone; noteBody(state, actorById(state, a.id)); } // RX1 a
 }
 /** everyone the viewer sees now, clearly or half (Never Flat-Footed notes them: src/engine/flatFooted.ts) */
 export const seenIds = (state: GameState, viewer: Actor): string[] => seenActors(state, viewer).map((x) => x.id);

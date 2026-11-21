@@ -197,6 +197,12 @@ type Band = {                   // a small group: a guard post, a gang, a househ
   them loads, its seen ground faded until the next look.
 - **GSM-103** journal.zonesSeen keeps every title the player has stood in or looked into (its name is known) and
   journal.zonesVisited the titles stood in (the turn's new places).
+- **GSM-105** journal.lastSpot keeps the point (and floor) where the player last saw or heard each actor (BG-125), and
+  journal.lastBody, beside it, the body the player last saw clearly of each: its floor size in metres and the way it
+  faced, as SeenActor.body gives them. It is written whenever the player sees them clearly: a full sight of what they
+  do, a look that shows them, and everyone seen clearly as a turn ends. The Map draws someone out of full sight at
+  lastSpot at that size (MAP-68). A save without it loads, and the people in it are drawn as never seen clearly
+  (RX1 a; Ali, 21/11/2026, Questions hub page "One continuous map (D-1558)").
 - **GSM-104** The titles the player has entered (progression.zonesSeen) count for the titles chain (PZ13 a, ACH
   zones_1 to zones_300) and the land cells it has stood in (progression.cellsStood, '<x>:<y>' on the world's
   REGION_CELL_M grid) for the new-ground chain (New ground, below).
@@ -311,7 +317,9 @@ type Band = {                   // a small group: a guard post, a gang, a househ
 - **GSM-192** A walk never plans through a way too small for the walker (fitsThrough).
 - **GSM-193** On the map and minimap, someone seen clearly at their own point is drawn as their body's own size and
   shape at the zoom shown: a capsule, its length along the way it faces and its true width across, with nothing outside
-  it and no smallest size; its icon (MAP-69) scales with it, fitted inside it. A click lands only on the drawn capsule
+  it and no smallest size; its icon (MAP-69) scales with it, fitted inside it, and is left off below
+  CONFIG.MAP_WHO_ICON_MIN_PX (RX2 b). Out of full sight they keep the size and facing last seen clearly, dashed (MAP-68,
+  GSM-105; RX1 a). A click lands only on the drawn capsule
   (MAP-25) (SZ16; RM13 c, RM17 b: "you can narrow the icon no?", Ali, 20/11/2026, Questions hub page "Map rules
   revision"; OM4b a, Ali, 21/11/2026, Questions hub page "One continuous map (D-1558)", which drops RM17 b's wider hit
   area; capsule in ui/mapPlan; MapPerson.body).
