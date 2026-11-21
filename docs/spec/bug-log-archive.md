@@ -355,4 +355,5 @@ Closed rows of the "Bug log" (`bug-log.md`): fixed, won't fix or duplicate. A ro
 | BG-349 | An exit's arrow ran past the map's edge while its note was in view (MAP-50, minimap 60 m on the default fake page, Map 60 m on long-names) | Thread | Fixed | #1420 |
 | BG-350 | A person at their own point in a small room was drawn outside it at every zoom (one-room with people; MAP-25, MAP-68), and could crowd out the door's exit | Thread | Fixed | #1425 |
 | BG-351 | A copy NPC's rank traits were redrawn on every load and only added, so a trait-pool or RANK_TRAITS edit gave saved NPCs more traits than their rank | Thread | Fixed | #1430 |
-| BG-352 | The Character page's level bar showed no progress: its fill had no colour outside a skill tree | Thread | Fixed | #1434 |
+| BG-352 | Each backdrop downloaded twice when the host sent no cache headers (PS-489), so the opening smoke test failed about half the time | Thread | Fixed | #1435 |
+| BG-353 | The Character page's level bar showed no progress: its fill had no colour outside a skill tree | Thread | Fixed | #1434 |

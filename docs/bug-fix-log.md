@@ -10,7 +10,7 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the spec's bug log, docs/spec/bug-log.md, has one. Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
-## BG-352
+## BG-353
 
 **What was wrong:** The level bar on the Character page stayed empty however much XP the player had, while the level bar in the Play page's short sheet filled to the same share.
 
@@ -19,6 +19,16 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** `xpTrack` now builds its row and bar with `xpLine`, the Play sheet's builder, and only adds the banked-XP note under it. The two bars are one piece of code, so they show the same fill, colour and XP figure. Checked in the browser on the fake page: the Character page's fill now computes gold (`rgb(255, 211, 110)`), as on Play.
 
 **Fixed by:** #1434
+
+## BG-352
+
+**What was wrong:** In the browser smoke test "loads, creates a character and shows the opening" (`tests/smoke/play.smoke.ts`), the opening backdrop `field-constable-hay-wain.webp` was requested twice in about half the runs, while PS-489 allows one download per picture. The page showed the right picture; it only fetched it twice, so the test failed at random.
+
+**Root cause:** `showBackdrop` (`src/ui/backdrop.ts`) loaded the picture into a throw-away `Image` to decode it, then showed it by setting the layer's CSS `--backdrop` to `url(...)` of the same file. That is a second load, which reuses the first only when the browser's cache lets it. The smoke server sends no cache headers, and Chromium then fetched the file again in about half the runs (server log: two hits for the one picture, 40 ms apart, the second just after the decode). With `cache-control` added to the server the second fetch never came (10 runs), and keeping the `Image` alive did not stop it (2 of 8 runs still fetched twice), so the cause is the second load, not a lost reference. Whether the published page fetched twice depends on the headers the host sends.
+
+**What was done:** The layer now shows the decoded `Image` itself (an `img` filling the layer, `object-fit: cover`, top-centred as the background was), and the veil moved to the layer's `::after`, so each picture downloads once whatever headers the host sends. The fade (M-75) and the layer swap are unchanged. Checked: 12 of 12 runs fetched the picture once, with the test held 1.5 s after the opening; a screenshot of the opening before and after the change has the same picture and veil (only the random character's action list differs). No other code shows a picture by CSS `url()` after loading it.
+
+**Fixed by:** #1435
 
 ## BG-351
 

@@ -241,7 +241,7 @@ function classSigil(p: Actor, openClasses?: (opener: HTMLElement) => void): HTML
 /** X9: one XP bar. A class at its top level (classMaxLevel, by tier) takes no levels; while no class can take one, XP
  * banks and a line asks for a class (chosen in the class tree, from the circle by the name). */
 function xpTrack(p: Actor): HTMLElement | null {
-  const line = xpLine(p); // BG-352: the same bar as the play sheet's, so it keeps the play sheet's fill colour
+  const line = xpLine(p); // BG-353: the same bar as the play sheet's, so it keeps the play sheet's fill colour
   if (!line) return null;
   return h('div', { class: 'cs-track' }, line,
     !levelTarget(p) ? h('small', { class: 'cs-bank' }, `Your class is at its top level. XP${freeLevelsOwed(p) ? ` and ${freeLevelsOwed(p)} free level${freeLevelsOwed(p) === 1 ? '' : 's'} are` : ' is'} banked until you pick a class for the next level in the class tree.`) : null);

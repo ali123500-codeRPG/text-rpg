@@ -134,12 +134,22 @@ export function isEngaged(state: GameState, actor: Actor): boolean {
   if (!countsInFight(actor)) return false;
   // the player has no beliefs: it is in a fight while someone who counts in one is fighting it, for real or in a spar
   if (actor.kind === 'player') return foesAfter(state, actor).length > 0;
+  if (!mayFight(state, actor)) return false;
   const k = actor.mind?.knowledge ?? {};
   return Object.entries(k).some(([id, b]) => {
     if (!atLeast(b.status, 'suspicious') || chaseLost(b)) return false;
     const other = actorById(state, id);
     return !!other && countsInFight(other) && foe(state, actor, other);
   });
+}
+
+/** a can have a foe at all: a hostile override or band relation; a stance cooled on sight (Dreaded on Sight, which can
+ * cool any stance to hostile); a loyal or friend stance (hostile's ally rule, RS3); or a live spar. stance has no other
+ * way to reach hostile, so an NPC with none of these is engaged with no one, and its knowledge need not be scanned */
+function mayFight(state: GameState, a: Actor): boolean {
+  if (a.sightChecks?.length || maySideWith(state, a, true)) return true;
+  if ([...Object.values(a.mind?.overrides ?? {}), ...Object.values(bandById(state, a.bandId)?.relations ?? {})].includes('hostile')) return true;
+  return !!state.spars?.some((sp) => sp.sides.some((side) => side.includes(a.id)));
 }
 
 /** hasAgenda is derived, never stored: holds a secret, has a plan, remembers something or is in a deal (PM3). */

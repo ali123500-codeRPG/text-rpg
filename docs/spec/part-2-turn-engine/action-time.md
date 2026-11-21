@@ -121,8 +121,11 @@ BG/D numbers) sits in one trailing parenthesis.
   thing is), or to the order's own move for a door or wall of another title and for a bed. The walk carries its action
   like a walk (Actor.walking.then, the shape of busy.order with the way op or the pick-ups). Outside a fight it is one
   turn: the turn's move time, then the world clock (ACT-82) to the thing, and the action as the turn's own (a long one
-  then runs on the world clock, AT45; Sleep runs its night on the bed). In a fight each turn walks the move time and the
-  action is done the turn it comes into reach. Stopped on the way (contact, someone closing, a fight), the walk keeps its
+  then runs on the world clock, AT45; Sleep runs its night on the bed). In a fight a thing within this turn's walk (the
+  move time, the minimap's walk ring) is walked to and the action done the same turn; one beyond it is dashed toward as a
+  plain move dashes (the move time walked, then the main time run, BF91; a lame or Spent walker only walks, AE2, FT10),
+  and the action waits for a later turn even when the run gets there; a take still follows BF91 a, picked up where the run
+  reaches it, now in any title (MQ20 a; Ali, 21/11/2026, Questions hub page "Map and minimap: one map, doors"). Stopped on the way (contact, someone closing, a fight), the walk keeps its
   action ("Walking to …, then unlock"); a turn with no move and no action (Keep walking), or one of only words or a sneak,
   finishes the walk and does it; any other order cancels both; a way found shut ends both (BG-69). Within one move
   slot's walk it is done the same turn, as closing in (FR4, BG-86) (MQ15 a / MQ16 a; Ali, 20/11/2026, Questions hub page "Map and minimap: one map, doors").
@@ -480,7 +483,10 @@ BG/D numbers) sits in one trailing parenthesis.
   ("I keep walking to village square") and Stop here ("I stop and wait here"); nothing is sent until Send. A walk that
   carries an action (ACT-334) names it and measures to the thing: "➜ Walking to the bed, then sleep · 24 m · 17 s to go"
   (WalkingView.then, the action's deck name, a way op by its own word), and the deck's Keep walking reads "Keep walking
-  to the bed, then sleep".
+  to the bed, then sleep". A walk to a door names the door, never the way's label: its kind (the barrier on it, else a
+  doorway's door) and, once the player knows the title it leads into (Journal.zonesSeen), that title: "Walking to the
+  door to the common room, then unlock", "Walking to the gate, then unlock" (views walkingOf, doorName; MAP-40) (MQ21 b;
+  Ali, 21/11/2026, Questions hub page "Map and minimap: one map, doors").
 - **ACT-331** A goal with no open way reads "no open way there" (src/ui/doing.ts walkLeft).
 - **ACT-332** On the Map the goal zone gets a dashed accent outline and "Heading here", and its card says "Heading here
   · 24 m · 17 s to go".
