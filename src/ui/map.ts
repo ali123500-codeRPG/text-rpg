@@ -96,15 +96,21 @@ export function wayGlyph(x: number, y: number, shut: NonNullable<MapWay['shut']>
     : shut === 'barred' ? [s('rect', { x: x - 4, y: y - 5.5, width: 8, height: 11, rx: 1, fill: 'none' }), s('line', { x1: x - 6.5, y1: y, x2: x + 6.5, y2: y })]
     : [s('line', { x1: x - 4, y1: y - 4, x2: x + 4, y2: y + 4 }), s('line', { x1: x + 4, y1: y - 4, x2: x - 4, y2: y + 4 })];
 }
-/** a door as a floor plan draws one: a 12 px gap across its wall, filled with a leaf (a door) or left open between two
- *  posts (a way through with no door); `dir` is the wall's run, h (east-west) or v */
-export function doorGlyph(x: number, y: number, kind: 'door' | 'opening', dir: 'h' | 'v' = 'h'): SVGElement[] {
-  const [w, hh] = dir === 'h' ? [12, 6] : [6, 12];
-  const gap = s('rect', { x: x - w / 2, y: y - hh / 2, width: w, height: hh, class: 'gap' });
-  if (kind === 'door') return [gap, s('rect', { x: x - w / 2 + (dir === 'h' ? 1.5 : 1.5), y: y - hh / 2 + 1.5, width: w - 3, height: hh - 3, rx: 0.5, class: 'leaf' })];
-  return dir === 'h' ? [gap, s('line', { x1: x - 6, y1: y - 3, x2: x - 6, y2: y + 3 }), s('line', { x1: x + 6, y1: y - 3, x2: x + 6, y2: y + 3 })]
-    : [gap, s('line', { x1: x - 3, y1: y - 6, x2: x + 3, y2: y - 6 }), s('line', { x1: x - 3, y1: y + 6, x2: x + 3, y2: y + 6 })];
+/** a door as a floor plan draws one, centred on x, y: `len` px along its wall and `thick` across, a leaf (a door) or a gap
+ *  between two posts (a way through with no door); `dir` is the wall's run, h (east-west) or v; `wall`: a wall stands there. Under it an unseen line takes
+ *  its click across the width a wall's does (.map-edge-hit), so a door as thin as its wall is as easy to hit as the wall */
+export function doorGlyph(x: number, y: number, kind: 'door' | 'opening', dir: 'h' | 'v', len: number, thick: number, wall = true): SVGElement[] {
+  const [w, hh] = dir === 'h' ? [len, thick] : [thick, len];
+  const hit = s('line', dir === 'h' ? { x1: x - len / 2, y1: y, x2: x + len / 2, y2: y, class: 'map-edge-hit' } : { x1: x, y1: y - len / 2, x2: x, y2: y + len / 2, class: 'map-edge-hit' });
+  const gap = s('rect', { x: x - w / 2, y: y - hh / 2, width: w, height: hh, class: kind === 'door' ? 'leaf' : wall ? 'gap' : 'gap bare' }); // a gap's fill cuts its wall's line; on open ground there is none
+  if (kind === 'door') return [hit, gap];
+  const post = (x1: number, y1: number, x2: number, y2: number) => s('line', { x1, y1, x2, y2, class: 'post' });
+  return dir === 'h' ? [hit, gap, post(x - w / 2, y - hh / 2, x - w / 2, y + hh / 2), post(x + w / 2, y - hh / 2, x + w / 2, y + hh / 2)]
+    : [hit, gap, post(x - w / 2, y - hh / 2, x + w / 2, y - hh / 2), post(x - w / 2, y + hh / 2, x + w / 2, y + hh / 2)];
 }
+/** a barrier badge of radius r centred on x, y: its disc and its marks, drawn at radius 8 and scaled with it (RM28 a) */
+export const wayBadge = (x: number, y: number, r: number, shut: NonNullable<MapWay['shut']>) =>
+  s('g', { transform: `translate(${x} ${y}) scale(${r / 8})` }, s('circle', { cx: 0, cy: 0, r: 8 }), ...wayGlyph(0, 0, shut));
 /** a barrier badge for the map's key */
 const wayKey = (cls: string) => s('svg', { class: `k-way map-way ${cls}`, width: 20, height: 20, viewBox: '-10 -10 20 20', 'aria-hidden': 'true' },
   s('circle', { cx: 0, cy: 0, r: 9 }), ...wayGlyph(0, 0, cls.split(' ')[0] as NonNullable<MapWay['shut']>));

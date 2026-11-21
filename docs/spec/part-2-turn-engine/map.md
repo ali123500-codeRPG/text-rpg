@@ -30,7 +30,16 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
 - **MAP-14** Each doorway, gap, window or stair is drawn once, at its own point on its wall, never at the middle of a
   shared edge and never by a compass word: one mark per opening, with a barrier's padlock, bolt or cross in its place.
   An exit to somewhere not on the map is an arrow straight out of its own doorway, turned a little either way only when
-  that spot is taken. There are no connector lines between titles (Opening.at).
+  that spot is taken. There are no connector lines between titles (Opening.at). Every opening is drawn at its own width
+  along its wall (Opening.widthM; a way with none, a doorway's, CONFIG.DOORWAY_M) and at a wall's drawn thickness across
+  it, to scale at every zoom as walls are, with no smallest size; a gap's dark fill cuts its wall's line, so on open ground
+  with no wall a gap is its two posts only. A door's click reaches across as far as a wall's does. A barrier's badge sits
+  on its door, scaling with it, its diameter the door's drawn width times CONFIG.MAP_DOOR_BADGE_SHARE (the 16 px badge of
+  a 1 m door at zoom 1), with no smallest size, and may cover the door. A lock, a blocked way, and anything the same from
+  both sides is centred on the door; a bar, opened only from the side its bolt is on, leans toward that side by
+  CONFIG.MAP_BADGE_LEAN of the badge's diameter (0.5: the whole badge on that side, its edge on the door's line), a share
+  and never pixels. The layout and the checker measure the door and its badge together (src/ui/mapPlan.ts; RM28 a; Ali,
+  21/11/2026, Questions hub page "Map rules revision"; RM31 b; Ali, 21/11/2026, Questions hub page "Map rules revision").
 - **MAP-15** Every zone is reachable from the player's zone through links (flood fill over the stage data). An
   unreachable zone is a finding, not a style choice (checkReach, src/ui/mapPlan.ts).
 - **MAP-16** Fog: the map and the minimap draw a title's floor, walls and furniture only where the fog says the player

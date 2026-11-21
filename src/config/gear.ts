@@ -167,6 +167,12 @@ export const GEAR = {
    *  pixels a person's disc, and your pin's (RM29 c), shrinks to where it would overlap; past it, the people still
    *  overlapping show as one disc */
   MAP_WHO_MIN_D_PX: 7,
+  /** MAP-14 (RM28 a): a barrier badge's diameter over its door's drawn width, both to scale at every zoom: the 16 px badge
+   *  that sat on a 1 m door at zoom 1 (12 px a metre) */
+  MAP_DOOR_BADGE_SHARE: 16 / 12,
+  /** MAP-14 (RM31 b): how far a badge for a barrier that opens from one side only (a bar) sits off its door's line toward
+   *  that side, as a share of the badge's diameter: at 0.5 the whole badge is on that side, its edge on the line */
+  MAP_BADGE_LEAN: 0.5,
   /** MQ7 a: how long a touch is held on the map before it opens the zone's card. Android's long-press timeout is 400 ms
    * (ViewConfiguration.getLongPressTimeout), iOS's long-press gesture 0.5 s (UILongPressGestureRecognizer) */
   MAP_LONG_PRESS_MS: 500,

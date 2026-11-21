@@ -11,7 +11,7 @@ import { CONFIG } from '../config';
 import type { KnownMap, MapZone } from './mapData';
 import { MAX_K, PX_PER_M, TEXT, checkReach, checkStage, hitCap, nameFit, planScene, roughMeasure, type Box, type Measure, type Scene, type TextKind } from './mapPlan';
 import { checkMap } from './mapCheck';
-import { doorGlyph, fogClip, fogMask, iconMark, keyTool, planKeyRows, floorMarks, floorName, pin, wayGlyph } from './map';
+import { doorGlyph, fogClip, fogMask, iconMark, keyTool, planKeyRows, floorMarks, floorName, pin, wayBadge } from './map';
 import { furnIcon } from './furnitureIcons';
 import { metresText, planTo, splitAt, zoneAt, type MinimapPlan, type MinimapPoint } from './minimap';
 import { areaOf } from '../plan/geom';
@@ -219,9 +219,10 @@ export function planView(api: GameApi, opts: PlanOpts) {
     // marks, each only when it is whole in view (MAP-50: nothing tagged past the edge)
     for (const dd of sc.doors) {
       if (!within(dd, inView)) continue;
-      const r = dd.x1 - dd.cx, tag = { 'data-role': 'icon', 'data-id': dd.id, role: 'img', 'aria-label': dd.title, 'data-thing': 'door', 'data-of': dd.zones.join('|') };
-      gMarks.append(dd.way?.shut ? s('g', { class: `map-way ${dd.way.shut}${dd.way.key ? ' key' : ''}`, ...tag }, s('circle', { cx: dd.cx, cy: dd.cy, r }), ...wayGlyph(dd.cx, dd.cy, dd.way.shut), s('title', {}, dd.title))
-        : s('g', { class: `map-door ${dd.kind}`, ...tag }, ...doorGlyph(dd.cx, dd.cy, dd.kind, dd.dir), s('title', {}, dd.title)));
+      const tag = { 'data-role': 'icon', 'data-id': dd.id, role: 'img', 'aria-label': dd.title, 'data-thing': 'door', 'data-of': dd.zones.join('|') };
+      // MAP-14 (RM28 a): the door to scale in its wall, its barrier's badge on it
+      gMarks.append(s('g', { class: `map-door ${dd.kind}`, ...tag }, ...doorGlyph(dd.cx, dd.cy, dd.kind, dd.dir, dd.len, dd.thick, dd.wall),
+        ...(dd.badge && dd.way?.shut ? [s('g', { class: `map-way ${dd.way.shut}${dd.way.key ? ' key' : ''}` }, wayBadge(dd.badge.cx, dd.badge.cy, dd.badge.r, dd.way.shut))] : []), s('title', {}, dd.title)));
     }
     for (const p of sc.places) if (within(p.title, inView)) gMarks.append(textMark(p.title, `map-place-title${p.id === d.focus ? ' on' : ''}`, { 'data-role': 'label', 'data-id': `place:${p.id}`, 'data-for': p.id, 'data-placement': 'outside', 'data-area': p.id }, 'title'));
     for (const e of sc.exits) {
