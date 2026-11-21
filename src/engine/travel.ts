@@ -61,14 +61,22 @@ export function tripGoal(state: GameState, a: Actor, o: Order): { goal: Located;
   return path.length ? { goal: { zone: o.move } } : null;
 }
 
-/** who travels with the player: active bandmates together with it (TV6, as YD7), and BF9 anyone following it (the follow
- * routine) who is together with it the same way, seeing each other */
+/** who is on the player's side on the move: active bandmates together with it (YD7), and BF9 anyone following it (the
+ * follow routine) who is together with it the same way, seeing each other. A companion warns (D-51 b); see `travellers` for a trip */
 export const companions = (state: GameState, a: Actor): Actor[] => state.actors.filter((x) => isActive(x) && x !== a && (together(state, a, x)
-  || (getLibrary().routines?.[x.mind?.routine?.id ?? '']?.kind === 'follow' && eachPerceives(state, a, x))));
+  || following(state, a, x)));
+
+/** BF9: x follows (the follow routine) and x and a see each other */
+const following = (state: GameState, a: Actor, x: Actor): boolean =>
+  getLibrary().routines?.[x.mind?.routine?.id ?? '']?.kind === 'follow' && eachPerceives(state, a, x);
+
+/** TV6 (D-202 b): who travels with the player: only those following it (the follow routine) who see it and are seen by it.
+ * Being a bandmate alone does not take anyone along */
+export const travellers = (state: GameState, a: Actor): Actor[] => state.actors.filter((x) => isActive(x) && x !== a && following(state, a, x));
 
 /** walks the trip leg by leg, each leg in the world clock's steps (RE5, `world`); the clock moves and natural recovery runs for each */
 export function travel(state: GameState, a: Actor, goal: Located, o: Order, rng: Rng, world?: TripWorld<any>): Trip {
-  const group = [a, ...companions(state, a)];
+  const group = [a, ...travellers(state, a)];
   const fromZone = a.zone;
   const pressOn = darkOut(now(state)); // TV5: setting off in the dark presses on; a trip that reaches dusk stops to ask
   const there = () => (goal.pos ? withinM(distM(state, a, goal), 0) : a.zone === goal.zone);

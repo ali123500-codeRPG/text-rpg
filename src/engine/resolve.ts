@@ -141,7 +141,7 @@ import {
   slotMetres,
 } from './speed';
 import {
-  companions,
+  travellers,
   travel,
   tripGoal,
   type TripStop,
@@ -3110,7 +3110,7 @@ function tripWorld(ctx: Ctx, group: string[]): TripWorld<{ before: Map<string, L
  * encounter's event roll); reaching a frontier at the road's end crosses it */
 function doTravel(ctx: Ctx, a: Actor, o: Order, t: NonNullable<ReturnType<typeof tripGoal>>): TripStop {
   const { state } = ctx;
-  const group = [a.id, ...companions(state, a).map((x) => x.id)];
+  const group = [a.id, ...travellers(state, a).map((x) => x.id)];
   const t0 = now(state);
   const trip = travel(state, a, t.goal, o, ctx.rng, a === state.player ? tripWorld(ctx, group) : undefined);
   if (a === state.player) { (state.scratch ??= {}).caughtUp = ((state.scratch.caughtUp as number | undefined) ?? 0) + (now(state) - t0); noteMeanwhile(state, trip.minutes * 60); }

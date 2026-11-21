@@ -8,7 +8,7 @@ import { expect, it } from 'vitest';
 import type { Actor } from '../../src/types';
 import { makeVillage } from '../harness';
 import { staying } from '../../src/minds';
-import { companions } from '../../src/engine/travel';
+import { companions, travellers } from '../../src/engine/travel';
 import { CONFIG } from '../../src/config';
 import { act, plannerOut, play } from './w4-kit';
 import { ago, tick, turnsFor } from '../harness/time';
@@ -32,4 +32,5 @@ it('BF9: someone following the player travels with them', () => {
   expect(companions(s, s.player)).not.toContain(m);
   m.mind!.routine = { id: 'follow', anchorTurn: s.turn, at: 0 };
   expect(companions(s, s.player)).toContain(m);
+  expect(travellers(s, s.player)).toContain(m);
 });
