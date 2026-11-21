@@ -179,7 +179,9 @@ Read when: a skill is missing from the account, changes, or its scripts must run
 Read when: running a playtest or the Parser test set.
 
 - `npm run playtest` and the Parser test set (`PARSER_EVAL=1 npx vitest run tests/parser-eval`) send every model call
-  through a signed-in `claude` command-line client. A Claude cloud session has one.
+  through a signed-in `claude` command-line client. A Claude cloud session on the main account (`desk:main`) has one.
+  On the other account (`desk:rpg-game`) the client is not signed in (`claude auth status`: `loggedIn: false`), so
+  threads there follow the "Other agents" line below.
 - Launch a playtest detached, so it outlives the turn that started it, and check on it later.
 - Playtest output goes to the project's shared folder, not the repo (`playtest-out` is git-ignored).
 - **Other agents:** without that client these do not run. Run the unit, scenario and smoke tests, which use a

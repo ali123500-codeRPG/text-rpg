@@ -8,15 +8,15 @@
 - Unaware: the defense roll takes a situational penalty (*placeholder*).
 - Heavy weapons against block: gap shift −1.
 
-The gap ladder is binding (gap = defense tier − attack tier). A gap past +5 uses the +5 entry. Below −5 the rows run on to −10 in CONFIG.GAP\_LADDER (placeholders, +0.5 a step), and past −10 each further step adds GAP\_PAST\_STEP (0.5) with no top (CS10):
+The gap ladder is binding (gap = defense tier − attack tier). A gap past +5 uses the +5 entry. Below −5 the rows run on to −10 in CONFIG.GAP\_LADDER (placeholders, +0.5 a step), and past −10 each further step adds GAP\_PAST\_STEP (0.5) with no top (CS10). The Dodge rows −1 to −3 follow CONFIG.GAP\_LADDER.dodge (PQ5 a):
 
 | Gap | Dodge | Block |
 | --- | --- | --- |
 | −5 | 2× | 2× |
 | −4 | 1.5× | 1.5× |
-| −3 | 1×; hit moves to the named part anywhere | 1×; hit moves to the named part anywhere |
-| −2 | 1×; hit moves to the named part if adjacent | 1×; hit moves to the named part if adjacent |
-| −1 | 1×, no location limit | 1×, no essential parts |
+| −3 | 1.375×; hit moves to the named part anywhere | 1×; hit moves to the named part anywhere |
+| −2 | 1.25×; hit moves to the named part if adjacent | 1×; hit moves to the named part if adjacent |
+| −1 | 1.1×, no location limit | 1×, no essential parts |
 | 0 | 1×, no essential parts | 1×, Non-essential parts only, else general area |
 | +1 | 0.8× (graze; never an essential part, like the tie: settles OQ-17) | 0.75× |
 | +2 | 0× | 0.5× |
