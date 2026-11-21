@@ -32,8 +32,9 @@ export function benefits(def: ItemDef): { what: string; coin: number }[] {
       : { what: `+${v} ${e.kit ? 'kit bonus' : 'skill bonus'}`, coin: v * V().skillPoint });
   }
   const modes = def.weapon?.modes ?? [];
-  // IR4: damage as damage per second: the class's damage (+ the mode's damageAdj) over the seconds its attack takes, best mode
-  const dps = Math.max(0, ...modes.map((m) => modeDps(def, m)));
+  // IR4: damage as damage per second: the class's damage (+ the mode's damageAdj) over the seconds its attack takes, best
+  // mode; a thrown mode counts only its reach (PQ6 a)
+  const dps = Math.max(0, ...modes.filter((m) => !m.thrown).map((m) => modeDps(def, m)));
   if (dps > 0) out.push({ what: `${+dps.toFixed(2)} damage a second`, coin: dps * V().dps });
   // reach in metres (ZR7), best mode; a throw counts at its own range; a ranged weapon's at its own lower rate (IR4)
   const reach = Math.max(0, ...modes.map((m) => modeReach(m) * (m.tree === 'ranged' && !m.thrown ? V().reachRangedM : V().reachM)));
