@@ -9,7 +9,7 @@ with where its full meaning lives. A term's rules are never defined here.
   with its options and a status. The table doubles as the decision log. From D-1000 on, n is the number of its own
   closed GitHub issue.
 - **I…-n**: an idea list's ID starts with I (for idea), so it never reads like a Questions hub question ID. The
-  lists: IPP-n, IAA-n, IVP-n, ICI-n, IEI-n, ITI-n, ICB-n, IGT-n, IWD-n, INP-n and ICG-n, below.
+  lists: IPP-n, IAA-n, IVP-n, ICI-n, IEI-n, ITI-n, ICB-n, IGT-n, IWD-n, INP-n, ICG-n and IUI-n, below.
 - **IPP-n**: a parked perk idea. One row each in the "Perk ideas" table (`docs/spec/perk-ideas.md`; finished ones in
   the Deferred items archive). A row moved from the Deferred items table keeps its number (D-189 became IPP-189).
 - **IAA-n**: a parked achievement idea. One row each in the "Achievement ideas" table
@@ -34,6 +34,8 @@ with where its full meaning lives. A term's rules are never defined here.
   Deferred items archive). A row moved from the Deferred items table keeps its number (D-16 became INP-16).
 - **ICG-n**: a parked age or training idea. One row each in the "Age and training ideas" table (`docs/spec/age-ideas.md`; finished ones in the
   Deferred items archive). A row moved from the Deferred items table keeps its number (D-222 became ICG-222).
+- **IUI-n**: a parked screen or layout idea. One row each in the "Screen and layout ideas" table (`docs/spec/ui-ideas.md`; finished ones in the
+  Deferred items archive). A row moved from the Deferred items table keeps its number (D-1801 became IUI-1801).
 - **BG-n**: a bug. n is its claim issue's number (label `bug`); the issue is its register entry and its story is
   `docs/bugs/BG-n.md`. Below 1000, the old count: a row in the spec's "Bug log" (`docs/spec/bug-log.md`; closed ones in
   `bug-log-archive.md`) and a story in `docs/bug-fix-log.md`.

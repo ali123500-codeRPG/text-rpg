@@ -3,6 +3,9 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bugs/`.
 
+- 21/11/2026: `AGENTS.md` rule 12 and `docs/instructions.md` section 2: a new idea list, screens and layout (IUI-n,
+  `docs/spec/ui-ideas.md`). The owner, decision card in the project thread "Show belonging info to the player",
+  21/11/2026, asked which list holds the parked Organizations table redesign: "New list: screens and layout".
 - 21/11/2026: `AGENTS.md` rule 12 and `docs/instructions.md` section 2: every newly parked item goes into an idea
   list (a group ID), not the D-n table; when no list fits, the row waits in the D-n table while the owner is asked
   which list takes it, or for a new one. The owner, project thread "Act on parked items round 10", 21/11/2026:

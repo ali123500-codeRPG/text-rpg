@@ -21,7 +21,7 @@ const git = (...a: string[]): string => execFileSync('git', a, { encoding: 'utf8
 export const LOGS = [
   'CHANGELOG.md', 'docs/bug-fix-log.md',
   'docs/spec/deferred-items.md', 'docs/spec/deferred-items-archive.md', 'docs/spec/perk-ideas.md', 'docs/spec/achievement-ideas.md', 'docs/spec/vow-ideas.md', 'docs/spec/class-ideas.md', 'docs/spec/essence-ideas.md', 'docs/spec/threadbound-ideas.md',
-  'docs/spec/combat-ideas.md', 'docs/spec/item-ideas.md', 'docs/spec/world-ideas.md', 'docs/spec/npc-ideas.md', 'docs/spec/age-ideas.md', 'docs/spec/open-questions.md',
+  'docs/spec/combat-ideas.md', 'docs/spec/item-ideas.md', 'docs/spec/world-ideas.md', 'docs/spec/npc-ideas.md', 'docs/spec/age-ideas.md', 'docs/spec/ui-ideas.md', 'docs/spec/open-questions.md',
 ];
 
 /** a conflicted file (diff3 marks) with both sides keeping, or null when any conflict is more than two insertions at one

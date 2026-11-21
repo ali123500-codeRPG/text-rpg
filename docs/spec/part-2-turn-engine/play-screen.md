@@ -471,7 +471,7 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
   leaves it once the person is listed above (src/ui/pages.ts heardOfNames).
 - **PS-262** Places: the current place and those above it, plus places of facts the character witnessed, folded under
   their parent place; the map draws their zones.
-- **PS-495** Under Places, an Organizations table lists every organization the ties the player knows reach, with the ones they are units of (BEL-03), folded under the one each is part of: name, kind word, part of, and the people the player knows in it with their titles, the head first (The owner, Questions hub page "Show belonging to the player", 21/11/2026, OW2 a). Its redesign is parked (D-1801).
+- **PS-495** Under Places, an Organizations table lists every organization the ties the player knows reach, with the ones they are units of (BEL-03), folded under the one each is part of: name, kind word, part of, and the people the player knows in it with their titles, the head first (The owner, Questions hub page "Show belonging to the player", 21/11/2026, OW2 a). Its redesign is parked (IUI-1801).
 - **PS-263** A Timeline lists turns played since the page was opened.
 - **PS-264** The Journal page is built from PlayerView, the belonging view (src/views/belonging.ts, which reads only the ties the player knows), the Journal and the story log only, never the hidden store.
 
