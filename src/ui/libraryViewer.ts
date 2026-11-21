@@ -35,7 +35,7 @@ import { GRADES } from '../types/core';
 /** earnedAtText only reads state to name a granted kind; the library shows definitions, so it passes none */
 const NO_STATE = {} as GameState;
 import { itemLevel, requirement } from '../ruleset/requirements';
-import { claudeComments, fmtDate, h, iconMark } from './kit';
+import { claudeComments, fmtDate, h, iconMark, mountTip } from './kit';
 import { ICON_ART } from './iconArt';
 import { toneTable } from './libraryTones';
 import { skillName } from './creation';
@@ -1774,3 +1774,4 @@ function route(): void {
 }
 addEventListener('hashchange', route);
 route();
+mountTip();

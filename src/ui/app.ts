@@ -1,6 +1,6 @@
 // App shell: side rail (64px items, active pill fills the item, rail scrolls on its own), page area and the push-aside panel.
 import type { GameApi } from '../types';
-import { boxOf, fitInView, h, lineIcon, plural, setPanelHost, closePanel, playDraft, tipOff, tipOn } from './kit';
+import { h, lineIcon, plural, setPanelHost, closePanel, playDraft, mountTip } from './kit';
 import { creationScreen } from './creation';
 import { playScreen } from './play';
 import { achievementsPage, characterPage, inventoryPage, journalPage, questsPage } from './pages';
@@ -44,21 +44,7 @@ export function mountApp(api: GameApi, root: HTMLElement = document.body) {
   // the rail goes last so Tab runs input, tools, sheet, then the rail; CSS puts it in the first column
   root.replaceChildren(view, panel, rail);
   root.classList.add('icon-rail');
-  // the rail's tip: one floating label beside the hovered or focused item (the rail scrolls, so the tip lives outside it)
-  const tip = h('div', { class: 'rail-tip', role: 'tooltip', hidden: true });
-  root.append(tip);
-  const showTip = (e: Event) => {
-    const t = (e.target as Element).closest?.('[data-tip]') as HTMLElement | null;
-    if (!t || !rail.contains(t)) return;
-    const r = boxOf(t);
-    tip.textContent = t.dataset.tip!;
-    tip.hidden = false;
-    fitInView(tip, r.right + 8, r.top + r.height / 2 - tip.offsetHeight / 2);
-  };
-  const hideTip = () => tipOff(() => { tip.hidden = true; });
-  rail.addEventListener('mouseover', (e) => tipOn(() => showTip(e))); rail.addEventListener('focusin', (e) => tipOn(() => showTip(e), true)); // A7
-  rail.addEventListener('mouseleave', hideTip); rail.addEventListener('focusout', hideTip); rail.addEventListener('scroll', hideTip);
-  rail.addEventListener('click', hideTip);
+  mountTip();
 
   const play = playScreen(api, (p) => go(p));
   // RH19 c: Republish sits in the rail's foot once this view is known to reach the saved task

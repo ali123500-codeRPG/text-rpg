@@ -6,7 +6,7 @@
 // zone's card (MAP-64, MQ3, MQ7 a). In a fight the rings show how far a move slot walks and a dash runs (AD9, BF91).
 // Nothing changes while a turn runs (M-06).
 import type { GameApi } from '../types';
-import { boxOf, fitInView, h, pointOf, tipOff, tipOn, viewSize } from './kit';
+import { boxOf, h } from './kit';
 import { CONFIG } from '../config';
 import type { KnownMap, MapZone } from './mapData';
 import { MAX_K, PX_PER_M, TEXT, checkReach, checkStage, hitCap, nameFit, planScene, roughMeasure, type Box, type Measure, type Scene, type TextKind } from './mapPlan';
@@ -101,34 +101,7 @@ export function planView(api: GameApi, opts: PlanOpts) {
         full ? tool('⤢', 'Show the whole map', () => opts.onExpand()) : tool('⤢', 'Open the full map', () => opts.onExpand(), 'map'))),
     svg, h('div', { class: 'mm-foot' }, say, go, carried));
 
-  // the hover text is the game's tip (A7): a browser title tip can't be timed, so each <title> becomes its parent's
-  // data-tip (and its name, if it has none)
-  const untitle = () => svg.querySelectorAll('title').forEach((t) => {
-    const p = t.parentElement!;
-    p.setAttribute('data-tip', t.textContent ?? '');
-    if (!p.hasAttribute('aria-label')) p.setAttribute('aria-label', t.textContent ?? '');
-    t.remove();
-  });
-  const tipEl = h('div', { class: 'rail-tip', role: 'tooltip', hidden: true });
-  el.append(tipEl);
-  let at = { x: 0, y: 0 };
-  const tipped = (e: Event) => { const t = (e.target as Element).closest?.('[data-tip]'); return t && el.contains(t) ? t : null; };
-  // right of the point, or left of it where the window's edge is near (the minimap sits at the right edge, BG-357)
-  const showTip = (t: Element, x: number, y: number) => {
-    tipEl.textContent = t.getAttribute('data-tip'); tipEl.hidden = false;
-    const w = tipEl.offsetWidth;
-    fitInView(tipEl, x + 14 + w + 16 > viewSize().w ? x - 14 - w : x + 14, y - tipEl.offsetHeight / 2);
-  };
-  const hideTip = () => tipOff(() => { tipEl.hidden = true; });
-  el.addEventListener('pointermove', (e) => { at = pointOf(e); });
-  el.addEventListener('pointerover', (e) => {
-    const t = tipped(e);
-    at = pointOf(e);
-    if (t) tipOn(() => showTip(t, at.x, at.y)); else hideTip();
-  });
-  el.addEventListener('focusin', (e) => { const t = tipped(e); if (t) tipOn(() => { const r = boxOf(t); showTip(t, r.right, r.top + r.height / 2); }, true); });
-  for (const ev of ['pointerleave', 'pointerdown', 'focusout', 'wheel']) el.addEventListener(ev, hideTip);
-  untitle();
+  // each mark's <title> is its hover text, shown as the game's tip (mountTip)
 
   const point = (p: MinimapPoint): MinimapPoint => ({ zone: p.zone, x: p.x, y: p.y, metres: p.metres, seconds: p.seconds, turns: p.turns, label: p.label });
   const size = () => ({ w: svg.clientWidth || 420, h: svg.clientHeight || 360 });
@@ -281,7 +254,6 @@ export function planView(api: GameApi, opts: PlanOpts) {
       s('line', { x1: bx + len, y1: by - 5, x2: bx + len, y2: by + 5 }), s('text', { x: bx + len + 8, y: by + 4 }, `${distText(10)} · ${Math.round(10 / CONFIG.PACE_M)} paces`)));
     drawPath();
     foot();
-    untitle();
     scheduleCheck();
     key?.set(planKeyRows(sc.used));
     opts.onRender?.();
