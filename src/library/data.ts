@@ -459,6 +459,7 @@ export function prototypeLibrary(): Library {
         { weight: 1, item: IT.mail_mittens }, { weight: 1, item: IT.plate_gauntlets }, { weight: 1, item: IT.peerless_gauntlets }, { weight: 1, item: IT.spectacles },
         { weight: 1, item: IT.charmed_ring }, { weight: 1, item: IT.ear_cup }, { weight: 1, item: IT.amulet }, { weight: 1, item: IT.hooded_cloak },
         { weight: 1, item: IT.lucky_charm }, { weight: 1, item: IT.lockpicks }, { weight: 1, item: IT.sledgehammer }, { weight: 1, item: IT.pick },
+        ...[IT.splitting_maul, IT.stick_bow, IT.green_wood_bow, IT.rickety_crossbow, IT.patched_mail, IT.rusted_scale_coat, IT.plank_shield, IT.rag_wraps].map((item) => ({ weight: 1, item })),
         { weight: 1, item: IT.healing_draught }, { weight: 1, item: IT.curio }, { weight: 1, item: IT.bandage }, { weight: 1, item: IT.key },
         { weight: 1, item: IT.pack }, { weight: 1, item: IT.sack }, { weight: 1, item: IT.chest }, { weight: 1, item: IT.crate },
         { weight: 1, item: IT.coin },

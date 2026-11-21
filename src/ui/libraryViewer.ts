@@ -2,6 +2,7 @@
 // library exactly as code sees it. Bundled into dist/library/ by scripts/build.mjs. Tables without a custom view
 // get the generic cards, so a new table shows up with no edit here.
 import { BT, RC } from '../library/raceIds';
+import { CRUDE_KIT_TAG } from '../library/itemIds';
 import { perkName, sizeOf as bodySize } from '../library';
 import { FIGURE_CREDITS, figureKey, figureUpright } from '../library/figureModels';
 import { figure3d } from './figure3d';
@@ -289,11 +290,12 @@ function gear(): HTMLElement[] {
   // IR30: one pane per item family (Mundane pieces scale only by their level; special families stand on a Mundane base)
   const families = Object.values(lib.itemFamilies ?? {}).map((f) => ({ f, items: Object.values(lib.items).filter((i) => i.family === f.id) })).filter((x) => x.items.length)
     .map(({ f, items }) => ({ key: `family-${f.id}`, title: f.name, n: items.length, content: [h('p', { class: 'lv-look' }, f.rule), ...byKind(items, f.id)] }));
-  // the starter kit: every item tagged 'starter' (starterKit in src/library/spawn.ts)
-  const kit = Object.values(lib.items).filter((i) => i.tags?.includes('starter'));
+  // the starter kit: every item tagged 'starter' or CRUDE_KIT_TAG (starterKit in src/library/spawn.ts)
+  const kit = Object.values(lib.items).filter((i) => i.tags?.includes('starter') || i.tags?.includes(CRUDE_KIT_TAG));
   const rule = h('article', { class: 'lv-card lv-fixed' }, h('header', {}, h('h3', {}, 'How the starter kit is given'), chip('starterKit · src/library/spawn.ts')),
     h('ol', { class: 'lv-steps' },
       h('li', {}, `After creation the player gets, for each gear class, the highest-level item tagged starter whose equip requirement the build meets (shortBy = 0; a stand-in skill counts at its share). Every class has a ${CONFIG.EQUIP_NEED.common} and a ${CONFIG.EQUIP_NEED.fine} piece.`),
+      h('li', {}, `A class with no piece met gives its Crude piece when the build put at least ${CONFIG.CRUDE_KIT_MIN_SKILL} points into that class's own skill (stand-ins do not count). Rough clothes come to everyone.`),
       h('li', {}, 'Held: the met weapon whose required skill is highest, then the higher item level. A met shield goes in another grip unless that weapon takes two grips.'),
       h('li', {}, 'Worn: the highest-level armor met.'),
       h('li', {}, 'Everything else met is carried in the pack.')));

@@ -265,7 +265,15 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
 - **SHEET-165** \[Retired with the Swordsman start (SHEET-98)\]; the recommended build's kit is SHEET-176.
 - **SHEET-166** Crude rough clothes (need 0, stop nothing, no Dodge cost) are in the starter kit too, so a build that
   meets no weapon (none of its weapon skills at 25) starts in them with no weapon (Ali, 09/11/2026).
-- **SHEET-167** Crude weapons (cudgel, rusty knife) are library items outside the starter kit.
+- **SHEET-167** **Crude pieces for skills put in** (CG1-CG4): a gear class with no starter piece met gives its Crude
+  piece (tag CRUDE\_KIT\_TAG) when the build put at least CRUDE\_KIT\_MIN\_SKILL (`src/config/gear.ts`) points into that
+  class's own skill; stand-ins do not count (CG2). Only the gear-class skills give one (CG1); a met Common or Fine piece
+  replaces it, one piece per class as SHEET-163 (CG3). Improvised and rough clothes are unchanged (clothes come to
+  everyone). The Crude pieces: light melee rusty knife, medium melee cudgel, heavy melee splitting maul, light ranged
+  stick bow, medium ranged green-wood bow, heavy ranged rickety crossbow, medium armor patched mail shirt, heavy armor
+  rusted scale coat, shield plank shield, gauntlets rag hand wraps (CG4). Like every Crude piece they add no bonus, stop
+  nothing and cost no Dodge (SHEET-166, SHEET-168). Owner's ask (21/11/2026): "grant crude equipment on character
+  creation for skills above 1".
 - **SHEET-168** **Equipment balance lever**: a standard-kit piece's bonus is EQUIP\_FACTOR × its need (EQUIP\_FACTOR 0.4
   for now; it replaces the flat KIT\_BONUS 25), so all equipment is rebalanced with one number: Crude 0, Common +10,
   Fine +20, Superior +30, Masterwork +40 (Ali, 09/11/2026).
@@ -278,8 +286,8 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
 - **SHEET-174** Armor will get its own lever and shields a lever for their pool (QE3, under discussion).
 - **SHEET-175** The recommended build, for every Start: Medium Weapons 40, Parry 25, Dodge 10, Endurance 15, Eyesight 5,
   Earshot 5; tags Medium Weapons, Parry, Endurance (`recommendedBuild`, one source for the screen and tests).
-- **SHEET-176** The recommended build holds the Common hand axe and wears crude clothes; no Fine (50) starter piece can
-  be met at creation now.
+- **SHEET-176** The recommended build's Medium Weapons starts at 50 (tagged, YB1), so it gets the Fine arming sword, its
+  stand-ins meet the dagger and woodsman's axe, and it wears crude clothes (`tests/unit/spawn.test.ts`).
 
 #### Random identity and race choice
 
