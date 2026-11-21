@@ -32,6 +32,11 @@ Kind: decision. How changes land and where work runs. The rules that follow from
   conflicted. Now each fix adds only its own `docs/bugs/BG-n.md`. Numbers below 1000 keep their rows and entries. The
   owner asked to "eliminate race-prone manual bug-number allocation", preferring the claim issue's number and
   "GitHub Issues as the authoritative registry".
+- **New D-n and OQ-n numbers come from their own issue** (21/11/2026, #1481). They were one past the highest, which
+  two threads could take at once (D-n reached 438 in about two weeks). Each new one is now the number of an issue
+  opened for it and closed at once; the table row stays the record, so the issue holds no status. Chosen on a decision
+  card over a number built from the claim issue (D-14800 to D-14809) and a letter suffix (D-1480a, easy to confuse
+  with answer letters such as "D-12 a"). `npm run sync` also keeps both sides of rows added at the same spot.
 - **PRs are waited on with `npm run pr:wait`** (21/11/2026, #1472): one call that stops at once on a conflict, a red
   check or a check that never started. GitHub's merge queue was weighed and left out: it is not offered on
   repositories a user (not an organisation) owns, it needs GraphQL, which Claude sessions cannot use, and it guards

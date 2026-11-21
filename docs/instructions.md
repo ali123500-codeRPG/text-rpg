@@ -26,9 +26,15 @@ edge cases. Where a section repeats a rule from `AGENTS.md`, it is there to add 
 
 ## 2. IDs, parked items and bugs
 
-- Open questions, parked items and bugs are named only by fixed IDs: OQ-n, D-n, BG-n. A new OQ-n or D-n takes the
-  next free number: one past the highest ever used, never a gap left by a retired one. A new BG-n is its claim issue's
-  number (Bugs, below). Answered or retired IDs are never reused.
+- Open questions, parked items and bugs are named only by fixed IDs: OQ-n, D-n, BG-n. Each new one is a GitHub issue
+  number, so two threads never take the same one. A new BG-n is its claim issue's (Bugs, below). A new D-n or OQ-n is
+  the number of an issue opened for it alone and closed at once, titled with the item; its row stays its record:
+  ```
+  n=$(gh api repos/{owner}/{repo}/issues -f title='D: <item>' -f body='Row in docs/spec/deferred-items.md' --jq .number)
+  gh api -X PATCH repos/{owner}/{repo}/issues/$n -f state=closed --silent && echo "D-$n"
+  ```
+  (`OQ:` and `open-questions.md` for a question.) Numbers below 1000 are the old count, taken one past the highest.
+  IDs are never renumbered or reused. `npm run sync` keeps both sides when two PRs add rows at the same spot.
 - **Parked items.** Anything the owner parks (a perk, a question, a feature, tuning) gets its own D-n the same turn,
   in the spec's "Deferred items" table with its options written out, plus banked rows in the library where it is
   content (perks, achievements, table rows).

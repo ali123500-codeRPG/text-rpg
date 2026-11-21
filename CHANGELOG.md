@@ -3,6 +3,10 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bugs/`.
 
+- 21/11/2026: `docs/instructions.md` section 2: a new D-n or OQ-n is the number of a GitHub issue opened for it and
+  closed at once; numbers below 1000 are the old count. `npm run sync` keeps both sides when two PRs add rows to the
+  Deferred items table, its archive or the Open questions list. The owner: "address D-n and OQ-n", then "Own issue per
+  ID" on a decision card.
 - 21/11/2026: `AGENTS.md` rule 2, `docs/instructions.md` sections 2 and 8, `docs/providers/claude.md` and `codex.md`:
   a new bug's BG-n is its claim issue's number (label `bug`), the issues are the bug register, and each fix writes
   its own `docs/bugs/BG-n.md`; no new Bug log rows or `docs/bug-fix-log.md` entries. PRs are waited on and merged with
