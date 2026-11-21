@@ -1,6 +1,6 @@
 // Auras (NT14, MB19, MB36–MB39; Intimidation aura doc I1–I8). An aura is a perk-granted function of one skill. Each kind
 // has its own trigger: an engagement aura checks each opposed-or-worse target once per engagement, the first time the
-// target is aware of the owner within reach (auraReachM: CONFIG.AURA_REACH_M metres, more with Chorus; by distM). The target rolls its morale
+// target is aware of the owner within reach (auraReachM: grows with the aura skill, more with Chorus; by distM). The target rolls its morale
 // skill (Resolve, with renown) against the owner's aura skill; when the owner wins, the target takes the aura's effect
 // and pays the aura's fear per tier of gap. Several auras check and cost on their own, so their morale costs add up.
 //   Dread Presence (Intimidation 100): Shaken toward the owner by SHAKEN_PER_TIER × gap until the engagement ends (the
@@ -32,23 +32,28 @@ export { AURAS, type AuraDef } from '../library/auras';
 const key = (aura: AuraDef, owner: Actor) => `${aura.perk}:${owner.id}`;
 
 /** the target is in reach of the owner's engagement aura: opposed or hostile to it, aware of it, and close enough */
-function inReach(state: GameState, owner: Actor, t: Actor): boolean {
+function inReach(state: GameState, owner: Actor, t: Actor, skill: string): boolean {
   if (t === owner || !isActive(t) || !wary(state, t, owner)) return false;
   if (!atLeast(t.mind?.knowledge?.[owner.id]?.status, 'aware')) return false;
-  return withinM(distM(state, owner, t), auraReachM(owner));
+  return withinM(distM(state, owner, t), auraReachM(owner, skill));
 }
-/** an owner's engagement-aura reach in metres: AURA_REACH_M; with Chorus (CN8, Intimidation 120) each shout piece, Chorus
- * included, adds CHORUS_REACH_M in full, and the reach grows by the payoff share of those pieces */
-export function auraReachM(owner: Actor): number {
-  if (!hasPerk(owner, PK.chorus)) return CONFIG.AURA_REACH_M;
+/** D-193 (RD9): an aura's base reach in metres grows with the square root of its skill:
+ * AURA_REACH_M × √(true skill ÷ AURA_REACH_SKILL), so the skill an aura perk opens at gives AURA_REACH_M */
+export const baseAuraReachM = (owner: Actor, skill: string): number =>
+  CONFIG.AURA_REACH_M * Math.sqrt(Math.max(0, trueSkill(owner, skill)) / CONFIG.AURA_REACH_SKILL);
+/** an owner's aura reach in metres for an aura of `skill` (baseAuraReachM); with Chorus (CN8, Intimidation 120) each shout
+ * piece, Chorus included, adds CHORUS_REACH_M in full, and the reach grows by the payoff share of those pieces */
+export function auraReachM(owner: Actor, skill: string): number {
+  const base = baseAuraReachM(owner, skill);
+  if (!hasPerk(owner, PK.chorus)) return base;
   const n = themeCount(owner, 'shout');
-  return CONFIG.AURA_REACH_M * (1 + payoffShare(n)) + CONFIG.CHORUS_REACH_M * n;
+  return base * (1 + payoffShare(n)) + CONFIG.CHORUS_REACH_M * n;
 }
 
 /** TC37/TC38: a projected aura reaches whoever perceives it at any level, or anyone within PROJECTED_AURA_MULT × the
  * owner's aura reach (heard or not) */
-export function projectedReachM(owner: Actor): number {
-  return CONFIG.PROJECTED_AURA_MULT * auraReachM(owner);
+export function projectedReachM(owner: Actor, skill: string): number {
+  return CONFIG.PROJECTED_AURA_MULT * auraReachM(owner, skill);
 }
 
 export type AuraCheck = { owner: Actor; target: Actor; aura: AuraDef; contest: ContestResult; took: boolean; overwhelmed?: true };
@@ -80,7 +85,7 @@ export function engagementAuras(state: GameState, rng: Rng, fear: AuraFear): Aur
     for (const aura of AURAS) {
       if (aura.fn !== FN.engagement_aura || !hasPerk(owner, aura.perk)) continue;
       for (const t of allActors(state)) {
-        if (t.auraChecks?.includes(key(aura, owner)) || !inReach(state, owner, t)) continue;
+        if (t.auraChecks?.includes(key(aura, owner)) || !inReach(state, owner, t, aura.skill)) continue;
         (t.auraChecks ??= []).push(key(aura, owner));
         const { contest, took, ow } = auraContest(state, owner, t, aura.skill, rng);
         if (took && aura.shaken) applySpeech(owner, t, 'intimidate', contest); // I6: the bigger Shaken stands
@@ -156,8 +161,8 @@ export function liftBreak(state: GameState, a: Actor): boolean {
 }
 
 /** TC37/TC38 b: a projected aura's shout (`ev`) reaches whoever perceives it at any level, or anyone within the projected reach */
-const projectedReaches = (state: GameState, owner: Actor, ev: GameEvent, t: Actor): boolean =>
-  !!(ev.perception[t.id] ?? perceptionOf(ev, state, t)) || withinM(distM(state, owner, t), projectedReachM(owner));
+const projectedReaches = (state: GameState, owner: Actor, ev: GameEvent, t: Actor, skill: string): boolean =>
+  !!(ev.perception[t.id] ?? perceptionOf(ev, state, t)) || withinM(distM(state, owner, t), projectedReachM(owner, skill));
 
 /** TC39 a Rally (Command 100), a projected aura triggered by its move: each ally the call reaches (projectedReaches; not a
  * foe, not the owner) makes the rally roll with the owner's Command (rallyRoll): morale back per tier above Near Miss, the
@@ -165,7 +170,7 @@ const projectedReaches = (state: GameState, owner: Actor, ev: GameEvent, t: Acto
 export function rallyCall(state: GameState, owner: Actor, ev: GameEvent, rng: Rng): { target: Actor; tiers: number }[] {
   const out: { target: Actor; tiers: number }[] = [];
   for (const t of allActors(state)) {
-    if (t === owner || !isActive(t) || wary(state, t, owner) || !cryAlly(state, t, owner) || !projectedReaches(state, owner, ev, t)) continue;
+    if (t === owner || !isActive(t) || wary(state, t, owner) || !cryAlly(state, t, owner) || !projectedReaches(state, owner, ev, t, SK.command)) continue;
     out.push({ target: t, tiers: rally(state, t, owner, SK.command, rng) });
   }
   return out;
@@ -175,7 +180,7 @@ export function rallyCall(state: GameState, owner: Actor, ev: GameEvent, rng: Rn
  * from where the owner stands, or stands within the projected reach */
 export const rallyWouldReach = (state: GameState, owner: Actor, t: Actor): boolean =>
   t !== owner && isActive(t) && !wary(state, t, owner) && cryAlly(state, t, owner)
-  && (hears(state, t, placeOf(owner), 'loud') || withinM(distM(state, owner, t), projectedReachM(owner)));
+  && (hears(state, t, placeOf(owner), 'loud') || withinM(distM(state, owner, t), projectedReachM(owner, SK.command)));
 
 /** I9/MB27 Battle Cry (Intimidation 140), a projected aura triggered by its move: the owner's roar (`ev`, a Loud event)
  * reaches everyone who perceives it at any level, however far, and anyone within the projected reach (projectedReachM),
@@ -190,7 +195,7 @@ export function battleCry(state: GameState, owner: Actor, ev: GameEvent, rng: Rn
   out.push({ target: owner, rallied: true });
   for (const t of allActors(state)) {
     if (t === owner || !isActive(t)) continue;
-    if (!projectedReaches(state, owner, ev, t)) continue;
+    if (!projectedReaches(state, owner, ev, t, SK.intimidation)) continue;
     if (wary(state, t, owner)) {
       const { contest, took, ow } = auraContest(state, owner, t, SK.intimidation, rng);
       if (took) fear(t, FR.battle_cry, contest.gap, ow, fearMult(owner));

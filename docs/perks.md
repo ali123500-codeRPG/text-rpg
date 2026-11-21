@@ -634,7 +634,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5% of the owner's true Intimidation (HIGH_PERK_SHARE, placeholder) as true skill in Intimidation. +1% of the owner's true Intimidation (HIGH_PERK_SPREAD, placeholder) as true skill in every skill of group Influence. Shares read true skill without shares; several on one skill add in full. The owner's engagement auras (Dread Presence and any later one) reach further: each shout piece (perks tagged shout in src/library/perkThemes.ts, Chorus included) adds 1 m in full (CONFIG.CHORUS_REACH_M), and the base reach (AURA_REACH_M, 8 m) grows by the payoff share of those pieces, 5% × pieces^0.8 (placeholders). Chorus alone: 9.4 m; with three shout pieces: 12 m.
+- **Effect:** +5% of the owner's true Intimidation (HIGH_PERK_SHARE, placeholder) as true skill in Intimidation. +1% of the owner's true Intimidation (HIGH_PERK_SPREAD, placeholder) as true skill in every skill of group Influence. Shares read true skill without shares; several on one skill add in full. The owner's engagement auras (Dread Presence and any later one) reach further: each shout piece (perks tagged shout in src/library/perkThemes.ts, Chorus included) adds 1 m in full (CONFIG.CHORUS_REACH_M), and the base reach (AURA_REACH_M × √(aura skill ÷ AURA_REACH_SKILL), 8 m at 100) grows by the payoff share of those pieces, 5% × pieces^0.8 (placeholders). At 100, Chorus alone: 9.4 m; with three shout pieces: 12 m.
 - **Lasts:** Always.
 
 ## Higher milestone
@@ -904,7 +904,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 *Story:* You don't have to say a word. Anyone who means you harm feels it the moment they face you, and it stays with them for the rest of the fight.
 
 - **Kind:** Always on (engagement aura)
-- **Trigger:** An actor opposed or hostile to the owner is aware of the owner within the aura's reach in metres (AURA_REACH_M), for the first time this engagement.
+- **Trigger:** An actor opposed or hostile to the owner is aware of the owner within the aura's reach in metres (AURA_REACH_M × √(Intimidation ÷ AURA_REACH_SKILL)), for the first time this engagement.
 - **Conditions:** Once per target per engagement.
 - **Effect:** The owner's Intimidation against the target's Resolve (its morale roll, renown included). If the owner wins, the target is Shaken toward the owner by −5 × the tier gap until the engagement ends (the bigger Shaken stands), and loses 10 morale × the tier gap. Each aura's morale cost adds up on its own.
 - **Lasts:** Shaken until the engagement ends.
@@ -915,7 +915,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Move (projected aura)
 - **Trigger:** The owner uses the move. The roar is a Loud noise.
-- **Effect:** Every foe opposed or hostile to the owner that perceives the roar, at any perception level (half heard counts), wherever it is, or that is within the projected reach (2 × the aura reach, 16 m without Chorus) heard or not, rolls its morale skill (Resolve) against the owner's Intimidation. If the owner wins, the foe loses 10 morale per tier of gap (as Dread Presence). Every ally of the owner reached the same way (a bandmate, someone who counts the owner a friend or better, or someone fighting beside the owner) loses any Shaken and makes a rally roll: its morale check (Resolve) plus 50% of the owner's Intimidation (augment equation). Each tier above Near Miss gives 10 morale back, and any gain makes it Rallied (+5 on every roll until the fight ends; a second rally adds nothing). The owner rallies itself the same way. A broken ally is helped too: once its morale lost is back under 100 % of max, it stops fleeing and fights on (a spoken surrender stays).
+- **Effect:** Every foe opposed or hostile to the owner that perceives the roar, at any perception level (half heard counts), wherever it is, or that is within the projected reach (2 × the aura reach, 16 m at Intimidation 100 without Chorus) heard or not, rolls its morale skill (Resolve) against the owner's Intimidation. If the owner wins, the foe loses 10 morale per tier of gap (as Dread Presence). Every ally of the owner reached the same way (a bandmate, someone who counts the owner a friend or better, or someone fighting beside the owner) loses any Shaken and makes a rally roll: its morale check (Resolve) plus 50% of the owner's Intimidation (augment equation). Each tier above Near Miss gives 10 morale back, and any gain makes it Rallied (+5 on every roll until the fight ends; a second rally adds nothing). The owner rallies itself the same way. A broken ally is helped too: once its morale lost is back under 100 % of max, it stops fleeing and fights on (a spoken surrender stays).
 - **Lasts:** Instant.
 - **Cooldown:** Once per engagement. It is the owner's main action.
 

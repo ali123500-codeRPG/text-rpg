@@ -19,7 +19,7 @@ Kind: context. What was asked, what was decided and which PR built it, oldest fi
   #338). The power number on the Character page reads the same function (D-273, #722).
 - **XP curve (10-16/11/2026; XC1, XC2).** The first levels cost too much. A flat floor was built (#911) and
   turned down: every level must cost more than the last, by one continuous equation with no maximum and no
-  pieces (#914). Quest XP reads the same level cost. Parked: the levels' share of the rating (D-195).
+  pieces (#914). Quest XP reads the same level cost. The levels' share of the rating (D-195) was closed: LEVEL_RATING_SHARE stays a lever tuned by play.
 - **How long a playthrough is (12/11/2026).** The owner's yardstick for counts, chains and curves: a typical
   playthrough ends between character level 40 and 60, and the longest may reach 100.
 - **Skill groups as ratings (18/11/2026; GR1-GR45).** From BW18: a skill group has a rating that some checks

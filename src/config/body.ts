@@ -108,7 +108,11 @@ export const BODY = {
   PLAY_DEAD_AT: 'afraid' as MoraleLevel,
   /** ... or when this many foes or more are within one move of it [placeholder] */
   PLAY_DEAD_FOES: 2,
-  AURA_REACH_M: 8, // I3/RD1: metres an engagement aura reaches (placeholder); the aura skill sets it once RD9's formula is chosen (D-193)
+  /** I3/RD1/RD9 (D-193): metres an aura reaches at AURA_REACH_SKILL in its skill; it grows with √(skill ÷ AURA_REACH_SKILL)
+   * (src/engine/auras.ts baseAuraReachM) [placeholder] */
+  AURA_REACH_M: 8,
+  /** D-193: the aura skill at which an aura reaches AURA_REACH_M (where aura perks open) */
+  AURA_REACH_SKILL: 100,
   SPAR_LIMIT: 'critical' as HealthLevelKey, // SP4 (placeholder): a fighter at this health level or worse is out of the spar; a cruel spar uses Incapacitated
   /** ranged attacks: the penalty by how far the target is as a share of the mode's reach (both from real metres), first
    * band the share fits in; a longbow at 50 m is barely stretched, a shortbow at 50 m is at its limit */
