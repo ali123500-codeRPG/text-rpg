@@ -3,6 +3,10 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bugs/`.
 
+- 21/11/2026: `docs/instructions.md` section 2: the idea lists' IDs start with I: IPP-n,
+  IAA-n, IVP-n, ICI-n, IEI-n and ITI-n (were PP, AA, VP, CI, EI and TI); D-n is unchanged. Every reference in the repo
+  was renamed; older lines below keep the old names. The owner, Questions hub page "Open parked items 3", TI-218:
+  "a, but add a letter at first to indicate they belong to the ideas, it gets confusing when the same naming sense is used for the question hub and the parked ideas."
 - 21/11/2026: `AGENTS.md` rule 12 and `docs/instructions.md` section 2: parked Threadbound item ideas get TI-n rows
   in `docs/spec/threadbound-ideas.md`; D-218 and D-220 moved there. The owner, Questions hub page "Open parked items
   3", D-218: "I want some threadbound items to level up. give threadbound items a unique parked item ID, and confirm to

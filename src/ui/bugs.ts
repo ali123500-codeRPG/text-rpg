@@ -3,7 +3,7 @@
 // then sends every open bug to Claude (BG-27: pressing it sends them), the same as "Send open bugs to
 // Claude": a comment sent to Claude (the comments capability), which wakes the thread that triages them. The send
 // button stays for sending again; it is hidden, and a report is only saved, when the page can't send to Claude.
-// AA-108: below them, the Chronicler's deed ideas, sent to Claude the same way for review with the owner.
+// IAA-108: below them, the Chronicler's deed ideas, sent to Claude the same way for review with the owner.
 import type { GameApi, GameState } from '../types';
 import { deedSendId, type DeedSend } from '../save/sends';
 import { isNewReport, type FiledBug } from '../save/bugs';
@@ -29,10 +29,10 @@ export function bugsForClaude(open: FiledBug[], unsent: string): string {
 }
 
 type Want = NonNullable<GameState['hidden']['templateWants']>[number];
-/** AA-108: the text sent to Claude (or copied) with the Chronicler's deed ideas, for review with the owner (PROG-118), each
+/** IAA-108: the text sent to Claude (or copied) with the Chronicler's deed ideas, for review with the owner (PROG-118), each
  * with the db document its verdict goes on */
 export function deedsForClaude(storyId: string, ideas: readonly Want[]): string {
-  return `Deed ideas from the Chronicler (AA-108), from the Bugs page of story ${storyId} in ali123500-codeRPG/text-rpg. `
+  return `Deed ideas from the Chronicler (IAA-108), from the Bugs page of story ${storyId} in ali123500-codeRPG/text-rpg. `
     + 'Review them with the owner, and write each one the owner approves as an achievement code rule by PR (PROG-118). '
     + 'Once the owner rules on one, record it in the game page\'s db on its document in deed_sends (keep id, storyId, name and at) '
     + 'with verdict "approved" or "turned_down", so the Bugs page shows it.\n\n'
@@ -40,7 +40,7 @@ export function deedsForClaude(storyId: string, ideas: readonly Want[]): string 
 }
 const VERDICT_WORD = { approved: 'Approved', turned_down: 'Turned down' } as const;
 
-/** AA-108: the Chronicler's deed ideas of this story, each sent to Claude once (deed_sends marks it) or copied where sending
+/** IAA-108: the Chronicler's deed ideas of this story, each sent to Claude once (deed_sends marks it) or copied where sending
  * isn't available (a copy marks nothing, so it holds every idea still waiting for a verdict); Clear list takes the ruled ones off */
 function deedIdeas(api: GameApi, redraw: () => void) {
   let marks = new Map<string, DeedSend>(), at = 0;

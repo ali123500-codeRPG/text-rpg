@@ -445,6 +445,7 @@ The scenario director, stages and triggers, quests and vows, scenario setup and 
   - `src/engine/loot.ts`
   - `src/engine/triggers.ts`
   - `src/scenario/apply.ts`
+  - `src/scenario/boon.ts`
   - `src/scenario/checkin.ts`
   - `src/scenario/director.ts`
   - `src/scenario/fixtures.ts`

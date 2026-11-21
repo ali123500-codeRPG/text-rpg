@@ -1,6 +1,6 @@
 ### Agent Chronicler
 
-Agent Chronicler proposes new achievements (AA-108, settles who carries the proposals of PROG-118). It never grants
+Agent Chronicler proposes new achievements (IAA-108, settles who carries the proposals of PROG-118). It never grants
 anything and never narrates.
 
 - **When.** Once for each scenario that ends, after that turn's narration is shown and saved, as a background call: no
@@ -30,7 +30,7 @@ anything and never narrates.
   so the library lists it); a turned-down one keeps only its name and count, so the Chronicler still sees it as
   proposed and does not offer it again.
 - **Model.** Claude Fable 5.2 at high effort, model "claude-fable-5-2" (config AGENT\_MODELS.chronicler), with modelTier
-  "complex" as the fallback. Chosen by the owner from the AA-108 comparison on one simulated scenario: Opus 5.5 high gave
+  "complex" as the fallback. Chosen by the owner from the IAA-108 comparison on one simulated scenario: Opus 5.5 high gave
   6 ideas (about $0.09 a call), Fable 5.2 medium 7 (about $0.17), Fable 5.2 high 11 (about $0.22), the most and the
   sharpest (PR #1522).
 - **Failure.** One repair retry (src/agents/call.ts), then no ideas for that scenario. Nothing in play changes.

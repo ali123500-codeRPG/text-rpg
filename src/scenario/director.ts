@@ -12,7 +12,8 @@ import { buildWeaverView, buildWorldView, type WeaverTarget } from '../views';
 import { isActive, zoneById } from '../engine/relations';
 import type { FrontierWait } from '../engine/resolve';
 import type { PlanContext, PlanError } from './index';
-import { stageFrontiers, validateStagePlan } from './validate';
+import { rewardDraw, stageFrontiers, validateStagePlan } from './validate';
+import { itemDef } from '../library';
 import { applyFallbackStage, applyStagePlan, beginScenario, ensurePlace, openingEvents, placeNewcomer, stealthyArrival } from './apply';
 import { frontiersNearPlayer } from './stage';
 import { addRegion, regionCallView, tidyBrief, type RegionCallView } from '../land/brief';
@@ -363,7 +364,9 @@ export class ScenarioDirector {
     // WB1: a world build goes to the World builder (its view has no tier); without one wired, to the Weave call
     const build = ctx.world ? this.opts.build : undefined;
     const call = build ? ((v: unknown, e?: PlanError[], r?: StagePlan) => build(v as WorldView, e, r).catch(() => null)) : (v: unknown, e?: PlanError[], r?: StagePlan) => this.call(v as WeaverView, e, r);
-    const view = build ? buildWorldView(state, target) : buildWeaverView(state, target);
+    // TI-220b b: a stage plan's rewards come from code's draw, shown to the Weaver to place
+    const view = build ? buildWorldView(state, target)
+      : { ...buildWeaverView(state, target), rewardDraw: rewardDraw(state, ctx).map((d) => ({ item: d.item, name: itemDef(state, d.item).name, qty: d.qty, boon: d.boon })) };
     const dropped = new Set<string>();
     const got = async (e?: PlanError[], r?: StagePlan) => { const p = await this.timed(call(view, e, r), deadline); return p && p !== TIMEOUT && ctx.world ? worldOnly(p, dropped) : p; };
     const res = await this.planWith(state, ctx, got);

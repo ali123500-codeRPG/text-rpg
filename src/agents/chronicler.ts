@@ -1,4 +1,4 @@
-// AA-108: the Chronicler. One background call per ended scenario: it reads that scenario's turns and the achievement
+// IAA-108: the Chronicler. One background call per ended scenario: it reads that scenario's turns and the achievement
 // library and proposes deeds no achievement counts yet. Its ideas go to the GM view's Wanted list (hidden.templateWants,
 // of 'deed') for the owner to review; an approved one becomes an achievement only as a code rule (PROG-118).
 import type { GameState, LogLine, ScenarioRecord, TemplateWant } from '../types';

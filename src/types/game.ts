@@ -144,11 +144,11 @@ export interface GameApi {
   sendBlueprint(id: string): Promise<{ id: string } | { error: string }>;
   /** the library send list, newest first */
   librarySends(): Promise<import('../save/sends').LibrarySend[]>;
-  /** AA-108, the GM view: the Chronicler's deed ideas of this story already sent to Claude */
+  /** IAA-108, the GM view: the Chronicler's deed ideas of this story already sent to Claude */
   deedSends(): Promise<import('../save/sends').DeedSend[]>;
-  /** AA-108: marks these deed ideas of this story as sent to Claude */
+  /** IAA-108: marks these deed ideas of this story as sent to Claude */
   markDeedsSent(ideas: readonly { scenario: number; turn: number; label: string }[]): Promise<void>;
-  /** AA-108: "Clear list": this story's deed ideas the owner has ruled on leave the Wanted list; how many left. WT9: an
+  /** IAA-108: "Clear list": this story's deed ideas the owner has ruled on leave the Wanted list; how many left. WT9: an
    * approved one leaves the story too; a turned-down one keeps only its count there */
   clearRuledDeeds(): Promise<number>;
   /** WT8 c, WT9, the GM view: the owner's verdict on a wanted group (src/scenario/wants.ts wantKey): approved, it goes;

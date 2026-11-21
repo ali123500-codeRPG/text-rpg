@@ -15,11 +15,11 @@ describe('292 BG-212 minted names: hidden terms as whole words', () => {
     p.rewards.push({ item: { base: IT.arming_sword, quality: 'quality_2', boosts: 'hitAdj', name, look: 'a well-kept blade' }, place: { carriedBy: 'guard_1' } });
     return p;
   };
-  it('"rat" inside "pirate" does not stop the sword being minted; the whole word still does: "the rat\'s blade" is placed plain', () => {
+  it('"rat" inside "pirate" does not stop the sword being minted; the whole word still does: "the rat\'s blade" is not minted (TI-220b: dropped, as plain rewards come from the draw)', () => {
     const s = toStoryStart(makeVillage());
     const p = plan('a pirate\'s sword');
-    expect(validateStagePlan(s, p, ctx).map((e) => e.code)).not.toContain('reward_plain');
-    expect(typeof tidyRewards(s, p).rewards.at(-1)!.item).toBe('object');
-    expect(tidyRewards(s, plan('the rat\'s blade')).notes.map((n) => n.code)).toContain('reward_plain');
+    expect(validateStagePlan(s, p, ctx).map((e) => e.code)).not.toContain('reward_dropped');
+    expect(tidyRewards(s, p).rewards.some((r) => typeof r.item === 'object')).toBe(true);
+    expect(tidyRewards(s, plan('the rat\'s blade')).notes.find((n) => n.code === 'reward_dropped')?.message).toContain('hidden term');
   });
 });

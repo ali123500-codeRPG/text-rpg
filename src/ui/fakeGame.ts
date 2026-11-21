@@ -337,7 +337,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     state = {
       storyId: 'fake', turn: 4, mode: 'tactical', zones: [], walls: [], openings: [], roofs: [], lights: [], furniture: [], ground: [], player, actors: [slime, guard], bands: [], events: [],
       hidden: { plans: { slime_1: { goal: 'drive the stranger off the field', steps: ['slam', 'retreat to the trees'], triggers: [], createdTurn: 2 } }, memory: {}, secrets: [], firedLog: [], agreements: [{ id: 'ag_1', parties: ['player', 'guard_1'], text: 'He lets you back in after dark; you tell him if you see the thief.', madeTurn: 2, madeBy: 'guard_1' }], weaverNote: 'the slimes are fleeing something in the woods',
-        // AA-108: deed ideas for the GM view's Wanted list (the first one already approved in the fake send list)
+        // IAA-108: deed ideas for the GM view's Wanted list (the first one already approved in the fake send list)
         templateWants: [{ turn: 2, scenario: 1, actorId: 'player', label: 'a travelling tinker', wanted: 'someone to mend the broken lantern', template: 'patron', count: 1 },
           ...FAKE_DEEDS.map((d) => ({ turn: d.turn, scenario: 1, actorId: 'player', label: d.label, wanted: d.wanted, template: '', of: 'deed' as const, count: 1 }))], stage: { eventSummary: 'slimes trouble the village', challenge: 'moderate', gain: 'minor', hiddenTerms: ['woods_beast'] } },
       agentLog: [{ turn: 3, agent: 'narrator', input: { view: 'NarrationView…' }, output: { text: NARRATION[2] }, status: 'ok', errors: [], modelTierApplied: 'complex' } as GameState['agentLog'][number],

@@ -22,7 +22,7 @@ export type HiddenStore = {
   /** W6: per-actor hidden Weaver text (motive, routineGap); GM view only. Not an agenda (hasAgenda ignores it). */
   castNotes?: Record<string, { motive: string; routineGap?: string; templateGap?: string }>;
   /** NG15: every templateGap the Weaver wrote, for the GM view's "Wanted" list (kept across scenarios); D-53 a: its routineGap
-   * too (of 'routine', `template` then the routine set used); AA-108: the Chronicler's deed ideas (of 'deed', `label` the idea's name).
+   * too (of 'routine', `template` then the routine set used); IAA-108: the Chronicler's deed ideas (of 'deed', `label` the idea's name).
    * WT9: counted groups like roleWants (wantKey), at most CONFIG.GM_LOG_GROUPS_TEMPLATE_WANTS */
   templateWants?: Wanted<TemplateWant, 'actorId' | 'wanted'>[];
   /** NR17: roster keys already filled by a cast entry; the World view leaves them out */
@@ -39,7 +39,7 @@ export type HiddenStore = {
   scenarios?: ScenarioRecord[];
 };
 
-/** NG15: a template or routine the Weaver wanted and no library entry gave; AA-108: a deed idea of the Chronicler */
+/** NG15: a template or routine the Weaver wanted and no library entry gave; IAA-108: a deed idea of the Chronicler */
 export type TemplateWant = { turn: number; scenario: number; actorId: string; label: string; wanted: string; template: string; of?: 'routine' | 'deed' };
 /** NR28: a composition whose wanted skills the closest role lacks */
 export type RoleWant = { turn: number; scenario: number; actorId: string; label: string; skills: string[]; role: string; missing: string[] };

@@ -2,7 +2,8 @@
 // tests. Each title is a TitleSpec as a plan hands it over; places are made for the place ids the titles name.
 import type { GameState, Place, TitleSpec, WayKind, WaySpec } from '../../src/types';
 import { drawTitles } from '../../src/plan/draw';
-import { resetLibrary } from '../../src/library';
+import { getLibrary, resetLibrary } from '../../src/library';
+import { RW } from '../../src/library/tableIds';
 import { CONFIG, resetConfig } from '../../src/config';
 
 /** a way to a title: its words, its kind (open by default) and frontier when it leads off the stage */
@@ -57,3 +58,11 @@ export function landCellsUnder(state: GameState, pts: { x: number; y: number }[]
 }
 const LC_PASTURE = 'LC2';
 
+
+/** TI-220b: runs `fn` with the Weaver's reward draw (RW6) giving only `item`, so a test plan can place a known reward.
+ * Make the state first: a new village resets the library, and with it this stub. */
+export function withDrawOf<T>(item: string, fn: () => T): T {
+  const t = getLibrary().rewardTables!, kept = t[RW.weaver].rows;
+  t[RW.weaver].rows = [{ weight: 1, item }];
+  try { return fn(); } finally { t[RW.weaver].rows = kept; }
+}

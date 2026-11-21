@@ -1,7 +1,7 @@
 // BF18 (BG-187): the Weaver can say whom a placed item belongs to; away from them it is on their list of missing things
 // (never where it is), so a job can name that exact item, and handing it back completes the job.
 import { expect, it } from 'vitest';
-import { actor, createRng, makeVillage } from '../harness';
+import { actor, createRng, makeVillage, withDrawOf } from '../harness';
 import { resolveSpeech, selectSpokespeople } from '../../src/engine';
 import type { AcceptedAgentOutput } from '../../src/engine';
 import { buildOppositionView } from '../../src/views';
@@ -50,7 +50,7 @@ it('BF18: the Weaver gives a placed item an owner; the job rule points at self.m
   const p = villageStagePlan('success');
   p.rewards.push({ item: IT.lucky_charm, place: { carriedBy: 'guard_1' }, owner: 'barkeep' }); // cast keys
   expect(checkStagePlan(JSON.parse(JSON.stringify(p))).value.rewards.at(-1)).toMatchObject({ owner: 'barkeep' });
-  applyStagePlan(st, p, { tier: 'success', kind: 'scenario', placeId: 'tavern' }, { entry: 'open' }, createRng(1));
+  withDrawOf(IT.lucky_charm, () => applyStagePlan(st, p, { tier: 'success', kind: 'scenario', placeId: 'tavern' }, { entry: 'open' }, createRng(1))); // TI-220b: the charm is the draw
   const holder = st.actors.find((a) => a.core.inventory.some((i) => i.itemId === IT.lucky_charm))!;
   const owner = st.actors.find((a) => a.label === 'the barkeep' || a.names?.current === p.cast.find((c) => c.key === 'barkeep')?.name)!;
   expect(holder.core.inventory.find((i) => i.itemId === IT.lucky_charm)?.owner).toBe(owner.id);

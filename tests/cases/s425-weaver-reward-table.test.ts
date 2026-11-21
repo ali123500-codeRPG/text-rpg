@@ -1,4 +1,4 @@
-// 425 The Weaver's reward table (TI-220): a scenario's rewards draw as a kept vow's do, from a table of their own (RW6)
+// 425 The Weaver's reward table (ITI-220): a scenario's rewards draw as a kept vow's do, from a table of their own (RW6)
 // with the kept-vow table's weights, and every row says which draws it can show in (showsIn; left out, all of them).
 import { describe, expect, it } from 'vitest';
 import { createRng, makeVillage } from '../harness';

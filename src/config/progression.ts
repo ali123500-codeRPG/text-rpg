@@ -12,6 +12,7 @@ export const PROGRESSION = {
   BOON_COIN: 20, // coin value per Boon, unless the item sets its own boon
   BOON_QUALITY: { plain: 1, quality_1: 2, quality_2: 3, quality_3: 5, quality_4: 8 } as Record<QualityKey | 'plain', number>, // Boon multiplier by minted quality (plain: not minted)
   BOON_BUDGET: { none: 0, minor: 2, moderate: 5, major: 10, extreme: 20 } as Record<string, number>, // per plan, by gain
+  BOON_PAST_CRIT_MULT: 1.5, // D-216c a: the budget × this per step past Critical Success (placeholder)
   // XP and levels (X1–X10). Placeholders, kept small at first (X1).
   LEVEL_XP: 100, // XP from level n to n+1 = LEVEL_XP × √(n² + LEVEL_XP_EARLY²), rounded
   /** the early bump in the XP curve (placeholder): every level costs more than the one before, the XP that used to reach

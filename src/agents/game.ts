@@ -243,7 +243,7 @@ export function createGame(deps: GameDeps): Game {
     }
   }
 
-  /** AA-108: the Chronicler's deed ideas for an ended scenario, added to the Wanted list when they come; no turn waits on it */
+  /** IAA-108: the Chronicler's deed ideas for an ended scenario, added to the Wanted list when they come; no turn waits on it */
   const chronicles = new Set<Promise<void>>();
   function chronicle(s: GameState, r: ScenarioRecord): void {
     if (rateLimited || stopped) return;
@@ -579,7 +579,7 @@ export function createGame(deps: GameDeps): Game {
       length: { band, words: wordCount(narr.output.text), top: views.lengthTop(s, band) } }); // LN7: measured, never re-asked
     lastLog = narrLog;
     lastDisplayAt = clock.now();
-    // AA-108: each scenario that ended this turn gets one Chronicler call in the background, once its last line is in
+    // IAA-108: each scenario that ended this turn gets one Chronicler call in the background, once its last line is in
     for (const r of s.hidden.scenarios?.filter((x) => x.endTurn === turn) ?? []) chronicle(s, r);
     // BG-337: the story text follows the commit; a turn the save does not hold keeps its lines in memory for the next good turn
     if (committed) await storeHistory(s.storyId);

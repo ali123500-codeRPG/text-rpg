@@ -279,7 +279,7 @@ describe('SD1 scenario ending moment', () => {
     expect(sentText(claude.calls.at(-1)!)).not.toContain('hidden');
   });
 
-  it('AA-108: an ended scenario gets one background Chronicler call, whose deed ideas join the Wanted list after the turn', async () => {
+  it('IAA-108: an ended scenario gets one background Chronicler call, whose deed ideas join the Wanted list after the turn', async () => {
     start();
     H.onResolve = (s) => {
       s.stage.scenario = { number: 1 } as NonNullable<GameState['stage']['scenario']>; s.stage.ended = { as: 'resolved', text: 'hidden' }; s.stage.breakCause = 'scenario_end';

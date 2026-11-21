@@ -104,7 +104,7 @@ export type EssenceBounds = Record<string, number | Past100Key>;
  * are true skill split over `skills` by weight; a deed row (deed: true) puts its points on the scenario's most-marked skill */
 /** D-141 VW14: a reward table: one row is picked by weight; a row naming another table rolls that table instead (a
  * reward type), else it gives its item (qty, default 1) */
-/** TI-220: where a reward table row can show: a kept vow's draw or the Weaver's (a scenario's rewards) */
+/** ITI-220: where a reward table row can show: a kept vow's draw or the Weaver's (a scenario's rewards) */
 export type RewardSource = 'vow' | 'weaver';
 /** showsIn: the draws this row can show in; left out, it shows in every draw */
 export type RewardTableDef = { id: string; name: string; rows: { weight: number; table?: string; item?: string; qty?: number; showsIn?: RewardSource[] }[] };
@@ -155,7 +155,7 @@ export type ClassDef = {
   unlockAny?: Record<string, number>[];
   /** unlocks only for a character with an active perk whose listed numbers reach these (Guard: hearingDb, any perk that sharpens hearing) */
   unlockPerkWith?: { hearingDb?: number };
-  /** class levels other classes must reach before this class unlocks; 'max' = that class's top level (kept for CI-159) */
+  /** class levels other classes must reach before this class unlocks; 'max' = that class's top level (kept for ICI-159) */
   unlockClass?: Record<string, number | 'max'>;
   /** other ways in: the class also unlocks when every rule of any one of these holds (Knight: Knight Trainee at its top level) */
   orUnlocks?: { unlock?: Record<string, number>; unlockAny?: Record<string, number>[]; unlockClass?: Record<string, number | 'max'> }[];

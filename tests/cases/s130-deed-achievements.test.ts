@@ -72,7 +72,7 @@ describe('130 deed achievements', () => {
     expect(s.player.progression!.tally!.brink).toBe(2); // surviving the brink counts win or not
   });
 
-  it('AA-108: Not One Step and its larger-crowd branches need you never moved; Every Last One needs every foe killed by you', () => {
+  it('IAA-108: Not One Step and its larger-crowd branches need you never moved; Every Last One needs every foe killed by you', () => {
     const s = makeVillage();
     const foes = ['slime_1', 'slime_2', 'patron_1'];
     for (const id of foes) Object.assign(actor(s, id), { killedBy: s.player.id }).core.condition.hpLostPct = 100;
