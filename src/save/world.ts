@@ -6,8 +6,8 @@ import { fromPages, toPages } from './pages';
 import { newReport, repairReferences } from './checks';
 import { CONFIG } from '../config';
 import { itemHolders } from '../ruleset/threadboundItems';
-import { isActive, stance } from '../engine/relations';
-import { stripBody } from '../engine/loot';
+import { stance } from '../engine/relations';
+import { lootersOf, stripBody } from '../engine/loot';
 import type { Actor } from '../types';
 
 /** every exact `from` string becomes `to`: in values, in arrays and as record keys. A `kind` is never an id. */
@@ -85,12 +85,10 @@ export function carryOn(world: GameState, fresh: GameState, fell = true): GameSt
 }
 
 /**
- * WP6 a: the foes who downed `past` loot the body: everyone standing, hostile to them and in the same place, those in the
- * same zone first, by stripBody's rule. A Threadbound item keeps its dead owner's bond, which no longer holds (WP2), so
- * whoever later takes it from the looter can wear it. No foe: all stays.
+ * WP6 a: the foes who downed `past` loot the body: every hostile foe standing who saw them fall, nearest first
+ * (lootersOf, the rule for any body found), by stripBody's rule. A Threadbound item keeps its dead owner's bond, which no
+ * longer holds (WP2), so whoever later takes it from the looter can wear it. No such foe: all stays.
  */
 export function lootTheFallen(state: GameState, past: Actor): void {
-  const foes = state.actors.filter((a) => a !== past && a.mind && isActive(a) && a.placeId === past.placeId && stance(state, a, past) === 'hostile')
-    .sort((a, b) => Number(b.zone === past.zone) - Number(a.zone === past.zone));
-  stripBody(state, past, foes);
+  stripBody(state, past, lootersOf(state, past, (a) => stance(state, a, past) === 'hostile'));
 }
