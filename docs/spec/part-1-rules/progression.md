@@ -47,7 +47,7 @@ question IDs, BG/D numbers) sits in one trailing parenthesis.
   in its first group (`groupsOf`), so attack skills count in Melee or Ranged, dodge and block in Defense, endurance in
   Health, the senses in Notice, stealth skills in Stealth and speech in Influence.
 - **PROG-45** Riposte and Blade Dance (formerly Slip Counter) join the Melee and Defense groups directly (D-158) and
-  count in Melee. Lockpicking and Filching (the Sleight group, FL1) count like Stealth.
+  count in Melee. Filching (the Sleight group, FL1) counts like Stealth; Handiwork (the Survival group, D-89) counts for nothing in a fight.
 - **PROG-46** A skill's worth is SKILL\_RATING\_AT\_50 (23.1) × (s ÷ 50)^SKILL\_RATING\_POWER (2), so doubling a skill
   makes it worth four times as much, with no cap; s is the **true** skill × its tier multiplier (LF16), for the player
   and foes alike (Ali, 12/11/2026, LF15; it replaced the old training-effort curve, which assumed 100 was the top and
@@ -364,7 +364,7 @@ question IDs, BG/D numbers) sits in one trailing parenthesis.
 - **PROG-243** When Human and Elf perks are picked, AGG's origin perks are the models (Ali, 08/11/2026, AGG comparison
   A4).
 - **PROG-244** Riposte (Swordsman) has ladder perks (its 60 perk is Answer the Blow) and blade\_dance mirrors it;
-  lockpicking and the slime senses get none (G3).
+  the slime senses get none (G3).
 
 #### All-XXX perks
 

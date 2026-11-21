@@ -304,10 +304,10 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   // It sits in the Perception tree; who may use it is the skill's own rule (end of prototypeLibrary)
   sk(SK.scent, TR.perception, [FN.smell], [RL.sense]),
   sk(SK.healing, TR.medicine, [FN.healing], [RL.grip]), // NR33
-  // FL1: the Sleight group (functionNames.ts): Lockpicking opens locks (BA2), Filching takes what others carry (src/engine/filch.ts);
-  // each stands in for the other (CONFIG.SUBSTITUTES)
-  sk(SK.lockpicking, TR.tools, [FN.lockpicking], [RL.grip]),
-  sk(SK.filching, TR.trickery, [FN.filching], [RL.grip]), // in Trickery beside Falsehood; still Lockpicking's stand-in
+  // FL1: the Sleight group (functionNames.ts): Filching takes what others carry (src/engine/filch.ts) and, applied to a lock,
+  // opens it (BA2; D-89 RP20: there is no Lockpicking skill)
+  sk(SK.filching, TR.trickery, [FN.filching, FN.lockpicking], [RL.grip]), // in Trickery beside Falsehood
+  sk(SK.handiwork, TR.survival, [FN.handiwork], [RL.grip]), // D-89 RP13: mending gear, at a forge or in the field (src/engine/repair.ts)
   sk(SK.guile, TR.trickery, [FN.influence], []), // TC24, TC26: a lie told with the body, rolled against the onlooker's Insight
   // Tactics (TR19; TC11 d, TC10, TC13, TC14): the Tactics function on three skills that stand in for each other; Battle
   // Sense also rolls Reaction (FN11, the initiative roll: TC5, TC13); Command joins the group only
@@ -364,7 +364,7 @@ export function prototypeLibrary(): Library {
       // BR7: from being a slime, not from a class
       [TR.slime_senses]: { id: TR.slime_senses, name: 'Tremor senses', rating: 'inferior', skills: [SK.tremor], access: { either: [RC.python, RC.spider].map((id) => ({ kind: 'race' as const, id })) } }, // AB11, AB19: snakes and spiders feel vibration; slimes smell instead
       [TR.medicine]: { id: TR.medicine, name: 'Medicine', skills: [SK.healing], access: { blockedBy: [AMORPHOUS] } }, // NR33: hands to mend with
-      [TR.tools]: { id: TR.tools, name: 'Tools (placeholder, OQ-20)', skills: [SK.lockpicking], access: { blockedBy: [AMORPHOUS] } },
+      [TR.survival]: { id: TR.survival, name: 'Survival', skills: [SK.handiwork], access: { blockedBy: [AMORPHOUS] } }, // RP18 a: hands to work with
     },
     classes: {
       // Parry 80 and Medium or Heavy Weapons 60 unlock the class (PR #918); Medium Weapons 40 and Parry 40 are its creation floors
@@ -429,6 +429,8 @@ export function prototypeLibrary(): Library {
       [SV.bed]: { id: SV.bed, name: 'bed for the night', price: 5 },
       [SV.bath]: { id: SV.bath, name: 'bath', price: 2 },
       [SV.clinic]: { id: SV.clinic, name: 'clinic care', price: 20, heals: HL.clinic },
+      [SV.repair]: { id: SV.repair, name: 'repair', price: 0, repairs: true }, // D-89 RP6 a: priced by the job, only at a forge (RP8 b)
+      [SV.forge]: { id: SV.forge, name: 'use of the forge', price: 5, forge: true }, // RP17 b
     },
     // growth proposal 2.2: essences. Placeholder rows for the engine; the content round (one table per race and body type,
     // with traits) belongs to the lore and loot threads (D-228). EG11 b: never numbers. NM2: an essence is a small foreign addition
@@ -602,7 +604,7 @@ export function prototypeLibrary(): Library {
       [DU.pick_up_ground]: { id: DU.pick_up_ground, name: 'Pick up from the ground', effort: 'base', seconds: 0 },
       [DU.hand_over]: { id: DU.hand_over, name: 'Hand something over', effort: 'base', seconds: 0 }, // instant, like gear
       // ways (AT11k-l): doors, bars and keys are instant and never stop the walk (less realism); picking keeps its work
-      // and is sped by Lockpicking (BA2)
+      // and is sped by Filching (BA2)
       [DU.door]: { id: DU.door, name: 'Open or close a door', effort: 'base', seconds: 0 },
       [DU.bar]: { id: DU.bar, name: 'Bar or unbar a door', effort: 'base', seconds: 0 },
       [DU.key]: { id: DU.key, name: 'Lock or unlock with a key', effort: 'base', seconds: 0 },
@@ -613,6 +615,9 @@ export function prototypeLibrary(): Library {
       [DU.break_through]: { id: DU.break_through, name: 'Break through a wall or barrier', effort: 'hard', seconds: 0, locksMove: true, focus: 'steady', onBreak: [{ upTo: 1, then: 'kept' }] },
       [DU.pick_lock]: { id: DU.pick_lock, name: 'Pick a lock', effort: 'moderate', seconds: 30, locksMove: true, focus: 'careful', onBreak: [{ upTo: 1, then: 'kept' }],
         speed: { fn: FN.lockpicking, halving: CONFIG.PICK_HALVING_PER, fastCap: CONFIG.PICK_FAST_CAP } },
+      // D-89 RP15 b: its seconds come from the job (src/engine/repair.ts repairSeconds); RP24: a long action like picking a
+      // lock, and broken off its share done takes effect (resolve.ts shareDone)
+      [DU.repair]: { id: DU.repair, name: 'Repair gear', effort: 'moderate', seconds: 0, locksMove: true, focus: 'careful', output: 'share', onBreak: [{ upTo: 1, then: 'share' }] },
       // care (AT11m-n): a bandage broken off is not used up
       [DU.bandage]: { id: DU.bandage, name: 'Bandage', effort: 'moderate', seconds: 20, locksMove: true, focus: 'careful' },
       [DU.drink]: { id: DU.drink, name: 'Drink a potion', effort: 'base', seconds: 3 },

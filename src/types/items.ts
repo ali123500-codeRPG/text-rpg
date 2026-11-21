@@ -126,7 +126,7 @@ export type ItemInstance = {
   stolenFrom?: string;
   /** CT3: a container's lid stands open: its contents can be seen and taken */
   open?: true;
-  /** CT3: a locked container: a key naming it (opens) or a Lockpicking roll at its grade opens it, as a lock on a way (BA2) */
+  /** CT3: a locked container: a key naming it (opens) or a Filching roll at its grade opens it, as a lock on a way (BA2) */
   lock?: { locked: boolean; broken?: true }; // broken: BF31, broken open: it never locks again
   grade?: import('./core').Grade;
   beyond?: Record<string, number>; // BA2, as on a barrier

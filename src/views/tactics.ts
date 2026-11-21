@@ -21,7 +21,7 @@ import { VOLUME_NOISE } from '../perception/noise';
 import { COVER, HEALTH_LEVELS, LIGHT, TACTICS } from '../scales';
 import { CONFIG } from '../config';
 import { feinting } from '../engine/feint';
-import { freeGrips, healthLevel, poolState, working } from '../ruleset/body';
+import { freeGrips, healthLevel, itemState, poolState, working } from '../ruleset/body';
 import { canBlock, isHeld } from '../ruleset/gear';
 
 /** TC4 a: the Planner's tactics word: the last TACTICS word whose CONFIG.TACTICS_FROM value its own Battle Sense reaches */
@@ -125,7 +125,7 @@ function shieldToReady(state: GameState, a: Actor, foes: Actor[]): string | unde
   const free = freeGrips(state, a).length;
   return a.core.inventory.find((i) => {
     const d = itemDef(state, i.itemId);
-    return !!d.shield && !isHeld(i) && !i.equippedIn?.length && working(poolState(i.pools?.shield ?? 100)) && free >= (d.grips ?? 1);
+    return !!d.shield && !isHeld(i) && !i.equippedIn?.length && working(itemState(i.pools?.shield ?? 100)) && free >= (d.grips ?? 1);
   })?.id;
 }
 

@@ -39,6 +39,7 @@ const MAIN: Record<string, Omit<ActionRow, 'id' | 'who'>> = {
   show: { roll: fn(FN.filching), against: SENSES, at: 'doShow, src/engine/resolve.ts' },
   steady: { roll: fn(FN.morale), against: null, at: 'steady, src/engine/steady.ts' },
   heal: { roll: fn(FN.healing), against: null, at: 'doHeal, src/engine/resolve.ts' },
+  repair: { roll: fn(FN.handiwork), against: { text: 'Item need' }, at: 'doRepair, src/engine/resolve.ts' }, // D-89
   extract: { roll: { text: 'Essence quality' }, against: null, at: 'extractEssence, src/engine/extract.ts' },
   ...Object.fromEntries(['move', 'flee', 'hold', 'call_help', 'give', 'take', 'buy', 'sell', 'rest', 'wait', 'sleep', 'open']
     .map((t) => [t, { roll: null, against: null, at: 'doMain, src/engine/resolve.ts' }])),

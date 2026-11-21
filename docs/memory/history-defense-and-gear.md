@@ -32,3 +32,9 @@ Kind: context. What was asked, what was decided and which PR built it, oldest fi
 - **The defense row (18-19/11/2026).** The player could never change the standing defense. The flavour-only
   attack stance was removed (#1075), and the action deck got a row to pick dodge, parry or block; a pick
   takes effect at once and is free (#1077).
+- **Repairing gear (20-21/11/2026; D-89, RP1-RP24).** Pools only drained and nothing mended. The owner chose a
+  smith's paid service and a skill (RP1 c): Handiwork in a new Survival tree, with Lockpicking removed as a skill
+  (picking a lock is Filching applied to a lock) and the Tools tree gone (RP2, RP18, RP20). A forge multiplies
+  the skill; equal skill never fails, 4× is high risk (RP13 a). Items got their own bands down to Broken and
+  Destroyed (RP12). Weapons do not wear (RP5). Parked: other places to repair (D-435), kits (D-436), a Mending
+  skill for healing items (D-437), mending items broken in chests (D-438).

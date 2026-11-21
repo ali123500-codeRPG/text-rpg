@@ -103,10 +103,11 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
     else if (a.type === 'break' && (a.target === null || !(boxes.has(a.target) || walls.has(a.target) || view.zone.links.some((l) => l.to === a.target && l.way)))) illegal.push(`action.target ${a.target}`);
     else if (a.type === 'filch' && (a.target === null ? a.item === null : !(actors.has(a.target) && !dead.has(a.target)) && !boxes.has(a.target))) illegal.push(`action.target ${a.target}`); // FL2: someone in view or a container
     else if (a.type === 'heal' && a.target !== null && (!actors.has(a.target) || dead.has(a.target))) illegal.push(`action.target ${a.target}`); // NR34: someone alive in view, or no one (oneself)
+    else if (a.type === 'repair' && (a.item === null || !items.has(a.item) || (a.target !== null && (!actors.has(a.target) || dead.has(a.target))))) illegal.push(a.item === null || !items.has(a.item) ? `action.item ${a.item}` : `action.target ${a.target}`); // D-89: one's own item, and a smith in view or no one
     else if ((a.type === 'restrain' || a.type === 'extract') && (a.target === null || !actors.has(a.target) || dead.has(a.target))) illegal.push(`action.target ${a.target}`); // BF5, DX3: someone alive in view
     // P2: code picks a speech action's skill from its type (SPEECH_SKILL), so the Parser's skill there is dropped
     // sneak: code picks the stealth skill (ST2, VS1), so the Parser's skill there is dropped
-    if (a.type === 'sneak' || a.type === 'search' || a.type === 'stash') a.skill = ''; // SE2/SE9: code picks the roll
+    if (a.type === 'sneak' || a.type === 'search' || a.type === 'stash' || a.type === 'repair') a.skill = ''; // D-89: repair rolls Handiwork // SE2/SE9: code picks the roll
     if (a.type === 'search') a.item = null; // D-21: a search looks for everything in reach; the thing it was for is never asked about
     else if ((SPEECH_ACTIONS as readonly string[]).includes(a.type)) a.skill = '';
     else if (a.skill && !view.player.skills.some((x) => x.id === a.skill)) illegal.push(`action.skill ${a.skill}`);

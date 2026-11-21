@@ -32,7 +32,8 @@ function in its group; adding a function or group is one row there.
 | Notice | hearing | hearing (tremor augments it) |
 | Notice | smell | scent (AB18) |
 | Stealth | stealth | sneaking, combat_stealth, vanishing |
-| Stealth | lockpicking | thievery (BA2; the group is a placeholder) |
+| Sleight | lockpicking | filching applied to a lock (BA2; D-89 RP20: no Lockpicking skill) |
+| Survival | handiwork | handiwork (tree "Survival", D-89 RP13: mending gear; XP none) |
 | Influence | influence | persuasion, intimidation, barter |
 | Speed | initiative | none yet (the best one adds to the initiative d100); dodge joins the Speed group directly, without the function |
 | none | none | feint, riposte, disarm (placeholders) |
@@ -57,7 +58,8 @@ function in its group; adding a function or group is one row there.
 | tremor (snakes and spiders, tier 0; AB19) | slime_senses | sense | sound | hearing |
 | scent (animals and slimes, AB18) | scent | sense | | |
 | hide (no function, Defense group; races with natural armor, AB20) | defense | | | |
-| thievery (functions: lockpicking) | tools | grip | | |
+| filching (functions: filching, lockpicking) | trickery | grip | | |
+| handiwork (D-89) | survival | grip | | |
 
 Persuasion and barter also need a speaking race (race tag `speaks`: Human, Elf); intimidation does not (SR1, Ali 08/11/2026).
 

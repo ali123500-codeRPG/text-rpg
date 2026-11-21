@@ -39,7 +39,7 @@ export const NPC_ROLES: Record<string, NpcRoleDef> = Object.fromEntries([
   role(RO.skirmisher, 'Skirmisher', 'combat', 'ordinary', { high: [SK.melee_light, SK.dodge], moderate: [SK.light_armor, SK.ranged_light, SK.battle_sense], low: [SK.sneaking, SK.endurance] }, { traits: { [PA.levity]: 20 } }, [PK.second_wind], [GC.melee_light, GC.armor_light]),
   role(RO.brute, 'Brute', 'combat', 'ordinary', { high: [SK.melee_heavy, SK.unarmed_strike], moderate: [SK.endurance, SK.intimidation, SK.unarmed_grapple], low: [SK.heavy_armor] }, { traits: { [PA.temper]: 40 } }, [PK.second_wind, PK.heavy_sleeper], [GC.melee_heavy, GC.armor_heavy]),
   role(RO.shooter, 'Shooter', 'combat', 'ordinary', { high: [SK.ranged_medium], moderate: [SK.ranged_light, SK.eyesight, SK.dodge], low: [SK.light_armor, SK.melee_light] }, { traits: { [PA.discipline]: 20 } }, undefined, [GC.ranged_medium, GC.armor_light]),
-  role(RO.sneak, 'Sneak', 'combat', 'ordinary', { high: [SK.sneaking, SK.melee_light, SK.stratagem], moderate: [SK.combat_stealth, SK.vanishing, SK.dodge], low: [SK.light_armor, SK.falsehood, SK.guile, SK.filching, SK.lockpicking] }, { traits: { [PA.honesty]: -40 }, values: [VL.wealth] }, [PK.insomniac], [GC.melee_light, GC.armor_light]),
+  role(RO.sneak, 'Sneak', 'combat', 'ordinary', { high: [SK.sneaking, SK.melee_light, SK.stratagem], moderate: [SK.combat_stealth, SK.vanishing, SK.dodge], low: [SK.light_armor, SK.falsehood, SK.guile, SK.filching] }, { traits: { [PA.honesty]: -40 }, values: [VL.wealth] }, [PK.insomniac], [GC.melee_light, GC.armor_light]),
   role(RO.watcher, 'Watcher', 'combat', 'ordinary', { high: [SK.eyesight, SK.earshot], moderate: [SK.insight, SK.intimidation], low: [SK.melee_medium, SK.persuasion] }, { traits: { [PA.curiosity]: 20 } }, [PK.insomniac], [GC.melee_medium]),
   role(RO.talker, 'Talker', 'civilian', 'ordinary', { high: [SK.persuasion, SK.barter], moderate: [SK.insight, SK.falsehood, SK.guile, SK.earshot], low: [SK.eyesight] }, { traits: { [PA.sociability]: 20 }, values: [VL.wealth] }),
   role(RO.worker, 'Worker', 'civilian', 'mundane', { high: [SK.endurance], moderate: [SK.unarmed_strike, SK.stamina], low: [SK.persuasion] }, { traits: { [PA.sociability]: 20 } }, [PK.heavy_sleeper]),
@@ -47,6 +47,8 @@ export const NPC_ROLES: Record<string, NpcRoleDef> = Object.fromEntries([
   role(RO.hunter, 'Hunter', 'civilian', 'mundane', { high: [SK.ranged_medium, SK.sneaking, SK.fieldcraft], moderate: [SK.eyesight, SK.earshot, SK.endurance], low: [SK.melee_light, SK.stamina] }, { traits: { [PA.curiosity]: 20 }, values: [VL.nature, VL.freedom] }, undefined, [GC.ranged_medium, GC.melee_light, GC.armor_light]),
   // NR6: barber-surgeons, herb-wives, midwives; the one who sells clinic care (SV.clinic) where a place has it
   role(RO.healer, 'Healer', 'civilian', 'mundane', { high: [SK.healing, SK.insight, SK.persuasion], moderate: [SK.resolve, SK.earshot], low: [SK.barter] }, { traits: { [PA.sociability]: 20 }, values: [VL.kindness] }),
+  // D-89 RP16: the smith who mends gear at a forge and sells repair (SV.repair) and use of the forge (SV.forge)
+  role(RO.smith, 'Smith', 'civilian', 'mundane', { high: [SK.handiwork], low: [SK.barter] }),
   // NR8: the person others answer to (headman, reeve, guild master); a quest giver. Its own class comes later (D-341)
   role(RO.leader, 'Leader', 'civilian', 'ordinary', { high: [SK.persuasion, SK.intimidation, SK.command], moderate: [SK.insight, SK.resolve], low: [SK.melee_medium, SK.barter] }, { traits: { [PA.pride]: 20 }, values: [VL.order, VL.reputation] }),
   // NR13: the armoured professional (man-at-arms, knight, champion); its master's class is Knight (CL11)
@@ -74,7 +76,7 @@ export const THEMES: Record<string, ThemeDef> = {
  * the Great); everyone else is crowd, written into how a place looks. Rank kinds are rolled from CONFIG.ROSTER_RANKS. */
 export const HOOK_KINDS: Record<string, HookKindDef> = Object.fromEntries(([
   { id: HK.leader, name: 'Leader', gives: 'runs the place and has work or a quest to give', roles: [RO.leader], rank: 'lead' },
-  { id: HK.service, name: 'Service', gives: 'sells food, drink and a bed, or tends wounds', roles: [RO.talker, RO.healer], rank: 'face' },
+  { id: HK.service, name: 'Service', gives: 'sells food, drink and a bed, tends wounds, or mends gear', roles: [RO.talker, RO.healer, RO.smith], rank: 'face' },
   { id: HK.face, name: 'Someone in need', gives: 'wants something from the player: a job, a favour, a way out of trouble', roles: [RO.talker, RO.worker, RO.hunter, RO.watcher], rank: 'face' },
   { id: HK.threat, name: 'Threat', gives: 'danger near the place: a gang that preys on it, or beasts that take its stock', groups: [GP.bandit_gang, GP.wolf_pack], rank: 'threat' },
   { id: HK.rival, name: 'Rival', gives: 'at odds with the leader or another hook: a feud the player can take a side in', roles: [RO.talker, RO.brute, RO.sneak, RO.soldier], rank: 'lead' },
@@ -146,6 +148,7 @@ export const TEMPLATES: Record<string, NpcTemplate> = {
   ...presets([
     [TP.hunter, RC.human, RO.hunter, TH.village_folk, 'rank_2', 'a hunter'], // a guide, or a poacher (GP11)
     [TP.healer, RC.human, RO.healer, TH.village_folk, 'rank_2', 'a healer'], // the service hook that tends wounds (HK2)
+    [TP.smith, RC.human, RO.smith, TH.village_folk, 'rank_2', 'a smith', { classId: CL.trader }], // the service hook that mends gear (D-89)
     [TP.headman, RC.human, RO.leader, TH.village_folk, 'rank_3', 'a village headman'], // the leader hook: work or a quest (HK1)
     [TP.knight, RC.human, RO.knight, TH.lords_household, 'rank_4', 'a knight', { classId: CL.knight_trainee }], // a lord's sworn sword (NR36: a Knight Trainee short of the full Knight)
     [TP.bandit, RC.human, RO.skirmisher, TH.road_bandits, 'rank_2', 'a bandit'], // GP5 follower

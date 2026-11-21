@@ -54,7 +54,7 @@ export const classIconName = (classId: string): IconName => CLASS_ICON[classId] 
 const TREE_ICON: Record<string, IconName> = {
   [TR.melee]: 'tr_melee', [TR.defense]: 'tr_defense', [TR.fortitude]: 'tr_fortitude', [TR.armor]: 'tr_armor', [TR.swordsman]: 'tr_swordsman',
   [TR.perception]: 'tr_perception', [TR.ranged]: 'tr_ranged', [TR.unarmed]: 'tr_unarmed', [TR.stealth]: 'tr_stealth', [TR.speech]: 'tr_speech',
-  [TR.trickery]: 'tr_trickery', [TR.natural]: 'tr_natural', [TR.slime_senses]: 'tr_slime_senses', [TR.tools]: 'tr_tools',
+  [TR.trickery]: 'tr_trickery', [TR.natural]: 'tr_natural', [TR.slime_senses]: 'tr_slime_senses', [TR.survival]: 'tr_tools',
   [TR.sword_dancer]: 'sword_dancer', [TR.merchant]: 'merchant', [TR.medicine]: 'tr_medicine', [TR.tactics]: 'tr_tactics',
 };
 /** a tree's icon in place of its name, which is its tip and accessible name; null for a tree with no icon yet */
@@ -71,7 +71,7 @@ const SKILL_ICON: Record<string, IconName> = {
   [SK.dodge]: 'sk_dodge', [SK.block]: 'shield', [SK.endurance]: 'sk_endurance', [SK.eyesight]: 'sk_eyesight', [SK.earshot]: 'sk_earshot',
   [SK.sneaking]: 'sk_sneaking', [SK.combat_stealth]: 'sk_combat_stealth', [SK.vanishing]: 'sk_vanishing', [SK.persuasion]: 'sk_persuasion',
   [SK.intimidation]: 'sk_intimidation', [SK.barter]: 'coin', [SK.riposte]: 'sk_riposte', [SK.light_armor]: 'leather', [SK.medium_armor]: 'mail',
-  [SK.heavy_armor]: 'plate', [SK.tremor]: 'sk_tremor', [SK.lockpicking]: 'picks', [SK.blade_dance]: 'sword_dancer', [SK.falsehood]: 'sk_falsehood',
+  [SK.heavy_armor]: 'plate', [SK.tremor]: 'sk_tremor', [SK.blade_dance]: 'sword_dancer', [SK.falsehood]: 'sk_falsehood',
   [SK.insight]: 'sk_insight', [SK.shrewd_dealing]: 'sk_shrewd_dealing', [SK.resolve]: 'sk_resolve', [SK.parry]: 'sk_parry', [SK.filching]: 'sk_filching',
   [SK.stamina]: 'sk_stamina', [SK.bite]: 'sk_bite', [SK.claws]: 'sk_claws', [SK.hooves_horns]: 'sk_hooves_horns', [SK.tail]: 'sk_tail',
   [SK.scent]: 'sk_scent', [SK.hide]: 'sk_hide', [SK.healing]: 'sk_healing', [SK.battle_sense]: 'sk_battle_sense', [SK.command]: 'sk_command',

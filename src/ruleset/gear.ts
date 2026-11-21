@@ -9,7 +9,7 @@ import { HUMANOID_SIZE } from '../library/bodySize';
 import { CONFIG } from '../config';
 import { powerStack } from './stacking';
 import { actorBody, getLibrary, itemDef, npcTemplate } from '../library';
-import { attackParts, gripReachM, partPct, pctMod, poolState, usableGrips, working } from './body';
+import { attackParts, gripReachM, itemState, partPct, pctMod, poolState, usableGrips, working } from './body';
 import { hasPerk, payoffShare, perkSum, standInAdd, themeCount, trueSkill } from './perks';
 import type { PayoffCount } from '../library/perkThemes';
 import { achievementStandIn, bestReward } from './achRewards';
@@ -441,7 +441,7 @@ const heldInGrips = (state: GameState, actor: Actor): ItemInstance[] => {
 
 /** the item a block uses: a held shield (not Crippled) in working Grip parts. Block is shields only (PA1). */
 export function blockItem(state: GameState, actor: Actor): ItemInstance | null {
-  return heldInGrips(state, actor).find((i) => itemDef(state, i.itemId).shield && working(poolState(i.pools?.shield ?? 100))) ?? null;
+  return heldInGrips(state, actor).find((i) => itemDef(state, i.itemId).shield && working(itemState(i.pools?.shield ?? 100))) ?? null;
 }
 
 /** the weapon a parry uses: a held melee weapon in working Grip parts (PA1, PA2) */

@@ -24,7 +24,7 @@ const byWants = (label: string, skills: string[], theme: string = TH.town_watch)
 describe('331 closest role and Roles wanted', () => {
   it('NR28: the role covering the wanted skills best is picked; ties keep table order; missing = not in High or Moderate', () => {
     expect(closestRole([SK.healing, SK.insight])).toEqual({ role: RO.healer, missing: [] });
-    expect(closestRole([SK.melee_medium, SK.heavy_armor, SK.lockpicking])).toEqual({ role: RO.knight, missing: [SK.lockpicking] });
+    expect(closestRole([SK.melee_medium, SK.heavy_armor, SK.handiwork])).toEqual({ role: RO.knight, missing: [SK.handiwork] });
     expect(closestRole([SK.melee_medium, SK.block]).role).toBe(RO.soldier); // Soldier (High, High) beats Knight (High, Moderate)
     expect(roleMissing(RO.soldier, [SK.parry, SK.block])).toEqual([SK.parry]); // a Low band skill still counts as missing
     expect(getLibrary().npcRoles![closestRole([SK.healing, SK.insight], TH.road_bandits).role].kind).toBe('combat'); // only roles the theme takes
@@ -32,12 +32,12 @@ describe('331 closest role and Roles wanted', () => {
 
   it('NR28: a composition by wants validates, takes the closest role, and a gap is logged for the GM grouped by who was wanted', () => {
     const s = toStoryStart(makeVillage());
-    const p = byWants('a sapper', [SK.melee_medium, SK.heavy_armor, SK.lockpicking]);
+    const p = byWants('a sapper', [SK.melee_medium, SK.heavy_armor, SK.handiwork]);
     expect(validateStagePlan(s, p, ctx)).toEqual([]);
     expect(p.cast.at(-1)!.compose!.role).toBe(RO.knight);
     applyStagePlan(s, p, ctx, { entry: 'open' }, createRng(1));
     const orla = s.actors.find((a) => a.names.current === 'Orla')!;
-    expect(s.hidden.roleWants).toEqual([expect.objectContaining({ actorId: orla.id, label: 'a sapper', role: RO.knight, missing: [SK.lockpicking] })]);
+    expect(s.hidden.roleWants).toEqual([expect.objectContaining({ actorId: orla.id, label: 'a sapper', role: RO.knight, missing: [SK.handiwork] })]);
     const twice = [...s.hidden.roleWants!, { ...s.hidden.roleWants![0], label: 'A Sapper', turn: 9 }];
     expect(roleWantGroups(twice)).toEqual([expect.objectContaining({ label: 'a sapper', role: RO.knight, count: 2 })]);
   });

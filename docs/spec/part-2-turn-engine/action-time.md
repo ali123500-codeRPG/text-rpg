@@ -65,7 +65,7 @@ BG/D numbers) sits in one trailing parenthesis.
   (AT22).
 - **ACT-51** The time factor is the backbone for D-248: a row may name a speed function whose effective skill halves its
   time every N points above 50 and slows it the same way below (N a lever on the row).
-- **ACT-52** Picking a lock is the first row on it: its speed function is Lockpicking with N = PICK\_HALVING\_PER (25),
+- **ACT-52** Picking a lock is the first row on it: its speed function is Lockpicking (rolled by Filching, D-89 RP20) with N = PICK\_HALVING\_PER (25),
   the BA2 rule it always had.
 - **ACT-53** Which rows name one, and what else feeds the factor, waits for the speed skills (D-248).
 - **ACT-54** Healing draught: it gets a healing row: 25% of health and parts up to Damaged, any time, 3 s (placeholder)

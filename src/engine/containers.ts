@@ -1,7 +1,7 @@
 // CT1–CT7: containers. A container is an item that holds items (ItemDef.container): a chest or crate standing in a zone, a
 // sack carried or set down, a pack worn on the back. A worn pack holds its wearer's stowed items (CT7), so it has no
 // contents list of its own until it leaves its wearer. Opening one is the turn's action and shows its contents; taking an
-// item out is a pick-up (CT3). A locked one opens with a key naming it or a Lockpicking roll, as a lock on a way (BA2).
+// item out is a pick-up (CT3). A locked one opens with a key naming it or a Filching roll, as a lock on a way (BA2).
 // CT4/CT5: opening or taking from a container its owner is up to guard (active and not yielded to the taker) is theft:
 // opening it, picking its lock or taking from it is then filching (src/engine/filch.ts).
 import { groundZoneOf } from './ground';
