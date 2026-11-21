@@ -486,7 +486,7 @@ BG/D numbers) sits in one trailing parenthesis.
   (WalkingView.then, the action's deck name, a way op by its own word), and the deck's Keep walking reads "Keep walking
   to the bed, then sleep". A walk to a door names the door, never the way's label: its kind (the barrier on it, else a
   doorway's door) and, once the player knows the title it leads into (Journal.zonesSeen), that title: "Walking to the
-  door to the common room, then unlock", "Walking to the gate, then unlock"; into a title not yet seen it is just "the door"
+  door to the common room, then unlock", "Walking to the gate, then unlock"; into a title not yet seen only its kind ("the door")
   (views walkingOf, doorName; MAP-40) (MQ21 b, MQ23 a;
   Ali, 21/11/2026, Questions hub page "Map and minimap: one map, doors").
 - **ACT-331** A goal with no open way reads "no open way there" (src/ui/doing.ts walkLeft).
