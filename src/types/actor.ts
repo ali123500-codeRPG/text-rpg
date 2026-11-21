@@ -21,7 +21,10 @@ export type Actor = {
   label: string; // public stranger label
   appearance?: string; // public text from the stage plan (W6)
   pronouns?: Pronouns; // public, from the stage plan (run 14 Q3: agents keep each NPC's pronouns)
-  knownOnSight?: boolean;
+  /** KN1 b: whose name and face everyone knows on sight: those who live in its settlement, or everyone */
+  knownOnSight?: 'locals' | 'everyone';
+  /** KN2 b: what people call it once they know it ("the headman"), shown in place of label to them */
+  knownAs?: string;
   placeId: PlaceId; // always the place of `zone`
   zone: string;
   /** ZP1 where it stands in metres on the map (the frame of Zone.rect); code keeps it inside `zone` (engine/position.ts) */

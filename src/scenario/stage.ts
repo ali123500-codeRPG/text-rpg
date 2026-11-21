@@ -2,7 +2,7 @@
 // an NPC agent is shown is bounded, by nearbyZones.
 import { waysOut } from '../plan/where';
 import type { GameState, Zone } from '../types';
-import { zoneById } from '../engine/relations';
+import { topPlace, zoneById } from '../engine/relations';
 import { distOrNull } from '../engine/position';
 import { CONFIG } from '../config';
 
@@ -12,13 +12,6 @@ export function frontiersNearPlayer(state: GameState): string[] {
   const out: string[] = [];
   for (const l of z ? waysOut(state, z.id) : []) if (l.frontier && !out.includes(l.to)) out.push(l.to);
   return out;
-}
-
-/** the top-level place over `placeId` (itself when it has no parent) */
-export function topPlace(state: GameState, placeId: string): string | undefined {
-  let p = state.places.find((x) => x.id === placeId);
-  for (let n = 0; p?.parentId && n < 20; n++) p = state.places.find((x) => x.id === p!.parentId) ?? p;
-  return p?.id;
 }
 
 /** WI8 a: the ground shown to a planner or an agent: every zone of the settlement or road (top-level place) over each of

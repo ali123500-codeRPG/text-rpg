@@ -4,8 +4,7 @@
 // F8: prompts here differ from the artifact's: the CLI joins the fixed and per-turn user turns into one prompt, adds its
 // own system prompt and picks the model per tier, so read prompt-behaviour results from playtests with that in mind.
 //   npm run playtest -- --turns 50 --out playtest-out [--class late_bloomer]
-import { zoneById } from '../src/engine/relations';
-import { topPlace } from '../src/scenario/stage';
+import { topPlace, zoneById } from '../src/engine/relations';
 // @ts-expect-error Node types are not installed; Node runs this file
 import { mkdirSync, writeFileSync, appendFileSync, readFileSync, copyFileSync } from 'node:fs';
 import { listWorlds, readTurnRecord } from '../src/save';

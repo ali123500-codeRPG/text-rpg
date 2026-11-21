@@ -34,9 +34,11 @@ Output shape (notation, not literal JSON):
   cast:        [ { template: templateId | actor: actorId | compose: { race, role, theme, rank, class? },   // NG15: catalog IDs; code builds the sheet
                    templateGap?: hidden text,        // NG15: who it wanted when no template or composition fit; flagged in the GM view
                    label: public text, name, appearance: public text, pronouns: he | she | they | it,   // public; stored on the actor and shown to every agent that sees them (run 14 Q3)
-                   knownOnSight?: true, knows?: [ { id, text: public text } ],   // facts this actor may share (Agent Voice); capped
-                                    // PQ9 a: label is what a stranger sees (a role only when it shows); knownOnSight only for
-                                    // someone famous beyond the place, whose name and face any newcomer knows
+                   knownOnSight?: locals | everyone, knownAs?: public text,
+                   knows?: [ { id, text: public text } ],   // facts this actor may share (Agent Voice); capped
+                                    // PQ9 a: label is what a stranger sees (a role only when it shows). KN1 b: knownOnSight
+                                    // locals for someone everyone living in that settlement knows by face, everyone only for
+                                    // someone famous beyond it. KN2 b: knownAs is what those who know them call them
                     key, band: bandKey | bandId, routineSetId,
                    slots: { <slot>: zoneKey | zoneId | [zoneKey | zoneId, ...] },   // every slot the set lists
                    startAt?: <slot>,                 // where in the loop to start; code computes the anchor

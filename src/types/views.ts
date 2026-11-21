@@ -78,7 +78,7 @@ export type YieldView = { took: string[]; waiting: string[]; refused: string[] }
 export type StaminaView = { level: string; left: number; max: number; lineLeft: number; lineMax: number; spent?: true };
 
 export type SeenActor = {
-  id: ActorId; label: string; name?: string; pronouns?: 'he' | 'she' | 'they' | 'it'; zone: string;
+  id: ActorId; label: string; name?: string; pronouns?: 'he' | 'she' | 'they' | 'it'; zone: string; // label: KN2 b, its knownAs once the viewer knows it
   level: Perception; activityLook?: string;
   age?: string; // AG16: the life stage it looks (full sight only), never the number
   /** BG-18: where it stands by the way the viewer faces (engine/position.ts sideFrom) */
@@ -411,7 +411,7 @@ export type WeaverView = {
   /** NW6: the stage sorted by place, each place named, with its areas and the people in them */
   places: { id: string; name: string; kind: string; parent: { id: string; name: string } | null;
     areas: ZoneView[];
-    people: { id: string; label: string; name: string; zone: string; band: string; templateId?: string; plan?: Plan; secrets: Secret[] }[] }[];
+    people: { id: string; label: string; knownAs?: string; name: string; zone: string; band: string; templateId?: string; plan?: Plan; secrets: Secret[] }[] }[];
   quests: { id: string; state: string; text: string }[];
   bands: { id: string; name: string; goals: string; relations: Record<string, Stance>; chase?: string }[];
   player: { level: number; pronouns?: Pronouns; currentClass: { id: string; name: string } | null; health: HealthLevel;

@@ -127,7 +127,8 @@ type Actor = {
   kind: 'player' | 'npc';
   names: NameHistory;
   label: string;                     // public stranger label, e.g. 'a scarred dockhand'
-  knownOnSight?: boolean;            // name known without an introduction
+  knownOnSight?: 'locals' | 'everyone'; // KN1 b: name known without an introduction, to those who live in its settlement or to all
+  knownAs?: string;                  // KN2 b: what those who know it call it ('the headman'), shown in place of label
   placeId: PlaceId;                  // always the place of `zone`
   zone: string;                      // zone id (Part 2)
   posture?: 'open' | 'stealthy';     // player only (Part 2)

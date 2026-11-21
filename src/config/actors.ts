@@ -133,7 +133,7 @@ export const ACTORS = {
   /** WT1 a, WT2 b: the floor plan and loose items are saved in square tiles of the world frame this many metres a side
    * (tile.<tx>.<ty>.<n> pages); a change takes effect at the next save, and saves tiled at another size still load */
   TILE_SIZE_M: 100,
-  SCHEMA_VERSION: 13, // v13: the floor plan and the ground saved by tiles (WT1 a); v12: item pool bands (D-89 RP12); v11: doorways hold real doors (BG-312); v10: titles and the floor plan (PZ16 b); v9: land (regions, WZ12)
+  SCHEMA_VERSION: 14, // v14: knownOnSight names its reach (KN1 b); v13: the floor plan and the ground saved by tiles (WT1 a); v12: item pool bands (D-89 RP12); v11: doorways hold real doors (BG-312); v10: titles and the floor plan (PZ16 b); v9: land (regions, WZ12)
   /** MG2: a save older than this is refused (the prototype keeps no old saves, D-116); OLDEST_SAVE_REASON ends "this save was made …" */
   OLDEST_SAVE_SCHEMA: 10,
   OLDEST_SAVE_REASON: 'before zones became titles on a floor plan (walls, doors and light at points)',

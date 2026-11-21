@@ -231,7 +231,7 @@ export type StagePlan = {
     /** NG15: who the Weaver wanted when no template or composition fits; flagged in the GM view so a template can be made */
     templateGap?: string;
     label: string; name: string; appearance: string; pronouns?: 'he' | 'she' | 'they' | 'it';
-    knownOnSight?: boolean; knows?: { id: string; text: string }[];
+    knownOnSight?: 'locals' | 'everyone'; knownAs?: string; knows?: { id: string; text: string }[];
     key: string; band: string; routineSetId: string;
     slots: Record<string, string | string[]>;
     startAt?: string;

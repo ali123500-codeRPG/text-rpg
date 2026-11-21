@@ -21,7 +21,7 @@ import type { MeetRow } from '../types/library';
 import type { RankKey } from '../scales';
 import { groupMembers } from '../land/roster';
 import { cellAt, regionAt } from '../land/sight';
-import { topPlace } from './stage';
+import { topPlace } from '../engine/relations';
 import { HK } from '../library/npcLayerIds';
 import { createRng } from '../rng';
 import { personalityFrom } from '../ruleset/personality';
@@ -398,7 +398,8 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     const unique = a.core.generation === 'unique'; // HF15: a unique's looks and pronouns are its own
     if (!unique || !a.appearance) a.appearance = c.appearance;
     if (c.pronouns && (!unique || !a.pronouns)) a.pronouns = c.pronouns;
-    if (c.knownOnSight) a.knownOnSight = true;
+    if (c.knownOnSight) a.knownOnSight = c.knownOnSight;
+    if (c.knownAs) a.knownAs = c.knownAs;
     a.mind!.knows = (c.knows ?? []).map((f) => ({ id: f.id, text: f.text }));
     if (c.wares) stockWares(state, a, c.wares, turn);
     if (!reused.has(a)) moveTo(state, a, startZone);
