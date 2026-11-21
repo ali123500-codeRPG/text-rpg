@@ -173,9 +173,10 @@ function fillRosterAndGroups(state: GameState, plan: StagePlan, err: (code: stri
     if (lead.template) c.template = lead.template; else c.compose = lead.compose;
     if (lead.notable) c.notable = true;
     c.seat = 'leader'; // BEL-09
+    c.recipe = g.id; // BEL-17
     rest.forEach((m, i) => out.push({ key: `${c.key}_${i + 2}`, label: m.label, name: '', appearance: m.label, band: c.band, routineSetId: c.routineSetId, slots: c.slots,
       ...(c.startAt ? { startAt: c.startAt } : {}), awarenessOfPlayer: c.awarenessOfPlayer, ...(c.awarenessOfBands ? { awarenessOfBands: c.awarenessOfBands } : {}),
-      ...(c.overrides ? { overrides: c.overrides } : {}), motive: c.motive, ...(m.template ? { template: m.template } : { compose: m.compose }), groupOf: c.key, ...(m.notable ? { notable: true as const } : {}), ...(m.second ? { seat: 'officer' as const } : {}) }));
+      ...(c.overrides ? { overrides: c.overrides } : {}), motive: c.motive, ...(m.template ? { template: m.template } : { compose: m.compose }), groupOf: c.key, recipe: g.id, ...(m.notable ? { notable: true as const } : {}), ...(m.second ? { seat: 'officer' as const } : {}) }));
   }
   plan.cast = out;
 }

@@ -48,4 +48,7 @@ are library data, and every number is in `src/config.ts`.
 - **Hierarchy and belonging (21/11/2026; Questions hub "Hierarchy and belonging" OB1-OB13).** The owner asked for
   the grouping model to be studied afresh, not held to five levels. Decided, not built: no ladder; organizations
   that nest, links between them, an ordered list of ties on each character, and the band as the group. The design
-  is the spec topic "Hierarchy and belonging" (BEL-nn) and its build row is D-1768.
+  is the spec topic "Hierarchy and belonging" (BEL-nn) and its build row is D-1768. Steps 1 and 2 built the same
+  day; on "Belonging build" (BB1 a, BB2 a, BB3 a) the owner chose what spawning fills: a watch per settlement under a
+  council per settlement, a new gang, company or pack per group, a caravan's guards hired by its master in person.
+  Shared or contested control of a city is parked (D-1784).

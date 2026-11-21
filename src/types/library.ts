@@ -72,7 +72,9 @@ export type PrefixDef = { id: LibraryRef; name: string; text: string; rankStep: 
 export type HookKindDef = { id: LibraryRef; name: string; gives: string; roles?: readonly LibraryRef[]; groups?: readonly LibraryRef[]; theme?: LibraryRef; class?: LibraryRef;
   rank: 'face' | 'lead' | 'threat' | 'seat'; goals?: true;
   /** NF4 b: whoever fills this hook in a roster is a notable foe (an essence always appears when they die) */
-  notable?: true };
+  notable?: true;
+  /** BB2 a: its place in the settlement's council: its head, an officer, or (a Seat) the one who holds the place over it */
+  council?: 'head' | 'officer' | 'holds' };
 /** NR27: one part of a group: its role (or a template), race when fixed (else rolled: NR31), label, and rank steps above the group's */
 export type RecipePart = { role?: LibraryRef; roles?: readonly LibraryRef[]; template?: LibraryRef; race?: LibraryRef; label: string; step?: number; class?: LibraryRef;
   /** NF7 a: whoever this part spawns is a notable foe (a larger group's head, never a small group's leader) */
@@ -83,7 +85,15 @@ export type CastRecipe = { id: LibraryRef; name: string; theme: LibraryRef; lead
   /** CK6 a: a group that comes as a threat, so it counts toward a place's usual hostile group */
   threat?: true;
   /** NF7 a: the smallest settlement a roster rolls it in (SETTLEMENT_SIZES, src/land/roster.ts); roads and the wild name it in their own rows */
-  minSite?: SettlementSize };
+  minSite?: SettlementSize;
+  /** BEL-17, BB1 a: the organization its people belong to: the settlement's own (found or made there; off a settlement, the
+   * nearest one in metres) or a new one each time, whose head is its lead. Each person gets a tie to it */
+  org?: RecipeOrg;
+  /** BB1 a: its followers are hired by its lead in person (a tie to the lead), with no organization */
+  hired?: true };
+/** BB1 a: what a recipe's organization is. kind: a display word (BEL-02); heads: its lead heads a settlement's body that has
+ * no head yet (a new one is always headed by its lead); commitment: the ties its people hold */
+export type RecipeOrg = { kind: string; of: 'settlement' | 'own'; closeKnit?: true; heads?: true; commitment: import('../scales').Commitment };
 /** NR17: settlement sizes (library rosters; a Site is a hamlet, village or town) */
 export type SettlementSize = 'hamlet' | 'village' | 'town' | 'city' | 'court';
 /** NR18 to NR20: a group that may be met, its weight, and the time of day it is out (both when left out) */

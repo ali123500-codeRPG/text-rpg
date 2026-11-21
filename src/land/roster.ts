@@ -17,7 +17,7 @@ type Rng = ReturnType<typeof createRng>;
 /** a composition as a cast entry names it (NG15) */
 export type RosterCompose = { race: string; role: string; theme: string; rank: string; class?: string; prefix?: string; grandeur?: GrandeurKey };
 /** one rolled roster entry: a single person (compose) or a group (group + rank), with what it gives play */
-export type RosterEntry = { key: string; who: string; gives: string; compose?: RosterCompose; group?: { id: string; rank: string }; goals?: true;
+export type RosterEntry = { key: string; who: string; gives: string; /** its hook kind (HK…) */ hook?: string; compose?: RosterCompose; group?: { id: string; rank: string }; goals?: true;
   /** NF4 b: its hook is notable, so whoever fills it is a notable foe */
   notable?: true };
 
@@ -44,8 +44,8 @@ export function hookGroups(h: HookKindDef, size: SettlementSize): string[] {
   const groups = getLibrary().castRecipes ?? {}, at = SETTLEMENT_SIZES.indexOf(size);
   return (h.groups ?? []).filter((id) => { const min = groups[id]?.minSite; return !min || SETTLEMENT_SIZES.indexOf(min) <= at; });
 }
-const groupEntry = (key: string, g: CastRecipe, rank: string, hook?: { name: string; gives: string }): RosterEntry =>
-  ({ key, who: hook?.name ?? g.name, gives: hook?.gives ?? g.lead.label, group: { id: g.id, rank } });
+const groupEntry = (key: string, g: CastRecipe, rank: string, hook?: { id: string; name: string; gives: string }): RosterEntry =>
+  ({ key, who: hook?.name ?? g.name, gives: hook?.gives ?? g.lead.label, ...(hook ? { hook: hook.id } : {}), group: { id: g.id, rank } });
 
 /** NR17 a: a settlement's hooks, by its size: the must-have hooks first, then the rest from the size's pool */
 export function siteRoster(site: Site): RosterEntry[] {
@@ -65,7 +65,7 @@ export function siteRoster(site: Site): RosterEntry[] {
     if (gs.length) return groupEntry(key, lib.castRecipes![pick(rng, gs)], rank, h);
     // NR40 a: a seat of the Great is always grand
     const compose: RosterCompose = { race: rollRace(rng), role: pick(rng, h.roles ?? []), theme: h.theme ?? row.theme, rank, ...(h.class ? { class: h.class } : {}), ...(h.rank === 'seat' ? { grandeur: 'grand' as const } : {}) };
-    return { key, who: h.name, gives: h.gives, compose, ...(h.goals ? { goals: true as const } : {}), ...(h.notable ? { notable: true as const } : {}) };
+    return { key, who: h.name, gives: h.gives, hook: h.id, compose, ...(h.goals ? { goals: true as const } : {}), ...(h.notable ? { notable: true as const } : {}) };
   });
 }
 
