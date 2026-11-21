@@ -26,6 +26,17 @@ Kind: decision. How changes land and where work runs. The rules that follow from
   agents take BG numbers from the Bug log, and merge their own PRs under the same rule as Claude.
 - **Naming the owner** (19/11/2026). New files say "the owner". Older files stay as they are, and new lines in the
   spec and the bug-fix log keep those files' form. The old in-app instructions are kept as a file in the repo.
+- **A bug's number is its claim issue's; the issues are the bug register** (21/11/2026, #1472). Before, a thread took
+  one past the highest BG-n in the Bug log and added a row, and wrote its story at the top of `docs/bug-fix-log.md`:
+  two threads at once took the same number, and every bug PR edited the same three places, so independent fixes
+  conflicted. Now each fix adds only its own `docs/bugs/BG-n.md`. Numbers below 1000 keep their rows and entries. The
+  owner asked to "eliminate race-prone manual bug-number allocation", preferring the claim issue's number and
+  "GitHub Issues as the authoritative registry".
+- **PRs are waited on with `npm run pr:wait`** (21/11/2026, #1472): one call that stops at once on a conflict, a red
+  check or a check that never started. GitHub's merge queue was weighed and left out: it is not offered on
+  repositories a user (not an organisation) owns, it needs GraphQL, which Claude sessions cannot use, and it guards
+  `main` against PRs that pass alone but break together, which had not happened (the last 100 runs on `main` were all
+  green). Branch protection with required checks was also left out: the script already knows which checks to expect.
 - **Two tiers of local tests** (20/11/2026). `test:near` had grown to a median 59% of the suite after it began
   following indirect imports, so the owner asked for "a two-tier local testing system": quick by default (direct
   tests plus structural guards, the rest "deferred to CI" and named) and a comprehensive `--deep` "for high-risk

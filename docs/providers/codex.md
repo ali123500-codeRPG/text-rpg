@@ -27,4 +27,4 @@ owns each questionnaire. Save confirmed project decisions in their existing repo
 - Use stand-in unit, scenario and smoke tests. Real-model playtests and Parser evaluations require
   Claude's signed-in client. Identify any such check still needed.
 - Use repository fixtures. Name any asset or run that requires Claude's shared folder.
-- Take bug numbers from the latest spec Bug log, one above the highest ever used. Recheck on integration.
+- A bug's number is its claim issue's, labelled `bug` (`docs/instructions.md` section 2).

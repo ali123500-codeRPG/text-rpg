@@ -50,22 +50,20 @@ Read this part before your first action.
   once clicked "Begin the story" on the live page and wrote a story into the owner's saves.
 
 **Bug numbers**
-- Every agent, Claude threads included, takes the next free number in the Bug log and its archive on the latest `main`
-  (`docs/instructions.md` section 2), in the PR that adds the row.
+- A bug's number is its claim issue's (`docs/instructions.md` section 2): open the issue, labelled `bug`, and issue #n
+  is BG-n. Nothing else hands out numbers.
 - The counter in the game page's database (`bugs_meta/counter`) is retired. Do not read it or move it.
 - Bug reports the game files itself land in the `bugs` collection of the game page, unnumbered. A triage thread of
-  this project numbers the real ones and opens a GitHub issue for each, with no desk label, so any desk can claim
-  the fix.
+  this project opens a GitHub issue for each real one, labelled `bug` and with no desk label, so any desk can claim
+  the fix; the issue's number is the bug's BG-n and the report's `as`.
 
 **GitHub from a Claude session**
 - GraphQL is blocked. Use the REST API through `gh api`:
 - Open a PR: `gh api repos/<o>/<r>/pulls -f title=… -f head=… -f base=main -F body=@file`; add `-F draft=true` for a
   draft (section 8), and mark it ready before merging: `gh api -X POST repos/<o>/<r>/pulls/<n>/ccr/ready_for_review`.
-- Merge: `gh api -X PUT repos/<o>/<r>/pulls/<n>/merge -f merge_method=squash`.
-- Conflict check after pushing (`docs/instructions.md` section 8):
-  `gh api repos/<o>/<r>/pulls/<n> --jq .mergeable_state`.
-- Check runs: `gh api repos/<o>/<r>/commits/<sha>/check-runs --jq '.check_runs[] | "\(.name) \(.conclusion)"'`.
-- Issue: `gh api repos/<o>/<r>/issues -f title=… -f 'labels[]=desk:…'`.
+- Wait and merge (`docs/instructions.md` section 8): mark the PR ready, then `npm run pr:wait -- <n> --merge`. It uses
+  only REST, so it works here.
+- Issue: `gh api repos/<o>/<r>/issues -f title=… -f 'labels[]=desk:…'`; a bug adds `-f 'labels[]=bug'`.
 
 Read the sections below only when the task needs them.
 
