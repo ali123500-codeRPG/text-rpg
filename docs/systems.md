@@ -477,6 +477,7 @@ NPC minds, routines and goals, memory, templates and spawning, uniques and echoe
   - `src/minds/routines.ts`
   - `src/minds/state.ts`
   - `src/views/tactics.ts`
+  - `src/views/ways.ts`
 
 ## agents: the game's AI agents
 

@@ -49,6 +49,7 @@ import { warnableOf } from '../engine/warnings';
 import { fooledBy, playDeadOpen } from '../engine/playDead';
 import { fooledByFeint } from '../engine/feint';
 import { tacticsWord } from './tactics';
+import { headEdge, waysView } from './ways';
 import { fallBackOwner } from '../engine/nerve';
 import { PERK_MOVES, fallbackAttackSkill, hasPerk, healthLevel, isDownLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
 import { itemHolders, summonableThreadboundItems } from '../ruleset/threadboundItems';
@@ -720,10 +721,12 @@ const mapOf = (state: GameState, a: Actor): MapZone[] => nearbyZones(state, [a.z
 export function routineView(state: GameState, a: Actor): RoutineInput {
   const m = a.mind!;
   const b = m.knowledge.player;
+  const map = m.routine && routine(m.routine.id).kind === 'head' ? mapOf(state, a) : [];
+  const edge = headEdge(state, a, map);
   return {
-    self: { zone: a.zone, slots: m.slots ?? {}, ...routineOf(state, a) },
+    self: { zone: a.zone, slots: m.slots ?? {}, ...routineOf(state, a), ...(edge ? { headEdge: edge } : {}) },
     beliefs: b && actorById(state, 'player') ? [{ about: 'player', ...(b.lastKnownZone !== undefined ? { lastKnownZone: b.lastKnownZone } : {}) }] : [],
-    map: m.routine && routine(m.routine.id).kind === 'head' ? mapOf(state, a) : [],
+    map,
   };
 }
 
@@ -764,6 +767,7 @@ function baseView(state: GameState, actorId: string): BaseView {
   const band = bandById(state, a.bandId);
   const jobs = jobViews(state, a.id);
   const chase = chaseZones(state, a);
+  const map = mapOf(state, a), edge = headEdge(state, a, map);
   return {
     turn: state.turn,
     time: timeView(state),
@@ -790,6 +794,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       ...((back) => ({ ...withinStrike(state, a, back), ...(back ? { holdsBack: true as const } : {}) }))(m.control === 'code' && holdsBack(state, a)),
       ...(a.mind?.suspects && Object.keys(a.mind.suspects).length ? { suspects: Object.entries(a.mind.suspects).map(([id, s]) => ({ id, name: callName(state, a.id, id), item: `a locked ${boxName(state, s.box)}` })) } : {}), // GD3
       ...(atChaseLine(state, a) ? { atChaseLine: true as const } : {}),
+      ...(edge ? { headEdge: edge } : {}),
     },
     beliefs, perceived, told, said,
     ...(m.earlier?.lines.length ? { earlier: [...m.earlier.lines] } : {}),
@@ -798,7 +803,7 @@ function baseView(state: GameState, actorId: string): BaseView {
     band: band
       ? { id: band.id, name: band.name, goals: band.goals, temperament: band.temperament, relations: { ...band.relations } }
       : { id: a.bandId, name: '', goals: '', temperament: '', relations: {} },
-    map: mapOf(state, a),
+    map,
     zones: perceivedZones(state, a.zone, a),
     seen: seenActors(state, a),
     ...(jobs.length ? { jobs } : {}),
@@ -844,9 +849,11 @@ export function buildActorView(state: GameState, actorId: string): ActorView {
   const base = baseView(state, actorId);
   const h = state.hidden;
   const plan = h.plans[actorId];
+  const a = need(state, actorId);
   return {
     ...base,
-    tacticsWord: tacticsWord(need(state, actorId)),
+    ways: waysView(state, a, base.beliefs, new Set(base.seen.map((x) => x.id)), base.map, base.self),
+    tacticsWord: tacticsWord(a),
     ...(plan ? { plan: { goal: plan.goal, steps: [...plan.steps], triggers: structuredClone(plan.triggers), createdTurn: plan.createdTurn } } : {}),
     ...goalView(h.drives?.[actorId]),
     ...(h.memory[actorId]?.length ? { memory: h.memory[actorId].map((m, i) => ({ n: i + 1, turn: m.turn, text: m.text })) } : {}),

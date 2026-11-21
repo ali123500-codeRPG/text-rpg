@@ -10,7 +10,7 @@ import { waysOut, wayTo } from '../../src/plan/where';
 import { resolveTurn } from '../../src/engine';
 import { shortestPath, zoneById } from '../../src/engine/relations';
 import { buildActorView, buildNarrationView, buildPlayerView, buildWeaverView } from '../../src/views';
-import { mapPath } from '../../src/minds';
+import { placeOf, walkRoute } from '../../src/engine/position';
 import { pickSeconds } from '../../src/ruleset';
 import { fnRoller } from '../../src/ruleset/gear';
 import { CONFIG } from '../../src/config';
@@ -176,9 +176,11 @@ describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
     const b = put(s, 'tav_counter', 'tav_cellar', { lock: { locked: true } });
     const v = buildActorView(s, 'trader');
     expect(v.map.find((z) => z.id === 'tav_counter')!.links.find((l) => l.to === 'tav_cellar')).toMatchObject({ shut: true });
-    expect(mapPath(v.map, 'tav_counter', 'tav_cellar')).toBeNull();
-    giveKey(s, b, s.actors.find((a) => a.id === 'trader')!);
-    expect(mapPath(buildActorView(s, 'trader').map, 'tav_counter', 'tav_cellar')).toEqual(['tav_cellar']);
+    const trader = s.actors.find((a) => a.id === 'trader')!;
+    // BG-1614: a code mind's walk (views/ways.ts) goes round the ways it knows are shut, never through them
+    expect(walkRoute(s, placeOf(trader), { zone: 'tav_cellar' }, trader, true)).toBeNull();
+    giveKey(s, b, trader);
+    expect(walkRoute(s, placeOf(trader), { zone: 'tav_cellar' }, trader, true)?.path).toEqual(['tav_cellar']);
   });
   describe('BA2 picking a lock', () => {
     // alone, so the turn's only other d100 is the player's initiative

@@ -11,7 +11,7 @@ import { checkIntent, checkStagePlan } from '../../src/agents/schema';
 import { withWays } from '../harness/village';
 import { CONFIG } from '../../src/config';
 import { buildActorView } from '../../src/views';
-import { mapPath } from '../../src/minds';
+import { placeOf, walkRoute } from '../../src/engine/position';
 
 /** the bar is an upper floor, 7 m up, with a window over the square */
 function upstairs(): GameState {
@@ -56,7 +56,8 @@ describe('186 window and ledge drops (SD7)', () => {
     expect(shortestPath(s, 'tav_counter', 'street_square', true)).toEqual(['street_square']);
     const v = buildActorView(s, 'trader');
     expect(v.map.find((z) => z.id === 'tav_counter')!.links.find((l) => l.to === 'street_square')).toMatchObject({ drop: true });
-    expect(mapPath(v.map, 'tav_counter', 'street_square')?.[0]).not.toBe('street_square');
+    const trader = s.actors.find((a) => a.id === 'trader')!; // BG-1614: a code mind's walk (views/ways.ts) never takes the drop
+    expect(walkRoute(s, placeOf(trader), { zone: 'street_square' }, trader, true)?.path[0]).not.toBe('street_square');
     s.turn += 1;
     resolveTurn(s, { intent: jump('street_square', false), aimed: false, agentOutputs: [], spokespeople: [] }, createRng(3));
     expect(s.player.core.condition.hpLostPct).toBe(0);

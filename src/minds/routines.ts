@@ -1,5 +1,5 @@
 // Code minds: routines (desired state) and the fallback combat list. They read only ActorView, never GameState.
-import type { ActorView, MapZone, Order, OrderTemplate, Routine, RoutineInput, Rng } from '../types';
+import type { ActorView, Order, OrderTemplate, Routine, RoutineInput, Rng } from '../types';
 import { GRADES } from '../types';
 import { CONFIG } from '../config';
 import { PK } from '../library/perkIds';
@@ -15,14 +15,11 @@ export const offeredRoutines = (own: string[] | undefined): string[] => [...new 
 /** NW2: the shared routine an agent's headTo switches an NPC to: it walks to slot 'dest', then back to its routine */
 export const HEAD_TO = 'head_to';
 
-/** NW2: where a head_to walk goes: the destination zone, or for a frontier the nearest zone with a way into it (it
- * steps through from there); null when the destination is not on its map */
+/** NW2: where a head_to walk goes: the destination zone, or for a frontier the zone with a way into it nearest by its walk
+ * (self.headEdge, views/ways.ts; it steps through from there); null when the destination is not on its map */
 function headGoal(view: RoutineInput, dest: string): { zone: string; frontier?: string } | null {
   if (view.map.some((z) => z.id === dest)) return { zone: dest };
-  const edges = view.map.filter((z) => z.links.some((l) => l.frontier && l.to === dest)).map((z) => z.id);
-  if (!edges.length) return null;
-  const dist = (z: string) => mapPath(view.map, view.self.zone, z)?.length ?? Infinity;
-  return { zone: edges.reduce((best, z) => (dist(z) < dist(best) ? z : best)), frontier: dest };
+  return view.self.headEdge ? { zone: view.self.headEdge, frontier: dest } : null;
 }
 
 export type Stop = { slot: string; zone: string; minutes: number; activity: string; unbound?: true };
@@ -89,28 +86,6 @@ export function desiredState(view: RoutineInput): { zone: string; activity: stri
   return null; // unreachable: t < total
 }
 
-/** shortest path over the view's map, never through a frontier link, a drop (SD7: NPCs do not jump yet) or a way shut to it (BA7); zone ids after `from`, or null. */
-export function mapPath(map: MapZone[], from: string, to: string): string[] | null {
-  if (from === to) return [];
-  const byId = new Map(map.map((z) => [z.id, z]));
-  const prev = new Map<string, string>([[from, from]]);
-  const q = [from];
-  while (q.length) {
-    const cur = q.shift()!;
-    for (const l of byId.get(cur)?.links ?? []) {
-      if (l.frontier || l.drop || l.shut || !byId.has(l.to) || prev.has(l.to)) continue;
-      prev.set(l.to, cur);
-      if (l.to === to) {
-        const path = [to];
-        for (let p = cur; p !== from; p = prev.get(p)!) path.unshift(p);
-        return path;
-      }
-      q.push(l.to);
-    }
-  }
-  return null;
-}
-
 const order = (view: ActorView, type: string, source: Order['source'], intent: string, extra: Partial<Order> = {}): Order =>
   ({ actorId: view.self.id, type, target: null, skill: null, intent, source, ...extra });
 
@@ -122,7 +97,7 @@ export function followMove(view: ActorView): string | null {
   if (kind !== 'follow' && kind !== 'head') return null;
   const d = desiredState(view);
   if (d && d.zone === view.self.zone && kind === 'head') return headFrontier(view);
-  return d && d.zone !== view.self.zone && mapPath(view.map, view.self.zone, d.zone) ? d.zone : null;
+  return d && d.zone !== view.self.zone && view.ways?.next[d.zone] ? d.zone : null;
 }
 /** NW2: a head_to walk standing at the edge of the frontier it is bound for steps into it (a frontier id), else null */
 function headFrontier(view: ActorView): string | null {
@@ -146,9 +121,9 @@ export function routineOrder(view: ActorView): Order {
   if (d.zone === view.self.zone && getRoutine(view.self.routine!.id).kind === 'follow' && view.beliefs.some((b) => b.about === 'player' && b.lastKnownZone === d.zone))
     return order(view, 'idle', 'routine', d.activity, { activity: d.activity, move: d.zone, moveSpot: { near: 'player', follow: true } });
   if (d.zone === view.self.zone) return order(view, d.activity === 'search' ? 'search' : 'idle', 'routine', d.activity, { activity: d.activity }); // SE16
-  const path = mapPath(view.map, view.self.zone, d.zone);
-  if (!path) return order(view, 'idle', 'routine', UNREACHABLE, { activity: d.activity });
-  return order(view, 'move', 'routine', `walk toward ${d.zone}`, { target: path[0], activity: d.activity });
+  const next = view.ways?.next[d.zone];
+  if (!next) return order(view, 'idle', 'routine', UNREACHABLE, { activity: d.activity });
+  return order(view, 'move', 'routine', `walk toward ${d.zone}`, { target: next, activity: d.activity });
 }
 
 /** those it fights: hostile, or a spar opponent (SP1) */
@@ -184,42 +159,17 @@ export function nerveHolds(o: Order, cowering = false): { order: Order; blocked:
   return { order: { ...cowerOrder(o.actorId, o.source), ...cry, ...walk, ...keptBeside(kept) }, blocked };
 }
 
-/** whom a broken actor runs from: those it is hostile to, and those it yielded to (Q4) */
-const fleeFrom = (view: ActorView) => view.beliefs.filter((b) => (b.hostile || b.stance === 'yielded') && b.active && b.status !== 'unaware');
-
-/** BF79: a broken NPC with nothing allowed left flees: one link toward its exit or refuge slot, else into a linked zone
- * farther from the nearest foe it fears (never a way into a foe's zone); with no way away (or already at its exit or
- * refuge) it cowers. At Cowering it
- * cowers. Whether the walk really leads away is judged where it runs (engine/nerve.ts walksAway): NPCs stay in real zones. */
+/** BF79: a broken NPC with nothing allowed left flees one way: toward its exit or refuge while that leads away from the
+ * nearest foe it fears, else through the way out farthest from that foe by walk (ways.flee, decided by metres in
+ * views/ways.ts); with no way away (or already at its exit or refuge) it cowers. At Cowering it cowers. Whether the walk
+ * really leads away is judged where it runs (engine/nerve.ts walksAway). */
 export function fleeOrder(view: ActorView, source: Order['source']): Order {
-  const cower = () => cowerOrder(view.self.id, source);
-  if (view.self.cowering) return cower();
+  if (view.self.cowering) return cowerOrder(view.self.id, source);
   // TC36 c Fall Back on Me: it runs to the owner instead of away
   const back = view.self.fallBackTo;
   if (back) return order(view, 'idle', source, `fall back on ${back.id}`, { move: back.zone, moveSpot: { near: back.id } });
-  const here = view.self.zone;
-  const threats = fleeFrom(view).filter((b) => b.lastKnownZone).map((b) => b.lastKnownZone!);
-  // toward its exit or refuge, unless that way runs into a foe's zone
-  for (const key of ['exit', 'refuge']) {
-    const b = view.self.slots[key];
-    const zone = Array.isArray(b) ? b[0] : b;
-    if (!zone) continue;
-    if (zone === here) return cower();
-    const path = mapPath(view.map, here, zone);
-    if (path?.length && !threats.includes(path[0])) return order(view, 'flee', source, 'flee', { target: path[0] });
-  }
-  const dist = (a: string, b: string) => mapPath(view.map, a, b)?.length ?? Infinity;
-  if (!threats.length) return cower();
-  const threat = threats.reduce((best, z) => (dist(here, z) < dist(here, best) ? z : best));
-  const links = view.map.find((z) => z.id === here)?.links ?? [];
-  let best: string | null = null;
-  let bestD = dist(here, threat);
-  for (const l of links) {
-    if (l.frontier || l.drop || l.shut || !view.map.some((z) => z.id === l.to)) continue;
-    const d = dist(l.to, threat);
-    if (d > bestD) [best, bestD] = [l.to, d];
-  }
-  return best ? order(view, 'flee', source, 'flee', { target: best }) : cower();
+  const to = view.ways?.flee;
+  return to ? order(view, 'flee', source, 'flee', { target: to }) : cowerOrder(view.self.id, source);
 }
 
 /** BF79: what a broken NPC does with its order: nerveHolds; with nothing allowed left and no walk away, it flees (fleeOrder),
@@ -246,8 +196,8 @@ function stalkOrder(view: ActorView, rule: string): Order | null {
   if (hunted.some((b) => seen.has(b.about))) return null;
   const recent = hunted.filter((b) => !b.lost).sort((a, b) => (b.lastSeenTurn ?? -1) - (a.lastSeenTurn ?? -1) || a.about.localeCompare(b.about))[0];
   if (!recent || recent.lastKnownZone === s.zone) return null;
-  const path = mapPath(view.map, s.zone, recent.lastKnownZone!);
-  return path && (!s.chaseZones || s.chaseZones.includes(path[0])) ? order(view, 'sneak', 'fallback', `steal up on ${recent.about}`, { target: path[0], rule }) : null;
+  const next = view.ways?.next[recent.lastKnownZone!];
+  return next && (!s.chaseZones || s.chaseZones.includes(next)) ? order(view, 'sneak', 'fallback', `steal up on ${recent.about}`, { target: next, rule }) : null;
 }
 
 /** D-17 (TC17, TC23): the first FIGHT_RULES row the NPC may use whose situation holds, as an order; null when none fires.
@@ -315,8 +265,8 @@ function fightList(view: ActorView, rng: Rng): Order {
     if (s.holdsBack) return fleeOrder(view, 'fallback'); // D-205 b: it never closes in or searches; it flees
     const zone = recent.lastKnownZone!;
     if (zone === s.zone) return order(view, 'search', 'fallback', 'search', { target: zone });
-    const path = mapPath(view.map, s.zone, zone);
-    if (path && (!s.chaseZones || s.chaseZones.includes(path[0]))) return order(view, 'move', 'fallback', `close in on ${zone}`, { target: path[0] });
+    const next = view.ways?.next[zone];
+    if (next && (!s.chaseZones || s.chaseZones.includes(next))) return order(view, 'move', 'fallback', `close in on ${zone}`, { target: next });
   }
   // CH7: it lost everyone it was after: back to its routine
   if (!recent && hunted.length) return routineOrder(view);
