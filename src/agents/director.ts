@@ -110,7 +110,8 @@ export function createDirector(clock: Clock): ScenarioDirector {
       if (crossed && state.player.zone !== crossed.zone) Object.assign(crossed, { fromZone: crossed.zone, fromPos: crossed.pos, zone: state.player.zone, pos: state.player.pos, target: state.player.zone });
       // BG-90: those who followed the player through come in with them: a move event each, so the story shows them along
       const follows = (r.followed ?? []).map((id): GameEvent => {
-        const ev: GameEvent = { id: `t${state.turn}_follow_${id}`, turn: state.turn, actorId: id, kind: 'move', zone: state.player.zone, ...(crossed?.fromZone ? { fromZone: crossed.fromZone } : {}), effects: [], noise: 'quiet', visibility: 'normal', perception: {} };
+        const at = state.actors.find((x) => x.id === id)?.pos; // ZP1: placed in the new title on crossing
+        const ev: GameEvent = { id: `t${state.turn}_follow_${id}`, turn: state.turn, actorId: id, kind: 'move', zone: state.player.zone, ...(at ? { pos: { ...at } } : {}), ...(crossed?.fromZone ? { fromZone: crossed.fromZone } : {}), effects: [], noise: 'quiet', visibility: 'normal', perception: {} };
         ev.perception = computePerception(ev, state, rng);
         return ev;
       });

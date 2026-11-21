@@ -33,7 +33,7 @@ export const TURN_CHECK: TurnCheckMode = (g.turnCheck ??= { strict: false, skip:
 const fin = (n: unknown) => typeof n === 'number' && Number.isFinite(n);
 const inZone = (s: GameState, a: Actor) => {
   const z = zoneById(s, a.zone);
-  return !z?.outline?.length || !a.pos || inside(z, a.pos);
+  return !z?.outline?.length || (!!a.pos && inside(z, a.pos)); // ZP1: everyone has a point
 };
 function items(s: GameState): ItemInstance[] {
   const out: ItemInstance[] = [];

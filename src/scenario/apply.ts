@@ -603,11 +603,14 @@ export function applyFallbackStage(state: GameState, ctx: PlanContext, reason: s
   setFallbackFlags(state, reason, 'weaver_fallback', errors);
 }
 
+/** ZP1: an event happens at its maker's point */
+const atPoint = (a: Actor): Pick<GameEvent, 'pos'> => (a.pos ? { pos: { ...a.pos } } : {});
+
 /** Scenario setup step 7 (case 42): a stealthy player arriving through a frontier is tested by every observer in range;
  * the plan's opening beliefs were skipped for this entry. Returns the arrival event. */
 export function stealthyArrival(state: GameState, rng: Rng): GameEvent {
   const p = state.player;
-  const ev: GameEvent = { id: `t${state.turn}_arrival`, turn: state.turn, actorId: p.id, kind: 'arrival', zone: p.zone, effects: [], noise: 'quiet', visibility: 'normal', perception: {} };
+  const ev: GameEvent = { id: `t${state.turn}_arrival`, turn: state.turn, actorId: p.id, kind: 'arrival', zone: p.zone, ...atPoint(p), effects: [], noise: 'quiet', visibility: 'normal', perception: {} };
   ev.perception = computePerception(ev, state, rng);
   detectPlayer(state, ev, rng);
   return ev;
@@ -617,7 +620,7 @@ export function stealthyArrival(state: GameState, rng: Rng): GameEvent {
 export function openingEvents(state: GameState, rng: Rng): GameEvent[] {
   const p = state.player;
   const out: GameEvent[] = [];
-  const arrival: GameEvent = { id: `t${state.turn}_arrival`, turn: state.turn, actorId: p.id, kind: 'arrival', zone: p.zone, effects: [], noise: 'quiet', visibility: 'normal', perception: {} };
+  const arrival: GameEvent = { id: `t${state.turn}_arrival`, turn: state.turn, actorId: p.id, kind: 'arrival', zone: p.zone, ...atPoint(p), effects: [], noise: 'quiet', visibility: 'normal', perception: {} };
   arrival.perception = computePerception(arrival, state, rng);
   out.push(arrival);
   const stage = new Set(state.zones.map((z) => z.id));
@@ -626,7 +629,7 @@ export function openingEvents(state: GameState, rng: Rng): GameEvent[] {
     const act = a.mind ? desiredState(buildActorView(state, a.id))?.activity : undefined;
     const def = act ? activity(act) : undefined;
     const ev: GameEvent = {
-      id: `t${state.turn}_presence_${a.id}`, turn: state.turn, actorId: a.id, kind: 'presence', zone: a.zone, effects: [],
+      id: `t${state.turn}_presence_${a.id}`, turn: state.turn, actorId: a.id, kind: 'presence', zone: a.zone, ...atPoint(a), effects: [],
       noise: def?.noise ?? 'quiet', visibility: def?.visibility ?? 'normal', perception: {}, ...(act ? { activity: act } : {}),
     };
     ev.perception = computePerception(ev, state, rng);

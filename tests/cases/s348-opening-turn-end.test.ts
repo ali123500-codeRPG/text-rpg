@@ -8,12 +8,13 @@ import { memoryStore, saveTurn } from '../../src/save';
 import { advanceClock, now, turnTime } from '../../src/time';
 import { checkTurn, snapTurn } from '../../src/save/turnCheck';
 import { SK } from '../../src/library/skillIds';
+import { placeAll } from '../../src/engine/position';
 import type { GameState, TurnRecord } from '../../src/types';
 
 const rec = (s: GameState): TurnRecord => ({ storyId: s.storyId, turn: s.turn, libraryVersion: s.libraryVersion, rngBefore: 0, playerInput: '', agentLog: [], events: [], factsAdded: [] });
 const build = { name: 'Wren', age: 30, skills: { [SK.melee_medium]: 40, [SK.parry]: 25, [SK.dodge]: 10, [SK.endurance]: 15, [SK.eyesight]: 5, [SK.earshot]: 5 }, tagged: [SK.melee_medium, SK.parry, SK.endurance], flawed: [SK.persuasion, SK.barter, SK.sneaking] };
 const arrive: ScenarioDirector = {
-  startStory: async (s) => { const z = s.places.find((p) => p.id === s.player.placeId)!.zones[0]; s.player.zone = z.id; return []; },
+  startStory: async (s) => { const z = s.places.find((p) => p.id === s.player.placeId)!.zones[0]; s.player.zone = z.id; placeAll(s); return []; }, // as a stage plan does: ZP1 placement
   afterResolve: async () => [], afterSave: () => {},
 };
 

@@ -1103,7 +1103,8 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
     const drop = Math.max(0, heightOf(up) - heightOf(down)), was = a.pos && { ...a.pos };
     a.zone = down.id;
     a.placeId = down.placeId;
-    if (link.opening.to) a.pos = { x: link.opening.to.x, y: link.opening.to.y }; else delete a.pos; // PZ2: it lands below the window
+    if (link.opening.to) a.pos = { x: link.opening.to.x, y: link.opening.to.y }; // PZ2: it lands below the window
+    else { delete a.pos; placeAll(state); } // a drop not yet placed (none in play: placeOpening gives every window its landing point)
     noteLeft(state, up.id);
     const f = landFall(state, a, drop, ctx.rng);
     const ev = mk(ctx, a, 'move', { metres: 0, fromZone: up.id, ...(was ? { fromPos: was } : {}), fall: { metres: drop, damage: f.damage, landing: f.landing }, effects: f.effects });

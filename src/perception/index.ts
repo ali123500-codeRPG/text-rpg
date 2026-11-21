@@ -219,7 +219,7 @@ export function noteSightings(event: GameEvent, state: GameState): void {
   const per = event.perception[p.id];
   const cs = (p.journal.clearSight ??= {});
   if (per) (p.journal.lastKnown ??= {})[event.actorId] = event.zone; // BG-28: seen or heard, the last place known
-  if (per) { const ls = (p.journal.lastSpot ??= {}); if (event.pos) ls[event.actorId] = { ...event.pos, floor: zoneById(state, event.zone)?.floor ?? 0 }; else delete ls[event.actorId]; } // BG-125
+  if (per && event.pos) (p.journal.lastSpot ??= {})[event.actorId] = { ...event.pos, floor: zoneById(state, event.zone)?.floor ?? 0 }; // BG-125; an event with no point (none: ZP1) never erases a known one
   if (per?.level === 'full' && per.cue === 'sight') cs[event.actorId] = event.zone;
   else if (event.kind === 'move' || event.kind === 'flee') delete cs[event.actorId];
   if (!per && (event.kind === 'move' || event.kind === 'flee') && actorById(state, event.actorId)?.posture === 'stealthy') updateBeliefs(state, { kind: 'lost', observerId: p.id, aboutId: event.actorId });
