@@ -190,5 +190,5 @@ export const GEAR = {
    * (ViewConfiguration.getLongPressTimeout), iOS's long-press gesture 0.5 s (UILongPressGestureRecognizer) */
   MAP_LONG_PRESS_MS: 500,
   /** CO16 floor area in m² of each zone size (ZONE_SIZES); placeholders */
-  ZONE_SIZE_M2: { cramped: 9, small: 25, room: 60, hall: 225, yard: 400, open: 1600, vast: 10000 } as Record<string, number>,
+  ZONE_SIZE_M2: { cramped: 9, small: 25, room: 60, hall: 225, yard: 400, open: 1600, vast: 10000, immense: 40000, sprawling: 250000, endless: 1000000 } as Record<string, number>,
 };
