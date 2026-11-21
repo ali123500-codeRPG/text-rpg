@@ -1699,7 +1699,13 @@ button.eq-name:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .who .pp .sts:empty { display: none; }
 .short-wrap { flex: none; display: grid; gap: var(--space-2); border-top: 1px solid var(--border); padding-top: var(--space-3); font-size: 13px; }
 .short { display: grid; gap: var(--space-1); }
-.short-wrap > .hs-btn-text { justify-self: start; }
+.short-wrap { cursor: pointer; border-radius: var(--r-md); margin-inline: calc(-1 * var(--space-2)); padding-inline: var(--space-2); padding-bottom: var(--space-2); }
+.short-wrap:hover { background: color-mix(in srgb, var(--accent) 7%, transparent); } /* lighter than the XP track, so the track still shows */
+.short-wrap:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* coin as icons: a count beside each coin, tinted by its metal; the metal's name is the icon's tip */
+.coin-ic { display: inline-grid; width: 16px; height: 16px; margin-left: 3px; vertical-align: -3px; color: var(--scenario-mark); }
+.coin-ic svg { width: 100%; height: 100%; display: block; }
+.coin-ic[data-coin="silver"] { color: #d7dce2; } .coin-ic[data-coin="copper"] { color: #d98c5f; }
 
 
 /* ---- the play screen's minimap (AD8–AD16, src/ui/minimap.ts), the mock-up's look; its doors, stairs, furniture, people
