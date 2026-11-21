@@ -96,6 +96,7 @@ import type {
   RoutineSet,
   SituationTag,
   SkillDef,
+  StandIn,
   ThemeDef,
 } from '../types';
 import {
@@ -338,6 +339,24 @@ const AMORPHOUS: AccessCond = { kind: 'body', id: BT.amorphous }; // no hands, e
 /** NR14, AB14: the animal races (AB18: they smell) */
 const ANIMALS = [RC.dog, RC.wolf, RC.tiger, RC.bear, RC.boar, RC.horse, RC.lizard, RC.python, RC.spider, RC.lion, RC.leopard, RC.hyena, RC.crocodile];
 
+/** D-255 a (EP2): the stand-in parts essences grow on a body that lacks them (StandIn, library/index actorBody). Sizes and
+ * reaches are placeholders; each natural weapon takes the beast's own: the slime's slam, a boar's tusks, a tiger's foreleg */
+const part = (id: string, size: PartDef['size'], roles: RoleId[], reachM?: number, impact: PartDef['impact'] = 'non_essential'): PartDef =>
+  ({ id, size, impact, roles, ...(reachM ? { reachM } : {}) });
+export const STAND_INS = {
+  gel_knot: { part: part('gel_knot', 'small', [RL.strike]), attack: nat(AM.slam, 'slam', 0.2, 'gel_knot', 'slam') },
+  // a person's arm is 0.625 m (STD_ARM_M): it holds one shield or item
+  gripping_tendril: { part: part('gripping_tendril', 'normal', [RL.grip], 0.6, 'normal') },
+  speaking_mouth: { part: part('speaking_mouth', 'extra_small', [RL.speech]), speaks: true },
+  // punches with it as fists (its grip reach)
+  brawler_arm: { part: part('brawler_arm', 'normal', [RL.grip], 0.6, 'normal'), attack: FISTS },
+  fangs: { part: part('fangs', 'extra_small', [RL.strike]), attack: nat(AM.bite, 'light', 0.1, 'fangs', 'bite') },
+  horns: { part: part('horns', 'small', [RL.strike]), attack: nat(AM.gore, 'medium', 0.3, 'horns', 'horns') },
+  claws: { part: part('claws', 'small', [RL.strike]), attack: nat(AM.claw, 'medium', 0.6, 'claws', 'claws') },
+  // a beast that has a tail already lashes with its own
+  tail: { part: part('tail', 'small', [RL.strike]), attack: nat(AM.lash, 'slam', 1, 'tail', 'tail lash', SK.tail) },
+} satisfies Record<string, StandIn>;
+
 export function prototypeLibrary(): Library {
   const lib: Library = structuredClone({
     version: 1,
@@ -478,28 +497,29 @@ export function prototypeLibrary(): Library {
     // that sits on someone's Thread, never a strand of it, so stories say it came with you or sits beside you, never that it knots in.
     essences: {
       [ES.gel_patience]: { id: ES.gel_patience, name: 'Gel Patience', from: { race: RC.slime }, skills: [{ skill: SK.slam, weight: 2 }, { skill: SK.scent, weight: 1 }], // EN5: slimes have no Endurance; AB19: Scent, not Tremor
+        standIns: [STAND_INS.gel_knot],
         story: 'The slime\'s slow patience comes with you and settles in your gut like a swallowed stone. Who passed by reaches you as a smell before your eyes find them, and your body starts to feel like the weapon.' },
       // NE2 a: people rows come from the humanoid body type, so elves carry them as humans do (a row for one race can come later, IEI-229)
-      [ES.gate_habit]: { id: ES.gate_habit, name: 'Gate-Warden\'s Habit', from: { bodyType: BT.humanoid }, skills: [{ skill: SK.block, weight: 2 }, { skill: SK.earshot, weight: 1 }],
+      [ES.gate_habit]: { id: ES.gate_habit, name: 'Gate-Warden\'s Habit', from: { bodyType: BT.humanoid }, skills: [{ skill: SK.block, weight: 2 }, { skill: SK.earshot, weight: 1 }], standIns: [STAND_INS.gripping_tendril],
         story: 'You catch yourself turning a shoulder toward the door before you decide to, as if you had brought someone else\'s long watches home with you.' },
       [ES.street_instinct]: { id: ES.street_instinct, name: 'Street Instinct', from: { bodyType: BT.humanoid }, skills: [{ skill: SK.dodge, weight: 2 }, { skill: SK.insight, weight: 1 }],
         story: 'A crowd reads differently now. You feel the reaching hand before it moves, the way they must have felt it.' },
       // EN6: placeholder rows so the barkeep and the tavern patron each carry one
-      [ES.haggler_ear]: { id: ES.haggler_ear, name: 'Haggler\'s Ear', from: { bodyType: BT.humanoid }, skills: [{ skill: SK.barter, weight: 2 }, { skill: SK.earshot, weight: 1 }],
+      [ES.haggler_ear]: { id: ES.haggler_ear, name: 'Haggler\'s Ear', from: { bodyType: BT.humanoid }, skills: [{ skill: SK.barter, weight: 2 }, { skill: SK.earshot, weight: 1 }], standIns: [STAND_INS.speaking_mouth],
         story: 'A haggler\'s ear sits beside your own now. Prices start to sound like opening moves, and you hear the give in a seller\'s voice before they know it is there.' },
-      [ES.tavern_brawler]: { id: ES.tavern_brawler, name: 'Tavern Brawler', from: { bodyType: BT.humanoid }, trait: PK.fists_do_the_talking, skills: [{ skill: SK.unarmed_strike, weight: 2 }, { skill: SK.persuasion, weight: 1 }],
+      [ES.tavern_brawler]: { id: ES.tavern_brawler, name: 'Tavern Brawler', from: { bodyType: BT.humanoid }, trait: PK.fists_do_the_talking, skills: [{ skill: SK.unarmed_strike, weight: 2 }, { skill: SK.persuasion, weight: 1 }], standIns: [STAND_INS.brawler_arm, STAND_INS.speaking_mouth],
         story: 'Someone\'s long nights of tavern brawls came along with you. Your fists hang easier at your sides, and so do your words: half a fight is talking your way into it, or out.' },
       // NE3 a: watchers' and hunters' only row; every person has some Eyesight and Earshot, so it fits everyone, picked rarely (CONFIG.ESSENCE_PICK_WEIGHT)
       [ES.lookout_eyes]: { id: ES.lookout_eyes, name: 'Lookout\'s Eyes', from: { bodyType: BT.humanoid }, skills: [{ skill: SK.eyesight, weight: 2 }, { skill: SK.earshot, weight: 1 }],
         story: 'Someone\'s long hours on a wall or in a hide came along with you. Your eyes go to the treeline and the far end of the road on their own, and a twig snapping behind you turns your head before you think to.' },
       // NE1 a: beast rows name no race or body type, so the fit rule hands each beast the rows of the natural weapons it has
-      [ES.fang_nose]: { id: ES.fang_nose, name: 'Fang and Nose', from: {}, skills: [{ skill: SK.bite, weight: 2 }, { skill: SK.scent, weight: 1 }],
+      [ES.fang_nose]: { id: ES.fang_nose, name: 'Fang and Nose', from: {}, skills: [{ skill: SK.bite, weight: 2 }, { skill: SK.scent, weight: 1 }], standIns: [STAND_INS.fangs],
         story: 'A hunting animal\'s hunger sits beside your own now. Your jaw sets hard when a fight starts, and the air carries who passed by and how afraid they were.' },
-      [ES.horn_hide]: { id: ES.horn_hide, name: 'Horn and Hide', from: {}, skills: [{ skill: SK.hooves_horns, weight: 2 }, { skill: SK.hide, weight: 1 }],
+      [ES.horn_hide]: { id: ES.horn_hide, name: 'Horn and Hide', from: {}, skills: [{ skill: SK.hooves_horns, weight: 2 }, { skill: SK.hide, weight: 1 }], standIns: [STAND_INS.horns],
         story: 'Something of a charging beast came with you: the urge to lower your head and drive straight through, and a skin that shrugs off what should have cut it.' },
-      [ES.claw_pounce]: { id: ES.claw_pounce, name: 'Claw and Pounce', from: {}, skills: [{ skill: SK.claws, weight: 2 }, { skill: SK.dodge, weight: 1 }],
+      [ES.claw_pounce]: { id: ES.claw_pounce, name: 'Claw and Pounce', from: {}, skills: [{ skill: SK.claws, weight: 2 }, { skill: SK.dodge, weight: 1 }], standIns: [STAND_INS.claws],
         story: 'A great cat\'s patience settles in your shoulders. Your weight shifts onto your toes before a blow lands, and your hands curl as if they remember raking.' },
-      [ES.lashing_tail]: { id: ES.lashing_tail, name: 'Lashing Tail', from: {}, skills: [{ skill: SK.tail, weight: 2 }, { skill: SK.hide, weight: 1 }],
+      [ES.lashing_tail]: { id: ES.lashing_tail, name: 'Lashing Tail', from: {}, skills: [{ skill: SK.tail, weight: 2 }, { skill: SK.hide, weight: 1 }], standIns: [STAND_INS.tail],
         story: 'A heavy, scaled thing\'s way of fighting came along with you: turning side-on, sweeping wide at whatever comes close, and taking the hits on a hide that barely feels them.' },
       // D-362: a beast whose Resolve is above every weapon skill (an Untrained one: Resolve 50, weapons about 15) fits no weapon row
       [ES.cornered_nerve]: { id: ES.cornered_nerve, name: 'Cornered Nerve', from: { role: RO.beast, over: SK.resolve }, skills: [{ skill: SK.resolve, weight: 2 }, { skill: SK.scent, weight: 1 }],

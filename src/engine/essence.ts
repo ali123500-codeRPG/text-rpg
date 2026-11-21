@@ -5,7 +5,8 @@
 import type { Actor, EssenceDef, EssenceOffer, GameState, HeldEssence, NpcTemplate, Rng, ScenarioEnding, ScenarioFrame, SkillEntry } from '../types';
 import { D100_MEAN } from '../rng';
 import { CONFIG, past100 } from '../config';
-import { getLibrary, hasTemplate, npcTemplate, race } from '../library';
+import { actorBody, getLibrary, hasTemplate, npcTemplate, race } from '../library';
+import { gripsOf } from '../ruleset/slots';
 import { templateSkills } from '../library/spawn';
 import { ESSENCE_GRADES, TIERS, type EssenceGradeKey, type Past100Key } from '../scales';
 import { band, naturalEdge } from '../ruleset';
@@ -221,8 +222,9 @@ export function removeEssence(state: GameState, index: number, atRest: boolean):
   const pr = state.player.progression, held = pr?.essences ?? [];
   if (!pr || !held[index]) return 'There is no such essence.';
   if (!atRest) return 'You can only let an essence go at rest: out of any fight, with no one hostile nearby.';
-  const free = freeEssenceChanges(state.player) > 0;
+  const free = freeEssenceChanges(state.player) > 0, had = actorBody(state, state.player).parts.map((x) => x.id);
   const [e] = held.splice(index, 1);
+  dropStandIns(state, state.player, had);
   pr.essenceChanges = (pr.essenceChanges ?? 0) + 1;
   const cost = free ? 0 : CONFIG.ESSENCE_REMOVE_LEVELS * xpToNext(state.player);
   pr.xp -= cost;
@@ -231,6 +233,14 @@ export function removeEssence(state: GameState, index: number, atRest: boolean):
   syncEssenceTraits(state, state.player);
   logCode(state, 'essence_removed', { essence: e.essence, cost });
   return null;
+}
+
+/** D-255 a (EP3 a): the stand-in parts the actor lost (of `had`, its parts before) go with their wounds, and whatever they
+ * held goes back into the pack */
+function dropStandIns(state: GameState, a: Actor, had: string[]): void {
+  const now = new Set(actorBody(state, a).parts.map((x) => x.id)), gone = had.filter((id) => !now.has(id));
+  for (const id of gone) delete a.core.condition.parts[id];
+  for (const i of a.core.inventory) if (gripsOf(i).some((g) => gone.includes(g))) delete i.equippedIn;
 }
 
 /** FP8 (D-257): a held essence's trait and quirk are perks the holder owns (source essence), each once however many held

@@ -1,5 +1,5 @@
 // Library access. Lookup order: the story's blueprints first, then the library (Part 4 §2), following aliases.
-import type { ActivityDef, Actor, BodySize, BodyType, GameState, ItemDef, Library, NaturalArmor, NpcTemplate, RaceDef, Routine, RoutineSet } from '../types';
+import type { ActivityDef, Actor, AttackMode, BodySize, BodyType, GameState, ItemDef, Library, NaturalArmor, NpcTemplate, PartDef, RaceDef, Routine, RoutineSet, StandIn } from '../types';
 import { prototypeLibrary } from './data';
 import { BT, RC } from './raceIds';
 import { volumeM3 } from './bodySize';
@@ -73,13 +73,26 @@ export function actorBody(state: GameState | null | undefined, actor: Actor): Ac
   const r = actor.core.raceId ? current.races?.[resolveAlias(actor.core.raceId)] : undefined;
   return {
     ...b,
-    naturalAttacks: [...b.naturalAttacks, ...(r?.naturalAttacks ?? [])],
+    ...withStandIns(actor, b.parts, [...b.naturalAttacks, ...(r?.naturalAttacks ?? [])]),
     fallback: r?.fallback ?? b.fallback,
     speed: (r ?? race(RC.human)).speed, // an actor with no race moves as a person
     hpMultiplier: r?.hpMultiplier ?? 1,
     size: sizeOf(b, r), reachScale: reachScaleOf(b, r),
     ...(r?.naturalArmor ? { naturalArmor: r.naturalArmor } : {}),
   };
+}
+/** D-255 a: the stand-in parts of the actor's held essences (EssenceDef.standIns), in the order held */
+export const essenceStandIns = (actor: Actor): StandIn[] =>
+  (actor.progression?.essences ?? []).flatMap((e) => current.essences?.[e.essence]?.standIns ?? []);
+/** D-255 a (EP1–EP2): the parts and attacks a body has with its held essences' stand-ins: a natural weapon when no attack
+ * rolls its skill (on the body's own part of that id, when it has one), any other part when no part has its roles */
+function withStandIns(actor: Actor, parts: PartDef[], attacks: AttackMode[]): { parts: PartDef[]; naturalAttacks: AttackMode[] } {
+  for (const s of essenceStandIns(actor)) {
+    if (s.attack ? attacks.some((m) => m.skill === s.attack!.skill) : parts.some((p) => s.part.roles.every((r) => p.roles.includes(r)))) continue;
+    if (!parts.some((p) => p.id === s.part.id)) parts = [...parts, s.part];
+    if (s.attack) attacks = [...attacks, s.attack];
+  }
+  return { parts, naturalAttacks: attacks };
 }
 /** BV3 a: the size a race's own figure is drawn at (its body type's size × the race's factors), before anything that
  * changes one being's size; the figure stretches each measure by the being's size over this */

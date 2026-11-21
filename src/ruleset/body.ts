@@ -4,7 +4,7 @@ import { D100_MEAN } from '../rng';
 import type { Actor, AttackMode, GameState, HealthLevel, Mod, PartState, RoleId } from '../types';
 import { CONFIG } from '../config';
 import { armReachM } from '../library/bodySize';
-import { actorBody, getLibrary, itemDef } from '../library';
+import { actorBody, essenceStandIns, getLibrary, itemDef } from '../library';
 import { hasPerk, reservesMult, trueSkill } from './perks';
 import { skillOpen } from './access';
 import { SK } from '../library/skillIds';
@@ -104,9 +104,9 @@ export function intelligenceOf(actor: Actor): IntelligenceKey {
   return (actor.core.raceId ? getLibrary().races?.[actor.core.raceId]?.intelligence : undefined) ?? 'intelligent';
 }
 
-/** the actor can speak: its race talks (tag 'speaks') and a part with the speech role is not Destroyed */
+/** the actor can speak: its race talks (tag 'speaks') or a held essence's stand-in lets it, and a part with the speech role is not Destroyed */
 export function canSpeak(state: GameState, actor: Actor): boolean {
-  return !!getLibrary().races?.[actor.core.raceId ?? '']?.tags?.includes('speaks') &&
+  return (!!getLibrary().races?.[actor.core.raceId ?? '']?.tags?.includes('speaks') || essenceStandIns(actor).some((s) => s.speaks)) && // D-255 a
     actorBody(state, actor).parts.some((p) => p.roles.includes(RL.speech) && poolState(partPct(actor, p.id)) !== 'destroyed');
 }
 
