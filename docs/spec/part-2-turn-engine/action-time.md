@@ -283,8 +283,9 @@ resolve.ts).
   action does on arrival (actThere). A wait that runs out drops it; one stopped for anything else keeps it (RQ4 a).
 - **ACT-346** **NPCs' held turns.** An NPC whose readied step waits holds on each turn its agent gives no new order (it
   comes before its combat list, after a fired trigger or a broken nerve, which drop it), for CONFIG.READY\_MAX\_S at most
-  as the player's. Outside a fight an NPC's readied step is watched through the turn it is given, then dropped: the
-  world-clock wait (ACT-345) is the player's.
+  as the player's. Outside a fight it keeps it too (the owner: "it should have it"): it holds its ground on the world
+  clock (catch-up does not walk it), its step is checked each turn and at each step of the player's world-clock stretch,
+  and it lasts CONFIG.WAIT\_SOMEONE\_MAX\_H of world time, as the player's wait does (ACT-345).
 
 #### Initiative (stage 2)
 

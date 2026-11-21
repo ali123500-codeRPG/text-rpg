@@ -44,7 +44,7 @@ export function catchUp(state: GameState, minutes: number, deductWalked = true, 
   for (const a of [...state.actors].sort((x, y) => x.id.localeCompare(y.id))) {
     const m = a.mind;
     // an NPC whose agent chose its move this turn keeps it: the catch-up is for routine time
-    if (!m?.routine || agentRun.has(a.id) || !isActive(a) || isAsleep(a) || isEngaged(state, a) || a.heldBy || m.moraleState || staying(state, a)) continue;
+    if (!m?.routine || agentRun.has(a.id) || !isActive(a) || isAsleep(a) || isEngaged(state, a) || a.heldBy || m.moraleState || staying(state, a) || a.readied) continue; // AE6: a readied NPC holds its ground
     const d = desiredState(routineView(state, a));
     if (!d) continue;
     // MQ13 a: going to sleep, it walks on to a free bed of its sleep title, its middle, until beside it
