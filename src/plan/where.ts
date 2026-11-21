@@ -7,7 +7,7 @@ import { CONFIG } from '../config';
 /** a title's space in m³ (its footprint's area × its height): the smaller wins where spaces overlap */
 const volumeOf = (z: Zone) => Math.max(areaOf(z.outline), 1e-6) * Math.max(z.top - z.floor, 1e-6);
 /** height `h` is in the title's space: from its floor up to (not including) its top */
-const inSpan = (z: Zone, h: number) => h >= z.floor - 0.01 && h < z.top - 0.01;
+export const inSpan = (z: Zone, h: number) => h >= z.floor - 0.01 && h < z.top - 0.01;
 
 /** the box round each title's outline, kept per outline array */
 const boxes = new WeakMap<object, { x0: number; x1: number; y0: number; y1: number }>();

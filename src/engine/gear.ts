@@ -200,7 +200,7 @@ export function dropToGround(state: GameState, actor: Actor, instId: string, zon
   if (i < 0 || !zone || actor.core.inventory[i].soulbound) return false; // HF18: soulbound gear can't be dropped
   const [it] = actor.core.inventory.splice(i, 1);
   delete it.equippedIn;
-  dropOnGround(state, { zone: zoneId, ...(at ? { pos: at } : {}) }, it);
+  dropOnGround(state, { zone: zoneId, ...(at ? { pos: at } : {}), ...(at && actor.zone === zoneId ? { floor: actor.floor } : {}) }, it);
   return true;
 }
 

@@ -256,7 +256,7 @@ export type GameEvent = {
   actorId: string;
   kind: string; // 'attack','move','idle','speak','call_help','alarm','arrival','presence','item_dropped','give','wasted','search','hold','threshold_crossed','part_state_changed', ...
   zone: string;
-  pos?: { x: number; y: number }; // where it happened: the actor's point on its title's floor (ZP1: everyone always has one)
+  pos?: Pt3; // where it happened: the actor's point and height (ZP1, D-1623: everyone always has both)
   target?: string;
   tier?: Tier;
   effects: Effect[]; // structured; text is built per view, never stored

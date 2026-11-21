@@ -7,6 +7,7 @@ import { ageYears, youngestAge } from '../ruleset/age';
 import { gripSlot, gripsOf } from '../ruleset/slots';
 import { BK, OP } from '../library/tableIds';
 import { freshId } from '../ids';
+import { keepInside, middleOf } from '../plan/geom';
 
 export type CheckReport = { errors: string[]; repairs: string[]; warnings: string[]; changed: Set<string> };
 export const newReport = (): CheckReport => ({ errors: [], repairs: [], warnings: [], changed: new Set() });
@@ -60,6 +61,20 @@ export const MIGRATIONS: Record<number, (pages: Pages) => void> = {
       else if (a.knownOnSight === false) delete a.knownOnSight;
     }
   },
+  // D-1623 (WT4 a): everyone has a point and a height of their own: a point missing takes its title's middle, the height
+  // its title's floor; an event's point takes its title's floor; a thing on the ground with no point lay in no title (none
+  // could reach it) and goes
+  14: (pages) => {
+    const zones = new Map(Object.keys(pages).filter((k) => k.startsWith('place.')).flatMap((k) => (pages[k] as Place).zones.map((z) => [z.id, z] as const)));
+    const floorOf = (zone: string) => zones.get(zone)?.floor ?? 0;
+    for (const k of actorKeys(pages)) {
+      const a = pages[k] as Omit<Actor, 'pos' | 'floor'> & { pos?: Actor['pos']; floor?: number }, z = zones.get(a.zone);
+      if (!a.pos) a.pos = z?.outline?.length ? keepInside(middleOf(z.outline), z.outline, 0) : { x: 0, y: 0 };
+      a.floor ??= floorOf(a.zone);
+    }
+    for (const e of (pages.engine as EnginePage).recentEvents ?? []) if (e.pos && e.pos.floor === undefined) e.pos.floor = floorOf(e.zone);
+    for (const k of Object.keys(pages)) if (k.startsWith('tile.')) { const t = pages[k] as TilePage; t.items = t.items.filter((i) => i.at); }
+  },
 };
 
 /** run steps from → to in order; returns false (and an error) when the save is too old, too new or a step is missing. */
@@ -91,7 +106,7 @@ const T = (v: unknown, k: Kind) => (k === 'array' ? Array.isArray(v) : k === 'ob
 const SHAPES: Record<string, Record<string, Kind>> = {
   engine: { storyId: 'string', turn: 'number', mode: 'string', rngSeed: 'number', rngState: 'number', pending: 'object', stage: 'object', scenarioCaps: 'object', clocks: 'object', bands: 'array', quests: 'array' },
   hidden: { storyId: 'string', plans: 'object', memory: 'object', secrets: 'array', firedLog: 'array', weaverNote: 'string', stage: 'object' },
-  actor: { id: 'string', storyId: 'string', kind: 'string', names: 'object', label: 'string', placeId: 'string', zone: 'string', bandId: 'string', core: 'object' },
+  actor: { id: 'string', storyId: 'string', kind: 'string', names: 'object', label: 'string', placeId: 'string', zone: 'string', pos: 'object', floor: 'number', bandId: 'string', core: 'object' },
   core: { bodyTypeId: 'string', skills: 'object', classes: 'array', perks: 'array', condition: 'object', inventory: 'array', standingDefense: 'string' },
   place: { id: 'string', storyId: 'string', kind: 'string', names: 'object', zones: 'array', state: 'object', headlines: 'array' },
   facts: { storyId: 'string', placeId: 'string', facts: 'array' },

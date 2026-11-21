@@ -14,6 +14,7 @@ import { applyCheckin } from '../engine/scenarioEnd';
 import { applyWindow } from '../engine/chase';
 import { formatWeaverView, formatWorldView } from './format';
 import { computePerception } from '../perception';
+import { standingAt } from '../engine/position';
 
 /** the validator's errors for a repair call, with the rejected plan (V11) */
 const repairNote = (errors?: PlanError[], rejected?: StagePlan) => (errors?.length ? `\n\nREPAIR: your previous plan failed validation:\n${errors.filter((e) => !e.repaired).map((e) => `- ${e.code}: ${e.message}`).join('\n')}` +
@@ -107,10 +108,10 @@ export function createDirector(clock: Clock): ScenarioDirector {
       d.applyRegionsDrawn(state); // WZ18
       // BG-73: the crossing's move event ends where the player now stands, so it reads as leaving for the new zone
       const crossed = events.find((e) => e.kind === 'move' && e.actorId === state.player.id && e.effects.some((f) => f.kind === 'frontier_crossed' && f.data.frontier === key));
-      if (crossed && state.player.zone !== crossed.zone) Object.assign(crossed, { fromZone: crossed.zone, fromPos: crossed.pos, zone: state.player.zone, pos: state.player.pos, target: state.player.zone });
+      if (crossed && state.player.zone !== crossed.zone) Object.assign(crossed, { fromZone: crossed.zone, fromPos: crossed.pos, zone: state.player.zone, pos: standingAt(state.player), target: state.player.zone });
       // BG-90: those who followed the player through come in with them: a move event each, so the story shows them along
       const follows = (r.followed ?? []).map((id): GameEvent => {
-        const at = state.actors.find((x) => x.id === id)?.pos; // ZP1: placed in the new title on crossing
+        const who = state.actors.find((x) => x.id === id), at = who && standingAt(who); // ZP1: placed in the new title on crossing
         const ev: GameEvent = { id: `t${state.turn}_follow_${id}`, turn: state.turn, actorId: id, kind: 'move', zone: state.player.zone, ...(at ? { pos: { ...at } } : {}), ...(crossed?.fromZone ? { fromZone: crossed.fromZone } : {}), effects: [], noise: 'quiet', visibility: 'normal', perception: {} };
         ev.perception = computePerception(ev, state, rng);
         return ev;

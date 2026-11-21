@@ -4,6 +4,7 @@ import { middle } from '../plan/where';
 import { seeSquares, seeWhole } from '../plan/fog';
 import { boxOf } from '../plan/geom';
 import { dropOnGround, groundIn } from '../engine/ground';
+import { titleMiddle } from '../engine/position';
 import { BK, PA, VL, WK } from '../library/tableIds';
 import { roadShape } from '../scenario/apply';
 import { HL } from '../library/tableIds';
@@ -284,10 +285,11 @@ function useStage(st: GameState, stage: FakeStage): void {
   p.zone = stage.zone; p.placeId = stage.placeId;
   p.journal = { ...p.journal!, zonesSeen: stage.seen, trail: stage.trail.map((zone, i) => ({ zone, left: st.turn - 1 - i })), clearSight: {} };
   const at = (id: string, d: [number, number]) => { const z = st.zones.find((q) => q.id === id); if (!z?.outline.length) return undefined; const c = middle(z); return { x: c.x + d[0], y: c.y + d[1] }; };
-  p.pos = at(stage.zone, stage.you);
+  p.pos = at(stage.zone, stage.you) ?? p.pos;
+  p.floor = st.zones.find((z) => z.id === stage.zone)?.floor ?? p.floor;
   st.actors = stage.people.map((x) => {
     const zone = st.zones.find((z) => z.id === x.zone)!;
-    const a = spawnNpc(null, TP.patron, { id: x.id, zone: x.zone, placeId: zone.placeId, bandId: `band_${x.id}`, storyId: 'fake', label: x.label });
+    const a = spawnNpc(null, TP.patron, { id: x.id, zone: x.zone, placeId: zone.placeId, bandId: `band_${x.id}`, storyId: 'fake', label: x.label, at: titleMiddle(zone) });
     const pos = x.at ? at(x.zone, x.at) : undefined;
     if (pos) a.pos = pos;
     if (x.race) { a.core.raceId = x.race; a.core.bodyTypeId = getLibrary().races![x.race].bodyTypeId; }

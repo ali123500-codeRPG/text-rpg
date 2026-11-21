@@ -162,6 +162,8 @@ import {
   sightDistM,
   spotOnTheWay,
   spotPoint,
+  standingAt,
+  placeOf,
   walkLeg,
   wayLeftM,
   wayPoint,
@@ -822,7 +824,7 @@ type StretchStop = NearStop | { why: 'fight'; by: string[] };
 function mk(ctx: Ctx, a: Actor, kind: string, extra: Partial<GameEvent> = {}): GameEvent {
   const [noise, visibility] = SENSE[kind] ?? ['quiet', 'normal'];
   const n = ctx.state.events.length + ctx.events.length + 1;
-  return { id: `t${ctx.state.turn}.${n}`, turn: ctx.state.turn, actorId: a.id, kind, zone: a.zone, ...(a.pos ? { pos: { ...a.pos } } : {}), effects: [], noise: armorNoise(ctx.state, a, kind, noise), visibility, perception: {}, ...extra };
+  return { id: `t${ctx.state.turn}.${n}`, turn: ctx.state.turn, actorId: a.id, kind, zone: a.zone, pos: standingAt(a), effects: [], noise: armorNoise(ctx.state, a, kind, noise), visibility, perception: {}, ...extra };
 }
 
 /** AN1–AN4: a body-moving event is louder by the worn armor's weight steps (Quiet Mail: one step less); Soft Tread:
@@ -1105,11 +1107,12 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
     const shutters = barrierOn(state, link.opening); // PC3: a window's shutters must be open, and the body must fit the opening
     if ((shutters && !shutters.open && !broken(shutters)) || !fitsThrough(state, a, link)) return null;
     const up = zoneById(state, a.zone)!, down = zoneById(state, goal.zone)!;
-    const drop = Math.max(0, heightOf(up) - heightOf(down)), was = a.pos && { ...a.pos };
+    const drop = Math.max(0, a.floor - heightOf(down)), was = a.pos && { ...a.pos };
     a.zone = down.id;
     a.placeId = down.placeId;
+    a.floor = down.floor;
     if (link.opening.to) a.pos = { x: link.opening.to.x, y: link.opening.to.y }; // PZ2: it lands below the window
-    else { delete a.pos; placeAll(state); } // a drop not yet placed (none in play: placeOpening gives every window its landing point)
+    else { a.unplaced = true; placeAll(state); } // a drop not yet placed (none in play: placeOpening gives every window its landing point)
     noteLeft(state, up.id);
     const f = landFall(state, a, drop, ctx.rng);
     const ev = mk(ctx, a, 'move', { metres: 0, fromZone: up.id, ...(was ? { fromPos: was } : {}), fall: { metres: drop, damage: f.damage, landing: f.landing }, effects: f.effects });
@@ -1763,7 +1766,7 @@ function huntOnCode(ctx: Ctx, seconds: number, onLeg?: OnLeg): { reached: string
     const o = fallbackOrder(buildActorView(state, x.id), rng);
     const t = o.target ? actorById(state, o.target) : undefined;
     const walk = (goal: Located, short = 0, toward?: string) => {
-      const from: Located = { zone: x.zone, ...(x.pos ? { pos: { ...x.pos } } : {}) };
+      const from: Located = placeOf(x);
       const m = walkLeg(state, x, goal, moveSpeed(state, x).run * seconds, short, x, false, toward);
       if (m === null || (m <= 0 && x.zone === from.zone)) return;
       if (onLeg) onLeg(x, from, m, goal.zone);
@@ -1810,7 +1813,7 @@ function runStretch(ctx: Ctx, st: Stretch, onLeg?: OnLeg): void {
   let fighting = false, walkEnd: 'there' | 'blocked' | null = null, firstS = 0;
   for (let first = true; !stop && ran < st.seconds - T_EPS && isActive(p); first = false) {
     const step = Math.min(stepS(state, watch), fighting ? CONFIG.ROUND_S : Infinity, st.seconds - ran);
-    const before = new Map<string, Located>(allActors(state).map((x) => [x.id, { zone: x.zone, ...(x.pos ? { pos: { ...x.pos } } : {}) }]));
+    const before = new Map<string, Located>(allActors(state).map((x) => [x.id, placeOf(x)]));
     const from = ctx.events.length;
     if (st.walk) { walkEnd = walkStep(ctx, st.walk, step); if (walkEnd) { ran += step; break; } } // AT45: there, or blocked
     passTime(state, step / 60);
@@ -2887,7 +2890,7 @@ function tripWorld(ctx: Ctx, group: string[]): TripWorld<{ before: Map<string, L
   const along = (by: string[]) => by.filter((id) => !group.includes(id));
   return {
     stepS: () => stepS(state, watch),
-    mark: () => ({ before: new Map<string, Located>(allActors(state).map((x) => [x.id, { zone: x.zone, ...(x.pos ? { pos: { ...x.pos } } : {}) }])), from: ctx.events.length }),
+    mark: () => ({ before: new Map<string, Located>(allActors(state).map((x) => [x.id, placeOf(x)])), from: ctx.events.length }),
     after: (minutes, { before, from }) => {
       catchUp(state, minutes, first, legsOf(ctx, true)); // the turn's own walks count once
       if (first) { state.scratch!.agentRun = [...group]; first = false; } // AT63: then everyone else runs on code; the group travels
@@ -3229,7 +3232,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   if (state.scratch) { delete state.scratch.frontierWaits; delete state.scratch.walked; delete state.scratch.caughtUp; delete state.scratch.nightStopped; delete state.scratch.fightFinished; } // NW3/NW11: this turn's only
   (state.scratch ??= {}).agentRun = usableAgentOutputs(input).map((o) => o.actorId); // NW11: their agent moved them this turn
   const clockStart = now(state);
-  const startPos = new Map<string, Located>(allActors(state).map((x) => [x.id, { zone: x.zone, ...(x.pos ? { pos: { ...x.pos } } : {}) }])); // AT67: where everyone stood
+  const startPos = new Map<string, Located>(allActors(state).map((x) => [x.id, placeOf(x)])); // AT67: where everyone stood
   wakeChecksNear(state, (x) => armorNoise(state, x, 'move', SENSE.move[0]), rng); // NW18: a light sleeper may hear someone hostile near
   noteZonesSeen(state); // where the turn starts: a frontier crossed after the last turn's end
   placeAll(state); // ZP1: anyone new on stage, or moved by a scenario, gets a spot in their zone

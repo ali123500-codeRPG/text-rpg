@@ -15,7 +15,7 @@ import { soundDb, VOLUME_NOISE } from '../perception/noise';
 import { markUse, ruleset, situational, fnRoller, tierLevel, effectiveSkill } from '../ruleset';
 import { coverShown, rollFnSkills } from '../ruleset/gear';
 import { rewardSources } from '../ruleset/achRewards';
-import { distM, seeingM, sightDistM, withinGrip, withinM, type Located } from '../engine/position';
+import { distM, seeingM, sightDistM, standingAt, withinGrip, withinM, type Located } from '../engine/position';
 import { hasPerk, meltAwayHere, perkSum } from '../ruleset/perks';
 import { blindSpotNow } from '../engine/perkMarks';
 import { fightingWith } from '../engine/engagement';
@@ -436,7 +436,7 @@ export function searchFor(state: GameState, a: Actor, event: GameEvent, rng: Rng
     for (const [f] of tests) if (!reach.some((t) => t.sense === f && t.pastArea) && !done.ids.includes(`${pairKey(h, a)}:${f}`)) done.ids.push(`${pairKey(h, a)}:${f}`);
     const r = best.r;
     if (a.kind === 'player' && r.gap > 0) { tally(state, 'spotted'); tally(state, 'spotted', { by: 'function', of: best.sense }); } // N3
-    const at = { ...event, zone: h.zone, ...(h.pos ? { pos: { ...h.pos } } : {}) };
+    const at = { ...event, zone: h.zone, pos: standingAt(h) };
     if (r.gap > 0) { updateBeliefs(state, { kind: 'detection', observerId: a.id, aboutId: h.id, status: 'aware', event: at }); spotted(a, h); won.push({ found: h, r }); } // WN8
     else if (r.gap === 0) updateBeliefs(state, { kind: 'detection', observerId: a.id, aboutId: h.id, status: 'suspicious', event: at });
   }
