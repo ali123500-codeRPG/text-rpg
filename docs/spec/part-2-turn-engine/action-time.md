@@ -112,8 +112,13 @@ BG/D numbers) sits in one trailing parenthesis.
   her") keeps after them: reaching them does not end it, and it carries on toward where they are now while the player
   can see or hear them (resolve.ts keepFollowing); a sneak with no move sneaks along a walk (reading choice: sneaking is
   a way of moving) (BG-190).
-- **ACT-84** Lost, it ends and the player is told why once, the turn after (Actor.followLost; logged follow\_lost): seen
-  going down, slipped from sight in the zone the player had them in, or gone on out of sight.
+- **ACT-84** Leaving a place is going through a way (a doorway, stairs, a window); an open edge between two titles is no
+  way out (Ali, 21/11/2026, project thread: "define leaving, if I am attacking someone and they go through a door I expect that I will go after them"; BG-1736) (position.ts wentThroughWay). Someone followed who goes out of sight through a way the player saw
+  them take is followed on to where they were last seen (a walk with lastSeen); an attack on someone out of sight goes
+  after them there the same way (legality.ts). Lost only when they are out of sight and the way they took is unknown (not
+  found at that spot, or the spot seen empty): it ends and the player is told why once, the turn after
+  (Actor.followLost; logged follow\_lost): seen going down, slipped from sight with no way taken since they were last
+  seen, or gone on out of sight through a way.
 - **ACT-334** **Walk then act (MQ8):** the player's action on a thing out of reach (a door's way op, picking or breaking
   a lock, breaking through a wall or door, opening, forcing or filching a container, picking something up, Sleep on a
   bed) walks there and is done on arrival, wherever on the map the thing is; never an attack (it runs on, BG-255) and

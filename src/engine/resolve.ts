@@ -170,6 +170,7 @@ import {
   unplace,
   reachOverFrom,
   routeOf,
+  wentThroughWay,
   walkLeg,
   wayLeftM,
   wayPoint,
@@ -1731,8 +1732,17 @@ function keepFollowing(ctx: Ctx, wo: Order | undefined): void {
   // follow of them again from the next turn. Not found there, they are lost; not there yet, the walk goes on
   if (seen && isActive(who)) { p.walking = walkOf({ ...wo, move: who.zone, moveSpot: { near: who.id, follow: true, ...(spot!.keep !== undefined ? { keep: spot!.keep } : {}) } }); return; }
   if (spot!.lastSeen && p.walking) return;
+  // ACT-84 (BG-1736): just lost from sight, the follow
+  // goes on to where the player last had them (through the door they were seen take); lost only once there and not found
+  const j = p.journal, last = j?.lastKnown?.[who.id], at = j?.lastSpot?.[who.id];
+  if (!seen && isActive(who) && !spot!.lastSeen && last && at && wentThroughWay(state, p, { zone: last, pos: at })) {
+    p.walking = walkOf({ ...wo, move: last, moveSpot: { near: who.id, follow: true, lastSeen: true, ...(spot!.keep !== undefined ? { keep: spot!.keep } : {}) } });
+    return;
+  }
   delete p.walking;
-  p.followLost = { who: who.id, why: seen ? 'down' : who.zone === wo.move && p.zone === wo.move ? 'slipped_away' : 'out_of_sight', zone: wo.move };
+  // slipped away: still in the place the player last had them in; gone on: through a way since (BG-1736: never by title)
+  const gone = !at || wentThroughWay(state, { zone: last ?? wo.move, pos: at }, who);
+  p.followLost = { who: who.id, why: seen ? 'down' : gone ? 'out_of_sight' : 'slipped_away', zone: wo.move };
   logCode(state, 'follow_lost', { actorId: p.id, ...p.followLost });
 }
 /** BG-69: the walker found a way shut (barred, locked, stuck): the walk ends there, for the player to choose again */

@@ -5,7 +5,7 @@ import type { Actor, GameEvent, GameState } from '../types';
 import type { ReadyWhen } from '../scales';
 import { allActors, countsInFight } from './relations';
 import { armedCount, inSenses } from './comingNear';
-import { distOrNull, reachesM, sightDistM, type Located } from './position';
+import { distOrNull, reachesM, sightDistM, wentThroughWay, type Located } from './position';
 
 const M_EPS = 1e-3;
 
@@ -39,7 +39,7 @@ export function readyHits(state: GameState, w: Actor, when: ReadyWhen, seen: Rea
       case 'closes': { const r = reachM(x); return r !== null && countsInFight(x) && reachesM(sightDistM(state, w, x), r) && (!was || !reachesM(sightDistM(state, me, was.at), r)); }
       case 'draws': return !!was && armedCount(state, x) > was.armed;
       case 'moves': return !!was && (x.zone !== was.at.zone || (distOrNull(state, x, was.at) ?? 0) > M_EPS);
-      case 'leaves': return !!was?.sensed && (!sensed!.has(x.id) || x.zone !== was.at.zone);
+      case 'leaves': return !!was?.sensed && (!sensed!.has(x.id) || wentThroughWay(state, was.at, x)); // BG-1736: through a way, never a title edge
     }
   }).map((x) => x.id);
 }
