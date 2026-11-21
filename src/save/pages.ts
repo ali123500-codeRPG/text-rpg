@@ -1,5 +1,8 @@
 // GameState <-> saved pages (Part 4 §6, §9), stable hashing and size budgets.
-import type { Actor, BlueprintPage, EnginePage, FactsPage, GameState, GroundPage, Head, HiddenPage, Place, PlanPage, Region, StoryFact, StoryMeta } from '../types';
+import type { Actor, BlueprintPage, EnginePage, FactsPage, GameState, Head, HiddenPage, Place, Pt, Region, StoryFact, StoryMeta, TilePage } from '../types';
+import { CONFIG } from '../config';
+import { middleOf } from '../plan/geom';
+import { planChanged } from '../plan/stamp';
 
 export const PAGE_LIMIT = 256 * 1024; // platform: 256 KiB per document
 const FACTS_ENVELOPE = 512; // room for storyId/placeId around the facts array
@@ -48,8 +51,65 @@ function factsPages(storyId: string, placeId: string, facts: StoryFact[]): Facts
   return out;
 }
 
-/** Every page of the story, keyed by page key. Copies: the state is never shared with the store. */
+/** WT1 a: the lists saved by tile, each record by its anchor point */
+const TILE_LISTS = ['walls', 'openings', 'roofs', 'lights', 'furniture', 'items'] as const;
+type TileList = (typeof TILE_LISTS)[number];
+type TileLists = Pick<TilePage, TileList>;
+const stateList = (k: TileList) => (k === 'items' ? 'ground' : k);
+/** the point a record is saved by: a wall's middle, a roof's middle, a way's or light's spot, a piece's or item's point */
+function anchorOf(k: TileList, x: TileLists[TileList][number]): Pt {
+  const r = x as unknown as Record<string, unknown>;
+  if (k === 'walls') { const w = r as unknown as TileLists['walls'][number]; return { x: (w.a.x + w.b.x) / 2, y: (w.a.y + w.b.y) / 2 }; }
+  if (k === 'roofs') return middleOf((r as unknown as TileLists['roofs'][number]).outline);
+  // shortcut: an item off every outlined title has no point and is saved in tile 0,0; WT4 a (D-1623) gives everything a point
+  return ((k === 'furniture' ? r.pos : r.at) as Pt | undefined) ?? { x: 0, y: 0 };
+}
+const tileOf = (p: Pt, size: number): [number, number] => [Math.floor(p.x / size), Math.floor(p.y / size)];
+const byTile = (a: [number, number], b: [number, number]) => a[0] - b[0] || a[1] - b[1];
+
+/** WT1 a: the live state's floor plan and ground put in tile order (by tx, then ty; a stable sort), so a state loaded from its
+ * pages has the order of the one saved. The floor plan's look-up grids are rebuilt when walls or ways moved in the list. */
+export function inTileOrder(state: GameState, size = CONFIG.TILE_SIZE_M): void {
+  let moved = false;
+  for (const k of TILE_LISTS) {
+    const list = state[stateList(k)] as TileLists[TileList];
+    const keyed = list.map((x) => [x, tileOf(anchorOf(k, x), size)] as const);
+    const sorted = [...keyed].sort((a, b) => byTile(a[1], b[1]));
+    if (sorted.every((e, i) => e === keyed[i])) continue;
+    (list as unknown[]).splice(0, list.length, ...sorted.map(([x]) => x));
+    if (k === 'walls' || k === 'openings') moved = true;
+  }
+  if (moved) planChanged();
+}
+
+/** WT1 a: the floor plan and ground as tile pages (tile.<tx>.<ty>.<n>), each tile split into parts under the page limit */
+export function tilePages(storyId: string, lists: TileLists, size = CONFIG.TILE_SIZE_M): Record<string, TilePage> {
+  const tiles = new Map<string, { at: [number, number]; recs: [TileList, unknown][] }>();
+  for (const k of TILE_LISTS) for (const x of lists[k]) {
+    const at = tileOf(anchorOf(k, x), size), key = `${at[0]}.${at[1]}`;
+    let t = tiles.get(key);
+    if (!t) tiles.set(key, (t = { at, recs: [] }));
+    t.recs.push([k, x]);
+  }
+  const out: Record<string, TilePage> = {};
+  for (const [key, { at: [tx, ty], recs }] of tiles) {
+    const empty = (): TilePage => ({ storyId, tx, ty, size, walls: [], openings: [], roofs: [], lights: [], furniture: [], items: [] });
+    let n = 0, cur = empty(), bytes = FACTS_ENVELOPE;
+    for (const [k, x] of recs) {
+      const b = byteLength(x) + 1;
+      if (bytes + b > PAGE_LIMIT && TILE_LISTS.some((l) => cur[l].length)) { out[`tile.${key}.${n++}`] = cur; cur = empty(); bytes = FACTS_ENVELOPE; }
+      (cur[k] as unknown[]).push(x);
+      bytes += b;
+    }
+    out[`tile.${key}.${n}`] = cur;
+  }
+  return out;
+}
+
+/** Every page of the story, keyed by page key. Copies: the state is never shared with the store (it is only put in tile
+ * order first, inTileOrder). */
 export function toPages(state: GameState): Pages {
+  inTileOrder(state);
   const s = structuredClone(state);
   const engine: EnginePage = {
     storyId: s.storyId, turn: s.turn, mode: s.mode, rngSeed: s.rngSeed, rngState: s.rngState, pending: s.pending,
@@ -72,12 +132,8 @@ export function toPages(state: GameState): Pages {
   for (const f of s.facts) byPlace.set(f.placeId, [...(byPlace.get(f.placeId) ?? []), f]);
   for (const [placeId, facts] of byPlace) factsPages(s.storyId, placeId, facts).forEach((fp, n) => (pages[`facts.${placeId}.${n}`] = fp));
   for (const b of s.blueprints) pages[`blueprint.${b.id}`] = b;
-  // PZ16: each place's floor plan on its own page; the ground's items on one
-  const plans = new Map<string, PlanPage>();
-  const planOf = (placeId: string) => { let pp = plans.get(placeId); if (!pp) plans.set(placeId, (pp = { storyId: s.storyId, placeId, walls: [], openings: [], roofs: [], lights: [], furniture: [] })); return pp; };
-  for (const k of ['walls', 'openings', 'roofs', 'lights', 'furniture'] as const) for (const x of s[k] as { placeId: string }[]) (planOf(x.placeId)[k] as unknown[]).push(x);
-  for (const [placeId, pp] of plans) pages[`plan.${placeId}`] = pp;
-  if (s.ground.length) pages.ground = { storyId: s.storyId, items: s.ground } satisfies GroundPage;
+  // WT1 a: the floor plan and the ground by tiles of the world frame
+  Object.assign(pages, tilePages(s.storyId, { walls: s.walls, openings: s.openings, roofs: s.roofs, lights: s.lights, furniture: s.furniture, items: s.ground }));
   return pages;
 }
 
@@ -99,8 +155,10 @@ export function fromPages(meta: StoryMeta, head: Head, pages: Pages): GameState 
   const facts = factKeys.flatMap((k) => (p[k] as FactsPage).facts).map((f, i) => [f, i] as const)
     .sort((a, b) => a[0].turn - b[0].turn || a[1] - b[1]).map(([f]) => f);
   const zoneById = new Map(places.flatMap((pl) => pl.zones.map((z) => [z.id, z] as const)));
-  const plans = orderBy(of<PlanPage & { id?: string }>('plan.').map((x) => ({ ...x, id: x.placeId })), engine.order?.places);
-  const plan = <K extends 'walls' | 'openings' | 'roofs' | 'lights' | 'furniture'>(k: K): PlanPage[K] => plans.flatMap((x) => (x[k] ?? []) as unknown[]) as PlanPage[K];
+  // WT1 a: tiles in tile order (by tx, then ty), each tile's parts in turn, as inTileOrder left the lists
+  const tiles = Object.keys(p).filter((k) => k.startsWith('tile.')).map((k) => [p[k] as TilePage, +k.slice(k.lastIndexOf('.') + 1)] as const)
+    .sort(([a, na], [b, nb]) => byTile([a.tx, a.ty], [b.tx, b.ty]) || na - nb).map(([t]) => t);
+  const tiled = <K extends TileList>(k: K): TilePage[K] => tiles.flatMap((t) => (t[k] ?? []) as unknown[]) as TilePage[K];
   const player = actors.find((a) => a.kind === 'player')!;
   const { order: _o, storyId: _e, turn, mode, rngSeed, rngState, pending, stage, scenarioCaps, clocks, bands, quests, recentEvents, spars, yielding, offers, mercy, barriers, turnEnds } = engine;
   return {
@@ -111,7 +169,7 @@ export function fromPages(meta: StoryMeta, head: Head, pages: Pages): GameState 
     rngSeed, rngState, pending, places, ...(regions.length ? { regions } : {}), facts, stage: (({ zoneIds: _z, ...st }) => st)(stage as typeof stage & { zoneIds?: string[] }), scenarioCaps, clocks, quests,
     settings: structuredClone(meta.settings), libraryVersion: head.libraryVersion,
     blueprints: of<BlueprintPage>('blueprint.'), meta: structuredClone(meta),
-    walls: plan('walls'), openings: plan('openings'), roofs: plan('roofs'), lights: plan('lights'), furniture: plan('furniture'),
-    ground: (p.ground as GroundPage | undefined)?.items ?? [],
+    walls: tiled('walls'), openings: tiled('openings'), roofs: tiled('roofs'), lights: tiled('lights'), furniture: tiled('furniture'),
+    ground: tiled('items'),
   };
 }

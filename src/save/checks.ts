@@ -1,8 +1,8 @@
 // Load checks (Part 4 §7–8): migration steps, library reconcile, shape, invariants, references.
-import type { Actor, BlueprintPage, BodyType, EnginePage, FactsPage, GameState, HiddenPage, ItemDef, Library, Opening, Place, GroundPage } from '../types';
+import type { Actor, BlueprintPage, BodyType, EnginePage, FactsPage, GameState, HiddenPage, ItemDef, Library, Opening, Place, TilePage } from '../types';
 import { resolveAlias } from '../library';
 import { CONFIG } from '../config';
-import type { Pages } from './pages';
+import { tilePages, type Pages } from './pages';
 import { ageYears, youngestAge } from '../ruleset/age';
 import { gripSlot, gripsOf } from '../ruleset/slots';
 import { BK, OP } from '../library/tableIds';
@@ -37,6 +37,20 @@ export const MIGRATIONS: Record<number, (pages: Pages) => void> = {
     for (const k of actorKeys(pages)) for (const i of (pages[k] as Actor).core.inventory) {
       if (i.pools?.shield !== undefined && i.pools.shield <= CONFIG.ITEM_STATE_ABOVE.broken) i.pools.shield = CONFIG.ITEM_STATE_ABOVE.broken + 1;
     }
+  },
+  // WT1 a: the floor plan (plan.<placeId>, in place order) and the ground (one page) move to tiles of the world frame
+  12: (pages) => {
+    const engine = pages.engine as EnginePage, order = engine.order?.places ?? [];
+    const at = (k: string) => order.indexOf(k.slice('plan.'.length)) + 1 || Infinity;
+    const lists: Pick<TilePage, 'walls' | 'openings' | 'roofs' | 'lights' | 'furniture' | 'items'> = { walls: [], openings: [], roofs: [], lights: [], furniture: [], items: [] };
+    for (const k of Object.keys(pages).filter((x) => x.startsWith('plan.')).sort((a, b) => at(a) - at(b))) {
+      const pp = pages[k] as Omit<typeof lists, 'items'>;
+      for (const l of ['walls', 'openings', 'roofs', 'lights', 'furniture'] as const) (lists[l] as unknown[]).push(...(pp[l] ?? []));
+      delete pages[k];
+    }
+    lists.items.push(...((pages.ground as { items?: TilePage['items'] } | undefined)?.items ?? []));
+    delete pages.ground;
+    Object.assign(pages, tilePages(engine.storyId, lists));
   },
 };
 
@@ -75,8 +89,7 @@ const SHAPES: Record<string, Record<string, Kind>> = {
   facts: { storyId: 'string', placeId: 'string', facts: 'array' },
   blueprint: { storyId: 'string', id: 'string', kind: 'string', data: 'object' },
   region: { id: 'string', storyId: 'string', kind: 'string', heights: 'array', cover: 'string', waters: 'array', roads: 'array', nodes: 'array', sites: 'array', features: 'array' },
-  plan: { storyId: 'string', placeId: 'string', walls: 'array', openings: 'array', roofs: 'array', lights: 'array', furniture: 'array' }, // PZ16
-  ground: { storyId: 'string', items: 'array' },
+  tile: { storyId: 'string', tx: 'number', ty: 'number', size: 'number', walls: 'array', openings: 'array', roofs: 'array', lights: 'array', furniture: 'array', items: 'array' }, // WT1 a
 };
 const kindOf = (key: string) => key.split('.')[0];
 
@@ -222,9 +235,9 @@ export function repairReferences(pages: Pages, lib: Library, r: CheckReport): vo
       const p = page as Place;
       if (p.parentId !== null && !placeIds.has(p.parentId)) { fix(k, `dropped parent ${p.parentId}`); p.parentId = null; }
       p.headlines = keep(k, p.headlines, (f) => factIds.has(f), 'headlines');
-    } else if (k === 'ground') {
+    } else if (k.startsWith('tile.')) {
       // an item the library no longer has would make every title's view throw: drop it, as for inventories
-      const g = page as GroundPage;
+      const g = page as TilePage;
       g.items = keep(k, g.items ?? [], (it) => L.hasItem(it.itemId), 'unknown ground items');
       for (const c of g.items) if (c.contents) c.contents = keep(k, c.contents, (it) => L.hasItem(it.itemId), `unknown items in ${c.id}`); // CT1
     } else if (k.startsWith('facts.')) {
