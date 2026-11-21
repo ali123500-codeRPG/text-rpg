@@ -8,6 +8,8 @@ import { intent, play } from './w4-kit';
 import { drawRegion, type RegionBrief } from '../../src/land/generate';
 import { wildGround } from '../../src/engine/travel';
 import { moveSpeed } from '../../src/engine/speed';
+import { perceivesNow } from '../../src/engine/yield';
+import { now } from '../../src/time';
 import { buildWeaverView } from '../../src/views';
 import { placeAll, unplace } from '../../src/engine/position';
 import { CONFIG } from '../../src/config';
@@ -68,13 +70,14 @@ describe('432 encounters on long walks off the road', () => {
     expect(enc.wild?.length).toBeGreaterThan(0);
   });
 
-  it('a walk along a road that is no trip (someone hostile knows of the player) counts its road minutes and rolls by the road\'s danger all the same', () => {
+  it('a walk along a road that is no trip (someone hostile in the player\'s senses) counts its road minutes and rolls by the road\'s danger all the same', () => {
     const s = withRoad(9, 'dangerous');
     CONFIG.ROAD_ENCOUNTER_PCT = { ...CONFIG.ROAD_ENCOUNTER_PCT, dangerous: 100 };
     const g = s.actors.find((a) => a.id === 'guard_1')!;
     g.mind!.overrides = { ...g.mind!.overrides, player: 'hostile' };
-    g.mind!.knowledge.player = { status: 'suspicious', lastKnownZone: 'gate_inner', lastSeenTurn: 0, source: 'heard', revealed: [] };
-    g.zone = 'tav_cellar'; g.placeId = 'tavern'; unplace(s, g); placeAll(s); // out of the player's senses
+    g.zone = 'gate_inner'; g.placeId = 'gate'; unplace(s, g); placeAll(s); // in the player's senses (TV1)
+    g.asleep = { since: now(s) }; // asleep, so it does not wake and start a fight that would stop the walk
+    expect(perceivesNow(s, s.player, g, 'faint')).toBe(true);
     play(s, { intent: intent({ move: { toZone: 'ashford_gate' } }) }, 3);
     expect(s.log.some((l) => l.code === 'travelled')).toBe(false);
     expect(s.stage.encounter?.zone).toBe('north_road');

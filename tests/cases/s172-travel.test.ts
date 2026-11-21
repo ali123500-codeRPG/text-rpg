@@ -8,6 +8,7 @@ import { intent, play } from './w4-kit';
 import { roadShape } from '../../src/scenario/apply';
 import { placeAll, unplace } from '../../src/engine/position';
 import { travelSpeed } from '../../src/engine/travel';
+import { perceivesNow } from '../../src/engine/yield';
 import { buildWeaverView } from '../../src/views';
 import { replayScenarioStart } from '../../src/scenario/director';
 import { createRng } from '../harness';
@@ -103,15 +104,30 @@ describe('172 travel', () => {
     expect(q.player.roadMin).toBeCloseTo(30, 0);
   });
 
-  it('TV1: with someone hostile who perceives the player it is a normal move, a step at a time', () => {
+  it('TV1: with someone hostile in the player\'s senses it is a normal move, a step at a time, whether or not the foe knows of the player', () => {
+    for (const aware of [true, false]) {
+      const s = withRoad(9);
+      const foe = s.actors.find((a) => a.id === 'patron_1')!;
+      foe.zone = 'gate_inner'; foe.placeId = 'gate'; unplace(s, foe); placeAll(s);
+      foe.mind!.overrides = { player: 'hostile' };
+      if (aware) foe.mind!.knowledge.player = { status: 'aware', source: 'seen', revealed: [], lastKnownZone: 'gate_inner' } as never;
+      else delete foe.mind!.knowledge.player;
+      expect(perceivesNow(s, s.player, foe, 'faint')).toBe(true);
+      go(s, 'ashford_gate');
+      expect(trip(s)).toBeUndefined();
+      expect(s.player.zone).not.toBe('ashford_gate');
+    }
+  });
+
+  it('TV1: a hostile who knows of the player but whom the player cannot see or hear does not stop the trip', () => {
     const s = withRoad(9);
     const foe = s.actors.find((a) => a.id === 'patron_1')!;
-    foe.zone = 'gate_inner'; foe.placeId = 'gate'; unplace(s, foe); placeAll(s);
+    foe.zone = 'ashford_gate'; foe.placeId = 'gate'; unplace(s, foe); placeAll(s);
     foe.mind!.overrides = { player: 'hostile' };
-    foe.mind!.knowledge.player = { status: 'aware', source: 'seen', revealed: [], lastKnownZone: 'gate_inner' } as never;
+    foe.mind!.knowledge.player = { status: 'aware', source: 'heard', revealed: [], lastKnownZone: 'gate_inner' } as never;
+    expect(perceivesNow(s, s.player, foe, 'faint')).toBe(false);
     go(s, 'ashford_gate');
-    expect(trip(s)).toBeUndefined();
-    expect(s.player.zone).not.toBe('ashford_gate');
+    expect(trip(s)).toBeDefined(); // met on the way by RE5 if the foe comes into the player's senses
   });
 
   it('RE5: a trip runs on the world clock: someone new seen on the road ahead stops it there, as a rest or a walk stops', () => {
