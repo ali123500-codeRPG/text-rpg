@@ -22,7 +22,7 @@ Kind: context. What was asked, what was decided and which PR built it, oldest fi
   (#469, #470; BG-39), barriers, keys and lock picking, which keeps getting faster with skill (#474, #475),
   chases and free roam (#476). Free roam means no scene until something starts one; every ending starts it
   (#486). Scenes were renamed scenarios everywhere (#488). Parked: tier lean past Critical (D-216).
-  Deferred: what a scenario's ground is (D-217).
+  Deferred: what a scenario's ground is (D-217; built 21/11/2026 as outlines plus three turns out of touch with its people, D-217 a).
 - **Scenario event rolls (14-16/11/2026; SW1-SW10, WB5-WB7; BG-240).** Scenarios felt weak: a Great Success
   had no stakes, the Weaver was not told why a free-roam scenario began, new hooks came with every plan, and
   there was no outer arc. Decided: the Weaver is told the cause, and a job can start one (#828); free roam

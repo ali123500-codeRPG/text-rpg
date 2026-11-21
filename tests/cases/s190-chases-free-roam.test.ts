@@ -7,7 +7,7 @@ import type { GameEvent, GameState, WeaverView } from '../../src/types';
 import { actor, byDoor, createRng, fighter, makeVillage, place } from '../harness';
 import { play } from './w4-kit';
 import { checkScenarioEnd, closeScenario, frameOf, pendingEnding } from '../../src/engine/scenarioEnd';
-import { CHASE_LOST_MEMORY, atChaseLine, offGround, chaseRange, chaseZones, checkRoam, noteCrossing, pursuers, roamStart, updateChase } from '../../src/engine/chase';
+import { CHASE_LOST_MEMORY, atChaseLine, noteApart, offGround, chaseRange, chaseZones, checkRoam, noteCrossing, pursuers, roamStart, updateChase } from '../../src/engine/chase';
 import { applyStagePlan } from '../../src/scenario/apply';
 import { ScenarioDirector, validateStagePlan } from '../../src/scenario';
 import { grovePlan, VirtualClock } from '../../src/scenario/fixtures';
@@ -26,6 +26,8 @@ const scenario = (s: GameState, ground: string[]) => {
   s.stage.scenario = { ...frameOf(s, { question: 'q', scale: 'situation', endings: [] }, 'success', (_k, r) => r), ground };
   return s.stage.scenario;
 };
+/** D-217 a: `n` turns pass with the player where it stands (outside the outlines and out of touch, each counts) */
+const turnsApart = (s: GameState, n = CONFIG.GROUND_APART_TURNS) => { for (let i = 0; i < n; i++) noteApart(s); };
 /** `id` hunts the player, last seen at `turn` in `zone` */
 const hunts = (s: GameState, id: string, turn: number, zone = s.player.zone) => {
   const a = fighter(actor(s, id)); // a cautious villager would hold back (D-205 b)
@@ -45,6 +47,7 @@ describe('190 chases and free roam', () => {
     applyStagePlan(s, plan, ctx, { entry: 'open' }, createRng(1));
     expect(s.bands.find((b) => b.name === 'millers')!.chase).toBe('far');
     expect(s.stage.scenario!.ground).toEqual(['field_edge', 'mill_yard', 'mill_race']);
+    expect(s.stage.scenario!.people).toHaveLength(MILL_PLAN.cast.length); // D-217 a: everyone the plan brought
     s.player.zone = 'field_far';
     applyStagePlan(s, grovePlan(), { kind: 'extension', tier: 'success', placeId: 'field', frontierKey: 'woods' }, { entry: 'open' }, createRng(1));
     expect(s.stage.scenario!.ground).toEqual(expect.arrayContaining(['grove', 'field_far']));
@@ -60,6 +63,9 @@ describe('190 chases and free roam', () => {
     checkScenarioEnd(s, []);
     expect(s.stage.ending).toBeUndefined();
     place(s, 'player', 'street_door');
+    turnsApart(s, CONFIG.GROUND_APART_TURNS - 1); // D-217 a: outside the outlines, but not yet for long enough
+    expect(offGround(s).off).toBe(false);
+    turnsApart(s, 1);
     expect(offGround(s).off).toBe(true);
     checkScenarioEnd(s, []);
     expect(s.stage.breakCause).toBe('scenario_end');
@@ -74,9 +80,11 @@ describe('190 chases and free roam', () => {
   it('SC16: a ground ending held over a talk lapses if the player steps back onto the ground', () => {
     const s = makeVillage({ playerZone: 'street_door' });
     scenario(s, ['tav_common']);
+    turnsApart(s);
     checkScenarioEnd(s, [ev(s, { kind: 'speak', target: 'trader' })]);
     expect(s.stage.ending).toMatchObject({ as: 'left', roam: true });
     place(s, 'player', 'tav_common');
+    noteApart(s);
     checkScenarioEnd(s, []);
     expect(s.stage.ending).toBeUndefined();
     expect(s.stage.breakCause).toBeUndefined();
@@ -99,6 +107,7 @@ describe('190 chases and free roam', () => {
     scenario(s, ['tav_common']);
     s.turn = 10;
     const wim = hunts(s, 'patron_1', 10, 'street_door');
+    turnsApart(s);
     tick(s, CONFIG.CHASE_LOST_S - 1);
     updateChase(s);
     expect(wim.mind!.knowledge.player!.status).toBe('hunting');

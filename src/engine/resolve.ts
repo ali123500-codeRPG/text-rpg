@@ -10,6 +10,7 @@ import {
 } from './scenarioEnd';
 import {
   checkRoam,
+  noteApart,
   updateChase,
 } from './chase';
 import {
@@ -3691,6 +3692,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   noteZonesSeen(state);
   if (playerUp && !isActive(state.player)) playerDown(state, rng);
   else if (state.mercy && state.mercy.turn < state.turn) (settleMercy(state) && healthLevel(state.player) !== 'dead' ? wakeUp(state, 'player_spared') : logCode(state, 'player_fell', { lethal: true })); // D-239
+  noteApart(state); // D-217 a: turns outside the scenario's ground and out of touch with its people
   updateChase(state); // CH6/CH7: pursuers follow through frontiers; a chase lost for CHASE_LOST_S ends
   noteHappened(state, ctx.events, defeated); // BG-41: what the check-in judges a judged ending from
   checkScenarioEnd(state, ctx.events); // SC7/SC13: the scenario's endings, held while fighting, chased or talking; SC16 its ground
