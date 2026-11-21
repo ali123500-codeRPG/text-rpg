@@ -50,8 +50,8 @@ export const CLASS_PERKS: Record<string, PerkDef> = {
   // NM2: the blessing works on the essence, a small foreign addition to someone's Thread; no god touches the Thread itself.
   [PK.extract_essence]: {
     id: PK.extract_essence, name: 'Extract Essence', built: true, blessing: { god: GD.imbra, tier: 'tier_5' },
-    story: 'Imbra has shown you where an essence sits on someone, apart from what they are. With them beaten and helpless before you, you can pry it off and keep it.',
-    rules: { kind: 'Active (your action)', trigger: 'You take the action against someone within arm\'s reach.', conditions: ['They are Down and have broken or surrendered.', 'Their essence is still theirs: it has not been rolled for, at a death or by an earlier pull.'],
+    story: 'Imbra has shown you where an essence sits on someone, apart from what they are. With them beaten before you, down or surrendered, you can pry it off and keep it.',
+    rules: { kind: 'Active (your action)', trigger: 'You take the action against someone within arm\'s reach.', conditions: ['They are Down, or have surrendered.', 'Their essence is still theirs: it has not been rolled for, at a death or by an earlier pull.'],
       effect: 'No roll: their essence is offered to you, from their own list. Its grade comes from a quality roll that never fades it (below Success it is Common). They are left Hollowed.', lasts: 'once per person' },
   },
   [PK.hollowed]: {

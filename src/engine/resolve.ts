@@ -2462,7 +2462,7 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
       return doPick(ctx, a, o);
     case 'filch':
       return doFilch(ctx, a, o);
-    case 'extract': { // DX1-DX5: pulling out the essence of someone Down and broken or surrendered (src/engine/extract.ts)
+    case 'extract': { // DX1-DX5: pulling out the essence of someone Down or surrendered (src/engine/extract.ts)
       const t = o.target ? actorById(state, o.target) : undefined;
       const why = cantExtract(state, a, t);
       if (why) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason: why }), o));

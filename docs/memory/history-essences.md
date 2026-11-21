@@ -23,6 +23,8 @@ and `src/config.ts`. How essences began is in [history-growth-and-skill-gain.md]
   with the Starts (#776); gods are not described in the wording used for the Thread. Offers were tuned to be
   generous (#835). Parked: blessings and gods (D-311), extraction from the willing (D-312), merging essences
   (D-313).
+- **Extraction from the surrendered (21/11/2026; #1462).** Asked to extract from surrendered foes who are still up.
+  The condition became Down or surrendered, where it had been Down and broken or surrendered.
 - **Every NPC has an essence (16-17/11/2026; NE1-NE5).** An audit found elves, some human roles and nearly
   all beasts carried none. Decided: shared beast rows that name no race, human rows widened to the humanoid
   shape, one new lookout row on every person at a low weight; when no row fits the game files a flag instead

@@ -161,8 +161,7 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
     const why = s ? cantSteady(s, s.player) : 'not_in_fight';
     if (why === null || why === 'too_soon') add('steady', 'fight', 'Steady yourself', [], () => order('Steady yourself', { action: act('steady') }), { note: 'a morale roll',
       ...(why === 'too_soon' ? { limit: waiting(secondsSince(s!, s!.player.core.condition.steadiedTurn!), CONFIG.STEADY_COOLDOWN_S, 's') } : {}) });
-    const down = seen.filter((a) => a.level === 'full' && a.health && isDownLevel(a.health));
-    const extractable = s ? down.filter((a) => cantExtract(s, s.player, s.actors.find((x) => x.id === a.id)) === null) : [];
+    const extractable = s ? seen.filter((a) => a.level === 'full' && cantExtract(s, s.player, s.actors.find((x) => x.id === a.id)) === null) : [];
     if (extractable.length) add('extract', 'fight', perkName(PK.extract_essence), [who('From whom?', extractable)], (c) => order(`Pull the essence from ${them(c)}`, { action: act('extract', { target: c.target! }) }), { note: 'take their essence' });
   }
   // MB40/SP5: give up the fight or spar you are in; TF11: take a foe's offer to stop
