@@ -40,3 +40,8 @@ are library data, and every number is in `src/config.ts`.
   against the place's usual hostile group and an exceptional rank beside it, and the off-band flag is gone. Bad luck
   promises meaningful harm of any kind, danger to life only where the world holds it, and the bad tiers lost their
   ways lean. Spec: SHEET-360 to SHEET-362.
+- **Groups (21/11/2026; Questions hub "Bands and groups" GQ1-GQ3, "Notable foes" NF7 a).** A group is a crew with a
+  leader and one purpose, beside the band; for now only recipes and the Weaver form and break one (D-196, D-202). The
+  owner's next layering: bandmate (immediately next to you), group (the current group), crew (the smallest affiliation,
+  an adventuring party), then factions and affiliations; asked in its own round. Built now: the larger rung, a Bandit
+  company and a Watch garrison, each with one notable head, town and up and dangerous roads (SHEET-539, SHEET-540).

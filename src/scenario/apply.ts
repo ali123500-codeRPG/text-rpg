@@ -19,7 +19,7 @@ import { activity, getLibrary, itemDef, npcTemplate, routine, routineSet } from 
 import { composeTemplate, rankPos, roleMissing, presetPersonality, spawnNpc, templateRank } from '../library/spawn';
 import type { MeetRow } from '../types/library';
 import type { RankKey } from '../scales';
-import { groupMembers, rosterEntry } from '../land/roster';
+import { groupMembers, hookGroups, rosterEntry } from '../land/roster';
 import { cellAt, regionAt } from '../land/sight';
 import { topPlace } from '../engine/relations';
 import { HK } from '../library/npcLayerIds';
@@ -66,7 +66,8 @@ function threatTable(state: GameState, placeId: string): { rows: MeetRow[]; rank
     else if (r && i >= 0) t = { rows: only(lib.wildPeople?.[`LC${parseInt(r.cover[i], 36)}`]), ranks: R.wild, dire: true };
   } else {
     const top = topPlace(state, placeId), site = (state.regions ?? []).flatMap((r) => r.sites).find((s) => s.placeId === top);
-    if (site) t = { rows: only((lib.hookKinds?.[HK.threat]?.groups ?? []).map((g) => ({ group: g, weight: 1 }))), ranks: R.threat[site.size], dire: true };
+    const h = lib.hookKinds?.[HK.threat];
+    if (site && h) t = { rows: only(hookGroups(h, site.size).map((g) => ({ group: g, weight: 1 }))), ranks: R.threat[site.size], dire: true };
   }
   return t?.rows.length && t.ranks ? t : undefined;
 }
@@ -94,7 +95,7 @@ export function usualThreat(state: GameState, placeId: string): { power: number;
   const median = cells.find((c) => (acc += c.weight) >= half)!.power;
   const maxRank = Math.max(...Object.keys(t.ranks).map((k) => rankPos(k as RankKey)));
   const top = Math.max(...t.rows.map((row) => {
-    const g = lib.groups![row.group], beast = [g.lead, g.follow].some((p) => [p?.role, ...(p?.roles ?? [])].some((r) => r && lib.npcRoles?.[r]?.kind === 'beast'));
+    const g = lib.groups![row.group], beast = [g.lead, g.seconds, g.follow].some((p) => [p?.role, ...(p?.roles ?? [])].some((r) => r && lib.npcRoles?.[r]?.kind === 'beast'));
     return maxRank + (g.lead.step ?? 0) + (t.dire && beast ? 1 : 0);
   }));
   return { power: median, top };
@@ -398,7 +399,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
       state.actors.push(a);
     }
     a.bandId = bandRef(c.band);
-    if (c.roster && rosterEntry(state, c.roster)?.notable) a.core.notable = true; // NF4 b
+    if (c.notable || (c.roster && rosterEntry(state, c.roster)?.notable)) a.core.notable = true; // NF7 a: a group's notable part; NF4 b
     const unique = a.core.generation === 'unique'; // HF15: a unique's looks and pronouns are its own
     if (!unique || !a.appearance) a.appearance = c.appearance;
     if (c.pronouns && (!unique || !a.pronouns)) a.pronouns = c.pronouns;

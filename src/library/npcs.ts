@@ -78,16 +78,16 @@ export const HOOK_KINDS: Record<string, HookKindDef> = Object.fromEntries(([
   { id: HK.leader, name: 'Leader', gives: 'runs the place and has work or a quest to give', roles: [RO.leader], rank: 'lead', notable: true },
   { id: HK.service, name: 'Service', gives: 'sells food, drink and a bed, tends wounds, or mends gear', roles: [RO.talker, RO.healer, RO.smith], rank: 'face' },
   { id: HK.face, name: 'Someone in need', gives: 'wants something from the player: a job, a favour, a way out of trouble', roles: [RO.talker, RO.worker, RO.hunter, RO.watcher], rank: 'face' },
-  { id: HK.threat, name: 'Threat', gives: 'danger near the place: a gang that preys on it, or beasts that take its stock', groups: [GP.bandit_gang, GP.wolf_pack], rank: 'threat' },
+  { id: HK.threat, name: 'Threat', gives: 'danger near the place: a gang that preys on it, or beasts that take its stock', groups: [GP.bandit_gang, GP.wolf_pack, GP.bandit_company], rank: 'threat' },
   { id: HK.rival, name: 'Rival', gives: 'at odds with the leader or another hook: a feud the player can take a side in', roles: [RO.talker, RO.brute, RO.sneak, RO.soldier], rank: 'lead', notable: true },
   { id: HK.trader, name: 'Trader', gives: 'buys and sells goods', roles: [RO.talker], class: CL.trader, rank: 'face' },
-  { id: HK.watch, name: 'Watch', gives: 'keeps the peace; trouble brings them', groups: [GP.watch_patrol], rank: 'face' },
+  { id: HK.watch, name: 'Watch', gives: 'keeps the peace; trouble brings them', groups: [GP.watch_patrol, GP.watch_garrison], rank: 'face' },
   { id: HK.seat, name: 'Seat of the Great', gives: 'the one person past ordinary power who stands over this place: a name, the deeds that made them (motive), 1 to 3 goals; people call them the Great, never by a rank', roles: [RO.knight, RO.soldier, RO.leader, RO.hunter, RO.healer, RO.brute], rank: 'seat', goals: true, notable: true },
   // PQ13 a2: a village's strongest is the lord's man, strong by local measure, never one of the Great (TL24 a, TL26 a)
   { id: HK.warden, name: 'Warden', gives: 'the lord\'s posted warden, the strongest person here: often a former soldier, hunter or knight; a name, the deeds that made them (motive), 1 to 3 goals; respected locally, never called one of the Great', roles: [RO.knight, RO.soldier, RO.hunter], rank: 'seat', goals: true, notable: true },
 ] as HookKindDef[]).map((d) => [d.id, d]));
 
-/** NR27 (D-308): group recipes. The leader is `step` ranks above the group's rank; followers' races are rolled (NR31) unless fixed */
+/** NR27 (D-308): group recipes. The leader (and NF7 a seconds) are `step` ranks above the group's rank; followers' races are rolled (NR31) unless fixed */
 export const GROUPS: Record<string, GroupDef> = Object.fromEntries(([
   { id: GP.pedlar, name: 'Pedlar', theme: TH.travellers, lead: { role: RO.talker, label: 'a pedlar', class: CL.trader } },
   { id: GP.traveller, name: 'Traveller', theme: TH.travellers, lead: { role: RO.talker, label: 'a traveller with news or a job' } },
@@ -95,6 +95,11 @@ export const GROUPS: Record<string, GroupDef> = Object.fromEntries(([
   { id: GP.pilgrims, name: 'Pilgrims', theme: TH.travellers, lead: { role: RO.worker, label: 'a pilgrim' }, follow: { role: RO.worker, label: 'a pilgrim', count: [1, 4] } },
   { id: GP.bandit_gang, threat: true, name: 'Bandit gang', theme: TH.road_bandits, lead: { role: RO.brute, label: 'a bandit chief', step: 1 }, follow: { roles: [RO.skirmisher, RO.sneak], label: 'a bandit', count: [2, 4] } },
   { id: GP.watch_patrol, name: 'Watch patrol', theme: TH.town_watch, lead: { role: RO.soldier, label: 'a watch sergeant', step: 1 }, follow: { role: RO.soldier, label: 'a watchman', count: [1, 2] } },
+  // NF7 a: the larger rung, each with one notable head (an essence always appears when it dies); towns and larger, dangerous roads
+  { id: GP.bandit_company, threat: true, minSite: 'town', name: 'Bandit company', theme: TH.road_bandits, lead: { role: RO.brute, label: 'a bandit captain', step: 2, notable: true },
+    seconds: { role: RO.brute, label: 'a gang chief', step: 1, count: [2, 2] }, follow: { roles: [RO.skirmisher, RO.sneak], label: 'a bandit', count: [6, 10] } },
+  { id: GP.watch_garrison, minSite: 'town', name: 'Watch garrison', theme: TH.town_watch, lead: { role: RO.soldier, label: 'a watch captain', step: 2, notable: true },
+    seconds: { role: RO.soldier, label: 'a watch sergeant', step: 1, count: [2, 2] }, follow: { role: RO.soldier, label: 'a watchman', count: [4, 8] } },
   { id: GP.watch_post, name: 'Watch post', theme: TH.town_watch, lead: { role: RO.watcher, label: 'a lookout' }, follow: { role: RO.soldier, label: 'a guard', count: [1, 1] } },
   { id: GP.wolf_pack, threat: true, name: 'Wolf pack', theme: TH.wild_beasts, lead: { role: RO.beast, race: RC.wolf, label: 'the pack leader', step: 1 }, follow: { role: RO.beast, race: RC.wolf, label: 'a wolf', count: [2, 5] } },
   { id: GP.boar, threat: true, name: 'Wild boar', theme: TH.wild_beasts, lead: { role: RO.beast, race: RC.boar, label: 'a wild boar' } },

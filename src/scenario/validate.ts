@@ -137,7 +137,8 @@ export function fillPlanDefaults(plan: StagePlan): void {
 }
 
 /** NR17: a cast entry naming a roster key takes the entry's race and rank, and who it is unless it names a template or
- * composition; NR27 (D-308): a group entry becomes its leader, with its followers added right after it (groupOf). In place,
+ * composition; NR27 (D-308): a group entry becomes its leader, with its seconds and followers added right after it (groupOf;
+ * NF7 a: notable where its part is). In place,
  * once: a filled entry loses its group, so a second pass changes nothing. */
 function fillRosterAndGroups(state: GameState, plan: StagePlan, err: (code: string, message: string, castKey?: string) => void): void {
   if (!Array.isArray(plan?.cast)) return;
@@ -166,9 +167,10 @@ function fillRosterAndGroups(state: GameState, plan: StagePlan, err: (code: stri
     const [lead, ...rest] = groupMembers(g, rank, c.roster ?? c.key, road && (road.danger === 'safe' || road.danger === 'quiet') ? 0 : CONFIG.DIRE_PCT);
     delete c.group;
     if (lead.template) c.template = lead.template; else c.compose = lead.compose;
+    if (lead.notable) c.notable = true;
     rest.forEach((m, i) => out.push({ key: `${c.key}_${i + 2}`, label: m.label, name: '', appearance: m.label, band: c.band, routineSetId: c.routineSetId, slots: c.slots,
       ...(c.startAt ? { startAt: c.startAt } : {}), awarenessOfPlayer: c.awarenessOfPlayer, ...(c.awarenessOfBands ? { awarenessOfBands: c.awarenessOfBands } : {}),
-      ...(c.overrides ? { overrides: c.overrides } : {}), motive: c.motive, ...(m.template ? { template: m.template } : { compose: m.compose }), groupOf: c.key }));
+      ...(c.overrides ? { overrides: c.overrides } : {}), motive: c.motive, ...(m.template ? { template: m.template } : { compose: m.compose }), groupOf: c.key, ...(m.notable ? { notable: true as const } : {}) }));
   }
   plan.cast = out;
 }

@@ -554,7 +554,7 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
   ruler (a leader), the seat, the watch and a rival.
 - **SHEET-334** The land draws no cities or courts yet, so those two rows wait for a region that holds one.
 - **SHEET-335** Code also rolls the groups on each road stretch by danger (`roadPeople`) and at each landmark by kind
-  (`landmarkPeople`: a tower holds a watch post, a camp a bandit gang).
+  (`landmarkPeople`: a tower holds a watch post, a camp a bandit gang). Larger groups: SHEET-540.
 - **SHEET-336** Hook kinds say what each gives play and who can fill it (`hookKinds`, HK…).
 - **SHEET-337** Each person's race is rolled: elves CONFIG.ROSTER_ELF_PCT (5) in 100, else human.
 - **SHEET-338** Ranks come from CONFIG.ROSTER_RANKS: services, traders, the watch and people in need Trained 50 /
@@ -575,12 +575,22 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
 - **SHEET-345** Still to come: road travellers moved by code between places, and a crowd person made a Commoner when the
   player picks them out.
 - **SHEET-346** **Groups**: a group is one cast entry with `group` {id, rank} (library `groups`, GP…; NR27 a, D-308).
-- **SHEET-347** Code makes the entry the leader (its `step` ranks above the group's rank) and adds its followers right
-  after it, with the leader's band, routine, slots and awareness (`groupOf`, keys `<key>_2`…).
+- **SHEET-347** Code makes the entry the leader (its `step` ranks above the group's rank) and adds its seconds (NF7 a) and
+  followers right after it, with the leader's band, routine, slots and awareness (`groupOf`, keys `<key>_2`…).
 - **SHEET-348** A group counts once against the cast cap.
 - **SHEET-349** Recipes: pedlar, traveller, caravan (a caravan master and two hired guards), pilgrims, bandit gang (a
   chief one rank up, two to four bandits), watch patrol, watch post, wolf pack (a leader one rank up, two to five
   wolves), wild boar, bear, hunter, dog at the fold, slimes.
+- **SHEET-539** **Larger groups** (the owner, Questions hub page "Notable foes: fewer early essences", 21/11/2026, NF7 a):
+  a rung above the small groups, each with one notable head (GroupPart.`notable`: whoever it spawns is a notable foe,
+  marked as Core.notable; Essences, notable()). Bandit company: a captain two ranks up (notable), two gang chiefs one rank
+  up (its `seconds`), and its bandits. Watch garrison: a watch captain two ranks up (notable), two watch sergeants one rank
+  up, and its watchmen. Counts are in the library `groups` table. The small groups keep no notable member (NF3: "actual
+  leaders only, not a group of 3 bandits").
+- **SHEET-540** A group's `minSite` is the smallest settlement whose roster rolls it (hookGroups, src/land/roster.ts):
+  both larger groups are town and up, so a town's or bigger place's Threat hook may roll a company and its Watch hook a
+  garrison, and a hamlet or village never does. A dangerous road's `roadPeople` row can bring a company (a placeholder
+  weight); no other road can.
 - **SHEET-350** The Weaver and the World builder see the groups in catalogs.compose.groups.
 - **SHEET-351** **Prefixes**: a beast may carry one prefix, a stronger kind of the same beast named in its label ("a
   dire wolf") (library `prefixes`, PF…; NR37 a, NR38 a).
