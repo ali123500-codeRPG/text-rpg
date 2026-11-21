@@ -10,7 +10,7 @@ import { SV } from '../library/serviceIds';
 import { IT } from '../library/itemIds';
 import { gradesFitText } from '../scenario/validate';
 import { tierName } from '../ruleset';
-import { GEAR_OPS, GRADED_ACTS, GRADES, IMPROVISED_BASES, NPC_ACTIONS, OFFERED_GOAL_KINDS, ORDER_TYPES, PARSER_ACTIONS, PLAN_ENDINGS, PRONOUNS } from '../types';
+import { GEAR_OPS, GRADED_ACTS, GRADES, IMPROVISED_BASES, NPC_ACTIONS, OFFERED_GOAL_KINDS, ORDER_TYPES, PARSER_ACTIONS, PLAN_ENDINGS, PRONOUNS, SHEATHED_OFFER } from '../types';
 import { CHASE_RANGES, FRAGILITY, HEALTH_LEVELS, LIFE_STAGES, TALENTS, LIGHT, NERVE_LINES, QUALITY_LEVELS, SCENARIO_SCALES, STANCES, TIERS, TIME_OF_DAY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS, type Scale } from '../scales';
 import { WAY_KINDS } from '../plan/draw';
 import { WORLD_LORE } from './worldLore';
@@ -85,7 +85,8 @@ ${n}. stance is null unless what someone said or did this turn truly changes how
    the proud or the dishonest. Questions, curiosity, polite pushing and your own wariness are not provocations. Respect
    won in a fair contest, or a taunt taken in good humour, can make you friendlier. Code already moves your stance
    for some deeds by itself: a job you gave done (friendlier) or given up or failed (colder), someone caught
-   stealing (colder), and a suspicion of yours raised (colder) or cleared (friendlier). Never add a step for that deed.
+   stealing (colder), a weapon drawn at you outside a fight (colder), and a suspicion of yours raised (colder) or cleared
+   (friendlier). Never add a step for that deed.
    Your beliefs give your stance toward each person: hostile (you attack on sight), opposed (on guard; you won't trade
    with them but won't strike first), unfriendly (you dislike them and do them no favours, but you are not on guard),
    neutral, friendly, friend (you help them even at some cost to you, and anyone hostile to them whom you are already opposed to
@@ -104,7 +105,7 @@ const SPAR_RULE = (n: number) => `\n${n}. A spar is a fight every fighter agrees
    or on anyone outside the spar, is a real attack and ends it. To give up a spar, or to surrender in a real fight, say so and set "yields": true: once surrendered you fight no more, at the mercy of those you fought.
    If self.playerYielded, the player has yielded to you in a real fight: set "acceptYield": true to take it (you stop
    fighting them for the rest of the scenario, and neither of you may attack the other) or false to fight on. No answer is a refusal.
-   If self.standDownOffer (or this turn's impression says it is an offer to stop fighting), someone on the other side has offered you a way out of the fight, and it says how the offer struck you: "convinces you" is a strong reason to stop, "tempts you" a reason to weigh, "does not move you" none. If it has demand "yield" (or the impression says it is a demand that you surrender), they ask you to give up, not only to stop: set "yields": true to surrender to them, or leave it out to fight on; "standDown" does not answer it. Otherwise set "standDown": true to stop fighting them (you and your bandmates with you who heard it, for the rest of the scenario; neither side may attack the other; any coin offered is paid to you) or false to fight on, as your character would. No answer is no. "you cannot refuse it" means you must set true.
+   If self.standDownOffer (or this turn's impression says it is an offer to stop fighting), someone on the other side has offered you a way out of the fight, and it says how the offer struck you: "convinces you" is a strong reason to stop, "tempts you" a reason to weigh, "does not move you" none; "${SHEATHED_OFFER}" is a gesture, not words: weigh it as your character would. If it has demand "yield" (or the impression says it is a demand that you surrender), they ask you to give up, not only to stop: set "yields": true to surrender to them, or leave it out to fight on; "standDown" does not answer it. Otherwise set "standDown": true to stop fighting them (you and your bandmates with you who heard it, for the rest of the scenario; neither side may attack the other; any coin offered is paid to you) or false to fight on, as your character would. No answer is no. "you cannot refuse it" means you must set true.
    To offer a foe the same (lay down arms and part), persuade or deceive them in words; they decide.
    If self.playerAtMercy, the player lies down before you, beaten in a fight to the death: set "spare": true to let them
    live (they wake later somewhere safe, badly hurt) or false to finish them. No answer finishes them.
@@ -281,6 +282,7 @@ export const NARRATOR_INSTRUCTIONS = [
   `31. A zone's furniture (zone.furniture) is what stands there: never move, remove or contradict it. You may add small unlisted things for colour (a mug, a rag, a sleeping dog); they are not part of the game until the player uses one.`,
   `32. An entry in actors with echo is an echo: someone who fell in another time or world and walks again from the afterlife. echo is who they were and how they fell, which the player character does not know. Let it colour how they carry themselves and their gear (old scars, a fighter's habits, something not quite of this place), but never tell it, never name them by it, and never say they are an echo unless the events show it.`,
   `33. fightFinished, when given, means the player chose to finish a fight far below them, and its events are several rounds played out in this one turn (rounds), ending as stop says. Tell the whole fight as one passage, a fast chore told in a few lines that grow no longer with the rounds; unless the fight is over, end on what stopped it.`,
+  `34. weapons, on someone in actors, are the weapons they show, each drawn or sheathed. An event of kind draw_weapon is someone drawing steel (at its target when given), sheathe_weapon putting it away; a drawn blade outside a fight reads as a threat or a challenge, a sheathed one as calm or a truce. Mention them only when they matter to the moment.`,
   '',
   `Return only JSON matching the schema.`,
 ].join('\n');

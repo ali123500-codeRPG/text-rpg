@@ -375,6 +375,8 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     if (state.mode === 'tactical') player.carry = [{ main: 0, move: 2.4, turn: state.turn - 1 }];
     player.core.inventory.push({ id: 'player_draught', itemId: IT.healing_draught, qty: 2 }, { id: 'player_draught_2', itemId: IT.healing_draught, qty: 1 }, { id: 'player_bandage', itemId: IT.bandage, qty: 2 },
       { id: 'player_shield', itemId: IT.round_shield, qty: 1, equippedIn: ['grip:left_arm'], pools: { shield: 70 } }); // the shield the story says you raise
+    const blade = player.core.inventory.find((i) => i.itemId === IT.arming_sword || i.itemId === IT.hand_axe);
+    if (blade) blade.equippedIn = ['grip:right_arm']; // DS6: steel drawn, so the page shows the Weapon drawn badge
     // a sack carried in the pack, with a dagger, a bandage and a smaller sack inside it, to show containers on the Inventory (CT1)
     player.core.inventory.push({ id: 'player_sack', itemId: IT.sack, qty: 1, contents: [{ id: 'sack_dagger', itemId: IT.dagger, qty: 1 }, { id: 'sack_bandage', itemId: IT.bandage, qty: 1 },
       { id: 'sack_inner', itemId: IT.sack, qty: 1, contents: [{ id: 'inner_draught', itemId: IT.healing_draught, qty: 1 }] }] });

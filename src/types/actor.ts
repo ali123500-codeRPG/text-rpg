@@ -273,6 +273,7 @@ export type Mind = {
   /** WN4 b: a hidden foe an ally pointed out, and when: its next notice or search roll at it is easier */
   pointed?: Record<ActorId, number>;
   rowsUsed?: Record<string, number>; // D-17: the turn each FIGHT_RULES row (FX id) last gave its order; one used since its engagement began counts as used this fight
+  drawnOnPurpose?: true; // DS2: its steel is drawn by its own choice, so code does not sheathe it when calm
   lastWasted?: { turn: number; action: string; reason: string }; // BG-181: its last try that came to nothing, until it does that kind of thing
   errandUntil?: number; // BG-180: it told someone it was doing something; it gets Planner calls through this turn
   /** AT63: time ran on past its agent's order (a stretch or a night) while it went on by code; its next Planner call is told */

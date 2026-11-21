@@ -1,9 +1,11 @@
 // Stealth on the play screen (via the Stealth tree, ST1–ST19): Sneak is a button in the
 // action bar beside Aim (it fills the box; nothing is sent until Send), and while the player is stealthy the header shows a
 // filled "Stealthy" badge in the Stealth tree's colour and the action bar is outlined in it. The name comes from POSTURES.
+// DS6: beside it, while a weapon is in the player's hand, a "Weapon drawn" badge in the Melee tree's colour; sheathed, none.
 import { POSTURES } from '../scales';
 import { CONFIG } from '../config';
 import { h, lineIcon } from './kit';
+import { ICONS } from './itemIcons';
 
 type Kind = 'sneak' | 'unseen';
 const PATHS: Record<Kind, string[]> = {
@@ -23,3 +25,10 @@ export const stealthyTip = (): string =>
 export const stealthBadge = () =>
   h('span', { class: 'stealthy-b', role: 'status', title: stealthyTip() },
     stealthIcon('unseen'), POSTURES.name('stealthy'));
+
+/** DS6: the header badge while a weapon is in the player's hand (sheathed shows none: the exception is marked, PS-130) */
+export function drawnBadge(): HTMLElement {
+  const i = h('i', { class: 'dr-i', 'aria-hidden': 'true' });
+  i.innerHTML = ICONS.sword;
+  return h('span', { class: 'drawn-b', role: 'status', title: 'A weapon is in your hand. Outside a fight people read it as a threat; put it away to talk in peace.' }, i, 'Weapon drawn');
+}

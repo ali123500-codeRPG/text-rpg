@@ -4,6 +4,7 @@ import { fallbackOrder } from '../../src/minds';
 import { buildActorView } from '../../src/views';
 import { resolveTurn } from '../../src/engine';
 import { SK } from '../../src/library/skillIds';
+import { steelBefore } from '../../src/engine/steel';
 
 // BG-258: a code-run guard holding its arming sword struck with its fists whenever the player stood within fist reach (0.7 m),
 // because its fallback order named the human body's skill (unarmed strike); the held weapon's skill comes first now.
@@ -15,6 +16,7 @@ for (const gap of [0.5, 1.2]) it(`335/102 BG-258 fallback blow at ${gap} m: with
   g.mind!.overrides = { player: 'hostile' };
   g.mind!.knowledge.player = { status: 'aware', lastKnownZone: 'gate_inner', lastSeenTurn: s.turn, source: 'seen', revealed: [] };
   g.pos = { x: s.player.pos!.x + gap, y: s.player.pos!.y };
+  steelBefore(s, g); // DS2: hostile to someone it knows is there, it draws before it decides
   const sword = g.core.inventory[0].id;
   expect(fallbackOrder(buildActorView(s, 'guard_1'), createRng(1))).toMatchObject({ type: 'attack', target: 'player', skill: SK.melee_medium, source: 'fallback' });
   const events = resolveTurn(s, { intent: null, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(s.rngState));

@@ -49,11 +49,12 @@ export function freshCopy(state: GameState, a: Actor, id: string): Actor {
 }
 
 /** BG-1583: `c` holding, of every most-full set of the weapons and shields it carries that its grips can hold, the one
- * whose combat level is highest (the first on a tie); with one such set, that set */
-function readied(state: GameState, c: Actor): Actor {
-  for (const i of c.core.inventory) if (isHeld(i)) delete i.equippedIn;
+ * whose combat level is highest (the first on a tie); with one such set, that set. DS2: `keep` leaves what is in hand there
+ * and fills only the free grips (a real actor drawing; freshCopy empties its hands first) */
+export function readied(state: GameState, c: Actor, keep = false): Actor {
+  if (!keep) for (const i of c.core.inventory) if (isHeld(i)) delete i.equippedIn;
   const grips = freeGrips(state, c).map(gripSlot), need = (i: ItemInstance) => itemDef(state, i.itemId).grips ?? 1;
-  const arms = c.core.inventory.filter((i) => { const d = itemDef(state, i.itemId); return (!!d.weapon || !!d.shield) && !isWorn(i) && need(i) <= grips.length; });
+  const arms = c.core.inventory.filter((i) => { const d = itemDef(state, i.itemId); return (!!d.weapon || !!d.shield) && !isWorn(i) && !isHeld(i) && need(i) <= grips.length; });
   const sets = new Map<string, ItemInstance[]>(); // keyed by the pieces' ids, so two of the same piece are one set
   const grow = (from: number, set: ItemInstance[], used: number): void => {
     for (let k = from; k < arms.length; k++) if (used + need(arms[k]) <= grips.length) grow(k + 1, [...set, arms[k]], used + need(arms[k]));

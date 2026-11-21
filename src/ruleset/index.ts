@@ -186,6 +186,8 @@ export function rollSetup(req: RollRequest, state: GameState, actor: Actor = mus
     modifiers.push(...foeMods(req.against ? [state.player, ...state.actors].find((x) => x.id === req.against) : undefined, req.rollKind)); // All-50: Dodgy
     modifiers.push(...overdrive(actor, eff.skill)); // SS15 Overdrive: Stamina 140
     if (actor.engagement?.rallied) modifiers.push({ source: 'Rallied', type: 'status', value: CONFIG.RALLIED_MOD }); // TC41 a
+    const steel = CONFIG.STEEL_SPEECH[eff.skill] ?? 0; // DS6: a weapon in hand while threatening, persuading or haggling
+    if (steel && actor.core.inventory.some((i) => isHeld(i) && !!itemDef(state, i.itemId).weapon)) modifiers.push({ source: 'Steel in hand', type: 'situational', value: (steel / 100) * averageRoll(eff.value) });
   }
   const shifts = [...req.tierShifts];
   if (req.auto !== false) shifts.push(...shortShifts(state, actor, req.rollKind, req.itemId)); // EQ12 c: gear you fall short on

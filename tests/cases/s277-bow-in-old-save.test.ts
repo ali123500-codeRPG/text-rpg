@@ -1,5 +1,5 @@
-// BG-186: a bow held in 'grip:' slots shoots, and an
-// attack with a weapon that isn't in hand comes to nothing ("not in hand") instead of becoming a punch.
+// BG-186: a bow held in 'grip:' slots shoots; a carried one named in an attack is drawn first (DS7); an attack with a
+// weapon that is gone comes to nothing ("not in hand") instead of becoming a punch.
 import { afterEach, expect, it } from 'vitest';
 import { actor, makeVillage } from '../harness';
 import { intent, play } from './w4-kit';
@@ -38,8 +38,16 @@ it('MG2: a save older than OLDEST_SAVE_SCHEMA is refused with its reason', async
   expect(String(err.message)).toContain(`made ${CONFIG.OLDEST_SAVE_REASON}`);
 });
 
-it('BG-186: an attack with a weapon that is not in hand comes to nothing and says why, with no walk up for a punch', () => {
+it('DS2/DS7: a carried bow named in an attack is drawn at no cost and shot, never a punch', () => {
   const s = archer([]); // the bow is only carried
+  const ev = shoot(s);
+  expect(ev.map((e) => e.kind)).not.toContain('move');
+  expect(ev.find((e) => e.kind === 'attack')).toMatchObject({ itemId: 'bow' });
+});
+
+it('BG-186: an attack with a weapon that is not on them comes to nothing and says why, with no walk up for a punch', () => {
+  const s = archer([]);
+  s.player.core.inventory = s.player.core.inventory.filter((i) => i.id !== 'bow'); // gone
   const ev = shoot(s);
   expect(ev.map((e) => e.kind)).toEqual(['wasted']);
   expect(ev[0]).toMatchObject({ reason: 'not_in_hand' });

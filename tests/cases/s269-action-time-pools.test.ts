@@ -94,7 +94,7 @@ describe('269 action time pools', () => {
     g.zone = s.player.zone;
     g.placeId = s.player.placeId;
     g.pos = { x: s.player.pos!.x + 0.5, y: s.player.pos!.y };
-    for (const i of s.player.core.inventory) delete i.equippedIn;
+    s.player.core.inventory = s.player.core.inventory.filter((i) => !i.equippedIn?.some((e) => e.startsWith('grip:'))); // bare hands: stowed steel is drawn to fight (DS7)
     s.player.core.perks.push({ perkId: PK.flurry } as never);
     s.mode = 'tactical';
     inFight(s);
@@ -131,7 +131,7 @@ describe('269 action time pools', () => {
       g.mind!.knowledge.player = { status: 'engaged', lastKnownZone: s.player.zone, lastSeenTurn: s.turn, source: 'seen', revealed: [] };
       s.mode = 'tactical';
       inFight(s);
-      for (const i of g.core.inventory) delete i.equippedIn; // fists: 2 s blows
+      g.core.inventory = g.core.inventory.filter((i) => !i.equippedIn?.some((e) => e.startsWith('grip:'))); // fists: 2 s blows (stowed steel is drawn to fight, DS2)
       g.react = { s: 2, init: 50, turn: s.turn };
       if (bluff) g.perkMarks = [{ perk: PK.bluff, made: s.turn }];
       s.turn += 1;

@@ -24,8 +24,8 @@ describe('player creation', () => {
     expect(p.core.skills[SK.parry]).toEqual({ raw: 25 + CONFIG.CREATION_TAG_BONUS, state: 'tagged' }); // YB1: a tag starts 10 above its points
     expect(p.core.inventory.map((i) => [i.itemId, i.equippedIn?.[0], i.qty])).toEqual([
       // the starter kit: per gear class the highest 'starter' item met (Medium Weapons 40 points, tagged: 50 (YB1), the Fine arming
-      // sword held, its stand-ins the dagger and woodsman's axe; no Light Armor: the crude clothes; with Block 0 no shield)
-      [IT.dagger, undefined, undefined], [IT.arming_sword, 'grip:right_arm', undefined], [IT.crude_clothes, 'armor', undefined],
+      // sword, its stand-ins the dagger and woodsman's axe, all sheathed (DS2); no Light Armor: the crude clothes; with Block 0 no shield)
+      [IT.dagger, undefined, undefined], [IT.arming_sword, undefined, undefined], [IT.crude_clothes, 'armor', undefined],
       [IT.woodsman_axe, undefined, undefined], [IT.pack, 'pack', undefined], // CT7: a worn pack
       [IT.coin, undefined, CONFIG.STARTING_COIN], [IT.bandage, undefined, CONFIG.STARTING_BANDAGES],
     ]);

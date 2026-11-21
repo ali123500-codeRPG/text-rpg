@@ -269,6 +269,13 @@ export function topPlace(state: GameState, placeId: string): string | undefined 
   return p?.id;
 }
 
+/** DS4: whether an actor stands in a settlement: the top place over its place stands on a land site (WZ1), or its kind
+ * names a settlement (as the map reads it, MAP-71) */
+export function inSettlement(state: GameState, a: Actor): boolean {
+  const top = state.places.find((p) => p.id === topPlace(state, a.placeId));
+  return !!top && (!!top.site || ['settlement', 'town', 'village', 'hamlet'].includes(top.kind));
+}
+
 /** KN1 b: the settlements (top-level places) an actor lives in: those its routine slots are bound in; none for the player */
 const homes = (state: GameState, a: Actor) =>
   Object.values(a.mind?.slots ?? {}).flat().map((z) => zoneById(state, z)?.placeId).filter((p): p is string => !!p).map((p) => topPlace(state, p));

@@ -22,13 +22,14 @@ import { fellFacts, fellLine } from './fell';
 import { autopilotBar } from './autopilot';
 import { boxOf, h, dragScroll, lineIcon, playDraft, viewSize, safe, turnShown } from './kit';
 import { perkSeries } from './perks';
-import { stealthBadge, stealthyTip } from './stealth';
+import { drawnBadge, stealthBadge, stealthyTip } from './stealth';
 import { dayOf, now, timeOfDay, timeView } from '../time';
 import { timePassedRow, todBadge } from './timeOfDay';
 import { charFocus, stateToken, NERVE_PASSES, NERVE_STILL, NERVE_UNTIL, coinIcons, shortSheet, shownValues, sideSheet, statusStrip, tag, type ShownValues } from './charsheet';
 import { figurePulse } from './figure3d';
 import { isBrokenLevel, moraleLevel } from '../ruleset/morale';
 import { cantSteady } from '../engine/steady';
+import { armed } from '../engine/steel';
 import { healCard, healIcon, quickHeal, woundCard } from './healing';
 import { answering } from '../agents/answering';
 import { arrive, bar as barMove, count, cue, delta, finishAll, flare, impact, moving, ms, play, pulse, sentences, shake, slam, stamp, timeline } from './motion';
@@ -602,7 +603,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     const frozen = api.busy() && title.childElementCount > 0;
     const pv = s ? safe(() => buildPlayerView(s)) : null;
     if (!api.busy()) showBackdrop(pv?.zone.backdrop); // PS-488, M-06: the picture changes when a turn shows, never while one runs
-    const stealthy = s?.player.posture === 'stealthy';
+    const stealthy = s?.player.posture === 'stealthy', drawn = !!s && armed(s, s.player); // DS6: steel drawn, the exception worth a mark
     bar.classList.toggle('stealthy', stealthy);
     const lines = api.lines();
     // PM5/K1 c: the player's deals with NPCs, as an "N deals" chip beside the scenario title that opens the list
@@ -637,7 +638,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     const openerSlot = s ? auto.opener.cloneNode(true) as HTMLElement : null;
     // the heading is where you are now (the zone), not the story's premise; the place it sits in follows the turn below it
     const here = s ? placeHead(s, pv) : null;
-    const titleKids = [h('div', {}, h('h1', {}, here?.here || 'Play', mh('tod', s ? todBadge(timeView(s).day, timeOfDay(now(s)), now(s)) : null), mh('stealth', stealthy ? stealthBadge() : null), mh('deals', dealChip)),
+    const titleKids = [h('div', {}, h('h1', {}, here?.here || 'Play', mh('tod', s ? todBadge(timeView(s).day, timeOfDay(now(s)), now(s)) : null), mh('stealth', stealthy ? stealthBadge() : null), mh('drawn', drawn ? drawnBadge() : null), mh('deals', dealChip)),
       h('p', {}, s ? [`Turn ${lastTurn}`, here?.where ? ` · ${here.where}` : ''] : 'No story yet'), mh('quest', s ? questLine(s, (id) => { questFocus.id = id; nav('quests'); }) : null)), h('div', { class: 'title-tools' }, openerSlot ?? '', rollsBtn ?? '', lengthBtn ?? '', soundBtn)];
     const titleNow = titleKids.map((k) => k.outerHTML).join('');
     if (!frozen && titleNow !== titleHtml) { openerSlot?.replaceWith(auto.opener); title.replaceChildren(...titleKids); titleHtml = titleNow; }

@@ -60,7 +60,7 @@ import { offeredRoutines } from '../minds/routines';
 import { coinWords, countWords, isSeller, offerList, wareList } from '../engine/trade';
 import { dueText, payText } from '../engine/quests';
 import { pressedWords, tellFor, tookWords } from '../engine/speech';
-import { canDemand, canOffer, OFFER_WORDS, offersTo, speaks } from '../engine/offer';
+import { canDemand, canOffer, OFFER_WORDS, offersTo, SHEATHED_OFFER, speaks } from '../engine/offer';
 import { farBelow, FINISH_STOP_WORDS, type FinishStop } from '../engine/finish';
 import { fightingWith } from '../engine/engagement';
 import { PK } from '../library/perkIds';
@@ -223,6 +223,14 @@ function ownGear(state: GameState, a: Actor): OwnGearView[] {
   });
 }
 
+/** DS3: the weapons a seen actor shows the Narrator, drawn or sheathed */
+function steelSeen(state: GameState, s: SeenActor): { weapons?: string[] } {
+  const inv = actorById(state, s.id)?.core.inventory ?? [];
+  const w = s.gear.filter((g) => g.where === 'sheathed' || (g.where === 'held' && itemDef(state, inv.find((i) => i.id === g.id)?.itemId ?? '').weapon))
+    .map((g) => `${g.name} (${g.where === 'held' ? 'drawn' : 'sheathed'})`);
+  return w.length ? { weapons: w } : {};
+}
+
 /** Part 5 §8: held items, shield and armor by look; accessories only when visible; concealed only once revealed; a worn
  * pack (CT7); stowed only once found (SE11), or once its pack stands open */
 function seenGear(state: GameState, a: Actor, revealed: string[], viewerId?: string): SeenGearView[] {
@@ -231,7 +239,8 @@ function seenGear(state: GameState, a: Actor, revealed: string[], viewerId?: str
     const slot = i.equippedIn?.[0];
     const d = itemDef(state, i.itemId);
     const mine = viewerId && i.stolenFrom === viewerId ? { stolenFromYou: true as const } : {}; // FL6: its owner knows it on sight
-    if (!slot) { if (revealed.includes(`item:${i.id}`)) out.push({ id: i.id, name: pieceName(state, i), look: d.look, where: 'carried', ...mine }); continue; }
+    // DS3: a weapon carried on someone, not concealed, shows sheathed; anything else stowed only once found (SE11)
+    if (!slot) { if (revealed.includes(`item:${i.id}`) || (d.weapon && !d.concealed)) out.push({ id: i.id, name: pieceName(state, i), look: d.look, where: d.weapon && !d.concealed ? 'sheathed' : 'carried', ...mine }); continue; }
     if (d.concealed && !revealed.includes(`item:${i.id}`)) continue;
     const where = isGripSlot(slot) ? (d.kind === 'shield' ? 'shield' : 'held') : slot === 'armor' ? 'armor' : isAccSlot(slot) && d.visible ? 'accessory' : slot === 'pack' ? 'pack' : null;
     // CT5/CT7: a worn pack shows; once opened (its wearer downed or yielded), what it holds shows in it
@@ -669,7 +678,7 @@ export function buildPlayerView(state: GameState): PlayerView {
       ...(heldBy(state, p) ? { heldBy: callName(state, p.id, heldBy(state, p)!.id) } : {}),
       ...(sparOf(state, p.id) ? { spar: sparView(state, p, (id) => callName(state, p.id, id)) } : {}),
       ...(yieldView(state) ? { yielded: yieldView(state) } : {}),
-      ...(offersTo(state, p).length ? { standDownOffers: offersTo(state, p).map((o) => ({ id: o.from, name: callName(state, p.id, o.from), landed: OFFER_WORDS[o.landed] })) } : {}), // TF11
+      ...(offersTo(state, p).length ? { standDownOffers: offersTo(state, p).map((o) => ({ id: o.from, name: callName(state, p.id, o.from), landed: o.sheathed ? SHEATHED_OFFER : OFFER_WORDS[o.landed] })) } : {}), // TF11
       ...(farBelow(state) ? { finishable: true as const } : {}), // IQ7 a
     },
     zone: withBackdrop(state, zoneById(state, p.zone)!, zoneView(state, zoneById(state, p.zone)!, p)), // PS-487
@@ -771,7 +780,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       ...(sparOf(state, a.id) ? { spar: sparView(state, a, (id) => id) } : {}),
       ...(state.yielding?.pending.includes(a.id) ? { playerYielded: true as const } : {}),
       ...(state.mercy?.pending.includes(a.id) ? { playerAtMercy: true as const } : {}),
-      ...((o) => o ? { standDownOffer: { from: callName(state, a.id, o.from), landed: OFFER_WORDS[o.landed], ...(o.coin ? { coin: coinWords(o.coin) } : {}), ...(o.demand ? { demand: o.demand } : {}) } } : {})(offersTo(state, a)[0]), // TF15, TF19
+      ...((o) => o ? { standDownOffer: { from: callName(state, a.id, o.from), landed: o.sheathed ? SHEATHED_OFFER : OFFER_WORDS[o.landed], ...(o.coin ? { coin: coinWords(o.coin) } : {}), ...(o.demand ? { demand: o.demand } : {}) } } : {})(offersTo(state, a)[0]), // TF15, TF19
       ...(isSeller(a) ? { wares: wareList(state, state.player, a), offers: offerList(state, state.player, a) } : {}),
       ...(chase ? { chaseZones: chase } : {}),
       ...((back) => ({ ...withinStrike(state, a, back), ...(back ? { holdsBack: true as const } : {}) }))(m.control === 'code' && holdsBack(state, a)),
@@ -1002,7 +1011,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       gear: ownGear(state, p).map((g) => `${countWords(g.itemId, g.name, g.qty)}, ${g.look} (${isHeld(g) ? 'held' : g.equippedIn.length ? 'worn' : 'carried'})${g.container?.contents?.length ? `, holding ${g.container.contents.map((c) => c.name).join(', ')}` : ''}`) }, // PI1: what is in it
     surroundings: perceivedZones(state, p.zone, p),
     heard,
-    actors: seen.map((s) => ({ label: s.label, ...(s.name ? { name: s.name } : {}), ...(s.pronouns ? { pronouns: s.pronouns } : {}), zone: zoneById(state, s.zone)?.name ?? '', ...(s.distanceM !== undefined ? { distanceM: Math.round(s.distanceM) } : {}), ...(s.side ? { side: s.side } : {}), ...(s.health ? { health: s.health } : {}), ...(s.morale ? { morale: s.morale } : {}), ...(s.fatigue ? { fatigue: s.fatigue } : {}), ...(s.activityLook ? { activityLook: s.activityLook } : {}), ...(s.age ? { age: s.age } : {}), ...(s.tended ? { tended: s.tended } : {}), ...(s.doing ? { doing: s.doing } : {}), ...(s.lying ? { lying: true } : {}), ...echoOf(state, s.id) })),
+    actors: seen.map((s) => ({ label: s.label, ...(s.name ? { name: s.name } : {}), ...(s.pronouns ? { pronouns: s.pronouns } : {}), zone: zoneById(state, s.zone)?.name ?? '', ...(s.distanceM !== undefined ? { distanceM: Math.round(s.distanceM) } : {}), ...(s.side ? { side: s.side } : {}), ...(s.health ? { health: s.health } : {}), ...(s.morale ? { morale: s.morale } : {}), ...(s.fatigue ? { fatigue: s.fatigue } : {}), ...(s.activityLook ? { activityLook: s.activityLook } : {}), ...(s.age ? { age: s.age } : {}), ...(s.tended ? { tended: s.tended } : {}), ...(s.doing ? { doing: s.doing } : {}), ...(s.lying ? { lying: true } : {}), ...steelSeen(state, s), ...echoOf(state, s.id) })),
     facts: factsFor(state, p.placeId, seen.filter((s) => s.level === 'full').map((s) => s.id)),
     headlines: headlinesFor(state, p.placeId, false),
     // growth proposal 2.7/EG11 b: essences offered this turn, as the character feels them (never numbers or grades)

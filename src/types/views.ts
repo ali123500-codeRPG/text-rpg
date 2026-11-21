@@ -17,7 +17,7 @@ export type BodyAttackView = { mode: string; name: string; handsFull?: string };
  * open it */
 export type ContainerView = { open?: true; shut?: true; fixed?: true; lock?: 'locked' | 'unlocked'; grade?: string; key?: true; contents?: { id: string; name: string; qty?: number }[]; owner?: string }; // contents qty: PI1, how many of a stack; fixed: CT1, it stays where it stands (a chest)
 export type OwnGearView = { id: string; itemId: string; name: string; look: string; kind: string; equippedIn: string[]; modes: { id: string; name: string }[]; classLabel?: string; weightLabel?: string; qty?: number; container?: ContainerView; beyondYou?: string; cantSwing?: true }; // cantSwing: BG-283, held but no grip can use it (a crippled arm); beyondYou: BF70, how far its requirement is past the holder's skill
-export type SeenGearView = { id: string; name: string; look: string; where: 'held' | 'shield' | 'armor' | 'accessory' | 'pack' | 'carried'; container?: ContainerView; stolenFromYou?: true }; // stolenFromYou: FL6, the viewer knows it on sight // carried: stowed, found by a search (SE11)
+export type SeenGearView = { id: string; name: string; look: string; where: 'held' | 'sheathed' | 'shield' | 'armor' | 'accessory' | 'pack' | 'carried'; container?: ContainerView; stolenFromYou?: true }; // stolenFromYou: FL6, the viewer knows it on sight // carried: stowed, found by a search (SE11); sheathed: a weapon carried on them, seen by anyone (DS3)
 /** SD3–SD5: a barrier on a way as a viewer knows it (WayFull: the Weaver's view, everything) */
 export type WayView = { kind: string; grade?: string; blocked?: true; locked?: true; barred?: true; key?: true; broken?: string };
 export type WayFull = { kind: string; grade: string; lock?: string; bar?: string; blocked?: true; guarded?: true };
@@ -352,7 +352,7 @@ export type NarrationView = {
   player: { name: string; pronouns?: Pronouns; health: HealthLevel; morale: string; fatigue: string; mentallySteady?: true; parts: { id: string; state: PartState }[]; tended?: string; zone: string; stealthy?: true; gear?: string[]; title?: string; personality?: string; age?: string; yielded?: YieldView }; // personality: the player's sheet words, narration flavour only // ST3: moving or hiding unseen; gear: everything the character has
   surroundings: ZoneView[]; // own zone + sight links (frontiers by label)
   heard: { speaker: string; text: string; volume: Volume }[];
-  actors: { label: string; name?: string; pronouns?: 'he' | 'she' | 'they' | 'it'; zone: string; distanceM?: number; side?: 'ahead' | 'left' | 'right' | 'behind'; health?: HealthLevel; morale?: string; fatigue?: string; activityLook?: string; age?: string; tended?: string; echo?: string }[]; // echo: HF2, hidden: who an echo was; tended: BG-181; age: the life stage they look (AG16); health: Wounded or worse, morale: Afraid or worse, as the player sees it
+  actors: { label: string; name?: string; pronouns?: 'he' | 'she' | 'they' | 'it'; zone: string; distanceM?: number; side?: 'ahead' | 'left' | 'right' | 'behind'; health?: HealthLevel; morale?: string; fatigue?: string; activityLook?: string; age?: string; tended?: string; echo?: string; weapons?: string[] }[]; // weapons: DS3, each drawn or sheathed; echo: HF2, hidden: who an echo was; tended: BG-181; age: the life stage they look (AG16); health: Wounded or worse, morale: Afraid or worse, as the player sees it
   facts: string[];
   headlines: string[];
   notices?: string[]; // out-of-character notices (none sent to the Narrator by default)
