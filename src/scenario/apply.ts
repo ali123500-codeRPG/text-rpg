@@ -13,7 +13,7 @@ import { furnitureIn } from '../engine/furniture';
 import { placeHasForge } from '../engine/repair';
 
 import { FU, ZK } from '../library/tableIds';
-import { distOrNull, entryPoint, placeAll, standingAt, startAtDoor, titleMiddle, unplace } from '../engine/position';
+import { arriveAtWayIn, distOrNull, entryPoint, placeAll, standingAt, startAtDoor, titleMiddle, unplace } from '../engine/position';
 import { clockSet, now, startClock } from '../time';
 import { activity, getLibrary, itemDef, npcTemplate, routine, routineSet } from '../library';
 import { composeTemplate, rankPos, roleMissing, presetPersonality, spawnNpc, templateRank } from '../library/spawn';
@@ -611,9 +611,10 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
 }
 
 /** WT16 a: a newcomer arriving in a world with ground (HF26) is placed before the Weaver plans, so its ground is measured
- * from their real point: the start place's first title (else the world's first), a free spot there, at its door when
- * outside (BG-49) */
+ * from their real point: a free spot just inside the start place's way in from outside (arriveAtWayIn); a place with no
+ * such way: its first title (else the world's first), a free spot there, at its door when outside (BG-49) */
 export function placeNewcomer(state: GameState): void {
+  if (arriveAtWayIn(state, state.player.placeId)) return;
   const z = state.places.find((p) => p.id === state.player.placeId)?.zones[0] ?? state.zones[0];
   if (!z) return;
   moveTo(state, state.player, z.id);
