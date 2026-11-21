@@ -387,8 +387,9 @@ export type Journal = {
   heardOf?: ActorId[];
   /** NM3: false names the player believed, by whom they were told of */
   aliases?: Record<ActorId, string>;
-  /** Q17: actors the player has seen clearly, and the zone they were in; they stay seen until they move */
-  clearSight?: Record<ActorId, string>;
+  /** Q17, BG-1618: actors the player has seen clearly, and the point (and height) where; they stay seen clearly while
+   *  they stay within CLEAR_SIGHT_STAY_M of it */
+  clearSight?: Record<ActorId, import('./core').Pt3>;
   /** BG-28: where the player last saw or heard each actor (any perception of it, a sound included); never forgotten by an
    * unseen move, so lastSeen still names someone heard running off */
   lastKnown?: Record<ActorId, string>;

@@ -246,7 +246,8 @@ type Band = {                   // a small group: a guard post, a gang, a househ
   floor plan and the ground move from place pages and one ground page to tiles (WT1 a, Part 4 §6). Schema 15: everyone
   gets a point and height of their own: a missing point is the title's middle, the height the title's floor; an event's
   point gets its title's floor; a thing on the ground with no point (it lay in no title, so nothing could reach it) goes
-  (WT4 a, D-1623, MIGRATIONS 14).
+  (WT4 a, D-1623, MIGRATIONS 14). Schema 16: clear sight keeps a point, not a title: someone still in the title they were
+  seen in keeps clear sight from where they stand, anyone else is dropped and seen afresh (BG-1618, WT14 a, MIGRATIONS 15).
 
 #### Drops and falls
 

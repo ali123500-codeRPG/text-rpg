@@ -1,12 +1,13 @@
 // 108 Look around (Q17): looking is a sight roll; Success or better shows everyone in sight clearly,
-// and someone seen clearly stays seen until they move.
+// and someone seen clearly stays seen until they move (BG-1618: from where they were seen).
 import { expect, it } from 'vitest';
 import type { GameEvent, GameState } from '../../src/types';
 import { actor, makeVillage, place } from '../harness';
 import { lookAround, noteSightings, perceptionOf } from '../../src/perception';
+import { standingAt } from '../../src/engine/position';
 
 const ev = (s: GameState, actorId: string, kind: string, zone: string, visibility: GameEvent['visibility'] = 'low'): GameEvent =>
-  ({ id: `x${kind}`, turn: s.turn, actorId, kind, zone, effects: [], noise: 'silent', visibility, perception: {} }) as GameEvent;
+  ({ id: `x${kind}`, turn: s.turn, actorId, kind, zone, pos: standingAt(actor(s, actorId)), effects: [], noise: 'silent', visibility, perception: {} }) as GameEvent;
 
 it('108 a clear look keeps a still figure seen until it moves', () => {
   const s = makeVillage({ playerZone: 'street_square' });

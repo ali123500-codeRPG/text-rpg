@@ -47,4 +47,8 @@ export const PERCEPTION = {
   /** MAP-68 (placeholder; how it grows or changes is parked, D-424): the radius in metres of the faint "somewhere here"
    *  circle the map draws round someone only heard or glimpsed, or last seen, at the point they were last perceived */
   LAST_SEEN_RADIUS_M: 2,
+  /** Q17, BG-1618 (placeholder): someone the player saw clearly stays seen clearly while they stay within this many metres
+   *  of the point (and height) where they were seen: shifting weight, turning or swaying on the spot, not stepping away.
+   *  Reference: half an adult walking step (about 0.7 m; Perry & Burnfield, Gait Analysis, 2nd ed., 2010) */
+  CLEAR_SIGHT_STAY_M: 0.5,
 };
