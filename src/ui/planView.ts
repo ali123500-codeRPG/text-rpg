@@ -8,7 +8,7 @@
 import type { GameApi } from '../types';
 import { boxOf, h, plural } from './kit';
 import { CONFIG } from '../config';
-import type { KnownMap, MapZone } from './mapData';
+import { rootPlace, type KnownMap, type MapZone } from './mapData';
 import { PX_PER_M, TEXT, WHO_ICON_SHARE, checkReach, checkStage, nameFit, planScene, roughMeasure, type Box, type Measure, type Scene, type TextKind } from './mapPlan';
 import { checkMap } from './mapCheck';
 import { doorGlyph, fogClip, fogMask, iconMark, keyTool, planKeyRows, floorMarks, floorName, pin, wayBadge } from './map';
@@ -31,7 +31,6 @@ export type PlanData = {
   you: Pos | null; youTitle?: string; facing?: [number, number];
   ring: number | null; dash: number | null; carried: number;
   focus?: string; selected?: string; heading?: string; exitSel?: { zoneId: string; label: string } | null;
-  awayName(id: string): string | undefined;
   /** the dev checker's extra fields (the Map's place and floor) */
   check?: Record<string, unknown>;
 };
@@ -72,6 +71,15 @@ const clip = (a: Box, b: Box): Box | null => {
 const within = (a: Box, b: Box) => a.x0 >= b.x0 && a.y0 >= b.y0 && a.x1 <= b.x1 && a.y1 <= b.y1;
 const same = (a: Box, b: Box) => Math.abs(a.x0 - b.x0) < 0.5 && Math.abs(a.y0 - b.y0) < 0.5 && Math.abs(a.x1 - b.x1) < 0.5 && Math.abs(a.y1 - b.y1) < 0.5;
 let fogIds = 0;
+/** D-1558: the tiles' scenes as one; a doorway on a tile's edge is drawn by both, kept once */
+function merge(scs: Scene[], k: number): Scene {
+  const all = <K extends keyof Scene>(f: K) => scs.flatMap((x) => x[f] as unknown[]) as never;
+  const ids = new Set<string>();
+  return { zones: all('zones'), places: all('places'), labels: all('labels'), exits: all('exits'), stairs: all('stairs'), furniture: all('furniture'), items: all('items'), tokens: all('tokens'),
+    doors: scs.flatMap((x) => x.doors).filter((x) => !ids.has(x.id) && !!ids.add(x.id)), dropped: all('dropped'), lost: all('lost'),
+    used: new Set(scs.flatMap((x) => [...x.used])), k,
+    bounds: scs.length ? { x0: Math.min(...scs.map((x) => x.bounds.x0)), y0: Math.min(...scs.map((x) => x.bounds.y0)), x1: Math.max(...scs.map((x) => x.bounds.x1)), y1: Math.max(...scs.map((x) => x.bounds.y1)) } : { x0: 0, y0: 0, x1: 0, y1: 0 } };
+}
 
 export function planView(api: GameApi, opts: PlanOpts) {
   const full = opts.size === 'full';
@@ -135,15 +143,40 @@ export function planView(api: GameApi, opts: PlanOpts) {
     const m = font(kind)?.measureText('');
     return m ? { ascent: m.fontBoundingBoxAscent, descent: m.fontBoundingBoxDescent } : roughMeasure.line(kind);
   } });
-  // D-1558: the scene is laid out once per zoom for the data taken at update(); panning only redraws it
+  // D-1558: the world in fixed tiles (the land's regions), each laid out once per zoom for the data taken at update();
+  // panning only redraws, and only the tiles in view are laid out and drawn. A place is laid out whole in the tile holding
+  // the middle of its ground (its top-level place's zones' extent, so nothing inside it is cut at a tile's edge); a
+  // person is in the tile holding their point
   const scenes = new Map<string, Scene>();
-  let scenesOf: PlanData | null = null;
-  const sceneAt = (kk: number) => {
-    if (scenesOf !== d) { scenes.clear(); scenesOf = d; }
-    const key = `${kk}|${org.x}|${org.y}`;
-    let sc = scenes.get(key);
-    if (!sc) scenes.set(key, (sc = planScene({ zones: d!.floor, every: d!.every, places: d!.places, people: d!.people, k: kk, measure, awayName: d!.awayName, youWidthM: d!.km.youWidthM, o: org })));
-    return sc;
+  /** each tile's zones and people, and the ground they cover in metres (a road laid out in one tile may run past it) */
+  type Tile = { zones: MapZone[]; people: PlanData['people']; m: Box };
+  let scenesOf: PlanData | null = null, tiles = new Map<string, Tile>();
+  const tileOf = (q: Pos) => `${Math.floor(q.x / CONFIG.REGION_SIZE_M)},${Math.floor(q.y / CONFIG.REGION_SIZE_M)}`;
+  const grow = (b: Box | undefined, x0: number, y0: number, x1: number, y1: number): Box => ({ x0: Math.min(b?.x0 ?? x0, x0), y0: Math.min(b?.y0 ?? y0, y0), x1: Math.max(b?.x1 ?? x1, x1), y1: Math.max(b?.y1 ?? y1, y1) });
+  const sceneAt = (kk: number, view?: Box) => {
+    if (scenesOf !== d) {
+      scenes.clear(); scenesOf = d; tiles = new Map();
+      const tile = (key: string) => tiles.get(key) ?? (tiles.set(key, { zones: [], people: [], m: { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity } }), tiles.get(key)!);
+      const ext = new Map<string, Box>();
+      for (const z of d!.floor) if (z.rect) { const r = rootPlace(d!.km, z.placeId), q = z.rect; ext.set(r, grow(ext.get(r), q.x - q.w / 2, q.y - q.d / 2, q.x + q.w / 2, q.y + q.d / 2)); }
+      for (const z of d!.floor) if (z.rect) {
+        const b = ext.get(rootPlace(d!.km, z.placeId))!, t = tile(tileOf({ x: (b.x0 + b.x1) / 2, y: (b.y0 + b.y1) / 2 })), q = z.rect;
+        t.zones.push(z); t.m = grow(t.m, q.x - q.w / 2, q.y - q.d / 2, q.x + q.w / 2, q.y + q.d / 2);
+      }
+      for (const w of d!.people) { const at = w.at ?? w.lastAt; if (at) { const t = tile(tileOf(at)); t.people.push(w); t.m = grow(t.m, at.x, at.y, at.x, at.y); } }
+    }
+    const kp = kk * PX_PER_M, pad = 400; // a tile's marks reach past its ground (exit notes, titles)
+    const got: Scene[] = [];
+    for (const [key, t] of tiles) {
+      const b = { x0: (t.m.x0 - org.x) * kp - pad, x1: (t.m.x1 - org.x) * kp + pad, y0: -(t.m.y1 - org.y) * kp - pad, y1: -(t.m.y0 - org.y) * kp + pad };
+      if (view && (b.x1 < view.x0 || b.x0 > view.x1 || b.y1 < view.y0 || b.y0 > view.y1)) continue;
+      const sk = `${key}|${kk}|${org.x}|${org.y}`;
+      let sc = scenes.get(sk);
+      if (!sc) scenes.set(sk, (sc = planScene({ zones: t.zones, every: d!.every, places: d!.places.map((p) => ({ ...p, zones: p.zones.filter((z) => t.zones.includes(z)) })).filter((p) => p.zones.length),
+        people: t.people, k: kk, measure, youWidthM: d!.km.youWidthM, o: org })));
+      got.push(sc);
+    }
+    return merge(got, kk);
   };
   // names are sized from measured text: once the map's own font has loaded, lay the scene out again
   document.fonts?.ready.then(() => { scenes.clear(); if (d) render(); });
@@ -181,7 +214,7 @@ export function planView(api: GameApi, opts: PlanOpts) {
     reorigin();
     world.setAttribute('transform', `translate(${off.x} ${off.y})`);
     const vb: Box = { x0: -off.x, y0: -off.y, x1: w - off.x, y1: hh - off.y }, inView: Box = { x0: vb.x0 + 1, y0: vb.y0 + 1, x1: vb.x1 - 1, y1: vb.y1 - 1 };
-    const sc = (scene = sceneAt(k));
+    const sc = (scene = sceneAt(k, vb));
     gFog.append(fogClip(fogId, sc.zones.map((x) => x.z), K(), org), fogMask(`${fogId}-now`, sc.zones.map((x) => x.z), K(), org)); // BG-313: only ground the character has seen; MAP-33: in sight now full, the rest faded
     for (const p of sc.places) {
       const c = clip(p.box, vb);
@@ -334,17 +367,21 @@ export function planView(api: GameApi, opts: PlanOpts) {
     // no closer than the closest zoom step (OM7 a)
     const most = kOf(CONFIG.MINIMAP_ZOOM_M[0]);
     let kk = Math.min(most, aw / (ww * PX_PER_M), ah / (dd * PX_PER_M));
-    let sc = sceneAt(kk);
-    // the marks around the zones (labels outside, exit notes, titles) take room too: shrink until all of it fits
+    // the marks round the zones fitted (exit notes, place titles) take room too: shrink until all of it fits
+    const ids = new Set((zs.length ? zs : d.floor).map((z) => z.id));
+    const boundsOf = (sc: Scene): Box => { const bs = [...sc.zones.filter((x) => ids.has(x.z.id)).map((x) => x.box), ...sc.exits.filter((e) => ids.has(e.zoneId)).map((e) => e.note),
+      ...sc.places.filter((p) => d!.places.find((q) => q.id === p.id)?.zones.every((z) => ids.has(z.id))).flatMap((p) => [p.box, p.title])];
+    return { x0: Math.min(...bs.map((b) => b.x0)), y0: Math.min(...bs.map((b) => b.y0)), x1: Math.max(...bs.map((b) => b.x1)), y1: Math.max(...bs.map((b) => b.y1)) }; };
+    let b = boundsOf(sceneAt(kk));
     for (let i = 0; i < 8; i++) {
-      const bw = sc.bounds.x1 - sc.bounds.x0, bh = sc.bounds.y1 - sc.bounds.y0 + 34;
+      const bw = b.x1 - b.x0, bh = b.y1 - b.y0 + 34;
       if (bw <= aw && bh <= ah) break;
       kk *= Math.min(aw / bw, ah / bh) * 0.96;
-      sc = sceneAt(kk);
+      b = boundsOf(sceneAt(kk));
     }
     k = kk; fitW = w / K(); placed = true;
-    const bw = sc.bounds.x1 - sc.bounds.x0, bh = sc.bounds.y1 - sc.bounds.y0 + 34;
-    off = { x: edge + (aw - bw) / 2 - sc.bounds.x0, y: top + Math.max(0, (ah - bh) / 2) - sc.bounds.y0 };
+    const bw = b.x1 - b.x0, bh = b.y1 - b.y0 + 34;
+    off = { x: edge + (aw - bw) / 2 - b.x0, y: top + Math.max(0, (ah - bh) / 2) - b.y0 };
     render();
   }
   function setPlan(p: Extract<MinimapPlan, { pts: Pos[] }>) {
@@ -451,7 +488,9 @@ export function planView(api: GameApi, opts: PlanOpts) {
     if (!d) { hover = null; if (plan) { plan = null; opts.onPlan(null); } render(); return; }
     const st = api.state()!;
     const atNow = d.you ? `${d.km.zoneId}:${d.you.x}:${d.you.y}` : '';
-    if (full) { if (refit || !placed) { fitW = 0; requestAnimationFrame(() => fit((z) => !d!.focus || z.placeId === d!.focus || isIn(z))); } }
+    // D-1558, OM1 b: the Map opens on you at the minimap's zoom; a place picked is fitted
+    if (full && !refit && !placed && d.you) { k = kOf(CONFIG.MINIMAP_VIEW_M); placed = true; onYou(); }
+    else if (full) { if (refit || !placed) { fitW = 0; requestAnimationFrame(() => fit((z) => !d!.focus || z.placeId === d!.focus || isIn(z))); } }
     else {
       if (!placed) { k = kOf(CONFIG.MINIMAP_VIEW_M); placed = true; }
       if (atNow !== lastAt) { lastAt = atNow; onYou(); hover = null; }

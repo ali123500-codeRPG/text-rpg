@@ -39,10 +39,10 @@ export type MapLink = { to: string; label: string; sight: boolean; frontier: boo
  * at, for someone in full sight, where they stand (SeenActor.body); lastAt, for someone only heard or glimpsed, or last
  * seen, where the character last perceived them (the journal's last spot, BG-125); with neither (an old save) they are
  * not drawn and only the card of the title they are listed in names them (listed). height: the floor their point is on;
- * root: the top-level place whose map shows them; body (SZ16): its floor size in metres and the way it faces, for
+ * body (SZ16): its floor size in metres and the way it faces, for
  * someone seen clearly at their own point, or out of full sight the body last seen clearly (journal.lastBody, RX1 a) */
 export type MapPerson = { id: string; name: string; now: boolean; at?: { x: number; y: number }; lastAt?: { x: number; y: number }; body?: { lengthM: number; widthM: number; facing: [number, number] }; icon: IconName;
-  height: number; root?: string; listed?: string };
+  height: number; listed?: string };
 /** MAP-69: the icon for what the character sees on someone first: what they hold (a weapon or a tool), a shield, armour
  *  past plain clothes, wares they offer; else what they are, from the race seen, a plain person by their life stage and
  *  pronouns (RM15 c); someone not made out (only glimpsed or heard, or out of sight now) shows a hooded figure. Only the
@@ -190,8 +190,8 @@ export function knownMap(s: GameState): KnownMap {
   const known = new Set<string>([...knownZoneIds(s), ...inView.keys()]);
   for (const id of [...known]) if (!zoneById(s, id)) known.delete(id);
 
-  // people (MAP-68): seen now (PlayerView) and last seen, each at their own point; the title they are listed in only
-  // says which top-level place's map shows them (root, below)
+  // people (MAP-68): seen now (PlayerView) and last seen, each at their own point; the title they are listed in plays no
+  // part in where they are drawn
   const people: (MapPerson & { zone: string })[] = [];
   /** MAP-68: out of full sight, the point where the character last saw or heard them, on its own floor, and the body last
    *  seen clearly (RX1 a), if ever */
@@ -252,9 +252,7 @@ export function knownMap(s: GameState): KnownMap {
   const land: MapLand[] = (s.regions ?? []).map((r) => ({ region: r, seen: landSeen(s, r.id), faint: new Set(r.sites.filter((x) => x.placeId && ids.has(x.placeId)).map((x) => x.id)),
     key: `${r.id}:${s.player.journal?.landSeen?.[r.id] ?? ''}` }));
   const km: KnownMap = { placeId: p.placeId, zoneId: p.zone, places: order, land, people: [], youWidthM: actorBody(s, p).size.widthM };
-  // the top-level place whose map shows someone: the nearest known place over the one their title is in
-  const knownAbove = (pl?: string) => { for (let n = 0; pl && !ids.has(pl) && n < 20; n++) pl = byId.get(pl)?.parentId ?? undefined; return pl && ids.has(pl) ? pl : undefined; };
-  km.people = people.map(({ zone, ...w }) => { const pl = knownAbove(zoneById(s, zone)?.placeId); return { ...w, ...(pl ? { root: rootPlace(km, pl) } : {}), ...(w.at || w.lastAt ? {} : { listed: zone }) }; });
+  km.people = people.map(({ zone, ...w }) => ({ ...w, ...(w.at || w.lastAt ? {} : { listed: zone }) }));
   return km;
 }
 

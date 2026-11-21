@@ -27,11 +27,12 @@ function findings(sc: Scene): string[] {
   return [...out, ...sc.lost.map((id) => `MAP-32 lost ${id}`)];
 }
 function sceneOf(st: GameState, k: number) {
-  const m = knownMap(st), root = m.places.find((p) => !p.parentId || !m.places.some((q) => q.id === p.parentId))!;
+  // D-1558: the one map, as the Map lays it out: every zone known, every place inside a top-level one but a road as an outlined area, everyone
+  const m = knownMap(st);
   const inPlace = (id: string, anc: string): boolean => id === anc || (!!m.places.find((p) => p.id === id)?.parentId && inPlace(m.places.find((p) => p.id === id)!.parentId!, anc));
   const zones = m.places.flatMap((p) => p.zones).filter((z) => z.height === 0);
-  const places = m.places.filter((p) => p.id !== root.id).map((p) => ({ id: p.id, name: p.name, depth: p.depth, zones: zones.filter((z) => inPlace(z.placeId, p.id)) })).filter((p) => p.zones.length);
-  return { sc: planScene({ zones, every: m.places.flatMap((p) => p.zones), places, people: m.people.filter((w) => w.root === root.id && w.height === 0), k, measure: roughMeasure, awayName: () => undefined }), zones, places, m };
+  const places = m.places.filter((p) => p.depth > 0 && p.kind !== 'road').map((p) => ({ id: p.id, name: p.name, depth: p.depth, zones: zones.filter((z) => inPlace(z.placeId, p.id)) })).filter((p) => p.zones.length);
+  return { sc: planScene({ zones, every: m.places.flatMap((p) => p.zones), places, people: m.people.filter((w) => w.height === 0), k, measure: roughMeasure }), zones, places, m };
 }
 const stageState = (key: string) => {
   const g = createFakeGame({ autoStart: true, stage: key });
@@ -95,7 +96,7 @@ describe('labels, doors and exits', () => {
   it('MAP-20, MAP-21: a long name wraps to up to three lines at that size; a zone too small for it shows its name on hover only', () => {
     const z: MapZone = { id: 'z', placeId: 'p', name: 'a very long name for a tiny cupboard under the stairs', look: '', outdoor: false, here: false, inView: true, height: 0,
       rect: { x: 1.5, y: 1.5, w: 3, d: 3 }, links: [], items: [] };
-    const at = (k: number, w = 3) => planScene({ zones: [{ ...z, rect: { ...z.rect!, w } }], every: [z], places: [], people: [], k, measure: roughMeasure, awayName: () => undefined }).labels;
+    const at = (k: number, w = 3) => planScene({ zones: [{ ...z, rect: { ...z.rect!, w } }], every: [z], places: [], people: [], k, measure: roughMeasure }).labels;
     expect(at(2.5)).toEqual([]);
     const l = at(2.5, 12)[0];
     expect(l.lines.length).toBeLessThanOrEqual(3);

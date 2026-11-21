@@ -3,7 +3,7 @@
 // MAP-03); tokens, doors, stairs, furniture, things on the ground and exit notes are placed here so none covers another (MAP-31), yielding in the
 // order MAP-23 sets. A zone's name is a background layer inside it, at one small size, that marks may sit on (MZ2, MZ4).
 // Marks inside a zone keep one spot at every zoom (BG-216): each is placed once, at the widest of a few set zooms with room
-// for it, and every zoom reuses that spot as a share of the zone. No DOM: map.ts draws the scene, and a measure function gives text widths (the browser's
+// for it, and every zoom reuses that spot, a point on the ground (D-1558). No DOM: map.ts draws the scene, and a measure function gives text widths (the browser's
 // own in the page, an estimate in tests).
 import { type MapLink, type MapPerson, type MapThingMark, type MapWay, type MapZone } from './mapData';
 import { seenIn, type SeenRun } from '../plan/fog';
@@ -20,7 +20,7 @@ const NOTE_GAP = 9;
 /** the closest the map zooms (screen pixels per map pixel) */
 export const MAX_K = 2.5;
 /** BG-216: the zooms marks inside zones are placed at, widest view first; a mark takes its spot at the first that has room
- *  for it, and keeps that spot (as a share of its zone) at every zoom */
+ *  for it, and keeps that spot (its point on the ground) at every zoom */
 export const PLACE_KS = [1, 1.6, MAX_K];
 /** the dark edge drawn round a name's letters (its stroke width in .map-name), which adds to the room it needs */
 const NAME_EDGE = 3;
@@ -72,6 +72,8 @@ export type Scene = {
   /** what the map shows, for its key (MAP-30) */
   used: Set<string>;
   bounds: Box;
+  /** the zoom it was laid out at */
+  k: number;
 };
 export type PlanPlace = { id: string; name: string; depth: number; zones: MapZone[] };
 export type PlanInput = {
@@ -86,8 +88,6 @@ export type PlanInput = {
   /** zoom: screen pixels per map pixel */
   k: number;
   measure: Measure;
-  /** the name of the top-level place a known zone off this map sits in, for exits that open another map */
-  awayName: (zoneId: string) => string | undefined;
   /** your body's width in metres (KnownMap.youWidthM), your pin's width (MAP-23); a person's when not given */
   youWidthM?: number;
   /** D-1558: the view origin in metres, drawn at the layout's (0, 0), so screen numbers stay small kilometres out (float
@@ -212,9 +212,8 @@ export function nameFit(full: string, b: Box, measure: Measure): (Box & { lines:
   return { x0: cx - w / 2, y0: cy - h / 2, x1: cx + w / 2, y1: cy + h / 2, lines, base: cy - ink / 2 + ascent };
 }
 
-/** a mark's spot as a share of the room it may move in (its zone less the mark's inset), and back */
-const shareOf = (v: number, a: number, b: number, inset: number) => (b - a - 2 * inset > 0 ? (v - a - inset) / (b - a - 2 * inset) : 0.5);
-const fromShare = (f: number, a: number, b: number, inset: number) => (b - a - 2 * inset > 0 ? a + inset + f * (b - a - 2 * inset) : (a + b) / 2);
+/** v kept inside a..b less the mark's inset, or their middle where the mark is wider than the room */
+const within1 = (v: number, a: number, b: number, inset: number) => (b - a - 2 * inset > 0 ? Math.min(b - inset, Math.max(a + inset, v)) : (a + b) / 2);
 
 /** `ref`: the spots marks already have; `final`: this zoom is drawn, so a mark with no spot yet, or whose spot is covered
  *  here, is hidden (listed in `dropped`) rather than placed anew; `names`: the zone names at each of PLACE_KS; `placedAt`:
@@ -253,13 +252,13 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
     }
     return null;
   };
-  /** BG-216: where a mark sat at the closest zoom, carried to this zoom by its share of the zone; undefined with no reference */
-  const refSpots = new Map<string, { cx: number; cy: number; zoneId: string }>(ref ? [...ref.tokens, ...ref.stairs, ...ref.furniture, ...ref.items].map((m) => [m.id, m]) : []);
-  const refZones = new Map((ref?.zones ?? []).map((x) => [x.z.id, x.box]));
+  /** BG-216, D-1558: where a mark sat when it was placed, as a point on the ground (zoom 1 pixels from the origin), kept at this zoom
+   *  inside the walls round it (the box of the outline it stands in, less its inset); undefined with no reference. The spot
+   *  is the mark's own ground, never a share of a zone (AGENTS.md rule 8) */
+  const refSpots = new Map<string, { x: number; y: number }>(ref ? [...ref.tokens, ...ref.stairs, ...ref.furniture, ...ref.items].map((m) => [m.id, { x: m.cx / ref.k, y: m.cy / ref.k }]) : []);
   const spotOf = (id: string, zb: Box, inset: number): { cx: number; cy: number } | undefined => {
-    const m = refSpots.get(id), rb = m && refZones.get(m.zoneId);
-    if (!m || !rb) return undefined;
-    return { cx: fromShare(shareOf(m.cx, rb.x0, rb.x1, inset), zb.x0, zb.x1, inset), cy: fromShare(shareOf(m.cy, rb.y0, rb.y1, inset), zb.y0, zb.y1, inset) };
+    const m = refSpots.get(id);
+    return m && { cx: within1(m.x * k, zb.x0, zb.x1, inset), cy: within1(m.y * k, zb.y0, zb.y1, inset) };
   };
   /** you and people are never hidden: their own spot when it is free, else the nearest free one, only when zoomed far out */
   const keep = (p: { cx: number; cy: number } | undefined, r: number, zb: Box, ry = r, ok = free) => (!p ? undefined : ok(disc(p.cx, p.cy, r, ry)) ? p : nearFree(p.cx, p.cy, r, zb, r + 2, ry, ok) ?? outsideNear(p.cx, p.cy, r, ry, ok));
@@ -313,13 +312,13 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
   // the exits that leave this map (BG-313): each from its doorway, if the character has seen it, straight out of the wall
   const everyById = new Map(inp.every.map((z) => [z.id, z]));
   const stairList: { x: SZone; l: MapLink; up: boolean; other?: MapZone }[] = [];
-  const stubs: { x: SZone; l: MapLink; door?: SDoor; away?: string; other?: MapZone }[] = [];
+  const stubs: { x: SZone; l: MapLink; door?: SDoor; other?: MapZone }[] = [];
   for (const x of zones) for (const l of x.z.links) {
     if (byId.has(l.to) || (l.at && !doorSeen(x, l))) continue;
     const other = everyById.get(l.to);
     if (l.stairs || (other && other.height !== x.z.height)) { stairList.push({ x, l, up: l.up ?? (other ? other.height > x.z.height : verticalOf(l.label) > 0), other }); continue; }
-    const away = l.known && !other ? inp.awayName(l.to) : undefined;
-    stubs.push({ x, l, ...(l.opening && drawnDoor.has(l.opening) ? { door: drawnDoor.get(l.opening) } : {}), ...(away ? { away } : {}), ...(other ? { other } : {}) });
+    if (other?.rect) continue; // D-1558: a known zone on this floor is on this one map (in a tile of its own when not here): no arrow out to it
+    stubs.push({ x, l, ...(l.opening && drawnDoor.has(l.opening) ? { door: drawnDoor.get(l.opening) } : {}), ...(other ? { other } : {}) });
   }
   const labels = zoneNames(zones, k, measure, o);
 
@@ -387,7 +386,7 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
   for (const st of stubs) {
     const l = st.l, id = `exit:${st.x.z.id}:${l.to}`;
     if (!l.at || !l.out) { lost.push(id); continue; }
-    const state = [st.away ? `to ${st.away}` : st.other ? 'known' : 'unexplored', shutWord(l.way)].filter(Boolean).join(', ');
+    const state = [st.other ? 'known' : 'unexplored', shutWord(l.way)].filter(Boolean).join(', ');
     const full = l.label; // RM2 a: the name only; the state is in its title and the zone card
     // the arrow starts clear of its door's mark on the way out: the door's box reaches that far from its doorway
     const c = px(l.at), foot = 2 + (!st.door ? 0 : l.out[0] > 0 ? st.door.x1 - c.x : l.out[0] < 0 ? c.x - st.door.x0 : 0) * Math.abs(l.out[0])
@@ -412,11 +411,11 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
     const got = tryAll(true, wrapped) ?? tryAll(false, wrapped) ?? (() => { const t = cut(full, 'note', 200, measure); return tryAll(false, [t]); })();
     if (!got) { lost.push(id); continue; }
     const made: SExit = { id, zoneId: st.x.z.id, target: st.other ? l.to : l.label, state, x1: got.x1, y1: got.y1, x2: got.x2, y2: got.y2,
-      note: { ...got.nb, text: got.lines.join(' '), lines: got.lines, full, cut: got.lines.join(' ') !== full }, ...(st.away || st.other ? { goto: l.to } : {}), ...(l.way ? { way: l.way } : {}), title: `${l.label}: ${state}` };
+      note: { ...got.nb, text: got.lines.join(' '), lines: got.lines, full, cut: got.lines.join(' ') !== full }, ...(st.other ? { goto: l.to } : {}), ...(l.way ? { way: l.way } : {}), title: `${l.label}: ${state}` };
     exits.push(made);
     take(made.note, 'exit');
     take(got.shaft, 'exit');
-    used.add(st.away ? 'exit-away' : 'exit');
+    used.add('exit');
   }
 
   // ---- stairs (icons, BG-313): at the stairs' own end on this floor, nudged only to keep clear of another mark
@@ -474,7 +473,7 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean, names: B
   }
 
   const bounds = union([...zones.map((x) => x.box), ...places.flatMap((p) => [p.box, p.title]), ...taken.map((t) => t.box)]);
-  return { zones, places, labels, doors, exits, stairs, furniture, items, tokens, dropped, lost, used, bounds };
+  return { zones, places, labels, doors, exits, stairs, furniture, items, tokens, dropped, lost, used, bounds, k };
 }
 
 /** the footprint's top side: the left end of its topmost run is the outline's top-left corner, where its title sits */

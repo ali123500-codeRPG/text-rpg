@@ -9,7 +9,7 @@ import { areaOf, inOutline } from '../plan/geom';
 import { seenIn } from '../plan/fog';
 import type { GameApi, GameState } from '../types';
 import { CONFIG } from '../config';
-import { knownMap, rootPlace, type KnownMap, type MapZone } from './mapData';
+import { knownMap, type KnownMap, type MapZone } from './mapData';
 import { wayWords } from './map';
 import { planView, type PlanOpts } from './planView';
 import { carriedS, moveSpeed, slotMetres, turnMetres } from '../engine/speed';
@@ -90,18 +90,17 @@ export function minimapPanel(api: GameApi, opts: {
     size: 'mini',
     data: () => {
       const st = api.state(), km = st ? knownMap(st) : null;
-      const root = km ? rootPlace(km, km.placeId) : '';
-      const every = km ? km.places.filter((p) => rootPlace(km, p.id) === root).flatMap((p) => p.zones).filter((z) => z.rect) : [];
+      // D-1558: the one map, as the Map draws it: every zone known, the places inside a top-level place but a road, everyone on your floor
+      const every = km ? km.places.flatMap((p) => p.zones).filter((z) => z.rect) : [];
       const here = every.find((z) => z.here);
       if (!st || !km || !here?.you) return null;
       const floor = every.filter((z) => z.height === here.height);
       const inside = (id: string, anc: string) => { for (let p = km.places.find((x) => x.id === id), n = 0; p && n < 20; p = km.places.find((x) => x.id === p!.parentId), n++) if (p.id === anc) return true; return false; };
-      const places = km.places.filter((p) => rootPlace(km, p.id) === root && p.id !== root).sort((a, b) => a.depth - b.depth)
+      const places = km.places.filter((p) => p.depth > 0 && p.kind !== 'road').sort((a, b) => a.depth - b.depth)
         .map((p) => ({ id: p.id, name: p.name, depth: p.depth, zones: floor.filter((z) => inside(z.placeId, p.id)) })).filter((p) => p.zones.length);
-      const awayName = (id: string) => { const z = km.places.flatMap((p) => p.zones).find((x) => x.id === id); return z ? km.places.find((p) => p.id === rootPlace(km, z.placeId))?.name : undefined; };
-      const people = km.people.filter((w) => w.root === root && Math.abs(w.height - here.height) < 0.01);
+      const people = km.people.filter((w) => Math.abs(w.height - here.height) < 0.01);
       return { km, every, floor, height: here.height, places, people, you: { ...here.you }, ...(st.player.facing ? { facing: [...st.player.facing] as [number, number] } : {}),
-        ring: ringMetres(st), dash: dashMetres(st), carried: carriedS(st, st.player, 'move'), awayName };
+        ring: ringMetres(st), dash: dashMetres(st), carried: carriedS(st, st.player, 'move') };
     },
     onPlan: opts.onPlan, onWalk: opts.onWalk, onThing: opts.onThing,
     onCard: (zone) => opts.onOpenMap({ zone }),
