@@ -6,8 +6,10 @@
 //   npm run playtest -- --turns 50 --out playtest-out [--class late_bloomer]
 import { zoneById } from '../src/engine/relations';
 import { topPlace } from '../src/scenario/stage';
+// @ts-expect-error Node types are not installed; Node runs this file
 import { mkdirSync, writeFileSync, appendFileSync, readFileSync, copyFileSync } from 'node:fs';
 import { listWorlds, readTurnRecord } from '../src/save';
+// @ts-expect-error Node types are not installed; Node runs this file
 import { join } from 'node:path';
 import type { ClaudeClient, ClaudeRequest, ClaudeResponse } from '../src/types';
 import { createGame, parseTolerant, realClock } from '../src/agents';
@@ -31,6 +33,9 @@ import { skillName as sk } from '../src/library/skillNames';
 import type { LogLine, Personality } from '../src/types';
 import { lengthReport } from '../src/agents/narration';
 import { buildPlayerView } from '../src/views';
+import { waysOut } from '../src/plan/where';
+// Node types are not installed; Node runs this file
+declare const process: { argv: string[]; exitCode?: number; cwd(): string; exit(code?: number): never };
 import { moraleLevel } from '../src/ruleset/morale';
 import { personalityOf } from '../src/ruleset/personality';
 import { deck, type Choice, type DeckAction, type Order } from '../src/ui/deck';
@@ -57,7 +62,7 @@ const screenNotes = (l: LogLine): string[] => {
 
 const arg = (k: string, d: string) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : d; };
 // --set KEY=VALUE (repeatable): a config override for this run only, e.g. --set GROWTH_AT_SCENARIO_END=false
-process.argv.forEach((x, i) => {
+process.argv.forEach((x: string, i: number) => {
   if (x !== '--set') return;
   const [k, v] = process.argv[i + 1].split('=');
   (CONFIG as Record<string, unknown>)[k] = v === 'true' ? true : v === 'false' ? false : Number.isNaN(Number(v)) ? v : Number(v);
@@ -187,7 +192,7 @@ function nearSeller(st: GameState) {
 
 /** the player one zone from `who` on the stage (else in its zone), with the place that zone is in */
 function placeNextTo(st: GameState, who: GameState['actors'][number]) {
-  const next = st.zones.find((z) => z.id === who.zone)?.links.find((l) => !l.frontier && !!zoneById(st, l.to))?.to;
+  const next = waysOut(st, who.zone).find((l) => !l.frontier && !!zoneById(st, l.to))?.to;
   st.player.zone = next ?? who.zone;
   st.player.placeId = st.zones.find((z) => z.id === st.player.zone)?.placeId ?? st.player.placeId;
   console.log(`player placed in ${st.player.zone}, next to ${who.id} in ${who.zone}`);
@@ -242,7 +247,7 @@ async function main() {
   } else await game.newStory({ ...recommendedBuild(START), name: 'Arden', ...(pers ? { personality: pers } : {}) });
   const storyId = game.state()?.storyId;
   // the Character page shows the personality; the agent reads it as a player would, but plays as its persona
-  if (pers) charLine = `\nYour character's sheet describes their personality as: ${personalityText(game.state()!.player, 'steady')} You may play differently from it; play the way your persona says.`;
+  if (pers) charLine = `\nYour character's sheet describes their personality as: ${personalityText(game.state()!, game.state()!.player, 'steady')} You may play differently from it; play the way your persona says.`;
   const st0 = game.state()!;
   const planErrors = before ? game.gm().agentLog.filter((a) => a.agent === 'weaver' && a.output).map((a) =>
     validateStagePlan(structuredClone(before!), a.output as StagePlan, { tier: st0.stage.tier, kind: 'scenario', placeId: before!.player.placeId })) : [];
@@ -263,8 +268,8 @@ async function main() {
     // spoken lines are shown under the narration on screen (the Narrator does not quote them), so the player sees them too
     const recent = game.lines().slice(-14).map((l) => [`[${l.kind}] ${l.text}`, ...(l.speech ?? []).map((sp) => `  ${sp.speaker}: "${sp.text}"`), ...screenNotes(l), ...(MECHANICS ? (l.mechanics ?? []).map((m) => `  (${m})`) : [])].join('\n')).join('\n');
     // the play screen's Map always shows where the player stands and its ways out; the test player reads it as text
-    const here = game.state() ? game.state()!.zones.find((z) => z.id === game.state()!.player.zone) : undefined;
-    const map = here ? `\n[screen] Map: you are in ${here.name}; ways out: ${here.links.map((l) => l.label).join(' · ') || 'none'}` : '';
+    const here = game.state() ? buildPlayerView(game.state()!).zone : undefined;
+    const map = here ? `\n[screen] Map: you are in ${here.name}; ways out: ${(here.links ?? []).map((l) => l.label).join(' · ') || 'none'}` : '';
     const ask = `${PLAYER_BRIEF}${PERSONA ? `\n${PERSONA}` : ''}${charLine}\n${GOAL_RULES}\n\nThe story so far (latest last):\n${recent}${map}`;
     const first = (r: { text: string }) => {
       const lines = (r.text || 'I look around.').split('\n').map((x) => x.trim()).filter(Boolean);
