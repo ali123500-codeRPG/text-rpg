@@ -40,13 +40,12 @@ edge cases. Where a section repeats a rule from `AGENTS.md`, it is there to add 
   in the spec's "Deferred items" table holding the owner's own words, with options only where the owner gave them
   (no context or reading of the agent's own), plus banked rows in the library where it is content (perks,
   achievements, table rows).
-- **Perk and achievement ideas.** A parked idea is sorted by subject when it is parked, so a thread on that subject
-  can take its list together. About perks specifically (a perk, a kind of perk, an All-X part): a PP-n row in
-  `docs/spec/perk-ideas.md`. About achievements specifically (an achievement, a chain, a kind of reward, who proposes
-  them): an AA-n row in `docs/spec/achievement-ideas.md`. About vows or pledges (D-141's vows, things given up for
-  power): a VP-n row in `docs/spec/vow-ideas.md`. Anything else: a D-n. A new PP-n, AA-n or VP-n is numbered as a new
-  D-n is (`title='PP: <item>'`, `'AA: <item>'` or `'VP: <item>'`); a row moved from the Deferred items table keeps its number (D-189
-  became PP-189), and its D-n row in the archive says where it went.
+- **Parked ideas by subject.** A parked idea is sorted by subject when it is parked, so a thread on that subject
+  can take its list together. Which ID holds which kind of parked idea, and in which file, is the table at the top of
+  `docs/spec/deferred-items.md`: perks (PP-n), achievements (AA-n), vows and pledges (VP-n), classes (CI-n), and
+  anything else (D-n). A new PP-n, AA-n, VP-n or CI-n is numbered as a new D-n is (`title='PP: <item>'`, and so on); a
+  row moved from the Deferred items table keeps its number (D-189 became PP-189), and its D-n row in the archive says
+  where it went.
 - **Active and archive.** The Deferred items table and the Bug log keep open rows only. A row moves unchanged to
   `deferred-items-archive.md` or `bug-log-archive.md` (beside them in `docs/spec/`) in the PR that finishes it: built,
   settled, dropped, closed or merged for a D-n; fixed, won't fix or duplicate for a BG-n. `npm run spec -- <ID>` finds

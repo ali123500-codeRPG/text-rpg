@@ -89,7 +89,7 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
 - **SHEET-60** Swordsman, a class unlocked in play (SHEET-98, SHEET-116): its tree holds only riposte, which augments Parry (Ali, 10/11/2026;
   D-170).
 - **SHEET-61** Feint and disarm are removed for now and parked as skill ideas for future classes; ids SK22 and SK24 are
-  retired (D-157).
+  retired (CI-157).
 - **SHEET-62** **Sword-dancer tree**: mirrors the Swordsman with one skill, Blade Dance (formerly Slip Counter),
   Riposte's twin for dodging instead of parrying, which augments Dodge (Ali, 10/11/2026; D-170).
 - **SHEET-63** The Sword-dancer tree's 60 perk Step and Cut mirrors Answer the Blow (strike back at once off a clean
@@ -431,7 +431,7 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
   class is added for them (NR2).
 - **SHEET-275** **Leader** (RO13, civilian): High Persuasion and Intimidation, Moderate Insight and Resolve, Low Medium
   Weapons and Barter; the headman, reeve or guild master others answer to, and a quest giver (NR8 a).
-- **SHEET-276** The Leader's own class is parked (D-341).
+- **SHEET-276** The Leader's own class is parked (CI-341).
 - **SHEET-277** **Knight** (RO14, combat): High Medium Weapons and Heavy Armor, Moderate Block, Resolve and
   Intimidation, Low Heavy Weapons and Persuasion; gear medium melee, shield, heavy armor (NR13).
 - **SHEET-278** Its master's class is **Knight** (CL11, tier 2): Light, Medium and Heavy Weapons all at 50 (the Arms

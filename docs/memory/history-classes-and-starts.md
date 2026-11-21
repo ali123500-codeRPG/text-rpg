@@ -24,7 +24,7 @@ How one class unlocks the next is in `class-unlocks.md`.
   stay (#800, #829). Parked: blessings and gods (D-311).
 - **Class tree (14/11/2026; CT1-CT4).** The class picker became a tree, the only place to change class (#794).
 - **A Somebody (16/11/2026; CB1-CB7).** The class between A Nobody and Unwritten Legend (#922). Its capstone
-  is parked (D-360).
+  is parked (CI-360).
 - **The Legend's own level 1 perk (16/11/2026; UL1, UL2).** Any Road Will Do; Quick Study is A Nobody's alone
   (#1006).
 - **Reincarnator Start (16/11/2026; D-355, parked).** A hero of this world who lived, died and was reborn. It

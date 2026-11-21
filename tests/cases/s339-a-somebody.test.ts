@@ -1,7 +1,7 @@
 // 339 A Somebody (CB1-CB7): a Renowned (tier 3) class between A Nobody and Unwritten Legend. It opens when A Nobody
 // reaches its top level, with no skill road (CB7); its level 1 perk Late Bloom gives the double improvement roll to any
 // skill below LATE_BLOOM_SHARE of the owner's highest raw skill (CB5); reaching its own top level opens Unwritten
-// Legend in play (CB3). Its capstone is parked (D-360).
+// Legend in play (CB3). Its capstone is parked (CI-360).
 import { describe, expect, it } from 'vitest';
 import { forcedRng, makeVillage } from '../harness';
 import { unlockClasses } from '../../src/engine/xp';

@@ -107,7 +107,7 @@ How the game saves and loads. Part 4 replaces the single GameState document as t
 
 ## Logs and appendix
 
-- [Deferred items](spec/deferred-items.md); finished rows: [archive](spec/deferred-items-archive.md); parked perk ideas: [Perk ideas](spec/perk-ideas.md); parked achievement ideas: [Achievement ideas](spec/achievement-ideas.md); parked vow and pledge ideas: [Vow and pledge ideas](spec/vow-ideas.md)
+- [Deferred items](spec/deferred-items.md); finished rows: [archive](spec/deferred-items-archive.md); parked perk ideas: [Perk ideas](spec/perk-ideas.md); parked achievement ideas: [Achievement ideas](spec/achievement-ideas.md); parked vow and pledge ideas: [Vow and pledge ideas](spec/vow-ideas.md); parked class ideas: [Class ideas](spec/class-ideas.md)
 - [Bug log](spec/bug-log.md); closed rows: [archive](spec/bug-log-archive.md)
 - [Check on release](spec/check-on-release.md)
 - [Open questions](spec/open-questions.md)

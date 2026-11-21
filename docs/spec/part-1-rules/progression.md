@@ -262,7 +262,7 @@ question IDs, BG/D numbers) sits in one trailing parenthesis.
   gain, while its raw value is below LATE\_BLOOM\_SHARE (0.5, placeholder) × the owner's highest raw skill
   (PerkDef.improveRolls.belowShare), so it keeps working as skills grow: best skill 50 covers skills under 25, 100 under
   50, 200 under 100.
-- **PROG-166** Its capstone is parked (D-360).
+- **PROG-166** Its capstone is parked (CI-360).
 - **PROG-167** Reaching A Somebody 20 also unlocks **Unwritten Legend** in play (CB3); its Start stays the fast way in.
 - **PROG-168** Unwritten Legend's own level 1 perk is **Any Road Will Do** (PK158): the stand-in share of every function
   is +UL\_STAND\_IN\_ADD (0.2, placeholder; PerkDef.standIn with no function named), so 0.3 becomes 0.5, kept within 0
