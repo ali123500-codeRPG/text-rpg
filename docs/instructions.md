@@ -216,6 +216,20 @@ The source of truth for every design decision.
   6. `design-spatial`: render the built page, run its layout audit, look at the annotated screenshot, and measure
      what the change is about (centring, the gap to a neighbour). Its gates are fixed; its signals are only pointers.
      A subagent that did not write the change judges the screenshots only for everything else, not a small change.
+- **Every UI PR shows its look.** A PR that changes anything under `src/ui/` has a `## Design` part: the design skills
+  used and what each changed, and the screens rendered (built page, `?fake=1` and any stage it needs), including
+  every place a moved element now sits. "UI wiring" or "a smoke flow covers it" excuses a test, never the render:
+  smoke flows check that a control works, not how it looks. The `pr-rule` check fails a `src/ui` PR without it.
+- **House controls only.** Every button, toggle and tag carries one of the house classes on the element itself
+  (`hs-btn-main`, `hs-btn-text`, `hs-icon-btn`, a button inside `hs-picker`, `hs-tg`). A page may adjust a house
+  class; it never gives a control its look only through where it sits (`.inbar button.itm`), so a control keeps its
+  look wherever it moves. A class written in `src/ui` exists in the stylesheet before it is used; a new kind of control
+  is a new house class, named in the PR. Reason: a button moved out of the action bar, and one given the made-up
+  class `hs-btn`, both showed the browser's plain gray button (BG-1514).
+- **Colour means something.** Every tag and chip takes the colour of what it names, from the meanings the game
+  already has: a skill's tree, a roll tier, a grade, perks violet, achievements gold, scars red. The gray fallback
+  (`hs-tg` with no `--tg`) is only for a value that has no meaning yet, and the PR names it. Reason: the Hall of fame
+  card was a wall of gray tags.
 - If a skill is missing for the job, look for one online before going without.
 - Play and creation pages are PC only: no phone rules, checks at desktop widths. The library viewer must also work on
   phones, with nothing scrolling sideways.
