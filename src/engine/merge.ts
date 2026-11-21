@@ -7,7 +7,7 @@ import { SPEECH_ACTIONS } from '../types';
 import { VOLUME_NOISE } from '../perception/noise';
 import { hearsClearly } from '../perception';
 import { alertOrders, brokenHolds, brokenOrder, fallbackOrder, followMove, routineOrder, staying } from '../minds';
-import { actorById, isActive, isEngaged, reachesAcross } from './relations';
+import { actorById, isActive, isEngaged } from './relations';
 import { drawnTo, spendDrawn } from './perkMarks';
 import { fooledBy } from './playDead';
 import { codePerkMove } from './npcPerkMoves';
@@ -15,7 +15,8 @@ import { codeWarn } from './warnings';
 import { companions } from './travel';
 import type { AcceptedAgentOutput, TurnInput } from './types';
 import { turnMetres } from './speed';
-import { M_EPS, distM, gateAhead, seeingM, spotPoint, walkLeg, withinM, type Located } from './position';
+import { M_EPS, distM, gateAhead, reachOverFrom, seeingM, spotPoint, walkLeg, withinM, type Located } from './position';
+import { wayTo } from '../plan/where';
 import { canSpeak } from '../ruleset/body';
 import { withTactics } from '../views/tactics';
 
@@ -49,15 +50,21 @@ export function approachMove(state: GameState, actor: Actor, act: { type: string
   const inView = seeingM(state, actor, t) !== null; // BG-309: a sight line between them, not the same zone
   if (!m && !act.way && need === 'voice' && inView && !hearsClearly(state, actor, t, noise)) m = { toZone: t.zone };
   if (!m || m.after || m.jump || act.way) return m;
-  if (t.zone === here) {
-    if (m.toZone === here) return m.spot ? m : { ...m, toZone: here, spot: { near: t.id } };
-    return m.spot?.near === t.id || reachesAcross(state, here, m.toZone) ? { ...m, toZone: here, spot: { near: t.id } } : m;
+  // BG-1732: whether a counter, fence or rail stands between them is the walking line's (reachOverFrom), never the titles
+  const across = !!overFrom(state, actor, t);
+  if (m.toZone === t.zone) {
+    // BG-62: across a counter, the walk ends on the actor's side of it, at the way to theirs (resolve.ts closes in and reaches over)
+    if (!m.behind && across && t.zone !== here && wayTo(state, here, t.zone)) return { ...m, toZone: here, spot: { near: t.zone } };
+    // BG-87: going into their zone ends beside them, not just inside the way in
+    return m.spot ? m : { ...m, spot: { near: t.id } };
   }
-  if (m.toZone !== t.zone) return m;
-  if (!m.behind && reachesAcross(state, here, t.zone)) return { ...m, toZone: here, spot: { near: t.zone } };
-  // BG-87: going into their zone ends beside them, not just inside the way in
-  return m.spot ? m : { ...m, spot: { near: t.id } };
+  // a move elsewhere: one named beside them, or one over a counter to someone on this side of it, ends beside them; any
+  // other (through a doorway, following someone in: BG-77) stands
+  if (m.spot?.near === t.id || (!across && !!overFrom(state, actor, { zone: m.toZone }))) return { ...m, toZone: t.zone, spot: { near: t.id } };
+  return m;
 }
+/** reachOverFrom, or null where a title on the line has no footprint (a plan's check must not stop the turn) */
+const overFrom = (state: GameState, a: Located, b: Located): Located | null => { try { return reachOverFrom(state, a, b); } catch { return null; } };
 const TRADE_KINDS = ['buy', 'sell', 'repair'];
 
 /** the player's move for the Parser's intent (approachMove) */
