@@ -98,7 +98,7 @@ export function planView(api: GameApi, opts: PlanOpts) {
   let d3 = false;
   const d3btn = full ? tool('3D', 'Walls standing', () => {
     d3 = !d3; d3btn!.setAttribute('aria-pressed', String(d3));
-    if (!d3) { svg.classList.remove('d3'); return; } // they sink; the next render leaves them out
+    if (!d3) { svg.classList.remove('d3'); gFaces.addEventListener('transitionend', () => d3 || gFaces.replaceChildren(), { once: true }); return; } // they sink, then go
     if (!gFaces.childElementCount) render(); // still sinking: they rise again from where they are (M-73)
     requestAnimationFrame(() => svg.classList.add('d3'));
   }) : null;
