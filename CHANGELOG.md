@@ -3,6 +3,11 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bugs/`.
 
+- 21/11/2026: `docs/instructions.md` section 7, `.github/pull_request_template.md`, `scripts/pr-rule.mjs`: every PR that
+  changes `src/ui` has a `## Design` part (skills used, screens rendered, where a moved element now sits), and the
+  `pr-rule` check fails it without one; every control carries a house class on itself and only classes that exist;
+  every tag takes the colour of what it names. The owner asked "what rules were followed that allowed this in the
+  first place, and how do you suggest we fix those rules", then chose "A + B + C" on a decision card.
 - 21/11/2026: `docs/instructions.md` section 2: parked ideas about perks specifically get their own list, PP-n in
   `docs/spec/perk-ideas.md`, for a perks thread; rows moved there keep their D-n number. The owner: "for parked
   ideas related to perks specifically, make a new ID for them so we can tackle them in a perks thread later."

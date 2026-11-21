@@ -2,6 +2,9 @@ name: PR rule
 on:
   pull_request:
     types: [opened, edited, synchronize, reopened]
+permissions:
+  contents: read
+  pull-requests: read
 jobs:
   pr-rule:
     runs-on: ubuntu-latest
@@ -10,3 +13,5 @@ jobs:
       - run: node scripts/pr-rule.mjs
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ github.token }}
