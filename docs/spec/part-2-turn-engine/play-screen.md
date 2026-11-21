@@ -564,7 +564,9 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 - **PS-309** The Hall of fame card's report card (D-349) shows each line as its icon in place of its name (Combat Power
   `fig_power`, Achievements a trophy, Reputation a group of people), then its letter; the chip is tinted as roll tiers
   are (PS-146): FFF to F red, E and D amber, C and B blue, A and up green. The line's name and grade are its tip and
-  accessible name (issue #1523).
+  accessible name (issue #1523). The card's other rows are tinted by what they already mean elsewhere: Best skills as
+  each skill's icon in place of its name and its value, in its tree's colour; Perks violet (`--perk-40`), Achievements
+  gold (`--scenario-mark`), Scars red (`--danger`). No tag on the card is left untinted (issue #1525).
 - **PS-307** Scales past 100: game-icons.net has supernatural subjects (rune blades, auras, creatures) for gear and
   beings above the human range.
 
