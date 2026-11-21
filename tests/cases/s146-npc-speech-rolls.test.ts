@@ -100,9 +100,9 @@ it('146h a lie rolls Falsehood and the listener answers with Insight (NT16–NT1
   expect(p.b.skill).toBe(SK.insight);
 });
 
-// NL1-NL4 (D-155 lies only): a lie one NPC aims at another rolls the same contest; a caught false name is not kept and
-// the listener's view of the line carries the tell; other speech at an NPC still does not roll
-it('146-NL an NPC lie at another NPC rolls; caught = tell and no alias, believed = alias; intimidation does not roll', () => {
+// NL1-NL4: a lie one NPC aims at another rolls the same contest; a caught false name is not kept and the listener's
+// view of the line carries the tell; haggling at an NPC does not roll (D-155 b)
+it('146-NL an NPC lie at another NPC rolls; caught = tell and no alias, believed = alias; haggling does not roll', () => {
   const outcomes = new Set<string>();
   for (let seed = 1; seed <= 40 && outcomes.size < 2; seed++) {
     const s = makeVillage();
@@ -125,12 +125,39 @@ it('146-NL an NPC lie at another NPC rolls; caught = tell and no alias, believed
       expect(t.mind!.aliases).toMatchObject({ guard_1: 'Tam' });
     }
     expect(s.player.journal!.aliases?.guard_1).toBe('Tam'); // the player, who heard it with no roll of their own, believes it
-    if (seed === 1) {
-      const ev2 = play(s, { agentOutputs: [plannerOut('guard_1', act('intimidate', 'trader'), { dialogue: { line: 'Keep out of my way.', volume: 'normal' } })] }, seed);
+    if (seed === 1) { // D-155 b: haggling between NPCs does not roll (it stays player-only)
+      const ev2 = play(s, { agentOutputs: [plannerOut('guard_1', act('barter', 'trader'), { dialogue: { line: 'Two copper, no more.', volume: 'normal' } })] }, seed);
       const e2 = ev2.find((x) => x.kind === 'speak' && x.actorId === 'guard_1')!;
       expect(e2.contest).toBeUndefined();
       expect(e2.push).toBeUndefined();
     }
   }
   expect([...outcomes].sort()).toEqual(['believed', 'caught']);
+});
+
+// D-155 b: an NPC's persuasion or threat at another NPC rolls the same contest as at the player, with the same Shaken
+// and Swayed results (and, engaged, the morale cost of losing to a threat); the listener's view says how it struck them
+it('146-NN an NPC persuasion or threat at another NPC rolls, and the listener carries the result', () => {
+  const seen = new Set<string>();
+  for (let seed = 1; seed <= 40 && seen.size < 4; seed++) {
+    for (const type of ['intimidate', 'persuade'] as const) {
+      const s = makeVillage();
+      const g = actorById(s, 'guard_1')!, t = actorById(s, 'trader')!;
+      g.zone = 'tav_common'; g.placeId = t.placeId; g.knownOnSight = undefined;
+      t.mind!.knowledge.guard_1 = { status: 'aware', lastKnownZone: 'tav_common', lastSeenTurn: 1, source: 'seen', revealed: [] } as never;
+      g.mind!.knowledge.trader = { status: 'aware', lastKnownZone: 'tav_common', lastSeenTurn: 1, source: 'seen', revealed: [] } as never;
+      const ev = play(s, { agentOutputs: [plannerOut('guard_1', act(type, 'trader'), { dialogue: { line: 'Do as I say.', volume: 'normal' } })] }, seed);
+      const e = ev.find((x) => x.kind === 'speak' && x.actorId === 'guard_1')!;
+      expect(e.contest!.a.asked ?? e.contest!.a.skill).toBe(type === 'intimidate' ? SK.intimidation : SK.persuasion);
+      expect(e.contest!.b).toMatchObject({ actorId: 'trader' });
+      expect(e.push).toMatchObject({ type, listener: 'trader', landed: e.contest!.winner === 'a' });
+      const status = type === 'intimidate' ? 'shaken' : 'swayed';
+      const per = type === 'intimidate' ? CONFIG.SHAKEN_PER_TIER : CONFIG.SWAYED_PER_TIER;
+      expect(t.pressure?.guard_1?.[status]).toBe(e.contest!.winner === 'a' ? -e.contest!.gap * per : undefined);
+      const tv = buildActorView(s, 'trader').told.find((x) => x.id === e.id);
+      expect(tv?.pressed?.how).toBeTruthy();
+      seen.add(`${type}:${e.contest!.winner === 'a' ? 'landed' : 'held'}`);
+    }
+  }
+  expect(seen.size).toBe(4);
 });

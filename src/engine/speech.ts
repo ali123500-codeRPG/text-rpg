@@ -253,6 +253,8 @@ const INFLUENCE = () => Object.entries(getLibrary().skills).filter(([, k]) => k.
 
 /** OQ-29: the speech types that roll when an NPC aims them at the player; plain talk does not */
 export const PUSH_TYPES: string[] = SPEECH_ACTIONS.filter((t) => t !== 'talk');
+/** D-155 b: the speech types that roll when an NPC aims them at another NPC; haggling stays player-only (D-149) */
+export const NPC_PUSH_TYPES: string[] = PUSH_TYPES.filter((t) => t !== 'barter');
 /** added to a listener's impression when it saw through a lie */
 export const TELL = 'something about it does not sit right';
 /** a lie the listener saw through, said plainly */

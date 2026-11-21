@@ -478,6 +478,7 @@ import {
   isSpeech,
   overhearLie,
   PUSH_TYPES,
+  NPC_PUSH_TYPES,
   pushContest,
   quickReads,
   sizeUp,
@@ -1350,12 +1351,12 @@ function doSpeak(ctx: Ctx, a: Actor, o: Order): void {
   const beast = stared && stared !== a && isActive(stared) && !speaks(stared) && feelsThreats(stared) ? stared : undefined;
   if (a.kind === 'player') for (const id of new Set([o.target, ...(o.addressees ?? [])])) { const x = id ? actorById(state, id) : undefined; if (x && x !== a && x !== beast && isActive(x) && !speaks(x)) ev.effects.push({ kind: 'not_understood', actorId: x.id, data: {} }); }
   // OQ-29: an NPC's persuade, deceive, intimidate or barter at the player rolls when the player hears it; the player answers.
-  // NL1/NL2: a lie at another NPC rolls the same way (D-155: other speech at NPCs stays banked)
+  // NL1/NL2, D-155 b: a lie, persuasion or threat at another NPC rolls the same way; haggling between NPCs does not
   const p = state.player;
   // NM3: a false name for itself is a lie, even if the agent called it talk, so it can be caught (backstop to PUSH_RULE)
   const type = o.type === 'talk' && falseName(a, line?.text) ? 'deceive' : o.type;
   const to = o.target ? actorById(state, o.target) : undefined;
-  const push = a.kind === 'npc' && !!to && to !== a && isActive(to) && (to === p ? PUSH_TYPES.includes(type) : type === 'deceive');
+  const push = a.kind === 'npc' && !!to && to !== a && isActive(to) && (to === p ? PUSH_TYPES : NPC_PUSH_TYPES).includes(type);
   if (push) {
     ev.perception = computePerception(ev, state, ctx.rng);
     if (hearsWords(ev.perception[to.id])) {

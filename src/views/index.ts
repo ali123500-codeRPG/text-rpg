@@ -443,6 +443,7 @@ function eventView(state: GameState, viewer: Actor, e: GameEvent): EventView {
     ...(e.impact ? { impact: e.impact } : {}),
     ...(e.actorId === viewer.id && tookWords(e) ? { took: tookWords(e) } : {}),
     ...(e.overheard?.includes(viewer.id) || (e.push?.tell && e.push.listener === viewer.id) ? { tell: tellFor() } : {}), // LI5a Overheard; NL4 a lie aimed at it that it saw through
+    ...(e.push?.listener === viewer.id && e.push.type !== 'deceive' && pressedWords(e) ? { pressed: pressedWords(e)! } : {}), // D-155 b
     ...(e.kind === 'wasted' && e.actorId === viewer.id && e.reason ? { reason: e.reason } : {}), // BG-175: its own action came to nothing, and why
     ...(full && e.kind === 'wasted' && e.itemId ? { item: itemName(state, e.itemId) ?? 'something' } : {}), // BG-1477: what the try went for
   };
