@@ -9,6 +9,7 @@ import type { AchievementNote, Actor, GameApi, GameState, HitNote, LogLine, Noti
 import { personalityOf } from '../ruleset/personality';
 import { CONFIG } from '../config';
 import { buildPlayerView, distText, questGoalText } from '../views';
+import { belongingView, ruleText, theName, tieText } from '../views/belonging';
 import { QUEST_STATE_NAME, dueDay, dueText, isOpen, owes, payText, questChain } from '../engine/quests';
 import { questFocus } from './pages';
 import { tierGap, xpSourceWords } from '../agents/game';
@@ -39,7 +40,7 @@ import { closeFull, closePop, openPop } from './pop';
 import { deckView, walkOrder, type SayMode } from './deckView';
 import { minimapPanel, type MinimapPoint } from './minimap';
 import { mapPick } from './map';
-import { ICONS, instanceIcon, partMark, skillMark } from './itemIcons';
+import { ICONS, instanceIcon, itemIcon, partMark, skillMark } from './itemIcons';
 import { maybeOfferPop } from './essences';
 import { anyGains, gainsPanel, gainsSummary, honor, playGains } from './gains';
 import { working } from '../ruleset/body';
@@ -613,6 +614,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     // M-06: while a turn runs, the header, Who's here and the sheet keep showing what they showed before it
     const frozen = api.busy() && title.childElementCount > 0;
     const pv = s ? safe(() => buildPlayerView(s)) : null;
+    const bv = s && pv ? safe(() => belongingView(s, pv)) : null; // BEL-20: the ties the player knows, and who rules here
     if (!api.busy()) showBackdrop(pv?.zone.backdrop); // PS-488, M-06: the picture changes when a turn shows, never while one runs
     const stealthy = s?.player.posture === 'stealthy', drawn = !!s && armed(s, s.player); // DS6: steel drawn, the exception worth a mark
     bar.classList.toggle('stealthy', stealthy);
@@ -650,7 +652,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     // the heading is where you are now (the zone), not the story's premise; the place it sits in follows the turn below it
     const here = s ? placeHead(s, pv) : null;
     const titleKids = [h('div', {}, h('h1', {}, here?.here || 'Play', mh('tod', s ? todBadge(timeView(s).day, timeOfDay(now(s)), now(s)) : null), mh('stealth', stealthy ? stealthBadge() : null), mh('drawn', drawn ? drawnBadge() : null), mh('deals', dealChip)),
-      h('p', {}, s ? [`Turn ${lastTurn}`, here?.where ? ` · ${here.where}` : ''] : 'No story yet'), mh('quest', s ? questLine(s, (id) => { questFocus.id = id; nav('quests'); }) : null)), h('div', { class: 'title-tools' }, openerSlot ?? '', rollsBtn ?? '', lengthBtn ?? '', soundBtn)];
+      h('p', {}, s ? [`Turn ${lastTurn}`, here?.where ? ' · ' : '', here?.where ? (bv?.rule ? h('span', { title: ruleText(bv.rule) }, here.where) : here.where) : ''] : 'No story yet'), mh('quest', s ? questLine(s, (id) => { questFocus.id = id; nav('quests'); }) : null)), h('div', { class: 'title-tools' }, openerSlot ?? '', rollsBtn ?? '', lengthBtn ?? '', soundBtn)];
     const titleNow = titleKids.map((k) => k.outerHTML).join('');
     if (!frozen && titleNow !== titleHtml) { openerSlot?.replaceWith(auto.opener); title.replaceChildren(...titleKids); titleHtml = titleNow; }
     story.classList.toggle('no-rolls', !show);
@@ -663,7 +665,12 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     // C7: a giver with a quest ready to hand in carries a gold check (the words only in its tip)
     const handIn = new Set(s?.quests.filter((q) => q.state === 'ready').map((q) => q.giver) ?? []);
     // PS-172: how far, if your weapon reaches, and the life stage they look unless adult (AG16, SD3) live in the cell's tip
-    const tipOf = (a: PlayerView['actors'][number]) => [whoDistance(a, pv!), a.age && a.age !== LIFE_STAGES.name('stage_2') ? `looks ${a.age.toLowerCase()}` : ''].filter(Boolean).join(' · ') || 'What you can do to or with them';
+    // BEL-20: the organizations (and people) the player knows them to be tied to follow, one line each
+    const tipOf = (a: PlayerView['actors'][number]) => [[whoDistance(a, pv!), a.age && a.age !== LIFE_STAGES.name('stage_2') ? `looks ${a.age.toLowerCase()}` : ''].filter(Boolean).join(' · '),
+      ...(bv?.people[a.id] ?? []).map(tieText)].filter(Boolean).join('\n') || 'What you can do to or with them';
+    // BEL-09: one who heads an organization the player knows them to be in carries a laurel, the seat in its tip
+    const heads = (id: string) => bv?.orgs.filter((o) => o.people.some((x) => x.id === id && x.head)).map((o) => theName(o.name)) ?? [];
+    const headMark = (id: string) => { const of = heads(id); if (!of.length) return null; const m = itemIcon('head', undefined, 'head-mark'); m.setAttribute('role', 'img'); m.title = `Heads ${of.join(' and ')}`; m.setAttribute('aria-label', `, heads ${of.join(' and ')}`); return m; };
     const statuses = (a: PlayerView['actors'][number], bars: boolean) => h('span', { class: 'sts' },
       a.health && !bars ? h('span', { class: isDownLevel(a.health) ? 'st down' : 'st warn' }, othersHealthWord(a.health, a.level === 'full'))
         : a.activityLook ? h('span', { class: 'st' }, a.activityLook) : null,
@@ -682,7 +689,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       a.morale ? h('span', { class: 'cs-hptrack cs-morale', role: 'img', title: `Morale: ${a.morale}`, 'aria-label': `Morale: ${a.morale}` }, h('b', { style: `width:${fill(MORALE_LEVELS.pos(MORALE_LEVELS.keyOf(a.morale) ?? 'calm'), MORALE_LEVELS.pos('broken'))}%` })) : null);
     const cell = (a: PlayerView['actors'][number]) => h('div', { class: 'pp' + (foe(a) ? ' foe' : '') + (pins.has(a.id) ? ' pinned' : ''), role: 'listitem button', 'data-who': cap(a.name ?? a.label), 'data-id': a.id, tabindex: '0', title: tipOf(a) },
       h('span', { class: 'dot', 'aria-hidden': 'true' }),
-      h('b', {}, cap(a.name ?? a.label), handIn.has(a.id) ? h('span', { class: 'q-ready', title: 'A quest for them is ready to hand in', 'aria-label': ', a quest for them is ready to hand in' }, ' ✓') : null), // the name (BG-30's edit had put it inside the comment, so the row lost every name)
+      h('b', {}, cap(a.name ?? a.label), headMark(a.id), handIn.has(a.id) ? h('span', { class: 'q-ready', title: 'A quest for them is ready to hand in', 'aria-label': ', a quest for them is ready to hand in' }, ' ✓') : null), // the name (BG-30's edit had put it inside the comment, so the row lost every name)
       a.band ? null : h('button', { type: 'button', class: 'pin', 'aria-pressed': String(pins.has(a.id)), title: pins.has(a.id) ? 'Unpin' : 'Pin to the top', 'aria-label': `${pins.has(a.id) ? 'Unpin' : 'Pin'} ${cap(a.name ?? a.label)}` }, pins.has(a.id) ? '★' : '☆'),
       a.band ? mateBars(a) : null,
       statuses(a, !!a.band));

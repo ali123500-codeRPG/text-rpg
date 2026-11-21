@@ -355,6 +355,12 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     if (player.progression) { player.progression.marks = [SK.dodge, SK.eyesight]; player.progression.unspentPerkPoints = 1; }
     drawFake(state);
     fakeBarriers(state);
+    // BB1 a, BB2 a: Millbrook's council holds the village and its law runs there; Bren heads its watch, a unit of the council
+    state.organizations = [{ id: 'org_council', name: 'the Millbrook council', kind: 'council', seat: 'village' },
+      { id: 'org_watch', name: 'the Millbrook Watch', kind: 'watch', parentId: 'org_council', headId: 'guard_1', seat: 'village' }];
+    guard.ties = [{ to: { org: 'org_watch' }, status: 'member', commitment: 'sworn', cover: 'open', title: 'watch captain' }];
+    const village = state.places.find((x) => x.id === 'village');
+    if (village) { village.holder = { org: 'org_council' }; village.law = { org: 'org_council' }; }
     if (opts.achievements) seedAchievements(state);
     // ?fake=band: two band-mates, one beside you (hurt and uneasy) and one last seen in the yard (YB2 to YB4)
     if (opts.band) {
