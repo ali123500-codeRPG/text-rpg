@@ -14,6 +14,9 @@ export const ACTORS = {
    * Divine 140, +40 a step past it). An NPC's level is this table read backwards on its own High-band skills
    * (levelFromSkills). */
   RANK_ROWS: { rank_0: { anchor: 15, level: 1, training: 0 }, rank_1: { anchor: 30, level: 2, training: 1 }, rank_2: { anchor: 50, level: 8, training: 4 }, rank_3: { anchor: 65, level: 12, training: 8 }, rank_4: { anchor: 75, level: 15, training: 12 }, rank_5: { anchor: 100, level: 20, training: 20 }, rank_6: { anchor: PAST_100.beyond, level: 40, training: 30 }, rank_7: { anchor: PAST_100.mythic, level: 60, training: 40 }, rank_transcendent: { anchor: PAST_100.transcendent, level: 100, training: 45 } /* D-335 placeholder */, rank_8: { anchor: PAST_100.divine, level: 140, training: 50 } } as Record<string, { anchor: number; level: number; training: number }>,
+  /** GW1 a: one of the Great = Combat Power (the best fighting true skill, the report card's line) at this rank's anchor or
+   * higher, for NPCs and the hero alike; Beyond is the first rank past the mortal limit (RANK_KEY_PAST_100) */
+  GREAT_FROM: 'rank_6' as const,
   /** NR40 a: the level read from an NPC's skills times its grandeur (GRANDEUR: the higher of its role's and its theme's;
    * uniques and seats of the Great are always grand) */
   GRANDEUR_LEVEL_MULT: { mundane: 0.75, ordinary: 1, grand: 1.25 } as Record<GrandeurKey, number>,

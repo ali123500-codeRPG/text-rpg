@@ -1072,6 +1072,8 @@ export function prototypeLibrary(): Library {
       [ACH.crippled_parts_10]: { id: ACH.crippled_parts_10, name: 'Held Together', level: 'i', rule: 'crippled_parts', tags: ['survival'], count: 10, after: ACH.crippled_parts_1, maxMorale: 1, maxHpPct: 1 }, // placeholder name
       [ACH.threat_deals_1]: { id: ACH.threat_deals_1, name: 'Terms Under Threat', level: 'i', rule: 'threat_deals', tags: ['social', 'combat'], count: 1, personality: ap({ nerve: 1 }) },
       [ACH.threat_deals_10]: { id: ACH.threat_deals_10, name: 'Danger Money', level: 'ii', rule: 'threat_deals', tags: ['social', 'combat'], count: 10, after: ACH.threat_deals_1, questPayPct: 10 }, // placeholder name
+      [ACH.great_seen_1]: { id: ACH.great_seen_1, name: 'In the Shadow of the Great', level: 'i', rule: 'great_seen', tags: ['exploration'], count: 1, maxMorale: 5 },
+      [ACH.great_become_1]: { id: ACH.great_become_1, name: 'One of the Great', level: 'vi', rule: 'great_become', tags: ['progression'], count: 1, renown: 10 },
       [ACH.quests_1]: { id: ACH.quests_1, name: 'Job Done', level: 'zero', rule: 'quests_done', tags: ['social'], count: 1, personality: ap({ [PA.discipline]: 1 }) },
       [ACH.quests_5]: { id: ACH.quests_5, name: 'Reliable Hand', level: 'i', rule: 'quests_done', tags: ['social'], count: 5, after: ACH.quests_1, personality: ap({ [PA.discipline]: 1 }) },
       [ACH.quests_10]: { id: ACH.quests_10, name: 'Hand for Hire', level: 'ii', rule: 'quests_done', tags: ['social'], count: 10, after: ACH.quests_5, questPayPct: 5, personality: ap({ [PA.discipline]: 1 }) },
