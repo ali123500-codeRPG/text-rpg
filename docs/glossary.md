@@ -9,7 +9,7 @@ with where its full meaning lives. A term's rules are never defined here.
   with its options and a status. The table doubles as the decision log. From D-1000 on, n is the number of its own
   closed GitHub issue.
 - **I…-n**: an idea list's ID starts with I (for idea), so it never reads like a Questions hub question ID. The
-  lists: IPP-n, IAA-n, IVP-n, ICI-n, IEI-n and ITI-n, below.
+  lists: IPP-n, IAA-n, IVP-n, ICI-n, IEI-n, ITI-n, ICB-n, IGT-n, IWD-n, INP-n and ICG-n, below.
 - **IPP-n**: a parked perk idea. One row each in the "Perk ideas" table (`docs/spec/perk-ideas.md`; finished ones in
   the Deferred items archive). A row moved from the Deferred items table keeps its number (D-189 became IPP-189).
 - **IAA-n**: a parked achievement idea. One row each in the "Achievement ideas" table
@@ -24,6 +24,16 @@ with where its full meaning lives. A term's rules are never defined here.
 - **ITI-n**: a parked Threadbound item idea. One row each in the "Threadbound ideas" table
   (`docs/spec/threadbound-ideas.md`; finished ones in the Deferred items archive). A row moved from the Deferred items
   table keeps its number (D-218 became ITI-218).
+- **ICB-n**: a parked combat or body idea. One row each in the "Combat ideas" table (`docs/spec/combat-ideas.md`; finished ones in the
+  Deferred items archive). A row moved from the Deferred items table keeps its number (D-54 became ICB-54).
+- **IGT-n**: a parked item, loot or trade idea (not a Threadbound item). One row each in the "Item, loot and trade ideas" table (`docs/spec/item-ideas.md`; finished ones in the
+  Deferred items archive). A row moved from the Deferred items table keeps its number (D-12 became IGT-12).
+- **IWD-n**: a parked world, travel or scenario idea. One row each in the "World and scenario ideas" table (`docs/spec/world-ideas.md`; finished ones in the
+  Deferred items archive). A row moved from the Deferred items table keeps its number (D-13 became IWD-13).
+- **INP-n**: a parked NPC or personality idea. One row each in the "NPC and personality ideas" table (`docs/spec/npc-ideas.md`; finished ones in the
+  Deferred items archive). A row moved from the Deferred items table keeps its number (D-16 became INP-16).
+- **ICG-n**: a parked age or training idea. One row each in the "Age and training ideas" table (`docs/spec/age-ideas.md`; finished ones in the
+  Deferred items archive). A row moved from the Deferred items table keeps its number (D-222 became ICG-222).
 - **BG-n**: a bug. n is its claim issue's number (label `bug`); the issue is its register entry and its story is
   `docs/bugs/BG-n.md`. Below 1000, the old count: a row in the spec's "Bug log" (`docs/spec/bug-log.md`; closed ones in
   `bug-log-archive.md`) and a story in `docs/bug-fix-log.md`.

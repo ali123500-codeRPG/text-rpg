@@ -108,7 +108,7 @@ How the game saves and loads. Part 4 replaces the single GameState document as t
 
 ## Logs and appendix
 
-- [Deferred items](spec/deferred-items.md); finished rows: [archive](spec/deferred-items-archive.md); parked perk ideas: [Perk ideas](spec/perk-ideas.md); parked achievement ideas: [Achievement ideas](spec/achievement-ideas.md); parked vow and pledge ideas: [Vow and pledge ideas](spec/vow-ideas.md); parked class ideas: [Class ideas](spec/class-ideas.md); parked essence ideas: [Essence ideas](spec/essence-ideas.md); parked Threadbound item ideas: [Threadbound ideas](spec/threadbound-ideas.md)
+- [Deferred items](spec/deferred-items.md); finished rows: [archive](spec/deferred-items-archive.md); parked perk ideas: [Perk ideas](spec/perk-ideas.md); parked achievement ideas: [Achievement ideas](spec/achievement-ideas.md); parked vow and pledge ideas: [Vow and pledge ideas](spec/vow-ideas.md); parked class ideas: [Class ideas](spec/class-ideas.md); parked essence ideas: [Essence ideas](spec/essence-ideas.md); parked Threadbound item ideas: [Threadbound ideas](spec/threadbound-ideas.md); parked combat ideas: [Combat ideas](spec/combat-ideas.md); parked item, loot and trade ideas: [Item, loot and trade ideas](spec/item-ideas.md); parked world and scenario ideas: [World and scenario ideas](spec/world-ideas.md); parked NPC ideas: [NPC and personality ideas](spec/npc-ideas.md); parked age ideas: [Age and training ideas](spec/age-ideas.md)
 - [Bug log](spec/bug-log.md); closed rows: [archive](spec/bug-log-archive.md)
 - [Check on release](spec/check-on-release.md)
 - [Open questions](spec/open-questions.md)
