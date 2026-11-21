@@ -3,6 +3,10 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bugs/`.
 
+- 21/11/2026: `AGENTS.md` rule 8 and the `rpg-map` skill: a zone (title) only names a space and never decides where
+  something is or is drawn, how marks are placed, grouped, merged or hidden, who is near, or what can be reached. The
+  owner, on the Questions hub page "One continuous map (D-1558)", ZR1: "a.", after "why are you insisting on
+  utilizing zones? ... we need to resolve this issue at the root cause level."
 - 21/11/2026: `docs/instructions.md` section 7: every hover label goes through the page's one tip (`mountTip`), never
   the browser's tooltip or a tip of its own. The owner: "reduce the amount of by hand items, and go ahead and change it
   all to game for consistency, it's weird now that some are browser and some are by game. make sure to log this

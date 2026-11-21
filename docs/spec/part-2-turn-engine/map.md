@@ -5,6 +5,11 @@ with a stable ID (MAP-nn) that code, tests and reviews cite; a number is never r
 (`.agents/skills/rpg-map/SKILL.md`) holds the working method: stage data, then layout, then render, then check, then
 look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md) (M-01 to M-74).
 
+Everything on the map is placed, grouped, hidden and checked by geometry: points in metres, walls and outlines as
+shapes. A zone (title) only names a space (AGENTS.md rule 8; ZR1 a; Ali, 21/11/2026, Questions hub page "One
+continuous map (D-1558)"). Rules below that still lay marks out zone by zone are rewritten with the one-map build
+(D-1558).
+
 #### Geometry and layout
 
 - **MAP-02** Claude agents never produce coordinates. Agent Weaver gives zone ids, sizes in metres, parent place and
