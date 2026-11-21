@@ -37,7 +37,8 @@ const PUSH_RULE = (n: number) => `\n${n}. To press the player to do or believe s
    you need them to believe), intimidate (a threat) or barter (haggle over a price) instead of talk, with target the
    player and your words in the line. The player answers it with a roll. Use it only when you truly press them; everyday
    talk stays talk, except a lie: any line you know is false, however casually said, is deceive, so it can be caught.
-   A lie may be aimed at anyone you speak to (target them): they answer it with a roll the same way.`;
+   A lie, a persuasion or a threat may be aimed at anyone you speak to (target them): they answer it with a roll the
+   same way. Haggling rolls only with the player.`;
 const FOLLOW_RULE = (n: number) => `\n${n}. To come along with the player, when you agree to, switch your routine to "follow": from then on you walk after
    them every turn, beside whatever else you do, until you switch back to one of your own routines. Going somewhere with the
    player is follow, never headTo to where they are going: they may stop or turn on the way. Make the deal too, so
@@ -187,7 +188,7 @@ export const PARSER_INSTRUCTIONS = [
 export const PLANNER_INSTRUCTIONS = [
   `You play the character described in CHARACTER, in a text RPG. You decide what this one character does this turn. You never narrate outcomes and never roll dice.`,
   '',
-  `You receive CHARACTER (who you are) and OPPOSITION_VIEW. OPPOSITION_VIEW holds only what your character knows: your condition and position, the zones, your plan, memory list and agreements, events you noticed (and earlier ones, briefly), what others told you, and what you believe about the player (status, last known zone, what you have learned). It may be wrong or out of date. Other characters, even allies, know things you don't. An event with tell is a lie told to someone else that you saw through. An event of kind hunch is a gut feeling that someone unseen is watching you from where it says. self.meanwhile, when given, is how many minutes went by since your last order while you carried on by habit (the player rested, walked or slept through them): what you noticed meanwhile is in your events.`,
+  `You receive CHARACTER (who you are) and OPPOSITION_VIEW. OPPOSITION_VIEW holds only what your character knows: your condition and position, the zones, your plan, memory list and agreements, events you noticed (and earlier ones, briefly), what others told you, and what you believe about the player (status, last known zone, what you have learned). It may be wrong or out of date. Other characters, even allies, know things you don't. An event with tell is a lie told to someone else that you saw through. An event with pressed is someone pressing you with words: pressed.how is how it strikes you, pressed.took how you take it. An event of kind hunch is a gut feeling that someone unseen is watching you from where it says. self.meanwhile, when given, is how many minutes went by since your last order while you carried on by habit (the player rested, walked or slept through them): what you noticed meanwhile is in your events.`,
   '',
   `Rules:`,
   `1. Act only on what OPPOSITION_VIEW contains. You may guess, search, set traps or wait, but you cannot target what you have not perceived or been told. If you lost track of the player, act on the last known zone.`,
@@ -230,7 +231,7 @@ export const RESPONDER_INSTRUCTIONS = [
 export const VOICE_INSTRUCTIONS = [
   `You voice the character described in CHARACTER, in a text RPG. You decide what this character says or does in reply to the player. You never narrate and never decide whether the player's attempts succeed.`,
   '',
-  `You receive CHARACTER (your name, role and band) and DIALOGUE_VIEW: your sheet, the facts you know (KNOWS), what you have noticed lately, what you believe about the player, the last few exchanges, what the player just said, and how it struck you (IMPRESSION, or none). An event you noticed with tell is a lie told to someone else that you saw through.`,
+  `You receive CHARACTER (your name, role and band) and DIALOGUE_VIEW: your sheet, the facts you know (KNOWS), what you have noticed lately, what you believe about the player, the last few exchanges, what the player just said, and how it struck you (IMPRESSION, or none). An event you noticed with tell is a lie told to someone else that you saw through; one with pressed is someone pressing you with words (pressed.how: how it strikes you, pressed.took: how you take it).`,
   '',
   `Rules:`,
   `1. Answer what the player actually said, in character, or do something else: leave, trade, fetch, flee, help. One action.`,

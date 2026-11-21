@@ -56,6 +56,7 @@ export type EventView = {
   impact?: 'hard' | 'soft'; // BG-251: a missile landing: on armour, a shield or a hard surface, or on flesh or soft ground
   took?: string; // OQ-29 (NT10): the speaker's own speech roll at the player, as it saw the player take it
   tell?: string; // LI5a Overheard: a lie told to someone else that the viewer saw through
+  pressed?: { how?: string; took?: string }; // D-155 b: another NPC's persuasion or threat at the viewer, in words
   reason?: string; // BG-175: why the viewer's own wasted action came to nothing
   item?: string; // BG-1477: a wasted try seen in full: the thing it went for, by name
 };

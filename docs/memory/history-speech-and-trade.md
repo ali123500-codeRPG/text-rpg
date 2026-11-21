@@ -18,8 +18,9 @@ Kind: context. What was asked, what was decided and which PR built it, oldest fi
   ways and was left alone. Every lie can be caught however it is told (#316).
 - **Names (12-13/11/2026; NM1-NM6, NL1-NL4; BG-95).** Names said aloud were not learned. One rule for player
   and NPCs: a listener who hears a name learns it if it clearly sees the owner then (#569). Heard-of names and
-  believed false names followed (#577). An NPC's lie to another NPC rolls Lying against Insight (#712); the
-  other speech kinds between NPCs stay banked (D-155).
+  believed false names followed (#577). An NPC's lie to another NPC rolls Lying against Insight (#712).
+  Persuasion and threats between NPCs followed (21/11/2026, D-155 b, #1687); haggling between NPCs stays
+  parked with the trade and merchant systems (D-149).
 - **Asides and furniture (13/11/2026; OA1-OA4, FR1-FR5).** One action per turn annoyed: thanks took the turn.
   Outside a fight, words beside a deed are answered the same turn, and courtesy never takes the turn's words
   (#615). Looking at one's own things, sitting, standing and setting down are free. Rooms got named furniture,
