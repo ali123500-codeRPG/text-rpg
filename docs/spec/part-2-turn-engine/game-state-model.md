@@ -119,10 +119,12 @@ type Band = {                   // a small group: a guard post, a gang, a househ
   (Belief.lastKnownAt) with its title for words (lastKnownZone) (PZ7 a).
 - **GSM-51** Placement (placeAll, at scenario setup and each turn's start, and at once when a move puts someone in a
   new title with no point there: an NPC following the player through a frontier, the player's companions at a trip's
-  end): anyone with no point, or one outside their title, gets the nearest free point to the title's middle (on a road,
-  to the player's point) on a half-PLACE_SPACING_M grid whose body keeps PLACE_SPACING_M (0.75 m) from every other body
-  (SZ6). So everyone always has a point, and every event carries its maker's (GameEvent.pos); an event with no point
-  never erases where the player last perceived someone (BG-1528).
+  end): anyone with no point, or one outside their title, gets the nearest free point to where placement starts, on a
+  half-PLACE_SPACING_M grid whose body keeps PLACE_SPACING_M (0.75 m) from every other body (SZ6). It starts at the
+  player's point for those who arrived with the player (frontier followers, travel companions; never the title's middle:
+  Ali, 21/11/2026, decision card: Beside you), at an encounter's point on its road (TV4), at the player's point on a
+  road the player stands on, else at the title's middle. So everyone always has a point, and every event carries its
+  maker's (GameEvent.pos); an event with no point never erases where the player last perceived someone (BG-1528).
 - **GSM-52** A point asked for outside a title (a minimap move, a spot past its walls) is kept a step in from every
   wall it is past (keepInside: from the nearest wall, then the next, so a point past a corner ends that far from both
   walls).

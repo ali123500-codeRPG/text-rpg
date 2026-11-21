@@ -115,11 +115,12 @@ const noOutline = (z: { id: string }) => new Error(`title ${z.id} has no outline
 /** PZ1 a: the title a point in title z belongs to: the smallest that holds it (z, or a smaller one inside it) */
 const titleIn = (state: GameState, z: Zone, p: Pos): string => zoneAt(state, p, z.floor, z.id)?.id ?? z.id;
 
-/** ZP1: gives everyone on stage whose point is missing or outside its title a free spot in it: the title's middle, else
- * the nearest point on a half-PLACE_SPACING_M grid around it whose body keeps PLACE_SPACING_M from everyone already
- * standing there (SZ6: body to body), never in a smaller title inside it. PZ1: anyone whose point lies in a smaller title
- * inside its own is in that one (Actor.zone is a cache of zoneAt). */
-export function placeAll(state: GameState): void {
+/** ZP1: gives everyone on stage whose point is missing or outside its title a free spot in it: where placement starts
+ * (anchor), else the nearest point on a half-PLACE_SPACING_M grid around it whose body keeps PLACE_SPACING_M from everyone
+ * already standing there (SZ6: body to body), never in a smaller title inside it. `withPlayer`: the ids of those who just
+ * arrived with the player (GSM-51). PZ1: anyone whose point lies in a smaller title inside its own is in that one
+ * (Actor.zone is a cache of zoneAt). */
+export function placeAll(state: GameState, withPlayer: readonly string[] = []): void {
   const gap = CONFIG.PLACE_SPACING_M;
   const people = allActors(state);
   for (const a of people) {
@@ -131,7 +132,7 @@ export function placeAll(state: GameState): void {
       continue;
     }
     const taken = people.filter((o) => o !== a && o.zone === a.zone && o.pos && inside(z, o.pos)).map((o) => shapeOf(state, o, o.pos!));
-    const c = anchor(state, z);
+    const c = anchor(state, z, withPlayer.includes(a.id));
     let spot = c;
     const step = gap / 2; // SZ6: a finer grid than the spacing, so bodies of any width find the nearest free spot
     for (let r = 0; r <= 100; r++) {
@@ -147,12 +148,13 @@ export function placeAll(state: GameState): void {
   }
 }
 
-/** where placeAll starts looking in a title: an encounter's point on the road (TV4); on a road, beside the player (the
- * companions who travelled with it); else the title's middle */
-function anchor(state: GameState, z: Zone): Pos {
-  const e = state.stage.encounter, p = state.player;
+/** where placeAll starts looking in a title: the player's point for one who arrived with the player (GSM-51); an
+ * encounter's point on the road (TV4); on a road, the player's point; else the title's middle */
+function anchor(state: GameState, z: Zone, withPlayer: boolean): Pos {
+  const e = state.stage.encounter, p = state.player, byPlayer = p.zone === z.id && p.pos && inside(z, p.pos);
+  if (withPlayer && byPlayer) return p.pos!;
   if (e && e.zone === z.id && inside(z, e.at)) return e.at;
-  if (z.line?.length && p.zone === z.id && p.pos && inside(z, p.pos)) return p.pos;
+  if (z.line?.length && byPlayer) return p.pos!;
   return centre(z);
 }
 
