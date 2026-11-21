@@ -23,7 +23,7 @@ Question IDs name the owner's answers on the Questions hub.
   walls by material (D-199).
 - **Sound through walls by material (21/11/2026; D-199 a).** Each material's sound loss comes from real insulation
   figures (STC) at its example thickness, +6 dB for each doubling of thickness (the mass law), in place of a flat loss
-  per crossing kind. A brick wall now muffles more than a door. Floors and roofs read one material, asked on a card.
+  per crossing kind. A brick wall now muffles more than a door. Floors and roofs read timber boards (the owner's pick on a card).
 - **The Map (10-19/11/2026).** A Map (first a tab, now a pop-up) drawn from what the character knows (#357, #360,
   #362); drawn to scale (#728); the stage map rework MR1-MR3 as BG-214 (#755); marks keep their spot at every
   zoom, with big names behind them, MZ1-MZ4 as BG-216 (#770); redrawn from the floor plan under the fog as

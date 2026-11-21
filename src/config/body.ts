@@ -176,7 +176,7 @@ export const BODY = {
    * thickness, and this many decibels more for each doubling of thickness (the mass law: +6 dB per doubling of mass, NRC
    * Canadian Building Digest 239) */
   SOUND_DB_PER_DOUBLING: 6,
-  /** D-199: what a floor or roof is made of for sound, read at that material's example thickness ([Proposed]: boards on joists) */
+  /** D-199: what a floor or roof is made of for sound, read at that material's example thickness (timber boards on joists) */
   FLOOR_MATERIAL: BM.planks as string,
   /** sight (perception sightLevel): how far each VISIBILITY level is made out clearly (who and what) and glimpsed
    * (something, not who), in metres, in daylight with a clear view, from real references (the library's
