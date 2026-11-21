@@ -8,6 +8,7 @@ import { FX } from '../library/tableIds';
 import { trueSkill } from '../ruleset/perks';
 import { allActors, countsInFight, hostile, isActive, zoneById } from '../engine/relations';
 import { fightingWith } from '../engine/engagement';
+import { ofOurs } from '../engine/belonging';
 import { distM, entryPoint, seeingM, walkRoute, placeOf } from '../engine/position';
 import { clutterCover, hostileNearM } from '../ruleset/gear';
 import { middle } from '../plan/where';
@@ -163,7 +164,7 @@ export function tacticsView(state: GameState, a: Actor, view: ActorView): Tactic
     if (ganged) out.allyFoe = ganged.id;
   }
   if (rows.includes(FX.back_off) || rows.includes(FX.draw_into_pack)) {
-    const free = seen.filter((x) => x.bandId === a.bandId && !hostile(state, x, a) && !allActors(state).some((o) => o !== x && fights(x, o)))
+    const free = seen.filter((x) => ofOurs(state, a, x) && !hostile(state, x, a) && !allActors(state).some((o) => o !== x && fights(x, o)))
       .sort((x, y) => at(x) - at(y) || x.id.localeCompare(y.id))[0];
     if (free && rows.includes(FX.back_off)) out.freeAlly = { id: free.id, zone: free.zone };
     // TC23 a S1: it fights one foe with no one on its side, and that bandmate stands too far to strike the foe when it follows

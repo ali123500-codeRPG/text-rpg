@@ -49,6 +49,9 @@ export const PERCEPTION = {
   SEARCH_RING_SHIFTS: [0, -1] as [number, number],
   WARNED_SHIFT: 2, // WN3: tiers on an answer to a lie (Insight) by one that knows the trick (saw through it, or was warned)
   POINTED_SHIFT: 1, // WN4 b (placeholder): tiers on the next notice or search roll at a hidden foe an ally pointed out
+  /** BB9 b (placeholders, never above 2): tiers easier on a notice or search roll at a hidden character of one's own:
+   * its group, or (not of its group) its crew (BEL-51). Anyone else gets none */
+  ALLY_NOTICE_TIERS: { group: 2, crew: 1 },
   POINTED_TURNS: 6, // WN4 b (placeholder, = DECAY_TURNS): how long a pointed-out spot stays fresh
   /** SE25: what an item search learns against when no one did the hiding (a Weaver-hidden item, concealed gear): a
    * hidden-at tier counts as this skill at Success, and this much more for each tier step above it (less below, never under 0) */

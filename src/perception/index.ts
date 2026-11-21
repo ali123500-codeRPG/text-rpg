@@ -305,8 +305,8 @@ export function computePerception(event: GameEvent, state: GameState, _rng: Rng)
     // the player's events reach only those who already know of them; while stealthy, only those who see them (ST4)
     const min = state.player.posture === 'stealthy' ? 'aware' : 'suspicious';
     if (event.actorId === state.player.id && a.id !== state.player.id && !atLeast(a.mind?.knowledge[state.player.id]?.status, min)) continue;
-    // NS2: a stealthy NPC's events reach only its band and those who see it
-    if (s && s.kind !== 'player' && s.posture === 'stealthy' && a.id !== s.id && !ofOurs(state, a, s) && !atLeast(beliefStatus(state, a, s), 'aware')) continue;
+    // NS2, BB9 b: a stealthy NPC's events reach only those who see it, its own included
+    if (s && s.kind !== 'player' && s.posture === 'stealthy' && a.id !== s.id && !atLeast(beliefStatus(state, a, s), 'aware')) continue;
     const p = perceptionOf(event, state, a);
     if (p) out[a.id] = p;
   }

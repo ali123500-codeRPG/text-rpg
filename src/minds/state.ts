@@ -1,8 +1,8 @@
 // State-side minds work: routine install and switch, the alarm machine, Explore detection and ambush.
 import { groundZoneOf } from '../engine/ground';
-import { ofOurs } from '../engine/belonging';
+import { sameCrew, sameGroup } from '../engine/belonging';
 import { FN } from '../library/functionIds';
-import type { Actor, ActorView, ContestResult, Cue, GameEvent, GameState, ItemInstance, Order, Rng, RollResult, SkillFunction, Tier, TierRoll, Zone } from '../types';
+import type { Actor, ActorView, ContestResult, Cue, GameEvent, GameState, ItemInstance, Order, Rng, RollResult, SkillFunction, Tier, TierRoll, TierShift, Zone } from '../types';
 import type { NoiseKey } from '../scales';
 import { TIERS } from '../scales';
 import { getLibrary, itemDef, perkName } from '../library';
@@ -236,10 +236,16 @@ function hiderRoll(state: GameState, s: Actor, sk: string, sense: Sense, still: 
   return { actorId: s.id, skill: sk, ...situational(state, sk, { light: sense === FN.sight ? zone : undefined, cover: zone, actor: s, body: s, from: watcher }), rollKind: 'stealth' as const, ...(still ? { roles: [] } : {}), ...hushed };
 }
 /** the watcher's sense roll in the light where the hider is: a function roll, the best sight (or hearing) skill at full value */
+/** BB9 b: one's own are hidden too, but easier to notice: ALLY_NOTICE_TIERS for its group, or else its crew (BEL-51) */
+export function allyNoticeShift(state: GameState, a: Actor, h: Actor): TierShift[] {
+  if (a === h) return [];
+  const n = sameGroup(state, a, h) ? CONFIG.ALLY_NOTICE_TIERS.group : sameCrew(state, a, h) ? CONFIG.ALLY_NOTICE_TIERS.crew : 0;
+  return n ? [{ source: 'One of yours', value: n }] : [];
+}
 function watcherRoll(state: GameState, a: Actor, sense: Sense, light: Zone | undefined, hider?: Actor) {
   const sit = situational(state, fnRoller(state, a, sense), { light, actor: a });
   // WN4 b: a hider an ally pointed out is easier to notice, once (the shift is spent by this roll)
-  const pointed = hider ? pointedShift(state, a, hider) : [];
+  const pointed = hider ? [...pointedShift(state, a, hider), ...allyNoticeShift(state, a, hider)] : [];
   return { actorId: a.id, skill: SENSE_SKILL[sense], ...sit, ...(pointed.length ? { tierShifts: [...(sit.tierShifts ?? []), ...pointed] } : {}), rollKind: 'perception' as const, fn: sense };
 }
 /** ST4/SE5, D-40: this turn's stealth contests, one per hider, watcher and sense (`key:sense`) */
@@ -251,7 +257,7 @@ function contestedThisTurn(state: GameState): { turn: number; ids: string[] } {
 }
 const pairKey = (s: Actor, a: Actor) => (s.kind === 'player' ? a.id : `${s.id}>${a.id}`);
 
-/** ST3–ST8, ST11–ST19, NS1–NS5, VS1–VS5: while an actor is stealthy, every observer outside its band who could perceive the
+/** ST3–ST8, ST11–ST19, NS1–NS5, VS1–VS5: while an actor is stealthy, every observer (its own too, BB9 b) who could perceive the
  * event rolls each detection sense that reaches it (D-40: sight, hearing, smell, each on its own) against the actor's
  * stealth, each sense once per turn (ST4). Felt only (a blow from the unseen): sight, as the cue says. With Every Sense
  * One, sight and hearing are one contest, rolled as whichever set-up nets the watcher more. The player is an observer like
@@ -293,7 +299,7 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): str
   const feat = (r: ContestResult, fns?: SkillFunction[]) => { if (act) { matchedCritFeat(state, r); act.push({ c: r, fns }); } else contestFeat(state, r, fns); }; // N4c
   for (const a of allActors(state)) {
     const pair = pairKey(s, a) + own;
-    if (a.id === s.id || ofOurs(state, a, s) || (!a.mind && a.kind !== 'player') || !isActive(a)) continue;
+    if (a.id === s.id || (!a.mind && a.kind !== 'player') || !isActive(a)) continue;
     const sees = atLeast(beliefStatus(state, a, s), 'aware');
     if (fade ? !sees || !event.spotted?.includes(a.id) : sees && !moved && !melt) continue; // ST12: no slipping away without a step or Melt Away
     const seen = perceptionOf(event, state, a);
@@ -416,7 +422,7 @@ export function searchFor(state: GameState, a: Actor, event: GameEvent, rng: Rng
   const done = contestedThisTurn(state);
   const won: { found: Actor; r: ContestResult }[] = [];
   for (const h of allActors(state)) {
-    if (h.id === a.id || h.posture !== 'stealthy' || ofOurs(state, a, h) || !isActive(h) || (opts.only && h.id !== opts.only)) continue;
+    if (h.id === a.id || h.posture !== 'stealthy' || !isActive(h) || (opts.only && h.id !== opts.only)) continue;
     if (atLeast(beliefStatus(state, a, h), 'aware')) continue;
     const noise = opts.noiseOf?.(h) ?? CONFIG.HIDE_STILL_NOISE;
     const reach = opts.look ? [] : DETECTION_SENSES.flatMap((f) => { const t = senseReach(state, a, h, f, noise, !!opts.only); return t === null ? [] : [{ sense: f, ...t }]; });

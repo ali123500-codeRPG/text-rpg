@@ -18,6 +18,7 @@ import { grantAchievement } from '../engine/xp';
 import { allStepsUpTo, hasPerk, trueSkill } from './perks';
 import { treeOpen } from './access';
 import { allActors, atLeast, isActive } from '../engine/relations';
+import { ofOurs } from '../engine/belonging';
 import { beliefStatus, updateBeliefs } from '../perception';
 import { PK } from '../library/perkIds';
 import { probe } from '../engine/yield';
@@ -64,15 +65,15 @@ export function foeMods(foe: Actor | undefined, rollKind: string | undefined): M
   return [];
 }
 
-/** T5b Spotter: at turn end, the owner's band-mates who hear its normal voice clearly or make out its hand sign (sight at
+/** T5b Spotter, BB5 a: at turn end, the owner's group or crew (BEL-51) who hear its normal voice clearly or make out its hand sign (sight at
  * close visibility) (ZR4) become at least suspicious of every
  * actor the owner is aware of, so they know something is there. */
 export function shareSpotted(state: GameState, o: Actor): void {
   if (!hasPerk(o, PK.spotter) || !isActive(o)) return;
-  const mates = allActors(state).filter((y) => y !== o && isActive(y) && !!o.bandId && y.bandId === o.bandId && probe(state, y, o, 'normal', 'close')?.level === 'full');
+  const mates = allActors(state).filter((y) => isActive(y) && ofOurs(state, o, y) && probe(state, y, o, 'normal', 'close')?.level === 'full');
   if (!mates.length) return;
   for (const x of allActors(state)) {
-    if (x === o || x.bandId === o.bandId || !isActive(x) || !atLeast(beliefStatus(state, o, x), 'aware')) continue;
+    if (x === o || ofOurs(state, o, x) || !isActive(x) || !atLeast(beliefStatus(state, o, x), 'aware')) continue;
     for (const y of mates) if (!atLeast(beliefStatus(state, y, x), 'suspicious')) updateBeliefs(state, { kind: 'told', observerId: y.id, aboutId: x.id, status: 'suspicious', zone: x.zone });
   }
 }

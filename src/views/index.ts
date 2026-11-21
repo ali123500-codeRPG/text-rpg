@@ -1,6 +1,5 @@
 // W3 — the six deny-by-default view builders (+ the combat packet). Copy whitelisted fields into new objects only.
 import { middle, waysOut, wayTo, zoneAt, type Way } from '../plan/where';
-import { ofOurs } from '../engine/belonging';
 import { wallsAround } from '../plan/holes';
 import { withBackdrop } from './backdrop';
 import { wallStuff } from '../ruleset/breaking';
@@ -333,8 +332,8 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
     if (a.id === viewer.id || !zones.includes(a.zone)) continue;
     if (a.id === state.player.id && !atLeast(viewer.mind?.knowledge[a.id]?.status, 'aware')) continue;
     const sight = attended(sightLevel(personVisibility(a, events), seeingM(state, viewer, a)), attentionSteps(state, viewer, a)); // D-200
-    // NS2/NS4: a stealthy NPC outside the viewer's band shows only to those who see it; a suspicious viewer half sees someone
-    const hidden = a.id !== state.player.id && a.posture === 'stealthy' && !ofOurs(state, viewer, a) ? beliefStatus(state, viewer, a) : 'aware';
+    // NS2/NS4, BB9 b: a stealthy NPC shows only to those who see it, its own included; a suspicious viewer half sees someone
+    const hidden = a.id !== state.player.id && a.posture === 'stealthy' ? beliefStatus(state, viewer, a) : 'aware';
     if (!sight) {
       // LS4 a: a hider found by sound and still heard shows where they are, as someone (named only if heard clearly)
       const heard = a.posture === 'stealthy' && hidden !== 'unaware' ? hearingOf(state, soundOf(state, a, events), a, viewer, perkSum(viewer, 'hearingDb')) : null;

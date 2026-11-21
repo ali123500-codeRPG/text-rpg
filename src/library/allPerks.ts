@@ -149,9 +149,9 @@ export const ALL_PARTS: PerkWriteup[] = [
   // ---- Perception ----
   // Spotter is parked (D-192): no skill carries it in SKILL_PARTS, so it is never granted
   part(TR.perception, { id: PK.spotter, ref: 'T5b', name: 'Spotter', effect: 'senses',
-    story: 'What you see, your people sense. Your band-mates who can hear your call or see your signal know something is there whenever you do.',
-    rules: { kind: 'Always on', trigger: 'The end of each turn.', conditions: ['The owner is aware of an actor outside its band.', 'A band-mate hears the owner\'s normal voice clearly or makes out its hand sign (close visibility), and is less than suspicious of that actor.'],
-      effect: 'That band-mate becomes suspicious of the actor (told by the owner), with its zone as last known.', lasts: 'Until the band-mate\'s belief changes on its own.' } }),
+    story: 'What you see, your people sense. Your group and crew-mates who can hear your call or see your signal know something is there whenever you do.',
+    rules: { kind: 'Always on', trigger: 'The end of each turn.', conditions: ['The owner is aware of an actor not of its group or crew.', 'One of its group or crew hears the owner\'s normal voice clearly or makes out its hand sign (close visibility), and is less than suspicious of that actor.'],
+      effect: 'That ally becomes suspicious of the actor (told by the owner), with its zone as last known.', lasts: 'Until the ally\'s belief changes on its own.' } }),
   part(TR.perception, { id: PK.curiouser, personality: { [PA.curiosity]: CONFIG.ACH_PERSONALITY_STEP }, ref: 'T5d', name: 'Curiouser and Curiouser', effect: 'senses',
     story: 'Once you notice something, you notice everything. A good sight or hearing roll counts one outcome better.',
     rules: { kind: 'Always on', trigger: 'The owner makes a sight or hearing roll (any skill with that function; Tremor adds to every hearing roll).', conditions: ['The roll ends in Success or better.'],
