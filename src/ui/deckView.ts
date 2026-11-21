@@ -11,7 +11,7 @@ import { cap } from '../words';
 import { hideTip, showTip } from './pages';
 import { h, safe, viewSize, type boxOf } from './kit';
 import { closePop, openPop } from './pop';
-import { deck, thingActions, type Choice, type DeckAction, type DeckCtx, type MapThing, type Order, type Pick } from './deck';
+import { deck, thingActions, type Choice, type DeckAction, type DeckCtx, type MapPeople, type MapThing, type Order, type Pick } from './deck';
 import { openLoot } from './loot';
 import { ICONS, instanceIcon } from './itemIcons';
 import { AGAINST_NATURE } from './ideaLeans';
@@ -91,17 +91,26 @@ export function deckView(api: GameApi, o: {
 
   /** AD14, MAP-85: a click on someone in Who's here, or on a thing on either map: every deck action for it, the thing
    *  already chosen; one that can't be done now greyed, what it needs on hover. False when the deck has none for it */
-  function thingMenu(t: MapThing, anchor: HTMLElement | Box): boolean {
+  function thingMenu(t: MapThing | MapPeople, anchor: HTMLElement | Box): boolean {
     if (disabled || !ctx) return false;
+    const opener = anchor instanceof HTMLElement ? anchor : null;
+    if (t.kind === 'people') { // RM27 b: pick one of them, then their list
+      const who = t.who.filter((w) => thingActions(groups, ctx!, { kind: 'person', id: w.id }).length);
+      return !!who.length && beside(openPop({ title: 'Who?', opener, cls: 'deck-pick', body: [h('div', { class: 'dk-picks', role: 'list' }, who.map((w) =>
+        h('button', { type: 'button', class: 'dk-pick', role: 'listitem', onclick: () => thingMenu({ kind: 'person', id: w.id }, anchor) }, h('b', {}, cap(w.name)))))] }), anchor);
+    }
     const list = thingActions(groups, ctx, t);
     if (!list.length) return false;
-    const opener = anchor instanceof HTMLElement ? anchor : null, first = list.find((e) => 'a' in e);
+    const first = list.find((e) => 'a' in e);
     const s = api.state(), piece = t.kind === 'furniture' ? s?.furniture.find((f) => f.id === t.id)?.name : undefined;
     const title = (first && 'a' in first ? chosenLabel(first.a, first.c) : undefined) ?? (piece ? cap(piece) : t.kind === 'person' ? 'Them' : 'There');
     const pop = openPop({ title, opener, cls: 'deck-pick', body: [h('div', { class: 'dk-picks', role: 'list' }, list.map((e) => 'a' in e
       ? h('button', { type: 'button', class: 'dk-pick' + (e.a.hot ? ' hot' : ''), role: 'listitem', title: actTip(e.a), onclick: () => run(e.a, e.c, opener) }, h('b', {}, e.label))
       : h('button', { type: 'button', class: 'dk-pick dk-lim', role: 'listitem', 'aria-disabled': 'true', title: e.why, 'aria-label': `${e.label}: ${e.why}` }, h('b', {}, e.label, e.needs ? lockMark(e.needs) : null))))] });
-    // beside the thing: to its left, or to its right where the left has no room
+    return beside(pop, anchor);
+  }
+  /** a thing's list beside the thing: to its left, or to its right where the left has no room */
+  function beside(pop: HTMLElement, anchor: HTMLElement | Box): true {
     if (!(anchor instanceof HTMLElement)) {
       const w = pop.offsetWidth, v = viewSize();
       pop.style.left = `${anchor.left - w - 8 >= 16 ? anchor.left - w - 8 : Math.min(anchor.right + 8, v.w - w - 16)}px`;

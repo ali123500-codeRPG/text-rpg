@@ -379,6 +379,8 @@ const FURNITURE_ACTS: Partial<Record<string, DeckKind[]>> = { [FU.bed]: ['sleep'
  *  an action picks first: Pick up's item, Open's target), a piece of furniture (its id and kind: MQ10 a), a doorway (the
  *  two titles it joins; worked from the side the character walks to first, its target the title on the far side) */
 export type MapThing = { kind: 'person' | 'item'; id: string } | { kind: 'wall'; id: string; zone: string; at: { x: number; y: number } } | { kind: 'door'; ends: string[] } | { kind: 'furniture'; id: string; is: string };
+/** RM27 b: one disc on the map for people too close to draw apart: a click picks one of them, then lists what to do */
+export type MapPeople = { kind: 'people'; who: { id: string; name: string }[] };
 /** one entry of a thing's list: a deck action with the thing already chosen, or one greyed with the engine's reason
  *  (needs: what it lacks, marked with a padlock) */
 export type ThingEntry = { label: string; a: DeckAction; c: Choice } | { label: string; why: string; needs?: string };

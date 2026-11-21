@@ -79,7 +79,17 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
   only then (BG-216; WF10 a; RM6 a, RM7 a; Ali, 20/11/2026, Questions hub page "Map rules revision"). A person stays
   inside their room at their point even where your pin's facing tip reaches: their disc may touch or overlap the pin's
   tip, never the pin's disc, and the checker (MAP-22, MAP-31) measures only the pin's disc against a person (RM26 b;
-  Ali, 21/11/2026, Questions hub page "Map rules revision").
+  Ali, 21/11/2026, Questions hub page "Map rules revision"). Where a person's disc at their point would overlap another
+  person's or another mark at the zoom drawn, it shrinks, a pixel of diameter at a time, only as far as it must, down to
+  the smallest size (CONFIG.MAP_WHO_MIN_D_PX, 7 px, a placeholder); each person is sized against the marks already placed
+  and the people still to place at the same size, in the zone's order. People whose discs would still overlap each other at
+  the smallest size are one disc for the group, at the full size, at the mean of their points (kept inside the room with
+  its badge, stepping aside only where the room has no spot for it), with a "+n" badge on that people disc, n the people it
+  stands for beyond the one shown (the first in the zone's order); two people show "+1". The badge is a pill as tall as the
+  disc against its right edge, and the disc and badge are one token for the checker. Its hover and accessible name list
+  every name, and a click asks which of them, then lists what to do to that one. Your pin keeps its size and is never in a
+  group. Zooming in splits a group again. A to-scale body (GSM-193) keeps its size and steps aside as before; someone out
+  of full sight is not sized or grouped yet (RM27 b; Ali, 21/11/2026, Questions hub page "Map rules revision").
 - **MAP-26** To scale, a place's map is laid out by code at the zoom shown and drawn on one screen-pixel layer. No mark
   covers another at any zoom, and the first view fits the whole map with everything inside it (src/ui/mapPlan.ts).
 - **MAP-27** Merged into MAP-13, MAP-25 and MAP-68 (RM7 a).
@@ -156,7 +166,8 @@ look (MAP-01). Map animation follows [Play screen motion](play-screen-motion.md)
 - **MAP-67** On the to-scale plan each piece of furniture is a small line glyph for its kind on a disc at its point,
   kept inside its walls, and left off where it would cover the zone's name (MAP-25). Hover names it and the zone card
   lists it under Furniture (src/ui/furnitureIcons.ts, one per FU kind; FR5; RM1 b, RM6 a).
-- **MAP-68** People on the plan: everyone in full sight stands at their own point, as you do. Someone only heard or
+- **MAP-68** People on the plan: everyone in full sight stands at their own point, as you do, their disc smaller or
+  one disc for a group where they stand too close to draw apart (MAP-25; RM27 b). Someone only heard or
   glimpsed, or last seen, is their dashed disc at the point where the character last saw or heard them (the journal's
   last spot, BG-125), inside a faint dashed 2 m "somewhere here" circle (2 m its radius, as the question's picture
   measured it: CONFIG.LAST_SEEN_RADIUS_M, a placeholder), with "somewhere here" on hover. Someone with no known point
