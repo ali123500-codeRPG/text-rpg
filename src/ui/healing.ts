@@ -7,6 +7,7 @@ import { partName, SHOWN_LEVELS } from '../ruleset/body';
 import { HEALTH_LEVELS, PART_STATES } from '../scales';
 import { getLibrary, itemDef } from '../library';
 import { h, safe } from './kit';
+import { partMark } from './itemIcons';
 import { cap } from '../words';
 
 export { partName };
@@ -34,7 +35,7 @@ export function healCard(n: HealNote): HTMLElement {
   const name = getLibrary().healing?.[n.source]?.name ?? cap(n.source);
   const bits: (HTMLElement | string)[] = [h('span', { class: 'src' }, name)];
   if (n.from !== n.to) bits.push(lvTag(n.from), arrow(), lvTag(n.to));
-  for (const p of n.parts) bits.push(h('span', { class: 'pt' }, `· ${partName(p.id).toLowerCase()}`), psTag(p.from), arrow(), psTag(p.to));
+  for (const p of n.parts) bits.push(h('span', { class: 'pt' }, '· ', partMark(p.id)), psTag(p.from), arrow(), psTag(p.to));
   if (n.from === n.to && !n.parts.length) bits.push(h('span', { class: 'pt' }, n.better ? '· a little better' : '· no change'));
   if (QUIET.has(n.source)) return h('p', { class: 'hquiet', role: 'status' }, h('span', { class: 'x', 'aria-hidden': 'true' }, '✚'), bits);
   return h('div', { class: 'hcard', role: 'status' }, h('span', { class: 'x', 'aria-hidden': 'true' }, '✚'),
@@ -44,7 +45,7 @@ export function healCard(n: HealNote): HTMLElement {
 /** M-30: a red card naming a body part that became Crippled or Destroyed this turn, the mirror of "Patched up" */
 export function woundCard(w: { id: string; from: PartState; to: PartState }): HTMLElement {
   return h('div', { class: 'hcard wcard', 'data-part': w.id }, h('span', { class: 'x', 'aria-hidden': 'true' }, '✖'),
-    h('div', {}, `${partName(w.id)} ${PART_STATES.name(w.to).toLowerCase()}`, h('p', { class: 'hl' }, psTag(w.from), arrow(), psTag(w.to))));
+    h('div', {}, partMark(w.id), ` ${PART_STATES.name(w.to).toLowerCase()}`, h('p', { class: 'hl' }, psTag(w.from), arrow(), psTag(w.to))));
 }
 
 // ---------------- quick slot (H3) ----------------

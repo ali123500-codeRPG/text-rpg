@@ -48,6 +48,10 @@ const PICKS = {
   sk_filching: 'gi:robber-hand', sk_stamina: 'gi:lungs', sk_bite: 'gi:fangs', sk_claws: 'gi:claw-slashes', sk_hooves_horns: 'gi:bull-horns',
   sk_tail: 'gi:spiked-tail', sk_scent: 'gi:nose-side', sk_hide: 'gi:animal-hide', sk_healing: 'gi:healing', sk_battle_sense: 'gi:radar-sweep',
   sk_command: 'gi:rally-the-troops', sk_fieldcraft: 'gi:compass', sk_stratagem: 'gi:chess-knight', sk_guile: 'gi:fox-head',
+  // body parts, in place of their names (partMark in src/ui/itemIcons.ts: a left part mirrored, a numbered leg with its number);
+  // placeholders where no closer drawing exists: the paws for a beast's fore and hind legs, the human leg for a spider's
+  pt_head: 'ms:face', pt_neck: 'fe:scarf', pt_torso: 'gi:muscular-torso', pt_arm: 'gi:arm', pt_leg: 'gi:leg', pt_wing: 'gi:bat-wing',
+  pt_foreleg: 'gi:top-paw', pt_hind_leg: 'gi:paw', pt_tail: 'gi:fox-tail', pt_coils: 'gi:snake-spiral',
   // the map's settlements, one per site size (MAP-71)
   hamlet: 'gi:house', village: 'gi:village', town: 'gi:medieval-gate',
   // what someone on the map is, when nothing they hold or wear stands out (MAP-69): a person, each kind of beast, a slime;

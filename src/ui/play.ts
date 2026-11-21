@@ -29,7 +29,7 @@ import { charFocus, stateToken, NERVE_PASSES, NERVE_STILL, NERVE_UNTIL, coinIcon
 import { figurePulse } from './figure3d';
 import { isBrokenLevel, moraleLevel } from '../ruleset/morale';
 import { cantSteady } from '../engine/steady';
-import { healCard, healIcon, partName, quickHeal, woundCard } from './healing';
+import { healCard, healIcon, quickHeal, woundCard } from './healing';
 import { answering } from '../agents/answering';
 import { arrive, bar as barMove, count, cue, delta, finishAll, flare, impact, moving, ms, play, pulse, sentences, shake, slam, stamp, timeline } from './motion';
 import { coinWords } from '../engine/trade';
@@ -38,7 +38,7 @@ import { closeFull, closePop, openPop } from './pop';
 import { deckView, walkOrder, type SayMode } from './deckView';
 import { minimapPanel, type MinimapPoint } from './minimap';
 import { mapPick } from './map';
-import { ICONS, instanceIcon, skillMark } from './itemIcons';
+import { ICONS, instanceIcon, partMark, skillMark } from './itemIcons';
 import { maybeOfferPop } from './essences';
 import { anyGains, gainsPanel, gainsSummary, honor, playGains } from './gains';
 import { working } from '../ruleset/body';
@@ -662,7 +662,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       // FT17: others' fatigue, only from Exhausted down, as the level word (never points or the breath line)
       a.fatigue ? h('span', { class: 'st tired', 'data-st': 'fatigue', title: 'How worn out they look' }, a.fatigue) : null,
       // A13 Read Wounds: their Damaged parts
-      ...(a.damaged ?? []).map((pt) => h('span', { class: 'st warn', title: perkName(PK.read_wounds) }, `${partName(pt).toLowerCase()} damaged`)));
+      ...(a.damaged ?? []).map((pt) => h('span', { class: 'st warn', title: perkName(PK.read_wounds) }, partMark(pt), ' damaged')));
     // YB3 c: a band-mate in sight shows its health and morale as two thin bars, the level words in their tips
     const fill = (pos: number, end: number) => Math.max(0, Math.round(100 * (1 - pos / end)));
     const mateBars = (a: PlayerView['actors'][number]) => h('span', { class: 'mate-bars' },

@@ -6,7 +6,6 @@ import { itemDef } from '../library';
 import { effectiveSkill } from '../ruleset';
 import { isAccSlot, isHeld, rolledSkill } from '../ruleset/gear';
 import { pieceOn } from '../ruleset/worn';
-import { partName } from '../ruleset/body';
 import { applyGearOps, equipArmor } from '../engine/gear';
 import { power } from '../engine/xp';
 import { ROLLED_SKILL } from '../library/skillIds';
@@ -59,17 +58,17 @@ export function compareRows(s: GameState, it: { id?: string }): PanelRow[] {
   const inst = p2.core.inventory.find((i) => i.id === it.id)!;
   const d = itemDef(s, inst.itemId);
   const rows: PanelRow[] = [];
-  const row = (k: string, a: number | null | undefined, b: number | null | undefined, before = '', after = '', skill?: string) => {
+  const row = (k: string, a: number | null | undefined, b: number | null | undefined, before = '', after = '', skill?: string, part?: string) => {
     if (a == null || b == null || (a === b && before === after)) return;
     const n = b - a;
-    rows.push({ k, ...(skill ? { skill } : {}), v: `${before}${num(a)} → ${after}${num(b)}${n ? ` ${n > 0 ? '▲ +' : '▼ −'}${num(Math.abs(n))}` : ''}`, tone: n > 0 ? 'cmp tone-good' : n < 0 ? 'cmp tone-bad' : 'cmp' });
+    rows.push({ k, ...(skill ? { skill } : {}), ...(part ? { part } : {}), v: `${before}${num(a)} → ${after}${num(b)}${n ? ` ${n > 0 ? '▲ +' : '▼ −'}${num(Math.abs(n))}` : ''}`, tone: n > 0 ? 'cmp tone-good' : n < 0 ? 'cmp tone-bad' : 'cmp' });
   };
   const atk = safe(() => attackOf(s, p)), atk2 = safe(() => attackOf(s2, p2));
   if (atk && atk2) row('Standing attack', atk.value, atk2.value, atk.name === atk2.name ? '' : `${atk.name} `, atk.name === atk2.name ? '' : `${atk2.name} `);
   const def = safe(() => standing(s, p)), def2 = safe(() => standing(s2, p2));
   if (def && def2) row('Standing defense', def.value, def2.value, def.kind === def2.kind ? '' : `${def.kind} `, def.kind === def2.kind ? '' : `${def2.kind} `);
   if (d.weapon) row('Reach (m)', safe(() => longest(s, p)), safe(() => longest(s2, p2)));
-  for (const part of d.armor?.covers ?? []) row(`Protection · ${partName(part).toLowerCase()}`, pieceOn(s, p, part)?.armor.reduction ?? 0, pieceOn(s2, p2, part)?.armor.reduction ?? 0);
+  for (const part of d.armor?.covers ?? []) row('Protection', pieceOn(s, p, part)?.armor.reduction ?? 0, pieceOn(s2, p2, part)?.armor.reduction ?? 0, '', '', undefined, part);
   const skills = new Set((d.effects ?? []).filter((e) => e.kind === 'skill' && e.skill && e.skill !== '$mode').map((e) => (e.skill === ROLLED_SKILL ? rolledSkill(s, { id: inst.id }, e) : e.skill!)));
   for (const k of skills) row(skillName(k), safe(() => effectiveSkill(s, p, k).value), safe(() => effectiveSkill(s2, p2, k).value), '', '', k);
   row('Power', safe(() => power(s, p)), safe(() => power(s2, p2)));

@@ -12,6 +12,7 @@ import { BT, RC } from '../library/raceIds';
 import { ICON_ART, type IconName } from './iconArt';
 import { instanceItem } from '../views';
 import { skillName } from '../library/skillNames';
+import { partName } from '../ruleset/body';
 
 export const ICONS = ICON_ART;
 /** IC5: the credit the icons' licence asks for, shown on the GM page */
@@ -115,6 +116,24 @@ export const skillMark = (skillId: string, name = skillName(skillId)): HTMLEleme
   el.setAttribute('role', 'img'); el.title = name; el.setAttribute('aria-label', name);
   return el;
 };
+const PART_ICON: Record<string, IconName> = {
+  head: 'pt_head', neck: 'pt_neck', arm: 'pt_arm', leg: 'pt_leg', wing: 'pt_wing', foreleg: 'pt_foreleg', hind_leg: 'pt_hind_leg', tail: 'pt_tail', coils: 'pt_coils',
+};
+const namedMark = (icon: IconName, name: string, side?: string, n?: string): HTMLElement => {
+  const el = itemIcon(icon, undefined, 'ptico');
+  if (side) el.dataset.side = side; // styles.css mirrors a left part
+  if (n) el.append(n);
+  el.setAttribute('role', 'img'); el.title = name; el.setAttribute('aria-label', name);
+  return el;
+};
+/** a body part's icon in place of its name, which is its tip and accessible name: a left part mirrored, a numbered leg
+ *  with its number after it; the name itself for a part with no icon yet */
+export const partMark = (id: string, name = partName(id)): HTMLElement => {
+  const [, side, base, n] = /^(?:(left|right)_)?(.+?)(?:_(\d+))?$/.exec(id)!;
+  return PART_ICON[base] ? namedMark(PART_ICON[base], name, side, n) : Object.assign(document.createElement('b'), { textContent: name });
+};
+/** the whole-body pool's icon in place of its name: a humanoid's torso, else what the body is (a slime, a snake) */
+export const generalMark = (bodyTypeId: string, name: string): HTMLElement => namedMark(BODY_ICON[bodyTypeId] ?? 'pt_torso', name);
 export const classIcon = (classId: string, label?: string): HTMLElement => {
   const el = itemIcon(classIconName(classId), undefined, 'cico');
   el.dataset.tier = getLibrary().classes[classId]?.tier ?? 'tier_0'; // its colour says its tier (styles.css .cico[data-tier])

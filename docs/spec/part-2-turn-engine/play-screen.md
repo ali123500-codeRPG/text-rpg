@@ -548,6 +548,11 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
   they show.
 - **PS-305** The map keeps its own glyphs (silhouettes blur at 12 px).
 - **PS-306** The credit line sits at the foot of the GM page and the licences in `src/ui/assets/icons-LICENSE.txt`.
+- **PS-308** Everywhere a body part shows on the play and Character screens (the sheet's chips, the Body pop-up and
+  figure readout, the Aim pick, healing and wound cards, Read Wounds in Who's here, gear Compare), its icon stands in
+  place of its name; the name is its tip and accessible name, and any state word stays beside it. A left part shows
+  its icon mirrored; a numbered leg has its number after the icon. The whole-body pool shows a torso for a humanoid,
+  else what the body is. The library viewer keeps the words (issue #1474).
 - **PS-307** Scales past 100: game-icons.net has supernatural subjects (rune blades, auras, creatures) for gear and
   beings above the human range.
 
@@ -568,7 +573,7 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 - **PS-320** Side sheet health: the health bar marks the health-track thresholds; its level is the bar's tip and
   accessible name ("Health: Unhurt"), never a word beside it (SD5).
 - **PS-321** Clicking it opens each body part with its pool and state (Ali, 07/11/2026).
-- **PS-322** Any part that is not Healthy shows as a chip under the bar ("Left leg crippled") in its state's colour, and
+- **PS-322** Any part that is not Healthy shows as a chip under the bar (the leg's icon, then "crippled") in its state's colour, and
   the body figure opens by itself on a turn that changes a part.
 - **PS-323** A "Held / worn" line names the gear in use.
 - **PS-324** Colours and depth: every colour comes from a named token in `:root` (health levels run ok → warn → danger →

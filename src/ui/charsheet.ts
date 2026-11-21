@@ -16,7 +16,7 @@ import { essenceSlots } from '../engine/essence';
 import { treeBlock } from '../ruleset/access';
 import { augmentWindow, burdenOf, burdenParts, groupRollBonus, learningWindow } from '../ruleset/improve';
 import { ended, h, safe } from './kit';
-import { classIcon, itemIcon, skillIcon, treeIcon } from './itemIcons';
+import { classIcon, generalMark, itemIcon, partMark, skillIcon, treeIcon } from './itemIcons';
 import { classMaxLevel } from '../library/spawn';
 import { figIcon } from './power';
 import { openPop } from './pop';
@@ -199,7 +199,7 @@ export function openBodyPop(s: GameState, p: Actor, opener?: HTMLElement | null,
   const ct = safe(() => actorBody(s, p));
   if (!ct) return;
   const { hp, total } = hpLeft(s, p);
-  const row = (id: string, name: string, pct: number, amount: string) => {
+  const row = (id: string, name: HTMLElement, pct: number, amount: string) => {
     const st = poolState(pct);
     // SD3: a healthy part names no state (its square and the key say it); Damaged and worse keep their word
     return h('div', { class: 'bp-row' + (id === part ? ' on' : ''), 'data-part': id }, h('i', { class: `bf-${st}`, role: 'img', title: PART_STATES.name(st), 'aria-label': PART_STATES.name(st) }), h('b', {}, name),
@@ -212,11 +212,11 @@ export function openBodyPop(s: GameState, p: Actor, opener?: HTMLElement | null,
   openPop({ title: 'Body', cls: 'bp-pop', opener, body: [
     fig?.querySelector('.bf-fig') ?? null,
     h('div', { class: 'bp-list' },
-      row('general', cap(ct.general.name), 100 - p.core.condition.hpLostPct, `${whole(hp)} of ${whole(total)} HP`),
+      row('general', generalMark(ct.id, cap(ct.general.name)), 100 - p.core.condition.hpLostPct, `${whole(hp)} of ${whole(total)} HP`),
       ...ct.parts.map((d) => {
         const pct = p.core.condition.parts[d.id] ?? 100;
         const pool = partPool(total, d);
-        return row(d.id, partName(d.id), pct, pool === null ? '' : `${whole(Math.max(0, pool * pct / 100))} of ${whole(pool)}`);
+        return row(d.id, partMark(d.id), pct, pool === null ? '' : `${whole(Math.max(0, pool * pct / 100))} of ${whole(pool)}`);
       })),
     h('p', { class: 'bf-key' }, PART_STATES.keys.map((st) => h('span', {}, h('i', { class: `bf-${st}` }), PART_STATES.name(st)))),
   ] });
@@ -379,7 +379,8 @@ export function bodyFigure(s: GameState, p: Actor, healed: Set<string> = new Set
       if (onPick) { onPick(id); return; }
       if (!id) { out.textContent = ''; return; }
       const i = info(id);
-      out.textContent = [i.name, PART_STATES.name(i.state), i.amount, healed.has(id) ? 'healed this turn' : ''].filter(Boolean).join(' · ');
+      out.replaceChildren(id === 'general' ? generalMark(ct.id, i.name) : partMark(id, i.name),
+        ...[PART_STATES.name(i.state), i.amount, healed.has(id) ? 'healed this turn' : ''].filter(Boolean).map((x) => ` · ${x}`));
     },
   });
   fig.classList.add('bf-fig');
@@ -411,7 +412,7 @@ function healthBar(s: GameState, p: Actor, healed: Set<string>, turn: number, ch
       const pool = partPool(total, d);
       const st = poolState(pct);
       return h('div', { class: 'cs-part', title: pool === null ? '' : `${whole(pool * pct / 100)} of ${whole(pool)}` },
-        h('span', {}, partName(d.id)), h('div', { class: 'cs-bar' }, h('b', { style: `width:${Math.max(0, Math.min(100, pct))}%` })),
+        partMark(d.id), h('div', { class: 'cs-bar' }, h('b', { style: `width:${Math.max(0, Math.min(100, pct))}%` })),
         h('span', { class: 'w' + (st === 'healthy' ? '' : ' bad') }, PART_STATES.name(st)));
     })) ?? []);
   const btn = h('button', { class: 'cs-hpbtn', type: 'button', 'aria-expanded': String(partOpen.on), title: 'Click to show or hide each body part',
@@ -425,10 +426,10 @@ function healthBar(s: GameState, p: Actor, healed: Set<string>, turn: number, ch
   return [btn, partChips(s, p), parts];
 }
 
-/** each body part that is not Healthy, as "Left leg crippled" in its state's colour; none while all are Healthy */
+/** each body part that is not Healthy, as its icon and state word ("[leg] crippled") in its state's colour; none while all are Healthy */
 export function partChips(s: GameState, p: Actor): HTMLElement {
   const bad = (safe(() => actorBody(s, p).parts) ?? []).map((d) => ({ id: d.id, st: poolState(p.core.condition.parts[d.id] ?? 100) })).filter((x) => x.st !== 'healthy');
-  return h('p', { class: 'cs-pchips', hidden: !bad.length }, bad.map((x) => h('span', { class: `cs-pchip ps-${x.st}`, 'data-part': x.id }, `${partName(x.id)} ${PART_STATES.name(x.st).toLowerCase()}`)));
+  return h('p', { class: 'cs-pchips', hidden: !bad.length }, bad.map((x) => h('span', { class: `cs-pchip ps-${x.st}`, 'data-part': x.id }, partMark(x.id), ` ${PART_STATES.name(x.st).toLowerCase()}`)));
 }
 
 /** MB12 in plain words, one source for the sheet, the story card and the input's chips: how a broken nerve passes

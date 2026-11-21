@@ -41,7 +41,7 @@ export type DeckGroup = (typeof DECK_GROUPS)[number];
 export const DECK_GROUP_NAME: Record<DeckGroup, string> = { getaway: 'Your nerve is broken', fight: 'Fight', talk: 'Talk', move: 'Move', stealth: 'Stealth', use: 'Use', perks: 'Perks' };
 
 /** one choice in a step: an id the order uses, and how it reads */
-export type Pick = { id: string; label: string; note?: string; hot?: true };
+export type Pick = { id: string; label: string; note?: string; hot?: true; part?: true /* drawn as the part's icon (id), label its tip */ };
 export type Choice = { target?: string; item?: string; part?: string; words?: string; time?: string };
 export type StepKey = 'target' | 'item' | 'part' | 'time';
 /** a step asks one thing: a pick (from a list made from what was chosen before), or words typed in the Say box */
@@ -144,7 +144,7 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
         ...weapons.map((w) => ({ id: w.id, label: cap(w.name) })), ...(pv.player.bodyAttacks ?? []).filter((b) => !b.handsFull).map((b) => ({ id: `mode:${b.mode}`, label: cap(b.name) }))] }] : [];
       const partSteps: Step[] = ctx.aim && s ? [{ key: 'part', title: 'Aim at which part?', picks: (c) => {
         const t = s.actors.find((x) => x.id === c.target);
-        return t ? actorBody(s, t).parts.map((p) => ({ id: p.id, label: partName(p.id) })) : [];
+        return t ? actorBody(s, t).parts.map((p) => ({ id: p.id, label: partName(p.id), part: true })) : [];
       } }] : [];
       add('attack', 'fight', 'Attack', [who('Attack whom?', strikable), ...partSteps, ...withSteps], (c) => {
         const mode = c.item?.startsWith('mode:') ? c.item.slice(5) : null;
