@@ -6,8 +6,8 @@ wins. The build is its own work and reads this topic as its design.
 
 Who a character belongs to, whom it serves, whom it works beside right now, who may give it orders, and what each
 character knows about the others' ties. Decided by the owner on the Questions hub page "Hierarchy and belonging",
-21/11/2026, OB1 a to OB13 a (OB7 is [Proposed] until the owner confirms it: the answer read "a. d." with nothing
-after the d). The study behind it, with nine worked cases, is the page "Hierarchy and Belonging Study"
+21/11/2026, OB1 a to OB13 a (OB7 read "a. d." with nothing after the d, and the owner confirmed a on a decision
+card the same day). The study behind it, with nine worked cases, is the page "Hierarchy and Belonging Study"
 (https://claude.ai/artifact/Nn9vfRT7cdEDxSmz3hv6H7). Each rule starts with a stable ID (BEL-nn); a number is never
 reused.
 
@@ -126,7 +126,7 @@ is new data and never new structure.
 - **BEL-29** When a head or leader falls, the seat passes to an officer, then to the longest-serving member present.
   A title without a seat gives no claim.
 
-#### Orders [Proposed, OB7]
+#### Orders
 
 - **BEL-30** A right to give an order rests on one of four bases, and reaches only as far as that basis:
   - **Command**: the giver holds a seat in an organization the receiver belongs to, in the receiver's unit or above
