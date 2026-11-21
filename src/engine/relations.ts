@@ -202,11 +202,6 @@ function seenOver(state: GameState, A: Zone, B: Zone): boolean {
   return !ws.length || ws.some((w) => !!wallKind(w.kind)?.see || w.top < A.floor + 1.5);
 }
 
-/** SD3–SD5: the titles on the walking path for `walker`: round any barrier shut to it that it knows of; with none, the plain
- * path (whose first shut way the walker then tries). SZ7: never through a way too small for its body */
-export const wayPath = (state: GameState, from: string, to: string, walker: Actor): string[] | null =>
-  shortestPath(state, from, to, false, walker) ?? shortestPath(state, from, to, false, undefined, walker);
-
 /** SZ7: `a`'s body goes through the way (plan/path fitsOpening) */
 export const fitsThrough = (state: GameState, a: Actor, o: Opening | Way): boolean => fitsOpening(state, a, 'opening' in o ? o.opening : o);
 
@@ -220,7 +215,8 @@ export function knowsShut(state: GameState, b: Barrier, a: Actor, from: string):
 }
 
 /** the titles a walk passes from one title to another, by the ways between them (no frontiers): the ids after `from`, or
- * null. The fewest ways, for words and plans (metres are plan/path walkPath's). With a `walker`, a way whose barrier is
+ * null. The fewest ways: only the minimap's yes/no reachability check (and naming a shut way) asks it; never a route the
+ * game walks or words, which goes by walked metres (position.ts routeOf/walkRoute, BG-1708). With a `walker`, a way whose barrier is
  * shut to it and that it knows is shut is left out (SD3–SD5); with none, barriers are ignored. SZ7: with a `body` (the
  * walker's, unless given alone), a way too small for it is left out too. sightOnly: only ways seen through now. */
 export function shortestPath(state: GameState, from: string, to: string, sightOnly = false, walker?: Actor, body: Actor | undefined = walker): string[] | null {

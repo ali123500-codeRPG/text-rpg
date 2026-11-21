@@ -168,6 +168,8 @@ import {
   spotAt,
   placeOf,
   unplace,
+  reachOverFrom,
+  routeOf,
   walkLeg,
   wayLeftM,
   wayPoint,
@@ -363,12 +365,9 @@ import {
   isAsleep,
   isEngaged,
   knowsShut,
-  reachesAcross,
-  shortestPath,
   sparBetween,
   stance,
   wary,
-  wayPath,
   zoneById,
 } from './relations';
 import {
@@ -1156,7 +1155,7 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
 /** BG-148: the way straight into `goal` that the walker knows is shut, when its walk goes round it instead: never silent */
 function roundShut(state: GameState, a: Actor, goal: string): { way: string; shut: 'blocked' | 'barred' | 'locked' } | undefined {
   const l = wayTo(state, a.zone, goal), b = l && barrierOn(state, l.opening);
-  if (!l || !b || passage(b, a, a.zone) !== 'shut' || !knowsShut(state, b, a, a.zone) || wayPath(state, a.zone, goal, a)?.[0] === goal) return undefined;
+  if (!l || !b || passage(b, a, a.zone) !== 'shut' || !knowsShut(state, b, a, a.zone) || routeOf(state, a, { zone: goal })?.[0] === goal) return undefined;
   return { way: l.label, shut: shutBy(b, a.zone) };
 }
 
@@ -2663,9 +2662,9 @@ function step(ctx: Ctx, id: string): void {
   };
   const from = { zone: a.zone, pos: a.pos && { ...a.pos } };
   // BG-284 (BF91 a): a take with nothing else to do (hold) walks over as a dash does, on the dash's own payment (the move
-  // time, then the main time), so a body across the zone is reached in one turn when a run gets there. Only within the
-  // zone ("Take things here"); a thing in another zone is walked to at walking pace (BG-85), in a fight dashed to (MQ20 a)
-  const takeDash = o.type === 'hold' && !o.way && later.length > 0 && near?.at.zone === a.zone;
+  // time, then the main time), so a body across the ground is reached in one turn when a run gets there, in any title
+  // (MQ22 a; BG-1728)
+  const takeDash = o.type === 'hold' && !o.way && later.length > 0;
   const closer = () => { if (closeIn && !near!.ok()) running(() => closeInOn(ctx, a, o, near!, behind, false, takeDash || dashTo)); };
   // BA3/BA4: the key or the bar takes the move slot; BG-54: a way op that can't be done leaves the move to happen.
   // BG-86: out of reach of the door, the move slot walks to it, and the op takes the main action if that is free
@@ -3321,13 +3320,12 @@ function atDoor(state: GameState, a: Actor, to: string | null | undefined): bool
 /** FR2: a pick-up whose item is within grip reach (or gone: applyGearOps reports it) */
 const reachable = (state: GameState, a: Actor, op: GearOp) => { const p = pickUpAt(state, op, a); return !p || withinGrip(state, a, p); };
 
-/** ZP3/FR4 closing in: walks at the target on the move slot, stopping once within reach; across a counter, fence or rail
- * from the actor's zone it is reached over from the actor's side of it (BG-62), unless the actor goes behind it (BG-183) */
+/** ZP3/FR4 closing in: walks at the target on the move slot, stopping once within reach; a counter, fence or rail on the
+ * line between them is reached over from the actor's side of it (BG-62), unless the actor goes behind it (BG-183) */
 function closeInOn(ctx: Ctx, a: Actor, o: Order, near: NonNullable<ReturnType<typeof reachOf>>, behind = false, dash = false, asDash = false): void {
   const { state } = ctx;
-  const over = !behind && near.at.zone !== a.zone && reachesAcross(state, a.zone, near.at.zone);
-  const p = over ? wayPoint(state, a.zone, near.at.zone, a) : null;
-  const goal: Located = p ? { zone: a.zone, pos: p } : near.at;
+  const p = behind ? null : reachOverFrom(state, a, near.at); // BG-1728: a counter on the line between them, whatever the titles
+  const goal: Located = p ?? near.at;
   // asDash: paid leg by leg exactly as a dash's move (move(true)): the move time, then the main time
   walk(ctx, a, goal, o, asDash ? (n) => useMoveSlot(ctx, a, n > 0) : (n) => (n === 0 ? useMoveSlot(ctx, a, dash) : null), { stopShort: p ? 0 : Math.max(0, near.m - M_EPS), ...(near.toward ? { toward: near.toward } : {}) });
 }
@@ -3403,7 +3401,7 @@ function settleOffers(ctx: Ctx): void {
 /** AE1: the attack would be ranged from here, or (out of reach here) from where the move leads */
 const rangedHere = (state: GameState, a: Actor, o: Order) => {
   const here = attackMode(state, a, o);
-  const next = o.move ? shortestPath(state, a.zone, o.move)?.[0] : undefined;
+  const next = o.move ? routeOf(state, a, { zone: o.move })?.[0] : undefined;
   const m = here.m && reachesM(here.dist, here.m.mode.reach) ? here.m : next ? attackMode(state, a, o, { zone: next }).m : here.m;
   return m?.mode.tree === 'ranged';
 };

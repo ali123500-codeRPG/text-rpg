@@ -310,6 +310,11 @@ export function walkRoute(state: GameState, a: Located, b: Located, walker?: Act
   // the walker's own walk, centre to point (no body's edge taken off: what the walk walks)
   return { path: titlesOf(pieces, a.zone), pts: w.pts.map((p) => ({ x: p.x, y: p.y })), metres: walkGap(state, { zone: a.zone, pos: w.pts[0] }, { zone: b.zone, pos: B }, w) };
 }
+/** BG-1708: the titles `a`'s walk to `goal` passes after its own, as walkLeg walks it (walked metres, round the ways it
+ * knows are shut; never the fewest ways); null with no way, or where a title on the way has no footprint */
+export function routeOf(state: GameState, a: Actor, goal: Located): string[] | null {
+  try { return walkRoute(state, a, goal, a)?.path ?? null; } catch { return null; }
+}
 const centreOf = (state: GameState, zoneId: string): Pos => { const z = zoneById(state, zoneId); if (!z?.outline?.length) throw noOutline({ id: zoneId }); return centre(z); };
 /** the point a walk to `goal` heads for: its spot, else its title's centre */
 export const goalPoint = (state: GameState, goal: Located): Pt3 => (goal.pos ? pointAt(state, goal) : { ...centreOf(state, goal.zone), floor: floorOf(state, goal) });
@@ -645,6 +650,19 @@ export function gateToward(state: GameState, a: Actor, b: Located): { near: Loca
   if (!g) return null;
   const to = g.o.joins[sideOfOpening(g.o, g.from) === 1 ? 0 : 1];
   return { near: { zone: g.from, pos: endOn(g.o, g.from) }, far: { zone: to, pos: endOn(g.o, to) } };
+}
+
+/** BG-62 (BG-1728): the counter, fence or rail (a wall a grip reaches across, a gap in it too) that the walking line from
+ * `a` to `b` meets first: the spot on a's side of it to reach over from; null when the line meets no such wall first */
+export function reachOverFrom(state: GameState, a: Located, b: Located): Located | null {
+  const A = pointAt(state, a), B = pointAt(state, b);
+  if (Math.abs(A.floor - B.floor) > 0.01) return null;
+  const z = A.floor + 0.3; // the walking line, below a counter's top (ringSpots' line)
+  const c = crossings(state, { x: A.x, y: A.y, z }, { x: B.x, y: B.y, z }).find((x) => x.kind === 'wall');
+  if (!c || c.kind !== 'wall' || !wallKind(c.wall.kind)?.reach) return null;
+  const d = flat(A, c.at), back = Math.min(d, 0.05);
+  const p = d > EPS ? { x: c.at.x + (A.x - c.at.x) * back / d, y: c.at.y + (A.y - c.at.y) * back / d } : { x: A.x, y: A.y };
+  return { zone: zoneAt(state, p, A.floor, a.zone)?.id ?? a.zone, pos: p };
 }
 
 /** FR2: `at` is within the actor's grip reach, plus `extra` metres (the receiver's own reach when handing over) */

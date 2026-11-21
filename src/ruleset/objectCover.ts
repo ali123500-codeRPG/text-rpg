@@ -7,7 +7,8 @@
 import type { Actor, Furniture, GameState, Opening, Pt, Zone } from '../types';
 import { CONFIG } from '../config';
 import { actorBody, getLibrary } from '../library';
-import { furnitureIn, furniturePos } from '../engine/furniture';
+import { furniturePos } from '../engine/furniture';
+import { zoneById } from '../engine/relations';
 import { spotOf, type Pos } from '../engine/position';
 import { crossings, openingsOn, seesNow } from '../plan/line';
 import { dist } from '../plan/geom';
@@ -42,12 +43,13 @@ function exitShare(a: Pos, b: Pos, box: Box): number | undefined {
 /** the gap between a point and a box on the floor, in metres */
 export const boxGap = (p: Pos, box: Box): number => Math.hypot(Math.max(box.lo.x - p.x, 0, p.x - box.hi.x), Math.max(box.lo.y - p.y, 0, p.y - box.hi.y));
 
-/** PC2: the share of `body` (0 to 1) hidden behind the pieces of furniture in its zone, seen from `from` */
-export function objectHidden(state: GameState, body: Actor, zone: Zone, from?: Actor): number {
+/** PC2: the share of `body` (0 to 1) hidden behind the pieces of furniture on its floor, whatever title each stands in (a
+ * title only names a space), seen from `from` */
+export function objectHidden(state: GameState, body: Actor, from?: Actor): number {
   const t = spotOf(state, body).pos;
   if (!t) return 0;
   const h = actorBody(state, body).size.heightM;
-  const boxes = furnitureIn(state, zone.id).map((f) => pieceBox(state, zone, f)).filter((b): b is Box => !!b);
+  const boxes = state.furniture.filter((f) => Math.abs(f.floor - body.floor) < 0.01).map((f) => { const z = zoneById(state, f.zone); return z && pieceBox(state, z, f); }).filter((b): b is Box => !!b);
   const v = from && from.id !== body.id ? spotOf(state, from).pos : undefined;
   let hidden = 0;
   for (const box of boxes) {

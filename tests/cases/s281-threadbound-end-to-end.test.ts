@@ -58,7 +58,7 @@ describe('281 a Threadbound item from start to use', () => {
     CONFIG.ESSENCE_APPEAR_CHANCE.foe = 100;
     try {
       const slime = s.actors.find((a) => a.id === 'slime_1')!;
-      slime.core.generation = 'rolled'; // notable
+      slime.core.generation = 'unique'; // notable (NF1, NF2: a unique, not by power or for being rolled)
       slime.core.condition.hpLostPct = 99;
       Object.assign(s.player, { zone: slime.zone, placeId: slime.placeId, ...(slime.pos ? { pos: { ...slime.pos } } : {}) }); // the fallback scenarios moved the player; meet the slime
       let fired = false;

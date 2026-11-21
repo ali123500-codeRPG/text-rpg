@@ -270,7 +270,8 @@ export type ZoneKind = {
   onward?: true;
 };
 /** PZ2: a kind of wall: walk = walked across, see = seen through, reach = struck or handed over across it, climb = crossed by
- * climbing; heightM: how high it stands above its floor (none: a storey); sound: what a sound loses crossing it (HB4); none:
+ * climbing; heightM: how high it stands above its floor (none: a storey); sound: open lets sound by, the rest lose their
+ * material's (HB4, D-199 a); none:
  * an open side, drawn as no wall at all */
 export type WallKind = { id: string; name: string; walk: boolean; see: boolean; reach: boolean; climb: boolean; sound: import('../scales').SoundLossKey; heightM?: number; none?: true; text: string;
   /** BW26: the material (barrierMaterials, BM) a wall of this kind is made of when it names none, read at that material's example thickness */ material?: string };
@@ -278,7 +279,8 @@ export type WallKind = { id: string; name: string; walk: boolean; see: boolean; 
  * exampleCm: the thickness secondsAt50 is for; secondsAt50: a working professional with the right tool breaking a
  * person-sized hole through exampleCm of it (BW8: from the cited source; time grows with thickness); noise: each blow (BW10);
  * trait: regrows (work left idle is lost, BW9) or deeper (harder deeper in the wild, waits on D-331); source: where the time comes from */
-export type BarrierMaterial = { id: string; name: string; thicknessCm: [number, number]; exampleCm: number; secondsAt50: number; noise: import('../scales').NoiseKey; trait?: 'regrows' | 'deeper'; fantasy?: true; source: string; text: string };
+export type BarrierMaterial = { id: string; name: string; thicknessCm: [number, number]; exampleCm: number; secondsAt50: number; noise: import('../scales').NoiseKey; trait?: 'regrows' | 'deeper'; fantasy?: true; source: string; text: string;
+  /** D-199 a: decibels a sound loses through exampleCm of it (real insulation figures), and where that comes from */ soundDb: number; soundSource: string };
 /** PZ2: a kind of way: a doorway, gap, window or stairs. seeThrough: the far side shows (with no barrier shut in it); walk:
  * walked through (a window is only jumped down, SD7); floors: it joins two floors (stairs, a ladder, a hatch); sizeM:
  * [width, height] when no barrier gives one (none: as wide as the ground the two titles share); sillM: a window's sill */
@@ -288,7 +290,7 @@ export type OpeningKind = { id: string; name: string; seeThrough: boolean; walk:
 export type LightKind = { id: string; name: string; candela: number; scaled?: true; like: string };
 /** SD3–SD5: a kind of barrier on a way. lock / bar: whether one of this kind can carry a lock or a bar; blocked: it is a
  * blockage (rubble), shut until cleared; seeThrough: sight passes it while shut (a grate). The walls thread adds material. */
-export type BarrierKind = { id: string; name: string; lock: boolean; bar: boolean; blocked: boolean; seeThrough: boolean; /** HB4 what sound loses crossing it */ sound: import('../scales').SoundLossKey; text: string;
+export type BarrierKind = { id: string; name: string; lock: boolean; bar: boolean; blocked: boolean; seeThrough: boolean; /** HB4, D-199 a: open lets sound by while shut (bars, a slit); the rest lose their material's */ sound: import('../scales').SoundLossKey; text: string;
   /** SZ7: the opening in metres, [width, height] (a hatch: [width, length], walked through upright) */ openingM?: [number, number]; vertical?: true;
   /** PC3: a window's shutters: it goes only on a drop (seen, shot and jumped through, never walked); sillM = how high its sill stands above the inside floor */ window?: true; sillM?: number;
   /** PC4: nothing to open or shut (an arrow slit, bars): it stays as it is until broken */ fixed?: true;

@@ -26,7 +26,7 @@ import { isDark, timeView, zoneLight, clockSet, now, timeOfDay, durationText, sp
 import { charLevel, power, wornTitle } from '../engine/xp';
 import { presetAgeFloor, presetTalent, rankName, rankRow, spawnNpc } from '../library/spawn';
 import { uniqueInWorld } from '../library/echo';
-import { distM, distOrNull, placeOf, seeingM, sideFrom, sightDistM, spotPoint, standingAt, wayLeftM, type Located } from '../engine/position';
+import { distM, distOrNull, placeOf, seeingM, sideFrom, sightDistM, spotAt, spotPoint, routeOf, standingAt, wayLeftM, type Located } from '../engine/position';
 import { moveSpeed, turnMetres } from '../engine/speed';
 import { hiddenFrom } from '../engine/gear';
 import { revealedTo } from '../minds/state';
@@ -34,7 +34,7 @@ import { sightLevel } from '../perception/sight';
 import { attended, attentionSteps } from '../perception/attention';
 import { madeOutBySight } from '../perception/madeOut';
 import { atChaseLine, chaseLost, chaseZones } from '../engine/chase';
-import { actorById, allActors, knowsName, labelFor, nameFor, atLeast, bandById, heldBy, isActive, isAsleep, hostile, perceivedZoneIds, seesAcross, shortestPath, sparring, stance, zoneById } from '../engine/relations';
+import { actorById, allActors, knowsName, labelFor, nameFor, atLeast, bandById, heldBy, isActive, isAsleep, hostile, perceivedZoneIds, seesAcross, sparring, stance, zoneById } from '../engine/relations';
 import { knownDestinations } from '../engine/trail';
 import { agreementsOf } from '../engine/memory';
 import { talkingWith } from '../engine/speech';
@@ -172,11 +172,12 @@ function containerOf(state: GameState, i: ItemInstance, viewer?: Actor, inside: 
 }
 const perceivedZones = (state: GameState, zoneId: string, viewer: Actor) => perceivedZoneIds(state, zoneId).map((id) => zoneView(state, zoneById(state, id)!, viewer));
 
-/** how a zone reads from `from`: its name when it is `from`, else the label of the first link toward it */
-function whereLabel(state: GameState, from: string, to: string): string | undefined {
-  if (from === to) return zoneById(state, from)?.name;
-  const path = shortestPath(state, from, to);
-  return path?.length ? wayTo(state, from, path[0])?.label : undefined;
+/** how a place reads from where `viewer` stands: its title's name when it is the viewer's, else the label of the way the
+ * viewer's walk to it leaves by (BG-1708: walked metres, never the fewest ways) */
+function whereLabel(state: GameState, viewer: Actor, at: Located): string | undefined {
+  if (viewer.zone === at.zone) return zoneById(state, at.zone)?.name;
+  const path = routeOf(state, viewer, at);
+  return path?.length ? wayTo(state, viewer.zone, path[0])?.label : undefined;
 }
 
 /** what `viewerId` calls `id`: the player by 'player'; anyone else by the name the viewer has for them (nameFor), else by label */
@@ -437,7 +438,7 @@ function eventView(state: GameState, viewer: Actor, e: GameEvent): EventView {
     ...(full && e.target ? { target: e.target } : {}),
     ...(full && e.tier !== undefined && e.actorId === viewer.id ? { tier: tierName(e.tier) } : {}),
     level: p.level, cue: p.cue,
-    ...(!full ? { where: whereLabel(state, viewer.zone, e.zone) } : {}),
+    ...(!full ? { where: whereLabel(state, viewer, spotAt(e.zone, e.pos)) } : {}),
     ...(e.line && hearsWords(p) ? { line: { text: e.line.text, volume: e.line.volume } } : {}),
     ...(full && e.attack ? { outcome: outcomeLabel(e.attack.outcome) } : {}),
     ...(full && e.spar ? { spar: true as const } : {}),
@@ -974,7 +975,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ...(named && e.actorId !== me && actorById(state, e.actorId)?.pronouns ? { pronouns: actorById(state, e.actorId)!.pronouns } : {}),
       ...(target ? { target } : {}),
       ...(target && e.target !== me && actorById(state, e.target!)?.pronouns ? { targetPronouns: actorById(state, e.target!)!.pronouns } : {}),
-      where: full ? zoneById(state, e.zone)?.name : whereLabel(state, p.zone, e.zone),
+      where: full ? zoneById(state, e.zone)?.name : whereLabel(state, p, spotAt(e.zone, e.pos)),
       ...(hears ? { line: { text: e.line!.text, volume: e.line!.volume, ...(speaker ? { speaker } : {}) } } : {}),
       ...(look ? { activityLook: look } : {}),
       ...(full && e.kind === 'attack' && e.attack ? { packet: buildCombatPacket(state, e, me) } : {}),

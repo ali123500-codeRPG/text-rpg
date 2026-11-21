@@ -2,6 +2,7 @@
 // so a key keeps its place: moving keys between parts, or reordering them, changes CONFIG's key order.
 import type { DefenseKind } from '../types';
 import type { HealthLevelKey, MoraleLevel } from '../scales';
+import { BM } from '../library/tableIds';
 
 export const BODY = {
   // ---- Part 3 ----
@@ -158,9 +159,10 @@ export const BODY = {
    * on flesh, clothing or soft ground some 20 dB less (Brüel: soft-material impacts peak 20-25 dB below metal; an estimate) */
   IMPACT_NOISE: { hard: 'loud', soft: 'raised' } as const,
   /** hearing (perception/noise.ts, BG-57, HB1–HB5): a sound weakens 20·log10(metres) with distance (the inverse-square
-   * law, never nearer than NEAREST_M) and loses SOUND_LOSS_DB at each crossing on its way, by the least-loss route. It is
-   * heard while at least HEARING_FLOOR_DB and heard clearly (who and what) from CLEAR_ABOVE_FLOOR_DB over it: ANSI/ASA S12.60
-   * asks a classroom's speech to stand 15 dB over its background. */
+   * law, never nearer than NEAREST_M) and loses what each wall, shut way, floor or roof on its way does by its material
+   * and thickness (SOUND_DB_PER_DOUBLING), by the least-loss route. It is heard while at least HEARING_FLOOR_DB and
+   * heard clearly (who and what) from CLEAR_ABOVE_FLOOR_DB over it: ANSI/ASA S12.60 asks a classroom's speech to stand
+   * 15 dB over its background. */
   NEAREST_M: 1, // the nearest any sight or sound is measured: the 1 m every decibel level is given at
   CLEAR_ABOVE_FLOOR_DB: 15,
   /** D-231: one hearing floor everywhere while per-zone background noise is parked: a quiet place (40 dB, a library or a quiet
@@ -170,9 +172,12 @@ export const BODY = {
    * no measured leaning distance was found) */
   WHISPER_REACH_M: 1,
   WHISPER_LEAN_M: 0.3,
-  /** HB4: decibels lost at each crossing, by SOUND_LOSS level: an open gap nothing; a shut window about 30, a shut door about
-   * 30, a wall about 35 (their sound transmission class, STC) */
-  SOUND_LOSS_DB: { open: 0, window: 30, door: 30, wall: 35 } as Record<string, number>,
+  /** D-199 a: a wall, shut barrier or pane loses its material's soundDb (library barrierMaterials) at that material's example
+   * thickness, and this many decibels more for each doubling of thickness (the mass law: +6 dB per doubling of mass, NRC
+   * Canadian Building Digest 239) */
+  SOUND_DB_PER_DOUBLING: 6,
+  /** D-199: what a floor or roof is made of for sound, read at that material's example thickness (timber boards on joists) */
+  FLOOR_MATERIAL: BM.planks as string,
   /** sight (perception sightLevel): how far each VISIBILITY level is made out clearly (who and what) and glimpsed
    * (something, not who), in metres, in daylight with a clear view, from real references (the library's
    * visibilityLevels rows); null = nothing to see. Sight distance is never under NEAREST_M (seeingM), so a level made
