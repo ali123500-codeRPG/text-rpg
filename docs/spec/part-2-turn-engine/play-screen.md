@@ -120,8 +120,8 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 
 #### Estimates and depth
 
-- **PS-70** Estimates: every estimated number starts with ≈; its source line is the tile's tip and its link stays in the
-  tile (HS6; SD4).
+- **PS-70** Estimates: every estimated number starts with ≈; its source line is the figure's tip and its link stays with
+  the figure (on the creation screen the estimate itself is the link) (HS6; SD4).
 - **PS-71** An estimate is editable only when the player sets the input behind it (the creation screen's practice
   swings) (HS6).
 - **PS-72** Depth: no glows and no shadows except the toast shadow (also the motion rules).
@@ -187,6 +187,12 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
 
 - **PS-110** Creation screen: the approved layout at https://claude.ai/artifact/HW45ivigqwZ5VDo4PWPv9u (Part 4 §4,
   Player creation). The story starts from it.
+- **PS-492** The creation screen's figures sit in one build bar, pinned to the top of the page while the skill points are
+  spent: points left (its number, "of N left" and a meter), the tag and flaw marks lit for each one set, HP, standing
+  attack, standing defense shown by the icon of the skill that wins it (parry, block or dodge), the slime estimate
+  ("≈ swings : ≈ slams", which opens the estimate's input), and Begin the story at its end. Every explanation is the
+  figure's tip; the Starting total against Potential is the points' tip. A "Needs attention" line shows under the bar,
+  so the button never moves (option B on the critique page "Creation stat row", picked by the owner).
 - **PS-111** Loot: when the character can see things to take where they stand, a Loot chip shows by the action box with
   how many ("Loot ×7").
 - **PS-112** It opens a large partial pop-up listing them by where they are: each body that is down (what it wears and

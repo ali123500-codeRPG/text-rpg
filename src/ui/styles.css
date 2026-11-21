@@ -221,7 +221,6 @@ pre.json { margin: 0; font: 13px/1.45 var(--font-mono); color: var(--muted); whi
 .tg-btn.tg-tag[aria-pressed="true"] { color: var(--scenario-mark); opacity: 1; }
 .tg-btn.tg-flaw[aria-pressed="true"] { color: var(--danger); opacity: 1; }
 .tg-btn.away { visibility: hidden; } /* the other toggle of a set skill keeps its place */
-.swings { min-height: 0; font-size: 13px; margin-top: var(--space-1); }
 /* a mark from the icon set beside a name or in a key: its meaning is in its tip */
 .mk-i { display: inline-block; width: 16px; height: 16px; flex: none; vertical-align: -3px; color: var(--faint); }
 .mk-i svg { width: 100%; height: 100%; display: block; }
@@ -233,6 +232,30 @@ pre.json { margin: 0; font: 13px/1.45 var(--font-mono); color: var(--muted); whi
 .key .tick { height: 14px; border-left: 1px solid var(--muted); }
 .key .tick.cap { width: 2px; border: 0; background: var(--warn); }
 .msg { margin: 0; font-size: 13px; min-height: 18px; }
+/* the creation screen's build bar: pinned while the skill points are spent, with the button they gate */
+.build-bar { position: sticky; top: 0; z-index: 5; background: var(--bg); border-block: 1px solid var(--border); padding: var(--space-3) 0; display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--space-6); }
+.build-bar .msg { order: 1; flex: 1 0 100%; min-height: 0; text-align: right; } /* under the bar, so the button never moves */
+.build-bar .msg:not(:empty) { margin-top: var(--space-2); } /* the bar keeps no row gap, so an empty message adds no height */
+.build-bar #btn-go { margin-left: auto; }
+html:has(.build-bar) { scroll-padding-top: 80px; } /* keyboard focus never lands under the pinned bar (about 66px tall) */
+.bb-figs { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3) var(--space-6); font-variant-numeric: tabular-nums; }
+.bb-figs :is(.bb-pts, .bb-fig, .bb-duel) { display: inline-flex; align-items: center; gap: 6px; }
+.bb-figs b { font-size: 24px; font-weight: 800; line-height: 1; color: var(--text); }
+.bb-figs small { font-size: 13px; color: var(--muted); font-weight: 400; }
+.bb-figs .mk-i { width: 20px; height: 20px; vertical-align: 0; color: var(--muted); }
+.bb-pts.ok b { color: var(--ok); } .bb-pts.warn b, .bb-pts.warn small { color: var(--warn); }
+.bb-meter { width: 120px; height: 6px; border-radius: var(--r-sm); background: var(--border); overflow: hidden; margin-left: 4px; }
+.bb-meter i { display: block; height: 100%; background: var(--ok); }
+.bb-pts.warn .bb-meter i { background: var(--warn); }
+.bb-pips { display: inline-flex; gap: 2px; }
+.bb-pips .mk-i { width: 18px; height: 18px; }
+.bb-pips .mk-i.tag { color: var(--scenario-mark); } .bb-pips .mk-i.flaw { color: var(--danger); } .bb-pips .mk-i.off { color: var(--faint); opacity: .5; }
+.bb-sep { width: 1px; align-self: stretch; background: var(--border); }
+.bb-duel.hs-btn-text { padding: 0; min-height: var(--control-h); }
+.bb-duel b { text-decoration: underline dotted var(--faint); text-underline-offset: 5px; text-decoration-thickness: 1px; }
+.bb-duel .vs { color: var(--faint); font-size: 20px; font-weight: 700; }
+.bb-duel:is(:hover, :focus-visible) b { color: var(--accent); text-decoration-color: var(--accent); }
+@media (max-width: 1279px) { .build-bar, .bb-figs { column-gap: var(--space-3); } .bb-meter { display: none; } }
 /* PL14: personality picker on the creation screen */
 .pe { display: grid; gap: var(--space-3); }
 .pe .grp-h .hs-btn-text { min-height: 0; }
