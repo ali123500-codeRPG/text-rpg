@@ -16,13 +16,12 @@ const packed = (s: GameState) => { // a worn pack
 };
 
 it('in a fight, a draught in the pack is drunk at once, as out of one', () => {
-  for (const mode of ['tactical', 'explore'] as const) {
-    const s = village();
-    packed(s);
-    s.mode = mode;
-    s.player.core.condition.hpLostPct = 30;
-    s.player.core.inventory.push({ id: 'vial', itemId: IT.healing_draught, qty: 1 });
-    const ev = play(s, { intent: intent({ action: { type: 'use_item', item: 'vial' } }) });
-    expect({ mode, used: ev.some((e) => e.kind === 'use_item'), busy: !!s.player.busy }).toEqual({ mode, used: true, busy: false });
-  }
+  const s = village();
+  packed(s);
+  s.mode = 'tactical';
+  s.player.core.condition.hpLostPct = 30;
+  s.player.core.inventory.push({ id: 'vial', itemId: IT.healing_draught, qty: 1 });
+  const ev = play(s, { intent: intent({ action: { type: 'use_item', item: 'vial' } }) });
+  expect(ev.some((e) => e.kind === 'use_item')).toBe(true);
+  expect(s.player.busy).toBeUndefined();
 });

@@ -17,7 +17,7 @@ const frame = (s: GameState, scale = 'situation') => { s.stage.scenario = frameO
 const tavern = () => makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'trader'] });
 
 describe('326 scenario budgets count acting time (BG-240)', () => {
-  it('a long wait inside a Situation leaves it running and uses none of its budget', () => {
+  it('a long wait or a rest inside a Situation leaves it running and uses none of its budget', () => {
     const s = tavern();
     const f = frame(s);
     const t = now(s);
@@ -28,13 +28,10 @@ describe('326 scenario budgets count acting time (BG-240)', () => {
     checkScenarioEnd(s, []);
     expect(s.stage.ending).toBeUndefined();
     expect(s.log.some((l) => l.code === 'scenario_overrun')).toBe(false);
-  });
-  it('a rest is left out too', () => {
-    const s = tavern();
-    const f = frame(s);
+    const idle = f.idleMin!;
     s.player.core.condition.hpLostPct = 50;
     play(s, { intent: intent({ action: { type: 'rest' } }) });
-    expect(f.idleMin ?? 0).toBeGreaterThan(0);
+    expect(f.idleMin!).toBeGreaterThan(idle);
     expect(budgetUsed(s, f)).toBeLessThan(0.2);
   });
   it('a road trip is left out, for the outer scenario too', () => {
@@ -50,7 +47,7 @@ describe('326 scenario budgets count acting time (BG-240)', () => {
     expect(outer.idleMin).toBe(f.idleMin);
     expect(budgetUsed(s, f)).toBeLessThan(1);
   });
-  it('acting time still counts: past the budget the check-in comes, at twice it code ends the scenario', () => {
+  it('acting time still counts: past the budget the check-in comes, at twice it code ends the scenario; a Journey counts all its time', () => {
     const s = tavern();
     const f = frame(s);
     noteIdle(s, 8 * 60);
@@ -61,12 +58,10 @@ describe('326 scenario budgets count acting time (BG-240)', () => {
     advanceClock(s, 15);
     checkScenarioEnd(s, []);
     expect(s.log.find((l) => l.code === 'scenario_overrun')?.detail).toMatchObject({ scale: 'situation' });
-  });
-  it('a Journey counts its nights and trips', () => {
-    const s = tavern();
-    const f = frame(s, 'journey');
+    // a Journey counts its nights and trips
+    const j = frame(s, 'journey');
     noteIdle(s, 24 * 60);
     advanceClock(s, 24 * 60);
-    expect(budgetUsed(s, f)).toBeCloseTo(1 / 3);
+    expect(budgetUsed(s, j)).toBeCloseTo(1 / 3);
   });
 });

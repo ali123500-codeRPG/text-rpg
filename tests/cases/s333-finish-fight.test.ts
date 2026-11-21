@@ -30,7 +30,7 @@ const stronger = (s: GameState, k: number) => { for (const sk of Object.values(s
 const input = { intent: null, aimed: false, agentOutputs: [], spokespeople: [] };
 
 describe('finishing a fight far below the player', () => {
-  it('IQ6 a: far below only when each foe is at most a quarter of the player and all together at most the player', () => {
+  it('IQ6 a: far below only when each foe is at most a quarter of the player and all together at most the player; IQ4 a: then Finish the fight plays the rounds on code to the end in one turn, and the Narrator is told so', () => {
     const s = fight();
     expect(s.mode).toBe('tactical');
     expect(farBelow(s)).toBeNull(); // the start player is not far above a guard
@@ -43,11 +43,8 @@ describe('finishing a fight far below the player', () => {
     finally { CONFIG.OUTCLASS_ALL = all; }
     s.mode = 'explore';
     expect(farBelow(s)).toBeNull(); // only in a fight
-  });
-
-  it('IQ4 a: Finish the fight plays the rounds on code to the end in one turn, and the Narrator is told so', () => {
-    const s = fight();
-    stronger(s, 10);
+    s.mode = 'tactical';
+    // IQ4 a: Finish the fight plays the rounds on code to the end in one turn, and the Narrator is told so
     const turn = s.turn, t0 = now(s), before = snapTurn(s);
     const out = finishFight(s, input, createRng(3), strike);
     expect(out.stop).toBe('over');
@@ -62,7 +59,10 @@ describe('finishing a fight far below the player', () => {
 
   it('IQ4 a: it hands the turn back when the player is hurt, a foe leaves the fight standing, or the fight stops qualifying', () => {
     const stops = new Set<string>();
-    for (let seed = 1; seed <= 40 && stops.size < 3; seed++) { // stops once all three ways back have been seen
+    // stops once all three ways back have been seen; 1, 4 and 13 reach them (over, wounded, foe_out), the rest are the fallback
+    const seeds = [1, 4, 13, ...Array.from({ length: 40 }, (_, i) => i + 1).filter((n) => ![1, 4, 13].includes(n))];
+    for (const seed of seeds) {
+      if (stops.size >= 3) break;
       const s = fight();
       stronger(s, 10);
       const guard = s.actors.find((a) => a.id === 'guard_1')!, lost = s.player.core.condition.hpLostPct;
@@ -80,5 +80,5 @@ describe('finishing a fight far below the player', () => {
     stronger(s, 10);
     stronger(s, 1 / 10);
     expect(finishFight(s, input, createRng(1), strike)).toMatchObject({ stop: 'no_longer', rounds: 0, events: [] });
-  }, 20000); // twelve whole fights; each win levels the player, a new sheet whose combat level is worked out afresh (about 0.3 s)
+  }, 20000); // whole fights; each win levels the player, a new sheet whose combat level is worked out afresh (about 0.3 s)
 });

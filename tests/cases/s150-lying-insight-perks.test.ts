@@ -67,7 +67,7 @@ describe('150 Falsehood and Insight perks', () => {
     expect(bluffed(s2, w2)).toBe(false);
   });
 
-  it('Takes One to Know One answers a lie with the better of Insight and Falsehood', () => {
+  it('Takes One to Know One answers a lie in words with the better of Insight and Falsehood, one told with the body with the better of Insight and Guile (GU2 b)', () => {
     const s = makeVillage();
     const wim = npc(s, 'patron_1');
     skill(wim, SK.insight, 5);
@@ -76,19 +76,11 @@ describe('150 Falsehood and Insight perks', () => {
     give(wim, PK.takes_one_to_know_one);
     expect(answerRoll(s, wim, SK.insight, 'player', forcedRng([50])).skill).toBe(SK.falsehood);
     expect(answerRoll(s, wim, SK.persuasion, 'player', forcedRng([50])).skill).not.toBe(SK.falsehood); // only lies
-  });
-
-  it('Takes One to Know One answers a lie told with the body with the better of Insight and Guile (GU2 b)', () => {
-    const s = makeVillage();
-    const wim = npc(s, 'patron_1');
     skill(wim, SK.insight, 30);
-    skill(wim, SK.falsehood, 60);
     skill(wim, SK.guile, 40);
-    give(wim, PK.takes_one_to_know_one);
     expect(answerRoll(s, wim, SK.insight, 'player', forcedRng([50]), [], 'body').skill).toBe(SK.guile);
     skill(wim, SK.guile, 0);
     expect(answerRoll(s, wim, SK.insight, 'player', forcedRng([50]), [], 'body').skill).toBe(SK.insight); // Falsehood 60 is not the pair
-    expect(answerRoll(s, wim, SK.insight, 'player', forcedRng([50])).skill).toBe(SK.falsehood); // a lie in words: it is
   });
 
   it('the unpicked skill of the pair augments the picked one by TAKES_ONE_SHARE, only on that kind of answer', () => {

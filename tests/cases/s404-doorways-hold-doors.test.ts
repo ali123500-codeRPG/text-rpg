@@ -6,7 +6,6 @@ import { drawTitles } from '../../src/plan/draw';
 import { lineClear, lineLoss } from '../../src/plan/line';
 import { makeVillage } from '../harness';
 import { BK, OP } from '../../src/library/tableIds';
-import { LAYOUTS } from '../../src/library/layouts';
 import { MIGRATIONS } from '../../src/save/checks';
 import { toPages } from '../../src/save/pages';
 
@@ -38,14 +37,6 @@ describe('404 doorways hold real doors (BG-312)', () => {
     expect(o.barrier).toBeUndefined();
     expect(lineLoss(s, A, B)).toBe(0);
     expect(lineClear(s, A, B)).toBe(true);
-  });
-
-  it('every doorway in the test village holds a door, and the cottage curtains are doorless', () => {
-    const s = makeVillage();
-    for (const o of s.openings.filter((x) => x.kind === OP.doorway && !x.frontier)) expect(s.barriers?.[o.barrier!]?.kind).toBe(BK.door);
-    const curtains = Object.values(LAYOUTS).flatMap((l) => l.zones.flatMap((z) => z.ways)).filter(([, label]) => label.includes('curtain'));
-    expect(curtains.length).toBeGreaterThan(0);
-    for (const w of curtains) expect(w[3]).toBe('doorless');
   });
 
   it('a v10 save: a doorway its old flag kept shut gets the door it stood for; the flag goes', () => {

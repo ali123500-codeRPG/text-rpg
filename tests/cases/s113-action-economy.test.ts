@@ -35,14 +35,6 @@ describe('113 action economy', () => {
     const ev = turn(s, intent({ toZone: 'gate_inner' }, { type: 'attack', target: 'slime_1' }));
     expect(ev.filter((e) => e.kind === 'attack' && e.actorId === 'player')).toHaveLength(1);
     expect(walked(ev)).toBeCloseTo(slotMetres(s, s.player, 'move', CONFIG.FIGHT_TURN_S - shot), 0);
-    const t = makeVillage();
-    place(t, 'player', 'field_edge');
-    bow(t);
-    t.player.core.inventory.find((i) => i.id === 'bow')!.itemId = IT.longbow; // a medium bow shot (TP9: 4 s) leaves less of the walk
-    const ev2 = turn(t, intent({ toZone: 'gate_inner' }, { type: 'attack', target: 'slime_1' }));
-    expect(ev2.some((e) => e.kind === 'attack' && e.actorId === 'player')).toBe(true);
-    expect(walked(ev2)).toBeCloseTo(slotMetres(t, t.player, 'move', CONFIG.FIGHT_TURN_S - actionSeconds(actionRow(DU.bow_medium)!)), 0);
-    expect(walked(ev2)).toBeLessThan(walked(ev));
     // BG-340: a crossbow's spanning is instant (TP8 a), so its shot locks movement like any shot (5 s leaves 1 s of the walk)
     const u = makeVillage();
     place(u, 'player', 'field_edge');
@@ -61,11 +53,15 @@ describe('113 action economy', () => {
     expect(walked(ev)).toBeGreaterThan(0);
     expect(ev.some((e) => e.kind === 'attack' && e.actorId === 'player')).toBe(false);
   });
-  it('a long move with no action is a dash (the main slot runs too); no running (60% of the legs, CS8) stops it', () => {
+  it('CO13: a long move with no action is a dash (the main slot runs too), with one only the move time; no running (60% of the legs, CS8) stops the dash', () => {
     const s = makeVillage();
     place(s, 'player', 'street_door');
     place(s, 'slime_1', 'field_edge'); // SZ11: a slime 0.3 m high is made out at 0.41 × a person's range; at the field's edge it is near enough that the turn is a fight
     expect(walked(turn(s, intent({ toZone: 'field_far' })))).toBeCloseTo(slots(s, 1, 1), 0);
+    const t = makeVillage();
+    place(t, 'player', 'street_door');
+    place(t, 'slime_1', 'field_edge');
+    expect(walked(turn(t, intent({ toZone: 'field_far' }, { type: 'attack', target: 'slime_1' })))).toBeCloseTo(slots(t, 1), 0); // a main action planned: the move time only
     // one Crippled leg of two is 50%: still runs
     const one = makeVillage();
     place(one, 'player', 'street_door');
@@ -82,12 +78,6 @@ describe('113 action economy', () => {
       expect(walked(turn(c, intent({ toZone: 'field_far' })))).toBeCloseTo(slots(c, 1), 0);
       expect(c.log.some((l) => l.code === 'dash_blocked')).toBe(true);
     }
-  });
-  it('CO13: a movement spends the move time first, then the main time when no action is planned', () => {
-    const t = makeVillage();
-    place(t, 'player', 'street_door');
-    place(t, 'slime_1', 'field_edge'); // SZ11: a slime 0.3 m high is made out at 0.41 × a person's range; at the field's edge it is near enough that the turn is a fight
-    expect(walked(turn(t, intent({ toZone: 'field_far' }, { type: 'attack', target: 'slime_1' })))).toBeCloseTo(slots(t, 1), 0); // a main action planned: the move time only
   });
   it('"after" resolves the action before the move', () => {
     const s = makeVillage();

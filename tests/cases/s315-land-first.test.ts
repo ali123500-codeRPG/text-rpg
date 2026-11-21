@@ -31,7 +31,7 @@ async function start(brief: unknown = BRIEF): Promise<{ s: GameState; views: Wea
 }
 
 describe('315 land first', () => {
-  it('draws the region from the brief, and the opening village stands on the start site', async () => {
+  it('draws the region from the brief and the opening village stands on the start site; from outdoors the player makes out the land, and it is saved; a road zone along a land road takes its length and danger', async () => {
     const { s, views } = await start();
     const r = s.regions![0];
     expect(r).toMatchObject({ name: 'The Wendvale', kind: RK.river_valley, gx: 0, gy: 0 });
@@ -48,17 +48,18 @@ describe('315 land first', () => {
     // the Weaver saw the land in words
     expect(views[0].land).toMatchObject({ name: 'The Wendvale', start: site.id });
     expect(views[0].land!.roads.length).toBeGreaterThan(0);
-  });
-
-  it('draws the region from its kind alone when no brief comes back', async () => {
-    const { s } = await start(null);
-    expect(s.regions![0].kind).toBe(RK.river_valley);
-    expect(s.regions![0].sites.length).toBeGreaterThan(2);
-    expect(s.log.some((l) => l.code === 'region_brief_fallback')).toBe(true);
-  });
-
-  it('a road zone along a road of the land takes its length and danger from it', async () => {
-    const { s } = await start();
+    // WZ13: from outdoors the player makes out the land around them, and it is saved
+    const out = s.places.flatMap((p) => p.zones).find((z) => z.outline.length && !roofed(s, z))!;
+    s.player.zone = out.id; s.player.placeId = out.placeId; s.player.pos = middle(out);
+    noteZonesSeen(s);
+    const seen = landSeen(s, r.id);
+    const n = r.heights.filter((_, i) => seen(i)).length;
+    expect(n).toBeGreaterThan(10);
+    expect(n).toBeLessThan(r.heights.length);
+    const back = fromPages(s.meta, { libraryVersion: s.libraryVersion } as Head, toPages(s));
+    expect(back.regions).toEqual(s.regions);
+    expect(back.player.journal!.landSeen).toEqual(s.player.journal!.landSeen);
+    // WZ4: the next scenario's road zone along a road of the land takes its length and danger from it
     const line = s.regions![0].roads[0];
     line.danger = 'wild';
     const d = new ScenarioDirector({ clock: new VirtualClock(), weave: async (view) => ({
@@ -76,17 +77,10 @@ describe('315 land first', () => {
     expect(line.zone).toBe(road.id);
   });
 
-  it('from outdoors the player makes out the land around them, and it is saved', async () => {
-    const { s } = await start();
-    const out = s.places.flatMap((p) => p.zones).find((z) => z.outline.length && !roofed(s, z))!;
-    s.player.zone = out.id; s.player.placeId = out.placeId; s.player.pos = middle(out);
-    noteZonesSeen(s);
-    const r = s.regions![0], seen = landSeen(s, r.id);
-    const n = r.heights.filter((_, i) => seen(i)).length;
-    expect(n).toBeGreaterThan(10);
-    expect(n).toBeLessThan(r.heights.length);
-    const back = fromPages(s.meta, { libraryVersion: s.libraryVersion } as Head, toPages(s));
-    expect(back.regions).toEqual(s.regions);
-    expect(back.player.journal!.landSeen).toEqual(s.player.journal!.landSeen);
+  it('draws the region from its kind alone when no brief comes back', async () => {
+    const { s } = await start(null);
+    expect(s.regions![0].kind).toBe(RK.river_valley);
+    expect(s.regions![0].sites.length).toBeGreaterThan(2);
+    expect(s.log.some((l) => l.code === 'region_brief_fallback')).toBe(true);
   });
 });

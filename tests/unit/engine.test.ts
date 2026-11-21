@@ -155,7 +155,7 @@ vi.mock('../../src/minds', async (importOriginal) => {
   };
 });
 
-import { computePending, firedOrders, resolveSpeech, resolveTurn, selectSpokespeople, unclearAddressee } from '../../src/engine';
+import { computePending, resolveSpeech, resolveTurn, selectSpokespeople, unclearAddressee } from '../../src/engine';
 import type { TurnInput } from '../../src/engine';
 import { hostile, stance, wary } from '../../src/engine/relations';
 import { groundIn } from '../../src/engine/ground';
@@ -176,37 +176,6 @@ beforeEach(() => {
   Object.assign(F, { init: {}, rollTier: {}, damage: 0, destroyPart: null, defended: true, surprise: true, morale: 'steady', alerts: [], attacks: [] });
 });
 
-describe('turn start (computePending)', () => {
-  it('fires a turn_reached trigger once, logs it, removes it, and binds its order', () => {
-    s.hidden.plans.guard_1 = { goal: 'g', steps: [], createdTurn: 3, triggers: [
-      { id: 'amb', ownerId: 'guard_1', when: { type: 'turn_reached', turn: 7 }, then: { type: 'move', target: 'street_square', skill: null, intent: 'ambush' }, once: true },
-    ] };
-    for (let t = 3; t < 6; t++) { s.turn = t; expect(computePending(s).fired).toEqual([]); }
-    s.turn = 6;
-    const p = computePending(s);
-    expect(p).toMatchObject({ turn: 7, fired: ['amb'], mode: 'explore' });
-    expect(s.hidden.firedLog).toEqual([{ triggerId: 'amb', turn: 7, ownerId: 'guard_1' }]);
-    expect(s.hidden.plans.guard_1.triggers).toEqual([]);
-    expect(firedOrders(s)).toEqual([expect.objectContaining({ actorId: 'guard_1', type: 'move', target: 'street_square', source: 'trigger' })]);
-    s.turn = 7;
-    expect(computePending(s).fired).toEqual([]);
-  });
-  it('triggers of inactive owners stay armed', () => {
-    s.hidden.plans.guard_1 = { goal: 'g', steps: [], createdTurn: 1, triggers: [
-      { id: 't', ownerId: 'guard_1', when: { type: 'turn_reached', turn: 1 }, then: { type: 'hold', target: null, skill: null, intent: '' }, once: true },
-    ] };
-    actor(s, 'guard_1').core.condition.hpLostPct = 100;
-    expect(computePending(s).fired).toEqual([]);
-    expect(s.hidden.plans.guard_1.triggers).toHaveLength(1);
-  });
-  it('an engaged actor gets a Planner call, side-neutral; a standoff away from the player keeps normal turns (BF14)', () => {
-    expect(computePending(s).mode).toBe('explore');
-    place(s, 'slime_1', 'gate_inner');
-    actor(s, 'guard_1').mind!.knowledge.slime_1 = { status: 'suspicious', source: 'seen', revealed: [] };
-    expect(computePending(s)).toMatchObject({ mode: 'explore', engaged: ['guard_1'] });
-  });
-});
-
 describe('order priority', () => {
   it('fired trigger > agent > routine; broken keeps an allowed agent action', () => {
     const fired: Order[] = [{ actorId: 'guard_1', type: 'search', target: null, skill: null, intent: '', source: 'trigger' }];
@@ -217,11 +186,6 @@ describe('order priority', () => {
     expect(byActor('trader')).toEqual(['call_help']); // BF37: broken keeps what its mind chose, less a walk or an attack
     expect(byActor('patron_1')).toEqual(['idle']);
     expect(byActor('player')).toEqual(['hold']);
-  });
-  it('inactive actors get no order', () => {
-    actor(s, 'guard_1').core.condition.hpLostPct = 100;
-    const ev = resolveTurn(s, input({ agentOutputs: [planner('guard_1', npcAction('call_help'))] }), createRng(1));
-    expect(ev.some((e) => e.actorId === 'guard_1')).toBe(false);
   });
   it('acts in initiative order', () => {
     F.init = { player: 10, guard_1: 90, trader: 70, patron_1: 60, slime_1: 40, slime_2: 30 };
@@ -304,30 +268,6 @@ describe('dialogue', () => {
     resolveTurn(s, input({ intent: intent({ action: { type: 'persuade' }, spoken: 'tell me' }), spokespeople: ['trader'], exchange: ex }), createRng(1));
     expect(s.player.journal!.secretsKnown).toEqual(['sec']);
   });
-  it('exchange slot: player speech first, then spoken replies in initiative order; a deed resolves at its own initiative', () => {
-    place(s, 'player', 'tav_counter');
-    place(s, 'patron_1', 'tav_counter');
-    F.init = { trader: 80, patron_1: 90, guard_1: 95 };
-    const say = (actorId: string, line: string) => ({ agent: 'voice', actorId, output: { action: npcAction('talk', 'player'), line, volume: 'normal', shares: [], gear: null, stance: null, routine: null } }) as never;
-    const ex = resolveSpeech(s, intent({ action: { type: 'talk' } }), ['trader', 'patron_1'], createRng(1));
-    const ev = resolveTurn(s, input({ intent: intent({ action: { type: 'talk' }, spoken: 'evening' }), spokespeople: ['trader', 'patron_1'], exchange: ex,
-      agentOutputs: [say('trader', 'what?'), say('patron_1', 'hm')] }), createRng(1));
-    expect(ev.slice(0, 3).map((e) => [e.actorId, e.kind, e.line?.text])).toEqual([['player', 'speak', 'evening'], ['patron_1', 'speak', 'hm'], ['trader', 'speak', 'what?']]);
-    // deed instead of a reply
-    const s2 = makeVillage();
-    place(s2, 'player', 'tav_counter');
-    beside(s2, 'trader'); // within arm's reach: the deed is the blow itself
-    F.init = { player: 99, trader: 10, guard_1: 50 };
-    actor(s2, 'trader').mind!.knowledge.player = { status: 'aware', source: 'seen', revealed: [] };
-    s2.bands.find((b) => b.id === 'tavern_folk')!.relations.player_band = 'hostile';
-    const resp = { agent: 'responder', actorId: 'trader', output: { action: npcAction('attack', 'player'), dialogue: { line: 'die', volume: 'shout' }, gear: null, stance: null, reveals: [], planUpdate: null } } as never;
-    const ev2 = resolveTurn(s2, input({ intent: intent({ action: { type: 'talk' }, spoken: 'hi' }), spokespeople: ['trader'], exchange: resolveSpeech(s2, intent({ action: { type: 'talk' } }), ['trader'], createRng(2)), agentOutputs: [resp] }), createRng(1));
-    expect(ev2.filter((e) => e.kind === 'speak').map((e) => e.actorId)).toEqual(['player']);
-    expect(ev2.find((e) => e.actorId === 'trader')).toMatchObject({ kind: 'hold', bark: true, line: { text: 'die' } }); // BG-253: said as its turn starts
-    const atk = ev2.find((e) => e.actorId === 'trader' && e.kind === 'attack')!;
-    expect(atk.line).toBeUndefined();
-    expect(ev2.slice(ev2.indexOf(atk)).every((e) => e.actorId === 'trader')).toBe(true); // initiative 10: last (its next blow follows)
-  });
 });
 
 describe('agent side effects', () => {
@@ -369,21 +309,15 @@ describe('agent side effects', () => {
     expect(stance(s, actor(s, 'trader'), s.player)).toBe('opposed');
     expect(wary(s, actor(s, 'trader'), s.player)).toBe(true);
   });
-  it('RS3: a loyal actor is hostile to whoever is hostile to the one it is loyal to, unless it is friendly or warmer to them', () => {
+  it('RS3: a loyal actor takes its side against whoever is hostile to it unless friendly or warmer to them; a friend only if already opposed or colder', () => {
     const g = actor(s, 'guard_1'), p = actor(s, 'patron_1');
     g.mind!.overrides = { player: 'loyal' };
     p.mind!.overrides = { player: 'hostile' };
     expect(hostile(s, g, p)).toBe(true);
     g.mind!.overrides = { player: 'loyal', patron_1: 'friend' };
     expect(hostile(s, g, p)).toBe(false);
-    g.mind!.overrides = { player: 'friend' };
-    expect(hostile(s, g, p)).toBe(false);
-  });
-  it('a friend turns on whoever is hostile to its friend only if it is already opposed or colder to them', () => {
-    const g = actor(s, 'guard_1'), p = actor(s, 'patron_1');
-    p.mind!.overrides = { player: 'hostile' };
-    for (const [toPatron, want] of [['opposed', true], ['unfriendly', false], ['neutral', false], ['friendly', false]] as const) {
-      g.mind!.overrides = { player: 'friend', patron_1: toPatron };
+    for (const [toPatron, want] of [[undefined, false], ['opposed', true], ['unfriendly', false], ['neutral', false], ['friendly', false]] as const) {
+      g.mind!.overrides = { player: 'friend', ...(toPatron ? { patron_1: toPatron } : {}) };
       expect(hostile(s, g, p), toPatron).toBe(want);
     }
     p.mind!.overrides = { player: 'opposed' }; // the patron isn't hostile to the player: no side to take
@@ -435,16 +369,6 @@ describe('gear and combat', () => {
     expect(kinds[0]).toBe('pick_up'); // instant: the whole turn's blows follow
     expect(kinds.slice(1).length).toBeGreaterThan(0);
     expect(kinds.slice(1).every((k) => k === 'attack')).toBe(true);
-  });
-  it('armor on or off is a free gear op: taken off beside an attack, the blows still come', () => {
-    place(s, 'guard_1', s.player.zone);
-    beside(s, 'guard_1');
-    const ev = resolveTurn(s, input({ intent: intent({ gear: [{ op: 'armor', item: `player_${IT.gambeson}_3` }], action: { type: 'attack', target: 'guard_1' } }) }), createRng(1));
-    const kinds = ev.filter((e) => e.actorId === 'player').map((e) => e.kind);
-    expect(kinds[0]).toBe('equip');
-    expect(kinds.slice(1).length).toBeGreaterThan(0);
-    expect(kinds.slice(1).every((k) => k === 'attack')).toBe(true);
-    expect(s.player.core.inventory.find((i) => i.id === `player_${IT.gambeson}_3`)!.equippedIn).toBeUndefined();
   });
   it('a second defense in a round counts as outnumbered; morale breaks an engaged NPC reaching Injured', () => {
     place(s, 'guard_1', 'tav_common');

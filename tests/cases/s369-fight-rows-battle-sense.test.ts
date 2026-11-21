@@ -31,7 +31,7 @@ const orderOf = (s: GameState, a: Actor) => fallbackOrder(withTactics(s, a, buil
 
 describe('369 Battle Sense fight rows', () => {
 
-  it('B1: outnumbered with Battle Sense 20 it calls for help, once a fight; without it, it attacks as before', () => {
+  it('B1: outnumbered with Battle Sense 20 it calls for help, once a fight; without it, it attacks as before; the Planner\'s view carries no tactics', () => {
     const { s, patron } = outnumbered();
     skill(patron, SK.battle_sense, 0);
     expect(orderOf(s, patron).type).toBe('attack');
@@ -44,12 +44,8 @@ describe('369 Battle Sense fight rows', () => {
     expect(orderOf(s, patron).type).toBe('call_help');
     patron.mind!.rowsUsed = { [FX.call_help]: s.turn };
     expect(orderOf(s, patron).type).toBe('attack');
-  });
-
-  it('the view the Planner gets carries no tactics', () => {
-    const { s, patron } = outnumbered();
     skill(patron, SK.battle_sense, 80);
-    expect(buildActorView(s, patron.id).tactics).toBeUndefined();
+    expect(buildActorView(s, patron.id).tactics).toBeUndefined(); // the view the Planner gets carries no tactics
   });
 
   it('TC7: a bandmate it hears lends its Command to every row; out of earshot it does not', () => {

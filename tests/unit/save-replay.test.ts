@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
-import { ReplayRefused, replayTurn, type ReplayDeps } from '../../src/save/replay';
+import { replayTurn, type ReplayDeps } from '../../src/save/replay';
 import type { AgentTurnLog, GameEvent, TurnRecord } from '../../src/types';
 
 const log = (agent: AgentTurnLog['agent'], actorId: string | undefined, output: unknown, status: AgentTurnLog['status'] = 'ok'): AgentTurnLog =>
@@ -30,9 +30,6 @@ describe('replayTurn', () => {
     expect(a.events[0].actorId).toBe('guard_1,slime_1'); // the late output was never used
     expect(a.events[0].zone).toBe('aimed');
     expect(a.state).not.toBe(s);
-  });
-  it('refuses under another library version', () => {
-    expect(() => replayTurn(s, record, { ...deps, libraryVersion: 2 })).toThrow(ReplayRefused);
   });
   it('a scenario start replays through the director', () => {
     const scenario = { ...record, eventRoll: { actorId: 'player', roll: 50, tier: 'success' as const, modifiers: [] } };

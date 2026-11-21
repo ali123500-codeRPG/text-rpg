@@ -28,8 +28,12 @@ function atTheGate(): GameState {
   return s;
 }
 
-it('146a an NPC intimidation at the player rolls a contest the player answers', () => {
+it('146a/b plain talk from an NPC does not roll; an NPC intimidation at the player rolls a contest the player answers', () => {
   const s = atTheGate();
+  const talk = play(s, { agentOutputs: [plannerOut('guard_1', act('talk', 'player'), { dialogue: { line: 'Move along.', volume: 'normal' } })] });
+  const said = talk.find((x) => x.kind === 'speak' && x.actorId === 'guard_1')!;
+  expect(said.contest).toBeUndefined();
+  expect(said.push).toBeUndefined();
   const ev = play(s, { agentOutputs: [plannerOut('guard_1', act('intimidate', 'player'), { dialogue: { line: 'Drop the blade.', volume: 'normal' } })] });
   const e = ev.find((x) => x.kind === 'speak' && x.actorId === 'guard_1')!;
   expect(e.contest!.a).toMatchObject({ actorId: 'guard_1', skill: SK.intimidation });
@@ -42,15 +46,7 @@ it('146a an NPC intimidation at the player rolls a contest the player answers', 
   expect(JSON.stringify(nv.pressed)).not.toMatch(/intimidat|tier|\d/i); // words only, no type or numbers
 });
 
-it('146b plain talk from an NPC does not roll', () => {
-  const s = atTheGate();
-  const ev = play(s, { agentOutputs: [plannerOut('guard_1', act('talk', 'player'), { dialogue: { line: 'Move along.', volume: 'normal' } })] });
-  const e = ev.find((x) => x.kind === 'speak' && x.actorId === 'guard_1')!;
-  expect(e.contest).toBeUndefined();
-  expect(e.push).toBeUndefined();
-});
-
-it('146c one rule both ways: Shaken and Swayed scale with the gap, the bigger stands, and they end with the engagement', () => {
+it('146c/d one rule both ways: Shaken and Swayed scale with the gap, the bigger stands, they count on every roll against the speaker (NT15), and they end with the engagement', () => {
   const s = atTheGate();
   const g = actorById(s, 'guard_1')!;
   expect(applySpeech(g, s.player, 'intimidate', won('guard_1', 'player', -3))).toEqual({ status: 'shaken' });
@@ -62,14 +58,7 @@ it('146c one rule both ways: Shaken and Swayed scale with the gap, the bigger st
   expect(applySpeech(g, s.player, 'intimidate', won('guard_1', 'player', 0))).toEqual({});
   expect(applySpeech(g, s.player, 'deceive', won('guard_1', 'player', 1))).toEqual({ tell: true });
   expect(applySpeech(g, s.player, 'deceive', won('guard_1', 'player', -1))).toEqual({});
-  s.player.engagement = { start: 0, last: s.pending.turn - 1, kinds: ['talk'] };
-  ago(s, s.pending.turn - 1, engagementEndS());
-  play(s);
-  expect(s.player.pressure).toBeUndefined();
-});
-
-it('146d Shaken and Swayed count on every roll against the speaker (NT15)', () => {
-  const s = atTheGate();
+  // NT15: Shaken and Swayed count on every roll against the speaker
   s.player.pressure = { guard_1: { shaken: 10, swayed: 5 } };
   const rng = createRng(1);
   const mods = (skill: string, against?: string) => ruleset.roll({ actorId: s.player.id, skill, modifiers: [], tierShifts: [], against }, s, rng).modifiers;
@@ -77,6 +66,10 @@ it('146d Shaken and Swayed count on every roll against the speaker (NT15)', () =
   expect(mods(SK.melee_medium, 'guard_1')).toContainEqual({ source: 'Swayed', type: 'status', value: -5 });
   expect(mods(SK.persuasion, 'guard_1')).toContainEqual({ source: 'Swayed', type: 'status', value: -5 });
   expect(mods(SK.melee_medium, 'trader').some((m) => m.type === 'status')).toBe(false);
+  s.player.engagement = { start: 0, last: s.pending.turn - 1, kinds: ['talk'] };
+  ago(s, s.pending.turn - 1, engagementEndS());
+  play(s);
+  expect(s.player.pressure).toBeUndefined();
 });
 
 it('146g a repeat try of the same kind at the same listener costs the speaker 15 per earlier try; talk never counts (NT3)', () => {

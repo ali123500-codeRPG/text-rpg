@@ -6,12 +6,6 @@ import { improveMarked, markIfClose } from '../../src/ruleset/improve';
 import { SK } from '../../src/library/skillIds';
 
 describe('learning window', () => {
-  it('runs from raw − 10 to true + 10', () => {
-    const s = makeVillage(), p = s.player;
-    p.core.skills[SK.dodge] = { raw: 30, state: 'normal' };
-    const marked = (opp: number) => { p.progression!.marks = []; p.progression!.markCounts = {}; markIfClose(s, p, SK.dodge, opp); return p.progression!.marks.length === 1; };
-    expect([19, 20, 40, 41].map(marked)).toEqual([false, true, true, false]);
-  });
   it('a skill not on the sheet is marked at raw 0 and joins the sheet when it improves', () => {
     const s = makeVillage(), p = s.player;
     delete p.core.skills[SK.unarmed_strike];

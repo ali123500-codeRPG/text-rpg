@@ -147,31 +147,23 @@ describe('183 scenario endings (SC1-SC13)', () => {
 
 describe('183 scenario plans (SC2, SC3, SC7)', () => {
   const ctx = { tier: 'success' as const, kind: 'scenario' as const, placeId: 'village' };
-  it('a scenario plan needs its question, a known scale and two or three endings that name real things', () => {
+  it('a scenario plan needs its question, a known scale and two or three endings that name real things; code raises a scale too small; an extension needs none', () => {
     const s = makeVillage();
     const p = villageStagePlan();
     delete p.scenario;
     expect(validateStagePlan(s, p, ctx).map((e) => e.code)).toContain('scenario_missing');
+    expect(validateStagePlan(s, p, { ...ctx, kind: 'extension', frontierKey: 'x' }).map((e) => e.code)).not.toContain('scenario_missing');
     const q = villageStagePlan();
     q.scenario!.endings = [q.scenario!.endings[0]];
     expect(validateStagePlan(s, q, ctx).map((e) => e.code)).toContain('scenario_endings');
     const r = villageStagePlan();
     r.scenario!.endings[0].when = { kind: 'band_out', band: 'nobody' };
     expect(validateStagePlan(s, r, ctx).find((e) => e.code === 'scenario_ending')).toMatchObject({ routineOnly: true });
-  });
-  it('code raises a scale too small for the plan\'s places', () => {
     expect(scaleFor(3, 'moment')).toBe('episode');
-    const s = makeVillage();
-    const p = villageStagePlan();
-    p.scenario!.scale = 'moment';
-    expect(validateStagePlan(s, p, ctx).find((e) => e.code === 'scenario_scale_raised')).toMatchObject({ repaired: true });
-    expect(p.scenario!.scale).toBe('episode');
-  });
-  it('a frontier extension needs no scenario', () => {
-    const s = makeVillage();
-    const p = villageStagePlan();
-    delete p.scenario;
-    expect(validateStagePlan(s, p, { ...ctx, kind: 'extension', frontierKey: 'x' }).map((e) => e.code)).not.toContain('scenario_missing');
+    const m = villageStagePlan();
+    m.scenario!.scale = 'moment';
+    expect(validateStagePlan(s, m, ctx).find((e) => e.code === 'scenario_scale_raised')).toMatchObject({ repaired: true });
+    expect(m.scenario!.scale).toBe('episode');
   });
 });
 

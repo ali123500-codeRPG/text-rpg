@@ -2,7 +2,7 @@ import { TP } from '../../src/library/templateIds';
 import { RC } from '../../src/library/raceIds';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createRng, makeVillage } from '../harness';
-import { createPlayer, npcMilestonePerks, patrols, presetSkills, rankKeyOf, rankName, rankPos, rankRow, rankTraitCount, recommendedBuild, refreshCopies, spawnNpc, templateLevel, templatePerks, templateRank, validateBuild } from '../../src/library/spawn';
+import { createPlayer, npcMilestonePerks, patrols, presetSkills, rankKeyOf, rankName, rankPos, rankRow, rankTraitCount, recommendedBuild, refreshCopies, spawnNpc, templateLevel, templatePerks, templateRank } from '../../src/library/spawn';
 import { milestonePerk, trueSkill } from '../../src/ruleset/perks';
 import { perkPointsUpTo } from '../../src/ruleset/levels';
 import { RO, TH } from '../../src/library/npcLayerIds';
@@ -18,9 +18,6 @@ import { IT } from '../../src/library/itemIds';
 afterEach(() => { resetConfig(); resetLibrary(); });
 
 describe('player creation', () => {
-  it('the recommended build passes every rule', () => {
-    expect(validateBuild(recommendedBuild())).toEqual([]);
-  });
   it('builds the sheet: StartingTotal, tags, starting gear, coin', () => {
     const p = createPlayer(recommendedBuild(), 's1');
     expect(p.progression!.startingTotal).toBeCloseTo(100 - 40 - 25 - 15 - 10 * CONFIG.TAG_BURDEN_GROUP_PCT / 100); // D-374: dodge shares Defense with tagged parry

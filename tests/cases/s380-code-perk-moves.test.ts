@@ -38,15 +38,6 @@ function fight(m: number) {
 }
 
 describe('380 Code-run NPCs and perk moves', () => {
-  it('TC54 a: on the fight\'s first turn, with a foe in sight but none in melee reach, it roars while it closes in', () => {
-    const { s, p } = fight(12);
-    give(p, PK.battle_cry);
-    const o = decide(s, p);
-    expect(o).toMatchObject({ type: 'hold', perkMove: { perk: PK.battle_cry, target: null }, move: s.player.zone, moveSpot: { near: s.player.id } });
-    countPerkMove(s, p, PK.battle_cry, null); // once a fight
-    expect(decide(s, p).perkMove).toBeUndefined();
-  });
-
   it('TC56 a: the same opening draws them in, beside its walk, unless it backs off or flees', () => {
     const { s, p } = fight(12);
     give(p, PK.draw_them_in);
@@ -134,11 +125,14 @@ describe('380 Code-run NPCs and perk moves', () => {
     expect(up.target).toBeTruthy();
   });
 
-  it('in play, a code-run NPC roars on its own (mergeOrders weighs the perk moves on its fight-list order)', async () => {
+  it('TC54 a: in play, on the fight\'s first turn with a foe in sight but none in melee reach, a code-run NPC roars while it closes in, once a fight (mergeOrders weighs the perk moves on its fight-list order)', async () => {
     const { play } = await import('./w4-kit');
     const { s, p } = fight(12);
     give(p, PK.battle_cry);
+    const from = Math.hypot(p.pos!.x - s.player.pos!.x, p.pos!.y - s.player.pos!.y);
     const ev = play(s, {});
     expect(ev.some((e) => e.kind === 'battle_cry' && e.actorId === p.id)).toBe(true);
+    expect(Math.hypot(p.pos!.x - s.player.pos!.x, p.pos!.y - s.player.pos!.y)).toBeLessThan(from); // it closes in while it roars
+    expect(decide(s, p).perkMove).toBeUndefined(); // once a fight
   });
 });

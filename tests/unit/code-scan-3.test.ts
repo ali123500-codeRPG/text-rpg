@@ -14,11 +14,12 @@ const tick = async () => { for (let i = 0; i < 20; i++) await new Promise((r) =>
 afterEach(() => resetConfig());
 
 describe('BG-123 GM backups', () => {
-  it('lists the backups after a load and restores one, keeping play going from that turn', async () => {
+  it('lists the backups after a load and restores one, keeping play going from that turn; BG-161: the story text of the turns after it is dropped, on screen and in the saved story', async () => {
     const clock = new VirtualClock(), store = memoryStore();
     const s = makeVillage(); // resets the config, so the lever is set after it
     CONFIG.BACKUP_EVERY = 2;
     for (let t = 1; t <= 4; t++) { s.turn = t; s.clocks.last = t; await saveTurn(store, s, rec(s)); }
+    await saveHistory(store, s.storyId, [1, 2, 3, 4].map((turn) => ({ turn, kind: 'narration' as const, text: `turn ${turn}` })), 0);
     const g = createGame({ client: new ScriptedClaude(clock), clock, store, director: idle });
     expect(await g.resume()).toBe(true);
     await tick();
@@ -27,18 +28,6 @@ describe('BG-123 GM backups', () => {
     expect(g.state()?.clocks.last).toBe(2);
     expect(g.lines().at(-1)?.text).toBe('Restored the backup from turn 2.');
     expect(g.notices().some((n) => n.kind === 'load_refused')).toBe(false);
-  });
-
-  it('BG-161: a restored backup drops the story text of the turns after it, on screen and in the saved story', async () => {
-    const clock = new VirtualClock(), store = memoryStore();
-    const s = makeVillage();
-    CONFIG.BACKUP_EVERY = 2;
-    for (let t = 1; t <= 4; t++) { s.turn = t; s.clocks.last = t; await saveTurn(store, s, rec(s)); }
-    await saveHistory(store, s.storyId, [1, 2, 3, 4].map((turn) => ({ turn, kind: 'narration' as const, text: `turn ${turn}` })), 0);
-    const g = createGame({ client: new ScriptedClaude(clock), clock, store, director: idle });
-    await g.resume();
-    await tick();
-    await g.restoreBackup(2);
     const told = (ls: { kind: string; turn: number }[]) => ls.filter((l) => l.kind === 'narration').map((l) => l.turn);
     expect(told(g.lines())).toEqual([1, 2]);
     expect(told(await loadHistory(store, s.storyId))).toEqual([1, 2]);

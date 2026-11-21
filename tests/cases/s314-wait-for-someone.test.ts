@@ -38,10 +38,13 @@ describe('BG-231: wait until someone appears', () => {
     expect(s.player.posture).toBe('stealthy');
     expect(mechanicsLines(s, ev).some((l) => /^Wait stopped after .*: someone came into sight or hearing$/.test(l))).toBe(true);
   });
-  it('with nobody coming it stops after WAIT_SOMEONE_MAX_H, and says how long passed', () => {
+  it('the Parser may name "someone" as a wait\'s target; with nobody coming it stops after WAIT_SOMEONE_MAX_H, and says how long passed', () => {
     const s = alone();
+    const leg = checkParserLegality(waitFor('someone'), buildPlayerView(s));
+    expect(leg.illegal).toEqual([]);
+    expect(leg.intent.action).toMatchObject({ type: 'wait', target: WAIT_SOMEONE });
     const t = now(s);
-    const ev = play(s, { intent: waitFor(WAIT_SOMEONE) });
+    const ev = play(s, { intent: leg.intent });
     expect(stopped(s)).toBeUndefined();
     expect(now(s) - t).toBeCloseTo(CONFIG.WAIT_SOMEONE_MAX_H * 60, 0);
     expect(mechanicsLines(s, ev).some((l) => l.startsWith(`Time passes: ${CONFIG.WAIT_SOMEONE_MAX_H} h`))).toBe(true);
@@ -52,13 +55,6 @@ describe('BG-231: wait until someone appears', () => {
     play(s, { intent: waitFor(WAIT_SOMEONE) });
     expect(stopped(s)?.by ?? []).not.toContain('patron_1');
     expect(now(s) - t).toBeGreaterThan(1);
-  });
-  it('the Parser may name "someone" as a wait\'s target', () => {
-    const s = alone();
-    const pv = buildPlayerView(s);
-    const leg = checkParserLegality(waitFor('someone'), pv);
-    expect(leg.illegal).toEqual([]);
-    expect(leg.intent.action).toMatchObject({ type: 'wait', target: WAIT_SOMEONE });
   });
 });
 

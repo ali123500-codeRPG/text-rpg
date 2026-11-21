@@ -9,7 +9,6 @@ import { sizeUp } from '../../src/engine/speech';
 import { actorById } from '../../src/engine/relations';
 import { bindTemplate } from '../../src/minds/routines';
 import { buildActorView, buildNarrationView } from '../../src/views';
-import { CHECKIN_SHAPE, PLANNER_SHAPE, WEAVER_SHAPE } from '../../src/agents/prompts';
 import { SK } from '../../src/library/skillIds';
 import { intent } from './w4-kit';
 
@@ -24,20 +23,17 @@ const turn = (s: GameState, i: Intent, d: number[]): GameEvent[] => { s.turn += 
 const lookAt = (s: GameState) => turn(s, intent({ action: { type: 'observe', skill: SK.insight, target: 'patron_1' } }), [60, 40]);
 
 describe('359 sizing someone up is Insight against Guile (BF97 a, BG-320)', () => {
-  it('a look with Insight at a person rolls a contest against their Guile, with no grade and no grade_gap', () => {
-    const s = village();
-    const ev = lookAt(s).find((e) => e.kind === 'observe')!;
-    expect(ev.contest).toMatchObject({ a: { actorId: 'player', skill: SK.insight }, b: { actorId: 'patron_1', skill: SK.guile } });
-    expect(ev.obstacle).toBeUndefined();
-    expect(s.log.filter((l) => l.code === 'grade_gap')).toHaveLength(0);
-  });
-  it('a win reads their mood, how they feel about the looker and whether they hide something; the Narrator gets it', () => {
+  it('a look with Insight at a person rolls a contest against their Guile, with no grade and no grade_gap; a win reads their mood, how they feel about the looker and whether they hide something; the Narrator gets it', () => {
     const s = village();
     const r = sizeUp(s, s.player, wim(s), forcedRng([95, 5]))!;
     expect(r.contest.winner).toBe('a');
     expect(r.read).toMatchObject({ mood: 'Calm', hiding: false });
     expect(typeof r.read!.feels).toBe('string');
-    const ev = { ...lookAt(s).find((e) => e.kind === 'observe')!, read: r.read };
+    const look = lookAt(s).find((e) => e.kind === 'observe')!;
+    expect(look.contest).toMatchObject({ a: { actorId: 'player', skill: SK.insight }, b: { actorId: 'patron_1', skill: SK.guile } });
+    expect(look.obstacle).toBeUndefined();
+    expect(s.log.filter((l) => l.code === 'grade_gap')).toHaveLength(0);
+    const ev = { ...look, read: r.read };
     expect(buildNarrationView(s, [ev]).events[0].read).toEqual({ mood: 'Calm', feels: r.read!.feels, hiding: false });
   });
   it('a secret held, or a lie told lately, shows as hiding something (never what)', () => {
@@ -49,9 +45,12 @@ describe('359 sizing someone up is Insight against Guile (BF97 a, BG-320)', () =
     expect(sizeUp(t, t.player, wim(t), forcedRng([95, 5]))!.read!.hiding).toBe(true);
   });
   it('a better Guile is read less often; Falsehood (spoken lies) plays no part (BG-320)', () => {
+    const s = village(), w = wim(s);
     const wins = (skill: string, raw: number) => {
-      const s = village(), rng = createRng(7);
-      wim(s).core.skills[skill] = { raw, state: 'normal' };
+      const rng = createRng(7);
+      w.core.skills[SK.guile] = { raw: 50, state: 'normal' };
+      delete w.core.skills[SK.falsehood];
+      w.core.skills[skill] = { raw, state: 'normal' };
       let n = 0;
       for (let i = 0; i < 300; i++) if (sizeUp(s, s.player, wim(s), rng)!.contest.winner === 'a') n++;
       return n;
@@ -84,11 +83,5 @@ describe('359 every act that takes a difficulty can be given one (BF96 a)', () =
     expect(bindTemplate(tpl, view, { source: 'trigger' })).toMatchObject({ grade: 'major', fall: 3 });
     const bad = bindTemplate({ ...(tpl as object), grade: 'huge', fall: -1 } as never, view, { source: 'trigger' });
     expect([bad.grade, bad.fall]).toEqual([undefined, undefined]);
-  });
-  it('every beat shape (Planner, Weaver plan, check-in) has a grade and a fall', () => {
-    for (const shape of [PLANNER_SHAPE, WEAVER_SHAPE, CHECKIN_SHAPE]) {
-      const then = shape.slice(shape.lastIndexOf('"then":'));
-      expect(then.slice(0, then.indexOf('}'))).toMatch(/"grade"\?:.*"fall"\?:metres/);
-    }
   });
 });

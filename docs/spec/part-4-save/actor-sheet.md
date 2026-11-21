@@ -257,8 +257,7 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
 - **SHEET-162** Today: light melee dagger / short sword; medium melee hand axe / arming sword, spear; heavy melee
   woodsman's axe / greatsword; light ranged shortbow / recurve bow; medium ranged flatbow / longbow; heavy ranged light
   crossbow / stirrup crossbow; light armor gambeson / boiled leather (plus Crude rough clothes); medium armor brigandine
-  / mail hauberk; heavy armor lamellar coat / half plate; shield round shield / kite shield (tests/cases/s143 checks
-  it).
+  / mail hauberk; heavy armor lamellar coat / half plate; shield round shield / kite shield.
 - **SHEET-163** After creation the player gets, per gear class, only the highest-level starter item whose equip
   requirement the build meets (`starterKit`).
 - **SHEET-164** The weapon whose required skill is highest is held (then the higher level), a met shield goes in the

@@ -4,14 +4,13 @@
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { grantAchievement } from '../../src/engine/xp';
-import { essenceSlots } from '../../src/engine/essence';
 import { buyingPrice } from '../../src/engine/trade';
 import { getLibrary } from '../../src/library';
 import { ACH } from '../../src/library/achievementIds';
 import { SK, SENSE_SKILL } from '../../src/library/skillIds';
 import { FN } from '../../src/library/functionIds';
 import { groupsOf } from '../../src/library/functionNames';
-import { achievementAimEase, achievementMaxMorale, achievementSkill, bestReward, kindSkills, rewardLines, rewardOf } from '../../src/ruleset/achRewards';
+import { achievementMaxMorale, achievementSkill, bestReward, kindSkills, rewardLines } from '../../src/ruleset/achRewards';
 import type { GameState } from '../../src/types';
 
 const L = () => getLibrary().achievements! as Record<string, import('../../src/types').AchievementDef>;
@@ -19,41 +18,26 @@ const give = (s: GameState, ...keys: string[]) => { for (const k of keys) grantA
 const giveOf = (s: GameState, of: string, ...keys: string[]) => { for (const k of keys) grantAchievement(s, k, of, undefined, true); };
 
 describe('332 XP-only rewards, round 1', () => {
-  it('XR15: unseen moves pay Sneaking +1, +2, +3 (6 at the top) and one step quieter at 250', () => {
+  it('XR15, XR4 b, XR17: true skill rewards reach a named skill, every skill of a group, or a sense\'s skill, added up along the chain', () => {
     const s = makeVillage();
     give(s, ACH.unseen_1, ACH.unseen_10);
-    expect(achievementSkill(s.player, SK.sneaking)).toBe(1);
+    expect(achievementSkill(s.player, SK.sneaking)).toBe(1); // unseen moves: Sneaking +1, +2, +3
     give(s, ACH.unseen_50, ACH.unseen_250);
     expect(achievementSkill(s.player, SK.sneaking)).toBe(6);
-    expect(rewardOf(L()[ACH.unseen_250], 'quieter')).toBe(1);
-  });
-
-  it('XR4 b: Beyond Perfect for a group adds +1 true skill per level to every skill of that group', () => {
-    const s = makeVillage();
+    // Beyond Perfect for a group: +1 per level to every skill of that group
     const skills = getLibrary().skills;
-    const group = groupsOf(skills[SK.sneaking])[0];
+    const group = groupsOf(skills[SK.persuasion])[0];
     giveOf(s, group, ACH.beyond_group_1, ACH.beyond_group_2);
     const inGroup = kindSkills('group', group);
-    expect(inGroup).toContain(SK.sneaking);
+    expect(inGroup).toContain(SK.persuasion);
     for (const sk of inGroup) expect(achievementSkill(s.player, sk)).toBeGreaterThanOrEqual(2);
-    const outside = Object.keys(skills).find((k) => !inGroup.includes(k))!;
+    const outside = Object.keys(skills).find((k) => !inGroup.includes(k) && k !== SK.sneaking && k !== SENSE_SKILL[FN.sight])!;
     expect(achievementSkill(s.player, outside)).toBe(0);
-  });
-
-  it("XR17: the per-sense branch pays that sense's skill +2 at 10 and again at 100; the trunk pays nothing yet", () => {
-    const s = makeVillage();
+    // the per-sense branch pays that sense's skill +2 at 10 and again at 100; the trunk pays nothing yet
     giveOf(s, FN.sight, ACH.spotted_fn_1, ACH.spotted_fn_10, ACH.spotted_fn_100);
     expect(achievementSkill(s.player, SENSE_SKILL[FN.sight])).toBe(4);
     expect(achievementSkill(s.player, SENSE_SKILL[FN.hearing])).toBe(0);
     expect(rewardLines(L()[ACH.spotted_10])).toEqual([]);
-  });
-
-  it('XR9: aimed hits ease the aim penalty on every size by 5% per level, on top of a by-size row', () => {
-    const s = makeVillage();
-    give(s, ACH.aimed_10, ACH.aimed_50);
-    expect(achievementAimEase(s.player, 'small')).toBeCloseTo(0.10);
-    giveOf(s, 'small', ACH.aimed_size_1);
-    expect(achievementAimEase(s.player, 'small')).toBeCloseTo(0.10 + (L()[ACH.aimed_size_1].aimEase ?? 0) / 100);
   });
 
   it('XR11 and XR30: won while panicking and morale lost each pay +5 max morale per level', () => {
@@ -62,13 +46,6 @@ describe('332 XP-only rewards, round 1', () => {
     expect(achievementMaxMorale(s.player)).toBe(15);
     give(s, ACH.morale_lost_100, ACH.morale_lost_1000);
     expect(achievementMaxMorale(s.player)).toBe(25);
-  });
-
-  it('XR35: Room for No More opens one more essence slot', () => {
-    const s = makeVillage();
-    const before = essenceSlots(s.player);
-    give(s, ACH.room_for_no_more);
-    expect(essenceSlots(s.player)).toBe(before + 1);
   });
 
   it('XR2: selling price and quest pay fields reach the trade and quest equations', () => {

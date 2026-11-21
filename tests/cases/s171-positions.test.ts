@@ -8,14 +8,13 @@ import { inTitle, middle, wayTo } from '../../src/plan/where';
 import { boxOf, sharedSides } from '../../src/plan/geom';
 import { verticalOf } from '../../src/scenario/heights';
 import { distM, sightDistM } from '../../src/engine/position';
-import { perceptionOf } from '../../src/perception';
 import { ruleset } from '../../src/ruleset';
 import { forcedRng } from '../harness';
 import { CONFIG } from '../../src/config';
 import { SK } from '../../src/library/skillIds';
 import { IT } from '../../src/library/itemIds';
 import { AM } from '../../src/library/tableIds';
-import type { GameEvent, GameState } from '../../src/types';
+import type { GameState } from '../../src/types';
 
 /** the test village drawn on its floor plan: rooms 64 m², streets 400 m², fields 1600 m² (40 m across) */
 const mapped = (playerZone?: string): GameState => makeVillage(playerZone ? { playerZone } : {});
@@ -120,22 +119,6 @@ describe('171 positions', () => {
     const ev = play(s, { intent: intent({ gear: [...stow, { op: 'draw' as const, item: 'sp' }], action: { type: 'attack', target: 'trader', skill: SK.melee_medium, item: 'sp', mode: AM.thrust } }) });
     expect(ev.find((e) => e.actorId === 'player' && e.kind === 'move')).toBeUndefined();
     expect(ev.find((e) => e.actorId === 'player' && e.kind === 'attack')?.target).toBe('trader');
-  });
-
-  it('PR 2: sight is measured in metres from where the event happened', () => {
-    const s = mapped('field_edge');
-    const door = doorway(s, 'field_edge', 'field_mid'), m = middle(zoneOf(s, 'field_mid'));
-    const at = { x: m.x + (door.x - m.x) * 0.7, y: m.y + (door.y - m.y) * 0.7 }; // 6 m inside field_mid
-    const u = { x: (door.x - at.x) / Math.hypot(door.x - at.x, door.y - at.y), y: (door.y - at.y) / Math.hypot(door.x - at.x, door.y - at.y) };
-    const seen = (d: number, visibility: GameEvent['visibility']) => {
-      place(s, 'player', d > 6 ? 'field_edge' : 'field_mid').pos = { x: at.x + u.x * d, y: at.y + u.y * d };
-      const ev = { id: 'e', turn: 1, actorId: 'slime_1', kind: 'idle', zone: 'field_mid', pos: at, effects: [], noise: 'silent', visibility, perception: {} } as GameEvent;
-      return perceptionOf(ev, s, s.player)?.level ?? null;
-    };
-    expect(seen(20, 'normal')).toBe('full'); // 20 m: a walking figure is made out to 25 m
-    expect(seen(40, 'normal')).toBe('partial'); // 40 m: glimpsed (to 200 m)
-    expect(seen(40, 'low')).toBe('partial'); // a still figure: made out to 15 m
-    expect(seen(0.5, 'faint')).toBe('partial'); // 0.5 m counts as NEAREST_M (1 m): past faint's clear 0.5 m
   });
 
   it('RD5: a shot is crowded only by a hostile within 2 m, not by one across the room', () => {

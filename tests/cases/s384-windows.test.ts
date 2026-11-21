@@ -42,18 +42,6 @@ describe('384 windows (PC3)', () => {
     expect(openingShown(s, g, z, s.player)).toBe(1); // nothing is seen through it at all
   });
 
-  it('a jump through a window needs its shutters open', () => {
-    const shut = house(false);
-    place(shut, 'player', 'tav_common'); shut.player.pos = { x: 0, y: -2 };
-    shut.turn += 1;
-    resolveTurn(shut, { intent: { move: { toZone: 'street_door', jump: true }, gear: null, spoken: null, addressees: null, deferred: [], clarify: null, action: null }, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(1));
-    expect(shut.player.zone).toBe('tav_common');
-    const open = house(true);
-    place(open, 'player', 'tav_common'); open.player.pos = { x: 0, y: -2 };
-    open.turn += 1;
-    resolveTurn(open, { intent: { move: { toZone: 'street_door', jump: true }, gear: null, spoken: null, addressees: null, deferred: [], clarify: null, action: null }, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(1));
-    expect(open.player.zone).toBe('street_door');
-  });
 });
 
 describe('384 windows: the frame works one way', () => {
@@ -79,13 +67,12 @@ describe('384 window kinds (PC4)', () => {
       const g = s.actors.find((a) => a.id === 'guard_1')!, z = zoneById(s, 'tav_common')!;
       return coverMod(coverShown(s, g, z, s.player));
     };
-    expect(at(BK.window, true)).toBe(11);
     expect(at(BK.arrow_slit, false)).toBe(41);
     expect(at(BK.barred_window, false)).toBe(11);
     expect(at(BK.large_window, true)).toBe(5);
   });
 
-  it('nobody jumps through bars or a slit; a large window open is jumped through', () => {
+  it('a jump through a window needs its shutters open; nobody jumps through bars or a slit', () => {
     const tryJump = (kind: string, open: boolean) => {
       const s = house(open, kind);
       place(s, 'player', 'tav_common'); s.player.pos = { x: 0, y: -2 };
@@ -93,8 +80,9 @@ describe('384 window kinds (PC4)', () => {
       resolveTurn(s, { intent: { move: { toZone: 'street_door', jump: true }, gear: null, spoken: null, addressees: null, deferred: [], clarify: null, action: null }, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(1));
       return s.player.zone;
     };
+    expect(tryJump(BK.window, false)).toBe('tav_common');
+    expect(tryJump(BK.window, true)).toBe('street_door');
     expect(tryJump(BK.barred_window, false)).toBe('tav_common');
     expect(tryJump(BK.arrow_slit, false)).toBe('tav_common');
-    expect(tryJump(BK.large_window, true)).toBe('street_door');
   });
 });

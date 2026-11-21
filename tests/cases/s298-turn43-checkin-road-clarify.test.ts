@@ -43,11 +43,12 @@ describe('BG-222: endings that name an item made in play', () => {
 });
 
 describe('BG-223: road lengths in the words the Weaver is told', () => {
+  const st = toStoryStart(makeVillage()); // read only: validation changes the plan, never the state
   const road = (length: unknown) => {
     const p = villageStagePlan();
     const z = p.zones[0] as { kind?: string; length?: unknown };
     delete z.kind; z.length = length; // PZ9: a road has no kind, only its length
-    const errs = validateStagePlan(toStoryStart(makeVillage()), p, { tier: 'success', kind: 'scenario', placeId: 'tavern' });
+    const errs = validateStagePlan(st, p, { tier: 'success', kind: 'scenario', placeId: 'tavern' });
     return { errs: errs.filter((e) => !e.repaired && e.code === 'bad_zone' && /length/.test(e.message)), z };
   };
   it('every word passes and reads as its key; "2 km" reads as km; anything else is still refused', () => {

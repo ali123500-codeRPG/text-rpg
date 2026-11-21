@@ -7,13 +7,10 @@ import { makeVillage } from '../harness';
 import { PERK_LINKS } from '../../src/library/perkLinks';
 import { hasPerk, trueSkill } from '../../src/ruleset/perks';
 import { syncPerkLinks } from '../../src/ruleset/perkLinks';
-import { maxMorale, moraleLevel } from '../../src/ruleset/morale';
+import { maxMorale } from '../../src/ruleset/morale';
 import { overwhelms } from '../../src/engine/auras';
-import { payFear } from '../../src/engine/morale';
-import { createRng } from '../../src/rng';
 import { PK } from '../../src/library/perkIds';
 import { SK } from '../../src/library/skillIds';
-import { FR } from '../../src/library/tableIds';
 import type { Actor, ContestResult, GameState } from '../../src/types';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
@@ -36,13 +33,6 @@ describe('160 Overwhelm and linked perks', () => {
     resolve(foe, 30); // 80 > 75
     expect(maxMorale(foe)).toBeGreaterThan(maxMorale(s.player) / 2);
     expect(overwhelms(s.player, foe, won(5))).toBe(false);
-  });
-
-  it('an overwhelmed target loses all its morale and surrenders', () => {
-    const s = makeVillage();
-    const foe = npc(s, 'patron_1');
-    expect(payFear(s, createRng(1), foe, FR.dread_presence, { gap: -3, overwhelm: true })).toBe('surrendered');
-    expect(moraleLevel(foe)).toBe('broken');
   });
 
   it('linked grant: Dread Presence + Overwhelm give Crushing Presence, +5 true skill to aura skills only, while both are owned', () => {

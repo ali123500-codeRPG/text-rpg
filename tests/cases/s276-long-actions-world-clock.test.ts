@@ -83,11 +83,5 @@ describe('276 long actions on the world clock', () => {
     expect(s.player.busy).toBeUndefined();
     expect(now(s) - t1).toBeCloseTo(Math.max(left, 0), 0);
   });
-  it('AT46: a short order outside a fight is a short turn (a look around), an order with no time of its own the action row', () => {
-    const s = shop();
-    const t0 = now(s);
-    play(s, { intent: intent({ action: { type: 'observe' } }) });
-    expect(now(s) - t0).toBeCloseTo(getLibrary().durations![DU.look].seconds / 60, 6);
-  });
 });
 

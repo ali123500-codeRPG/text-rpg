@@ -11,7 +11,7 @@ import {
 import type { Actor } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
 import { FN } from '../../src/library/functionIds';
-import { kitBonus } from '../../src/ruleset/gear';
+import { kitBonus, standInShare } from '../../src/ruleset/gear';
 import { maxMorale, moraleLevel, restoreMorale, tierCostMult } from '../../src/ruleset/morale';
 import { CONFIG } from '../../src/config';
 import { getLibrary } from '../../src/library';
@@ -31,21 +31,26 @@ describe('ruleset maths', () => {
     expect([-75.5, -75, -26, -25.5, -25, -0.5, 0, 24.5, 25, 74.5, 75].map((m) => TIERS.at(band(m)))).toEqual(
       ['critical_failure', 'failure', 'failure', 'failure', 'near_miss', 'near_miss', 'success', 'success', 'great_success', 'great_success', 'critical_success']);
   });
-  it('stand-ins at SUBSTITUTE_EFFICIENCY (0.3, F4), highest candidate', () => {
-    const s = makeVillage();
-    s.player.core.skills[SK.intimidation] = { raw: 20, state: 'normal' };
-    s.player.core.skills[SK.persuasion] = { raw: 100, state: 'normal' };
-    expect(effectiveSkill(s, s.player, SK.intimidation)).toMatchObject({ skill: SK.persuasion, value: 30 });
-  });
-  it('grapple substitutes: other unarmed 0.4×, melee 0.2×', () => {
+  it('stand-ins at SUBSTITUTE_EFFICIENCY (0.3, F4), highest candidate; grapple takes other unarmed 0.4×, melee 0.2×; dodge and block never stand in for each other', () => {
     const s = makeVillage();
     const sk = s.player.core.skills;
+    sk[SK.intimidation] = { raw: 20, state: 'normal' };
+    sk[SK.persuasion] = { raw: 100, state: 'normal' };
+    expect(effectiveSkill(s, s.player, SK.intimidation)).toMatchObject({ skill: SK.persuasion, value: 30 });
     for (const id of Object.keys(sk)) delete sk[id];
     sk[SK.melee_heavy] = { raw: 100, state: 'normal' };
     expect(effectiveSkill(s, s.player, SK.unarmed_grapple)).toMatchObject({ skill: SK.melee_heavy, value: 20 });
     sk[SK.unarmed_strike] = { raw: 60, state: 'normal' };
     expect(effectiveSkill(s, s.player, SK.unarmed_grapple)).toMatchObject({ skill: SK.unarmed_strike, value: 24 });
     expect(effectiveSkill(s, s.player, SK.unarmed_improvised)).toMatchObject({ skill: SK.unarmed_strike, value: 18 }); // flat 0.3 elsewhere (F4)
+    expect(standInShare(SK.dodge, SK.block)).toBe(0);
+    expect(standInShare(SK.block, SK.dodge)).toBe(0);
+    sk[SK.dodge] = { raw: 5, state: 'normal' };
+    sk[SK.block] = { raw: 90, state: 'normal' };
+    expect(effectiveSkill(s, s.player, SK.dodge).skill).toBe(SK.dodge);
+    sk[SK.dodge] = { raw: 90, state: 'normal' };
+    sk[SK.block] = { raw: 5, state: 'normal' };
+    expect(effectiveSkill(s, s.player, SK.block).skill).toBe(SK.block);
   });
   it('a kit piece gives EQUIP_FACTOR × its need', () => {
     const lib = getLibrary();
@@ -62,12 +67,6 @@ describe('ruleset maths', () => {
     s.player.core.inventory.push({ id: 'belt', itemId: 'kit_belt', equippedIn: ['acc:0'] });
     expect(effectiveSkill(s, s.player, SK.melee_medium, { itemId: sword }).value).toBe(75);
     expect(effectiveSkill(s, s.player, SK.melee_medium).value).toBe(75);
-  });
-  it('armor weight lowers dodge', () => {
-    const s = makeVillage();
-    expect(effectiveSkill(s, s.player, SK.dodge).value).toBe(22.5); // 25 − 2.5 Common gambeson (LG23 a: light −0.1 × need 25)
-    s.player.core.skills[SK.parry] = { raw: 30, state: 'normal' };
-    expect(effectiveSkill(s, s.player, SK.parry).value).toBe(27.5); // and Parry alike
   });
 });
 
@@ -217,6 +216,8 @@ describe('ruleset methods', () => {
     expect(usableModes(s, s.player).map((m) => `${m.itemId}/${m.mode.id}`)).toEqual([`${sword}/${AM.cut}`, `natural:${AM.punch}/${AM.punch}`, `natural:${AM.grapple}/${AM.grapple}`]);
     expect(defaultMode(s, s.player, 0)!.mode.id).toBe(AM.cut);
     expect(defaultMode(s, s.player, 1.6)!.mode.id).toBe(AM.cut); // the arming sword reaches 1.6 m
+    const held = defaultMode(s, s.player, 0)!;
+    expect(defaultMode(s, s.player, held.mode.reach + CONFIG.REACH_MARGIN_M / 2)?.itemId).toBe(held.itemId); // BG-267: a step's rounding past the reach, within the margin
     expect(defaultMode(s, s.player, 1.8)).toBeNull(); // past 1.6 m and the 0.1 m reach margin (BG-267)
     s.player.core.condition.parts.right_arm = -10; // Crippled sword arm: no sword attack
     expect(usableModes(s, s.player).map((m) => m.mode.id)).toEqual([AM.punch, AM.grapple]);

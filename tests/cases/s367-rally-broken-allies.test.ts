@@ -33,12 +33,18 @@ const setup = (lostShare: number, state: 'broken' | 'surrendered' = 'broken') =>
 };
 
 describe('367 Rallies reach broken allies (BG-301) and give Rallied', () => {
-  it('a broken ally rallied back under 100 % stops being broken and fights the one it yielded to', () => {
+  it('a broken ally rallied back under 100 % stops being broken and fights the one it yielded to; Rallied adds RALLIED_MOD to every roll for the rest of the fight, once', () => {
     const { s, ally } = setup(1.05);
     play(s, { intent: cry });
     expect(moraleLost(ally)).toBeLessThan(maxMorale(ally));
     expect(ally.mind!.moraleState).toBeUndefined();
     expect(ally.mind!.overrides?.guard_1).toBe('hostile');
+    expect(s.player.engagement?.rallied).toBe(true);
+    const r = ruleset.roll({ actorId: 'player', skill: SK.intimidation, modifiers: [], tierShifts: [] }, s, createRng(1));
+    expect(r.modifiers.filter((m) => m.source === 'Rallied')).toEqual([{ source: 'Rallied', type: 'status', value: CONFIG.RALLIED_MOD }]);
+    delete s.player.engagement;
+    const r2 = ruleset.roll({ actorId: 'player', skill: SK.intimidation, modifiers: [], tierShifts: [] }, s, createRng(1));
+    expect(r2.modifiers.some((m) => m.source === 'Rallied')).toBe(false);
   });
 
   it('a break that is still over 100 % lost stays', () => {
@@ -67,14 +73,4 @@ describe('367 Rallies reach broken allies (BG-301) and give Rallied', () => {
     expect(ally.mind!.overrides?.guard_1).toBe('yielded');
   });
 
-  it('Rallied adds RALLIED_MOD to every roll for the rest of the fight, once', () => {
-    const { s } = setup(0.2);
-    play(s, { intent: cry });
-    expect(s.player.engagement?.rallied).toBe(true);
-    const r = ruleset.roll({ actorId: 'player', skill: SK.intimidation, modifiers: [], tierShifts: [] }, s, createRng(1));
-    expect(r.modifiers.filter((m) => m.source === 'Rallied')).toEqual([{ source: 'Rallied', type: 'status', value: CONFIG.RALLIED_MOD }]);
-    delete s.player.engagement;
-    const r2 = ruleset.roll({ actorId: 'player', skill: SK.intimidation, modifiers: [], tierShifts: [] }, s, createRng(1));
-    expect(r2.modifiers.some((m) => m.source === 'Rallied')).toBe(false);
-  });
 });

@@ -5,8 +5,10 @@ import { makeVillage, actor, createRng } from '../harness';
 import { spawnNpc } from '../../src/library/spawn';
 import { installRoutines, fallbackOrder } from '../../src/minds';
 import { buildActorView } from '../../src/views';
+import { isEngaged } from '../../src/engine/relations';
+import { SK } from '../../src/library/skillIds';
 
-it('100 Fallback target: the companion that hit it last turn is attacked, even with the player there', () => {
+it('99/100 Fallback attack: an engaged slime attacks the player with Slam (targetPart null, source fallback); the companion that hit it last turn is attacked instead, even with the player there', () => {
   const s = makeVillage({ playerZone: 'field_mid' });
   const c = spawnNpc(null, TP.patron, { id: 'comp', zone: 'field_mid', placeId: 'field', bandId: 'player_band', name: 'Pip' });
   installRoutines(c, 'companion', {}, undefined, s.turn, createRng(1));
@@ -15,6 +17,10 @@ it('100 Fallback target: the companion that hit it last turn is attacked, even w
   const b = (zone: string) => ({ status: 'aware' as const, lastKnownZone: zone, lastSeenTurn: s.turn, source: 'seen' as const, revealed: [] });
   sl.mind!.knowledge.player = b('field_mid');
   sl.mind!.knowledge.comp = b('field_mid');
+  expect(isEngaged(s, sl)).toBe(true);
+  expect(fallbackOrder(buildActorView(s, 'slime_1'), createRng(1))).toMatchObject({
+    actorId: 'slime_1', type: 'attack', target: 'player', skill: SK.slam, targetPart: null, aimed: false, source: 'fallback',
+  });
   // last turn the companion hit the slime
   const hit: GameEvent = { id: 'ev_1', turn: s.turn, actorId: 'comp', kind: 'attack', zone: 'field_mid', target: 'slime_1', effects: [], noise: 'normal', visibility: 'normal', perception: { slime_1: { level: 'full', cue: 'sight' } } };
   s.events.push(hit);

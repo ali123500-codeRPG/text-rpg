@@ -10,7 +10,7 @@ import { ACH } from '../../src/library/achievementIds';
 import { trueSkill } from '../../src/ruleset/perks';
 import { essenceSlots, expireOffers, offerAtEnding, qualityRoll, offersFromDefeats, passEssence, removeEssence, takeEssence } from '../../src/engine/essence';
 import { frameOf } from '../../src/engine/scenarioEnd';
-import { xpToNext } from '../../src/engine/xp';
+import { grantAchievement, xpToNext } from '../../src/engine/xp';
 import { now } from '../../src/time';
 
 /** BG-199: an essence comes only from a death: the player hurt this foe and it lies dead */
@@ -23,13 +23,15 @@ const slime = (s: GameState) => s.actors.find((a) => a.id === 'slime_1')!;
 const offers = (s: GameState) => s.player.progression!.essenceOffers ?? [];
 
 describe('207 essences', () => {
-  it('EG2: one slot, then one more every 7 character levels', () => {
+  it('EG2: one slot, then one more every 7 character levels; Room for No More adds one (XR35)', () => {
     const s = makeVillage();
     expect(essenceSlots(s.player)).toBe(1);
     level(s, 7);
     expect(essenceSlots(s.player)).toBe(2);
     level(s, 14);
     expect(essenceSlots(s.player)).toBe(3);
+    grantAchievement(s, ACH.room_for_no_more, undefined, undefined, true); // XR35: Room for No More opens one more
+    expect(essenceSlots(s.player)).toBe(4);
   });
 
   it('the quality roll: d100 + base − ESSENCE_ROLL_NEEDED on the tier table, natural edges included', () => {

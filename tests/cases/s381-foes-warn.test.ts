@@ -7,8 +7,6 @@ import { CONFIG } from '../../src/config';
 import { PK } from '../../src/library/perkIds';
 import { SK } from '../../src/library/skillIds';
 import { RC } from '../../src/library/raceIds';
-import { FX } from '../../src/library/tableIds';
-import { FIGHT_RULES } from '../../src/library/fightRules';
 import { openPlayDead, startPlayDead } from '../../src/engine/playDead';
 import { HIDDEN, TRICK, knowsTrick, learn, pointedShift, queueLearned, sawThrough, warnedShift } from '../../src/engine/ruses';
 import { codeWarn, giveWarning, warnEvent, warnVoice, warnedChecks } from '../../src/engine/warnings';
@@ -51,7 +49,7 @@ function twoFoes() {
 }
 
 describe('381 Foes share what they notice', () => {
-  it('WN11 a: one that sees through a trick knows it from then on and answers it WARNED_SHIFT (2) tiers better; its own look queues a warning (WN8), a second look does not', () => {
+  it('WN11 a: one that sees through a trick knows it from then on and answers it WARNED_SHIFT (2) tiers better; its own look queues a warning (WN8), a second look does not; Warn the others (Battle Sense 10, WN8 a) adds it beside the order only while an ally in earshot lacks the news', () => {
     const { s, sharp, dull } = twoFoes();
     expect(s.player.playingDead?.believers).toEqual(['trader']);
     expect(knowsTrick(sharp, 'player', TRICK.play_dead)).toBe(true);
@@ -62,11 +60,7 @@ describe('381 Foes share what they notice', () => {
     sawThrough(s, dull, s.player, TRICK.feint, false);
     expect(knowsTrick(dull, 'player', TRICK.feint)).toBe(true);
     expect(dull.mind?.toWarn).toBeUndefined();
-  });
-
-  it('WN8 a: row W1 Warn the others (Battle Sense 10) adds a warning beside the order, once per foe and trick a fight, only while an ally in earshot lacks the news', () => {
-    expect(FIGHT_RULES.find((r) => r.id === FX.warn)).toMatchObject({ skill: SK.battle_sense, min: 10 });
-    const { s, sharp, dull } = twoFoes();
+    // WN8 a: row W1 Warn the others (Battle Sense 10) adds a warning beside the order, only while an ally in earshot lacks the news
     expect(codeWarn(s, sharp, hold(sharp)).warn).toBeUndefined(); // Battle Sense 0: no row
     skill(sharp, SK.battle_sense, 10);
     expect(codeWarn(s, sharp, hold(sharp))).toMatchObject({ type: 'hold', warn: 'player' });

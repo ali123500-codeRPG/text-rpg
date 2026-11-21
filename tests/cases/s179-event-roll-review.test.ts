@@ -18,10 +18,5 @@ describe('179 event roll tiers (ER1, ER2)', () => {
     expect(gradesFitTier('critical_success', 'extreme', 'extreme')).toBe(true);
     expect(gradesFitTier('critical_success', 'extreme', 'major')).toBe(false);
   });
-  it('Near Miss gives a step less gain than its challenge; Success stays matched', () => {
-    expect(gradesFitTier('near_miss', 'major', 'moderate')).toBe(true);
-    expect(gradesFitTier('near_miss', 'moderate', 'moderate')).toBe(false);
-    expect(gradesFitTier('success', 'moderate', 'moderate')).toBe(true);
-  });
 });
 

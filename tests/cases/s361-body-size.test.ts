@@ -6,7 +6,7 @@ import type { Actor, GameState } from '../../src/types';
 import { forcedRng, landUnder, makeVillage, place } from '../harness';
 import { middle, wayTo } from '../../src/plan/where';
 import { CONFIG } from '../../src/config';
-import { actorBody, actorVolumeM3, getLibrary } from '../../src/library';
+import { actorBody, getLibrary } from '../../src/library';
 import { BT, RC } from '../../src/library/raceIds';
 import { AM, LC } from '../../src/library/tableIds';
 import { entryPoint, floorGap, placeAll, seeingM, seenSizeFactor, withinM } from '../../src/engine/position';
@@ -60,12 +60,6 @@ it('SZ9: a horse kicks 1.8 m behind its rump, edge to edge; its bite reaches 0.5
   expect(reach(AM.bite)).toBe(0.5);
 });
 
-it('SZ10: a part of the shape reaches farther on a bigger race: a horse takes things 0.2 m × 2.4/1.3 past its nose', () => {
-  const s = room();
-  expect(gripReachM(s, horse(s))).toBeCloseTo(0.2 * 2.4 / 1.3, 9);
-  expect(gripReachM(s, s.player)).toBe(0.625); // a person's arm comes from its size instead (SZ8)
-});
-
 it('SZ6: code places nobody inside anybody else: bodies keep PLACE_SPACING_M between them', () => {
   const s = room();
   const h = horse(s);
@@ -76,24 +70,24 @@ it('SZ6: code places nobody inside anybody else: bodies keep PLACE_SPACING_M bet
     expect(floorGap(s, many[i], many[j])).toBeGreaterThanOrEqual(CONFIG.PLACE_SPACING_M - 0.01);
 });
 
-it('SZ8: an arm reaches (height × ARM_SPAN_SHARE − width) ÷ 2 past the body; a held weapon reaches that plus its length', () => {
+it('SZ8, SZ10, FR2: an arm reaches (height × ARM_SPAN_SHARE − width) ÷ 2 past the body; a held weapon reaches that plus its length', () => {
   const s = room();
   const sword = s.player.core.inventory.find((i) => i.equippedIn?.length && getLibrary().items[i.itemId]?.weapon)!;
   const len = getLibrary().items[sword.itemId].weapon!.modes[0].lengthM!;
   const reachOf = () => usableModes(s, s.player).find((m) => m.itemId === sword.id)!.mode.reach;
   expect(gripReachM(s, s.player)).toBeCloseTo((1.75 * CONFIG.ARM_SPAN_SHARE - 0.5) / 2, 9);
+  expect(gripReachM(s, s.player)).toBe(0.625); // SZ8: (1.75 × 1 − 0.5) ÷ 2
   expect(reachOf()).toBeCloseTo(0.625 + len, 9);
+  // FR2, SZ9, SZ10: grip reach comes from the body: a horse takes things 0.2 m × 2.4/1.3 past its nose, a dragon in its jaws 0.8 m, a slime has no grip
+  expect(gripReachM(s, horse(s))).toBeCloseTo(0.2 * 2.4 / 1.3, 9);
+  const reachAs = (bodyTypeId: string) => gripReachM(s, { ...s.player, core: { ...s.player.core, bodyTypeId } });
+  expect(reachAs(BT.winged_quadruped)).toBe(0.8);
+  expect(reachAs(BT.amorphous)).toBe(0);
   getLibrary().races![OGRE] = { ...getLibrary().races![s.player.core.raceId!], id: OGRE, sizeMult: { length: 2, width: 2, height: 2 } };
   s.player.core.raceId = OGRE; // 3.5 m tall, 1 m wide: a 1.25 m arm, scaled by its own size
   expect(gripReachM(s, s.player)).toBeCloseTo(1.25, 9);
   expect(reachOf()).toBeCloseTo(1.25 + len, 9);
   delete getLibrary().races![OGRE];
-});
-
-it('SZ18: a volume is the size\'s box, length × width × height', () => {
-  const s = room();
-  expect(actorVolumeM3(s, s.player)).toBeCloseTo(0.3 * 0.5 * 1.75, 9);
-  expect(actorVolumeM3(s, horse(s))).toBeCloseTo(2.4 * 0.65 * 1.6, 6);
 });
 
 it('SZ19: a hostile is near within a step plus its own melee reach; a walk into a zone stands a step in to the body\'s near edge', () => {

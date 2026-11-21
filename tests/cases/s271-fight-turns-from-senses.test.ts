@@ -16,15 +16,12 @@ const hunted = (where: 'beside' | 'cellar', status: 'hunting' | 'engaged' = 'hun
   return s;
 };
 
-it('a foe after the player out of their senses keeps normal turns; one they can see starts fight turns', () => {
+it('a foe after the player (hunting, or engaged after trading blows: BG-189) out of their senses keeps normal turns; one they can see starts fight turns', () => {
   const far = hunted('cellar');
   expect(isEngaged(far, far.player)).toBe(true); // the foe is after them all the same
   expect(computePending(far).mode).toBe('explore');
   expect(computePending(hunted('beside')).mode).toBe('tactical');
-});
-
-it('BG-189: a foe that traded blows with the player and went off out of their senses is no fight they can hear', () => {
-  const s = hunted('cellar', 'engaged'); // still engaged with the player, standing quiet out of sight and earshot
-  expect(computePending(s).mode).toBe('explore');
+  // BG-189: a foe that traded blows with the player and went off out of their senses is no fight they can hear
+  expect(computePending(hunted('cellar', 'engaged')).mode).toBe('explore'); // still engaged, standing quiet out of sight and earshot
   expect(computePending(hunted('beside', 'engaged')).mode).toBe('tactical');
 });

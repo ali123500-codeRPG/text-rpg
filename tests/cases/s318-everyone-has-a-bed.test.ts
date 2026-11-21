@@ -13,6 +13,8 @@ import { withBed } from '../../src/scenario/apply';
 import { toStoryStart, villageStagePlan } from '../../src/scenario/fixtures';
 import { isBugCode } from '../../src/save/bugs';
 import { fatigueOf } from '../../src/ruleset/fatigue';
+import { desiredState } from '../../src/minds';
+import { buildActorView } from '../../src/views';
 
 const act = (type: ParserActionType): Intent => ({
   move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null,
@@ -40,12 +42,13 @@ describe('318 everyone has a bed', () => {
     expect(withBed(s, 'barkeep', { counter: 'tav_counter', refuge: 'tav_cellar' }, 'tav_counter').bed).toBe('tav_common');
   });
 
-  it('in play, a sleep step with no bed runs where it stands, filed once', () => {
+  it('in play, a sleep step with no bed runs where it stands (the unbound slot keeps it there), filed once; by day it goes back to work', () => {
     const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'patron_1', 'guard_1'] });
     const b = s.actors.find((a) => a.id === 'trader')!;
     expect(b.mind!.slots?.bed).toBeUndefined();
     const where = b.zone;
     s.clocks.time = CONFIG.TIME_OF_DAY_FROM.night + 30;
+    expect(desiredState(buildActorView(s, b.id))).toEqual({ zone: where, activity: 'sleep', unbound: true }); // s213 RT: an unbound optional slot keeps it where it is
     fatigueOf(b).debt = 30;
     turn(s);
     expect(b.asleep).toBeDefined();
@@ -55,5 +58,7 @@ describe('318 everyone has a bed', () => {
     expect(filed).toHaveLength(1);
     expect(isBugCode('bed_missing')).toBe(true);
     expect(fatigueOf(b).debt).toBeLessThan(30); // sleeping clears the debt
+    s.clocks.time = CONFIG.TIME_OF_DAY_FROM.morning + 10;
+    expect(desiredState(buildActorView(s, b.id))!.zone).toBe('tav_counter'); // by day it tends the bar again
   });
 });

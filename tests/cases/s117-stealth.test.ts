@@ -65,37 +65,17 @@ describe('117 stealth', () => {
     expect(b1.lastKnownZone).toBe('gate_inner');
     expect(['aware', 'tracking']).toContain(status(s, 'guard_2'));
   });
-  it('a shot target that loses the notice contest still turns suspicious, at the shooter\'s zone (ST19)', () => {
-    const s = makeVillage();
-    place(s, 'player', 'field_edge');
-    for (const i of s.player.core.inventory) delete i.equippedIn;
-    s.player.core.inventory.push({ id: 'bow', itemId: IT.shortbow, equippedIn: ['grip:right_arm', 'grip:left_arm'] });
-    s.player.posture = 'stealthy';
-    rig({ slime_1: -1 });
-    turn(s, intent(null, { type: 'attack', target: 'slime_1' }));
-    const b = s.actors.find((a) => a.id === 'slime_1')!.mind!.knowledge.player;
-    expect(b?.status).toBe('suspicious');
-    expect(b?.lastKnownZone).toBe('field_edge');
-  });
-  it('18 sneaking persists over moves; detection on turn 3 is the contest', () => {
+  it('18 a sneak keeps its move (ST3) and persists over moves; detection is the contest; speaking aloud ends it', () => {
     const s = makeVillage();
     place(s, 'player', 'street_door');
     rig({ guard_1: 1 });
-    turn(s, intent(null, { type: 'sneak' }));
-    turn(s, intent({ toZone: 'street_square' }));
+    turn(s, intent({ toZone: 'street_square' }, { type: 'sneak' }));
+    expect(s.player.zone).toBe('street_square');
     expect(s.player.posture).toBe('stealthy');
     turn(s, intent({ toZone: 'gate_inner' }));
     expect(s.player.posture).toBe('stealthy');
     expect(s.log.some((l) => l.code === 'stealth_contest' && (l.detail as { observerId?: string }).observerId === 'guard_1')).toBe(true);
     expect(['aware', 'tracking']).toContain(status(s, 'guard_1'));
-  });
-  it('a sneak keeps its move (ST3), and speaking aloud ends it', () => {
-    const s = makeVillage();
-    place(s, 'player', 'street_door');
-    rig();
-    turn(s, intent({ toZone: 'street_square' }, { type: 'sneak' }));
-    expect(s.player.zone).toBe('street_square');
-    expect(s.player.posture).toBe('stealthy');
     turn(s, intent(null, null, 'Hello!'));
     expect(s.player.posture).toBe('open');
   });
@@ -116,7 +96,7 @@ describe('117 stealth', () => {
     turn(s, intent(null, { type: 'attack', target: 'slime_1' }));
     expect(s.player.posture).toBe('open');
   });
-  it('a shot from stealth keeps the posture and the notice contest uses Combat Stealth (ST5, ST7)', () => {
+  it('a shot from stealth keeps the posture and the notice contest uses Combat Stealth (ST5, ST7); the target that loses it still turns suspicious, at the shooter\'s zone (ST19)', () => {
     const s = makeVillage();
     place(s, 'player', 'field_edge');
     for (const i of s.player.core.inventory) delete i.equippedIn;
@@ -126,6 +106,9 @@ describe('117 stealth', () => {
     turn(s, intent(null, { type: 'attack', target: 'slime_1' }));
     expect(s.player.posture).toBe('stealthy');
     expect(calls.some(([a, b]) => a.skill === SK.combat_stealth && b.actorId === 'slime_1')).toBe(true);
+    const b = s.actors.find((a) => a.id === 'slime_1')!.mind!.knowledge.player;
+    expect(b?.status).toBe('suspicious');
+    expect(b?.lastKnownZone).toBe('field_edge');
   });
   it('a shot after a step in the same turn still gets its own Combat Stealth contest (BG-263)', () => {
     const s = makeVillage();

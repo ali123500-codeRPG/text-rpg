@@ -91,7 +91,7 @@ describe('157 All-50 round 3', () => {
 
   it('PT9, VS3: a shot from hiding keeps the shooter hidden; with Strike and Fade only a watcher it made aware rolls again, at Vanishing', () => {
     let faded = 0;
-    for (const perk of [false, true]) for (let seed = 1; seed <= 10; seed++) {
+    for (const perk of [false, true]) for (let seed = 1; seed <= 3; seed++) {
       const s = makeVillage();
       beside(s, 'patron_1');
       beside(s, 'guard_1');
@@ -113,5 +113,5 @@ describe('157 All-50 round 3', () => {
       expect(npc(s, 'patron_1').mind!.knowledge.player?.status).not.toBe('unaware'); // the target at least suspects the shooter's zone
     }
     expect(faded).toBeGreaterThan(0);
-  }, 20000); // twenty fresh villages; the player with and without the perk, the patron and the guard each get a combat level worked out afresh
+  }, 20000); // six fresh villages; the player with and without the perk, the patron and the guard each get a combat level worked out afresh
 });

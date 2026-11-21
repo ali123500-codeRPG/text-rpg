@@ -7,11 +7,10 @@ import { healthLevel, isDownLevel, ruleset, SHOWN_LEVELS, shownLevel } from '../
 import { applyHealing, wouldHeal } from '../../src/engine/heal';
 import { isActive } from '../../src/engine/relations';
 import { CONFIG } from '../../src/config';
-import { getLibrary } from '../../src/library';
 import { IT } from '../../src/library/itemIds';
 
 describe('120 dead', () => {
-  it('damage past Incapacitated counts up to 150% and then the actor is Dead', () => {
+  it('damage past Incapacitated counts up to 150% and then the actor is Dead; the UI never shows Dead, and nothing heals the dead', () => {
     const s = makeVillage();
     const g = actor(s, 'guard_1');
     g.core.condition.hpLostPct = 100;
@@ -25,26 +24,10 @@ describe('120 dead', () => {
     expect(healthLevel(g)).toBe('dead');
     expect(isActive(g)).toBe(false);
     expect(isDownLevel('dead') && isDownLevel('incapacitated') && !isDownLevel('critical')).toBe(true);
-  });
-  it('the UI never shows Dead, and nothing heals the dead', () => {
-    const s = makeVillage();
     expect(SHOWN_LEVELS().map(([l]) => l)).not.toContain('dead');
     expect(shownLevel('dead')).toBe('incapacitated');
-    s.player.core.condition.hpLostPct = CONFIG.HP_LOST_MAX;
-    expect(wouldHeal(s, s.player, HL.clinic)).toBe(false);
-    expect(applyHealing(s, s.player, HL.clinic)).toBe(false);
-    expect(s.player.core.condition.hpLostPct).toBe(CONFIG.HP_LOST_MAX);
-  });
-  it('the healing table carries the lever: no row heals the dead now; a row with revivesDead would', () => {
-    const s = makeVillage();
-    const rows = Object.values(getLibrary().healing!);
-    expect(rows.every((r) => r.revivesDead === false)).toBe(true);
-    s.player.core.condition.hpLostPct = CONFIG.HP_LOST_MAX;
-    const clinic = getLibrary().healing![HL.clinic];
-    clinic.revivesDead = true;
-    try {
-      expect(applyHealing(s, s.player, HL.clinic)).toBe(true);
-      expect(healthLevel(s.player)).not.toBe('dead');
-    } finally { clinic.revivesDead = false; }
+    expect(wouldHeal(s, g, HL.clinic)).toBe(false);
+    expect(applyHealing(s, g, HL.clinic)).toBe(false);
+    expect(g.core.condition.hpLostPct).toBe(CONFIG.HP_LOST_MAX);
   });
 });

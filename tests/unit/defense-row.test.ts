@@ -33,8 +33,11 @@ describe('the Defense row', () => {
     expect(again.state()!.turn).toBe(turn); // no turn was played
   });
 
-  it('without a shield Block is locked; a chosen Block falls back, and the Character page shows the fallback', () => {
+  it('Parry needs a melee weapon and never meets a missile; without a shield Block is locked, a chosen Block falls back and the Character page shows the fallback; Dodge always works', () => {
     const s = makeVillage(), p = s.player;
+    p.core.standingDefense = 'parry';
+    expect(canDefend(s, p, 'parry')).toBe(true);
+    expect(usableDefense(s, p, true)).not.toBe('parry');
     p.core.standingDefense = 'block';
     expect(canDefend(s, p, 'block')).toBe(true);
     expect(standing(s, p).kind).toBe('block');
@@ -44,13 +47,6 @@ describe('the Defense row', () => {
     expect(used).not.toBe('block');
     expect(p.core.standingDefense).toBe('block'); // the choice is kept for when the shield is back
     expect(standing(s, p)).toEqual({ kind: used, value: defenseValue(s, p, used) });
-  });
-
-  it('Parry needs a melee weapon and never meets a missile; Dodge always works', () => {
-    const s = makeVillage(), p = s.player;
-    p.core.standingDefense = 'parry';
-    expect(canDefend(s, p, 'parry')).toBe(true);
-    expect(usableDefense(s, p, true)).not.toBe('parry');
     p.core.inventory = p.core.inventory.filter((i) => i.itemId !== IT.arming_sword);
     expect(canDefend(s, p, 'dodge')).toBe(true);
     expect(canDefend(s, p, 'parry')).toBe(false);

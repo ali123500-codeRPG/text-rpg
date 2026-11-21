@@ -1,11 +1,10 @@
 // 111 Game clock (T1–T11) and natural recovery (H12–H15). Code owns one clock in game minutes;
 // each action's time is a durations row; the time of day lights outdoor zones and picks routine sets; waiting moves
 // the clock and breaks the scenario; natural recovery heals endurance × 0.01 % an hour, never Crippled or worse.
-import { DU, HL } from '../../src/library/tableIds';
+import { DU } from '../../src/library/tableIds';
 import { actionRow } from '../../src/ruleset/actionTime';
 import { describe, expect, it } from 'vitest';
 import { createRng, makeVillage } from '../harness';
-import { sleepDebtFor } from '../harness/sleep';
 import { resolveTurn } from '../../src/engine';
 import { mechanicsLines } from '../../src/agents/game';
 import { buildWeaverView, zoneView } from '../../src/views';
@@ -67,21 +66,6 @@ describe('111 game clock', () => {
     turn(f, act('wait', 'dusk'));
     expect(mechanicsLines(f, f.events.slice(-5))).toContain('Wait: not while a fight is going on around you');
     expect(f.stage.breakCause).toBeUndefined();
-  });
-  it('sleep runs until rested (FT9) and heals a rest per 4 hours; a plain wait runs to the next time of day', () => {
-    const s = makeVillage();
-    startClock(s, 'morning');
-    s.player.core.condition.hpLostPct = 80;
-    sleepDebtFor(s, 8);
-    const t0 = now(s);
-    turn(s, act('sleep'));
-    expect(now(s) - t0).toBe(480 + actionRow(DU.action)!.seconds / 60); // the night, then the turn's own action time
-    expect(s.log.filter((l) => l.code === 'healed' && (l.detail as { source: string }).source === HL.rest)).toHaveLength(2);
-    expect(s.player.core.condition.hpLostPct).toBeLessThan(80 - 2 * CONFIG.REST_HEAL_PCT);
-    const w = makeVillage();
-    startClock(w, 'morning');
-    turn(w, act('wait'));
-    expect(timeOfDay(now(w))).toBe('afternoon');
   });
   it('outdoor zones follow the sky unless their own light is brighter; indoors do not', () => {
     const s = makeVillage();

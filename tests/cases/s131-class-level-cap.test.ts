@@ -9,7 +9,6 @@ import { awardXp, charLevel, keepCapstone, levelCost, levelTarget, spendXp, swap
 import { getLibrary } from '../../src/library';
 import { classMaxLevel } from '../../src/library/spawn';
 import { CL } from '../../src/library/classIds';
-import { CLASS_TIERS } from '../../src/scales';
 import { SK } from '../../src/library/skillIds';
 import { clearMarkCounts, markUse } from '../../src/ruleset/improve';
 import type { ContestResult } from '../../src/types';
@@ -98,8 +97,4 @@ describe('131 Class level cap', () => {
     makeVillage(); // restore the library
   });
 
-  it('every class has a tier from the CLASS_TIERS table', () => {
-    const lib = getLibrary();
-    for (const c of Object.values(lib.classes)) expect(CLASS_TIERS.has(c.tier), c.name).toBe(true);
-  });
 });

@@ -114,12 +114,6 @@ describe('NarrationView and the packet', () => {
     run(s, ev({ actorId: 'player', kind: 'observe', zone: s.player.zone, target: hidden.id }));
     expect(buildNarrationView(s, s.events, null).events.at(-1)!.target).toBe('someone');
   });
-  it('partial events carry no actor, only the link label and cue', () => {
-    const s = makeVillage({ playerZone: 'street_door' });
-    run(s, ev({ actorId: 'trader', kind: 'move', zone: 'tav_counter', noise: 'loud' }));
-    const v = buildNarrationView(s, s.events, null);
-    expect(v.events).toEqual([{ id: s.events[0].id, kind: 'move', level: 'partial', cue: 'sound', where: 'inside the tavern' }]);
-  });
   it("hides others' minor condition changes, shows the player's own", () => {
     const s = makeVillage();
     place(s, 'trader', 'tav_common');

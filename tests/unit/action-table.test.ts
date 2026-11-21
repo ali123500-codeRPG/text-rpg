@@ -56,9 +56,10 @@ describe('action completeness table (TQ5)', () => {
     expect(all.filter((t) => !ROWS[t]), 'add a row to ROWS for each new action').toEqual([]);
     expect(Object.keys(ROWS).filter((t) => !all.includes(t as never))).toEqual([]);
   });
-  it.each(all)('%s: reach need matches NEEDS', (t) => expect(NEEDS[t] ?? 'none').toBe(ROWS[t].need));
-  it.each(all)('%s: who can take it matches the Parser and NPC lists', (t) => {
-    const who = player.has(t) && npc.has(t) ? 'both' : player.has(t) ? 'player only' : 'npc only';
-    expect(ROWS[t].who.split(':')[0]).toBe(who);
+  it('each row\'s reach need matches NEEDS, and who can take it matches the Parser and NPC lists', () => {
+    // one table each: a mismatch shows its row by name in the diff
+    expect(Object.fromEntries(all.map((t) => [t, NEEDS[t] ?? 'none']))).toEqual(Object.fromEntries(all.map((t) => [t, ROWS[t]?.need])));
+    const who = (t: string) => (player.has(t) && npc.has(t) ? 'both' : player.has(t) ? 'player only' : 'npc only');
+    expect(Object.fromEntries(all.map((t) => [t, who(t)]))).toEqual(Object.fromEntries(all.map((t) => [t, ROWS[t]?.who.split(':')[0]])));
   });
 });

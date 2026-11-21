@@ -19,23 +19,7 @@ const result = (over: Partial<AttackResult>): AttackResult => ({
 });
 
 describe('112 coded perks, batch 2', () => {
-  it('Turn the Blade: a clean parry opens the attacker; the next melee attack spends it', () => {
-    const s = makeVillage();
-    const wim = npc(s, 'patron_1');
-    give(s.player, PK.turn_the_blade);
-    s.player.engagement = { start: 1, last: 1, kinds: ['fight'] };
-    afterAttack(s, wim, s.player, result({ defenseType: 'parry', gap: 1 }), false);
-    expect(s.player.perkMarks).toBeUndefined(); // not clean enough
-    afterAttack(s, wim, s.player, result({ defenseType: 'parry', gap: 2 }), false);
-    expect(s.player.perkMarks).toEqual([{ perk: PK.turn_the_blade, target: 'patron_1' }]);
-    expect(markShifts(s, s.player, wim, false).attack).toEqual([{ source: 'Turn the Blade', value: 1 }]);
-    expect(markShifts(s, s.player, wim, true).attack).toEqual([]); // melee only
-    const r = ruleset.attack({ attackerId: 'player', targetId: 'patron_1', weaponId: `player_${IT.arming_sword}_1`, targetPart: null, aimed: false }, s, forcedRng([50, 30, 20]));
-    expect(r.attack.tierShifts).toContainEqual({ source: 'Turn the Blade', value: 1 });
-    afterAttack(s, s.player, wim, r, false);
-    expect(s.player.perkMarks).toBeUndefined(); // spent
-  });
-  it('Turn the Blade: a shield block or a barehanded parry does not count, and the opening ends with the engagement', () => {
+  it('Turn the Blade: only a clean parry with a weapon opens the attacker (not a shield block or a barehanded parry); the next melee attack spends it; the opening ends with the engagement', () => {
     const s = makeVillage();
     const wim = npc(s, 'patron_1');
     give(s.player, PK.turn_the_blade);
@@ -50,6 +34,17 @@ describe('112 coded perks, batch 2', () => {
     afterAttack(s, wim, s.player, result({ defenseType: 'parry', gap: 3 }), false);
     expireMarks(s, s.player); // not engaged: gone
     expect(s.player.perkMarks).toBeUndefined();
+    s.player.engagement = { start: 1, last: 1, kinds: ['fight'] };
+    afterAttack(s, wim, s.player, result({ defenseType: 'parry', gap: 1 }), false);
+    expect(s.player.perkMarks).toBeUndefined(); // not clean enough
+    afterAttack(s, wim, s.player, result({ defenseType: 'parry', gap: 2 }), false);
+    expect(s.player.perkMarks).toEqual([{ perk: PK.turn_the_blade, target: 'patron_1' }]);
+    expect(markShifts(s, s.player, wim, false).attack).toEqual([{ source: 'Turn the Blade', value: 1 }]);
+    expect(markShifts(s, s.player, wim, true).attack).toEqual([]); // melee only
+    const r = ruleset.attack({ attackerId: 'player', targetId: 'patron_1', weaponId: `player_${IT.arming_sword}_1`, targetPart: null, aimed: false }, s, forcedRng([50, 30, 20]));
+    expect(r.attack.tierShifts).toContainEqual({ source: 'Turn the Blade', value: 1 });
+    afterAttack(s, s.player, wim, r, false);
+    expect(s.player.perkMarks).toBeUndefined(); // spent
   });
   it('Hunter’s Mark: a ranged hit marks the target for the next ranged attack', () => {
     const s = makeVillage();

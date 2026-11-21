@@ -19,10 +19,11 @@ function bringBack(st: GameState, a: Actor, seed: number) {
   applyStagePlan(st, p as never, ctx, { entry: 'open' }, createRng(seed));
 }
 
-it('BG-210: a returning Trader gets no second purse and no stock on top; sold goods are topped up', () => {
+it('BG-210: a new Trader gets the purse; a returning Trader gets no second purse and no stock on top; sold goods are topped up', () => {
   const st = toStoryStart(makeVillage());
   applyStagePlan(st, villageStagePlan('success'), ctx, { entry: 'open' }, createRng(1));
   const mags = st.actors.find((a) => a.names?.current === 'Mags')!;
+  expect(mags.core.inventory.some((i) => i.itemId === IT.coin && i.qty === CONFIG.TRADER_PURSE)).toBe(true);
   const coin = count(mags, IT.coin);
   expect(count(mags, IT.bandage)).toBe(4);
   bringBack(st, mags, 2);
@@ -34,11 +35,4 @@ it('BG-210: a returning Trader gets no second purse and no stock on top; sold go
   bringBack(st, mags, 3);
   expect([count(mags, IT.coin), count(mags, IT.bandage)]).toEqual([coin, 4]);
   expect(mags.wares?.items).toEqual([IT.bandage]);
-});
-
-it('BG-210: a new Trader still gets the purse', () => {
-  const st = toStoryStart(makeVillage());
-  applyStagePlan(st, villageStagePlan('success'), ctx, { entry: 'open' }, createRng(1));
-  const mags = st.actors.find((a) => a.names?.current === 'Mags')!;
-  expect(mags.core.inventory.some((i) => i.itemId === IT.coin && i.qty === CONFIG.TRADER_PURSE)).toBe(true);
 });

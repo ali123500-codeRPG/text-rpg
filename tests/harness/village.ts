@@ -108,9 +108,20 @@ export const COUNTER_SHAPE: Record<string, Partial<TitleSpec>> = {
   tav_counter: { rect: { x: 0, y: 5.5, w: 3, d: 3 }, walls: { n: WK.wall, e: WK.wall, s: WK.low, w: WK.wall } },
 };
 
+// built villages by options: a test gets a deep copy, so the ~1,000 builds a run makes cost a clone, not a build
+const built = new Map<string, GameState>();
+
 export function makeVillage(opts: VillageOpts = {}): GameState {
   resetConfig();
   resetLibrary();
+  const key = JSON.stringify(opts), hit = built.get(key);
+  if (hit) return structuredClone(hit);
+  const state = buildVillage(opts);
+  built.set(key, structuredClone(state));
+  return state;
+}
+
+function buildVillage(opts: VillageOpts): GameState {
   const storyId = 'test';
   const places = villagePlaces(storyId), titles = [...villageTitles().map((t) => ({ ...t, ...opts.shape?.[t.id] })), ...(opts.add ?? [])];
   const zoneOf = (id: string) => titles.find((z) => z.id === id)!;

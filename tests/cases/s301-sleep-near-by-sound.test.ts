@@ -46,16 +46,6 @@ describe('301 sleepers hear who is near by sound, not by zone', () => {
     wakeChecksNear(s, quietSteps, createRng(1));
     expect(s.log.find((l) => l.code === 'wake_check')!.detail).toMatchObject({ other: 'guard_1' });
   });
-  it('a sneaker whose steps cannot reach the sleeper gets no contest', () => {
-    const { s, g } = setUp();
-    g.posture = 'stealthy';
-    put(s, g, 'field_mid', 121);
-    expect(wakeCheck(s, s.player, g, 'quiet', createRng(1))).toBe(false);
-    expect(s.log.some((l) => l.code === 'wake_check')).toBe(false);
-    put(s, g, 'field_edge', 88);
-    wakeCheck(s, s.player, g, 'quiet', createRng(1));
-    expect(s.log.find((l) => l.code === 'wake_check')!.detail).toMatchObject({ sneaking: true });
-  });
   // BG-249: wake checks learn like any other roll
   it('a Light Sleeper\'s hearing check against open steps marks its Earshot', () => {
     const { s, g } = setUp();

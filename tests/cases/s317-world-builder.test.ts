@@ -24,7 +24,7 @@ function waiting(): GameState {
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
 describe('317 the World builder (WB1-WB4)', () => {
-  it('builds frontier ground with no tier and its own note; story parts are dropped and logged; the Weaver is not asked', async () => {
+  it('builds frontier ground with no tier and its own note; story parts are dropped and logged; the Weaver is not asked; WB3: briefs reach it, a check-in frontier\'s too', async () => {
     const s = waiting();
     s.hidden.weaverNote = 'the story so far';
     s.hidden.frontierBriefs = { woods: 'the clearing where the slimes breed' }; // WB3: the Weaver's brief
@@ -42,10 +42,7 @@ describe('317 the World builder (WB1-WB4)', () => {
     expect(s.hidden.worldNote).toBe('birches thin toward the river');
     expect(s.hidden.weaverNote).toBe('the story so far'); // the Weaver's note is not touched
     expect(s.log.find((l) => l.code === 'world_story_dropped')?.detail).toMatchObject({ dropped: ['scenario'], frontier: 'woods' });
-  });
-
-  it('WB3: a frontier the Weaver adds in a check-in keeps its brief for the World builder', () => {
-    const s = waiting();
+    // WB3: a frontier the Weaver adds in a check-in keeps its brief for the World builder
     applyCheckinPlan(s, { as: 'continue', frontiers: [{ zone: s.zones[0].id, key: 'trapdoor', label: 'a trapdoor', brief: 'the smugglers\' cellar' }] } as never, createRng(1));
     const id = s.zones.flatMap((z) => waysOut(s, z.id)).find((l) => l.label === 'a trapdoor')!.to;
     expect(s.hidden.frontierBriefs?.[id]).toBe('the smugglers\' cellar');

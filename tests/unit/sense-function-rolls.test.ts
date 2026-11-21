@@ -12,6 +12,8 @@ import { BT, RC } from '../../src/library/raceIds';
 import { PK } from '../../src/library/perkIds';
 import { setTitleLight } from '../../src/plan/draw';
 import { lightAll } from '../harness';
+import { groupRating } from '../../src/ruleset/ratings';
+import { GR } from '../../src/library/functionIds';
 
 const sense = (actorId: string, f: 'sight' | 'hearing') => ({ actorId, skill: f === 'sight' ? SK.eyesight : SK.earshot, fn: FN[f], modifiers: [], tierShifts: [], auto: false as const });
 const value = (r: { d100: number; margin: number }) => (r.margin - r.d100 + CONFIG.ROLL_NEEDED) / CONFIG.SKILL_WEIGHT;
@@ -24,6 +26,8 @@ describe('sense rolls use the function', () => {
     const hearing = ruleset.roll(sense(p.id, 'hearing'), s, createRng(1)), sight = ruleset.roll(sense(p.id, 'sight'), s, createRng(1));
     expect([hearing.skill, value(hearing)]).toEqual([SK.earshot, 25]);
     expect(value(sight)).toBeCloseTo(0);
+    // a tier 0 skill counts at half in the rating too: Tremor 50 is a 25 in the Notice rating
+    expect(groupRating(s, p, GR.notice).parts.find((x) => x.skill === SK.tremor)?.value).toBeCloseTo(25, 6);
   });
   it('a slime has no eyes, so Eyesight never counts for it; a human rolls Eyesight and Earshot', () => {
     const s = makeVillage(), slime = actor(s, 'slime_1'), p = s.player;

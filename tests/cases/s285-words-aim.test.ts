@@ -10,12 +10,10 @@ import type { Intent } from '../../src/types';
 const shot = (action: Record<string, unknown>): Intent => checkIntent({ action: { type: 'attack', skill: SK.ranged_light, target: 'patron_1', ...action } }).value;
 
 describe('282 words aim (BG-200, BF26)', () => {
-  it('"aim at his leg" (aimed with a part) aims the attack with the Aim button off', () => {
+  it('"aim at his leg" (aimed with a part) aims the attack with the Aim button off; a part in passing or "aimed" with no part does not; the button still aims', () => {
     const s = makeVillage();
     expect(fromIntent(s, shot({ targetPart: 'left_leg', aimed: true }), false).aimed).toBe(true);
-  });
-  it('a part named in passing, or "aimed" with no part, stays unaimed; the Aim button still aims', () => {
-    const s = makeVillage();
+    // a part named in passing, or "aimed" with no part, stays unaimed; the Aim button still aims
     expect(fromIntent(s, shot({ targetPart: 'left_leg' }), false).aimed).toBe(false);
     expect(fromIntent(s, shot({ aimed: true }), false).aimed).toBe(false);
     expect(fromIntent(s, shot({ targetPart: 'left_leg' }), true).aimed).toBe(true);

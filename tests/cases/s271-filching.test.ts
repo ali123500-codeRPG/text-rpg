@@ -57,16 +57,12 @@ it('FL4/FL5: a sharp-eyed owner catches a clumsy hand: nothing taken, two steps 
   expect(s.hidden.memory.patron_1?.some((m) => /trying to steal my charmed ring/.test(m.text))).toBe(true);
 });
 
-it('FL6: a filched item keeps its owner: seen on the thief it shows to them, and they refuse to buy it', () => {
+it('FL2/FL6: a filched item keeps its owner, who refuses to buy it; a purse gives up a share of its coin; held, worn or too big things cannot be filched', () => {
   const { s, wim } = village();
-  const got = takeFilched(s, s.player, wim.core.inventory, wim.core.inventory.find((i) => i.id === 'ring')!, wim.id);
-  expect(got.stolenFrom).toBe('patron_1');
+  const ring = takeFilched(s, s.player, wim.core.inventory, wim.core.inventory.find((i) => i.id === 'ring')!, wim.id);
+  expect(ring.stolenFrom).toBe('patron_1');
   expect(wim.core.inventory.some((i) => i.id === 'ring')).toBe(false);
   expect(sell(s, s.player, wim, 'ring', 1)).toMatchObject({ ok: false });
-});
-
-it('FL2: a purse gives up a share of its coin; held, worn or too big things cannot be filched', () => {
-  const { s, wim } = village();
   const purse = wim.core.inventory.find((i) => i.id === 'purse')!;
   const got = takeFilched(s, s.player, wim.core.inventory, purse, wim.id);
   expect(got.qty).toBe(10);

@@ -16,6 +16,7 @@ describe('343 BG-268: a slime breaks, it never surrenders', () => {
     const slime = actorById(s, 'slime_1')!, patron = actorById(s, 'patron_1')!;
     expect(getLibrary().races![slime.core.raceId!].intelligence).toBe('unintelligent');
     expect(payFear(s, createRng(1), patron, FR.dread_presence, { gap: -3, overwhelm: true })).toBe('surrendered');
+    expect(moraleLevel(patron)).toBe('broken'); // all its morale lost
     expect(payFear(s, createRng(1), slime, FR.dread_presence, { gap: -3, overwhelm: true })).toBe('broken');
     expect(moraleLevel(slime)).toBe('broken');
   });

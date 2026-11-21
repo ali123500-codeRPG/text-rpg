@@ -21,8 +21,9 @@ const trip = (s: GameState) => s.log.find((l) => l.code === 'travelled')?.detail
 const go = (s: GameState, to: string, seed = 1) => play(s, { intent: intent({ move: { toZone: to } }) }, seed);
 
 describe('172 travel', () => {
-  it('TV1/TV2: a move along a road walks the whole road in one turn at one pace; the clock moves by distance ÷ speed', () => {
+  it('TV1/TV2: a move along a road walks the whole road in one turn at one pace; the clock moves by distance ÷ speed; SR5: each hour adds TRAVEL_STRAIN_PER_HOUR to the long-term bar on top of hours awake', () => {
     const s = withRoad(9);
+    s.player.core.condition.fatigue = { debt: 0, line: 0 };
     const t0 = now(s);
     const ev = go(s, 'ashford_gate');
     expect(s.player.zone).toBe('ashford_gate');
@@ -34,13 +35,7 @@ describe('172 travel', () => {
     expect(now(s) - t0).toBeGreaterThanOrEqual(d.metres / speed / 60 - 1);
     expect(ev.filter((e) => e.kind === 'travel')).toHaveLength(1);
     expect(ev.some((e) => e.kind === 'move' && e.actorId === 'player')).toBe(false);
-  });
-
-  it('SR5: each hour of travel adds TRAVEL_STRAIN_PER_HOUR to the long-term bar, whatever the armour, on top of hours awake', () => {
-    const s = withRoad(9);
-    s.player.core.condition.fatigue = { debt: 0, line: 0 };
-    go(s, 'ashford_gate');
-    const hours = trip(s)!.minutes / 60;
+    const hours = d.minutes / 60;
     const awake = (CONFIG.SLEEP_DEBT_FLAT + (CONFIG.SLEEP_DEBT_PCT / 100) * CONFIG.STAMINA_BASE) * hours;
     expect(hours).toBeGreaterThan(1);
     expect(fatigueOf(s.player).debt).toBeCloseTo(awake + CONFIG.TRAVEL_STRAIN_PER_HOUR * hours, 1);

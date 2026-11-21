@@ -26,11 +26,15 @@ function withPerks(rows: Record<string, Partial<PerkDef>>, body: () => void) {
   try { for (const [k, r] of Object.entries(rows)) perks[k] = { ...perks[k], ...r } as PerkDef; body(); } finally { Object.assign(perks, before); }
 }
 
-it('trade: Fists Do the Talking moves half of true Strike into Intimidation; Strike rolls lose the same', () => {
+it('trade: Fists Do the Talking moves half of true Strike into Intimidation; Strike rolls lose the same; a dormant trait gives nothing and takes nothing', () => {
   const s = makeVillage(), p = s.player;
   set(p, SK.unarmed_strike, 50);
   set(p, SK.intimidation, 20);
   const strike = eff(s, SK.unarmed_strike), threat = eff(s, SK.intimidation);
+  p.core.perks.push({ perkId: PK.fists_do_the_talking, source: 'essence', gainedTurn: s.turn, dormant: true });
+  expect(eff(s, SK.unarmed_strike)).toBeCloseTo(strike);
+  expect(augmentsOf(p, SK.intimidation)).toEqual([]);
+  p.core.perks.pop();
   own(s, PK.fists_do_the_talking);
   const moved = trueSkill(p, SK.unarmed_strike) * CONFIG.AUGMENT_TRADE_SHARE * tierMult(SK.unarmed_strike);
   expect(moved).toBeGreaterThan(0);
@@ -40,15 +44,6 @@ it('trade: Fists Do the Talking moves half of true Strike into Intimidation; Str
   expect(augmentsOf(p, SK.intimidation).map((a) => a.source)).toEqual(['Strike (trades in, Fists Do the Talking)']);
   expect(tradesOut(p, SK.unarmed_strike)[0].source).toBe('traded to Intimidation (Fists Do the Talking)');
   expect(augmentFactors(p, SK.intimidation).map((a) => a.id)).toEqual([SK.unarmed_strike]); // Strike learns from the threats
-});
-
-it('trade: a dormant trait gives nothing and takes nothing', () => {
-  const s = makeVillage(), p = s.player;
-  set(p, SK.unarmed_strike, 50);
-  const strike = eff(s, SK.unarmed_strike);
-  p.core.perks.push({ perkId: PK.fists_do_the_talking, source: 'essence', gainedTurn: s.turn, dormant: true });
-  expect(eff(s, SK.unarmed_strike)).toBeCloseTo(strike);
-  expect(augmentsOf(p, SK.intimidation)).toEqual([]);
 });
 
 it('first use: taking a Tavern Brawler essence brings its trait, and the offer shows it', () => {

@@ -21,7 +21,7 @@ const fixed = (d: number): Rng => ({ state: 1, next: () => 0.5, int: (_lo, hi) =
 const level = (s: GameState, n: number) => { s.player.core.classes[0].level = n; };
 
 describe('206 scenario-end payout', () => {
-  it('pays round(owed × tier share × ending factor), plus a roll per step past Critical Success and below level 5', () => {
+  it('pays round(owed × tier share × ending factor), plus a roll per step past Critical Success and below level 5; the factor is clamped (EG17 a)', () => {
     const s = makeVillage();
     level(s, 6);
     expect(scenarioRolls(s, 10, 'success', undefined, 'resolved')).toBe(8);
@@ -30,10 +30,7 @@ describe('206 scenario-end payout', () => {
     expect(scenarioRolls(s, 0, 'critical_success', 3, 'resolved')).toBe(0); // nothing marked pays nothing
     level(s, 1);
     expect(scenarioRolls(s, 10, 'success', undefined, 'resolved')).toBe(9);
-  });
-
-  it('EG17 a: an ending factor outside ENDING_FACTOR_MIN..MAX is kept inside them', () => {
-    const s = makeVillage();
+    // EG17 a: an ending factor outside ENDING_FACTOR_MIN..MAX is kept inside them
     level(s, 6);
     cfg.ENDING_FACTOR.resolved = 5;
     expect(scenarioRolls(s, 10, 'success', undefined, 'resolved')).toBe(10); // 10 × 0.8 × 1.25

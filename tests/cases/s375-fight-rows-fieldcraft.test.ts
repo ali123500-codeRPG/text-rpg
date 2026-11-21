@@ -43,7 +43,7 @@ const shotAt = (s: GameState, g: Actor) => s.events.push({ id: 'shot', turn: s.t
 
 describe('375 Fieldcraft fight rows', () => {
 
-  it('F2: a foe with a bow in sight, more cover one move off: it walks there (Fieldcraft 50); below 50, or with no better cover, it does not', () => {
+  it('F2: a foe with a bow in sight, more cover one move off: it walks there (Fieldcraft 50); below 50, with no better cover, the cover beyond one move or a foe near enough to strike, it does not', () => {
     const { s, g } = archerDuel({ zone: 'gate_inner', x: 45 });
     landCellsUnder(s, zoneById(s, 'street_square')!.outline, LC.marsh);
     skill(g, SK.fieldcraft, 49);
@@ -51,18 +51,18 @@ describe('375 Fieldcraft fight rows', () => {
     skill(g, SK.fieldcraft, 50);
     expect(tacticsOf(s, g)?.intoCover).toEqual({ zone: 'street_square', via: 'gate_inner' });
     expect(orderOf(s, g)).toMatchObject({ type: 'idle', move: 'street_square', moveSpot: { near: 'gate_inner' }, rule: FX.into_cover });
-    landCellsUnder(s, zoneById(s, 'gate_inner')!.outline, LC.marsh); // no more cover there than here
-    expect(tacticsOf(s, g)?.intoCover).toBeUndefined();
-  });
-
-  it('F2 is too far when the cover is beyond one move, and never fires with a foe near enough to strike', () => {
-    const { s, g } = archerDuel({ zone: 'gate_inner', x: 45 });
-    landCellsUnder(s, zoneById(s, 'street_square')!.outline, LC.marsh);
+    // too far when the cover is beyond one move, and never with a foe near enough to strike
     skill(g, SK.fieldcraft, 100);
     g.pos = { x: X(49), y: -14 }; // 19 m from the doorway: beyond one move
     expect(tacticsOf(s, g)?.intoCover).toBeUndefined();
     g.pos = { x: X(31), y: -14 };
     s.player.pos = { x: X(32), y: -14 }; // the archer stands beside it
+    expect(tacticsOf(s, g)?.intoCover).toBeUndefined();
+    g.pos = { x: X(31), y: -14 };
+    s.player.pos = { x: X(45), y: -14 };
+    skill(g, SK.fieldcraft, 50);
+    expect(tacticsOf(s, g)?.intoCover).toEqual({ zone: 'street_square', via: 'gate_inner' });
+    landCellsUnder(s, zoneById(s, 'gate_inner')!.outline, LC.marsh); // no more cover there than here
     expect(tacticsOf(s, g)?.intoCover).toBeUndefined();
   });
 

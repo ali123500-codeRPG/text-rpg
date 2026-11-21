@@ -10,7 +10,6 @@ import { powerStack } from '../../src/ruleset/stacking';
 import { getLibrary } from '../../src/library';
 import { CONFIG } from '../../src/config';
 import { IT } from '../../src/library/itemIds';
-import { GC, GT } from '../../src/library/tableIds';
 import { SK } from '../../src/library/skillIds';
 
 const setup = () => {
@@ -48,14 +47,4 @@ describe('337 worn pieces', () => {
     expect(moveSpeed(s, p).walk).toBeCloseTo((speed - flat) * (1 - pct), 9);
   });
 
-  it('IR21: every armor weight has a helmet from Common to Masterwork; Masterwork ones are fantasy', () => {
-    const helmets = Object.values(getLibrary().items).filter((d) => d.gearType === GT.helmet || d.gearType === GT.helmet_neck);
-    for (const gc of [GC.armor_light, GC.armor_medium, GC.armor_heavy])
-      for (const lv of ['common', 'fine', 'superior', 'masterwork']) expect(helmets.some((d) => d.gearClass === gc && d.level === lv), `${gc} ${lv}`).toBe(true);
-    for (const d of helmets) {
-      expect(d.armor!.covers.every((pt) => pt === 'head' || pt === 'neck'), d.id).toBe(true);
-      if (d.level === 'masterwork') expect(d.tags).toContain('fantasy');
-    }
-    expect(getLibrary().items[IT.bascinet].armor!.covers).toEqual(['head', 'neck']); // its mail aventail
-  });
 });

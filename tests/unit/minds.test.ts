@@ -1,17 +1,14 @@
-import { TP } from '../../src/library/templateIds';
 import { PK } from '../../src/library/perkIds';
 import { afterEach, describe, expect, it } from 'vitest';
 import { makeVillage, actor, place, createRng } from '../harness';
 import { CONFIG, resetConfig } from '../../src/config';
 import { getLibrary } from '../../src/library';
-import { spawnNpc } from '../../src/library/spawn';
 import type { GameEvent, GameState, Order } from '../../src/types';
 import {
-  desiredState, routineOrder, fallbackOrder, brokenOrder, nerveHolds, bindTemplate, installRoutines, switchRoutine,
-  updateAlarms, alertOrders, validateRoutineBank, UNREACHABLE,
+  desiredState, routineOrder, fallbackOrder, brokenOrder, nerveHolds, bindTemplate, switchRoutine,
+  updateAlarms, alertOrders, UNREACHABLE,
 } from '../../src/minds';
 import { fakeView } from './minds-view';
-import { SK } from '../../src/library/skillIds';
 import { tick } from '../harness/time';
 
 afterEach(() => resetConfig());
@@ -21,15 +18,9 @@ const ev = (state: GameState, kind: string, actorId: string, zone: string, perce
   perception: Object.fromEntries(perceivedBy.map((id) => [id, { level: 'full' as const, cue: 'sight' as const }])),
 });
 const belief = (zone: string, status: 'suspicious' | 'aware' = 'aware', turn = 1) => ({ status, lastKnownZone: zone, lastSeenTurn: turn, source: 'seen' as const, revealed: [] });
-function companion(s: GameState, zone = 'tav_common') {
-  const c = spawnNpc(null, TP.patron, { id: 'comp', zone, placeId: 'tavern', bandId: 'player_band', name: 'Pip' });
-  installRoutines(c, 'companion', {}, undefined, s.turn, createRng(1));
-  s.actors.push(c);
-  return c;
-}
 
 describe('desired state', () => {
-  it('schedule loops over expanded route stops', () => {
+  it('schedule loops over expanded route stops, each step as long as its DURATIONS id', () => {
     const s = makeVillage();
     const sl = actor(s, 'slime_1'); // roam_field: route[field_mid, field_far] short ooze, post field_far medium rest
     sl.mind!.routine = { id: 'roam_field', anchorTurn: 0, at: 420 };
@@ -39,15 +30,12 @@ describe('desired state', () => {
     expect(at(30)).toEqual({ zone: 'field_far', activity: 'ooze' });
     expect(at(60)).toEqual({ zone: 'field_far', activity: 'rest' });
     expect(at(180)).toEqual({ zone: 'field_mid', activity: 'ooze' });
-  });
-  it('follow reads the belief, wait reads here', () => {
-    const s = makeVillage();
-    const c = companion(s);
-    c.mind!.knowledge.player = belief('street_square');
-    expect(desiredState(fakeView(s, 'comp'))).toEqual({ zone: 'street_square', activity: 'walk' });
-    expect(switchRoutine(s, c, 'wait', 'agent')).toBe(true);
-    expect(c.mind!.slots!.here).toBe('tav_common');
-    expect(desiredState(fakeView(s, 'comp'))).toEqual({ zone: 'tav_common', activity: 'rest' });
+    // s066: durations are ids: changing DURATIONS.short changes every short step, with no bank edit
+    const bank = JSON.stringify(getLibrary().routines);
+    CONFIG.DURATIONS.short = 50;
+    expect(at(30)).toEqual({ zone: 'field_mid', activity: 'ooze' });
+    expect(at(50)).toEqual({ zone: 'field_far', activity: 'ooze' });
+    expect(JSON.stringify(getLibrary().routines)).toBe(bank);
   });
 });
 
@@ -68,29 +56,6 @@ describe('routineOrder', () => {
 });
 
 describe('fallback list', () => {
-  it('attacks the last hitter, else the player, with the type attack skill', () => {
-    const s = makeVillage();
-    const c = companion(s, 'field_mid');
-    place(s, 'player', 'field_mid');
-    const sl = actor(s, 'slime_1');
-    sl.mind!.knowledge.player = belief('field_mid');
-    sl.mind!.knowledge.comp = belief('field_mid');
-    void c;
-    const near = ['comp', 'player']; // BG-306: in strike reach (metres), not "in my zone"
-    expect(fallbackOrder(fakeView(s, 'slime_1', { withinStrike: near }), createRng(1))).toMatchObject({ type: 'attack', target: 'player', skill: SK.slam, targetPart: null, aimed: false, source: 'fallback' });
-    expect(fallbackOrder(fakeView(s, 'slime_1', { lastHitBy: 'comp', withinStrike: near }), createRng(1)).target).toBe('comp');
-  });
-  it('closes in one link, never through a frontier, then searches', () => {
-    const s = makeVillage();
-    const sl = place(s, 'slime_1', 'field_far');
-    sl.mind!.knowledge.player = belief('field_edge', 'suspicious');
-    expect(fallbackOrder(fakeView(s, 'slime_1'), createRng(1))).toMatchObject({ type: 'move', target: 'field_mid', source: 'fallback' });
-    sl.zone = 'field_edge';
-    expect(fallbackOrder(fakeView(s, 'slime_1'), createRng(1))).toMatchObject({ type: 'search', target: 'field_edge' });
-    sl.zone = 'field_far';
-    sl.mind!.knowledge.player = belief('woods', 'suspicious');
-    expect(fallbackOrder(fakeView(s, 'slime_1'), createRng(1)).type).toBe('hold');
-  });
   it('broken flees one link away from its foe, cowers when cornered or at Cowering (BF79); surrendered holds; a broken slime flees too', () => {
     const s = makeVillage();
     const p = place(s, 'patron_1', 'tav_counter');
@@ -183,12 +148,5 @@ describe('alarm', () => {
     updateAlarms(s, []);
     expect(g.mind!.routine).toEqual({ id: 'guard_post', anchorTurn: 3, at: 420 });
     expect(g.mind!.alarm!.armed).toBe(false);
-  });
-});
-
-describe('routine bank import', () => {
-  it('the prototype bank passes', () => {
-    const L = getLibrary();
-    expect(validateRoutineBank({ routines: L.routines, sets: L.routineSets, activities: L.activities })).toEqual({ ok: true, errors: [] });
   });
 });

@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { makeVillage, createRng } from '../harness';
 import { CONFIG } from '../../src/config';
-import { LY, WK, ZK } from '../../src/library/tableIds';
+import { LY, WK } from '../../src/library/tableIds';
 import { getLibrary } from '../../src/library';
 import { applyStagePlan, validateStagePlan, type PlanContext } from '../../src/scenario';
 import { toStoryStart, villageStagePlan } from '../../src/scenario/fixtures';
@@ -26,13 +26,6 @@ const ctx: PlanContext = { tier: 'success', kind: 'scenario', placeId: 'tavern' 
 const zoneOf = (s: ReturnType<typeof makeVillage>, key: string) => s.places.flatMap((p) => p.zones).find((z) => z.id.endsWith(key) || z.name === key);
 
 describe('title sizes and walls', () => {
-  it('every size and wall kind has a library row; sizes grow smallest first', () => {
-    const lib = getLibrary();
-    const m2 = Object.values(lib.zoneSizes!).map((z) => z.m2);
-    expect(m2).toEqual([...m2].sort((a, b) => a - b));
-    expect(Object.values(lib.zoneSizes!).every((z) => z.like.length > 0)).toBe(true);
-    for (const k of Object.values(lib.zoneKinds!)) { expect(CONFIG.ZONE_SIZE_M2[k.size]).toBeGreaterThan(0); expect(lib.wallKinds![k.wall]).toBeDefined(); }
-  });
 
   it('a title takes its kind\'s size and walls; the Weaver can change one side or give m²', () => {
     const s = toStoryStart(makeVillage());

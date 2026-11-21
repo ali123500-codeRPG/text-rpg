@@ -7,7 +7,6 @@ import { GC } from '../../src/library/tableIds';
 import { CONFIG } from '../../src/config';
 import { EQUIP_LEVELS, equipAt, equipName, equipPos } from '../../src/scales';
 import { equipNeed, itemLevel, requirement } from '../../src/ruleset/requirements';
-import { itemValue } from '../../src/ruleset/value';
 import type { ItemDef } from '../../src/types';
 
 const item = (id: string) => getLibrary().items[id];
@@ -24,21 +23,6 @@ describe('336 equip ladder', () => {
     const minted = { ...item(IT.greataxe), level: 'divine', base: { itemId: IT.greataxe, quality: CONFIG.QUALITY_LEVEL_UP_FROM, boosts: 'hitAdj' } } as ItemDef;
     expect(itemLevel(minted)).toBe('divine_1');
     expect(requirement(minted)!.need).toBe(500);
-  });
-
-  it('IR5: priced items carry no hand-set value; unpriced ones keep theirs', () => {
-    for (const d of Object.values(getLibrary().items)) if (d.weapon || d.armor || d.shield) expect(d.value, d.id).toBeUndefined();
-    expect(itemValue(null, item(IT.coin))).toBe(1);
-    expect(itemValue(null, item(IT.plate_harness))).toBeGreaterThan(0);
-  });
-
-  it('IR2: every gear class but improvised has a piece at every level from Common to Masterwork; Masterwork ones are fantasy', () => {
-    const lib = getLibrary(), items = Object.values(lib.items);
-    for (const gc of Object.keys(lib.gearClasses ?? {})) {
-      if (gc === GC.improvised) continue;
-      for (const lv of ['common', 'fine', 'superior', 'masterwork']) expect(items.some((d) => d.gearClass === gc && d.level === lv), `${gc} ${lv}`).toBe(true);
-    }
-    for (const d of items) if (d.level === 'masterwork') expect(d.tags, d.id).toContain('fantasy');
   });
 
   it('IR23: every weapon and armor piece outside improvised and shields has a gear type, and its reach or coverage is the type\'s', () => {

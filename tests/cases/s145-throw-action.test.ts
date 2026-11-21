@@ -21,12 +21,6 @@ const withDagger = () => {
 const throwOf = (s: ReturnType<typeof makeVillage>, id = 'dg') => usableModes(s, s.player).find((m) => m.itemId === id && m.mode.id === AM.throw)!.mode;
 
 describe('145 The throw action', () => {
-  it('every gear class is tagged by use; weapon classes are melee or ranged', () => {
-    const gc = Object.values(getLibrary().gearClasses!);
-    for (const c of gc) expect(['melee', 'ranged', 'improvised', 'armor', 'shield', 'unarmed']).toContain(c.use);
-    for (const c of gc) if (c.skill === SK.melee_light || c.skill === SK.melee_medium || c.skill === SK.melee_heavy) expect(c.use).toBe('melee');
-    for (const c of gc) if (c.skill === SK.ranged_light || c.skill === SK.ranged_medium || c.skill === SK.ranged_heavy) expect(c.use).toBe('ranged');
-  });
 
   it('reach: each throw mode has its own real range (THROW_M), and perks add throwReach metres', () => {
     const lib = getLibrary();

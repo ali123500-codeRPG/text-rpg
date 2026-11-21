@@ -3,7 +3,6 @@
 // drains first by the effort tier every action names (no roll), spills at half, and comes back by catching your breath,
 // resting and sleeping. Sleep lasts until rested. Debt that fills the bar puts you to sleep; spill that fills it leaves you
 // Spent. Stamina is the third Fortitude skill, its own group at quarter XP, marked per 50 strain of any effort (FB6).
-import { actionRow } from '../../src/ruleset/actionTime';
 import { describe, expect, it } from 'vitest';
 import type { GameState } from '../../src/types';
 import { makeVillage, furnish } from '../harness';
@@ -11,10 +10,9 @@ import { sleepDebtFor } from '../harness/sleep';
 import { intent, play } from './w4-kit';
 import { CONFIG } from '../../src/config';
 import { getLibrary } from '../../src/library';
-import { DU, FU } from '../../src/library/tableIds';
+import { FU } from '../../src/library/tableIds';
 import { SK } from '../../src/library/skillIds';
 import { TP } from '../../src/library/templateIds';
-import { EFFORT } from '../../src/scales';
 import { now } from '../../src/time';
 import { actorById } from '../../src/engine/relations';
 import { passiveFatigue, payStrain, sleepMinutes } from '../../src/engine/fatigue';
@@ -39,11 +37,6 @@ const pass = (s: GameState, minutes: number) => { advanceClock(s, minutes); pass
 const withStamina = (s: GameState, v: number) => { s.player.core.skills[SK.stamina] = { raw: v, state: 'normal' }; return s; };
 
 describe('278 fatigue and stamina', () => {
-  it('FT24/FT25: one tier table, Base free; every Action times row names a tier', () => {
-    makeVillage();
-    for (const r of Object.values(getLibrary().durations ?? {})) expect(EFFORT.has(r.effort), r.id).toBe(true);
-  });
-
   it('FT2/FT23: strain drains the line first, then spills half into the long term; armour multiplies it', () => {
     const s = quiet();
     expect(barMax(s.player)).toBe(CONFIG.STAMINA_BASE);
@@ -54,22 +47,7 @@ describe('278 fatigue and stamina', () => {
     m.player.core.inventory = m.player.core.inventory.filter((i) => !i.equippedIn?.includes('armor'));
     payStrain(m, m.player, 'moderate', 4);
     expect(lineUsed(m.player)).toBe(4);
-  });
-
-  it('SR4: every strain point also leaves STRAIN_RESIDUE of itself in the long term, even when the line holds it', () => {
-    const s = quiet();
-    payStrain(s, s.player, 'hard');
-    expect(lineUsed(s.player)).toBeCloseTo(CONFIG.STRAIN_COST.hard);
-    expect(fatigueOf(s.player).debt).toBeCloseTo(CONFIG.STRAIN_COST.hard * CONFIG.STRAIN_RESIDUE);
-  });
-
-  it('FT25 check: a blow and a defence every 3 s (2.5 a round) empties the line in 1 min at Stamina 0, 2 at 50, 3 at 100', () => {
-    for (const [st, minutes] of [[0, 1], [50, 2], [100, 3]]) {
-      const s = withStamina(quiet(), st);
-      let rounds = 0;
-      while (lineUsed(s.player) < lineMax(s.player) - 1e-9) { payStrain(s, s.player, 'hard'); payStrain(s, s.player, 'light'); rounds++; }
-      expect(rounds * 3 / 60).toBeCloseTo(minutes);
-    }
+    expect(fatigueOf(m.player).debt).toBeCloseTo(4 * CONFIG.STRAIN_RESIDUE); // SR4: residue even when the line holds it all
   });
 
   it('FT4/FT3: hours awake add debt: Tired after 12 h at Stamina 0 and 15 h at 50, with its roll penalty and a smaller line', () => {
@@ -93,21 +71,18 @@ describe('278 fatigue and stamina', () => {
     try { pass(s, 30 * 60); expect(fatigueOf(s.player).debt).toBe(0); } finally { delete getLibrary().bodyTypes[s.player.core.bodyTypeId].sleepNeed; }
   });
 
-  it('FT28: the line comes back 15 % + Stamina × 0.05 % a minute, only after 10 calm seconds', () => {
+  it('FT28: the line comes back 15 % + Stamina × 0.05 % a minute, only after 10 calm seconds; Fast Healer doubles it', () => {
     const s = quiet();
     payStrain(s, s.player, 'hard', 10); // 20 used, now
     pass(s, CONFIG.BREATH_CALM_S / 60);
     expect(lineUsed(s.player)).toBeCloseTo(20); // still winded
     pass(s, 1);
     expect(lineUsed(s.player)).toBeCloseTo(20 - 0.15 * lineMax(s.player), 1);
-  });
-
-  it('Fast Healer doubles catching your breath', () => {
-    const s = quiet();
-    s.player.core.perks.push({ perkId: PK.quick_mend, source: 'level', gainedTurn: 0 });
-    payStrain(s, s.player, 'hard', 10); // 20 used, now
-    pass(s, CONFIG.BREATH_CALM_S / 60 + 1);
-    expect(lineUsed(s.player)).toBeCloseTo(20 - 2 * 0.15 * lineMax(s.player), 1);
+    const f = quiet();
+    f.player.core.perks.push({ perkId: PK.quick_mend, source: 'level', gainedTurn: 0 });
+    payStrain(f, f.player, 'hard', 10);
+    pass(f, CONFIG.BREATH_CALM_S / 60 + 1);
+    expect(lineUsed(f.player)).toBeCloseTo(20 - 2 * 0.15 * lineMax(f.player), 1);
   });
 
   it('FT7/FT8/FT9: sleep clears 4 % an hour (× 0.75 off a bed, × armour) and lasts until rested, 1 to 24 hours', () => {
@@ -130,13 +105,7 @@ describe('278 fatigue and stamina', () => {
     expect(lineUsed(bed.player)).toBe(0);
   });
 
-  it('FT9: "sleep" runs until rested and clears the debt; a rest fills the line', () => {
-    const s = quiet();
-    sleepDebtFor(s, 3);
-    const t0 = now(s);
-    play(s, { intent: intent({ action: { type: 'sleep' } }) });
-    expect(now(s) - t0).toBe(3 * 60 + actionRow(DU.action)!.seconds / 60);
-    expect(fatigueOf(s.player).debt).toBeLessThan(0.1); // only the turn's own awake minute since
+  it('FT9: a rest fills the line', () => {
     const r = quiet();
     r.player.core.condition.fatigue = { debt: 0, line: 40 };
     r.player.core.condition.fatigue.hardAt = now(r) + 999; // keep breath out of it

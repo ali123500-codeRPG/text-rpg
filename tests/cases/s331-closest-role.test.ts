@@ -48,7 +48,7 @@ describe('331 closest role and Roles wanted', () => {
     expect(validateStagePlan(s, ok, ctx)).toEqual([]);
     applyStagePlan(s, ok, ctx, { entry: 'open' }, createRng(1));
     expect(s.hidden.roleWants ?? []).toEqual([]);
-    const s2 = toStoryStart(makeVillage());
+    const s2 = s; // validation reads the state, never changes it
     expect(validateStagePlan(s2, byWants('x', [SK.healing]), ctx).map((e) => e.code)).toContain('bad_compose');
     expect(validateStagePlan(s2, byWants('x', [SK.healing, 'SK999']), ctx).map((e) => e.code)).toContain('bad_compose');
     expect(validateStagePlan(s2, byWants('x', []), ctx).map((e) => e.code)).toContain('bad_compose');

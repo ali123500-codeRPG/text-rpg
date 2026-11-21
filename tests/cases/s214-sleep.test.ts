@@ -11,7 +11,7 @@ import type { Actor, GameEvent, GameState, Intent, ParserActionType } from '../.
 import { createRng, makeVillage } from '../harness';
 import { sleepDebtFor } from '../harness/sleep';
 import { resolveTurn } from '../../src/engine';
-import { headTo, installRoutines } from '../../src/minds';
+import { desiredState, headTo, installRoutines } from '../../src/minds';
 import { now, startClock } from '../../src/time';
 import { CONFIG } from '../../src/config';
 import { spawnNpc } from '../../src/library/spawn';
@@ -19,7 +19,8 @@ import { TP } from '../../src/library/templateIds';
 import { PK } from '../../src/library/perkIds';
 import { fallAsleep, planNight, wakeByEvent, wakeCalls } from '../../src/engine/sleep';
 import { perceptionOf } from '../../src/perception';
-import { buildPlayerView } from '../../src/views';
+import { buildActorView, buildPlayerView } from '../../src/views';
+import { fatigueOf } from '../../src/ruleset/fatigue';
 import { HL } from '../../src/library/tableIds';
 
 const act = (type: ParserActionType, target: string | null = null): Intent => ({
@@ -37,18 +38,25 @@ const companion = (s: GameState, id: string) => {
 const ev = (over: Partial<GameEvent>): GameEvent => ({ id: 'x', turn: 1, actorId: 'guard_1', kind: 'attack', zone: 'tav_cellar', effects: [], noise: 'normal', visibility: 'normal', perception: {}, ...over });
 
 describe('214 sleeping and keeping watch', () => {
-  it('NW12/FT9: alone and undisturbed, a sleep runs until rested (8 hours of debt here), heals a rest per 4 hours and wakes you rested', () => {
+  it('NW12/FT9/NW11: alone and undisturbed, a sleep runs until rested, heals a rest per 4 hours, clears the debt and wakes you rested; every NPC is moved to where its routine puts it', () => {
     const s = quiet();
-    startClock(s, 'evening');
+    startClock(s, 'night');
+    const g = s.actors.find((a) => a.id === 'guard_1')!;
+    // a patrol from the gate to the tavern door and back, 30 minutes a stop
+    installRoutines(g, 'patrol_guard', { route: ['gate_inner', 'street_square', 'street_door'] }, 'route', s.turn, createRng(1), now(s));
     s.player.core.condition.hpLostPct = 80;
     sleepDebtFor(s, 8);
     const t0 = now(s);
     turn(s, act('sleep'));
-    expect(now(s) - t0).toBe(480 + actionRow(DU.action)!.seconds / 60);
+    expect(now(s) - t0).toBe(480 + actionRow(DU.action)!.seconds / 60); // the sleep, plus the action row's time
     expect(s.log.filter((l) => l.code === 'healed' && (l.detail as { source: string }).source === HL.rest)).toHaveLength(2);
+    expect(fatigueOf(s.player).debt).toBeLessThan(0.1); // only the turn's own awake minute since
     expect(s.player.asleep).toBeUndefined();
     expect(s.night).toBeUndefined();
     expect(s.log.some((l) => l.code === 'woke' && (l.detail as { why: string }).why === 'rested')).toBe(true);
+    // 481 minutes into a 90-minute loop: 31 minutes in, the second stop
+    expect(desiredState(buildActorView(s, g.id))!.zone).toBe('street_square');
+    expect(g.zone).toBe('street_square');
   });
   it('NW12/NW18: someone hostile arriving stops the sleep; still asleep, your turn passes with nothing done', () => {
     const s = quiet();

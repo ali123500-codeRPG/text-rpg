@@ -29,17 +29,12 @@ function alone() {
 
 describe('376 Stratagem fight rows', () => {
 
-  it('S1: alone against one foe, it falls back toward the idle bandmate (Stratagem 40); below 40 it attacks', () => {
-    const { s, patron } = alone();
+  it('S1: alone against one foe, it falls back toward the idle bandmate (Stratagem 40), below 40 it attacks; not with someone already on its side, or with the bandmate close enough to strike', () => {
+    const { s, patron, trader } = alone();
     skill(patron, SK.stratagem, 39);
     expect(orderOf(s, patron).type).toBe('attack');
     skill(patron, SK.stratagem, 40);
     expect(orderOf(s, patron)).toMatchObject({ type: 'idle', move: 'tav_counter', moveSpot: { near: 'trader' }, rule: FX.draw_into_pack });
-  });
-
-  it('S1 does not fire with someone already on its side, or with the bandmate close enough to strike', () => {
-    const { s, patron, trader } = alone();
-    skill(patron, SK.stratagem, 40);
     place(s, 'trader', patron.zone);
     trader.pos = { x: patron.pos!.x + 0.8, y: patron.pos!.y };
     expect(withTactics(s, patron, buildActorView(s, patron.id)).tactics?.drawTo).toBeUndefined();

@@ -54,9 +54,10 @@ function attackAtGap(s: GameState, gap: number) {
 
 describe('127 20 perks for the new skills', () => {
   it('Quiet Mail: worn armor adds one noise step less, never below none', () => {
-    expect(patrolNoise(IT.mail_hauberk, true)).toBe(patrolNoise(IT.gambeson, false));
+    const gambeson = patrolNoise(IT.gambeson, false);
+    expect(patrolNoise(IT.mail_hauberk, true)).toBe(gambeson);
     expect(patrolNoise(IT.plate_harness, true)).toBe(patrolNoise(IT.mail_hauberk, false));
-    expect(patrolNoise(IT.gambeson, true)).toBe(patrolNoise(IT.gambeson, false));
+    expect(patrolNoise(IT.gambeson, true)).toBe(gambeson);
   });
 
   it('Soft Tread: a Stealthy move is one noise step quieter; an open move is not', () => {

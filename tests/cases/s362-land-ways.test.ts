@@ -35,7 +35,7 @@ describe('362 the land\'s ways are made by code, once', () => {
     expect(ways(s, 'gate_inner').filter((w) => w.startsWith('rg_'))).toHaveLength(2); // run again, nothing doubles
   });
 
-  it('crossing it builds that road\'s zone once; its far end becomes new ground keyed by the junction', () => {
+  it('crossing it builds that road\'s zone once, its far end new ground keyed by the junction; the junction is built once and joins the roads meeting there; a settlement at a road\'s end stands on its site, joined once; a plan\'s link to a land road reaches its zone once built', () => {
     const s = landed();
     expect(validateStagePlan(s, plan([zone('lane', { road: undefined })]), ext('rg_r1')).map((e) => e.code)).toContain('land_entry');
     expect(build(s, 'rg_r1', plan([zone('lane', { road: 'rg_r1' })]))).not.toContain('land_entry');
@@ -43,23 +43,14 @@ describe('362 the land\'s ways are made by code, once', () => {
     expect(ways(s, 'gate_inner')).toContain('lane: the road north-west, toward a fork in the road');
     expect(ways(s, 'lane')).toEqual(['gate_inner: the gate', 'rg_n2 (new): the road north-west, toward a fork in the road']);
     expect(validateStagePlan(s, plan([zone('lane2', { road: 'rg_r1', ways: [{ to: 'lane', label: 'on' }] })]), { kind: 'scenario', tier: 'success', placeId: 'field' }).map((e) => e.code)).toContain('road_built');
-  });
-
-  it('a junction is built once and keeps its zone; the roads meeting there join it', () => {
-    const s = landed();
-    build(s, 'rg_r1', plan([zone('lane', { road: 'rg_r1' })]));
+    // a junction is built once and keeps its zone; the roads meeting there join it
     expect(validateStagePlan(s, plan([zone('fork', { kind: ZK.field })]), ext('rg_n2')).map((e) => e.code)).toContain('land_entry');
     build(s, 'rg_n2', plan([zone('fork', { kind: ZK.field, node: 'rg_n2', look: 'where three roads meet' })]));
     expect(s.regions![0].nodes[1].zone).toBe('fork');
     expect(ways(s, 'lane')).toContain('fork: the road north-west, toward a fork in the road');
     expect(ways(s, 'fork')).toEqual(['lane: lane', 'rg_r2 (new): the road west, toward Ashwell', 'rg_r3 (new): the road north, toward Hob End']);
     expect(validateStagePlan(s, plan([zone('fork2', { kind: ZK.field, node: 'rg_n2', ways: [{ to: 'fork', label: 'on' }] })]), { kind: 'scenario', tier: 'success', placeId: 'field' }).map((e) => e.code)).toContain('road_built');
-  });
-
-  it('a settlement built at a road\'s end stands on the site and is joined to the road already built, with no second way', () => {
-    const s = landed();
-    build(s, 'rg_r1', plan([zone('lane', { road: 'rg_r1' })]));
-    build(s, 'rg_n2', plan([zone('fork', { kind: ZK.field, node: 'rg_n2' })]));
+    // a settlement built at a road's end stands on the site and is joined to the road already built, with no second way
     build(s, 'rg_r2', plan([zone('west', { road: 'rg_r2' })]));
     const ash = [{ key: 'ashwell', kind: 'settlement', parent: '', name: 'Ashwell', site: 'rg_s2' }];
     expect(validateStagePlan(s, plan([zone('ash_gate', { kind: ZK.yard })]), ext('rg_n3')).map((e) => e.code)).toContain('land_entry');
@@ -68,11 +59,7 @@ describe('362 the land\'s ways are made by code, once', () => {
     expect(ways(s, 'west')).toContain('ash_gate: the road west, toward Ashwell');
     // the way in that was built is the one way between the village and the road: code adds no second one
     expect(built(s).filter((z) => z.placeId === 'ashwell').flatMap((z) => waysOut(s, z.id)).filter((l) => l.to === 'west')).toHaveLength(1);
-  });
-
-  it('a plan\'s link to a land road\'s id reaches its zone once built, else new ground keyed by it', () => {
-    const s = landed();
-    build(s, 'rg_r1', plan([zone('lane', { road: 'rg_r1' })]));
+    // a plan's link to a land road's id reaches its zone once built, else new ground keyed by it
     applyStagePlan(s, plan([zone('shed', { kind: ZK.yard, ways: [{ to: 'rg_r1', label: 'out to the road' }, { to: 'rg_r3', label: 'the far road' }] })]), { kind: 'scenario', tier: 'success', placeId: 'field' }, { entry: 'open' }, createRng(1));
     expect(ways(s, 'shed')).toEqual(['lane: out to the road', 'rg_r3 (new): the far road']);
     expect(built(s).filter((z) => z.road === 'rg_r1')).toHaveLength(1);

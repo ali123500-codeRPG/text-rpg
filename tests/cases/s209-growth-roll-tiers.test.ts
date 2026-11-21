@@ -10,7 +10,7 @@ import { growthRoll, payRolls, skillCap } from '../../src/ruleset/improve';
 const odds = (raw: number, state: 'normal' | 'tagged' | 'flawed') => { let any = 0; for (let d = 1; d <= 100; d++) if (growthRoll(d, { raw, state }, 0).gain) any++; return any; };
 
 describe('209 improvement roll', () => {
-  it('gains margin ÷ GROWTH_MARGIN_PER_POINT, rounded up; nothing at margin 0 or below', () => {
+  it('gains margin ÷ GROWTH_MARGIN_PER_POINT, rounded up; nothing at margin 0 or below; Burden weighs on untagged skills only', () => {
     const s = { raw: 50, state: 'normal' as const };
     expect(growthRoll(50, s, 0).gain).toBe(0); // margin 0
     expect(growthRoll(51, s, 0).gain).toBe(1); // margin 1
@@ -18,17 +18,15 @@ describe('209 improvement roll', () => {
     expect(growthRoll(66, s, 0).gain).toBe(2); // margin 16
     expect(growthRoll(100, s, 0).gain).toBe(Math.ceil(50 / CONFIG.GROWTH_MARGIN_PER_POINT)); // margin 50: 4
     expect(growthRoll(100, { raw: 0, state: 'normal' }, 0).gain).toBe(7); // margin 100
+    // Burden weighs on untagged skills only
+    expect(growthRoll(55, { raw: 50, state: 'normal' }, 10).gain).toBe(0); // margin 55 + 50 − 10 − 100 = −5
+    expect(growthRoll(55, { raw: 50, state: 'tagged' }, 10).gain).toBe(2); // margin 55 + 70 − 100 = 25, from the tagged cap 120
   });
 
   it('scales smoothly: 75% at 25, 50% at 50, 25% at 75, 1% at 99, and a tagged skill at 100 rolls like an untagged 80', () => {
     expect([25, 50, 75, 99].map((r) => odds(r, 'normal'))).toEqual([75, 50, 25, 1]);
     expect(odds(100, 'tagged')).toBe(odds(100 - CONFIG.TAG_CAP_BONUS, 'normal'));
     expect(odds(CONFIG.SKILL_CAP + CONFIG.TAG_CAP_BONUS - 1, 'tagged')).toBe(1);
-  });
-
-  it('Burden weighs on untagged skills only', () => {
-    expect(growthRoll(55, { raw: 50, state: 'normal' }, 10).gain).toBe(0); // margin 55 + 50 − 10 − 100 = −5
-    expect(growthRoll(55, { raw: 50, state: 'tagged' }, 10).gain).toBe(2); // margin 55 + 70 − 100 = 25, from the tagged cap 120
   });
 
   it('raw stops exactly at the cap: a natural 100 there gains nothing, unless a group bonus adds room', () => {

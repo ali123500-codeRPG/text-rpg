@@ -76,7 +76,7 @@ describe('121 NPC stealth', () => {
     expect(seen(s)).toBe('unaware');
   });
 
-  it('NS3: you contest a stealthy NPC that comes into view; lose and it is not shown, win and it is', () => {
+  it('NS3/NS4: you contest a stealthy NPC that comes into view; lose and it is not shown, a tie half shows "someone", win and it is shown', () => {
     const s = makeVillage();
     place(s, 'player', 'street_square');
     const t = thief(s, 'gate_inner');
@@ -91,23 +91,16 @@ describe('121 NPC stealth', () => {
     expect(inView(s)).toBeUndefined();
     expect(ev.find((e) => e.actorId === 'thief_1')?.perception.player).toBeUndefined();
     vi.restoreAllMocks();
+    rig({ player: 0 }); // NS4: a tie leaves you suspicious: you half see someone
+    turn(s, { thief_1: act('sneak') });
+    expect(seen(s)).toBe('suspicious');
+    expect(inView(s)).toMatchObject({ label: 'someone', level: 'partial' });
+    vi.restoreAllMocks();
     rig({ player: 1 });
     const won = turn(s, { thief_1: act('sneak') });
     expect(seen(s)).toBe('aware');
     expect(inView(s)?.level).toBe('full');
     expect(won.find((e) => e.actorId === 'thief_1')?.perception.player).toBeDefined(); // BG-64: the deed you spot them by is told
-  });
-
-  it('NS4: a tie leaves you suspicious: you half see someone', () => {
-    const s = makeVillage();
-    place(s, 'player', 'street_square');
-    const t = thief(s, 'street_square');
-    t.posture = 'stealthy';
-    s.player.journal!.stealthSeen = { thief_1: 'unaware' };
-    rig({ player: 0 });
-    turn(s, { thief_1: act('sneak') });
-    expect(seen(s)).toBe('suspicious');
-    expect(inView(s)).toMatchObject({ label: 'someone', level: 'partial' });
   });
 
   it('NS10: an NPC slips away from you with a sneak move (VS1); with Unblinking you also need beating at Sneaking', () => {

@@ -59,8 +59,17 @@ describe('205 growth lands at the scenario end', () => {
     expect(g.xp.gained).toBeGreaterThan(0);
     expect(g.xp).toMatchObject({ fromLevel: 1, fromPct: 0 });
     expect(g.xp.toLevel * 100 + g.xp.toPct).toBeGreaterThan(g.xp.fromLevel * 100 + g.xp.fromPct);
+    // the Gains page's log keeps the scenario with how it ended and its XP; one that gave nothing is not kept
+    const log = s.player.progression!.gainsLog!;
+    expect(log).toHaveLength(1);
+    expect(log[0]).toMatchObject({ ending: 'resolved', endTurn: s.turn });
+    expect(log[0].xp.gained).toBe(g.xp.gained);
     s.turn += 1;
     expect(scenarioGainsNow(s)).toBeUndefined(); // only on the turn that ended it
+    frame(s);
+    s.turn += 1;
+    end(s);
+    expect(s.player.progression!.gainsLog).toHaveLength(1);
   });
 
   it('BG-217: growth earned in free roam waits for the next scenario\'s end, and its gains moment counts the roam\'s XP', () => {

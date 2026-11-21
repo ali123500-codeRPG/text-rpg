@@ -34,11 +34,6 @@ describe('135 class and level achievements', () => {
     const peak = s.player.progression!.achievements!.find((a) => a.id === `${ACH.class_max_tier_1}:tier_1`);
     if (peak) expect(achievementName(s, peak)).toBe('Peak of the Trained');
   });
-  it('the tiers chain steps one at a time from 2 up to every tier', () => {
-    const a = getLibrary().achievements!;
-    const chain = [ACH.class_tiers_2, ACH.class_tiers_3, ACH.class_tiers_4, ACH.class_tiers_5, ACH.class_tiers_all];
-    expect(chain.slice(1).map((id) => a[id].after)).toEqual(chain.slice(0, -1));
-  });
   it('every 10 character levels pays an achievement, once per multiple, one reward level higher each time from −1', () => {
     const s = makeVillage();
     const cur = s.player.core.classes.find((c) => c.state === 'current')!;

@@ -26,18 +26,15 @@ const go = (s: GameState, a: CheckinAnswer) => applyCheckin(s, s.stage.scenario!
 const codes = (s: GameState) => s.log.map((l) => l.code);
 
 describe('188 what a check-in may change (SC12)', () => {
-  it('arrivals come in out of sight and walk in from there', () => {
-    const s = setup();
-    go(s, { verdict: 'continue', arrivals: riders('street_square') });
-    const hal = s.actors.find((a) => a.names.current === 'Hal')!;
-    expect(hal.zone).toBe('street_square');
-    expect(codes(s)).toContain('checkin_continue');
-  });
-  it('an arrival in the player\'s sight drops the answer and files a bug', () => {
+  it('an arrival in the player\'s sight drops the answer and files a bug; arrivals out of sight come in there and walk in', () => {
     const s = setup();
     go(s, { verdict: 'continue', arrivals: riders('tav_common') });
     expect(s.actors.some((a) => a.names.current === 'Hal')).toBe(false);
     expect(codes(s)).toContain('checkin_failed');
+    go(s, { verdict: 'continue', arrivals: riders('street_square') });
+    const hal = s.actors.find((a) => a.names.current === 'Hal')!;
+    expect(hal.zone).toBe('street_square');
+    expect(codes(s)).toContain('checkin_continue');
   });
   it('a change rewrites the question, scale and endings and keeps the scenario running', () => {
     const s = setup();

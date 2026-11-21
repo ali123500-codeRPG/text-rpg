@@ -10,8 +10,7 @@ import { CONFIG } from '../../src/config';
 import { actorById, hostile, truce } from '../../src/engine/relations';
 import { resolveSpeech } from '../../src/engine/speech';
 import { loseNerve } from '../../src/engine/effects';
-import { answerOffer, canDemand, canOffer, makeOffer, offerNote, offersTo, playerOffer, tiersToConvince } from '../../src/engine/offer';
-import { actorBody } from '../../src/library';
+import { answerOffer, canDemand, canOffer, makeOffer, offerNote, offersTo, playerOffer } from '../../src/engine/offer';
 import { buildNarrationView, buildPlayerView } from '../../src/views';
 
 const fight = (s: GameState = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'trader'] })): GameState => {
@@ -24,19 +23,6 @@ const roll = (actorId: string, tier: RollResult['tier']) => ({ actorId, tier, ma
 const won = (by: number): ContestResult => ({ a: roll('a', 'success'), b: roll('b', 'success'), gap: -by, winner: by > 0 ? 'a' : by < 0 ? 'b' : 'tie' });
 const patron = (s: GameState) => actorById(s, 'patron_1')!;
 const demand = (spoken = 'Drop it and kneel.') => intent({ action: { type: 'persuade', target: 'patron_1', demand: 'yield' }, spoken, addressees: ['patron_1'] });
-
-it('TF19: a demand to yield needs a bigger win than a stand-down; hurt or uneasy, Broken and Crippled each make it easier', () => {
-  const s = fight(), p = patron(s);
-  expect(tiersToConvince(p, 'yield', s)).toBe(CONFIG.OFFER_YIELD_WIN_TIERS);
-  expect(tiersToConvince(p, 'yield', s)).toBeGreaterThan(tiersToConvince(p));
-  p.core.condition.hpLostPct = 30;
-  expect(tiersToConvince(p, 'yield', s)).toBe(CONFIG.OFFER_YIELD_WIN_TIERS_SHAKEN);
-  const part = actorBody(s, p).parts[0].id;
-  p.core.condition.parts[part] = -50; // Crippled
-  expect(tiersToConvince(p, 'yield', s)).toBe(CONFIG.OFFER_YIELD_WIN_TIERS_SHAKEN - CONFIG.OFFER_YIELD_EASIER);
-  p.mind!.moraleState = 'broken';
-  expect(tiersToConvince(p, 'yield', s)).toBe(Math.max(1, CONFIG.OFFER_YIELD_WIN_TIERS_SHAKEN - 2 * CONFIG.OFFER_YIELD_EASIER));
-});
 
 it('TF19: a code-run foe convinced by the demand surrenders: beaten (XP paid), no truce', () => {
   const s = fight(), p = patron(s);

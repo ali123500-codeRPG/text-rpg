@@ -13,21 +13,12 @@ const codes = (s: GameState, plan: StagePlan) => validateStagePlan(s, plan, ctx)
 /** a new zone keyed `key`, linked to the field */
 const declare = (key: string): StagePlan => ({ ...grovePlan(), zones: [{ key, place: 'field', kind: ZK.yard, name: 'a yard', look: 'a yard', ways: [{ to: 'field_far', label: 'back to the field' }] }] });
 
-it('an extension that declares an area already built is refused', () => {
+it('an extension that declares an area or place already built is refused, a new key is accepted, and the bare start place is filled in (BG-32)', () => {
   const s = makeVillage({ playerZone: 'field_far' });
   expect(codes(s, declare('street_square'))).toContain('zone_exists');
-});
-
-it('a place already built is refused; a new key is accepted', () => {
-  const s = makeVillage({ playerZone: 'field_far' });
   const plan = { ...declare('yard'), places: [{ key: 'tavern', kind: 'place', name: 'an inn', parent: 'village' }] } as unknown as StagePlan;
   expect(codes(s, plan)).toContain('place_exists');
   expect(codes(s, declare('yard'))).not.toEqual(expect.arrayContaining(['zone_exists', 'place_exists']));
-});
-
-it('the bare start place is filled in, not refused (BG-32)', () => {
-  const s = makeVillage({ playerZone: 'field_far' });
   s.places.find((p) => p.id === 'tavern')!.bare = true;
-  const plan = { ...declare('yard'), places: [{ key: 'tavern', kind: 'place', name: 'an inn', parent: 'village' }] } as unknown as StagePlan;
   expect(codes(s, plan)).not.toContain('place_exists');
 });

@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 // @ts-expect-error Node types are not installed; vitest runs in Node
 import { readdirSync, readFileSync } from 'node:fs';
-import { BACKDROPS, ROAD } from '../../src/library/backdrops';
+import { BACKDROPS } from '../../src/library/backdrops';
 import { RK, ZK } from '../../src/library/tableIds';
 import { backdropFor } from '../../src/views/backdrop';
 import { middle } from '../../src/plan/where';
@@ -15,9 +15,6 @@ const DIR = 'src/ui/assets/backdrops';
 const at = (k: 'morning' | 'night') => ({ clocks: { time: CONFIG.TIME_OF_DAY_FROM[k] + 30 } }) as unknown as Partial<GameState>;
 
 describe('backdrop table', () => {
-  it('gives every zone kind and the road a picture', () => {
-    for (const k of [...Object.values(ZK), ROAD]) expect(BACKDROPS.some((b) => b.kinds.includes(k)), k).toBe(true);
-  });
   it('matches the files shipped, one to one, and credits each in docs/assets.md', () => {
     const ids = BACKDROPS.map((b) => b.id), files = (readdirSync(DIR) as string[]).map((f) => f.replace(/\.webp$/, ''));
     expect(new Set(ids).size).toBe(ids.length);

@@ -22,7 +22,9 @@ it('116 Quick Word: the line and the reply are free; both actions still happen',
   expect(quickWord(s, { ...i, spoken: 'Drop it. Then run.' })).toBe(false); // one sentence only
   expect(quickWord(s, { ...i, action: { ...i.action!, type: 'talk' } })).toBe(false); // talk is the main action anyway
   s.mode = 'explore';
-  expect(quickWord(s, i)).toBe(false); // fights only
+  expect(quickWord(s, i)).toBe(false); // an attack's words outside a fight stay a bark
+  const give = { ...i, action: { ...i.action!, type: 'give' as const, item: 'x' } };
+  expect(quickWord(s, give)).toBe(true); // 238b: beside any other deed, an aside, in a fight or not
   s.mode = 'tactical';
 
   const spokespeople = selectSpokespeople(s, i);

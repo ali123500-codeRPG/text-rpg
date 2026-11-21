@@ -11,24 +11,27 @@ const village = (counter = true) => makeVillage({ without: ['slime_1', 'slime_2'
   shape: counter ? COUNTER_SHAPE : { ...COUNTER_SHAPE, tav_common: { ...COUNTER_SHAPE.tav_common, walls: { n: WK.wall, e: WK.wall, s: WK.wall, w: WK.wall } } } });
 const talk = (target: string, move: object) => intent({ action: { type: 'talk', skill: SK.persuasion, target }, spoken: 'Hello.', addressees: [target], move: move as never });
 
-it('BG-62: someone in the player\'s own zone: a spot beside them, never another zone', () => {
+it('BG-62/BG-158: going over to talk ends beside them in the player\'s own zone, never another; across a counter on the player\'s side, either way, unless they go behind', () => {
   const s = village();
   expect(talkMove(s, talk('patron_1', { toZone: 'tav_counter', spot: { near: 'tav_common' } }))).toMatchObject({ toZone: 'tav_common', spot: { near: 'patron_1' } });
-});
-
-it('BG-62: someone behind a counter: the player\'s side of it, unless the player goes behind', () => {
-  const s = village();
   expect(talkMove(s, talk('trader', { toZone: 'tav_counter', spot: { near: 'trader' } }))).toMatchObject({ toZone: 'tav_common', spot: { near: 'tav_counter' } });
   expect(talkMove(s, talk('trader', { toZone: 'tav_counter', behind: true }))).toMatchObject({ toZone: 'tav_counter' });
+  // BG-158: from behind the counter, coming out to someone in the room crosses it only with behind (the Parser sets it)
+  s.player.zone = 'tav_counter';
+  expect(talkMove(s, talk('patron_1', { toZone: 'tav_common', spot: { near: 'patron_1' } }))).toMatchObject({ toZone: 'tav_counter', spot: { near: 'tav_common' } });
+  expect(talkMove(s, talk('patron_1', { toZone: 'tav_common', spot: { near: 'patron_1' }, behind: true }))).toMatchObject({ toZone: 'tav_common', spot: { near: 'patron_1' } });
 });
 
-it('BG-62: a doorway is walked through: only a counter, fence or rail keeps the player on their side', () => {
-  const s = village(false);
+it('BG-62/BG-77: a doorway is walked through (only a counter, fence or rail keeps the player on their side), also following someone beside you into another room', () => {
+  const s = village(false); // the counter zone is now through a doorway
   expect(talkMove(s, talk('trader', { toZone: 'tav_counter' }))).toMatchObject({ toZone: 'tav_counter' });
   expect(talkMove(s, { ...talk('trader', { toZone: 'tav_counter' }), move: null })).toBeNull();
+  expect(talkMove(s, talk('patron_1', { toZone: 'tav_counter' }))).toMatchObject({ toZone: 'tav_counter' });
+  expect(talkMove(s, talk('patron_1', { toZone: 'tav_counter', spot: { near: 'patron_1' } }))).toMatchObject({ toZone: 'tav_common', spot: { near: 'patron_1' } });
 });
 
-it('BG-74: talking to someone in view who would not hear the player clearly from here steps up to them first', () => {
+it('BG-74/78/80: one approach rule: talking or buying from someone in view who would not hear clearly steps up first, and so does an NPC talking to the player', async () => {
+  const { approachMove } = await import('../../src/engine/merge');
   const s = village();
   CONFIG.HEARING_FLOOR_DB = 30; // a loud floor: a normal voice is clear to about 5.6 m
   const p = s.actors.find((a) => a.id === 'patron_1')!;
@@ -36,36 +39,14 @@ it('BG-74: talking to someone in view who would not hear the player clearly from
   s.player.pos = { x: -3.5, y: -3.5 }; p.pos = { x: 3.5, y: 0.5 }; // 8.1 m: a normal voice is not clear
   expect(talkMove(s, { ...talk('patron_1', {}), move: null })).toMatchObject({ toZone: 'tav_common', spot: { near: 'patron_1' } });
   expect(talkMove(s, { ...talk('patron_1', {}), move: null, volume: 'shout' })).toBeNull(); // a shout carries
+  expect(talkMove(s, intent({ action: { type: 'buy', target: 'patron_1', item: 'service:SV3' }, move: null as never }))).toMatchObject({ toZone: 'tav_common', spot: { near: 'patron_1' } });
+  expect(approachMove(s, p, { type: 'talk', target: s.player.id }, null)).toMatchObject({ toZone: 'tav_common', spot: { near: s.player.id } });
+  expect(approachMove(s, p, { type: 'talk', target: s.player.id, volume: 'shout' }, null)).toBeNull();
   p.pos = { x: -2.5, y: -3.5 }; // 1 m: clear
   expect(talkMove(s, { ...talk('patron_1', {}), move: null })).toBeNull();
 });
 
-it('BG-77: talking to someone beside you while going through a doorway to another room (following them in): the move stands', () => {
-  const s = village(false); // the counter zone is now through a doorway
-  expect(talkMove(s, talk('patron_1', { toZone: 'tav_counter' }))).toMatchObject({ toZone: 'tav_counter' });
-  expect(talkMove(s, talk('patron_1', { toZone: 'tav_counter', spot: { near: 'patron_1' } }))).toMatchObject({ toZone: 'tav_common', spot: { near: 'patron_1' } });
-});
 
-it('BG-78: buying from someone in view who would not hear the order clearly steps up to them first', () => {
-  const s = village();
-  CONFIG.HEARING_FLOOR_DB = 30; // a loud floor: a normal voice is clear to about 5.6 m
-  const p = s.actors.find((a) => a.id === 'patron_1')!;
-  p.zone = 'tav_common'; s.player.zone = 'tav_common';
-  s.player.pos = { x: -3.5, y: -3.5 }; p.pos = { x: 3.5, y: 0.5 };
-  const buy = intent({ action: { type: 'buy', target: 'patron_1', item: 'service:SV3' }, move: null as never });
-  expect(talkMove(s, buy)).toMatchObject({ toZone: 'tav_common', spot: { near: 'patron_1' } });
-});
-
-it('BG-80: one approach rule for every actor: an NPC talking to the player from too far steps up the same way', async () => {
-  const { approachMove } = await import('../../src/engine/merge');
-  const s = village();
-  CONFIG.HEARING_FLOOR_DB = 30; // a loud floor: a normal voice is clear to about 5.6 m
-  const p = s.actors.find((a) => a.id === 'patron_1')!;
-  p.zone = 'tav_common'; s.player.zone = 'tav_common';
-  s.player.pos = { x: -3.5, y: -3.5 }; p.pos = { x: 3.5, y: 0.5 };
-  expect(approachMove(s, p, { type: 'talk', target: s.player.id }, null)).toMatchObject({ toZone: 'tav_common', spot: { near: s.player.id } });
-  expect(approachMove(s, p, { type: 'talk', target: s.player.id, volume: 'shout' }, null)).toBeNull();
-});
 
 it('FR2: handing something over is by grip reach in metres: over the counter from beside it, not from across the room', async () => {
   const { approachMove } = await import('../../src/engine/merge');
@@ -84,9 +65,3 @@ it('FR2: handing something over is by grip reach in metres: over the counter fro
   expect(trader.core.inventory.some((i) => i.id === 'coin_x')).toBe(true);
 });
 
-it('BG-158: from behind the counter, coming out to someone in the room crosses it only with behind (the Parser sets it)', () => {
-  const s = village();
-  s.player.zone = 'tav_counter';
-  expect(talkMove(s, talk('patron_1', { toZone: 'tav_common', spot: { near: 'patron_1' } }))).toMatchObject({ toZone: 'tav_counter', spot: { near: 'tav_common' } });
-  expect(talkMove(s, talk('patron_1', { toZone: 'tav_common', spot: { near: 'patron_1' }, behind: true }))).toMatchObject({ toZone: 'tav_common', spot: { near: 'patron_1' } });
-});

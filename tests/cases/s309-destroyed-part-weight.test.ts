@@ -13,19 +13,14 @@ const legWounds = (s: ReturnType<typeof makeVillage>) => woundsMods(s, s.player,
 afterEach(() => resetConfig());
 
 describe('309 a Destroyed part weighs 1.2 Crippled ones', () => {
-  it('its role penalty is 1.2 times the Crippled one', () => {
+  it('its role penalty is 1.2 times the Crippled one, and no running uses the same weight: one Crippled leg of two still runs, one Destroyed leg does not', () => {
     expect(rolePenaltyOf('destroyed')).toBeCloseTo(CONFIG.ROLE_PENALTY.crippled * 1.2);
     const s = makeVillage();
     s.player.core.condition.parts.left_leg = -50; // Crippled: half the shared Move penalty of two legs
     expect(legWounds(s)).toBeCloseTo(CONFIG.ROLE_PENALTY.crippled / 2);
+    expect(roleOff(s, s.player, RL.move)).toBe(false);
     s.player.core.condition.parts.left_leg = -100; // Destroyed
     expect(legWounds(s)).toBeCloseTo((CONFIG.ROLE_PENALTY.crippled * 1.2) / 2);
-  });
-  it('no running uses the same weight: one Crippled leg of two still runs, one Destroyed leg does not', () => {
-    const s = makeVillage();
-    s.player.core.condition.parts.left_leg = -50;
-    expect(roleOff(s, s.player, RL.move)).toBe(false);
-    s.player.core.condition.parts.left_leg = -100;
     expect(roleOff(s, s.player, RL.move)).toBe(true);
     CONFIG.DESTROYED_PART_WEIGHT = 1.1; // the lever moves both: 1.1 of 2 legs is under 60%
     expect(roleOff(s, s.player, RL.move)).toBe(false);

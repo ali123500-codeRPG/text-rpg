@@ -8,25 +8,15 @@ import { COUNTER_SHAPE, lay, makeVillage, putBarrier } from '../harness';
 import { middle } from '../../src/plan/where';
 import { intent, play } from './w4-kit';
 import { distM, wayPoint } from '../../src/engine/position';
-import { gripReachM, withinGrip } from '../../src/engine/gear';
+import { withinGrip } from '../../src/engine/gear';
 import { heldBy, zoneById } from '../../src/engine/relations';
 import { CONFIG } from '../../src/config';
 import { BK } from '../../src/library/tableIds';
-import { BT } from '../../src/library/raceIds';
 import { IT } from '../../src/library/itemIds';
 
 /** the village laid out in metres, the player in the common room */
 const laidOut = (): GameState => makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'patron_1'] });
 const door = (s: GameState): Barrier => putBarrier(s, 'tav_common', 'street_door', { id: 'front_door', kind: BK.door, grade: 'minor' });
-
-it('FR2: grip reach comes from the body: an arm 0.625 m (SZ8); a dragon takes things in its jaws (0.8 m past its nose, SZ9); a slime has no grip', () => {
-  const s = laidOut();
-  expect(gripReachM(s, s.player)).toBe(0.625); // SZ8: (1.75 × 1 − 0.5) ÷ 2
-  s.player.core.bodyTypeId = BT.winged_quadruped;
-  expect(gripReachM(s, s.player)).toBe(0.8);
-  s.player.core.bodyTypeId = BT.amorphous;
-  expect(gripReachM(s, s.player)).toBe(0);
-});
 
 it('BG-86/AT19: a door out of reach is walked to on move time and opened with the move time left', () => {
   const s = laidOut();

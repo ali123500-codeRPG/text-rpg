@@ -24,16 +24,11 @@ it('BF16: a search of someone who let you goes through their things by hand and 
   expect(found?.data.items).toContain('charm_1');
 });
 
-it('BF16: letting someone search you is said with letsSearch, and lasts this turn and the next', () => {
-  const { s } = tavern();
-  play(s, { intent: intent({ action: null, letsSearch: 'trader' } as never) });
-  expect(s.player.letsSearch).toEqual({ by: 'trader', until: s.turn + 1 });
-});
-
-it('BF16: turning out your pockets shows what you carry to those who see it; one thing may be kept back by a Filching roll', () => {
+it('BF16: letting someone search you lasts this turn and the next; turning out your pockets shows what you carry to those who see it; one thing may be kept back by a Filching roll', () => {
   const { s, t } = tavern();
   s.player.core.inventory.push({ id: 'ring_1', itemId: IT.charmed_ring, qty: 1 } as never);
-  play(s, { intent: intent() }); // the trader takes note of the player first
+  play(s, { intent: intent({ action: null, letsSearch: 'trader' } as never) }); // the trader takes note of the player first
+  expect(s.player.letsSearch).toEqual({ by: 'trader', until: s.turn + 1 });
   const ev = play(s, { intent: intent({ action: { type: 'show' } as never }) }).find((e) => e.actorId === 'player' && e.kind === 'show')!;
   const shown = ev.effects.find((f) => f.kind === 'shown_items')!.data.items as string[];
   expect(shown).toContain('ring_1');

@@ -17,15 +17,12 @@ const strike = (setup: (t: ReturnType<typeof beside>) => void) => {
   throw new Error('no attack reached a defense roll');
 };
 
-it('a downed target fails its defense outright', () => {
+it('a helpless target, downed or held in a grip, fails its defense outright', () => {
   const r = strike((t) => { t.core.condition.hpLostPct = 105; });
   expect(r.defense!.tier).toBe('critical_failure');
   expect(r.defense!.d100).toBe(0);
   expect(r.defense!.modifiers[0].source).toBe("down: can't defend");
-});
-
-it('a target held in a grip fails its defense outright', () => {
-  const r = strike((t) => { t.heldBy = 'drover'; });
-  expect(r.defense!.tier).toBe('critical_failure');
-  expect(r.defense!.modifiers[0].source).toBe("held: can't defend");
+  const held = strike((t) => { t.heldBy = 'drover'; });
+  expect(held.defense!.tier).toBe('critical_failure');
+  expect(held.defense!.modifiers[0].source).toBe("held: can't defend");
 });

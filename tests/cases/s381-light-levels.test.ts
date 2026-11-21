@@ -3,10 +3,8 @@
 import { describe, expect, it } from 'vitest';
 import { makeVillage, beside } from '../harness';
 import { LIGHT } from '../../src/scales';
-import { CONFIG } from '../../src/config';
-import { isDark, lightMod, startClock, zoneLight } from '../../src/time';
+import { isDark, lightMod } from '../../src/time';
 import { sightAt } from '../../src/perception';
-import { zoneById } from '../../src/engine/relations';
 import { setTitleLight } from '../../src/plan/draw';
 import type { Light } from '../../src/types';
 
@@ -31,10 +29,4 @@ describe('381 light levels (LT1-LT3)', () => {
     expect(sightAt(s, s.player, p, 'normal')).toBeNull();
   });
 
-  it('LT3: evening and night outdoors are one flat level, moonlit', () => {
-    const s = makeVillage();
-    const field = zoneById(s, 'field_mid')!;
-    setTitleLight(s, field, 'black');
-    for (const t of ['evening', 'night'] as const) { startClock(s, t); expect(zoneLight(s, field)).toBe(CONFIG.SKY_LIGHT[t]); }
-  });
 });

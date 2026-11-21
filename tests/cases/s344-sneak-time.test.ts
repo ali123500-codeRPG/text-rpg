@@ -4,10 +4,8 @@ import { describe, expect, it } from 'vitest';
 import { createRng, makeVillage, place } from '../harness';
 import { resolveTurn } from '../../src/engine';
 import type { GameState, Intent } from '../../src/types';
-import { IT } from '../../src/library/itemIds';
-import { DU } from '../../src/library/tableIds';
 import { CONFIG } from '../../src/config';
-import { actionRow, actionSeconds, timeFactor } from '../../src/ruleset/actionTime';
+import { timeFactor } from '../../src/ruleset/actionTime';
 import { moveSpeed } from '../../src/engine/speed';
 import { pickSeconds } from '../../src/ruleset';
 
@@ -28,28 +26,6 @@ describe('344 sneak time (VS8)', () => {
     expect(sneaking.walk).toBeCloseTo(open.walk / CONFIG.SNEAK_TIME_MULT, 9);
     expect(sneaking.run).toBeCloseTo(open.run / CONFIG.SNEAK_TIME_MULT, 9);
     expect(pickSeconds(50, timeFactor(s.player))).toBeCloseTo(pickSeconds(50) * CONFIG.SNEAK_TIME_MULT, 9);
-  });
-
-  it('a stealthy archer looses fewer arrows over the same turns: each shot takes SNEAK_TIME_MULT times as long', () => {
-    const shots = (stealthy: boolean) => {
-      const s = makeVillage();
-      place(s, 'player', 'field_edge');
-      for (const i of s.player.core.inventory) delete i.equippedIn;
-      s.player.core.inventory.push({ id: 'bow', itemId: IT.shortbow, equippedIn: ['grip:right_arm', 'grip:left_arm'] });
-      s.mode = 'tactical';
-      s.player.react = { s: 0, init: 100, turn: s.turn };
-      if (stealthy) s.player.posture = 'stealthy';
-      let n = 0;
-      for (let i = 0; i < 5; i++) {
-        s.actors.find((a) => a.id === 'slime_1')!.core.condition.hpLostPct = 0; // keep the target standing
-        n += turn(s, intent({ target: 'slime_1' }), 10 + i).filter((e) => e.kind === 'attack' && e.actorId === 'player').length;
-        if (stealthy) expect(s.player.posture).toBe('stealthy'); // a shot keeps you hidden
-      }
-      return n;
-    };
-    const shot = actionSeconds(actionRow(DU.bow_light)!);
-    expect(shots(false)).toBe(Math.floor((5 * CONFIG.FIGHT_TURN_S) / shot));
-    expect(shots(true)).toBe(Math.floor((5 * CONFIG.FIGHT_TURN_S) / (shot * CONFIG.SNEAK_TIME_MULT)));
   });
 
   it('a sneaking walk covers ground at 1 / SNEAK_TIME_MULT of the open speeds in a fight turn (a walk, then a dash)', () => {

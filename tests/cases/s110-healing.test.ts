@@ -32,21 +32,17 @@ describe('110 healing', () => {
     expect(c.hpLostPct).toBe(0);
     expect(c.parts.left_leg).toBe(Math.min(100, CONFIG.CLINIC_HEAL_PCT));
   });
-  it('a bandage heals its row, is used up, and shows a line', () => {
+  it('a healing item is not used up when there is nothing to heal (Q3); hurt, a bandage heals its row, is used up, and shows a line', () => {
     const s = makeVillage();
     s.player.core.inventory.push({ id: 'b1', itemId: IT.bandage, qty: 1 });
+    s.player.core.condition.hpLostPct = 0;
+    const kept = turn(s, use(IT.bandage));
+    expect(s.player.core.inventory.some((i) => i.id === 'b1')).toBe(true);
+    expect(mechanicsLines(s, kept)).toContain('Bandage: nothing to heal, so you keep it');
     s.player.core.condition.hpLostPct = 20; // Hurt
     const ev = turn(s, use(IT.bandage));
     expect(s.player.core.condition.hpLostPct).toBeCloseTo(20 - getLibrary().healing![HL.bandage].hpPct, 0);
     expect(s.player.core.inventory.some((i) => i.id === 'b1')).toBe(false);
     expect(mechanicsLines(s, ev)).toContain('Bandage: Hurt → Bruised');
-  });
-  it('a healing item is not used up when there is nothing to heal (Q3)', () => {
-    const s = makeVillage();
-    s.player.core.inventory.push({ id: 'b1', itemId: IT.bandage, qty: 1 });
-    s.player.core.condition.hpLostPct = 0;
-    const ev = turn(s, use(IT.bandage));
-    expect(s.player.core.inventory.some((i) => i.id === 'b1')).toBe(true);
-    expect(mechanicsLines(s, ev)).toContain('Bandage: nothing to heal, so you keep it');
   });
 });

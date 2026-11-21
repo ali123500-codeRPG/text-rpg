@@ -30,24 +30,21 @@ const between = (): GameState => {
 const moment = (): StagePlan => ({ ...villageStagePlan(), scenario: { ...villageStagePlan().scenario!, scale: 'moment' } });
 
 describe('327 an Episode holds its parts (SW10 a)', () => {
-  it('a start with no bigger scenario plans the episode too; a moment alone is sent back, an episode alone is fine', () => {
+  it('a start with no bigger scenario plans the episode too; a moment alone is sent back, an episode alone is fine; inside a bigger scenario no episode is needed', () => {
+    const s = toStoryStart(makeVillage()); // validation reads the state, never changes it
     const p = moment();
     // the village plan holds more places than a moment: code raises it to an episode, which needs no bigger one
-    expect(validateStagePlan(toStoryStart(makeVillage()), p, ctx).map((e) => e.code)).toEqual(['scenario_scale_raised']);
+    expect(validateStagePlan(s, p, ctx).map((e) => e.code)).toEqual(['scenario_scale_raised']);
     p.scenario!.scale = 'moment';
-    expect(validateStagePlan(toStoryStart(makeVillage()), { ...p, zones: [] }, ctx).map((e) => e.code)).toContain('episode_missing');
+    expect(validateStagePlan(s, { ...p, zones: [] }, ctx).map((e) => e.code)).toContain('episode_missing');
     p.episode = { question: 'will the slimes leave the valley?', stake: 'the harvest', scale: 'episode', endings: judged };
-    expect(validateStagePlan(toStoryStart(makeVillage()), p, ctx)).toEqual([]);
+    expect(validateStagePlan(s, p, ctx)).toEqual([]);
     p.episode.scale = 'situation';
-    expect(validateStagePlan(toStoryStart(makeVillage()), p, ctx).map((e) => e.code)).toContain('episode_scale');
+    expect(validateStagePlan(s, p, ctx).map((e) => e.code)).toContain('episode_scale');
     p.episode.scale = 'journey';
     p.scenario!.scale = 'episode';
-    expect(validateStagePlan(toStoryStart(makeVillage()), p, ctx).map((e) => e.code)).toContain('scenario_scale_inner');
-    expect(validateStagePlan(toStoryStart(makeVillage()), villageStagePlan(), ctx)).toEqual([]); // the village plan is an episode itself
-  });
-
-  it('inside a bigger scenario the start needs no episode', () => {
-    const s = toStoryStart(makeVillage());
+    expect(validateStagePlan(s, p, ctx).map((e) => e.code)).toContain('scenario_scale_inner');
+    expect(validateStagePlan(s, villageStagePlan(), ctx)).toEqual([]); // the village plan is an episode itself
     s.stage.outer = frameOf(s, { question: 'E', stake: 'e', scale: 'episode', endings: judged }, 'success', (_k, r) => r);
     expect(validateStagePlan(s, { ...moment(), zones: [] }, ctx).map((e) => e.code)).not.toContain('episode_missing');
   });

@@ -69,7 +69,7 @@ describe('140 sparring', () => {
 
   it('SP11: a sparring blow from hiding raises no alarm, in the target or an unaware bystander who spots it', () => {
     let noticed = 0;
-    for (let seed = 1; seed <= 60; seed++) {
+    for (let seed = 1; seed <= 5; seed++) { // the target and the bystander see the blow on every seed tried (1-60): a few seeds cover it
       const s = village();
       startSpar(s, [['player'], ['patron_1']], false, 'test');
       s.player.posture = 'stealthy';

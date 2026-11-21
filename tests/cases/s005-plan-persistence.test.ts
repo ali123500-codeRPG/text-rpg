@@ -19,4 +19,5 @@ it('5 Plan persistence', () => {
   expect(ev.find((e) => e.actorId === 'guard_1')).toMatchObject({ kind: 'move', heading: 'street_square' }); // 20 m off: on its way
   expect(s.hidden.firedLog).toEqual([{ triggerId: 'ambush_t7', turn: 7, ownerId: 'guard_1' }]);
   expect(s.hidden.plans.guard_1.triggers).toEqual([]);
+  expect(s.pending.fired).toEqual([]); // once: never again at the next turn start
 });

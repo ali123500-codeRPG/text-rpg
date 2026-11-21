@@ -37,7 +37,7 @@ const shoot = (s: GameState, g: Actor) => s.events.push({ id: 'shot', turn: s.tu
 
 describe('383 B3 Ready the shield', () => {
 
-  it('shot at, it draws its stowed shield beside the order its list chose; not shot, or below 50, it does not', () => {
+  it('shot at, it draws its stowed shield beside the order its list chose; not shot, below 50, with a shield in hand or no free hand, it does not', () => {
     const { s, g } = shotGuard();
     expect(tacticsOf(s, g)?.readyShield).toBeUndefined(); // not shot at
     shoot(s, g);
@@ -47,11 +47,8 @@ describe('383 B3 Ready the shield', () => {
     expect(o.type).not.toBe('hold'); // beside, never instead: the list's own order stands
     skill(g, SK.battle_sense, 49);
     expect(tacticsOf(s, g)?.readyShield).toBeUndefined();
-  });
-
-  it('nothing to do with a shield already in hand, or no free hand for it', () => {
-    const { s, g } = shotGuard();
-    shoot(s, g);
+    skill(g, SK.battle_sense, 50);
+    // nothing to do with a shield already in hand, or no free hand for it
     const shield = g.core.inventory.find((i) => i.id === 'shield')!;
     shield.equippedIn = ['grip:left_arm'];
     expect(canBlock(s, g)).toBe(true);
