@@ -15,8 +15,8 @@ import { charLevel, freeLevelsOwed, keepCapstone, levelTarget, swapCapstone, xpF
 import { essenceSlots } from '../engine/essence';
 import { treeBlock } from '../ruleset/access';
 import { augmentWindow, burdenOf, burdenParts, groupRollBonus, learningWindow } from '../ruleset/improve';
-import { ended, h, safe, tint } from './kit';
-import { classTone, healthTone, partTone, skillTone, TONE } from './tipTones';
+import { ended, h, safe, labelled, tint } from './kit';
+import { changeTone, classTone, healthTone, partTone, skillTone, TONE } from './tipTones';
 import { classIcon, generalMark, itemIcon, partMark, skillIcon, treeIcon } from './itemIcons';
 import { classMaxLevel } from '../library/spawn';
 import { figIcon } from './power';
@@ -450,7 +450,7 @@ export function moraleHint(k: MoraleLevel): string | null {
   if (MORALE_LEVELS.pos(k) < MORALE_LEVELS.pos(CONFIG.MORALE_HINT_FROM)) return null;
   if (isBrokenLevel(k)) return `${NERVE_PASSES()} ${NERVE_STILL}`;
   const roll = moralePenalty(k), last = MORALE_LEVELS.pos('broken') - MORALE_LEVELS.pos(k) === 1;
-  return `${roll ? `−${Math.abs(roll)}% on every roll. ` : ''}${last ? 'One more fright and your nerve breaks' : 'If your nerve breaks'}: you won't be able to attack or go toward a foe.`;
+  return `${roll ? `${tint(changeTone(false), `−${Math.abs(roll)}%`)} on every roll. ` : ''}${last ? 'One more fright and your nerve breaks' : 'If your nerve breaks'}: you won't be able to attack or go toward a foe.`;
 }
 
 /** MB11: the player's morale bar, a second bar under health: how much is left and the track's thresholds as ticks; the level
@@ -465,11 +465,11 @@ export function moraleBar(p: Actor, full: boolean): HTMLElement[] {
   return [
     h('span', { class: 'cs-row' }, h('span', {},
       // NB2: above Broken the stakes are a tip on the label (hover or focus), never a line of their own
-      hint && !isBrokenLevel(key) ? tipped('Morale', `${level}: ${hint}`, 'morale-label') : 'Morale',
+      hint && !isBrokenLevel(key) ? tipped('Morale', `${tint(TONE.morale, level)}: ${hint}`, 'morale-label') : 'Morale',
       // SY1: a Great Success or better at steadying yourself halves the next morale loss, then it is gone
       p.core.condition.mentallySteady ? h('span', { class: 'cs-steady', 'data-m': 'steady', title: 'Mentally steady: your next morale loss is halved' }, 'Mentally steady') : null),
       h('b', {}, full ? figBtn('cs-figlink', 'What makes up your max morale', (el) => openMoralePop(p, el), h('span', { 'data-m': 'morale-left' }, String(left)), ` / ${max}`) : null)),
-    h('span', { class: 'cs-hptrack cs-morale', title: `Morale: ${tint(TONE.morale, level)}`, role: 'img', 'aria-label': `Morale: ${level}`, 'data-m': 'morale-track' },
+    h('span', { class: 'cs-hptrack cs-morale', title: labelled('Morale', tint(TONE.morale, level)), role: 'img', 'aria-label': `Morale: ${level}`, 'data-m': 'morale-track' },
       h('b', { style: `width:${100 - lost}%` }), ...ticks),
     // NB3: at Broken the line stays under the bar: no attacks until the fight is behind you, how that comes, what still works
     ...(hint && isBrokenLevel(key) ? [h('span', { class: 'cs-mhint broken', 'data-m': 'morale-hint', role: 'status' },
@@ -486,10 +486,10 @@ export function staminaBar(p: Actor, full: boolean): HTMLElement[] {
   const ticks = full ? CONFIG.FATIGUE_TRACK.slice(1, -1).map(([, at]) => h('i', { style: `left:${100 - Math.min(100, at)}%` })) : [];
   const breath = `Breath ${fmt1(v.lineLeft)} / ${fmt1(v.lineMax)}: strain spends it first, then eats into sleep debt; it comes back once you stop for a while`;
   return [
-    h('span', { class: 'cs-row' }, h('span', {}, pen < 0 ? tipped('Stamina', `${v.level}: −${Math.abs(pen)}% to rolls`, 'stamina-label') : 'Stamina',
+    h('span', { class: 'cs-row' }, h('span', {}, pen < 0 ? tipped('Stamina', `${tint(TONE.stamina, v.level)}: ${tint(changeTone(false), `−${Math.abs(pen)}%`)} to rolls`, 'stamina-label') : 'Stamina',
       v.spent ? h('span', { class: 'cs-spent', 'data-m': 'spent', title: 'Spent: nothing harder than a Light effort until you sleep' }, 'Spent') : null),
       h('b', {}, full ? [h('span', { 'data-m': 'stamina-left' }, fmt1(v.left)), ` / ${fmt1(v.max)}`] : null)),
-    h('span', { class: 'cs-hptrack cs-stam', title: `Stamina: ${tint(TONE.stamina, v.level)}. Sleep debt; only sleep clears it`, role: 'img', 'aria-label': `Stamina: ${v.level}`, 'data-m': 'stamina-track' },
+    h('span', { class: 'cs-hptrack cs-stam', title: `${labelled('Stamina', tint(TONE.stamina, v.level))}. Sleep debt; only sleep clears it`, role: 'img', 'aria-label': `Stamina: ${v.level}`, 'data-m': 'stamina-track' },
       h('b', { style: `width:${pct(v.left, v.max)}%` }), ...ticks),
     h('span', { class: 'cs-stline', title: breath, role: 'img', 'aria-label': breath, 'data-m': 'stamina-line', style: `width:${pct(v.lineMax, v.max)}%` },
       h('b', { style: `width:${pct(v.lineLeft, v.lineMax)}%` })),
@@ -512,7 +512,7 @@ export function yieldBlock(s: GameState): HTMLElement | null {
 export function pressureChips(s: GameState, p: Actor): HTMLElement {
   const rows = Object.entries(p.pressure ?? {}).flatMap(([id, x]) => (['shaken', 'swayed'] as const).filter((k) => x[k]).map((k) => {
     const who = callName(s, p.id, id);
-    return h('span', { class: 'cs-pchip ps-pressure', title: `${cap(k)} by ${who}: −${x[k]} on every roll against them, until this encounter ends` }, `${cap(k)} −${x[k]}`);
+    return h('span', { class: 'cs-pchip ps-pressure', title: `${cap(k)} by ${who}: ${tint(changeTone(false), `−${x[k]}`)} on every roll against them, until this encounter ends` }, `${cap(k)} −${x[k]}`);
   }));
   return h('p', { class: 'cs-pchips', hidden: !rows.length }, rows);
 }
@@ -551,7 +551,7 @@ export function statusStrip(s: GameState, p: Actor): HTMLElement[] {
   const left = level === 'unhurt' ? 100 : Math.max(0, 100 - p.core.condition.hpLostPct) * (100 - UNHURT_SECTION) / 100;
   return [
     h('span', { class: 'cs-row' }, h('span', {}, 'Health')),
-    h('span', { class: 'cs-hptrack', title: `Health: ${tint(healthTone(level), HEALTH_LEVELS.name(level))}`, role: 'img', 'aria-label': `Health: ${HEALTH_LEVELS.name(level)}`, 'data-m': 'hp-track' }, h('b', { style: `width:${left}%` })),
+    h('span', { class: 'cs-hptrack', title: labelled('Health', tint(healthTone(level), HEALTH_LEVELS.name(level))), role: 'img', 'aria-label': `Health: ${HEALTH_LEVELS.name(level)}`, 'data-m': 'hp-track' }, h('b', { style: `width:${left}%` })),
     partChips(s, p),
     ...moraleBar(p, false),
     ...staminaBar(p, false),

@@ -29,4 +29,9 @@ export const TONE = {
   tie: 'tie', // organizations, titles, who holds a place
   morale: 'c5', stamina: 'c7', essence: 'essence', achievement: 'scenario-mark', quest: 'scenario-mark', scar: 'danger',
   good: 'ok', caution: 'warn', harm: 'danger', // gains and ready; costs and cautions; harm and can't
+  gain: 'ok', loss: 'danger', // HU4: a number that changes something, by its direction
+  inReach: 'ok', outOfReach: 'warn', // HU5: whether your weapon reaches
+  free: 'ok', cost: 'warn', // HU6: what an action costs: free, or your turn or move; durations stay plain
 } as const;
+/** HU4: a change's colour by its direction: a gain green, a loss or penalty red */
+export const changeTone = (good: boolean): string => (good ? TONE.gain : TONE.loss);

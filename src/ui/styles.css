@@ -95,6 +95,10 @@ html { caret-color: var(--accent); scrollbar-color: var(--rule) var(--bg); }
 .game-tip { position: fixed; z-index: 90; width: max-content; max-width: 320px; padding: 4px 10px; border-radius: var(--r-md); background: var(--surface); color: var(--text);
   border: 1px solid var(--rule); box-shadow: var(--shadow-toast); font-size: 13px; font-weight: 600; line-height: 1.4; white-space: pre-line; pointer-events: none; }
 .game-tip .tip-tint { font-weight: 800; }
+.game-tip.edged { border-left: 3px solid var(--tip-edge); padding-left: 8px; } /* HU8: the subject's colour */
+.game-tip .tip-label { color: var(--faint); font-weight: 500; } /* HU7: the label gives way to its value */
+.game-tip .tip-key { font: inherit; font-size: 11px; font-weight: 700; color: var(--accent); padding: 0 5px; border: 1px solid var(--accent);
+  border-bottom-width: 2px; border-radius: var(--r-md); } /* HU9: a key to press */
 .hs-rail button[aria-pressed="true"] { color: var(--accent); }
 
 main { padding: 20px var(--space-8) 48px; display: grid; gap: var(--space-6); align-content: start; min-width: 0; }

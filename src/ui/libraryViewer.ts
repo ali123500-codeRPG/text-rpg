@@ -36,7 +36,7 @@ import { GRADES } from '../types/core';
 /** earnedAtText only reads state to name a granted kind; the library shows definitions, so it passes none */
 const NO_STATE = {} as GameState;
 import { itemLevel, requirement } from '../ruleset/requirements';
-import { claudeComments, fmtDate, h, iconMark, mountTip, tint } from './kit';
+import { claudeComments, fmtDate, h, iconMark, keyCap, mountTip, tint } from './kit';
 import { skillTone } from './tipTones';
 import { ICON_ART } from './iconArt';
 import { toneTable } from './libraryTones';
@@ -1502,7 +1502,7 @@ function newPop(): Pop {
   const title = h('span', { class: 'hs-label', id: tid });
   const open = h('a', { class: 'lv-link', href: '#' }, 'Open in its table');
   const pin = h('button', { type: 'button', class: 'hs-btn-text lv-pin', 'aria-pressed': 'false' }) as HTMLButtonElement;
-  const x = h('button', { type: 'button', class: 'hs-icon-btn lv-pop-x', 'aria-label': 'Close', title: 'Close (Esc)' }, '✕');
+  const x = h('button', { type: 'button', class: 'hs-icon-btn lv-pop-x', 'aria-label': 'Close', title: `Close ${keyCap('Esc')}` }, '✕');
   const head = h('div', { class: 'lv-pop-head' }, title, open, pin, x);
   const el = h('aside', { class: 'lv-pop', role: 'dialog', 'aria-modal': 'false', 'aria-labelledby': tid, tabindex: '-1' }, head, h('div', { class: 'lv-pop-body' }));
   const p: Pop = { el, ref: '', title: '', card: el, pinned: false, pin };

@@ -241,13 +241,13 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
     const doors = pv.zone.links.filter((l) => wayOps(l).length);
     if (doors.length) add('way', g, WAY_LABEL, [{ key: 'target', title: 'Which way?', picks: () => doors.map((l) => ({ id: l.to, label: cap(l.label), note: wayNote(l) })) },
       { key: 'item', title: 'Do what?', picks: (c) => { const d = doors.find((l) => l.to === c.target); return d ? wayOps(d).map((op) => ({ id: op, label: cap(op) })) : []; } }],
-      (c) => order(`${cap(c.item!)} ${doors.find((l) => l.to === c.target)?.label ?? 'the way'}`, { way: { toZone: c.target!, op: c.item as WayOp } }), { note: 'takes your move' });
+      (c) => order(`${cap(c.item!)} ${doors.find((l) => l.to === c.target)?.label ?? 'the way'}`, { way: { toZone: c.target!, op: c.item as WayOp } }), { note: tint(TONE.cost, 'takes your move') });
   }
 
   // ---- Stealth (ST3: sneaking takes no action; VS8: everything takes SNEAK_TIME_MULT times as long; VS1: slipping away from those who see you is the sneak's own roll) ----
   const open = pv.zone.links.filter((l) => !l.frontier && !l.drop);
   add('sneak', broken ? 'getaway' : 'stealth', pv.player.posture === 'stealthy' ? 'Keep sneaking' : 'Sneak', broken ? [] : [{ key: 'target', title: 'Sneak where?', picks: () => [{ id: '', label: 'Stay here', note: 'move unseen from now on' }, ...open.map((l) => ({ id: l.to, label: cap(l.label) }))] }],
-    (c) => order(c.target ? `Sneak to ${zoneName(c.target)}` : 'Sneak', { action: act('sneak', { target: c.target || null }) }), { note: `slows all actions ×${CONFIG.SNEAK_TIME_MULT}` });
+    (c) => order(c.target ? `Sneak to ${zoneName(c.target)}` : 'Sneak', { action: act('sneak', { target: c.target || null }) }), { note: tint(TONE.caution, `slows all actions ×${CONFIG.SNEAK_TIME_MULT}`) });
   const marks = [...full.filter((a) => a.gear.length || a.wares?.length), ...containers.map((g) => ({ id: g.id, label: g.name, gear: [] as never[], container: g.container } as unknown as PlayerView['actors'][number]))];
   if (marks.length) add('filch', 'stealth', 'Filch', [{ key: 'target', title: 'Steal from whom or what?', picks: () => marks.map((a) => names.has(a.id) ? person(a) : { id: a.id, label: cap(a.label) }) },
     { key: 'item', title: 'Steal what?', picks: (c) => {
@@ -358,14 +358,14 @@ function firstOrder(steps: Step[], play: (c: Choice) => Order): Order | null {
 /** the hover line saying how long an action takes: its Action times row's seconds (resolve orderCost) for the first pick of
  * each step; a move goes by the distance, and an action with no row of its own takes the turn */
 function timeTip(s: GameState, a: DeckAction): string {
-  if (a.free) return 'Free: beside your action, not instead of it';
+  if (a.free) return `${tint(TONE.free, 'Free')}: beside your action, not instead of it`;
   if (a.kind === 'wait') return 'Lasts until the time you pick';
   if (a.kind === 'sleep') return 'Lasts until you are rested';
   const intent = firstOrder(a.steps, a.play)?.intent;
   if (!intent) return '';
   if (!intent.action) return intent.move ? 'Takes as long as the way there' : '';
   const cost = orderCost(s, s.player, fromIntent(s, intent, false));
-  if (!cost) return 'Takes the turn';
+  if (!cost) return tint(TONE.cost, 'Takes the turn');
   const t = cost.seconds < 60 ? `${r1(cost.seconds)} s` : durationText(cost.seconds / 60);
   return intent.action.type === 'attack' ? `Each blow takes ${t}` : cost.seconds ? `Takes ${t}` : 'Takes no time, but it is your action';
 }

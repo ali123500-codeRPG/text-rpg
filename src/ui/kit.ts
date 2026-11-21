@@ -251,11 +251,19 @@ export function tipFor<E extends HTMLElement>(el: E, show: () => void, hide: () 
  *  and controls stay untinted. The page's tip draws the colour; screen readers get the words alone (tipPlain) */
 const TINT = /\u27e6([\w-]+)\|([^\u27e7]*)\u27e7/g;
 export const tint = (tone: string | null | undefined, words: string): string => (tone && words ? `\u27e6${tone}|${words}\u27e7` : words);
-export const tipPlain = (text: string): string => text.replace(TINT, '$2');
+/** HU7: the label before a coloured value ("Health Hurt"): dimmed, its colon dropped on screen; screen readers hear "Health: Hurt" */
+export const labelled = (label: string, value: string): string => `${tint(TIP_LABEL, label)} ${value}`;
+/** HU9: a key to press, drawn as a small key cap in the accent ("Close Esc") */
+export const keyCap = (key: string): string => tint(TIP_KEY, key);
+const TIP_LABEL = 'label', TIP_KEY = 'key';
+export const tipPlain = (text: string): string => text.replace(TINT, (_, tone: string, w: string) => (tone === TIP_LABEL ? `${w}:` : w));
+/** HU8: a tip's subject colour, for its edge: its first coloured word's (labels and keys are not subjects) */
+export const tipEdge = (text: string): string | undefined => [...text.matchAll(TINT)].find((m) => m[1] !== TIP_LABEL && m[1] !== TIP_KEY)?.[1];
 function tipNodes(text: string): (Node | string)[] {
   const out: (Node | string)[] = []; let at = 0;
   for (const m of text.matchAll(TINT)) {
-    out.push(text.slice(at, m.index), h('span', { class: 'tip-tint', style: `color:var(--${m[1]})` }, m[2]));
+    out.push(text.slice(at, m.index), m[1] === TIP_LABEL ? h('span', { class: 'tip-label' }, m[2]) : m[1] === TIP_KEY ? h('kbd', { class: 'tip-key' }, m[2])
+      : h('span', { class: 'tip-tint', style: `color:var(--${m[1]})` }, m[2]));
     at = m.index! + m[0].length;
   }
   out.push(text.slice(at));
@@ -304,7 +312,10 @@ export function mountTip(): void {
     const own = ownTips.get(t);
     tipOn(own ? own.show : () => {
       if (!box.isConnected) document.body.append(box); // a page that rebuilds the body takes it out
-      box.replaceChildren(...tipNodes(t.getAttribute('data-tip') ?? ''));
+      const tip = t.getAttribute('data-tip') ?? '', edge = tipEdge(tip);
+      box.replaceChildren(...tipNodes(tip));
+      box.classList.toggle('edged', !!edge);
+      if (edge) box.style.setProperty('--tip-edge', `var(--${edge})`); else box.style.removeProperty('--tip-edge');
       box.hidden = false;
       const r = boxOf(t), w = box.offsetWidth;
       // beside a small control, or a focused one; beside the pointer over anything wide (a map room, a long button)

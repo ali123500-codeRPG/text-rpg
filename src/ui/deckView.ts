@@ -208,7 +208,7 @@ function lockMark(needs: string): HTMLElement {
 /** a lightning bolt after the name of a free action (beside your action, not instead of it): only free ones are marked */
 function freeMark(a: DeckAction): HTMLElement | null {
   if (!a.free) return null;
-  const el = h('span', { class: 'dk-mk dk-free', role: 'img', title: 'Free', 'aria-label': 'Free' });
+  const el = h('span', { class: 'dk-mk dk-free', role: 'img', title: tint(TONE.free, 'Free'), 'aria-label': 'Free' });
   el.innerHTML = ICONS.free_action;
   return el;
 }

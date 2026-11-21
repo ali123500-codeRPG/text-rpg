@@ -2,7 +2,7 @@
 // so it opens even when no story is running, which is right after a reset. HF34 a: "Send to NPC template" puts the
 // character's echo sheet on the library send list and wakes Claude, who adds it to the code library by PR.
 import type { FallenCharacter, GameApi, GameState } from '../types';
-import { claudeComments, h, tint, type CommentsApi } from './kit';
+import { claudeComments, h, keyCap, tint, type CommentsApi } from './kit';
 import { fellFacts, fellLine } from './fell';
 import { gradeLetter } from '../ruleset/reportCard';
 import { GRADE_LETTERS } from '../scales';
@@ -57,7 +57,7 @@ export function famePage(api: GameApi) {
     const s = await api.fallenSheet(c.storyId).catch(() => null);
     if (!s) { notes.set(c.storyId, 'Their story no longer loads, so their sheet can’t be opened.'); draw(); return; }
     notes.delete(c.storyId);
-    const close = h('button', { type: 'button', class: 'hs-icon-btn', 'aria-label': 'Back to the Hall of fame', title: 'Back to the Hall of fame (Esc)', onclick: closeSheet }, '✕');
+    const close = h('button', { type: 'button', class: 'hs-icon-btn', 'aria-label': 'Back to the Hall of fame', title: `Back to the Hall of fame ${keyCap('Esc')}`, onclick: closeSheet }, '✕');
     const page = characterPage(lookOnly(api, s), { title: [c.name, c.title ? h('small', {}, ` · ${c.title}`) : '', h('small', {}, ` · fell on day ${c.day}, turn ${c.turn}`)], close });
     page.update();
     sheet = { storyId: c.storyId, el: page.el };

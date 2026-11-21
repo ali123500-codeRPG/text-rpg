@@ -6,7 +6,7 @@ import { termAttrs } from '../words';
 import type { Actor, GameApi, GameState, OwnedPerk, PerkDef } from '../types';
 import { getLibrary } from '../library';
 import { allStepsUpTo, canUndo, milestonesUpTo, milestonePerk, milestoneState, trueSkill, type MilestoneState } from '../ruleset';
-import { boxOf, ended, fitInView, h, tint, viewSize } from './kit';
+import { boxOf, ended, fitInView, h, keyCap, tint, viewSize } from './kit';
 import { perkTone } from './tipTones';
 import { dragBy, openPop } from './pop';
 import { CONFIG } from '../config';
@@ -92,7 +92,7 @@ function card(s: GameState, p: Actor, api: GameApi) {
   const pts = p.progression?.unspentPerkPoints ?? 0, acts = !ended(s); // YB5: a fallen character's board only reads
   // a floating card like the details pop-ups: dragged by its head, closed with ✕ or Esc, and it stays where it was put
   const head = h('div', { class: 'pk-card-head' }, h('p', { class: 'k' }, skillMark(skill, skillName(skill)), ` · ${milestone}`), d?.rules ? textToggle() : null,
-    h('button', { type: 'button', class: 'hs-icon-btn', 'aria-label': 'Close', title: 'Close (Esc)', onclick: () => { ui.sel = null; redraw(); } }, '✕'));
+    h('button', { type: 'button', class: 'hs-icon-btn', 'aria-label': 'Close', title: `Close ${keyCap('Esc')}`, onclick: () => { ui.sel = null; redraw(); } }, '✕'));
   return h('aside', { class: 'pk-card', 'data-series': perkSeries(milestone), role: 'dialog', 'aria-modal': 'false', 'aria-label': d?.name ?? `${skillName(skill)} ${milestone}` },
     head,
     d ? [h('h4', {}, d.name), ...writeup(d)] : h('p', {}, 'No perk is written for this milestone yet.'),
