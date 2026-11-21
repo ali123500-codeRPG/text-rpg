@@ -30,5 +30,8 @@ are in `docs/build-spec.md` ("### Play screen", "### Play screen motion").
   class tree and its unlock needs, gear compare, essences, the item page and the Power breakdown. Names stay in words
   only inside tips, accessible names, pop-up titles and text sent to the model. `skillMark` and `treeIcon`
   (`src/ui/itemIcons.ts`) draw them; `.skico` and `.trico` have one default size in `styles.css`.
+- **No click-target floor; tap sizes are reported only** (21/11/2026). The `design-spatial` audit flags targets under
+  44 px; the owner chose "No floor, report only" over a 24 px (WCAG AA) or 44 px floor. Reports name tap findings;
+  no change grows a target for that reason alone.
 - Dates for rules stated in `docs/instructions.md` section 7: play and creation are PC only (12/11/2026); the
   library viewer also works on phones (15/11/2026); screens fill the window (10/11/2026).
