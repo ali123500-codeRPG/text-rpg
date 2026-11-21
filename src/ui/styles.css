@@ -345,7 +345,7 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .cs-sk[role="button"] { cursor: pointer; border-radius: var(--r-md); padding: var(--space-1) var(--space-2); margin: calc(-1 * var(--space-1)) calc(-1 * var(--space-2)); transition: background-color var(--m-feedback) var(--m-ease); }
 .cs-sk[role="button"]:hover, .cs-sk[role="button"]:focus-visible { background: color-mix(in oklch, var(--accent-soft) 70%, transparent); }
 /* HS7: tiles sit on the sky with no box and no lines; space alone parts them, a hover tints the one under the pointer */
-.cs-tiles { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-6); }
+.cs-tiles { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-6); margin-left: calc(-1 * var(--space-3)); } /* the first icon lines up with the card's edge; the tile's padding is only its hover area, as .cs-sk does */
 .cs-tile { display: inline-flex; align-items: center; gap: var(--space-2); min-width: 0; text-align: left; padding: var(--space-1) var(--space-3); border: 0; border-radius: var(--r-lg);
   background: none; color: var(--text); font: inherit; cursor: pointer; transition: background-color var(--m-feedback) var(--m-ease); }
 .cs-tile:hover, .cs-tile:focus-visible { background: var(--accent-soft); }
@@ -495,15 +495,15 @@ button.cs-sigil:hover, button.cs-sigil:focus-visible { box-shadow: 0 0 0 4px var
 /* each band is as tall as its skills; the columns pack short bands under others instead of a row as tall as its tallest */
 .cs-tree { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: var(--space-3); padding-left: var(--space-2); border-left: 3px solid var(--t); break-inside: avoid; margin-bottom: var(--space-6); }
 .cs-tree-rows { display: grid; gap: 10px; align-content: start; }
-.cs-tree-h { display: flex; flex-direction: column; align-items: center; gap: var(--space-1); }
+.cs-tree-h { display: flex; flex-direction: column; align-items: center; align-self: center; gap: var(--space-1); } /* the emblem sits centred beside its skills */
 .cs-tree-h .trico { flex: none; width: 32px; height: 32px; color: var(--t); cursor: default; }
 .cs-tree-h .trico svg { width: 100%; height: 100%; display: block; }
 .cs-tree-h b { min-width: 0; font-size: 13px; text-align: center; overflow-wrap: anywhere; }
 .cs-tree-h .trsum { font-size: 15px; font-weight: 700; color: var(--text); }
 .cs-tree-h span { color: var(--muted); font-size: 13px; white-space: nowrap; cursor: help; }
 /* two lines per skill so the bar always gets the tree's full width: name and value, then the bar and its learning window */
-/* fixed columns, so every bar in a band has the same length: room for the icon and two marks, a 3-digit value, and a range up to "100–120" */
-.cs-sk { display: grid; grid-template-columns: 50px 3ch minmax(0, 1fr) 7ch; grid-template-areas: "n num bar lwn"; gap: 6px; align-items: center; }
+/* fixed columns, so every bar in a band has the same length: room for the icon and one mark (a skill is tagged or flawed, never both), a 3-digit value, and a range up to "100–120" */
+.cs-sk { display: grid; grid-template-columns: 38px 3ch minmax(0, 1fr) 7ch; grid-template-areas: "n num bar lwn"; gap: 6px; align-items: center; }
 .cs-sk .n { grid-area: n; display: flex; align-items: center; gap: 2px; }
 .cs-sk .n .mk-i { width: 14px; height: 14px; } .cs-sk .num { grid-area: num; } .cs-sk .cs-bar { grid-area: bar; } .cs-sk .lwn { grid-area: lwn; }
 .cs-sk .skico { display: block; width: 20px; height: 20px; color: var(--t); }

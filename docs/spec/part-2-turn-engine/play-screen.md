@@ -462,7 +462,7 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
   skill points, with its gear portion (GR7).
 - **PS-274** Skill rows: each skill is one line: its icon (and any tag, flaw, used or marked sign), its true value, the
   bar, then its learning window as a bare range (a skill learned through another, Riposte via Parry, names it in the
-  range's tip). The columns are fixed, with room kept for two marks whether a skill has them or not, so every bar in a
+  range's tip). The columns are fixed, with room kept for one mark (a skill is tagged or flawed, never both) whether it has one or not, so every bar in a
   band is the same length. The skill's name, with its SKILL\_SUB note ("sets HP"), is the row's tip and accessible
   name, never a line of its own.
 - **PS-275** When the true value differs from raw, the value gets a dotted underline and the raw value shows in a small
