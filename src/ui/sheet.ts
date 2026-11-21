@@ -1,5 +1,6 @@
 // Creation-screen preview: builds a throwaway sheet and a one-zone duel state, then asks the ruleset (W2) for the numbers.
 // Every figure is null until the ruleset helper behind it exists (stubs throw), and the screen shows "—".
+import { readied } from '../engine/combatLevel';
 import { AM } from '../library/tableIds';
 import { TP } from '../library/templateIds';
 import type { Actor, CreationBuild, DefenseKind, GameState } from '../types';
@@ -59,7 +60,7 @@ function avgDamage(state: GameState, attackerId: string, targetId: string, weapo
 export function preview(build: CreationBuild, swings: number): Preview {
   const state = safe(() => duelState(build));
   if (!state) return { hp: null, attack: null, weapon: null, guard: null, defense: null, swingsToKill: null, slamsToDown: null, slimeHp: null };
-  const p = state.player, slime = state.actors[0];
+  const p = readied(state, state.player, true), slime = state.actors[0]; // DS7: its kit drawn, as it fights
   // the kit this build actually gets: its first weapon, or bare hands when it has none (the late bloomer starts unarmed)
   const atk = safe(() => defaultMode(state, p, 0));
   const held = atk && p.core.inventory.find((i) => i.id === atk.itemId);

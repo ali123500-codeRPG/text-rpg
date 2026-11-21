@@ -32,6 +32,7 @@ import { isBrokenLevel, isCoweringLevel, maxMorale, moraleLevel, moraleLostPct, 
 import { coins, coinWords } from '../engine/trade';
 import { engagementEndS } from '../ruleset/actionTime';
 import { cap, r1, termAttrs, theName } from '../words';
+import { asFought } from '../engine/steel';
 
 /** Set by a gear link on the character card; the Inventory page opens that item once. */
 export const invFocus: { id: string | null } = { id: null };
@@ -56,8 +57,8 @@ function defenseCall(s: GameState, p: Actor) {
   const kind = usableDefense(s, p, false);
   return { kind, skill: DEFENSE_SKILL[kind], ctx: { itemId: defenseItem(s, p, kind)?.id } };
 }
-export function standing(s: GameState, p: Actor): { kind: string; value: number | null } {
-  const c = defenseCall(s, p);
+export function standing(s: GameState, p0: Actor): { kind: string; value: number | null } {
+  const p = asFought(s, p0), c = defenseCall(s, p); // DS7: as it fights, sheathed or not
   return { kind: c.kind, value: safe(() => effectiveSkill(s, p, c.skill, c.ctx).value) };
 }
 
@@ -68,9 +69,9 @@ function attackCall(s: GameState, p: Actor) {
   const natural = m.itemId.startsWith('natural:') ? getLibrary().attackModes?.[m.mode.id]?.name?.toLowerCase() ?? m.mode.id : undefined; // a body attack has no item: name its mode (fists)
   return { name: natural ?? safe(() => itemDef(s, inst!.itemId).name) ?? m.itemId, skill: modeSkill(m.mode), ctx: { itemId: m.itemId, modeId: m.mode.id } };
 }
-/** Standing attack: the first usable weapon mode at reach 0 and its effective skill (same as the creation preview). */
-export function attackOf(s: GameState, p: Actor): { name: string; value: number | null } | null {
-  const c = attackCall(s, p);
+/** Standing attack (as it fights: the set it would draw while sheathed, DS7): the first usable weapon mode at reach 0 and its effective skill (same as the creation preview). */
+export function attackOf(s: GameState, p0: Actor): { name: string; value: number | null } | null {
+  const p = asFought(s, p0), c = attackCall(s, p); // DS7: as it fights, sheathed or not
   return c && { name: c.name, value: safe(() => effectiveSkill(s, p, c.skill, c.ctx).value) };
 }
 
@@ -91,14 +92,14 @@ function openFigPop(title: string, note: string, parts: FigPart[], total: number
     left !== null && total - left > 0 ? h('div', { class: 'sk-list' }, line({ label: 'Lost', adds: -(total - left) }), h('div', { class: 'sk-line sk-sum' }, h('span', {}, 'Left'), h('b', {}, whole(left)))) : null,
   ] });
 }
-const openAttackPop = (s: GameState, p: Actor, opener: HTMLElement) => {
-  const c = attackCall(s, p);
+const openAttackPop = (s: GameState, p0: Actor, opener: HTMLElement) => {
+  const p = asFought(s, p0), c = attackCall(s, p);
   if (!c) return;
   const f = effectiveParts(s, p, c.skill, c.ctx);
   openFigPop('Standing attack', `Your skill with your ${c.name} at arm's length, before the roll's situation (light, wounds, cover).`, f.parts, f.value, null, opener);
 };
-const openDefensePop = (s: GameState, p: Actor, opener: HTMLElement) => {
-  const c = defenseCall(s, p), f = effectiveParts(s, p, c.skill, c.ctx);
+const openDefensePop = (s: GameState, p0: Actor, opener: HTMLElement) => {
+  const p = asFought(s, p0), c = defenseCall(s, p), f = effectiveParts(s, p, c.skill, c.ctx);
   openFigPop('Standing defense', `How you meet a blow by default (${c.kind}), before the roll's situation.`, f.parts, f.value, null, opener);
 };
 const openHealthPop = (s: GameState, p: Actor, opener: HTMLElement) => {

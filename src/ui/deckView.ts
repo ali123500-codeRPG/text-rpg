@@ -2,6 +2,7 @@
 // its groups. Clicking an action asks what it still needs (whom, with what, which part) in a small pop-up, then plays
 // the turn at once with no Parser call (AD6, AD7); a move planned on the minimap rides along (AD12). Actions that need
 // your words wait for the Say box. No keys pick actions (AD10), so typing never plays one by mistake.
+import { asFought } from '../engine/steel';
 import type { DefenseKind, GameApi, GameState, PlayerView } from '../types';
 import { canDefend, defenseValue, usableDefense } from '../ruleset/gear';
 import { personalityOf } from '../ruleset/personality';
@@ -117,7 +118,7 @@ export function deckView(api: GameApi, o: {
   const mods = h('div', { class: 'dk-mods' }, aimBtn, h('span', { class: 'hs-label', id: 'dk-def-h' }, 'Defense'),
     h('span', { class: 'dk-seg dk-def', role: 'group', 'aria-labelledby': 'dk-def-h' }, ...defBtns), defNote);
   function paintDefense(s: GameState) {
-    const p = s.player, chosen = p.core.standingDefense, used = safe(() => usableDefense(s, p, false)) ?? chosen;
+    const p = asFought(s, s.player), chosen = p.core.standingDefense, used = safe(() => usableDefense(s, p, false)) ?? chosen; // DS7: as it fights, sheathed or not
     DEFENSES.forEach((d, i) => {
       const b = defBtns[i], can = canDefend(s, p, d.kind), v = can ? safe(() => defenseValue(s, p, d.kind)) : null;
       b.replaceChildren(skillMark(DEFENSE_SKILL[d.kind], cap(d.kind)), can ? h('span', { class: 'dv' }, v === null ? '' : figure(v)) : lockMark(d.needs!));
