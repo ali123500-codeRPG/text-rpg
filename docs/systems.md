@@ -616,6 +616,7 @@ styles, the fake game the smoke tests drive. A UI change uses the design skills 
   - `src/ui/styles.css`
   - `src/ui/suggest.ts`
   - `src/ui/timeOfDay.ts`
+  - `src/ui/tipTones.ts`
   - `src/ui/voiceSamples.ts`
   - `src/ui/vows.ts`
   - `src/views/backdrop.ts`

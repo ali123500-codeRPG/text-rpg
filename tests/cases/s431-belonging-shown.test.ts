@@ -30,7 +30,7 @@ describe('431 belonging as the player sees it', () => {
     const s = world(), [a] = s.actors;
     a.ties = [tie('watch', { title: 'watch captain' }), tie('guild', { cover: 'quiet' }), tie('cult', { cover: 'secret' })];
     const v = belongingView(s, seeing(s));
-    expect(v.people[a.id].map(tieText)).toEqual(['The Millbrook Watch · watch captain']);
+    expect(v.people[a.id].map((t) => tieText(t))).toEqual(['The Millbrook Watch · watch captain']);
     expect(JSON.stringify(v)).not.toMatch(/devoted|commitment|Pale Hand|Thieves/);
   });
 

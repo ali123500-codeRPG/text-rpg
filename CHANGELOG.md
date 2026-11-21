@@ -3,6 +3,11 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bugs/`.
 
+- 21/11/2026: `docs/instructions.md` section 7: tips are colour-coded (`tint()`, `src/ui/tipTones.ts`, PS-496 and
+  PS-497). The owner, Questions hub "Show belonging to the player", OW1: "a, have a thread do a pass on all tooltips to
+  have them color coded, and build rules on how to continue this practice in the future"; then "Colour-coded tips",
+  HU1 to HU3: "a, I need even more color coding. keep what you have now as baseline and how me more options.", "a.",
+  "a.".
 - 21/11/2026: `AGENTS.md` rule 12 and `docs/instructions.md` section 2: a new idea list, screens and layout (IUI-n,
   `docs/spec/ui-ideas.md`). The owner, decision card in the project thread "Show belonging info to the player",
   21/11/2026, asked which list holds the parked Organizations table redesign: "New list: screens and layout".

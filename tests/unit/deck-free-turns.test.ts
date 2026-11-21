@@ -14,6 +14,7 @@ import { PERK_MOVES } from '../../src/ruleset';
 import { PK } from '../../src/library/perkIds';
 import { IT } from '../../src/library/itemIds';
 import { deck, type Choice, type DeckAction } from '../../src/ui/deck';
+import { tipPlain } from '../../src/ui/kit';
 import type { GameEvent, GameState, Intent } from '../../src/types';
 
 const BLANK: Intent = { move: null, action: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null };
@@ -60,7 +61,7 @@ async function play(g: ReturnType<typeof fight>, intent: Intent) {
 /** the deck entry of this kind (a perk move by its perk), as the screen offers it in this state */
 function entry(s: GameState, kind: string, perk?: string): DeckAction {
   const pv = buildPlayerView(s), name = perk && pv.player.perkMoves?.find((m) => m.id === perk)?.name;
-  const a = deck({ pv, s }).flatMap((x) => x.actions).find((x) => x.kind === kind && (!perk || x.note === name));
+  const a = deck({ pv, s }).flatMap((x) => x.actions).find((x) => x.kind === kind && (!perk || tipPlain(x.note ?? '') === name)); // a note's words may be tinted (tint)
   if (!a) throw new Error(`no ${kind}${perk ? ` ${perk}` : ''} entry`);
   return a;
 }

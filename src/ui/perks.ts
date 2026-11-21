@@ -6,7 +6,8 @@ import { termAttrs } from '../words';
 import type { Actor, GameApi, GameState, OwnedPerk, PerkDef } from '../types';
 import { getLibrary } from '../library';
 import { allStepsUpTo, canUndo, milestonesUpTo, milestonePerk, milestoneState, trueSkill, type MilestoneState } from '../ruleset';
-import { boxOf, ended, fitInView, h, viewSize } from './kit';
+import { boxOf, ended, fitInView, h, tint, viewSize } from './kit';
+import { perkTone } from './tipTones';
 import { dragBy, openPop } from './pop';
 import { CONFIG } from '../config';
 import { skillName, TREE_VIEW } from './creation';
@@ -45,7 +46,7 @@ function node(skill: string, milestone: number, st: Show) {
   return h('button', {
     type: 'button', class: `pk-n ${st}${sel ? ' sel' : ''}`, 'data-k': `${skill}:${milestone}`, 'data-series': perkSeries(milestone), disabled: st === 'sealed',
     'aria-label': st === 'sealed' ? `${skillName(skill)} ${milestone}, sealed` : `${skillName(skill)} ${milestone}${d ? ', ' + d.name : st === 'empty' ? ', no perk yet' : ''}`,
-    title: `${seriesName(milestone)} ${milestone}${d ? ` · ${d.name}` : ''}`, // the perk's name shows here and on its card, not on the board
+    title: `${tint(perkTone(milestone), `${seriesName(milestone)} ${milestone}`)}${d ? ` · ${tint(perkTone(milestone), d.name)}` : ''}`, // the perk's name shows here and on its card, not on the board
     onclick: () => { ui.sel = sel ? null : { skill, milestone }; redraw(); },
   }, h('span', {}, String(milestone)));
 }

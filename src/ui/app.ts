@@ -1,6 +1,7 @@
 // App shell: side rail (64px items, active pill fills the item, rail scrolls on its own), page area and the push-aside panel.
 import type { GameApi } from '../types';
-import { h, lineIcon, plural, setPanelHost, closePanel, playDraft, mountTip } from './kit';
+import { h, lineIcon, plural, setPanelHost, closePanel, playDraft, mountTip, tint } from './kit';
+import { TONE } from './tipTones';
 import { creationScreen } from './creation';
 import { playScreen } from './play';
 import { achievementsPage, characterPage, inventoryPage, journalPage, questsPage } from './pages';
@@ -95,7 +96,7 @@ export function mountApp(api: GameApi, root: HTMLElement = document.body) {
     // icons only: the name is kept for screen readers and shown in a tip on hover or focus
     const item = (id: string, label: string, enabled: boolean) => h('a', {
       href: enabled ? '#' + id : undefined, 'aria-current': page === id ? 'page' : undefined, 'aria-disabled': enabled ? undefined : 'true',
-      'data-tip': !enabled ? `${label}: opens once your character is made` : id === 'quests' && railReady ? `${label}: a quest is ready to hand in` : label,
+      'data-tip': !enabled ? `${label}: opens once your character is made` : id === 'quests' && railReady ? `${label}: ${tint(TONE.quest, 'a quest')} is ready to hand in` : label,
     }, icon(id), h('span', { class: 'rail-label' }, id === 'quests' && railReady ? `${label}, a quest is ready to hand in` : label), id === 'stats' ? pointsBadge() : null,
       id === 'quests' && railReady ? h('span', { class: 'rail-dot', 'aria-hidden': 'true' }) : null); // C7: a dot, the words only in the tip
     // V2b: perk points waiting to be spent; after a turn the Play screen holds a new count back until its level-up lands (M-38)

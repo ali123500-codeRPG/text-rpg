@@ -15,7 +15,8 @@ import { charLevel, freeLevelsOwed, keepCapstone, levelTarget, swapCapstone, xpF
 import { essenceSlots } from '../engine/essence';
 import { treeBlock } from '../ruleset/access';
 import { augmentWindow, burdenOf, burdenParts, groupRollBonus, learningWindow } from '../ruleset/improve';
-import { ended, h, safe } from './kit';
+import { ended, h, safe, tint } from './kit';
+import { classTone, healthTone, partTone, skillTone, TONE } from './tipTones';
 import { classIcon, generalMark, itemIcon, partMark, skillIcon, treeIcon } from './itemIcons';
 import { classMaxLevel } from '../library/spawn';
 import { figIcon } from './power';
@@ -168,7 +169,7 @@ export function charCard(s: GameState, p: Actor, openClasses?: (opener: HTMLElem
     h('div', { class: 'cs-track' },
       h('div', { class: 'cs-row' }, h('span', {}, 'Health'), h('b', {}, figBtn('cs-figlink', 'What makes up your total health', (el) => openHealthPop(s, p, el), `${whole(hp)} HP`))),
       // SD5: the boxes (Critical on the left to Bruised, then Unhurt) show the level; its word is the track's tip and name
-      h('div', { class: 'cs-hp', role: 'img', title: HEALTH_LEVELS.name(level), 'aria-label': `Health: ${HEALTH_LEVELS.name(level)}` },
+      h('div', { class: 'cs-hp', role: 'img', title: tint(healthTone(level), HEALTH_LEVELS.name(level)), 'aria-label': `Health: ${HEALTH_LEVELS.name(level)}` },
         boxes.map((l) => h('i', { class: at <= levels.indexOf(l) ? 'on' : '' }))),
       // morale and stamina under health, as on the play screen's full sheet (PS-340)
       h('div', { class: 'cs-mbar' }, ...moraleBar(p, true)), h('div', { class: 'cs-mbar cs-sbar' }, ...staminaBar(p, true))),
@@ -203,7 +204,7 @@ export function openBodyPop(s: GameState, p: Actor, opener?: HTMLElement | null,
   const row = (id: string, name: HTMLElement, pct: number, amount: string) => {
     const st = poolState(pct);
     // SD3: a healthy part names no state (its square and the key say it); Damaged and worse keep their word
-    return h('div', { class: 'bp-row' + (id === part ? ' on' : ''), 'data-part': id }, h('i', { class: `bf-${st}`, role: 'img', title: PART_STATES.name(st), 'aria-label': PART_STATES.name(st) }), h('b', {}, name),
+    return h('div', { class: 'bp-row' + (id === part ? ' on' : ''), 'data-part': id }, h('i', { class: `bf-${st}`, role: 'img', title: tint(partTone(st), PART_STATES.name(st)), 'aria-label': PART_STATES.name(st) }), h('b', {}, name),
       h('span', { class: 'bp-st' }, st === 'healthy' ? '' : PART_STATES.name(st)), h('span', { class: 'bp-amt' }, amount));
   };
   // BV1 b: the turnable figure; a click on a part marks its row
@@ -231,7 +232,7 @@ function classSigil(p: Actor, openClasses?: (opener: HTMLElement) => void): HTML
   const cur = p.core.classes.find((c) => c.state === 'current');
   const target = p.progression ? levelTarget(p) : null;
   const levelOf = (id: string) => p.core.classes.find((c) => c.classId === id)?.level ?? 0;
-  const label = (id: string) => `${lib.classes[id]?.name ?? id} · ${CLASS_TIERS.name(lib.classes[id]?.tier ?? 'tier_0')} · level ${levelOf(id)} of ${classMaxLevel(id)}`;
+  const label = (id: string) => `${tint(classTone(lib.classes[id]?.tier), lib.classes[id]?.name ?? id)} · ${CLASS_TIERS.name(lib.classes[id]?.tier ?? 'tier_0')} · level ${levelOf(id)} of ${classMaxLevel(id)}`;
   const tip = cur ? label(cur.classId) + (target && target.classId !== cur.classId ? ` · next level to ${label(target.classId)}` : '') : 'No class';
   const icon = cur ? classIcon(cur.classId) : '⚔';
   if (!openClasses) return h('div', { class: 'cs-sigil', role: 'img', title: tip, 'aria-label': tip }, icon);
@@ -285,7 +286,7 @@ export function treeBars(p: Actor): HTMLElement {
       h('div', { class: 'cs-tree-h' }, treeIcon(t.id, t.block ? `${t.name} · ${t.block}` : t.name) ?? h('b', {}, t.name),
         t.rows.length > 1 ? h('span', { class: 'trsum', title: `${t.sum} points in this tree` }, String(t.sum)) : null),
       // the icon stands for the name, which (with its SKILL_SUB note) is the row's tip and accessible name
-      h('div', { class: 'cs-tree-rows' }, t.rows.map((r) => { const tip = skillName(r.id) + (SKILL_SUB[r.id] ? ` · ${SKILL_SUB[r.id]}` : ''); return h('div', { class: 'cs-sk' + (r.raw ? '' : ' zero'), role: 'button', tabindex: '0', 'aria-haspopup': 'dialog', 'data-skill': r.id,
+      h('div', { class: 'cs-tree-rows' }, t.rows.map((r) => { const tip = tint(skillTone(r.id), skillName(r.id)) + (SKILL_SUB[r.id] ? ` · ${SKILL_SUB[r.id]}` : ''); return h('div', { class: 'cs-sk' + (r.raw ? '' : ' zero'), role: 'button', tabindex: '0', 'aria-haspopup': 'dialog', 'data-skill': r.id,
         title: tip, 'aria-label': `${tip}: ${trueSkill(p, r.id)}`, onclick: (e: Event) => openSkillPop(p, r.id, e.currentTarget as HTMLElement),
         onkeydown: (e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openSkillPop(p, r.id, e.currentTarget as HTMLElement); } } },
         h('div', { class: 'n' }, skillIcon(r.id) ?? skillName(r.id), r.tagged ? tagIcon() : null, r.flawed ? flaw() : null, r.off ? offNote() : null, marked(p, r.id) ? markDot() : null),
@@ -468,7 +469,7 @@ export function moraleBar(p: Actor, full: boolean): HTMLElement[] {
       // SY1: a Great Success or better at steadying yourself halves the next morale loss, then it is gone
       p.core.condition.mentallySteady ? h('span', { class: 'cs-steady', 'data-m': 'steady', title: 'Mentally steady: your next morale loss is halved' }, 'Mentally steady') : null),
       h('b', {}, full ? figBtn('cs-figlink', 'What makes up your max morale', (el) => openMoralePop(p, el), h('span', { 'data-m': 'morale-left' }, String(left)), ` / ${max}`) : null)),
-    h('span', { class: 'cs-hptrack cs-morale', title: `Morale: ${level}`, role: 'img', 'aria-label': `Morale: ${level}`, 'data-m': 'morale-track' },
+    h('span', { class: 'cs-hptrack cs-morale', title: `Morale: ${tint(TONE.morale, level)}`, role: 'img', 'aria-label': `Morale: ${level}`, 'data-m': 'morale-track' },
       h('b', { style: `width:${100 - lost}%` }), ...ticks),
     // NB3: at Broken the line stays under the bar: no attacks until the fight is behind you, how that comes, what still works
     ...(hint && isBrokenLevel(key) ? [h('span', { class: 'cs-mhint broken', 'data-m': 'morale-hint', role: 'status' },
@@ -488,7 +489,7 @@ export function staminaBar(p: Actor, full: boolean): HTMLElement[] {
     h('span', { class: 'cs-row' }, h('span', {}, pen < 0 ? tipped('Stamina', `${v.level}: −${Math.abs(pen)}% to rolls`, 'stamina-label') : 'Stamina',
       v.spent ? h('span', { class: 'cs-spent', 'data-m': 'spent', title: 'Spent: nothing harder than a Light effort until you sleep' }, 'Spent') : null),
       h('b', {}, full ? [h('span', { 'data-m': 'stamina-left' }, fmt1(v.left)), ` / ${fmt1(v.max)}`] : null)),
-    h('span', { class: 'cs-hptrack cs-stam', title: `Stamina: ${v.level}. Sleep debt; only sleep clears it`, role: 'img', 'aria-label': `Stamina: ${v.level}`, 'data-m': 'stamina-track' },
+    h('span', { class: 'cs-hptrack cs-stam', title: `Stamina: ${tint(TONE.stamina, v.level)}. Sleep debt; only sleep clears it`, role: 'img', 'aria-label': `Stamina: ${v.level}`, 'data-m': 'stamina-track' },
       h('b', { style: `width:${pct(v.left, v.max)}%` }), ...ticks),
     h('span', { class: 'cs-stline', title: breath, role: 'img', 'aria-label': breath, 'data-m': 'stamina-line', style: `width:${pct(v.lineMax, v.max)}%` },
       h('b', { style: `width:${pct(v.lineLeft, v.lineMax)}%` })),
@@ -550,7 +551,7 @@ export function statusStrip(s: GameState, p: Actor): HTMLElement[] {
   const left = level === 'unhurt' ? 100 : Math.max(0, 100 - p.core.condition.hpLostPct) * (100 - UNHURT_SECTION) / 100;
   return [
     h('span', { class: 'cs-row' }, h('span', {}, 'Health')),
-    h('span', { class: 'cs-hptrack', title: `Health: ${HEALTH_LEVELS.name(level)}`, role: 'img', 'aria-label': `Health: ${HEALTH_LEVELS.name(level)}`, 'data-m': 'hp-track' }, h('b', { style: `width:${left}%` })),
+    h('span', { class: 'cs-hptrack', title: `Health: ${tint(healthTone(level), HEALTH_LEVELS.name(level))}`, role: 'img', 'aria-label': `Health: ${HEALTH_LEVELS.name(level)}`, 'data-m': 'hp-track' }, h('b', { style: `width:${left}%` })),
     partChips(s, p),
     ...moraleBar(p, false),
     ...staminaBar(p, false),

@@ -6,7 +6,8 @@ import type { Actor, GameState, HealNote, HealingDef, HealthLevel, PartState } f
 import { partName, SHOWN_LEVELS } from '../ruleset/body';
 import { HEALTH_LEVELS, PART_STATES } from '../scales';
 import { getLibrary, itemDef } from '../library';
-import { h, safe } from './kit';
+import { h, safe, tint } from './kit';
+import { healthTone } from './tipTones';
 import { partMark } from './itemIcons';
 import { cap } from '../words';
 
@@ -24,7 +25,8 @@ const TITLE: Record<string, string> = { [HL.rest]: 'Rested', [HL.clinic]: 'Treat
  * levels healed away are dashed */
 function trackBar(n: HealNote): HTMLElement {
   const lv = LEVELS(), to = Math.max(0, lv.indexOf(n.to)), from = Math.max(0, lv.indexOf(n.from));
-  return h('span', { class: 'hseg', title: `Health: ${n.from === n.to ? HEALTH_LEVELS.name(n.to) : `${HEALTH_LEVELS.name(n.from)} → ${HEALTH_LEVELS.name(n.to)}`}`, 'aria-hidden': 'true' },
+  const lvWord = (l: HealthLevel) => tint(healthTone(l), HEALTH_LEVELS.name(l));
+  return h('span', { class: 'hseg', title: `Health: ${n.from === n.to ? lvWord(n.to) : `${lvWord(n.from)} → ${lvWord(n.to)}`}`, 'aria-hidden': 'true' },
     lv.map((_, i) => h('i', { class: i <= to ? `lv${i}${i === to && from > to ? ' new' : ''}` : i <= from ? 'lost' : '' })));
 }
 

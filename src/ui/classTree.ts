@@ -13,7 +13,8 @@ import { classMaxLevel } from '../library/spawn';
 import { levelTarget, spendXp } from '../engine/xp';
 import { PK } from '../library/perkIds';
 import { markIcon } from './creation';
-import { ended, h } from './kit';
+import { ended, h, tint } from './kit';
+import { classTone } from './tipTones';
 import { classIcon, skillMark } from './itemIcons';
 import { openPop, closePop } from './pop';
 import { perkButton } from './perks';
@@ -128,7 +129,7 @@ export function classTreeView(s: GameState, after: () => void): HTMLElement {
     const bands = CLASS_TIERS.keys.map((t) => [t, nodes.filter((x) => x.tier === t)] as const); // Common on the left
     // SD10: started here, next level here and can open every class are icons after the name, each named in its tip
     const node = (x: ClassNode) => h('button', {
-      type: 'button', class: `ct-node ${x.shown}${x.target ? ' target' : ''}${x.deadEnd ? ' dead' : ''}`, 'data-class': x.id, 'aria-haspopup': 'dialog', title: `${x.name}: ${statusText(x)}`,
+      type: 'button', class: `ct-node ${x.shown}${x.target ? ' target' : ''}${x.deadEnd ? ' dead' : ''}`, 'data-class': x.id, 'aria-haspopup': 'dialog', title: `${tint(classTone(x.tier), x.name)}: ${statusText(x)}`,
       onclick: (e: Event) => openClassCard(s, x.id, e.currentTarget as HTMLElement, () => { draw(); after(); }),
     }, h('span', { class: 'ct-name' }, classIcon(x.id, x.name),
       x.id === start ? markIcon('class_start', 'Started here', 'mk-i ct-mk start') : null,
