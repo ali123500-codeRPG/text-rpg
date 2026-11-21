@@ -57,7 +57,8 @@ type Band = {                   // a small group: a guard post, a gang, a househ
   Zone.top, metres above the ground outside), so each floor of a building can be named on its own (PZ1 a, as a 3D
   space).
 - **GSM-23** A point's title is the smallest space that holds it: a booth drawn inside a hall reads as the booth
-  (`src/plan/where.ts` zoneAt).
+  (`src/plan/where.ts` zoneAt). A point on a wall that the title someone is in shares with another (a doorway) stays
+  in the title they are in, so standing in a doorway never moves anyone into the room beside it (BG-1506).
 - **GSM-24** Actor.zone is that title, kept by code whenever a point moves; code that sets a title instead (a
   scenario's start zone, a test) gets a point in it from placeAll. A title's floor is the floor of everyone standing in
   it.

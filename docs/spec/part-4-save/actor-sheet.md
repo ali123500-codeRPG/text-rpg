@@ -544,7 +544,8 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
   `travellers`, `people`: key, who, what it gives, and who code rolled).
 - **SHEET-341** `land.wild` lists who can be met on each cover at this time of day (`wildPeople`, NR19 a).
 - **SHEET-342** A cast entry names the key in `roster`: code takes the entry's race and rank, and who it is unless the
-  entry gives a template or composition; a key is filled once (`hidden.rosterFilled`).
+  entry gives a template or composition; a key is filled once (`hidden.rosterFilled`). An entry keyed by a roster key
+  that gives no roster, template, composition, actor or group is that roster entry (BG-1507).
 - **SHEET-343** A seat entry (goals) is given a name, its deeds (motive) and 1 to 3 goals; casting it as a full unique
   with essences comes next (NR22 a).
 - **SHEET-344** The GM view lists each settlement's hooks and how many are filled.
