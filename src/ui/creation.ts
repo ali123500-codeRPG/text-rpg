@@ -181,10 +181,12 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
     })();
     const slime = `≈ an estimate from ${st.swings} practice swings each way with the game’s attack rules: the slime’s HP (${dash(p.slimeHp)}) over your average damage per swing, and its slam’s average damage against your HP.`;
     figs.replaceChildren(
-      fig(`bb-pts ${L ? 'warn' : 'ok'}`, `${L} of ${total()} points left. Spend ${total()} points. Your class sets floors, an untagged skill starts at most ${CONFIG.CREATION_MAX_UNTAGGED}, a tagged one ${CONFIG.CREATION_MAX_TAGGED} (its tag adds ${CONFIG.CREATION_TAG_BONUS} on top) and a flawed one ${CONFIG.CREATION_MAX_FLAWED}. Starting total ${startTotal} of Potential ${CONFIG.POTENTIAL}: the sum of your skills when the story starts, each tag taking ${CONFIG.TAG_BURDEN_GROUP_PCT}% off every skill in its group (a lone tag counts 0) and each flaw adding ${CONFIG.FLAW_BURDEN_GROUP_PCT}% to every skill in its group.`,
+      fig(`bb-pts ${L ? 'warn' : 'ok'}`, `${L} of ${total()} points left. Spend ${total()} points. Your class sets floors, an untagged skill starts at most ${CONFIG.CREATION_MAX_UNTAGGED}, a tagged one ${CONFIG.CREATION_MAX_TAGGED} (its tag adds ${CONFIG.CREATION_TAG_BONUS} on top) and a flawed one ${CONFIG.CREATION_MAX_FLAWED}.`,
         h('b', {}, String(L)), h('small', {}, `of ${total()} left`), h('span', { class: 'bb-meter' }, h('i', { style: `width:${((total() - L) / total()) * 100}%` }))),
       pips(st.tags.size, maxTags(), 'tagged', 'tag', `${st.tags.size} of ${maxTags()} tagged: ${names(st.tags)}. Tagged skills ignore Burden.`),
       pips(st.flaws.size, maxFlaws(), 'flawed', 'flaw', `${st.flaws.size} of ${maxFlaws()} flawed: ${names(st.flaws)}. A flawed skill learns slower and stops at ${CONFIG.SKILL_CAP - CONFIG.FLAW_CAP_PENALTY}.`),
+      fig('bb-fig', `Starting total ${startTotal}: the sum of your skills when the story starts, each tag taking ${CONFIG.TAG_BURDEN_GROUP_PCT}% off every skill in its group (a lone tag counts 0) and each flaw adding ${CONFIG.FLAW_BURDEN_GROUP_PCT}% to every skill in its group`,
+        h('b', {}, String(startTotal)), h('small', {}, 'total')),
       h('span', { class: 'bb-sep' }),
       fig('bb-fig', `HP ${dash(p.hp)}: the base ${CONFIG.HP_BASE} plus endurance, times the body’s HP multiplier`, h('b', {}, dash(p.hp)), h('small', {}, 'HP')),
       fig('bb-fig', `Standing attack ${dash(p.attack)}${p.weapon ? ` · ${p.weapon.skill} · ${p.weapon.name}` : ''}: the effective skill of your starting weapon, or bare hands when the kit has none (raw skill plus gear)`, icon('fig_attack'), h('b', {}, dash(p.attack))),
