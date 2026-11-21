@@ -3,12 +3,13 @@
 // filled and breaks the scenario; the Weaver is told the danger is wild and who roams the land there. Needed: the trip
 // tests run on hand-built roads with no land under them, and wild-ground.test only checks where open land is.
 import { describe, expect, it } from 'vitest';
-import { makeVillage, withWays } from '../harness';
+import { makeVillage, withRoad, withWays } from '../harness';
 import { intent, play } from './w4-kit';
 import { drawRegion, type RegionBrief } from '../../src/land/generate';
 import { wildGround } from '../../src/engine/travel';
 import { moveSpeed } from '../../src/engine/speed';
 import { buildWeaverView } from '../../src/views';
+import { placeAll, unplace } from '../../src/engine/position';
 import { CONFIG } from '../../src/config';
 import { RK, ZK } from '../../src/library/tableIds';
 import type { GameState, TitleSpec } from '../../src/types';
@@ -65,6 +66,19 @@ describe('432 encounters on long walks off the road', () => {
     const enc = buildWeaverView(s, { kind: 'scenario', placeId: s.player.placeId }).target.encounter!;
     expect(enc).toMatchObject({ zone: 'moor', danger: 'wild' });
     expect(enc.wild?.length).toBeGreaterThan(0);
+  });
+
+  it('a walk along a road that is no trip (someone hostile knows of the player) counts its road minutes and rolls by the road\'s danger all the same', () => {
+    const s = withRoad(9, 'dangerous');
+    CONFIG.ROAD_ENCOUNTER_PCT = { ...CONFIG.ROAD_ENCOUNTER_PCT, dangerous: 100 };
+    const g = s.actors.find((a) => a.id === 'guard_1')!;
+    g.mind!.overrides = { ...g.mind!.overrides, player: 'hostile' };
+    g.mind!.knowledge.player = { status: 'suspicious', lastKnownZone: 'gate_inner', lastSeenTurn: 0, source: 'heard', revealed: [] };
+    g.zone = 'tav_cellar'; g.placeId = 'tavern'; unplace(s, g); placeAll(s); // out of the player's senses
+    play(s, { intent: intent({ move: { toZone: 'ashford_gate' } }) }, 3);
+    expect(s.log.some((l) => l.code === 'travelled')).toBe(false);
+    expect(s.stage.encounter?.zone).toBe('north_road');
+    expect(buildWeaverView(s, { kind: 'scenario', placeId: s.player.placeId }).target.encounter).toMatchObject({ zone: 'north_road', danger: 'dangerous' });
   });
 
   it('in the dark the meeting\'s event roll is worse, as on a night road', () => {
