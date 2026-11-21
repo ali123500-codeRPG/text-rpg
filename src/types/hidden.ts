@@ -63,14 +63,16 @@ export const SCENARIO_ENDING_OUTCOMES: Record<ScenarioEnding, string> = {
  * someone; a time of day comes. "judged" is for anything code cannot check: the Weaver check-in decides it. */
 export type EndCheck =
   | { kind: 'band_out'; band: string }
-  | { kind: 'reach'; place: string }
+  | { kind: 'reach'; place: string; actor?: string; band?: string } // BG-1508: actor or band: that person, or any of that band, reaches it (up, unbroken)
   | { kind: 'leave'; place: string }
   | { kind: 'find'; actor: string }
   | { kind: 'hold'; item: string }
   | { kind: 'deliver'; item: string; to: string }
   | { kind: 'time'; at: string }
-  | { kind: 'clear'; place: string } // BG-287 (BF94 a): nobody hostile to the player still standing in the place or zone
+  | { kind: 'clear'; place: string; by?: ClearSide } // BG-287 (BF94 a): nobody hostile to the player still standing in the place or zone; BG-1508 by: whose side downed or broke most of them
   | { kind: 'judged' };
+/** BG-1508: the side that cleared a place: you (the player, your band, anyone following you) or anyone else */
+export type ClearSide = 'you' | 'other';
 /** one way the scenario can end: what code checks, which ending it is, and a hidden line saying what it means */
 export type PlanEnding = { when: EndCheck; as: (typeof PLAN_ENDINGS)[number]; text: string };
 /** SC1/SC2/SC7: the scenario's hidden question, its scale and its endings */
@@ -87,6 +89,10 @@ export type ScenarioFrame = {
   beenIn?: string[];
   /** BG-287: places a 'clear' ending names where a foe has stood this scenario (clearing needs a foe there first) */
   hadFoes?: string[];
+  /** BG-1508: for a 'clear' ending with by: each place's foes seen standing there, and how many each side downed or broke */
+  clearTally?: Record<string, { foes: string[]; out: string[]; you: number; other: number }>;
+  /** BG-1508: the side of the last one to attack each foe, which takes the credit when that foe goes down or breaks */
+  lastHitSide?: Record<string, ClearSide>;
   /** SC8: Weaver check-ins asked so far, and the turn of the last one */
   checkins?: number; lastCheckin?: number;
   /** SC12: the check-in has been told the scenario is over its budget */

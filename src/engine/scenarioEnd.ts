@@ -2,9 +2,10 @@
 // holds one met mid-fight, mid-chase or mid-talk (SC13), and keeps a record of how each scenario went (SC6). An Episode or
 // Venture holds smaller scenarios one level deep (SC4): a road encounter inside one starts an inner scenario, and when that ends
 // the bigger scenario carries on with no new event roll and no Weaver call.
-import type { CheckinAnswer, CheckinReason, EndCheck, GameEvent, GameState, Grade, PlanEnding, Rng, ScenarioEnding, ScenarioFrame, ScenarioRecord, StagePlan, Tier } from '../types';
+import type { Actor, CheckinAnswer, CheckinReason, ClearSide, EndCheck, GameEvent, GameState, Grade, PlanEnding, Rng, ScenarioEnding, ScenarioFrame, ScenarioRecord, StagePlan, Tier } from '../types';
 import { PLAN_ENDINGS } from '../types';
 import { createRng } from '../rng';
+import { getLibrary } from '../library';
 import { CONFIG } from '../config';
 import { SCENARIO_SCALES, TIME_OF_DAY, type ScenarioScale } from '../scales';
 import { now, timeOfDay } from '../time';
@@ -47,7 +48,8 @@ function checkable(state: GameState, w: EndCheck): boolean {
   const actor = (r: string) => !!actorById(state, r);
   switch (w.kind) {
     case 'band_out': return state.bands.some((b) => b.id === w.band);
-    case 'reach': case 'leave': case 'clear': return place(w.place);
+    case 'reach': return place(w.place) && (w.actor === undefined || actor(w.actor)) && (w.band === undefined || state.bands.some((b) => b.id === w.band));
+    case 'leave': case 'clear': return place(w.place) && (w.kind !== 'clear' || w.by === undefined || w.by === 'you' || w.by === 'other');
     case 'find': return actor(w.actor);
     case 'deliver': return actor(w.to) && typeof w.item === 'string';
     case 'hold': return typeof w.item === 'string';
@@ -59,7 +61,9 @@ function checkable(state: GameState, w: EndCheck): boolean {
 function mapCheck(w: EndCheck, ref: (kind: 'band' | 'place' | 'actor', key: string) => string): EndCheck {
   switch (w.kind) {
     case 'band_out': return { kind: w.kind, band: ref('band', w.band) };
-    case 'reach': case 'leave': case 'clear': return { kind: w.kind, place: ref('place', w.place) };
+    case 'reach': return { kind: w.kind, place: ref('place', w.place), ...(w.actor !== undefined ? { actor: ref('actor', w.actor) } : {}), ...(w.band !== undefined ? { band: ref('band', w.band) } : {}) };
+    case 'leave': return { kind: w.kind, place: ref('place', w.place) };
+    case 'clear': return { kind: w.kind, place: ref('place', w.place), ...(w.by ? { by: w.by } : {}) };
     case 'find': return { kind: w.kind, actor: ref('actor', w.actor) };
     case 'deliver': return { kind: w.kind, item: w.item, to: ref('actor', w.to) };
     default: return w;
@@ -77,18 +81,31 @@ function bandOut(state: GameState, band: string): boolean {
 export const foesIn = (state: GameState, place: string) => state.actors.filter((a) => actorIn(state, a, place) && isActive(a) && !a.mind?.moraleState
   && !!zoneById(state, a.zone) && stance(state, a, state.player) === 'hostile');
 
+/** BG-1508: your side: you, your bandmates and anyone following you (as companions travel, travel.ts) */
+const yourSide = (state: GameState, a: Actor): boolean => a === state.player || a.bandId === state.player.bandId
+  || (a.mind?.routine?.id !== undefined && getLibrary().routines?.[a.mind.routine.id]?.kind === 'follow');
+/** BG-1508: someone named by a reach ending (the person, or any of the band) up, unbroken and in the place */
+const someoneIn = (state: GameState, w: { place: string; actor?: string; band?: string }): boolean => state.actors.some((a) =>
+  (a.id === w.actor || (w.band !== undefined && a.bandId === w.band)) && isActive(a) && !a.mind?.moraleState && actorIn(state, a, w.place));
+/** BG-1508: the side that downed or broke most of a place's foes cleared it; a tie is yours */
+const clearedBy = (frame: ScenarioFrame | undefined, place: string): ClearSide => {
+  const t = frame?.clearTally?.[place];
+  return t && t.other > t.you ? 'other' : 'you';
+};
+
 /** is this ending's check met now (judged ones never are: the Weaver check-in decides them) */
 export function checkMet(state: GameState, w: EndCheck, events: GameEvent[], frame: ScenarioFrame | undefined = state.stage.scenario): boolean {
   switch (w.kind) {
     case 'band_out': return bandOut(state, w.band);
-    case 'reach': return playerIn(state, w.place);
+    case 'reach': return w.actor !== undefined || w.band !== undefined ? someoneIn(state, w) : playerIn(state, w.place);
     // BG-44: out of the place AND off the scenario's ground (a step into the lane mid-chase is not leaving)
     case 'leave': return !playerIn(state, w.place) && !!frame?.beenIn?.includes(w.place) && !(frame.ground && onGround(state, frame.ground, state.player.zone));
     case 'find': return playerFound(state, w.actor);
     case 'hold': return state.player.core.inventory.some((i) => i.itemId === w.item);
     case 'deliver': return givenTo(state, events, w.item, w.to) > 0;
     case 'time': return timeOfDay(now(state)) === TIME_OF_DAY.keyOf(w.at);
-    case 'clear': return !!frame?.hadFoes?.includes(w.place) && !foesIn(state, w.place).length; // a foe stood there first
+    case 'clear': return !!frame?.hadFoes?.includes(w.place) && !foesIn(state, w.place).length // a foe stood there first
+      && (!w.by || clearedBy(frame, w.place) === w.by);
     case 'judged': return false;
   }
 }
@@ -109,6 +126,7 @@ export function checkScenarioEnd(state: GameState, events: GameEvent[]): void {
     if (e.when.kind === 'leave' && playerIn(state, e.when.place) && !f!.beenIn?.includes(e.when.place)) (f!.beenIn ??= []).push(e.when.place);
     if (e.when.kind === 'clear' && !f!.hadFoes?.includes(e.when.place) && foesIn(state, e.when.place).length) (f!.hadFoes ??= []).push(e.when.place);
   }
+  for (const f of [st.scenario, st.outer]) if (f) tallyClears(state, f, events);
   if (!st.ending) {
     for (const [frame, outer] of [[st.scenario, false], [st.outer, true]] as const) {
       const hit = frame?.endings.find((e) => checkMet(state, e.when, events, frame));
@@ -130,6 +148,30 @@ export function checkScenarioEnd(state: GameState, events: GameEvent[]): void {
   const held = endingHeld(state, events);
   if (held) { logCode(state, 'scenario_ending_held', { as: st.ending.as, why: held }); return; }
   endScenario(state, st.ending.as, st.ending.text, st.ending.outer, st.ending.roam);
+}
+
+/** BG-1508: for each place a 'clear' ending with by names: the last side to attack each foe, then each foe seen standing
+ * there who is now down, broken or gone, credited once to that side (no one, if nobody attacked them) */
+function tallyClears(state: GameState, f: ScenarioFrame, events: GameEvent[]): void {
+  const places = [...new Set(f.endings.flatMap((e) => (e.when.kind === 'clear' && e.when.by ? [e.when.place] : [])))];
+  if (!places.length) return;
+  for (const e of events) {
+    if (e.kind !== 'attack' || !e.target) continue;
+    const by = actorById(state, e.actorId);
+    if (by) (f.lastHitSide ??= {})[e.target] = yourSide(state, by) ? 'you' : 'other';
+  }
+  for (const place of places) {
+    const t = ((f.clearTally ??= {})[place] ??= { foes: [], out: [], you: 0, other: 0 });
+    for (const a of foesIn(state, place)) if (!t.foes.includes(a.id)) t.foes.push(a.id);
+    for (const id of t.foes) {
+      if (t.out.includes(id)) continue;
+      const a = actorById(state, id);
+      if (a && isActive(a) && !a.mind?.moraleState && zoneById(state, a.zone)) continue;
+      t.out.push(id);
+      const side = f.lastHitSide?.[id];
+      if (side) t[side]++;
+    }
+  }
 }
 
 /** SC2/SC12/AT83: how much of its budget the scenario has used (1 = all of it), in game time; BG-240: an actingOnly scale
