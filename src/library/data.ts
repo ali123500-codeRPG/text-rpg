@@ -377,8 +377,8 @@ export function prototypeLibrary(): Library {
       // TB7: the Threadbounded class, used only by The Threadbound start (ST4); its level 1 perk gives a random Threadbound item. No unlock
       [CL.threadbounded]: { id: CL.threadbounded, name: 'Threadbounded', tier: 'tier_4', label: 'a young stranger', story: 'Something was tied to you before you were old enough to know it. It answers when you call, and nothing has ever taken it from you for long.', floors: {}, levelPerks: { 1: [PK.always_yours] } },
       // DX1: Blessed by X, a variant per god; unlocks on being blessed by that god, and the blessed start (ST5) begins in it.
-      // Class perk and capstone to come (about earning a higher blessing from the god); name and story placeholders
-      [CL.blessed_by_imbra]: { id: CL.blessed_by_imbra, name: 'Blessed by Imbra', tier: 'tier_2', label: 'a young stranger', story: 'Imbra looked your way once, and part of that look stayed with you.', floors: {}, blessedBy: GD.imbra },
+      // Level 1 gives a random Tier I blessing of the god; capstone to come (about earning a higher blessing from the god); name and story placeholders
+      [CL.blessed_by_imbra]: { id: CL.blessed_by_imbra, name: 'Blessed by Imbra', tier: 'tier_2', label: 'a young stranger', story: 'Imbra looked your way once, and part of that look stayed with you.', floors: {}, blessedBy: GD.imbra, levelBlessings: { 1: 'tier_1' } },
       // Sword-dancer mirrors the Swordsman: its skills and perks are meant to be the Swordsman's, built for Dodge and
       // light or medium blades. Unlocks at Dodge 40 and Light or Medium Weapons 40; no tree, floors or creation start yet.
       [CL.sword_dancer]: { id: CL.sword_dancer, personality: { [PA.levity]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Sword-dancer', tier: 'tier_2', story: 'Blade and footwork, drilled until the step comes before the thought does.', floors: {}, unlock: { [SK.dodge]: 80 }, unlockAny: [{ [SK.melee_light]: 60, [SK.melee_medium]: 60 }], levelPerks: { 1: [PK.first_steps_of_the_dance] } },

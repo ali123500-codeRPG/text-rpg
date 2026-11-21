@@ -109,10 +109,14 @@ function flatTrueSkill(a: Actor, skill: string, out?: SkillPart[]): number {
   const ach = achievementSkill(a, skill);
   if (ach) out?.push({ label: 'Achievements', adds: ach });
   if (out) for (const x of a.progression?.essences ?? []) if (x.points[skill]) out.push({ label: `${getLibrary().essences?.[x.essence]?.name ?? x.essence} essence`, adds: x.points[skill] });
+  if (out) for (const p of owned(a)) { const b = perks[p.perkId]?.essenceBoost, ess = essencePoints(a, skill); if (b && ess) out.push({ label: perks[p.perkId].name, adds: b * ess }); }
   return e.raw + fromPerks + ach + essenceSkill(a, skill);
 }
-/** growth proposal 2.2/EG4 a: the true skill the actor's held essences add (thread, not body: it counts everywhere true skill does) */
-export const essenceSkill = (a: Actor, skill: string): number => (a.progression?.essences ?? []).reduce((n, e) => n + (e.points[skill] ?? 0), 0);
+/** growth proposal 2.2/EG4 a: the true skill the actor's held essences add (thread, not body: it counts everywhere true skill does),
+ * raised by the owner's essenceBoost perks (Imbra's Measure), several adding in full */
+export const essenceSkill = (a: Actor, skill: string): number =>
+  essencePoints(a, skill) * (1 + owned(a).reduce((n, p) => n + (getLibrary().perks[p.perkId]?.essenceBoost ?? 0), 0));
+const essencePoints = (a: Actor, skill: string): number => (a.progression?.essences ?? []).reduce((n, e) => n + (e.points[skill] ?? 0), 0);
 
 /** F4: the owner's perk change to the stand-in share for a function (PerkDef.standIn) */
 export const standInAdd = (a: Actor, fn: string): number =>

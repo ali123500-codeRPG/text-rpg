@@ -24,7 +24,7 @@ import { TP } from './templateIds';
 import { PLAYER_NAMES } from './names';
 import { personalityFrom } from '../ruleset/personality';
 import { ST } from './startIds';
-import { blessedClass, blessingGods, rollBlessing } from '../ruleset/blessings';
+import { blessedClass, blessingGods, godBlessings, rollBlessing } from '../ruleset/blessings';
 
 /** a fixed seed from a string (a template's ID, or a template and an actor's ID) */
 const templateSeed = textSeed;
@@ -514,11 +514,16 @@ export function classMaxLevel(classId: string): number {
   const c = getLibrary().classes[classId];
   return Math.min(CONFIG.CLASS_MAX_LEVEL, CONFIG.CLASS_TIER0_MAX_LEVEL + CONFIG.CLASS_LEVELS_PER_TIER * (c ? CLASS_TIERS.pos(c.tier) : 0));
 }
-/** class-level perks: the perks a class grants for reaching levels above `from` up to `to`; its capstone comes at its top level */
-export function classPerks(classId: string, from: number, to: number, turn = 0): OwnedPerk[] {
+/** class-level perks: the perks a class grants for reaching levels above `from` up to `to`; its capstone comes at its top level.
+ * A Blessed class's levelBlessings add one of its god's blessings of that tier, picked by `seed` (without one, only a sure pick shows) */
+export function classPerks(classId: string, from: number, to: number, turn = 0, seed?: string): OwnedPerk[] {
   const c = getLibrary().classes[classId], top = classMaxLevel(classId);
   const lv: Record<number, string[]> = { ...c?.levelPerks };
   if (c?.capstone) lv[top] = [...(lv[top] ?? []), ...c.capstone];
+  for (const [n, tier] of Object.entries(c?.levelBlessings ?? {})) {
+    const ids = c!.blessedBy ? godBlessings(c!.blessedBy, tier) : [];
+    if (ids.length === 1 || (ids.length && seed !== undefined)) lv[+n] = [...(lv[+n] ?? []), ids[createRng(textSeed(`${seed}:${classId}:${n}`)).int(0, ids.length - 1)]];
+  }
   return Object.entries(lv).filter(([n]) => +n > from && +n <= to).flatMap(([, ids]) => ids.map((perkId) => ({ perkId, source: 'class' as const, gainedTurn: turn })));
 }
 /** who a new player is: body type, race, the Start's class and perks. Tree access (TA1) reads these before the sheet exists.
@@ -532,7 +537,7 @@ export function newPlayer(startId = PLAYER_START, storyId?: string, raceId: stri
     // Commoner (the default class) is open from the start for everyone, unless it is the start's own class
     classes: [...(classId ? [{ classId, state: 'current' as const, level }] : []),
       ...(defaultClass() && defaultClass() !== classId && (classId || classlessStart(startId)) ? [{ classId: defaultClass()!, state: 'unlocked' as const, level: 0 }] : [])],
-    perks: [...racePerks(raceId), ...(blessing ? [{ perkId: blessing, source: 'start' as const, gainedTurn: 0 }] : []), ...(classId ? classPerks(classId, 0, level) : [])],
+    perks: [...racePerks(raceId), ...(blessing ? [{ perkId: blessing, source: 'start' as const, gainedTurn: 0 }] : []), ...(classId ? classPerks(classId, 0, level, 0, storyId) : [])],
   };
 }
 

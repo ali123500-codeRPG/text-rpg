@@ -131,6 +131,8 @@ export type ClassDef = {
   story?: string;
   /** DX1: the god whose blessing unlocks this class (a variant per god); a blessed start begins in it */
   blessedBy?: import('../library/godIds').GodId;
+  /** a Blessed class's levels that each give a random blessing of its god (blessedBy) at this tier */
+  levelBlessings?: Record<number, import('../scales').BlessingTierKey>;
   /** class-level perks: the perk ids granted when the class reaches each level (at creation or on level up) */
   levelPerks?: Record<number, string[]>;
   /** the default capstone: perk ids granted when the class reaches its top level (classMaxLevel, set by its tier) */
@@ -370,6 +372,8 @@ export type PerkDef = {
   quirk?: boolean;
   /** DX1: a god's blessing: which god gives it and at what tier (BLESSING_TIERS) */
   blessing?: { god: import('../library/godIds').GodId; tier: import('../scales').BlessingTierKey };
+  /** the true skill the owner's held essences give is raised by this share (0.1 = +10%) */
+  essenceBoost?: number;
   /** dreaded on sight (src/engine/auras.ts sightDread): whoever sees the owner for the first time pays fear row `fear`, and from
    * then on its stance toward the owner reads `colder` steps colder until play gives it a stance of its own */
   onSight?: { colder: number; fear: string };

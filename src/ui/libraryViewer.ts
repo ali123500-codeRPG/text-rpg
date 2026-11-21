@@ -25,7 +25,7 @@ import { PERK_WRITEUPS } from '../library/perks';
 import { BOOST_PERKS } from '../library/boostPerks';
 import { FUNCTION_GROUP, FUNCTION_ROLLS, GROUP_NAMES, groupName, groupsOf, functionName } from '../library/functionNames';
 import { CONFIG } from '../config';
-import { RANKS, TALENTS, ESSENCE_GRADES, TREE_RATINGS, LIFE_STAGES, THREADBOUND_RANKS, type ThreadboundRankKey, NERVE_LINES, type NerveLine, type Scale, INTELLIGENCE, BLESSING_TIERS, GOD_RANKS, CLASS_TIERS, EQUIP_LEVELS, equipName, PART_STATES, QUEST_REWARD_LEVELS, REWARD_LEVELS, SKILL_TIERS, XP_FACTORS, type XpFactorKey } from '../scales';
+import { RANKS, TALENTS, ESSENCE_GRADES, TREE_RATINGS, LIFE_STAGES, THREADBOUND_RANKS, type ThreadboundRankKey, NERVE_LINES, type NerveLine, type Scale, INTELLIGENCE, BLESSING_TIERS, type BlessingTierKey, GOD_RANKS, CLASS_TIERS, EQUIP_LEVELS, equipName, PART_STATES, QUEST_REWARD_LEVELS, REWARD_LEVELS, SKILL_TIERS, XP_FACTORS, type XpFactorKey } from '../scales';
 import { earnedAtText, sourceRowName, xpGroupFactor } from '../engine/xp';
 import { GOAL_KINDS, QUEST_STATES, type GameState, type QuestState } from '../types/state';
 import { QUEST_STATE_NAME } from '../engine/quests';
@@ -133,6 +133,7 @@ const named = (k: string, v: unknown): unknown => {
   }
   // fields that hold perk ids show each perk as a link that opens its details
   const perkLinks = (ids: string[]) => links('perks', ids.map((id) => [id, lib.perks[id]?.name ?? id]));
+  if (k === 'levelBlessings' && v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([lv, t]) => [`level ${lv}`, `a random ${BLESSING_TIERS.name(t as BlessingTierKey)} blessing of its god`]));
   if (k === 'levelPerks' && v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([lv, ids]) => [`level ${lv}`, perkLinks(ids as string[])]));
   if (/perks?$|quirks?$/i.test(k) && Array.isArray(v) && v.length && v.every((x) => typeof x === 'string' && lib.perks[x])) return perkLinks(v as string[]);
   if (Array.isArray(v)) return v.map((x) => (x && typeof x === 'object' ? Object.fromEntries(Object.entries(x).map(([a, b]) => (SKILL_KEYED.has(k) ? [skillName(a), b] : [a, named(a, b)]))) : SKILL_KEYED.has(k) && typeof x === 'string' ? skillName(x) : x));

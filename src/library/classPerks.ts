@@ -54,6 +54,13 @@ export const CLASS_PERKS: Record<string, PerkDef> = {
     rules: { kind: 'Active (your action)', trigger: 'You take the action against someone within arm\'s reach.', conditions: ['They are Down, or have surrendered.', 'Their essence is still theirs: it has not been rolled for, at a death or by an earlier pull.'],
       effect: 'No roll: their essence is offered to you, from their own list. Its grade comes from a quality roll that never fades it (below Success it is Common). They are left Hollowed.', lasts: 'once per person' },
   },
+  // Imbra's Tier I blessing, given at Blessed by Imbra level 1 (ClassDef.levelBlessings); name and story placeholders
+  [PK.imbras_measure]: {
+    id: PK.imbras_measure, name: 'Imbra\'s Measure', built: true, blessing: { god: GD.imbra, tier: 'tier_1' }, essenceBoost: CONFIG.IMBRA_ESSENCE_BOOST,
+    story: 'Imbra has shown you how an essence settles into a Thread, and the ones you carry sit a little deeper in yours.',
+    rules: { kind: 'Always on (blessing)', trigger: 'Any use of true skill.', conditions: ['The owner holds an essence.'],
+      effect: `The true skill every held essence gives is raised by ${CONFIG.IMBRA_ESSENCE_BOOST * 100}%.`, lasts: 'always' },
+  },
   [PK.hollowed]: {
     id: PK.hollowed, name: 'Hollowed', built: true, quirk: true,
     story: 'Someone pried an essence off you and kept it. It tore some of you away with it, and the rest never sits quite right again.',

@@ -20,9 +20,13 @@ export function rollBlessing(tier: BlessingTierKey, storyId: string): { god: str
   if (!gods.length) return undefined;
   const rng = createRng(textSeed(storyId));
   const god = gods[rng.int(0, gods.length - 1)];
-  const perks = Object.values(getLibrary().perks).filter((p) => p.blessing?.god === god && p.blessing.tier === tier).map((p) => p.id).sort();
+  const perks = godBlessings(god, tier);
   return { god, perk: perks[rng.int(0, perks.length - 1)] };
 }
+
+/** a god's blessings of this tier, by ID */
+export const godBlessings = (god: string, tier: BlessingTierKey): string[] =>
+  Object.values(getLibrary().perks).filter((p) => p.blessing?.god === god && p.blessing.tier === tier).map((p) => p.id).sort();
 
 /** does this character hold a blessing (not dormant) of this god */
 export const blessedBy = (a: Actor, god: string): boolean =>
