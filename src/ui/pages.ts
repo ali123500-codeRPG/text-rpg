@@ -17,6 +17,7 @@ import { ROLLED_SKILL } from '../library/skillIds';
 import { skillName } from '../library/skillNames';
 import { othersHealthWord } from '../ruleset';
 import { buildPlayerView, callName, factText, questGoalText } from '../views';
+import { belongingView } from '../views/belonging';
 import { ESSENCE_ABOUT, essencesBody, essencesSummary } from './essences';
 import { vowsSection } from './vows';
 import { chainCard, chainViews, foldAll, type ChainView } from './achievementThreads';
@@ -718,17 +719,26 @@ export function journalPlaces(s: GameState): { id: string; name: string; parent:
   });
 }
 
+/** Organizations (BEL-20): those the ties of people the character has seen clearly reach, each with the one it is a unit
+ *  of and the people it knows in it, the head first */
+export function journalOrgs(s: GameState): { id: string; name: string; kind: string; parent: string; people: string }[] {
+  const pv = safe(() => buildPlayerView(s)), bv = pv && safe(() => belongingView(s, pv));
+  const orgs = bv?.orgs ?? [];
+  return orgs.map((o) => ({ id: o.id, name: cap(o.name), kind: o.kind, parent: cap(orgs.find((x) => x.id === o.parentId)?.name ?? '–'),
+    people: o.people.map((x) => [cap(x.name), x.title ?? '', x.head ? 'head' : ''].filter(Boolean).join(', ')).join(' · ') || '–' }));
+}
+
 const firstSentence = (t: string) => (t.match(/^.*?[.!?](\s|$)/)?.[0] ?? t).trim();
 
 export function journalPage(api: GameApi) {
-  const opened = { people: new Set<string>(), places: new Set<string>(), time: new Set<string>() };
-  const sorts = { people: { key: 'name', dir: 0 as 0 | 1 | -1 }, places: { key: 'name', dir: 0 as 0 | 1 | -1 }, time: { key: 'turn', dir: 0 as 0 | 1 | -1 } };
+  const opened = { people: new Set<string>(), places: new Set<string>(), orgs: new Set<string>(), time: new Set<string>() };
+  const sorts = { people: { key: 'name', dir: 0 as 0 | 1 | -1 }, places: { key: 'name', dir: 0 as 0 | 1 | -1 }, orgs: { key: 'name', dir: 0 as 0 | 1 | -1 }, time: { key: 'turn', dir: 0 as 0 | 1 | -1 } };
   const el = h('main');
   const field = (title: string) => (row: TRow, key: string) => openPanel(title, Object.entries(row.cells).map(([k, v]) => ({ k, v, picked: k === key })));
   function update() {
     const s = api.state();
     if (!s) { el.replaceChildren(h('h1', {}, 'Journal'), h('p', { class: 'empty' }, 'No story yet. Create your character first.')); return; }
-    const people = journalPeople(s), places = journalPlaces(s);
+    const people = journalPeople(s), places = journalPlaces(s), orgs = journalOrgs(s);
     const pGroups: TGroup[] = ['In view', 'Not in view'].map((g) => ({ id: 'p-' + g, title: g,
       rows: people.filter((p) => p.where.startsWith(g)).map((p, i) => ({ id: p.id, sortKey: i, cells: { name: p.name, label: p.label, where: p.where, health: p.health } })),
       combined: { label: '', where: g, health: '' } })).filter((g) => g.rows.length);
@@ -740,6 +750,9 @@ export function journalPage(api: GameApi) {
     const plGroups: TGroup[] = parents.map((par) => ({ id: 'pl-' + par, title: par === '–' ? 'Top level' : par,
       rows: places.filter((p) => p.parent === par).map((p, i) => ({ id: p.id, sortKey: i, cells: { name: p.name, parent: p.parent, facts: p.facts.join(' ') || '–' } })),
       combined: { parent: par, facts: '' } }));
+    const orgGroups: TGroup[] = [...new Set(orgs.map((o) => o.parent))].map((par) => ({ id: 'og-' + par, title: par === '–' ? 'Top level' : par,
+      rows: orgs.filter((o) => o.parent === par).map((o, i) => ({ id: o.id, sortKey: i, cells: { name: o.name, kind: o.kind, parent: o.parent, people: o.people } })),
+      combined: { parent: par, kind: '', people: '' } }));
     const turns = [...new Set(api.lines().map((l) => l.turn))];
     const tGroups: TGroup[] = turns.map((t) => {
       const ls = api.lines().filter((l) => l.turn === t);
@@ -756,6 +769,9 @@ export function journalPage(api: GameApi) {
       sec('Places',
         groupedTable({ cols: [{ key: 'name', title: 'Place' }, { key: 'parent', title: 'Part of' }, { key: 'facts', title: 'What you know' }],
           groups: plGroups, open: opened.places, sort: sorts.places, onField: field('Place'), redraw: update, emptyText: 'No places yet. Places you visit or hear of are written here.' })),
+      sec('Organizations',
+        groupedTable({ cols: [{ key: 'name', title: 'Organization' }, { key: 'kind', title: 'Kind' }, { key: 'parent', title: 'Part of' }, { key: 'people', title: 'People you know in it' }],
+          groups: orgGroups, open: opened.orgs, sort: sorts.orgs, onField: field('Organization'), redraw: update, emptyText: 'None yet. The bodies people you meet belong to are written here.' })),
       sec('Timeline',
         groupedTable({ cols: [{ key: 'turn', title: 'Turn', right: true }, { key: 'did', title: 'You did' }, { key: 'happened', title: 'What happened' }],
           groups: tGroups, open: opened.time, sort: sorts.time, onField: field('Turn'), redraw: update, emptyText: 'Nothing yet this session. Each turn you play is written here.' })));

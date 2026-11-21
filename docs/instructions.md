@@ -44,7 +44,7 @@ edge cases. Where a section repeats a rule from `AGENTS.md`, it is there to add 
   can take its list together. Which ID holds which kind of parked idea, and in which file, is the table at the top of
   `docs/spec/deferred-items.md`: perks (IPP-n), achievements (IAA-n), vows and pledges (IVP-n), classes (ICI-n),
   essences (IEI-n), Threadbound items (ITI-n), combat and bodies (ICB-n), items, loot and trade (IGT-n), the world,
-  travel and scenarios (IWD-n), NPCs and personality (INP-n), age and training (ICG-n). Every newly parked item goes into one of these lists (the owner, 21/11/2026: "moving forward, make sure every item I say to park belongs to a group ID"). The D-n table keeps older rows, and a new row only while the owner is asked which list takes it, or for a new list, when none fits (`AGENTS.md` rule 12). An idea list's ID starts with I (for idea), so it never reads like a Questions hub
+  travel and scenarios (IWD-n), NPCs and personality (INP-n), age and training (ICG-n), screens and layout (IUI-n). Every newly parked item goes into one of these lists (the owner, 21/11/2026: "moving forward, make sure every item I say to park belongs to a group ID"). The D-n table keeps older rows, and a new row only while the owner is asked which list takes it, or for a new list, when none fits (`AGENTS.md` rule 12). An idea list's ID starts with I (for idea), so it never reads like a Questions hub
   question ID. A new idea-list row (IPP-n, IAA-n and the rest) is numbered as a new D-n is (`title='IPP: <item>'`, and so on); a
   row moved from the Deferred items table keeps its number (D-189 became IPP-189), and its D-n row in the archive says
   where it went.

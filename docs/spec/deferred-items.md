@@ -21,6 +21,7 @@ section 2). An idea list's ID starts with I (for idea), so it never reads like a
 | IWD-n | The living world, travel and scenarios: factions, offscreen changes, triggers, quests, roads and getting about | [World and scenario ideas](world-ideas.md) |
 | INP-n | NPCs and personality: how NPCs think, stances, unique NPCs, Nerve and personality | [NPC and personality ideas](npc-ideas.md) |
 | ICG-n | Age and training: ageing, training years, talent | [Age and training ideas](age-ideas.md) |
+| IUI-n | Screens and layout: how pages, panels, tables, tips and marks look and are laid out | [Screen and layout ideas](ui-ideas.md) |
 | D-n | Older rows that fit no list; a newly parked item goes into a list above, and waits here only while the owner is asked which list takes it (`AGENTS.md` rule 12) | this table |
 
 | ID | Item | Part | Status | Notes |
