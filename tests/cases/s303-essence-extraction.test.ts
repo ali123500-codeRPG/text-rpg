@@ -1,5 +1,5 @@
 // 303 DX1-DX6 ("Essences: bested foes, extraction, balance"): the blessing Extract Essence lets the player, as their action
-// and within arm's reach, take the essence of someone Down who has broken or surrendered. No roll: it always appears and never
+// and within arm's reach, take the essence of someone Down or surrendered. No roll: it always appears and never
 // fades, comes from the target's own list, is measured from its skills before the quirk, and uses up its one essence roll.
 // The target is left Hollowed: double the essence's share lost in its skills, 10% off every skill, for good. DX6 a: it counts as an attack on the target.
 import { expect, it } from 'vitest';
@@ -21,13 +21,16 @@ const setup = () => {
 };
 const pull = (s: GameState) => play(s, { intent: intent({ action: { type: 'extract', target: 'guard_1' } }) });
 
-it('DX2 c: only someone Down who has broken or surrendered; only with the blessing; within reach', () => {
+it('DX2 c: only someone Down or surrendered; only with the blessing; within reach', () => {
   const { s, g } = setup();
   expect(cantExtract(s, s.player, g)).toBe('not_helpless'); // up and calm
-  down(g);
-  expect(cantExtract(s, s.player, g)).toBe('not_helpless'); // Down but not broken
+  g.mind!.moraleState = 'broken';
+  expect(cantExtract(s, s.player, g)).toBe('not_helpless'); // up and broken, not surrendered
   g.mind!.moraleState = 'surrendered';
-  expect(cantExtract(s, s.player, g)).toBeNull();
+  expect(cantExtract(s, s.player, g)).toBeNull(); // surrendered and still up (#1462)
+  delete g.mind!.moraleState;
+  down(g);
+  expect(cantExtract(s, s.player, g)).toBeNull(); // Down, neither broken nor surrendered
   s.player.core.perks = s.player.core.perks.filter((p) => p.perkId !== PK.extract_essence);
   expect(cantExtract(s, s.player, g)).toBe('no_power');
 });

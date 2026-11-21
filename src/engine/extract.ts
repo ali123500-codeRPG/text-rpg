@@ -1,7 +1,7 @@
 // DX1-DX6 ("Essences: bested foes, extraction, balance"): taking the essence off someone (a small foreign addition to
 // their Thread, never the Thread itself: NM2). A blessing of Imbra, minor goddess of essence manipulation (D-311; the perk PK.extract_essence,
 // which the blessed Start grants) lets its owner, as their main action and within grip reach (DX3 a), take the essence
-// of someone who is Down and has broken or surrendered (DX2 c). No roll decides whether it works; it uses up the
+// of someone who is Down or has surrendered (DX2 c; #1462). No roll decides whether it works; it uses up the
 // target's one essence roll, so a later death gives none. The essence comes from the target's own list (DX4 b): it
 // always appears, and its quality roll sets the grade but never fades it (below Success gives Common). It is worked out
 // from the target's skills first (DX5), then the target is left Hollowed for good: it loses double the essence's share
@@ -13,7 +13,6 @@ import { CONFIG } from '../config';
 import { PK } from '../library/perkIds';
 import { hasPerk } from '../ruleset/perks';
 import { healthLevel } from '../ruleset/body';
-import { isBrokenLevel, moraleLevel } from '../ruleset/morale';
 import { logCode } from './effects';
 import { withinGrip } from './position';
 import { gradeMult, measureOf, offerExtracted, qualityRoll, rowsFor } from './essence';
@@ -24,7 +23,7 @@ export type ExtractRefusal = 'no_power' | 'no_target' | 'not_helpless' | 'no_ess
 export function cantExtract(state: GameState, a: Actor, t: Actor | undefined): ExtractRefusal | null {
   if (a !== state.player || !hasPerk(a, PK.extract_essence)) return 'no_power';
   if (!t || t === a || healthLevel(t) === 'dead') return 'no_target';
-  if (healthLevel(t) !== 'incapacitated' || !(t.mind?.moraleState || isBrokenLevel(moraleLevel(t)))) return 'not_helpless';
+  if (healthLevel(t) !== 'incapacitated' && t.mind?.moraleState !== 'surrendered') return 'not_helpless';
   if (t.mind?.essenceRolled || !rowsFor(state, t).length) return 'no_essence';
   if (!withinGrip(state, a, t)) return 'out_of_reach';
   return null;
