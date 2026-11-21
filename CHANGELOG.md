@@ -3,6 +3,9 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bug-fix-log.md`.
 
+- 21/11/2026: `docs/providers/claude.md`, "Questions": a question from an agent's own work (permissions, housekeeping,
+  a follow-up) is still a question, asked on a card or the hub, never as a line in a summary. The owner, on a
+  decision card after a thread asked in plain chat: "Add the line".
 - 21/11/2026: `design-spatial`'s project part: tap size is report-only, with no click-target floor (the owner, on a
   decision card offering 24 px, 44 px or none: "No floor, report only").
 - 21/11/2026: new skill `design-spatial` in `.agents/skills/` (from connerkward/ckw-design-skill, MIT), used for

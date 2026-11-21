@@ -25,6 +25,8 @@ Read this part before your first action.
 
 **Questions: decision cards and the Questions hub**
 - One question: a decision card in the thread, with options and a recommendation.
+- A question from your own work (permissions, housekeeping, a follow-up) is still a question: a card or the hub,
+  never a line at the end of a summary or a reminder repeated in later replies.
 - Two or more: a questionnaire on the Questions hub. A new one is written to the shared Supabase table
   (`tools/questions-hub/README.md`, "Where the data lives"), which both accounts' hub pages show: here
   https://claude.ai/artifact/Fu3pVa1AQsrVjUygXCLiDp; on the other account its own hub page,
