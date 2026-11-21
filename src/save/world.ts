@@ -70,6 +70,8 @@ export function carryOn(world: GameState, fresh: GameState, fell = true): GameSt
     pending: { ...fresh.pending, turn: world.turn + 1 },
     actors: fell ? [...w.actors, past] : w.actors,
     bands: [...fresh.bands, ...w.bands],
+    ...(fresh.organizations?.length || w.organizations?.length ? { organizations: [...(fresh.organizations ?? []), ...(w.organizations ?? [])] } : {}), // BEL-01: lasting bodies outlive a character
+    ...(fresh.orgLinks?.length || w.orgLinks?.length ? { orgLinks: [...(fresh.orgLinks ?? []), ...(w.orgLinks ?? [])] } : {}),
     hidden: { ...w.hidden, plans: {}, stage: fresh.hidden.stage }, // plans and the stage brief were the last story's
     zones: w.places.flatMap((pl) => pl.zones), // WI8 a: the whole built world is live
     stage: { ...fresh.stage, scenarioNumber: world.stage.scenarioNumber, scenarioStartTurn: world.turn + 1 },

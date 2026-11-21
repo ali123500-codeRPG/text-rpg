@@ -45,13 +45,13 @@ describe('333 NPC roles, fourth round', () => {
     expect(composeError({ ...wolf, prefix: PF.dire })).toBeUndefined();
     expect(composeError({ race: RC.human, role: RO.soldier, theme: TH.town_watch, rank: 'rank_2', prefix: PF.dire })).toMatch(/only beasts/);
     expect(composeError({ ...wolf, prefix: 'PF99' })).toMatch(/unknown/);
-    const g = getLibrary().groups![GP.wolf_pack];
+    const g = getLibrary().castRecipes![GP.wolf_pack];
     const all = groupMembers(g, 'rank_2', 'x', 100);
     expect(all.every((m) => m.compose!.prefix === PF.dire)).toBe(true);
     expect(all[0].label).toBe('the dire pack leader');
     expect(all[1].label).toBe('a dire wolf');
     expect(groupMembers(g, 'rank_2', 'x', 0).some((m) => m.compose!.prefix)).toBe(false);
-    const caravan = groupMembers(getLibrary().groups![GP.caravan], 'rank_2', 'y', 100); // people never roll one
+    const caravan = groupMembers(getLibrary().castRecipes![GP.caravan], 'rank_2', 'y', 100); // people never roll one
     expect(caravan.some((m) => m.compose?.prefix)).toBe(false);
     let n = 0, dire = 0;
     for (let i = 0; i < 300; i++) for (const m of groupMembers(g, 'rank_2', `s${i}`, CONFIG.DIRE_PCT)) { n++; if (m.compose!.prefix) dire++; }

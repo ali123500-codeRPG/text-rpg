@@ -38,8 +38,8 @@ const castRoster = (roster: string, extra: Partial<StagePlan['cast'][number]> = 
 describe('332 rosters and groups', () => {
   it('every hook, group and table row names real roles, races, templates, themes, groups, covers and landmarks', () => {
     const lib = getLibrary();
-    for (const h of Object.values(lib.hookKinds!)) { for (const r of h.roles ?? []) expect(lib.npcRoles![r], h.id).toBeDefined(); for (const g of h.groups ?? []) expect(lib.groups![g], h.id).toBeDefined(); expect(h.roles?.length || h.groups?.length).toBeTruthy(); }
-    for (const g of Object.values(lib.groups!)) {
+    for (const h of Object.values(lib.hookKinds!)) { for (const r of h.roles ?? []) expect(lib.npcRoles![r], h.id).toBeDefined(); for (const g of h.groups ?? []) expect(lib.castRecipes![g], h.id).toBeDefined(); expect(h.roles?.length || h.groups?.length).toBeTruthy(); }
+    for (const g of Object.values(lib.castRecipes!)) {
       expect(lib.themes![g.theme], g.id).toBeDefined();
       for (const p of [g.lead, ...(g.seconds ? [g.seconds] : []), ...(g.follow ? [g.follow] : [])]) {
         for (const r of [p.role, ...(p.roles ?? [])].filter(Boolean)) expect(lib.npcRoles![r!], g.id).toBeDefined();
@@ -49,7 +49,7 @@ describe('332 rosters and groups', () => {
       }
     }
     const rows = [...Object.values(lib.roadPeople!).flatMap((r) => r.rows), ...Object.values(lib.wildPeople!).flat(), ...Object.values(lib.landmarkPeople!).flat()];
-    for (const m of rows) expect(lib.groups![m.group], m.group).toBeDefined();
+    for (const m of rows) expect(lib.castRecipes![m.group], m.group).toBeDefined();
     for (const lc of Object.keys(lib.wildPeople!)) expect(lib.landCovers![lc]).toBeDefined();
     for (const lm of Object.keys(lib.landmarkPeople!)) expect(lib.landmarkKinds![lm]).toBeDefined();
     for (const size of ['hamlet', 'village', 'town'] as const) for (const id of [...lib.rosters![size].must, ...lib.rosters![size].pool]) expect(lib.hookKinds![id]).toBeDefined();
@@ -111,11 +111,11 @@ describe('332 rosters and groups', () => {
 
   it('NR27: a group is its leader a rank up and its followers; races fixed for beasts, rolled for people', () => {
     const lib = getLibrary();
-    const wolves = groupMembers(lib.groups![GP.wolf_pack], 'rank_2', 'x');
+    const wolves = groupMembers(lib.castRecipes![GP.wolf_pack], 'rank_2', 'x');
     expect(wolves[0]).toMatchObject({ lead: true, compose: { race: RC.wolf, role: RO.beast, rank: 'rank_3' } });
     expect(wolves.length - 1).toBeGreaterThanOrEqual(2); expect(wolves.length - 1).toBeLessThanOrEqual(5);
     for (const w of wolves.slice(1)) expect(w.compose).toMatchObject({ race: RC.wolf, rank: 'rank_2' });
-    const slimes = groupMembers(lib.groups![GP.slimes], 'rank_2', 'y');
+    const slimes = groupMembers(lib.castRecipes![GP.slimes], 'rank_2', 'y');
     expect(slimes.every((m) => m.template && !m.compose)).toBe(true);
   });
 
@@ -197,7 +197,7 @@ describe('332 theme role kinds', () => {
     expect(composeError({ race: RC.human, role: RO.brute, theme: TH.road_bandits, rank: 'rank_2' })).toBeUndefined();
     // every preset, group and hook already fits
     for (const tp of Object.values(lib.templates)) if (tp.roleId && tp.themeId) expect(lib.themes![tp.themeId].roleKinds, tp.id).toContain(lib.npcRoles![tp.roleId].kind);
-    for (const g of Object.values(lib.groups!)) for (const p of [g.lead, ...(g.follow ? [g.follow] : [])]) for (const r of [p.role, ...(p.roles ?? [])].filter(Boolean))
+    for (const g of Object.values(lib.castRecipes!)) for (const p of [g.lead, ...(g.follow ? [g.follow] : [])]) for (const r of [p.role, ...(p.roles ?? [])].filter(Boolean))
       expect(lib.themes![g.theme].roleKinds, g.id).toContain(lib.npcRoles![r!].kind);
     for (const [size, row] of Object.entries(lib.rosters!)) for (const h of [...row.must, ...row.pool]) for (const r of lib.hookKinds![h].roles ?? [])
       expect(lib.themes![lib.hookKinds![h].theme ?? row.theme].roleKinds, `${size} ${h}`).toContain(lib.npcRoles![r].kind);
