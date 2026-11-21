@@ -131,28 +131,31 @@ export function travel(state: GameState, a: Actor, goal: Located, o: Order, rng:
     if (walked <= 0) break;
     minutes = walked / speed;
     trip.metres += walked; trip.minutes += minutes; trip.legs += 1;
-    // TV4 + RE1 (BG-291): minutes on a road count up across trips; each full leg of them rolls once, by the danger of the
-    // road the player is on then (more in the dark), and the count starts again. D-245 a: minutes on open land off the road
-    // count too, and a leg that fills there rolls at the wild rate. A leg filled in a settlement waits for one.
+    // TV4 + RE1 (BG-291): minutes on a road, or D-245 a on open land off it, count up across trips; a full leg rolls (legEncounter)
     a.roadMin = Math.min(CONFIG.TRAVEL_LEG_MIN, (a.roadMin ?? 0) + onRoad / speed);
-    const road = zoneById(state, a.zone);
     if (trip.met) break; // RE5: met on the way: the trip stops there, the road minutes kept for the next
-    const wild = !isRoad(road) && wildGround(state, spotOf(state, a).pos);
-    if (a.roadMin >= CONFIG.TRAVEL_LEG_MIN - T_EPS && road && (isRoad(road) || wild)) {
-      a.roadMin = 0;
-      const pct = CONFIG.ROAD_ENCOUNTER_PCT[wild ? 'wild' : road.danger ?? 'quiet'] * (CONFIG.TRAVEL_LEG_MIN / 60) * (dark ? CONFIG.NIGHT_ENCOUNTER_MULT : 1);
-      if (rng.d100() <= pct) {
-        const extra: EventRollResult['modifiers'] = dark ? [{ source: 'night travel', type: 'situational', value: CONFIG.NIGHT_TRAVEL_EVENT_MOD }] : [];
-        const eventRoll = ruleset.eventRoll(a, state, rng, extra);
-        trip.encounter = { eventRoll, at: ahead(road, spotOf(state, a).pos!, last) };
-        trip.stop = 'encounter';
-        break;
-      }
-    }
+    const met = legEncounter(state, a, rng, dark, last);
+    if (met) { trip.encounter = met; trip.stop = 'encounter'; break; }
   }
   for (const c of group.slice(1)) { c.zone = a.zone; c.placeId = a.placeId; }
   if (group.length > 1) placeAll(state, group.slice(1).map((c) => c.id)); // GSM-51: placed beside the player at once (a fresh spot)
   return trip;
+}
+
+/** TV4 + RE1 (BG-291), D-245 a: once the walker's count of minutes on a road or open land (Actor.roadMin) is a full leg, it
+ * rolls once, by the danger of the road it is on, or at the wild rate on open land off the road (× NIGHT_ENCOUNTER_MULT in
+ * the dark, with a worse event roll), and the count starts again; a count filled in a settlement waits. A meeting gives the
+ * encounter's event roll and where it stands (`from`: where the walker was a moment before). A trip and a long walk off the
+ * road (runStretch, BG-1831) both roll here */
+export function legEncounter(state: GameState, a: Actor, rng: Rng, dark: boolean, from?: Pos): Trip['encounter'] | null {
+  const z = zoneById(state, a.zone), at = spotOf(state, a).pos;
+  const wild = !isRoad(z) && wildGround(state, at);
+  if ((a.roadMin ?? 0) < CONFIG.TRAVEL_LEG_MIN - T_EPS || !z || !at || !(isRoad(z) || wild)) return null;
+  a.roadMin = 0;
+  const pct = CONFIG.ROAD_ENCOUNTER_PCT[wild ? 'wild' : z.danger ?? 'quiet'] * (CONFIG.TRAVEL_LEG_MIN / 60) * (dark ? CONFIG.NIGHT_ENCOUNTER_MULT : 1);
+  if (rng.d100() > pct) return null;
+  const extra: EventRollResult['modifiers'] = dark ? [{ source: 'night travel', type: 'situational', value: CONFIG.NIGHT_TRAVEL_EVENT_MOD }] : [];
+  return { eventRoll: ruleset.eventRoll(a, state, rng, extra), at: ahead(z, at, from) };
 }
 
 /** RE6: where an encounter stands: where it is first glimpsed (ENCOUNTER_VISIBILITY's glimpse range) on along the road from
