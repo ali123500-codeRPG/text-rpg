@@ -4,7 +4,7 @@
 // range far (code-run), and lose the player after CHASE_LOST_TURNS turns unseen. Also the SD1 ending moment after resolveTurn.
 import { describe, expect, it, vi } from 'vitest';
 import type { GameEvent, GameState, WeaverView } from '../../src/types';
-import { actor, byDoor, createRng, makeVillage, place } from '../harness';
+import { actor, byDoor, createRng, fighter, makeVillage, place } from '../harness';
 import { play } from './w4-kit';
 import { checkScenarioEnd, closeScenario, frameOf, pendingEnding } from '../../src/engine/scenarioEnd';
 import { CHASE_LOST_MEMORY, atChaseLine, offGround, chaseRange, chaseZones, checkRoam, noteCrossing, pursuers, roamStart, updateChase } from '../../src/engine/chase';
@@ -28,7 +28,7 @@ const scenario = (s: GameState, ground: string[]) => {
 };
 /** `id` hunts the player, last seen at `turn` in `zone` */
 const hunts = (s: GameState, id: string, turn: number, zone = s.player.zone) => {
-  const a = actor(s, id);
+  const a = fighter(actor(s, id)); // a cautious villager would hold back (D-205 b)
   a.mind!.overrides = { ...(a.mind!.overrides ?? {}), player: 'hostile' };
   a.mind!.knowledge.player = { status: 'hunting', lastKnownZone: zone, lastSeenTurn: turn, source: 'seen', revealed: [] };
   return a;

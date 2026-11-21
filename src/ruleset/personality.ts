@@ -1,10 +1,11 @@
 // Nerve and personality (PL1–PL19). Points are stored; lines, tiers, words, the archetype and tensions are read from them here.
 // Nerve (risk) picks a line by its lean and a tier by raw Resolve; the personality axes and ranked values describe how
 // the character behaves. Perks, the current class and achievements add points while held (PL15, PL16). The words go to
-// the agents that play NPCs (CHARACTER) and to the player's sheet; nothing here changes a roll (numeric effects: D-205).
+// the agents that play NPCs (CHARACTER) and to the player's sheet; nothing here changes a roll (numeric effects: D-205;
+// its narrow b, who never closes in, is holdsBack).
 import type { Actor, GameState, Personality, PersonalityAdd, PersonalityTypeDef, TensionDef } from '../types';
 import { CONFIG } from '../config';
-import { getLibrary, npcTemplate } from '../library';
+import { getLibrary, itemDef, npcTemplate } from '../library';
 import { SK } from '../library/skillIds';
 import { GR } from '../library/functionIds';
 import { groupsOf } from '../library/functionNames';
@@ -12,6 +13,8 @@ import { NERVE_HINTS, NERVE_LINES, type NerveLine, type Scale } from '../scales'
 import { chainRewards, currentAchievements } from './achRewards';
 import { ageYears, lifeStage } from './age';
 import { listWords } from '../words';
+import { usableModes } from './gear';
+import { TR } from '../library/treeIds';
 
 /** the skill groups that count as fighting, and as attacking, for the tensions' bestFight and bestAttack */
 const ATTACK_GROUPS: string[] = [GR.melee, GR.ranged];
@@ -89,13 +92,27 @@ export function butsOf(p: Personality, t: PersonalityTypeDef): { axis: string; v
     .sort((x, y) => Math.abs(y.v - y.t) - Math.abs(x.v - x.t) || x.i - y.i).slice(0, CONFIG.BUTS_SHOWN).map(({ axis, v }) => ({ axis, v }));
 }
 
+/** the best raw skill in the groups (any skill with none); Resolve is the Nerve tier's own measure, never a craft */
+function bestRaw(a: Actor, groups: string[] | null): number {
+  const lib = getLibrary();
+  return Math.max(0, ...Object.entries(a.core.skills)
+    .filter(([id]) => id !== SK.resolve && (!groups || groupsOf(lib.skills[id]).some((g) => groups.includes(g)))).map(([, e]) => e.raw));
+}
+
+/** D-205 b (PQ3 c, PQ16 b): a code-run NPC that never closes in on a foe. A fighter (a weapon, or a natural weapon such as a
+ * bite or slam, and a fighting skill of HOLD_BACK_BELOW or more) never holds back; anyone else holds back on the cautious
+ * Nerve line, and on any line when unarmed with no such skill. Fists and grapples are no weapon. */
+export function holdsBack(state: GameState, a: Actor): boolean {
+  const lib = getLibrary(), skilled = bestRaw(a, FIGHT_GROUPS) >= CONFIG.HOLD_BACK_BELOW;
+  const armed = a.core.inventory.some((i) => itemDef(state, i.itemId).kind === 'weapon')
+    || usableModes(state, a).some((m) => m.itemId.startsWith('natural:') && lib.trees[TR.natural].skills.includes(m.mode.skill ?? ''));
+  return !(armed && skilled) && (nerveLine(personalityOf(a)) === 'cautious' || (!armed && !skilled));
+}
+
 /** the tensions the actor meets, in table order (all of them; the line shows TENSIONS_SHOWN) */
 export function tensionsOf(state: GameState, a: Actor, p = personalityOf(a)): TensionDef[] {
   const lib = getLibrary(), years = ageYears(state, a), stage = years === undefined ? undefined : lifeStage(a.core.raceId, years)?.key;
-  // Resolve is the Nerve tier's own measure, never a craft
-  const best = (groups: string[] | null) => Math.max(0, ...Object.entries(a.core.skills)
-    .filter(([id]) => id !== SK.resolve && (!groups || groupsOf(lib.skills[id]).some((g) => groups.includes(g)))).map(([, e]) => e.raw));
-  const fact: Record<string, number> = { ...p.traits, [SK.resolve]: rawResolve(a), bestSkill: best(null), bestFight: best(FIGHT_GROUPS), bestAttack: best(ATTACK_GROUPS) };
+  const fact: Record<string, number> = { ...p.traits, [SK.resolve]: rawResolve(a), bestSkill: bestRaw(a, null), bestFight: bestRaw(a, FIGHT_GROUPS), bestAttack: bestRaw(a, ATTACK_GROUPS) };
   const v = (k: string) => fact[k] ?? 0;
   return Object.values(lib.tensions ?? {}).filter(({ when: w }) =>
     Object.entries(w.min ?? {}).every(([k, n]) => v(k) >= n) && Object.entries(w.max ?? {}).every(([k, n]) => v(k) <= n)

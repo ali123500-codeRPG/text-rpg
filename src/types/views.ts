@@ -229,6 +229,7 @@ export type ActorView = {
     offers?: OfferView[]; // SL9: what it would pay for the player's items
     suspects?: { id: ActorId; name: string; item: string }[]; // GD3: whom it suspects over a locked container its search found
     withinStrike?: ActorId[]; // BG-306: people it perceives whom one move plus its melee reach would reach this turn
+    holdsBack?: true; // D-205 b: a code-run NPC that never closes in: it strikes only who is in withinStrike (a step), else flees
     chaseZones?: string[]; // CH5: a code-run actor's chase range as zones it may chase into (absent: anywhere)
     atChaseLine?: true; // ZR12: it stands at the end of its near chase range, CHASE_NEAR_M past the ground: it turns back
   };
