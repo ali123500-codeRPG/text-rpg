@@ -240,7 +240,7 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
   or trade augments never halve them.
 - **SHEET-140** Every kind learns as below, with its factor in place of share × tier (SHEET-144).
 - **SHEET-141** **First trade:** Fists Do the Talking (PK131), the trait of the Tavern Brawler essence, a placeholder:
-  Strike trades into Intimidation (placeholder until D-229).
+  Strike trades into Intimidation (placeholder until IEI-229).
 - **SHEET-142** The essence pop-up and Essences section name a held or offered essence's trait and quirk beside its
   points.
 - **SHEET-143** The percentage kind is for the 120 perks (D-258).
@@ -819,7 +819,8 @@ stable ID (SHEET-nn) that code, tests and reviews cite; a number is never reused
 - **SHEET-499** A Weaver stage wholly under the floor is refused (`bad_age`, with the youngest age in the message) and a
   talent off the scale is `bad_talent`.
 - **SHEET-500** The Weaver's template catalog lists each preset's `youngestStage`.
-- **SHEET-501** Talent only sets the age floor; the player has none and is never held to the floor (AG26; AG27).
+- **SHEET-501** Talent sets the age floor and scales how often an improvement roll gains (D-224 a, Ali, 21/11/2026; the
+  skill improvement algorithm, section 6); the player has none and is never held to the floor (AG26; AG27).
 - **SHEET-502** A Common human reaches Elite at 49 and Paragon at 73; an Able human Trained guard is at least 17.
 - **SHEET-503** **No children**: no one in the game, player or NPC, is younger than the start of CONFIG.YOUNGEST\_STAGE
   (Youth: 13 for a human or an elf, 5 for a dragon) (ruleset/age.ts youngestAge; D-316).

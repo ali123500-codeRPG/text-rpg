@@ -116,7 +116,7 @@ export type EssenceDef = {
    * the ladder past 100 ('beyond' 150 … 'divine' 400), so a row can be kept for Divine owners or kept from them */
   from: { race?: string; bodyType?: string; role?: string; over?: string; min?: EssenceBounds; max?: EssenceBounds; deed?: true; echo?: true };
   skills: { skill: string; weight: number }[];
-  trait?: string; quirk?: string; // perk rows (OwnedPerk source 'essence'); one so far, Tavern Brawler's Fists Do the Talking (a placeholder; content round D-229)
+  trait?: string; quirk?: string; // perk rows (OwnedPerk source 'essence'); one so far, Tavern Brawler's Fists Do the Talking (a placeholder; content round IEI-229)
   story: string;
 };
 /** PY3: a service a seller can offer; heals names the healing row it pays for */

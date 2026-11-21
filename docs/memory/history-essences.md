@@ -14,7 +14,7 @@ and `src/config.ts`. How essences began is in [history-growth-and-skill-gain.md]
   skill requirement sits on the dead foe offering the essence, never on the taker, and taker-side filters
   are not to be proposed. A template's fighting style is never changed as a side effect of a content fix.
   Parked: body parts for body types that lack one a skill needs (D-255). Open: essence rows and traits
-  (D-229).
+  (IEI-229).
 - **Bested foes and extraction (14/11/2026; TF20, DX1-DX6, BS1-BS4).** Essences roll only from a death, but
   the offers at a scenario's end draw from anyone bested: defeated, or beaten without a fight, so builds that
   avoid combat stay viable; defeated and bested weigh the same (#777, #813). The first few essence changes

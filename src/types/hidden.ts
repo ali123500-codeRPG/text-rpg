@@ -223,6 +223,7 @@ export type Routine = {
   alert?: string;
   onAlert: OrderTemplate | null;
   posture?: 'stealthy'; // NS: the actor keeps stealthy while on this routine (the thief's prowl)
+  barks?: true; // D-230 a: a watchdog on this routine barks at any stranger it senses (engine/watchdog.ts barkCalls)
 };
 export type ActivityDef = {
   id: string;

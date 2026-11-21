@@ -100,6 +100,9 @@ export const ROUTINES: Record<string, Routine> = Object.fromEntries([
   timed(sched('roam_field', 'Oozes across the field by day, then settles; still at night', true, [['route', 'short', 'ooze'], ['post', 'medium', 'rest']], 'roam_field_alert', null),
     at(['evening', 'night'], [['post', 'long', 'rest']])),
   sched('roam_field_alert', 'Sweeps the field fast on alert; never flees', true, [['route', 'brief', 'ooze']], undefined, null),
+  // D-230 a: a watchdog keeps its post day and night and barks at any stranger it senses (barkCalls)
+  { ...sched('watchdog_post', 'Keeps watch at its post day and night, barking at strangers', true, [['post', 'long', 'stand_watch']], 'watchdog_alert', null), barks: true as const },
+  { ...sched('watchdog_alert', 'Holds its post on alert, barking at strangers', true, [['post', 'long', 'stand_watch']], undefined, null), barks: true as const },
 ].map((r) => [r.id, r]));
 
 const set = (id: string, brief: string, place: string[], role: string[], time: RoutineSet['tags']['time'], slots: RoutineSet['slots'], routines: string[]): RoutineSet =>
@@ -127,5 +130,6 @@ export const ROUTINE_SETS: Record<string, RoutineSet> = Object.fromEntries([
   set('bandit_camp', 'A bandit at the gang\'s camp', ['camp', 'woods'], ['bandit'], ['any'], { post: z('the camp'), seat: SEAT, bed: BED }, ['keep_camp', 'defend_camp_alert', 'wait', 'wait_alert']),
   set('bandit_ambush', 'A bandit lying in wait by a road', ['road', 'woods'], ['bandit'], ['any'], { hide: z('where it hides beside the road'), road: z('the road it rushes onto'), seat: SEAT, bed: BED }, ['ambush_road', 'spring_ambush_alert', 'wait', 'wait_alert']),
   set('companion', "The player's band; not chosen by tags", [], [], [], {}, ['follow', 'follow_alert', 'wait', 'wait_alert']),
+  set('watchdog', 'A dog kept to guard a yard, gate or camp; barks at strangers', ['gate', 'street', 'camp', 'yard'], ['watchdog'], ['any'], { post: z('where the dog keeps watch') }, ['watchdog_post', 'watchdog_alert']),
   set('slime_wander', 'A slime roaming the field outside the gate', ['field'], ['beast'], ['any'], { route: r('across the field, in order'), post: z('where it settles') }, ['roam_field', 'roam_field_alert']),
 ].map((s) => [s.id, s]));

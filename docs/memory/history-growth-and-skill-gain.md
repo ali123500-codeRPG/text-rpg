@@ -23,7 +23,7 @@ essences and scenario-end growth, kept as history.
   in the middle of fights; the aim became rare, chosen packages into limited room. Achievements, All-X perks,
   skill raises and level-ups wait for the scenario's end (#536, #545). Essences came in #550, and the
   improvement roll reads its gain off the tier table (#554, #558). Parked: NPCs holding essences (IEI-227), a
-  cap per skill (IEI-228). Open: essence rows and traits (D-229).
+  cap per skill (IEI-228). Open: essence rows and traits (IEI-229).
 - **The gains moment (12-13/11/2026; M-39 to M-39b).** The scenario's end shows every gain in one moment that
   may take as long as it needs (#538). The first cut was too fast, and XP must show its sum before the final
   number (#546). It covers the whole screen (#709). Also #556 and #588.

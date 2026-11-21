@@ -603,6 +603,7 @@ import {
   wakeCheck,
   wakeChecksNear,
 } from './sleep';
+import { barkCalls } from './watchdog';
 import {
   pieceOn,
   stackCost,
@@ -3517,6 +3518,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   // shouts to wake its sleeping bandmates
   for (const id of [...orders.keys()]) { const x = actorById(state, id); if (x && x !== state.player && isAsleep(x)) orders.set(id, asleepOrder(x)); }
   for (const c of wakeCalls(state)) orders.set(c.actorId, c);
+  for (const c of barkCalls(state)) orders.set(c.actorId, c); // D-230 a: a watchdog barks at a stranger it senses
   noteUnreachable(state, orders);
   // the player first: a companion copies the player's new posture
   for (const id of [...orders.keys()].sort((x, y) => (x === state.player.id ? -1 : y === state.player.id ? 1 : 0))) setPosture(state, actorById(state, id)!, orders.get(id)!);

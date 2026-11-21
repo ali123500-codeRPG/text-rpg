@@ -109,6 +109,7 @@ The game clock, how long each action takes, waiting and busy actors, sleep timin
   - `src/engine/busy.ts`
   - `src/engine/comingNear.ts`
   - `src/engine/sleep.ts`
+  - `src/engine/watchdog.ts`
   - `src/engine/worldClock.ts`
   - `src/engine/tiers.ts`
   - `src/ruleset/actionTime.ts`
