@@ -5,7 +5,7 @@
 // button stays for sending again; it is hidden, and a report is only saved, when the page can't send to Claude.
 import type { GameApi } from '../types';
 import { isNewReport, type FiledBug } from '../save/bugs';
-import { claudeComments, h, plural, type CommentsApi } from './kit';
+import { claudeSend, h, plural } from './kit';
 import { cap } from '../words';
 
 const REFRESH_MS = 5000;
@@ -26,40 +26,24 @@ export function bugsForClaude(open: FiledBug[], unsent: string): string {
   return `Bugs from the Echoes of the Thread Bugs page, to triage and fix in ali123500-codeRPG/text-rpg. Open a GitHub issue labelled \`bug\` for each real one (its number is its BG-n), then find the root cause and fix it by PR. These are the full records from the game's db bugs collection.${fresh}\n\n\`\`\`json\n${JSON.stringify(open, null, 2)}\n\`\`\``;
 }
 
-/** copies text; the artifact frame may block the clipboard API, so try execCommand first (as the Questions hub does) */
-function copyText(text: string): Promise<boolean> {
-  const t = h('textarea', { readonly: '', style: 'position:fixed;top:0;left:0;opacity:0' });
-  t.value = text; document.body.append(t); t.select();
-  let ok = false;
-  try { ok = document.execCommand('copy'); } catch { /* falls back below */ }
-  t.remove();
-  return ok ? Promise.resolve(true) : navigator.clipboard?.writeText(text).then(() => true, () => false) ?? Promise.resolve(false);
-}
-
 export function bugsPage(api: GameApi) {
   const el = h('main', { class: 'bugs' });
   let rows: FiledBug[] | null = null, failed = false, fetchedAt = 0;
   const note = h('textarea', { class: 'hs-input bug-note', rows: 4, maxlength: 2000, placeholder: 'What went wrong? What did you do, and what did you expect?', 'aria-label': 'Bug report' });
   const sendNote = h('span', { class: 'hs-note', role: 'status' });
   const report = h('button', { type: 'button', class: 'hs-btn-main' }, 'Report bug');
-  const claudeNote = h('span', { class: 'hs-note', role: 'status' });
-  const toClaude = h('button', { type: 'button', class: 'hs-btn-main', hidden: true }, 'Send open bugs to Claude');
-  const copy = h('button', { type: 'button', class: 'hs-btn-text', title: 'Copy the bugs as text to paste into a Claude chat' }, 'Copy for Claude');
-  copy.onclick = async () => {
-    const open = rows ?? [], unsent = note.value.trim();
-    if (!open.length && !unsent) { claudeNote.textContent = 'No bugs to copy.'; return; }
-    claudeNote.textContent = (await copyText(bugsForClaude(open, unsent))) ? 'Copied. Paste it into a Claude chat.' : 'Couldn’t copy from here.';
-  };
-  let comments: CommentsApi | null = null;
-  /** sends the open bugs to Claude; true when sent */
-  async function sendOpen(open: FiledBug[], anchorEl: Element): Promise<boolean> {
-    if (!comments || !open.length) return false;
+  /** the open bugs' ids for Claude, which reads them from the db bugs collection */
+  function openText(open: FiledBug[]): string {
     const list = (bs: FiledBug[]) => bs.map((b) => `${b.id} (${b.code}, turn ${b.turn})`).join(', ');
     const fresh = open.filter(isNewReport), numbered = open.filter((b) => !isNewReport(b));
     const parts = [fresh.length ? `new reports to number: ${list(fresh)}` : '', numbered.length ? `open bugs: ${list(numbered)}` : ''].filter(Boolean);
-    await comments.sendToClaude({ anchor: await comments.anchorFor(anchorEl), text: `Bugs to triage and hand to the right threads (read them from the db bugs collection). ${parts.join('; ')}` });
-    return true;
+    return `Bugs to triage and hand to the right threads (read them from the db bugs collection). ${parts.join('; ')}`;
   }
+  const claude = claudeSend({
+    label: 'Send open bugs to Claude', copyTip: 'Copy the bugs as text to paste into a Claude chat', none: 'No bugs to send.',
+    send: () => (rows?.length ? { text: openText(rows), done: `Sent ${plural(rows.length, 'bug')} to Claude.` } : null),
+    copy: () => (rows?.length || note.value.trim() ? bugsForClaude(rows ?? [], note.value.trim()) : null),
+  });
   report.onclick = async () => {
     const text = note.value.trim();
     if (!text) { sendNote.textContent = 'Write what went wrong first.'; return; }
@@ -71,26 +55,12 @@ export function bugsPage(api: GameApi) {
     // BG-27: a report goes to Claude with every open bug, without a second press
     const open = await api.openBugs().catch(() => rows ?? []);
     rows = open; fetchedAt = Date.now();
-    const sent = await sendOpen(open, report).catch(() => false);
+    const sent = open.length ? await claude.sendComment(openText(open), report).catch(() => false) : false;
     sendNote.textContent = sent ? 'Saved and sent to Claude, who gives it a bug number once it has been looked at.'
       : 'Saved, but it couldn’t be sent to Claude from here. Use Copy for Claude and paste it into a Claude chat.';
     report.disabled = false;
     draw();
   };
-  claudeComments().then((c) => {
-    if (!c) return;
-    comments = c;
-    toClaude.hidden = false;
-    toClaude.onclick = async () => {
-      const open = rows ?? [];
-      if (!open.length) { claudeNote.textContent = 'No bugs to send.'; return; }
-      toClaude.disabled = true;
-      claudeNote.textContent = 'Sending…';
-      const sent = await sendOpen(open, toClaude).catch(() => false);
-      claudeNote.textContent = sent ? `Sent ${plural(open.length, 'bug')} to Claude.` : 'Couldn’t reach Claude from here. Use Copy for Claude instead.';
-      toClaude.disabled = false;
-    };
-  }).catch(() => undefined);
 
   const row = (b: FiledBug) => h('tr', {},
     h('td', { class: 'bug-id' }, isNewReport(b) ? 'New' : b.id),
@@ -102,7 +72,7 @@ export function bugsPage(api: GameApi) {
     el.replaceChildren(
       h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Bugs'))),
       h('section', { class: 'bug-report' }, note, h('div', { class: 'bug-actions' }, report, sendNote)),
-      h('div', { class: 'bug-bar' }, h('h2', {}, rows ? `New and open bugs (${rows.length})` : 'New and open bugs'), toClaude, copy, claudeNote),
+      h('div', { class: 'bug-bar' }, h('h2', {}, rows ? `New and open bugs (${rows.length})` : 'New and open bugs'), claude.button, claude.copy, claude.note),
       rows === null ? h('p', { class: 'empty', role: 'status' }, failed ? 'The bug list couldn’t be read from the save.' : 'Reading the save…')
         : rows.length ? h('table', { class: 'bug-table' }, h('thead', {}, h('tr', {}, ['Bug', 'Kind', 'Turn', 'What went wrong', 'Filed'].map((t) => h('th', {}, t)))),
           h('tbody', {}, rows.map(row)))

@@ -16,6 +16,15 @@ anything and never narrates.
   saved at once when the call comes back.
 - **Then.** An idea is only a proposal. It becomes an achievement when the owner approves it and a thread writes it as a
   code rule with a library row (PROG-118).
+- **Review.** Above the Wanted list, Send deed ideas to Claude (shown only where the page can send to Claude) sends
+  the ideas not yet sent as one comment to Claude, asking the thread to review them with the owner and write each
+  approved one as a code rule (PROG-118). Each sent idea is marked Sent beside its kind and is not sent again. The mark
+  is a document per idea in the game page's db, `deed_sends` (src/save/sends.ts), never in the save. Copy for Claude,
+  the fallback, copies every idea still waiting for a verdict and marks nothing. The two buttons are the Bugs page's
+  (claudeSend, src/ui/kit.ts). Once the owner rules on an idea, the thread writes `verdict` ("approved" or
+  "turned\_down") on its document and the list shows Approved or Turned down in place of Sent; the idea stays listed.
+  Clear list, shown once an idea is ruled, takes the ruled ideas off the list (`cleared` on their documents). The story
+  keeps every idea, so the Chronicler still does not propose a ruled one again.
 - **Model.** Claude Fable 5.2 at high effort, model "claude-fable-5-2" (config AGENT\_MODELS.chronicler), with modelTier
   "complex" as the fallback. Chosen by the owner from the AA-108 comparison on one simulated scenario: Opus 5.5 high gave
   6 ideas (about $0.09 a call), Fable 5.2 medium 7 (about $0.17), Fable 5.2 high 11 (about $0.22), the most and the

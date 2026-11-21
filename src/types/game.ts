@@ -144,6 +144,12 @@ export interface GameApi {
   sendBlueprint(id: string): Promise<{ id: string } | { error: string }>;
   /** the library send list, newest first */
   librarySends(): Promise<import('../save/sends').LibrarySend[]>;
+  /** AA-108, the GM view: the Chronicler's deed ideas of this story already sent to Claude */
+  deedSends(): Promise<import('../save/sends').DeedSend[]>;
+  /** AA-108: marks these deed ideas of this story as sent to Claude */
+  markDeedsSent(ideas: readonly { scenario: number; turn: number; label: string }[]): Promise<void>;
+  /** AA-108: "Clear list": this story's deed ideas the owner has ruled on leave the Wanted list; how many left */
+  clearRuledDeeds(): Promise<number>;
   /** HF31: the player's free worlds (no one lives in them), newest fall first */
   worlds(): Promise<import('../save').FreeWorld[]>;
   /** WP5: title a world (an empty name goes back to the default) */

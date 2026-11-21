@@ -12,6 +12,48 @@ export async function claudeComments(): Promise<CommentsApi | null> {
   const c = await rt?.use('comments').catch(() => null);
   return c && (await c.canSendToClaude().catch(() => 'off')) === 'available' ? c : null;
 }
+/** copies text; the artifact frame may block the clipboard API, so try execCommand first (as the Questions hub does) */
+export function copyText(text: string): Promise<boolean> {
+  const t = h('textarea', { readonly: '', style: 'position:fixed;top:0;left:0;opacity:0' });
+  t.value = text; document.body.append(t); t.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch { /* falls back below */ }
+  t.remove();
+  return ok ? Promise.resolve(true) : navigator.clipboard?.writeText(text).then(() => true, () => false) ?? Promise.resolve(false);
+}
+/** what a Send to Claude press sends: the comment's text and the status line once sent; null when there is nothing to send */
+export type ClaudeSendOut = { text: string; done: string; after?: () => unknown } | null;
+/** a "Send … to Claude" button, shown only where this viewer can send from here (a comment sent to Claude wakes a thread), and
+ * its "Copy for Claude" fallback, with one status line. The Bugs page and the GM view's deed ideas share it. */
+export function claudeSend(o: { label: string; copyTip: string; none: string; send(): ClaudeSendOut; copy(): string | null }) {
+  const note = h('span', { class: 'hs-note', role: 'status' });
+  const button = h('button', { type: 'button', class: 'hs-btn-main', hidden: true }, o.label);
+  const copy = h('button', { type: 'button', class: 'hs-btn-text', title: o.copyTip }, 'Copy for Claude');
+  let comments: CommentsApi | null = null;
+  copy.onclick = async () => {
+    const text = o.copy();
+    if (!text) { note.textContent = o.none; return; }
+    note.textContent = (await copyText(text)) ? 'Copied. Paste it into a Claude chat.' : 'Couldn’t copy from here.';
+  };
+  button.onclick = async () => {
+    const out = o.send();
+    if (!out) { note.textContent = o.none; return; }
+    button.disabled = true;
+    note.textContent = 'Sending…';
+    const sent = await sendComment(out.text, button).catch(() => false);
+    note.textContent = sent ? out.done : 'Couldn’t reach Claude from here. Use Copy for Claude instead.';
+    if (sent) out.after?.();
+    button.disabled = false;
+  };
+  /** sends text to Claude as a comment anchored on el; true when sent */
+  async function sendComment(text: string, el: Element): Promise<boolean> {
+    if (!comments) return false;
+    await comments.sendToClaude({ anchor: await comments.anchorFor(el), text });
+    return true;
+  }
+  claudeComments().then((c) => { comments = c; button.hidden = !c; }).catch(() => undefined);
+  return { button, copy, note, sendComment };
+}
 /** a line icon on the 24 grid: one or more stroke paths, hidden from screen readers */
 export function lineIcon(cls: string, paths: string | readonly string[]): SVGSVGElement {
   const NS = 'http://www.w3.org/2000/svg', s = document.createElementNS(NS, 'svg');
