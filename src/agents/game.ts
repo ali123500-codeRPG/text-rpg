@@ -42,7 +42,7 @@ import { partName } from '../ruleset/body';
 import { StopPlay, callGate, modelFor, type AgentCtx, type RunResult } from './call';
 import { echoPast, fameEntry } from './fame';
 import { echoSheet } from '../library/echo';
-import { librarySends, saveSend, sendId } from '../save/sends';
+import { deedSendId, deedSends, librarySends, saveDeedSends, saveSend, sendId } from '../save/sends';
 import { AUTOPILOT_BRIEF, autopilotTurn, readMove } from './autopilot';
 import type { GuidedCtx } from './crossroads';
 
@@ -875,6 +875,17 @@ export function createGame(deps: GameDeps): Game {
       return { id: sid };
     },
     librarySends: () => librarySends(store),
+    deedSends: async () => (state ? deedSends(store, state.storyId) : []),
+    async markDeedsSent(ideas) {
+      if (!state) return;
+      const storyId = state.storyId, at = new Date(clock.now()).toISOString();
+      await saveDeedSends(store, ideas.map((w) => ({ id: deedSendId(storyId, w), storyId, name: w.label, at })));
+    },
+    async clearRuledDeeds() {
+      const ruled = state ? (await deedSends(store, state.storyId)).filter((d) => d.verdict && !d.cleared) : [];
+      await saveDeedSends(store, ruled.map((d) => ({ ...d, cleared: true as const })));
+      return ruled.length;
+    },
     async sendHero(storyId) {
       const f = (await save.listFallen(store)).find((x) => x.storyId === storyId);
       if (!f) return { error: 'That character is not in the Hall of fame.' };

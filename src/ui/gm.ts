@@ -8,10 +8,11 @@ import { ageText, talentName } from '../ruleset/age';
 import type { BlueprintPage, GameApi, GameState, ScenarioRecord } from '../types';
 import { GRADES } from '../types';
 import { HIT_OUTCOMES, QUALITY_LEVELS, TIERS } from '../scales';
-import { claudeComments, fmtDate, h, openPanel, readouts, turnShown, plural, unitOf, type CommentsApi } from './kit';
+import { claudeComments, claudeSend, fmtDate, h, openPanel, readouts, turnShown, plural, unitOf, type CommentsApi } from './kit';
 import { ICON_CREDIT } from './itemIcons';
 import { openPop } from './pop';
 import { CONFIG } from '../config';
+import { deedSendId, type DeedSend } from '../save/sends';
 
 /** BA8: the ended scenarios' barriers summed by tier, best tier first */
 function waysByTier(scenarios: ScenarioRecord[]): { tier: string; scenarios: number; barriers: number; shut: string; grades: string }[] {
@@ -26,6 +27,18 @@ function waysByTier(scenarios: ScenarioRecord[]): { tier: string; scenarios: num
 }
 
 const KIND_WORD: Record<BlueprintPage['kind'], string> = { item: 'an item', body_type: 'a body type', npcTemplate: 'an NPC template' };
+
+type Want = NonNullable<GameState['hidden']['templateWants']>[number];
+/** AA-108: the text sent to Claude (or copied) with the Chronicler's deed ideas, for review with the owner (PROG-118), each
+ * with the db document its verdict goes on */
+export function deedsForClaude(storyId: string, ideas: readonly Want[]): string {
+  return `Deed ideas from the Chronicler (AA-108), from the GM view's Wanted list of story ${storyId} in ali123500-codeRPG/text-rpg. `
+    + 'Review them with the owner, and write each one the owner approves as an achievement code rule by PR (PROG-118). '
+    + 'Once the owner rules on one, record it in the game page\'s db on its document in deed_sends (keep id, storyId, name and at) '
+    + 'with verdict "approved" or "turned_down", so the Wanted list shows it.\n\n'
+    + ideas.map((w) => `- ${w.label}: ${w.wanted} (scenario ${w.scenario}, turn ${w.turn}; deed_sends/${deedSendId(storyId, w)})`).join('\n');
+}
+const VERDICT_WORD = { approved: 'Approved', turned_down: 'Turned down' } as const;
 
 const json = (v: unknown) => h('pre', { class: 'json' }, JSON.stringify(v, null, 2) ?? 'null');
 
@@ -70,6 +83,52 @@ export function gmPage(api: GameApi) {
     sent.add(b.id);
     update();
   }
+  // AA-108: the Chronicler's deed ideas go to Claude for review with the owner, each sent once (deed_sends marks it), or are
+  // copied where sending isn't available; a copy marks nothing, so it holds every idea still waiting for a verdict
+  let deedMarks = new Map<string, DeedSend>(), deedsAt = 0;
+  function refreshDeeds() {
+    if (Date.now() - deedsAt < 5000) return;
+    deedsAt = Date.now();
+    api.deedSends().then((xs) => { deedMarks = new Map(xs.map((x) => [x.id, x])); update(); }).catch(() => undefined);
+  }
+  const deedsOf = (s: GameState, keep: (m: DeedSend | undefined) => boolean) =>
+    (s.hidden.templateWants ?? []).filter((w) => w.of === 'deed' && keep(deedMarks.get(deedSendId(s.storyId, w))));
+  const deedSend = claudeSend({
+    label: 'Send deed ideas to Claude', copyTip: 'Copy the deed ideas still waiting for a verdict, to paste into a Claude chat', none: 'No new deed ideas.',
+    send: () => {
+      const st = api.gm().state, ds = st ? deedsOf(st, (m) => !m) : [];
+      return st && ds.length ? { text: deedsForClaude(st.storyId, ds), done: `Sent ${plural(ds.length, 'deed idea')} to Claude.`,
+        after: () => api.markDeedsSent(ds).then(() => { deedsAt = 0; update(); }, () => undefined) } : null;
+    },
+    copy: () => { const st = api.gm().state, ds = st ? deedsOf(st, (m) => !m?.verdict) : []; return st && ds.length ? deedsForClaude(st.storyId, ds) : null; },
+  });
+  const clearDeeds = h('button', { type: 'button', class: 'hs-btn-text', title: 'Take the deed ideas you have approved or turned down off this list' }, 'Clear list');
+  clearDeeds.onclick = async () => {
+    clearDeeds.disabled = true;
+    const n = await api.clearRuledDeeds().catch(() => -1);
+    deedSend.note.textContent = n < 0 ? 'The list couldn’t be cleared. Try again.' : `Cleared ${plural(n, 'deed idea')}.`;
+    clearDeeds.disabled = false;
+    deedsAt = 0; update();
+  };
+  /** NG15, D-53 a, AA-108: the Wanted list, less the deed ideas cleared after the owner ruled on them */
+  function wantedSection(s: GameState | null) {
+    const rows = s ? (s.hidden.templateWants ?? []).filter((w) => w.of !== 'deed' || !deedMarks.get(deedSendId(s.storyId, w))?.cleared) : [];
+    const deeds = s ? rows.filter((w) => w.of === 'deed') : [];
+    if (s && s.hidden.templateWants?.some((w) => w.of === 'deed')) refreshDeeds();
+    const ruled = s ? deeds.some((w) => deedMarks.get(deedSendId(s.storyId, w))?.verdict) : false;
+    return h('section', { class: 'sec' }, h('div', { class: 'gm-bar' }, h('h2', { class: 'hs-section' }, 'Wanted · who, which routines and which deeds the game lacks'),
+      ...(deeds.length ? [deedSend.button, deedSend.copy, ruled ? clearDeeds : null, deedSend.note] : [])),
+      s && rows.length ? h('table', { class: 'hs-tbl' },
+        h('thead', {}, h('tr', {}, ['Scenario', 'Cast as / name', 'For', 'Wanted', 'Used instead'].map((t) => h('th', {}, t)))),
+        h('tbody', {}, [...rows].reverse().map((w) => h('tr', {}, h('td', { class: 'hs-num' }, `${w.scenario} · turn ${w.turn}`),
+          h('td', {}, w.label), h('td', {}, w.of === 'routine' ? 'Routine' : w.of === 'deed' ? ['Deed', deedMark(s, w)] : 'Template'), h('td', {}, w.wanted), h('td', {}, w.template || '–')))))
+        : h('p', { class: 'empty' }, 'Nothing wanted yet. The Weaver writes templateGap when no template or composition gives who it means, and routineGap when no routine set fits; the Chronicler proposes deeds at each scenario\'s end.'));
+  }
+  /** a deed idea's mark after its kind: sent, then the owner's verdict */
+  const deedMark = (s: GameState, w: Want) => {
+    const m = deedMarks.get(deedSendId(s.storyId, w));
+    return m ? h('span', { class: 'hs-note' }, ` · ${m.verdict ? VERDICT_WORD[m.verdict] : 'Sent'}`) : '';
+  };
   function madeSection(s: GameState | null) {
     const made = s?.blueprints ?? [];
     if (s) refreshSends(s.storyId);
@@ -188,12 +247,7 @@ export function gmPage(api: GameApi) {
       // NG15: who the Weaver wanted and couldn't field (templateGap), so a template can be made; composed presets are under "Made this story".
       // D-53 a: the routines it wanted and no set gave (routineGap), so the routine bank can grow
       // AA-108: the Chronicler's deed ideas at each scenario's end (name, deed), for the owner to approve as achievements
-      h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'Wanted · who, which routines and which deeds the game lacks'),
-        s?.hidden.templateWants?.length ? h('table', { class: 'hs-tbl' },
-          h('thead', {}, h('tr', {}, ['Scenario', 'Cast as / name', 'For', 'Wanted', 'Used instead'].map((t) => h('th', {}, t)))),
-          h('tbody', {}, [...s.hidden.templateWants].reverse().map((w) => h('tr', {}, h('td', { class: 'hs-num' }, `${w.scenario} · turn ${w.turn}`),
-            h('td', {}, w.label), h('td', {}, w.of === 'routine' ? 'Routine' : w.of === 'deed' ? 'Deed' : 'Template'), h('td', {}, w.wanted), h('td', {}, w.template || '–')))))
-          : h('p', { class: 'empty' }, 'Nothing wanted yet. The Weaver writes templateGap when no template or composition gives who it means, and routineGap when no routine set fits; the Chronicler proposes deeds at each scenario\'s end.')),
+      wantedSection(s),
 
       // NR28: compositions by wanted skills whose closest role lacks some of them, grouped by who was wanted
       h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'Roles wanted · people no role covers yet'),

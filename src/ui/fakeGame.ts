@@ -36,6 +36,13 @@ import { cellsInSight } from '../land/sight';
 import { pointAlong } from './mapData';
 import { lineLength } from '../land/generate';
 import { LM, RK } from '../library/tableIds';
+import { deedSendId, type DeedSend } from '../save/sends';
+
+const FAKE_DEEDS = [
+  { turn: 3, label: 'Slime Wrangler', wanted: 'drive three slimes off a field without killing one (the slimes fled the field at the guard\'s horn)' },
+  { turn: 4, label: 'Lantern Keeper', wanted: 'relight a doused lantern while a foe is in sight (you relit the tavern lantern with the slime at the door)' },
+];
+const fakeDeedSends = new Map<string, DeedSend>([[deedSendId('fake', { scenario: 1, ...FAKE_DEEDS[0] }), { id: deedSendId('fake', { scenario: 1, ...FAKE_DEEDS[0] }), storyId: 'fake', name: FAKE_DEEDS[0].label, at: '2026-11-10T21:00:00.000Z', verdict: 'approved' }]]);
 
 const NARRATION = [
   'Rain needles the thatch of the Crooked Kettle. The common room smells of wet wool and old ale, and the barkeep watches you over a cup she has been wiping for some time.',
@@ -322,7 +329,10 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     const guard = spawnNpc(null, TP.guard, { id: 'guard_1', zone: 'tav_common', placeId: 'tavern', bandId: 'village_watch', storyId: 'fake', name: 'Bren' });
     state = {
       storyId: 'fake', turn: 4, mode: 'tactical', zones: [], walls: [], openings: [], roofs: [], lights: [], furniture: [], ground: [], player, actors: [slime, guard], bands: [], events: [],
-      hidden: { plans: { slime_1: { goal: 'drive the stranger off the field', steps: ['slam', 'retreat to the trees'], triggers: [], createdTurn: 2 } }, memory: {}, secrets: [], firedLog: [], agreements: [{ id: 'ag_1', parties: ['player', 'guard_1'], text: 'He lets you back in after dark; you tell him if you see the thief.', madeTurn: 2, madeBy: 'guard_1' }], weaverNote: 'the slimes are fleeing something in the woods', stage: { eventSummary: 'slimes trouble the village', challenge: 'moderate', gain: 'minor', hiddenTerms: ['woods_beast'] } },
+      hidden: { plans: { slime_1: { goal: 'drive the stranger off the field', steps: ['slam', 'retreat to the trees'], triggers: [], createdTurn: 2 } }, memory: {}, secrets: [], firedLog: [], agreements: [{ id: 'ag_1', parties: ['player', 'guard_1'], text: 'He lets you back in after dark; you tell him if you see the thief.', madeTurn: 2, madeBy: 'guard_1' }], weaverNote: 'the slimes are fleeing something in the woods',
+        // AA-108: deed ideas for the GM view's Wanted list (the first one already approved in the fake send list)
+        templateWants: [{ turn: 2, scenario: 1, actorId: 'player', label: 'a travelling tinker', wanted: 'someone to mend the broken lantern', template: 'patron' },
+          ...FAKE_DEEDS.map((d) => ({ turn: d.turn, scenario: 1, actorId: 'player', label: d.label, wanted: d.wanted, template: '', of: 'deed' as const }))], stage: { eventSummary: 'slimes trouble the village', challenge: 'moderate', gain: 'minor', hiddenTerms: ['woods_beast'] } },
       agentLog: [{ turn: 3, agent: 'narrator', input: { view: 'NarrationView…' }, output: { text: NARRATION[2] }, status: 'ok', errors: [], modelTierApplied: 'complex' } as GameState['agentLog'][number],
         { turn: 3, agent: 'parser', input: { text: 'block and cut back' }, output: { intent: 'attack', target: 'slime_1' }, status: 'ok', errors: [], modelTierApplied: 'quick' } as GameState['agentLog'][number],
         { turn: 3, agent: 'voice', actorId: 'guard_1', input: { view: 'DialogueView…', heard: 'block and cut back' }, output: { dialogue: { line: 'That’s one! Watch your left!' } }, status: 'ok', errors: [], modelTierApplied: 'quick' } as GameState['agentLog'][number]],
@@ -414,6 +424,9 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     async fallenSheet() { return state ? { ...structuredClone(state), meta: { ...state.meta, archivedAt: '2026-11-10T21:00:00.000Z' } } : null; },
     async sendBlueprint(id: string) { return { id: `item_story_fake_${id}` }; },
     async librarySends() { return []; },
+    async deedSends() { return [...fakeDeedSends.values()]; },
+    async markDeedsSent(ideas) { for (const w of ideas) { const id = deedSendId('fake', w); fakeDeedSends.set(id, { id, storyId: 'fake', name: w.label, at: '2026-11-10T21:00:00.000Z' }); } },
+    async clearRuledDeeds() { const ruled = [...fakeDeedSends.values()].filter((d) => d.verdict && !d.cleared); for (const d of ruled) d.cleared = true; return ruled.length; },
     async worlds() { return [{ worldId: 'story_fake', name: 'Aldric’s world', lastStoryId: 'story_fake', day: 3, past: [{ name: 'Aldric', fell: true }], threadbound: [IT.varos_loop] }]; },
     async titleWorld() {},
     async reportBug() { return 'new-1'; },
