@@ -91,8 +91,8 @@ wanted.
 - The owner shares both pages with the other account and plays from either. The game's Claude calls run on the
   account of whoever has the page open.
 - Only threads of this project (`desk:main`) publish the two pages, and only they can read the game page's database.
-  A Claude session on another account cannot read or publish a page it does not hold, shared or not: it says in its
-  PR that the pages need a republish.
+  A Claude session on another account cannot read or publish a page it does not hold, shared or not; publishing is not
+  its concern, so it does not mention a republish in its PRs or reports.
 - For a viewer from another account the page switches off the voice connector and the Republish button. Republish
   from the account that holds the page.
 - A copy of either page published on another account during the planned move is not the game. Nobody updates it,
@@ -110,9 +110,9 @@ Read when: publishing the game page, or a change touches what it declares or upl
   The declaration it keeps: comments, db, sample, tts, user, and mcp with RPG Voice (speak, list_voices) and Claude
   Code Remote (fire_trigger). A publish that must change it restates all of it.
 - Licensed sound files are uploaded only to this private page as assets. They are never committed (`docs/assets.md`).
-- **Other agents:** cannot publish. The PR's checks build the pages and run the smoke tests. Say in the PR, and in
-  your report to the owner, that the page needs a republish. The owner presses the game's Republish button, or a
-  Claude thread publishes after the merge.
+- **Other agents:** cannot publish, and publishing is not their concern: they do not mention a republish in PRs or
+  reports. The PR's checks build the pages and run the smoke tests; the owner presses the game's Republish button when
+  they choose, or a Claude thread of this project publishes after the merge.
 
 ## The library viewer
 
@@ -125,8 +125,7 @@ Read when: a merge changes library data, perks, config names or scales, or you p
 - Publish `dist/library/index.html` with root `dist/library` and file `app.js` (plus changed `assets/` files), leaving
   `capabilities` out. Before publishing, open every tab once and watch for page errors, at desktop width and at a
   phone width.
-- **Other agents:** same as the game page. Say in the PR that the viewer needs a refresh, or that you are not sure
-  whether it does.
+- **Other agents:** same as the game page: not their concern, and not mentioned.
 
 ## Republish button
 
@@ -143,7 +142,7 @@ Read when: a merge needs a republish, or the "Republish the game from main" task
   again, then update `ops/republish`.
 - The button shows only where the page reaches the Claude Code Remote connector's `fire_trigger`. A viewer from
   another account never sees it.
-- **Other agents:** cannot press it. Say in the PR that the pages need a republish; the owner presses the button.
+- **Other agents:** cannot press it, and do not mention it; the owner presses the button.
 
 ## Claude on another account
 

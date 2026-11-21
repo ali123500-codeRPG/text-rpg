@@ -22,8 +22,8 @@ owns each questionnaire. Save confirmed project decisions in their existing repo
   timed out locally and passed in isolation with their original limits. Both CI jobs passed on that head.
 - Check authenticated GitHub access before promising a PR. Public fetch and local commits can work
   while the CLI is signed out. Use a separate checkout or worktree and a task branch per thread.
-- For the private game and library viewer, identify the page to republish in the PR and report.
-  After merge the owner presses the game's Republish button, or a Claude session publishes.
+- Publishing the private game and library viewer is not your concern: do not mention a republish in PRs or reports.
+  The owner presses the game's Republish button, or a Claude session publishes.
 - Use stand-in unit, scenario and smoke tests. Real-model playtests and Parser evaluations require
   Claude's signed-in client. Identify any such check still needed.
 - Use repository fixtures. Name any asset or run that requires Claude's shared folder.
