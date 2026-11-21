@@ -5,9 +5,21 @@ import type { FallenCharacter, GameApi, GameState } from '../types';
 import { claudeComments, h, type CommentsApi } from './kit';
 import { fellFacts, fellLine } from './fell';
 import { gradeLetter } from '../ruleset/reportCard';
+import { GRADE_LETTERS } from '../scales';
+import { itemIcon, type IconName } from './itemIcons';
 import { characterPage } from './pages';
 
 const REFRESH_MS = 5000;
+
+/** a grade's chip tone, as roll tiers are tinted: FFF to F red, E and D amber, C and B blue, A and up (MAX+ too) green */
+const GRADES = Object.keys(GRADE_LETTERS);
+const gradeTone = (g: string) => { const i = GRADES.indexOf(g); return i < 0 || i > 6 ? 'great' : i > 4 ? 'ok' : i > 2 ? 'near' : 'bad'; };
+const RC_LINES: [keyof FallenCharacter['card'], IconName, string][] = [['combat', 'fig_power', 'Combat Power'], ['achievements', 'rc_achievements', 'Achievements'], ['reputation', 'rc_reputation', 'Reputation']];
+/** a report card line: the line's icon in place of its name (name and grade in its tip and accessible name), then its letter */
+const rcChip = (c: FallenCharacter, [k, icon, name]: (typeof RC_LINES)[number]) => {
+  const g = gradeLetter(c.card[k]);
+  return h('span', { class: `rc-g tier ${gradeTone(c.card[k])}`, role: 'img', title: `${name} ${g}`, 'aria-label': `${name} ${g}` }, itemIcon(icon, undefined, 'skico'), g);
+};
 
 /** YB5: a game handle on a fallen character's story as it ended: it reads, and nothing on the page can act through it */
 function lookOnly(api: GameApi, s: GameState): GameApi {
@@ -79,7 +91,7 @@ export function famePage(api: GameApi) {
     h('p', { class: 'hs-note' }, `Fell on day ${c.day}, turn ${c.turn}, at ${c.place || 'an unknown place'}.`),
     h('p', { class: 'fame-cause' }, fellLine(c.downedBy, c.turn)),
     c.downedBy ? h('p', { class: 'hs-note' }, fellFacts(c.downedBy)) : '',
-    list('Report card', [`Combat Power ${gradeLetter(c.card.combat)}`, `Achievements ${gradeLetter(c.card.achievements)}`, `Reputation ${gradeLetter(c.card.reputation)}`]),
+    h('div', { class: 'fame-list' }, h('p', { class: 'hs-label' }, 'Report card'), h('p', {}, RC_LINES.map((l) => rcChip(c, l)))),
     sendRow(c)),
     h('div', { class: 'fame-had' }, c.skills.length ? h('div', { class: 'fame-list' }, h('p', { class: 'hs-label' }, 'Best skills'),
       h('p', {}, ...c.skills.map((s) => h('span', { class: 'hs-tg' }, `${s.name} ${s.value}`)))) : '',

@@ -561,6 +561,10 @@ cite; a number is never reused. The full-screen Map and the minimap follow [Map]
   (issues #1474, #1496). On the Patched up card a healing item (bandage, draught) shows as the quick slot's icon in
   place of its name, the name its tip and accessible name; a source with no item (rest, a clinic, a perk) keeps its
   words (issue #1516).
+- **PS-309** The Hall of fame card's report card (D-349) shows each line as its icon in place of its name (Combat Power
+  `fig_power`, Achievements a trophy, Reputation a group of people), then its letter; the chip is tinted as roll tiers
+  are (PS-146): FFF to F red, E and D amber, C and B blue, A and up green. The line's name and grade are its tip and
+  accessible name (issue #1523).
 - **PS-307** Scales past 100: game-icons.net has supernatural subjects (rune blades, auras, creatures) for gear and
   beings above the human range.
 
