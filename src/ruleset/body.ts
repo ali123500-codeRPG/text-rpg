@@ -11,7 +11,7 @@ import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { moraleMods } from './morale';
 import { fatigueMods } from './fatigue';
-import { HEALTH_LEVELS, ITEM_STATES, PART_STATES, TIERS, type ItemStateKey } from '../scales';
+import { HEALTH_LEVELS, ITEM_STATES, PART_STATES, TIERS, type IntelligenceKey, type ItemStateKey } from '../scales';
 import { gripsOf } from './slots';
 import { cap } from '../words';
 
@@ -94,6 +94,11 @@ export function gripReachM(state: GameState, actor: Actor, anyPart = false): num
   const body = actorBody(state, actor);
   const parts = new Set(anyPart ? body.parts.filter((p) => p.roles.includes(RL.grip)).map((p) => p.id) : usableGrips(state, actor));
   return Math.max(0, ...body.parts.filter((p) => parts.has(p.id)).map((p) => (p.arm ? armReachM(body.size) : (p.reachM ?? 0) * body.reachScale)));
+}
+
+/** the actor's race intelligence (an INTELLIGENCE key); an actor with no race reads as intelligent */
+export function intelligenceOf(actor: Actor): IntelligenceKey {
+  return (actor.core.raceId ? getLibrary().races?.[actor.core.raceId]?.intelligence : undefined) ?? 'intelligent';
 }
 
 /** the actor can speak: its race talks (tag 'speaks') and a part with the speech role is not Destroyed */

@@ -425,6 +425,7 @@ function eventView(state: GameState, viewer: Actor, e: GameEvent): EventView {
     ...(e.actorId === viewer.id && tookWords(e) ? { took: tookWords(e) } : {}),
     ...(e.overheard?.includes(viewer.id) || (e.push?.tell && e.push.listener === viewer.id) ? { tell: tellFor() } : {}), // LI5a Overheard; NL4 a lie aimed at it that it saw through
     ...(e.kind === 'wasted' && e.actorId === viewer.id && e.reason ? { reason: e.reason } : {}), // BG-175: its own action came to nothing, and why
+    ...(full && e.kind === 'wasted' && e.itemId ? { item: itemName(state, e.itemId) ?? 'something' } : {}), // BG-1477: what the try went for
   };
 }
 
@@ -853,6 +854,8 @@ export function earlierLine(state: GameState, viewer: Actor, e: GameEvent): stri
   if (e.kind === 'struck') return `${who} ${who === 'you' ? 'were' : 'was'} struck by someone unseen`;
   if (e.kind === 'found_body' && e.target) return `${who} found ${name(e.target)} lying ${actorById(state, e.target) && healthLevel(actorById(state, e.target)!) === 'dead' ? 'dead' : 'down'}`;
   const said = v.line ? `: "${v.line.text.length > 80 ? `${v.line.text.slice(0, 77)}...` : v.line.text}"` : '';
+  // BG-1477: a try that came to nothing is said as one, never as the bare kind ("wasted a young stranger" read as a beating)
+  if (e.kind === 'wasted') return `${who} went for ${v.item ? `${theItem(v.item)}${v.target ? ` on ${name(v.target)}` : ''}` : v.target ? name(v.target) : 'something'}, and it came to nothing${said}`;
   const moving = e.kind === 'move' || e.kind === 'flee';
   const where = moving && (e.fromZone || !v.target) ? ` to ${zoneById(state, e.zone)?.name ?? e.zone}` : '';
   return `${who} ${e.kind.replace(/_/g, ' ')}${v.target ? ` ${moving ? (e.beside ? 'up to ' : 'toward ') : ''}${name(v.target)}` : ''}${where}${v.outcome ? ` (${v.outcome})` : ''}${said}`;

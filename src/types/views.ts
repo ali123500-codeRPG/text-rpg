@@ -57,6 +57,7 @@ export type EventView = {
   took?: string; // OQ-29 (NT10): the speaker's own speech roll at the player, as it saw the player take it
   tell?: string; // LI5a Overheard: a lie told to someone else that the viewer saw through
   reason?: string; // BG-175: why the viewer's own wasted action came to nothing
+  item?: string; // BG-1477: a wasted try seen in full: the thing it went for, by name
 };
 
 /** SP1/SP4: the spar a viewer fights in: opponents and allies (ids in NPC views, names in the player's), the health level

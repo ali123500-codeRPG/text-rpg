@@ -3026,7 +3026,7 @@ function reachOf(state: GameState, a: Actor, o: Order): { at: Located; m: number
   const wallJob = o.type === 'break' && !t ? breakJob(state, a, o.target) : undefined; // BW12 a: a spot on a wall
   const d = need === 'grip' && !t ? findContainer(state, o.target)?.at ?? (typeof wallJob === 'object' && wallJob.kind === 'wall' ? jobAt(state, a, wallJob) : null) ?? door(o.target) : null; // CT3: a container, or a door
   if (d) return grip(d);
-  for (const op of o.gear ?? []) if (op.op === 'pick_up' && !reachable(state, a, op)) { const p = pickUpAt(state, op, a); if (p) return grip(p); }
+  for (const op of o.gear ?? []) if (op.op === 'pick_up' && !reachable(state, a, op)) { const p = pickUpAt(state, op, a); if (p) return grip(p, 0, op.from); } // BG-1476: a body's things are walked to as the body is, round anyone in the way
   return null;
 }
 
