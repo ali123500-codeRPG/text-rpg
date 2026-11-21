@@ -3,6 +3,12 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bugs/`.
 
+- 21/11/2026: `AGENTS.md` rule 12 and `docs/instructions.md` section 2: five more idea lists, ICB-n (combat and
+  bodies), IGT-n (items, loot and trade), IWD-n (world, travel and scenarios), INP-n (NPCs and personality) and ICG-n
+  (age and training); 40 open D-n rows below D-231 moved there with their numbers, and rule 12 now names every
+  list's ID. The owner, project thread, 21/11/2026: "have a thread provide groups to the open items before D-231 if
+  they don't already have an ID group", "also check that group IDs are part of the instructions", then "I like the
+  first four" and "fine with ICG".
 - 21/11/2026: `docs/instructions.md` section 2: the idea lists' IDs start with I: IPP-n,
   IAA-n, IVP-n, ICI-n, IEI-n and ITI-n (were PP, AA, VP, CI, EI and TI); D-n is unchanged. Every reference in the repo
   was renamed; older lines below keep the old names. The owner, Questions hub page "Open parked items 3", TI-218:

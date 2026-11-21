@@ -1,0 +1,8 @@
+## Age and training ideas
+
+Parked ideas about character age and training: how fast characters age, the training years each rank needs, and talent. They wait here for an age thread. Each has a fixed ID (ICG-n), never renumbered or reused. A row moved from the "Deferred items" table keeps its number (D-222 became ICG-222; the D-n row in the archive points here); a new one is the number of its own closed GitHub issue, as a D-n is (`docs/instructions.md` section 2). Finished rows move to `deferred-items-archive.md`.
+
+| ID | Item | Part | Status | Notes |
+| --- | --- | --- | --- | --- |
+| ICG-222 | Slower ageing from power | 3, 4 | Parked | Moved from D-222. Parked by Ali (12/11/2026, Character Age AG8). Stories in this genre often let the supernatural age slowly. It needs two ages per actor: years lived (from the birth day) and body age, which sets the life stage and the old-age decline. Options: a a field (ageRate, e.g. 0.5 = half speed) on perks, races, classes or achievements that slows body age, built with the first perk that needs it; b build both ages now; c only the race ever sets lifespan. Ali's pick: a, once such a perk is designed. |
+| ICG-223 | Training years past Paragon | 4 | Parked | Moved from D-223. Ali (12/11/2026, Character Age AG22): "a and let's discuss later". Built with the age floor: each rank step past Paragon needs another 10 years of training (Beyond 30, Mythic 40, Transcendent 45, Divine 50), so a human reaches Divine at 63 or older, already Old and declining, while long-lived races have centuries to spare. Options to revisit: a +10 years per step (current); b stop at 20 (past Paragon it is talent, not time); c +5 per step. The owner, Questions hub page "Open parked items 3", 21/11/2026, D-223: "park." |
