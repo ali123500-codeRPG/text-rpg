@@ -1,7 +1,8 @@
 // The Map page's data: only what the character knows. Zones it stood in or saw across a sight link (journal.zonesSeen),
 // the squares of them it has seen (the fog, PZ12 a), each way's doorway where it stands (BG-313),
-// what it sees now (PlayerView), its trail, and the places the Journal lists. Never the hidden store: light, cover,
-// people and things on the ground show only for zones in view now; a remembered zone keeps its name, look and exits.
+// what it sees now (PlayerView), its trail, and the places the Journal lists. Never the hidden store: light, cover and
+// things on the ground show only for zones in view now; a remembered zone keeps its name, look and exits. People are a
+// list of their own, each at their point (MAP-68).
 import { furnitureIn, furniturePos } from '../engine/furniture';
 import type { GameState, SeenActor } from '../types';
 import { buildPlayerView, instanceItem } from '../views';
@@ -13,7 +14,7 @@ import { journalPlaces } from './pages';
 import { heightOf } from '../scenario/heights';
 import { WK } from '../library/tableIds';
 import { roofed, waysOut } from '../plan/where';
-import { NEAR_M, boxOf, dist, inOutline, lerp, sidesOf, toSegment } from '../plan/geom';
+import { NEAR_M, areaOf, boxOf, dist, inOutline, lerp, sidesOf, toSegment } from '../plan/geom';
 import { seenRuns, type SeenRun } from '../plan/fog';
 import { OP } from '../library/tableIds';
 import { barrierOn, barrierView } from '../engine/barriers';
@@ -34,12 +35,14 @@ export type MapWay = { kind: string; shut?: 'locked' | 'barred' | 'blocked'; ope
  *  when its other end is higher */
 export type MapLink = { to: string; label: string; sight: boolean; frontier: boolean; known: boolean; otherPlace?: string; way?: MapWay;
   at?: Pt; out?: [number, number]; opening?: string; widthM?: number; wall?: true; stairs?: true; up?: boolean };
-/** at: where they stand (SeenActor.body, metres in the map's frame), only for someone in full sight on a zone with a rectangle;
- * lastAt (MAP-68): for someone only heard or glimpsed, or last seen, the point where the character last perceived them
- * (the journal's last spot, BG-125), when it lies in the zone they are listed in; without either, the player can't tell
- * where in the zone they are; body (SZ16): its floor size in metres and the way it faces, for someone seen clearly at
- * their own point */
-export type MapPerson = { id: string; name: string; now: boolean; at?: { x: number; y: number }; lastAt?: { x: number; y: number }; body?: { lengthM: number; widthM: number; facing: [number, number] }; icon: IconName };
+/** MAP-68: everyone the character perceives, each at their own point in metres in the map's frame, wherever it lies:
+ * at, for someone in full sight, where they stand (SeenActor.body); lastAt, for someone only heard or glimpsed, or last
+ * seen, where the character last perceived them (the journal's last spot, BG-125); with neither (an old save) they are
+ * not drawn and only the card of the title they are listed in names them (listed). height: the floor their point is on;
+ * root: the top-level place whose map shows them; body (SZ16): its floor size in metres and the way it faces, for
+ * someone seen clearly at their own point */
+export type MapPerson = { id: string; name: string; now: boolean; at?: { x: number; y: number }; lastAt?: { x: number; y: number }; body?: { lengthM: number; widthM: number; facing: [number, number] }; icon: IconName;
+  height: number; root?: string; listed?: string };
 /** MAP-69: the icon for what the character sees on someone first: what they hold (a weapon or a tool), a shield, armour
  *  past plain clothes, wares they offer; else what they are, from the race seen, a plain person by their life stage and
  *  pronouns (RM15 c); someone not made out (only glimpsed or heard, or out of sight now) shows a hooded figure. Only the
@@ -67,7 +70,7 @@ export type MapZone = {
   outline?: Pt[];
   /** PZ2: the stretches of its outline and what stands on each, as a map class (wall, low, window, open: WALL_CLASS) */
   walls?: { a: Pt; b: Pt; cls: WallClass; /** the state wall standing there (none on an open stretch): MAP-85's wall target */ id?: string }[];
-  light?: string; cover?: string; links: MapLink[]; people: MapPerson[]; items: string[];
+  light?: string; cover?: string; links: MapLink[]; items: string[];
   /** FR5: the furniture standing there, each at its point in the frame of rect; kind is a furniture kind id (FU), for its icon */
   furniture?: { id: string; name: string; kind: string; x: number; y: number }[];
   /** MAP-86: the things on the ground the character sees there now (PlayerView), each at its point in the frame of rect: its
@@ -92,7 +95,7 @@ type Pt = { x: number; y: number };
 export type MapPlace = { id: string; name: string; kind: string; parentId: string | null; depth: number; zones: MapZone[]; facts: string[] };
 /** WZ4 a region's land as the character knows it: the cells made out, and the sites known by word only (drawn faint) */
 export type MapLand = { region: import('../types').Region; seen: (i: number) => boolean; faint: Set<string>; /** changes when the cells seen do */ key: string };
-export type KnownMap = { placeId: string; zoneId: string; places: MapPlace[]; land?: MapLand[] };
+export type KnownMap = { placeId: string; zoneId: string; places: MapPlace[]; land?: MapLand[]; people: MapPerson[] };
 
 /** FR5: a zone's furniture with its points, for the map's icons */
 function furnitureOn(s: GameState, zoneId: string): Pick<MapZone, 'furniture'> {
@@ -186,20 +189,21 @@ export function knownMap(s: GameState): KnownMap {
   const known = new Set<string>([...knownZoneIds(s), ...inView.keys()]);
   for (const id of [...known]) if (!zoneById(s, id)) known.delete(id);
 
-  // people: seen now (PlayerView) and last seen (out of sight now, in the zone they were last seen in)
-  const people = new Map<string, MapPerson[]>();
-  const add = (zone: string, x: MapPerson) => { if (!people.has(zone)) people.set(zone, []); people.get(zone)!.push(x); };
-  /** MAP-68: where the character last saw or heard someone out of full sight, on the zone they are listed in */
-  const lastAt = (id: string, zone: string): Pick<MapPerson, 'lastAt'> => {
-    const spot = p.journal?.lastSpot?.[id], z = zoneById(s, zone);
-    return spot && z?.outline?.length && Math.abs(spot.floor - z.floor) < 0.01 && inOutline(spot, z.outline, 0.01) ? { lastAt: { x: spot.x, y: spot.y } } : {};
+  // people (MAP-68): seen now (PlayerView) and last seen, each at their own point; the title they are listed in only
+  // says which top-level place's map shows them (root, below)
+  const people: (MapPerson & { zone: string })[] = [];
+  /** MAP-68: out of full sight, the point where the character last saw or heard them, on its own floor */
+  const lastAt = (id: string, zone: string): Pick<MapPerson, 'lastAt' | 'height'> => {
+    const spot = p.journal?.lastSpot?.[id];
+    return spot ? { lastAt: { x: spot.x, y: spot.y }, height: spot.floor } : { height: heightOf(zoneById(s, zone)) };
   };
   for (const a of pv?.actors ?? []) {
     if (a.id === p.id) continue;
     const b = a.body; // SZ16: seen clearly, so where they stand, their size and facing are seen too (MAP-40: from the view)
-    add(a.zone, { id: a.id, name: a.name ?? a.label, now: true, icon: personIcon(s, a), ...(b && zoneById(s, a.zone)?.outline?.length ? { at: { x: b.x, y: b.y }, body: { lengthM: b.lengthM, widthM: b.widthM, facing: b.facing } } : lastAt(a.id, a.zone)) });
+    people.push({ id: a.id, name: a.name ?? a.label, now: true, icon: personIcon(s, a), zone: a.zone,
+      ...(b ? { at: { x: b.x, y: b.y }, height: heightOf(zoneById(s, a.zone)), body: { lengthM: b.lengthM, widthM: b.widthM, facing: b.facing } } : lastAt(a.id, a.zone)) });
   }
-  for (const a of pv?.lastSeen ?? []) add(a.zone, { id: a.id, name: a.name, now: false, icon: 'someone', ...lastAt(a.id, a.zone) });
+  for (const a of pv?.lastSeen ?? []) people.push({ id: a.id, name: a.name, now: false, icon: 'someone', zone: a.zone, ...lastAt(a.id, a.zone) });
 
   const byPlace = new Map<string, MapZone[]>();
   for (const id of known) {
@@ -223,7 +227,7 @@ export function knownMap(s: GameState): KnownMap {
       ...(box ? { rect: box, outline: z.outline.map((q) => ({ x: q.x, y: q.y })), walls: wallsOn(s, z), ...furnitureOn(s, id), ...(v ? thingsOn(s, v.groundItems) : {}), seen: seenRuns(s, z), sight: seenRuns(s, z, { inView: !!v }) } : {}), links,
       ...(you ? { you } : {}), ...(line ? { line } : {}),
       ...(you && line ? { along: alongLine(line, you) } : {}),
-      people: people.get(id) ?? [], items: v ? v.groundItems.map((i) => i.name) : [], ...(v ? { light: v.light, cover: v.cover } : {}) };
+      items: v ? v.groundItems.map((i) => i.name) : [], ...(v ? { light: v.light, cover: v.cover } : {}) };
     if (!byPlace.has(z.placeId)) byPlace.set(z.placeId, []);
     byPlace.get(z.placeId)!.push(mz);
   }
@@ -244,7 +248,24 @@ export function knownMap(s: GameState): KnownMap {
   // WZ4: each region's land the character has made out; a site is known by word once its place is (the Journal's)
   const land: MapLand[] = (s.regions ?? []).map((r) => ({ region: r, seen: landSeen(s, r.id), faint: new Set(r.sites.filter((x) => x.placeId && ids.has(x.placeId)).map((x) => x.id)),
     key: `${r.id}:${s.player.journal?.landSeen?.[r.id] ?? ''}` }));
-  return { placeId: p.placeId, zoneId: p.zone, places: order, land };
+  const km: KnownMap = { placeId: p.placeId, zoneId: p.zone, places: order, land, people: [] };
+  // the top-level place whose map shows someone: the nearest known place over the one their title is in
+  const knownAbove = (pl?: string) => { for (let n = 0; pl && !ids.has(pl) && n < 20; n++) pl = byId.get(pl)?.parentId ?? undefined; return pl && ids.has(pl) ? pl : undefined; };
+  km.people = people.map(({ zone, ...w }) => { const pl = knownAbove(zoneById(s, zone)?.placeId); return { ...w, ...(pl ? { root: rootPlace(km, pl) } : {}), ...(w.at || w.lastAt ? {} : { listed: zone }) }; });
+  return km;
+}
+
+/** MAP-64: the people a zone's card names, found from their points: those whose point lies in the zone, the smallest known
+ *  zone on its floor that holds it (MAP-11: zones nest); someone with no point, in the card of the title listing them */
+export function peopleIn(m: KnownMap, z: MapZone): MapPerson[] {
+  const zones = m.places.flatMap((p) => p.zones).filter((q) => q.outline?.length && Math.abs(q.height - z.height) < 0.01);
+  const holds = (q: MapZone, pt: Pt) => inOutline(pt, q.outline!, 0.01);
+  return m.people.filter((w) => {
+    const pt = w.at ?? w.lastAt;
+    if (!pt) return w.listed === z.id;
+    if (Math.abs(w.height - z.height) >= 0.01 || !z.outline?.length || !holds(z, pt)) return false;
+    return !zones.some((q) => q !== z && holds(q, pt) && areaOf(q.outline!) < areaOf(z.outline!));
+  });
 }
 
 /** the top-level place a place sits in (itself when it has no known parent). A road is only a line on the World map, so a
@@ -283,6 +304,6 @@ export function worldTiles(m: KnownMap): MapZone[] {
     const along = zones.find((z) => z.along)?.along, line = zones.find((z) => z.line)?.line;
     const rect = extentOf(zones);
     return { id: r.id, placeId: r.id, name: r.name, look: n ? `${plural(n, 'zone')} known` : 'no zones known', outdoor: true,
-      here: r.id === here, inView: r.id === here, height: 0, links, people: [], items: [], ...(along ? { along } : {}), ...(line ? { line } : {}), ...(rect ? { rect } : {}) };
+      here: r.id === here, inView: r.id === here, height: 0, links, items: [], ...(along ? { along } : {}), ...(line ? { line } : {}), ...(rect ? { rect } : {}) };
   });
 }

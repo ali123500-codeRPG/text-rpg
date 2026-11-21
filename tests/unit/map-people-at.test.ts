@@ -6,7 +6,7 @@ import { buildPlayerView } from '../../src/views';
 import { wholeTurn, intent } from '../harness/turn';
 import type { GameState } from '../../src/types';
 
-const people = (s: GameState) => knownMap(s).places.flatMap((p) => p.zones).flatMap((z) => z.people.map((x) => ({ ...x, zone: z.id })));
+const people = (s: GameState) => knownMap(s).people;
 
 describe('people at their own points on the Map', () => {
   it('whole turn: someone in full sight stands at their position; anyone not in full sight has no point', async () => {

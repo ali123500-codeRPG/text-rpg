@@ -1,6 +1,6 @@
 // The Map page: only what the character knows, drawn from the floor plan (BG-313).
 import { describe, it, expect } from 'vitest';
-import { knownMap } from '../../src/ui/mapData';
+import { knownMap, peopleIn } from '../../src/ui/mapData';
 import { wayWords } from '../../src/ui/map';
 import { createFakeGame } from '../../src/ui/fakeGame';
 import { noteZonesSeen } from '../../src/engine/trail';
@@ -26,7 +26,7 @@ describe('map', () => {
       expect(z.light).toBeUndefined();
       expect(z.cover).toBeUndefined();
       expect(z.items).toEqual([]);
-      expect(z.people.every((p) => !p.now)).toBe(true);
+      expect(peopleIn(m, z).every((p) => !p.now)).toBe(true);
     }
     // the unseen cellar is an exit you have not taken, not a known zone
     const kitchen = zones.find((z) => z.id === 'tav_kitchen')!;

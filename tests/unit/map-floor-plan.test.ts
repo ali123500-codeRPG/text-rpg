@@ -15,7 +15,7 @@ const fromTheYard = () => {
   s.player.journal!.zonesSeen = [];
   noteZonesSeen(s);
   const zones = knownMap(s).places.flatMap((p) => p.zones).filter((z) => z.height === 0);
-  return { s, zones, sc: planScene({ zones, every: zones, places: [], k: 1, measure: roughMeasure, awayName: () => undefined }) };
+  return { s, zones, sc: planScene({ zones, every: zones, places: [], people: [], k: 1, measure: roughMeasure, awayName: () => undefined }) };
 };
 const zone = (zones: MapZone[], id: string) => zones.find((z) => z.id === id)!;
 
@@ -31,7 +31,7 @@ describe('the Map draws the floor plan (BG-313)', () => {
     expect(zoneAt(zones, mid('tavern.common'))).toBeUndefined();
     expect(zoneAt(zones, mid('midden_yard'))?.id).toBe('midden_yard');
     // MAP-20: at the one name size the 5 m yard holds its name zoomed in
-    expect(planScene({ zones, every: zones, places: [], k: MAX_K, measure: roughMeasure, awayName: () => undefined }).labels.some((l) => l.zoneId === 'midden_yard')).toBe(true);
+    expect(planScene({ zones, every: zones, places: [], people: [], k: MAX_K, measure: roughMeasure, awayName: () => undefined }).labels.some((l) => l.zoneId === 'midden_yard')).toBe(true);
   });
 
 });

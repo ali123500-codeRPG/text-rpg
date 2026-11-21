@@ -25,6 +25,8 @@ type Places = Parameters<typeof planScene>[0]['places'];
 /** what the view draws, taken at update() and kept while a turn runs (M-06) */
 export type PlanData = {
   km: KnownMap; every: MapZone[]; floor: MapZone[]; height: number; places: Places;
+  /** MAP-68: the people this map shows on this floor (KnownMap.people on it) */
+  people: KnownMap['people'];
   /** where you stand (metres), when you stand on this floor of this map */
   you: Pos | null; youTitle?: string; facing?: [number, number];
   ring: number | null; dash: number | null; carried: number;
@@ -150,7 +152,7 @@ export function planView(api: GameApi, opts: PlanOpts) {
     const m = font(kind)?.measureText('');
     return m ? { ascent: m.fontBoundingBoxAscent, descent: m.fontBoundingBoxDescent } : roughMeasure.line(kind);
   } });
-  const sceneAt = (kk: number) => planScene({ zones: d!.floor, every: d!.every, places: d!.places, k: kk, measure, awayName: d!.awayName });
+  const sceneAt = (kk: number) => planScene({ zones: d!.floor, every: d!.every, places: d!.places, people: d!.people, k: kk, measure, awayName: d!.awayName });
 
   /** a zone to scale: its floor at its real size, each side drawn as its edge kind; no zone state (MAP-33): the fog's
    *  two tones say what is in sight now, and the zone you stand in has no outline, even when its card is open */
@@ -263,7 +265,7 @@ export function planView(api: GameApi, opts: PlanOpts) {
       const iconPx = (2 * t.r - 4) * Math.min(1, (c ? Math.min(c.len, c.wide) : 2 * t.r) / (2 * t.r) / turn);
       // RM27 b: a disc for a group is one token with its "+n" badge, and its click picks one of them first
       const b = t.badge, many: Record<string, string> = t.group ? { 'data-thing': 'people', 'data-of': t.group.map((w) => w.id).join('|'), 'data-names': t.group.map((w) => w.name).join('|') } : { 'data-thing': 'person', 'data-of': who.id };
-      const g = s('g', { class: `map-who plan-who${who.now && !who.lastAt ? '' : ' last'}${who.at ? ' at' : ''}`, 'data-zone': t.zoneId, ...many, tabindex: 0, role: 'button', 'aria-label': `${t.title}: what to do` },
+      const g = s('g', { class: `map-who plan-who${who.now && !who.lastAt ? '' : ' last'}${who.at ? ' at' : ''}`, ...(t.zoneId ? { 'data-zone': t.zoneId } : {}), ...many, tabindex: 0, role: 'button', 'aria-label': `${t.title}: what to do` },
         ...(t.rings ?? []).map((q) => s('circle', { class: 'map-who-ring', cx: q.cx, cy: q.cy, r: q.r })),
         // the checker measures the disc and the badge's pill; the letters' ink sits inside the pill
         s('g', b ? tok : {}, ...hitArea, b ? s('circle', { cx: t.cx, cy: t.cy, r: t.r }) : shape, iconMark(who.icon, t.cx, t.cy, iconPx, 'map-who-icon'),

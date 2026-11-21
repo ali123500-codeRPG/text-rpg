@@ -99,7 +99,8 @@ export function minimapPanel(api: GameApi, opts: {
       const places = km.places.filter((p) => rootPlace(km, p.id) === root && p.id !== root).sort((a, b) => a.depth - b.depth)
         .map((p) => ({ id: p.id, name: p.name, depth: p.depth, zones: floor.filter((z) => inside(z.placeId, p.id)) })).filter((p) => p.zones.length);
       const awayName = (id: string) => { const z = km.places.flatMap((p) => p.zones).find((x) => x.id === id); return z ? km.places.find((p) => p.id === rootPlace(km, z.placeId))?.name : undefined; };
-      return { km, every, floor, height: here.height, places, you: { ...here.you }, ...(st.player.facing ? { facing: [...st.player.facing] as [number, number] } : {}),
+      const people = km.people.filter((w) => w.root === root && Math.abs(w.height - here.height) < 0.01);
+      return { km, every, floor, height: here.height, places, people, you: { ...here.you }, ...(st.player.facing ? { facing: [...st.player.facing] as [number, number] } : {}),
         ring: ringMetres(st), dash: dashMetres(st), carried: carriedS(st, st.player, 'move'), awayName };
     },
     onPlan: opts.onPlan, onWalk: opts.onWalk, onThing: opts.onThing,
