@@ -476,7 +476,7 @@ NPC minds, routines and goals, memory, templates and spawning, uniques and echoe
 
 ## agents: the game's AI agents
 
-Prompts, schemas and calls for the Parser, Planner, Responder, Voice, Narrator, Weaver and director; the views each
+Prompts, schemas and calls for the Parser, Planner, Responder, Voice, Narrator, Weaver, Chronicler and director; the views each
 agent is given; leak prevention; autopilot.
 
 - Spec: [agent-parser.md](spec/part-2-turn-engine/agent-parser.md),
@@ -484,6 +484,7 @@ agent is given; leak prevention; autopilot.
   [agent-responder.md](spec/part-2-turn-engine/agent-responder.md),
   [agent-voice.md](spec/part-2-turn-engine/agent-voice.md),
   [agent-narrator.md](spec/part-2-turn-engine/agent-narrator.md),
+  [agent-chronicler.md](spec/part-2-turn-engine/agent-chronicler.md),
   [hidden-state-persistence.md](spec/part-2-turn-engine/hidden-state-persistence.md),
   [latency-and-cost.md](spec/part-2-turn-engine/latency-and-cost.md),
   [leak-prevention-validation-and-failure-handling.md](spec/part-2-turn-engine/leak-prevention-validation-and-failure-handling.md)
@@ -493,6 +494,7 @@ agent is given; leak prevention; autopilot.
   - `src/agents/answering.ts`
   - `src/agents/autopilot.ts`
   - `src/agents/call.ts`
+  - `src/agents/chronicler.ts`
   - `src/agents/client.ts`
   - `src/agents/clock.ts`
   - `src/agents/crossroads.ts`
