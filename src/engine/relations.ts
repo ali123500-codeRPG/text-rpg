@@ -262,12 +262,28 @@ export function reachesAcross(state: GameState, a: string, b: string): boolean {
   return !!A && !!B && wallsBetween(state, A, B).some((w) => !!wallKind(w.kind)?.reach);
 }
 
-/** BG-95: one rule for who knows whose name, player and NPC alike: their own, a public figure's (knownOnSight), a
- * bandmate's, or one learned by hearing it said (learnNames) */
-export function knowsName(state: GameState, viewer: Actor, a: Actor): boolean {
-  if (a === viewer || a.knownOnSight || (viewer.bandId && viewer.bandId === a.bandId)) return true;
-  return !!namesOf(state, viewer)?.namesKnown?.includes(a.id);
+/** the top-level place over `placeId` (itself when it has no parent) */
+export function topPlace(state: GameState, placeId: string): string | undefined {
+  let p = state.places.find((x) => x.id === placeId);
+  for (let n = 0; p?.parentId && n < 20; n++) p = state.places.find((x) => x.id === p!.parentId) ?? p;
+  return p?.id;
 }
+
+/** KN1 b: the settlements (top-level places) an actor lives in: those its routine slots are bound in; none for the player */
+const homes = (state: GameState, a: Actor) =>
+  Object.values(a.mind?.slots ?? {}).flat().map((z) => zoneById(state, z)?.placeId).filter((p): p is string => !!p).map((p) => topPlace(state, p));
+
+/** BG-95: one rule for who knows whose name, player and NPC alike: their own, a public figure's (knownOnSight: everyone,
+ * or KN1 b those who live in its settlement), a bandmate's, or one learned by hearing it said (learnNames) */
+export function knowsName(state: GameState, viewer: Actor, a: Actor): boolean {
+  if (a === viewer || a.knownOnSight === 'everyone' || (viewer.bandId && viewer.bandId === a.bandId)) return true;
+  if (namesOf(state, viewer)?.namesKnown?.includes(a.id)) return true;
+  if (a.knownOnSight !== 'locals') return false;
+  const theirs = homes(state, a);
+  return homes(state, viewer).some((h) => theirs.includes(h));
+}
+/** KN2 b: what the viewer sees `a` as: its knownAs once the viewer knows who it is, else its stranger label */
+export const labelFor = (state: GameState, viewer: Actor, a: Actor) => (a.knownAs && knowsName(state, viewer, a) ? a.knownAs : a.label);
 /** where the viewer keeps names: the player's journal, an NPC's mind */
 const namesOf = (state: GameState, viewer: Actor) => (viewer.id === state.player.id ? state.player.journal : viewer.mind);
 /** BG-95/NM2/NM3: the viewer's name lists (the player's journal or an NPC's mind), made on first write */

@@ -33,7 +33,7 @@ import { revealedTo } from '../minds/state';
 import { sightLevel } from '../perception/sight';
 import { madeOutBySight } from '../perception/madeOut';
 import { atChaseLine, chaseLost, chaseZones } from '../engine/chase';
-import { actorById, allActors, knowsName, nameFor, atLeast, bandById, heldBy, isActive, isAsleep, hostile, perceivedZoneIds, seesAcross, shortestPath, sparring, stance, zoneById } from '../engine/relations';
+import { actorById, allActors, knowsName, labelFor, nameFor, atLeast, bandById, heldBy, isActive, isAsleep, hostile, perceivedZoneIds, seesAcross, shortestPath, sparring, stance, zoneById } from '../engine/relations';
 import { knownDestinations } from '../engine/trail';
 import { agreementsOf } from '../engine/memory';
 import { talkingWith } from '../engine/speech';
@@ -352,7 +352,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
     const look = lookOf(state, events, viewer.id, a.id);
     const mate = viewer === state.player && inBand(viewer, a); // YB3 c: a band-mate in clear sight shows its health and morale at every level
     out.push({
-      id: a.id, label: a.label, ...(name ? { name } : {}), ...(a.pronouns ? { pronouns: a.pronouns } : {}), zone: a.zone, level,
+      id: a.id, label: labelFor(state, viewer, a), ...(name ? { name } : {}), ...(a.pronouns ? { pronouns: a.pronouns } : {}), zone: a.zone, level,
       ...(!speaks(a) ? { mute: true as const } : {}), // BG-280: made out as one who cannot talk (a slime, a beast)
       ...(stageOf(state, a) ? { age: stageOf(state, a)! } : {}), // AG16: the life stage, never the number
       ...place,
@@ -1150,7 +1150,7 @@ function weaverPlaces(state: GameState, zones: Zone[], onStage: Actor[]): Weaver
   for (const a of onStage) {
     const plan = state.hidden.plans[a.id];
     out.get(zoneById(state, a.zone)!.placeId)?.people.push({
-      id: a.id, label: a.label, name: a.names.current, zone: a.zone, band: a.bandId,
+      id: a.id, label: a.label, ...(a.knownAs ? { knownAs: a.knownAs } : {}), name: a.names.current, zone: a.zone, band: a.bandId,
       ...(a.core.templateId ? { templateId: a.core.templateId } : {}),
       ...(plan ? { plan: { goal: plan.goal, steps: [...plan.steps], triggers: structuredClone(plan.triggers), createdTurn: plan.createdTurn } } : {}),
       secrets: state.hidden.secrets.filter((s) => s.holderId === a.id).map((s) => ({ id: s.id, holderId: s.holderId, fact: s.fact, leakTerms: [...s.leakTerms], revealWhen: { ...s.revealWhen } })),

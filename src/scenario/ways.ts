@@ -8,7 +8,7 @@ import { OPP_SIDE, SIDE_STEP, SIDE_WORD } from '../types';
 import { CONFIG } from '../config';
 import { ZK } from '../library/tableIds';
 import { zoneById } from '../engine/relations';
-import { topPlace } from './stage';
+import { topPlace } from '../engine/relations';
 import { addFrontier, frontierTo, joinFrontier, joinWay } from '../plan/draw';
 import { roofed, waysOut } from '../plan/where';
 export { joinFrontier, joinWay };

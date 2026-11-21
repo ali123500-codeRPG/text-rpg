@@ -53,7 +53,7 @@ export function villageStagePlan(tier: Tier = 'success'): StagePlan {
     cast: [
       { template: TP.guard, key: 'guard_1', label: 'a village guard', name: 'Bertram', pronouns: 'he', appearance: 'a stocky man in a dented mail shirt',
         band: 'village_watch', routineSetId: 'gate_guard', slots: { post: 'gate_inner' }, awarenessOfPlayer: 'unaware', motive: 'wants the slimes gone before harvest' },
-      { template: TP.trader, key: 'barkeep', label: 'the barkeep', name: 'Mags', pronouns: 'she', appearance: 'a broad woman with flour on her apron', knownOnSight: true,
+      { template: TP.trader, key: 'barkeep', label: 'the barkeep', name: 'Mags', pronouns: 'she', appearance: 'a broad woman with flour on her apron', knownOnSight: 'everyone',
         knows: [{ id: 'slimes_field', text: 'Slimes have been coming over the east field most nights.' }],
         band: 'tavern_folk', routineSetId: 'barkeep', slots: { counter: 'tav_counter', refuge: 'tav_cellar' }, awarenessOfPlayer: 'aware', motive: 'wants someone to deal with the slimes cheaply',
         wares: { items: [{ item: IT.bandage, qty: 4 }], services: [SV.drink, SV.meal, SV.bed] } },

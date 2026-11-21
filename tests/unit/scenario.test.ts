@@ -4,7 +4,7 @@ import { RC } from '../../src/library/raceIds';
 import { ZK } from '../../src/library/tableIds';
 import { roofed, waysOut, wayTo } from '../../src/plan/where';
 import { groundIn } from '../../src/engine/ground';
-import { zoneById } from '../../src/engine/relations';
+import { knowsName, labelFor, zoneById } from '../../src/engine/relations';
 import { TP } from '../../src/library/templateIds';
 import type { Tier } from '../../src/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -225,13 +225,26 @@ describe('applyStagePlan', () => {
     ]);
     const mags = s.actors[1];
     expect(mags.names.current).toBe('Mags');
-    expect(mags.knownOnSight).toBe(true);
+    expect(mags.knownOnSight).toBe('everyone');
     expect(mags.pronouns).toBe('she'); // run 14 Q3: pronouns are kept on the actor
     expect(mags.mind!.knows).toHaveLength(1);
     expect(mags.core.inventory.filter((i) => i.itemId === IT.coin).map((i) => i.qty)).toEqual([CONFIG.TRADER_PURSE, 5]); // SL3 purse, then the reward
     expect(s.hidden.stage).toEqual({ eventSummary: villageStagePlan().event.summary, challenge: 'moderate', gain: 'moderate', hiddenTerms: ['nest'] });
     expect(s.hidden.castNotes!.guard_1.motive).toContain('harvest');
     expect(s.hidden.memory).toEqual({});
+  });
+  it('KN1 b, KN2 b: a figure known to locals is known by those who live in its settlement, and seen as its knownAs', () => {
+    const p = villageStagePlan();
+    Object.assign(p.cast[1], { knownOnSight: 'locals', knownAs: 'the barkeep of the Hearth' });
+    const s = fresh();
+    applyStagePlan(s, p, ctx, { entry: 'open' }, createRng(1));
+    const [guard, mags] = s.actors;
+    expect(knowsName(s, guard, mags)).toBe(true); // another band, but lives in the village
+    expect(labelFor(s, guard, mags)).toBe('the barkeep of the Hearth');
+    expect(knowsName(s, s.player, mags)).toBe(false); // the player lives nowhere
+    expect(labelFor(s, s.player, mags)).toBe(mags.label);
+    guard.mind!.slots = {};
+    expect(knowsName(s, guard, mags)).toBe(false);
   });
   it('opening beliefs go through updateBeliefs on open entry only; band beliefs always', () => {
     const p = villageStagePlan();

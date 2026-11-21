@@ -52,6 +52,14 @@ export const MIGRATIONS: Record<number, (pages: Pages) => void> = {
     delete pages.ground;
     Object.assign(pages, tilePages(engine.storyId, lists));
   },
+  // KN1 b: knownOnSight names its reach; the old flag meant everyone
+  13: (pages) => {
+    for (const k of actorKeys(pages)) {
+      const a = pages[k] as Omit<Actor, 'knownOnSight'> & { knownOnSight?: Actor['knownOnSight'] | boolean };
+      if (a.knownOnSight === true) a.knownOnSight = 'everyone';
+      else if (a.knownOnSight === false) delete a.knownOnSight;
+    }
+  },
 };
 
 /** run steps from → to in order; returns false (and an error) when the save is too old, too new or a step is missing. */
