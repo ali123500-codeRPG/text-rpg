@@ -1681,7 +1681,7 @@ button.eq-name:focus-visible { outline: 2px solid var(--accent); outline-offset:
   border-radius: var(--r-lg); background: color-mix(in srgb, var(--surface) 80%, transparent); flex: none; }
 .vitals .cs-strip { margin: 0; padding: 0; }
 .vitals .cs-strip:hover { background: none; } .vitals:hover { border-color: var(--accent); }
-.vitals .heal-slot[hidden] { display: none; }
+.vitals .heal-slot { gap: 4px; padding: 0 6px; } .vitals .heal-slot[hidden] { display: none; }
 .vitals-pop .hs-btn-main { justify-self: start; }
 /* BG-310: on a short window the minimap gives way first, down to a 280 px box (about 180 px of map), so the short sheet below stays in view */
 .cs-side > .mm { flex: 0 1 auto; min-height: 280px; display: flex; flex-direction: column; }
