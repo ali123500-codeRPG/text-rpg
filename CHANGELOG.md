@@ -3,6 +3,11 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bugs/`.
 
+- 21/11/2026: `AGENTS.md` rule 12 and `docs/instructions.md` section 2: parked essence ideas get EI-n rows in
+  `docs/spec/essence-ideas.md`; the parked essence rows D-227, D-228, D-249, D-250, D-262, D-263, D-265
+  and D-313 moved there. The owner, Questions
+  hub page "Notable foes: fewer early essences", NF6: "park for later to be review if I don't like how essences work.
+  give parked essence items their own ID."
 - 21/11/2026: `AGENTS.md` rule 12 and `docs/instructions.md` section 2: parked class ideas get CI-n rows in
   `docs/spec/class-ideas.md`, and a table at the top of `docs/spec/deferred-items.md` shows which ID holds which kind of
   parked idea. The owner, Questions hub page "Open parked items 2", D-157: "a, give class ideas their own ID in parked

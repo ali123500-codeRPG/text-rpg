@@ -17,6 +17,8 @@ with where its full meaning lives. A term's rules are never defined here.
   finished ones in the Deferred items archive). A row moved from another list keeps its number (PP-266 became VP-266).
 - **CI-n**: a parked class idea. One row each in the "Class ideas" table (`docs/spec/class-ideas.md`; finished ones in
   the Deferred items archive). A row moved from the Deferred items table keeps its number (D-157 became CI-157).
+- **EI-n**: a parked essence idea. One row each in the "Essence ideas" table (`docs/spec/essence-ideas.md`; finished ones
+  in the Deferred items archive). A row moved from the Deferred items table keeps its number (D-227 became EI-227).
 - **BG-n**: a bug. n is its claim issue's number (label `bug`); the issue is its register entry and its story is
   `docs/bugs/BG-n.md`. Below 1000, the old count: a row in the spec's "Bug log" (`docs/spec/bug-log.md`; closed ones in
   `bug-log-archive.md`) and a story in `docs/bug-fix-log.md`.

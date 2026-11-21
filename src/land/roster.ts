@@ -17,7 +17,9 @@ type Rng = ReturnType<typeof createRng>;
 /** a composition as a cast entry names it (NG15) */
 export type RosterCompose = { race: string; role: string; theme: string; rank: string; class?: string; prefix?: string; grandeur?: GrandeurKey };
 /** one rolled roster entry: a single person (compose) or a group (group + rank), with what it gives play */
-export type RosterEntry = { key: string; who: string; gives: string; compose?: RosterCompose; group?: { id: string; rank: string }; goals?: true };
+export type RosterEntry = { key: string; who: string; gives: string; compose?: RosterCompose; group?: { id: string; rank: string }; goals?: true;
+  /** NF4 b: its hook is notable, so whoever fills it is a notable foe */
+  notable?: true };
 
 const pick = <T>(rng: Rng, xs: readonly T[]): T => xs[rng.int(0, xs.length - 1)];
 /** a weighted roll over { key: weight } */
@@ -55,7 +57,7 @@ export function siteRoster(site: Site): RosterEntry[] {
     if (h.groups?.length) return groupEntry(key, lib.groups![pick(rng, h.groups)], rank, h);
     // NR40 a: a seat of the Great is always grand
     const compose: RosterCompose = { race: rollRace(rng), role: pick(rng, h.roles ?? []), theme: h.theme ?? row.theme, rank, ...(h.class ? { class: h.class } : {}), ...(h.rank === 'seat' ? { grandeur: 'grand' as const } : {}) };
-    return { key, who: h.name, gives: h.gives, compose, ...(h.goals ? { goals: true as const } : {}) };
+    return { key, who: h.name, gives: h.gives, compose, ...(h.goals ? { goals: true as const } : {}), ...(h.notable ? { notable: true as const } : {}) };
   });
 }
 

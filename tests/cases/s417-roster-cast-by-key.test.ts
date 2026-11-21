@@ -4,7 +4,10 @@
 import { expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import type { StagePlan } from '../../src/types';
-import { validateStagePlan, type PlanContext } from '../../src/scenario';
+import { applyStagePlan, validateStagePlan, type PlanContext } from '../../src/scenario';
+import { createRng } from '../harness';
+import { notable } from '../../src/engine/essence';
+import { getLibrary } from '../../src/library';
 import { toStoryStart, villageStagePlan } from '../../src/scenario/fixtures';
 import { drawRegion, type RegionBrief } from '../../src/land/generate';
 import { roadRoster, siteRoster } from '../../src/land/roster';
@@ -48,4 +51,24 @@ it('a site hook cast under its key is filled the same way; an entry that names w
 
 it('a key that is no roster entry still names nobody, and the plan is refused', () => {
   expect(validateStagePlan(withLand(), castAs('rg1_r99.g1'), ctx).map((e) => e.code)).toContain('bad_cast');
+});
+
+it('NF4 b: whoever fills a notable hook (Leader, Rival, Seat of the Great, Warden) is a notable foe; a face hook is not', () => {
+  const all = region.sites.flatMap((x) => siteRoster(x)).filter((e) => e.compose);
+  const lead = all.find((e) => e.notable), face = all.find((e) => !e.notable);
+  expect(lead && face).toBeTruthy();
+  for (const [e, want] of [[lead!, true], [face!, false]] as const) {
+    const s = withLand(), p = castAs(e.key);
+    expect(validateStagePlan(s, p, ctx)).toEqual([]);
+    applyStagePlan(s, p, ctx, { entry: 'open' }, createRng(1));
+    const a = s.actors.find((x) => x.label === 'the leader')!;
+    expect(notable(s, a)).toBe(want);
+  }
+});
+
+it('NF5 a: a race tagged notable makes every one of it notable', () => {
+  const s = makeVillage(), slime = s.actors.find((a) => a.id === 'slime_1')!, r = getLibrary().races![slime.core.raceId!];
+  expect(notable(s, slime)).toBe(false);
+  r.notable = true;
+  try { expect(notable(s, slime)).toBe(true); } finally { delete r.notable; }
 });
