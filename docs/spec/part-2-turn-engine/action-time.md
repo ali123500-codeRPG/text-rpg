@@ -125,7 +125,7 @@ BG/D numbers) sits in one trailing parenthesis.
   move time, the minimap's walk ring) is walked to and the action done the same turn; one beyond it is dashed toward as a
   plain move dashes (the move time walked, then the main time run, BF91; a lame or Spent walker only walks, AE2, FT10),
   and the action waits for a later turn even when the run gets there; a take still follows BF91 a, picked up where the run
-  reaches it, now in any title (MQ20 a; Ali, 21/11/2026, Questions hub page "Map and minimap: one map, doors"). Stopped on the way (contact, someone closing, a fight), the walk keeps its
+  reaches it, now in any title, also after a dash (MQ20 a, MQ22 a; Ali, 21/11/2026, Questions hub page "Map and minimap: one map, doors"). Stopped on the way (contact, someone closing, a fight), the walk keeps its
   action ("Walking to …, then unlock"); a turn with no move and no action (Keep walking), or one of only words or a sneak,
   finishes the walk and does it; any other order cancels both; a way found shut ends both (BG-69). Within one move
   slot's walk it is done the same turn, as closing in (FR4, BG-86) (MQ15 a / MQ16 a; Ali, 20/11/2026, Questions hub page "Map and minimap: one map, doors").
@@ -486,7 +486,8 @@ BG/D numbers) sits in one trailing parenthesis.
   (WalkingView.then, the action's deck name, a way op by its own word), and the deck's Keep walking reads "Keep walking
   to the bed, then sleep". A walk to a door names the door, never the way's label: its kind (the barrier on it, else a
   doorway's door) and, once the player knows the title it leads into (Journal.zonesSeen), that title: "Walking to the
-  door to the common room, then unlock", "Walking to the gate, then unlock" (views walkingOf, doorName; MAP-40) (MQ21 b;
+  door to the common room, then unlock", "Walking to the gate, then unlock"; into a title not yet seen it is just "the door"
+  (views walkingOf, doorName; MAP-40) (MQ21 b, MQ23 a;
   Ali, 21/11/2026, Questions hub page "Map and minimap: one map, doors").
 - **ACT-331** A goal with no open way reads "no open way there" (src/ui/doing.ts walkLeft).
 - **ACT-332** On the Map the goal zone gets a dashed accent outline and "Heading here", and its card says "Heading here
