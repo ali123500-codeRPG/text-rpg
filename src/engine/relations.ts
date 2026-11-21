@@ -215,8 +215,8 @@ export function knowsShut(state: GameState, b: Barrier, a: Actor, from: string):
 }
 
 /** the titles a walk passes from one title to another, by the ways between them (no frontiers): the ids after `from`, or
- * null. The fewest ways: only the Map draws by it (D-1558); every route the game walks or words goes by walked metres
- * (position.ts routeOf, BG-1708). With a `walker`, a way whose barrier is
+ * null. The fewest ways: only the minimap's yes/no reachability check (and naming a shut way) asks it; never a route the
+ * game walks or words, which goes by walked metres (position.ts routeOf/walkRoute, BG-1708). With a `walker`, a way whose barrier is
  * shut to it and that it knows is shut is left out (SD3–SD5); with none, barriers are ignored. SZ7: with a `body` (the
  * walker's, unless given alone), a way too small for it is left out too. sightOnly: only ways seen through now. */
 export function shortestPath(state: GameState, from: string, to: string, sightOnly = false, walker?: Actor, body: Actor | undefined = walker): string[] | null {

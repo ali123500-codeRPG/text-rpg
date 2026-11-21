@@ -652,6 +652,19 @@ export function gateToward(state: GameState, a: Actor, b: Located): { near: Loca
   return { near: { zone: g.from, pos: endOn(g.o, g.from) }, far: { zone: to, pos: endOn(g.o, to) } };
 }
 
+/** BG-62 (BG-1728): the counter, fence or rail (a wall a grip reaches across, a gap in it too) that the walking line from
+ * `a` to `b` meets first: the spot on a's side of it to reach over from; null when the line meets no such wall first */
+export function reachOverFrom(state: GameState, a: Located, b: Located): Located | null {
+  const A = pointAt(state, a), B = pointAt(state, b);
+  if (Math.abs(A.floor - B.floor) > 0.01) return null;
+  const z = A.floor + 0.3; // the walking line, below a counter's top (ringSpots' line)
+  const c = crossings(state, { x: A.x, y: A.y, z }, { x: B.x, y: B.y, z }).find((x) => x.kind === 'wall');
+  if (!c || c.kind !== 'wall' || !wallKind(c.wall.kind)?.reach) return null;
+  const d = flat(A, c.at), back = Math.min(d, 0.05);
+  const p = d > EPS ? { x: c.at.x + (A.x - c.at.x) * back / d, y: c.at.y + (A.y - c.at.y) * back / d } : { x: A.x, y: A.y };
+  return { zone: zoneAt(state, p, A.floor, a.zone)?.id ?? a.zone, pos: p };
+}
+
 /** FR2: `at` is within the actor's grip reach, plus `extra` metres (the receiver's own reach when handing over) */
 export function withinGrip(state: GameState, actor: Actor, at: Located, extra = 0): boolean {
   const r = gripReachM(state, actor);
