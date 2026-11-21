@@ -16,8 +16,10 @@ anything and never narrates.
   saved at once when the call comes back.
 - **Then.** An idea is only a proposal. It becomes an achievement when the owner approves it and a thread writes it as a
   code rule with a library row (PROG-118).
-- **Model.** Config AGENT\_MODELS.chronicler, chosen from the D-108 comparison (Opus 5.5 high, Fable 5.2 medium, Fable
-  5.2 high, with each one's token cost); modelTier "complex" is the fallback.
+- **Model.** Claude Fable 5.2 at high effort, model "claude-fable-5-2" (config AGENT\_MODELS.chronicler), with modelTier
+  "complex" as the fallback. Chosen by the owner from the D-108 comparison on one simulated scenario: Opus 5.5 high gave
+  6 ideas (about $0.09 a call), Fable 5.2 medium 7 (about $0.17), Fable 5.2 high 11 (about $0.22), the most and the
+  sharpest (PR #1522).
 - **Failure.** One repair retry (src/agents/call.ts), then no ideas for that scenario. Nothing in play changes.
 
 Fixed instructions: CHRONICLER\_INSTRUCTIONS in src/agents/prompts.ts, the one copy. Data: src/agents/chronicler.ts.

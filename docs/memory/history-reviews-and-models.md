@@ -16,6 +16,11 @@ oldest first. The rules are in the spec ("### Play screen", "Deferred items") an
   narrator (#610), the responder, voice and planner (#637) and the Parser (#639) to the model that judged best;
   the Weaver stayed. The setting is `CONFIG.AGENT_MODELS`. Method worth reusing: replay recorded calls on both
   models, let two blind judges rank the pairs, then run short playtests end to end.
+- **The Chronicler's model (21/11/2026, D-108).** The owner asked for its output compared across Opus 5.5 high, Fable
+  5.2 medium and Fable 5.2 high with token cost. With no real ended scenario at hand, a simulated playtest made one
+  (stand-in models answering the game's calls); each setup then read the same input. Ideas 6 / 7 / 11, cost per call
+  about $0.09 / $0.17 / $0.22 at list price. The owner chose Fable 5.2 high after seeing the ideas side by side
+  (PR #1522).
 - **Rules kept only for a borrowed design system (17/11/2026; HS1-HS13).** The owner said that system was only
   meant to speed up early development. Its rules were sorted by whether they fit the game: a plain count chip
   and no edit box (#1014); the spec's "### Play screen" rewritten as the game's own rules (#1017); flat

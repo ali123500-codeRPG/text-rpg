@@ -81,7 +81,8 @@ export const ENGINE = {
     planner: { model: 'claude-opus-5-5', effort: 'low' },
     // Sonnet 5.5 at its own effort ranked well above the quick tier (Haiku) in blind judging, and answered faster
     parser: { model: 'claude-sonnet-5-5' },
-    chronicler: { model: 'claude-opus-5-5', effort: 'high' }, // D-108: placeholder until the owner picks from the model comparison
+    // D-108: Fable 5.2 high gave the most and sharpest deed ideas in the comparison with Opus 5.5 high and Fable 5.2 medium
+    chronicler: { model: 'claude-fable-5-2', effort: 'high' },
   } as Record<string, { model: string; effort?: 'low' | 'medium' | 'high' }>,
   MODEL_TIERS: { parser: 'quick', planner: 'default', responder: 'default', voice: 'default', narrator: 'complex', weaver: 'complex', world: 'complex', autopilot: 'default', chronicler: 'complex' } as Record<string, 'quick' | 'default' | 'complex'>,
   STYLE: { tone: 'grounded dark fantasy, told close on the hero\'s shoulder: short, dry lines that size everything up as threat, price or use; big moments count the odds, then one brutal act and one flat line; dark things are told fast and plainly, never lingered on, with no wry line added after; a fight the hero far outclasses is a fast chore of a few lines' }, // TL1 a, TL2 d, TL3 d, TL5, TL28 a (was flavor voice V5)
