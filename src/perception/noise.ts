@@ -1,6 +1,7 @@
 // BG-57, HB1–HB5, PZ4: hearing by real metres. A sound's decibels at 1 m (CONFIG.NOISE_DB) weaken 20·log10(metres) with
-// distance (the inverse-square law) and lose SOUND_LOSS_DB at each wall, shut way, floor or roof in the way (an open gap
-// nothing, a shut door or window 30, a wall 35), by the straight line or the walking path, whichever keeps it louder. The listener hears it while it is at least HEARING_FLOOR_DB
+// distance (the inverse-square law) and lose at each wall, shut way, floor or roof in the way what its material does at its
+// thickness (D-199 a, plan/line.ts soundLossDb; an open gap nothing), by the straight line or the walking path, whichever
+// keeps it louder. The listener hears it while it is at least HEARING_FLOOR_DB
 // and clearly (who and what) from CLEAR_ABOVE_FLOOR_DB over it (per-zone background noise is parked: D-231).
 import { CONFIG } from '../config';
 import type { NoiseKey } from '../scales';
@@ -17,7 +18,7 @@ const earOf = (state: GameState, x: Located, floor: number): number => floor + (
 
 /** PZ4 a: the decibels of a sound of this noise, made at `from`, where `to` stands (Keen Ear's `keenDb` adds); null for
  * silence or no way at all. The louder of two: the straight line (through every wall, shut way, floor and roof on it,
- * each losing SOUND_LOSS_DB by its kind) and the walking path (each way on it losing what stands in it). */
+ * each losing what its material does at its thickness) and the walking path (each way on it losing what stands in it). */
 export function soundDb(state: GameState, noise: NoiseKey | undefined, from: Located, to: Located, keenDb = 0, leanIn = false): number | null {
   const base = CONFIG.NOISE_DB[noise ?? 'normal'];
   if (base === null || base === undefined) return null;

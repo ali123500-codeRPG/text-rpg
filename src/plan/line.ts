@@ -1,12 +1,12 @@
 // PZ3 a, PZ4 a: a straight line through the floor plan. Sight needs a line from the viewer's eye to the target that no
 // wall stops (a wall stops it where the line crosses below its top, except through an opening seen through within its
-// span) and no roof or floor stops (except through stairs or an open hatch). Sound loses SOUND_LOSS_DB at each wall, shut
-// opening and floor the line crosses.
-import type { GameState, Opening, Pt, Roof, Wall } from '../types';
+// span) and no roof or floor stops (except through stairs or an open hatch). Sound loses at each wall, shut opening and
+// floor the line crosses what its material does at its thickness (D-199 a, soundLossDb).
+import type { BarrierMaterial, GameState, Opening, Pt, Roof, Wall } from '../types';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
-import { OP } from '../library/tableIds';
-import type { SoundLossKey } from '../scales';
+import { BK, OP, WK } from '../library/tableIds';
+import { barrierStuff, materialRow, wallStuff, type Stuff } from '../ruleset/breaking';
 import { crossing, dist, inOutline, lerp } from './geom';
 import { wallKind } from './walls';
 import { planStamp } from './stamp';
@@ -121,22 +121,36 @@ export function lineClear(state: GameState, A: P3, B: P3): boolean {
 /** a stair hole is open: no hatch on it, or its hatch stands open */
 const holeOpen = (state: GameState, o: Opening): boolean => !o.barrier || seesNow(state, o);
 
-const lossDb = (k: SoundLossKey | undefined): number => CONFIG.SOUND_LOSS_DB[k ?? 'open'];
-/** HB4, PZ4: what a sound loses through an opening: its barrier by kind while shut (a door, a gate, a hatch; a grate's bars
- * nothing); a window with no shutters a pane's; an empty doorway or gap nothing (BG-312) */
+/** D-199 a: the decibels a sound loses through a material at a thickness: its soundDb at its example thickness, and
+ * CONFIG.SOUND_DB_PER_DOUBLING more for each doubling (the mass law); none, or a material that lets sound by (bars): nothing */
+export function soundLossDb(s: Stuff | undefined): number {
+  if (!s || s.material.soundDb <= 0) return 0;
+  return Math.max(0, s.material.soundDb + CONFIG.SOUND_DB_PER_DOUBLING * Math.log2(Math.max(s.cm, 0.01) / s.material.exampleCm));
+}
+/** a material at its example thickness */
+const atExample = (id: string | undefined): Stuff | undefined => {
+  const m: BarrierMaterial | undefined = materialRow(id);
+  return m ? { material: m, cm: m.exampleCm } : undefined;
+};
+/** HB4, PZ4: what a sound loses through an opening: its barrier while shut, by its material and thickness (a grate's bars
+ * nothing); a window with no shutters a pane's (a glazed wall's material); an empty doorway or gap nothing (BG-312); any
+ * other way not seen through a plain door's */
 export function openingLoss(state: GameState, o: Opening): number {
   const b = o.barrier ? state.barriers?.[o.barrier] : undefined;
-  if (b) return b.open || b.state === 'destroyed' ? 0 : lossDb(getLibrary().barrierKinds?.[b.kind]?.sound);
-  if (o.kind === OP.window) return lossDb('window');
-  return lossDb(seesNow(state, o) ? 'open' : 'door');
+  const lib = getLibrary();
+  if (b) return b.open || b.state === 'destroyed' || lib.barrierKinds?.[b.kind]?.sound === 'open' ? 0 : soundLossDb(barrierStuff(b));
+  if (o.kind === OP.window) return soundLossDb(atExample(lib.wallKinds?.[WK.glazed]?.material));
+  return seesNow(state, o) ? 0 : soundLossDb(atExample(lib.barrierKinds?.[BK.door]?.material));
 }
-/** PZ4 a: the decibels a sound loses on the straight line from A to B: each wall by its kind (a low wall or fence
- * nothing), each opening by what stands in it, each floor or roof as a wall unless through an open stair hole */
+/** PZ4 a: the decibels a sound loses on the straight line from A to B: each wall by its material and thickness (a low
+ * wall, fence or arcade nothing), each opening by what stands in it, each floor or roof as CONFIG.FLOOR_MATERIAL unless
+ * through an open stair hole */
 export function lineLoss(state: GameState, A: P3, B: P3): number {
   let db = 0;
   for (const c of crossings(state, A, B)) {
-    if (c.kind === 'roof') db += c.hole && holeOpen(state, c.hole) ? 0 : lossDb('wall');
-    else db += c.opening ? openingLoss(state, c.opening) : lossDb(wallKind(c.wall.kind)?.sound ?? 'wall');
+    if (c.kind === 'roof') db += c.hole && holeOpen(state, c.hole) ? 0 : soundLossDb(atExample(CONFIG.FLOOR_MATERIAL));
+    else if (c.opening) db += openingLoss(state, c.opening);
+    else if (wallKind(c.wall.kind)?.sound !== 'open') db += soundLossDb(wallStuff(c.wall) ?? atExample(wallKind(WK.wall)?.material));
   }
   return db;
 }

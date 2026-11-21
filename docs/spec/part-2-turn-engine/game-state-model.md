@@ -80,7 +80,7 @@ type Band = {                   // a small group: a guard post, a gang, a househ
 
 - **GSM-30** GameState.walls are segments, each with two ends (a, b), a floor and a top height, a wall kind (library
   wallKinds, WK), a material and a thickness (PZ2 a, `src/plan`).
-- **GSM-31** Wall kinds: WK1 wall (no walking, seeing or reaching across; loses SOUND_LOSS_DB.wall), WK2 open (no wall
+- **GSM-31** Wall kinds: WK1 wall (no walking, seeing or reaching across; loses its material's sound at its thickness, D-199), WK2 open (no wall
   at all: an open side draws none), WK3 low (a counter or rail, LOW_WALL_M 1.1 m: seen and reached over, climbed), WK4
   glazed (a window side: seen through, never walked), WK5 fence (FENCE_M 1.2 m: seen through, climbed), WK6 arcade
   (arches on piers: seen through, never walked).
@@ -172,8 +172,9 @@ type Band = {                   // a small group: a guard post, a gang, a househ
 
 #### Sound
 
-- **GSM-80** A sound's level at the ear is the louder of the straight line (source − 20·log10(metres) − SOUND_LOSS_DB
-  of each wall and shut opening it crosses, a roof or floor counting as a wall, a low wall or fence nothing) and the
+- **GSM-80** A sound's level at the ear is the louder of the straight line (source − 20·log10(metres) − the loss of
+  each wall and shut opening it crosses by its material and thickness, a roof or floor as CONFIG.FLOOR_MATERIAL, a low
+  wall, fence or arcade nothing) and the
   walking path through the openings (− 20·log10(its metres) − the loss of each shut opening on it) (PZ4 a,
   `perception/noise.ts`).
 

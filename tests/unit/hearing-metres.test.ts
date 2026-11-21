@@ -1,5 +1,5 @@
-// BG-57, HB1–HB8: hearing by real metres. Inverse-square loss, a loss per crossing (open gap 0, shut door or window 30,
-// wall 35) on the least-loss route, heard from the hearing floor (HEARING_FLOOR_DB; per-zone background is parked, D-231),
+// BG-57, HB1–HB8: hearing by real metres. Inverse-square loss, a loss per crossing by its material and thickness (D-199 a:
+// an oak door 30, a brick wall 52, an open gap 0) on the least-loss route, heard from the hearing floor (HEARING_FLOOR_DB; per-zone background is parked, D-231),
 // clear 15 dB over it; a whisper to someone within 1 m is said leaning in (HB8). The test village is drawn on its plan:
 // the common room's middle is 8 m from the bar's (an open gap) and 14 m from the street's (a doorway).
 import { describe, expect, it } from 'vitest';
@@ -7,8 +7,11 @@ import { NOISE } from '../../src/scales';
 import { CONFIG } from '../../src/config';
 import { hearingOf, openAirReachM, soundDb } from '../../src/perception';
 import { makeVillage, putBarrier } from '../harness';
-import { BK } from '../../src/library/tableIds';
-import type { Barrier, GameState } from '../../src/types';
+import { BK, BM } from '../../src/library/tableIds';
+import type { Barrier, GameState, TitleSpec } from '../../src/types';
+import { drawTitles } from '../../src/plan/draw';
+import { lineLoss, soundLossDb } from '../../src/plan/line';
+import { materialRow } from '../../src/ruleset/breaking';
 
 const door = (s: GameState, a: string, b: string, extra: Partial<Barrier> = {}): Barrier => putBarrier(s, a, b, { id: 'd1', kind: BK.door, grade: 'minor', ...extra });
 
@@ -54,5 +57,21 @@ describe('hearing by real metres (BG-57)', () => {
     CONFIG.HEARING_FLOOR_DB = 30; // a whisper leaned in (40.5) is heard, not understood
     expect(hearingOf(s, 'hushed', here, here, 0, true)).toBe('partial');
   });
+  it('D-199 a: a wall loses its material\'s decibels at its thickness, 6 dB more for each doubling (the mass law)', () => {
+    const brick = materialRow(BM.brick)!;
+    expect(soundLossDb({ material: brick, cm: brick.exampleCm })).toBe(brick.soundDb);
+    expect(soundLossDb({ material: brick, cm: brick.exampleCm * 2 })).toBeCloseTo(brick.soundDb + CONFIG.SOUND_DB_PER_DOUBLING);
+    expect(soundLossDb({ material: brick, cm: brick.exampleCm / 2 })).toBeCloseTo(brick.soundDb - CONFIG.SOUND_DB_PER_DOUBLING);
+    expect(soundLossDb({ material: materialRow(BM.iron)!, cm: 6 })).toBe(0); // bars: sound goes between them
+    const s = makeVillage();
+    const rooms: TitleSpec[] = [0, 1].map((i) => ({ id: `r${i}`, placeId: 'tavern', name: `room ${i}`, look: '', roof: true, light: 'bright',
+      rect: { x: 100 + 5 * i, y: 100, w: 5, d: 4 }, ways: [] }));
+    drawTitles(s, rooms);
+    const A = { x: 102, y: 101, z: 1.6 }, B = { x: 103, y: 101, z: 1.6 };
+    expect(lineLoss(s, A, B)).toBe(brick.soundDb); // a plain wall: brick at its example thickness
+    const w = s.walls.find((x) => Math.abs(x.a.x - 102.5) < 0.01 && Math.abs(x.b.x - 102.5) < 0.01)!;
+    const stone = materialRow(BM.stone)!;
+    w.material = BM.stone; w.thicknessM = stone.exampleCm / 100 * 4; // a castle wall four times as thick: two doublings
+    expect(lineLoss(s, A, B)).toBeCloseTo(stone.soundDb + 2 * CONFIG.SOUND_DB_PER_DOUBLING);
+  });
 });
-
