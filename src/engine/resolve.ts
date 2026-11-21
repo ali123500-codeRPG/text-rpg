@@ -185,6 +185,7 @@ import {
   minutesSinceRest,
   restClock,
   wouldHeal,
+  firstAidMult,
 } from './heal';
 import {
   type BodyPoseKey,
@@ -2016,7 +2017,7 @@ function doHealItem(ctx: Ctx, a: Actor, o: Order): boolean {
   if (!wouldHeal(state, t, row.id)) {
     logCode(state, 'heal_blocked', { actorId: a.id, source: row.id, reason: 'nothing_to_heal', ...(t !== a ? { target: t.id } : {}) });
   } else {
-    applyHealing(state, t, row.id);
+    applyHealing(state, t, row.id, { pct: row.hpPct * firstAidMult(a) }); // D-235 a: the user's First Aid scales the row
     t.core.condition.tended = { turn: state.turn, by: a.id, itemId: inst.itemId }; // BG-181: the binding shows
     inst.qty = (inst.qty ?? 1) - 1;
     if (inst.qty <= 0) a.core.inventory.splice(a.core.inventory.indexOf(inst), 1);

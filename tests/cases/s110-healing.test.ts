@@ -2,6 +2,7 @@
 // Damaged parts but not Crippled ones; a clinic lifts Crippled parts; a bandage works in a fight and is used up.
 import { HL } from '../../src/library/tableIds';
 import { IT } from '../../src/library/itemIds';
+import { SK } from '../../src/library/skillIds';
 import { describe, expect, it } from 'vitest';
 import { createRng, makeVillage } from '../harness';
 import { resolveTurn } from '../../src/engine';
@@ -50,9 +51,21 @@ describe('110 healing', () => {
     expect(s.player.core.inventory.some((i) => i.id === 'b1')).toBe(true);
     expect(mechanicsLines(s, kept)).toContain('Bandage: nothing to heal, so you keep it');
     s.player.core.condition.hpLostPct = 20; // Hurt
+    s.player.core.skills[SK.first_aid] = { raw: 50, state: 'normal' }; // D-235 a: First Aid 50 heals the whole row
     const ev = turn(s, use(IT.bandage));
     expect(s.player.core.condition.hpLostPct).toBeCloseTo(20 - getLibrary().healing![HL.bandage].hpPct, 0);
     expect(s.player.core.inventory.some((i) => i.id === 'b1')).toBe(false);
     expect(mechanicsLines(s, ev)).toContain('Bandage: Hurt → Bruised');
+  });
+  it('D-235 a: the user\'s First Aid scales what a healing item heals: half the row at 0, one and a half at 100', () => {
+    const row = () => getLibrary().healing![HL.bandage].hpPct;
+    for (const [raw, mult] of [[0, 0.5], [100, 1.5]]) {
+      const s = makeVillage();
+      s.player.core.inventory.push({ id: 'b1', itemId: IT.bandage, qty: 1 });
+      s.player.core.skills[SK.first_aid] = { raw, state: 'normal' };
+      s.player.core.condition.hpLostPct = 40;
+      turn(s, use(IT.bandage));
+      expect(s.player.core.condition.hpLostPct).toBeCloseTo(40 - row() * mult, 1); // the turn's few seconds of natural recovery heal a hair more
+    }
   });
 });

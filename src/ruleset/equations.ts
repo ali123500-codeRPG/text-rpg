@@ -182,6 +182,10 @@ export function equations(lib: Library): EquationGroup[] {
         terms: [['wounds', `the general area's share of health lost (health lost − what the parts add to it, never below 0) + what each part the row reaches adds: missing pool % × its size share (${Object.entries(CONFIG.PART_SHARE).map(([k, v]) => `${k} ${n(v)}`).join(', ')}) × its impact (${Object.entries(CONFIG.IMPACT_MULT).map(([k, v]) => `${k} ${n(v)}`).join(', ')}; a non-essential part counts as normal here)`],
           ['reach', 'a part worse than the row\'s reach is skipped and left out of the wounds, so the parts it reaches mend faster']],
         notes: ['Every wound a heal reaches mends the same share, so a badly hurt part gets more back than a scratched one. A Crippled part mends from where it is. The Heal skill mends its tier\'s share (HEAL_TIER_SHARE) of every wound it reaches; natural recovery heals Endurance × its % an hour.'] },
+      { name: 'Healing item', at: 'firstAidMult · src/engine/heal.ts',
+        formula: `a bandage or draught heals its row's % × (${n(CONFIG.FIRST_AID_BASE)} + the user's true ${skillName(SK.first_aid)} × ${n(CONFIG.FIRST_AID_PER_POINT)})`,
+        terms: [['row', 'the healing row the item names (bandage, draught), split as in Heal split']],
+        notes: [`Half the row at ${skillName(SK.first_aid)} 0, the row at 50, one and a half at 100 (FIRST_AID_BASE, FIRST_AID_PER_POINT). The user's skill counts, also when tending someone else.`] },
     ] },
     { key: 'gain', title: 'Skill gain', about: 'How a marked skill improves.', equations: [
       { name: 'When skills roll to improve', at: 'payScenario · scenarioRolls · src/engine/growth.ts',

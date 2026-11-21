@@ -13,6 +13,7 @@ export const FN = {
   healing: 'FN19', // NR33: mending someone else's body (the Healing skill)
   tactics: 'FN20', // TC14: reading and using a fight (Battle Sense, Fieldcraft, Stratagem stand in for each other)
   handiwork: 'FN21', // D-89: mending gear (the Handiwork skill)
+  first_aid: 'FN22', // D-235 a: using a healing item (the First Aid skill)
 } as const;
 export const GR = {
   melee: 'GR1', ranged: 'GR2', defense: 'GR3', health: 'GR4', notice: 'GR5', stealth: 'GR6', influence: 'GR7', speed: 'GR8', will: 'GR9', aura: 'GR10', sleight: 'GR11', stamina: 'GR12', medicine: 'GR13', tactics: 'GR14', survival: 'GR15',
