@@ -34,6 +34,23 @@ export function contentsOf(c: Found): ItemInstance[] {
   return c.inst.contents ?? [];
 }
 
+/** D-254 a: the bulk `n` of an item take up (all of a stack by default), plus, for a container, what it holds */
+export function bulkOf(state: GameState, i: ItemInstance, n = i.qty ?? 1): number {
+  const d = itemDef(state, i.itemId);
+  return (d.bulk ?? 0) * (d.stackable ? n : 1) + (i.contents ?? []).reduce((t, x) => t + bulkOf(state, x), 0);
+}
+/** D-254 a: the bulk still free in a container (its holds less what is inside; a worn pack holds its wearer's stowed
+ * items); Infinity for one with no holds */
+export function roomIn(state: GameState, c: Found): number {
+  const holds = itemDef(state, c.inst.itemId).container?.holds;
+  return holds === undefined ? Infinity : holds - contentsOf(c).reduce((t, x) => t + bulkOf(state, x), 0);
+}
+/** D-254 a: room for `a`'s stowed items: its worn pack's; with none worn, no limit (the carry limit is IGT-84) */
+export function stowRoom(state: GameState, a: Actor): number {
+  const pack = a.core.inventory.find(wornPack);
+  return pack ? roomIn(state, { inst: pack, at: a, holder: a }) : Infinity;
+}
+
 /** who guards it: its owner, else the one carrying it */
 export const ownerOf = (state: GameState, c: Found): Actor | undefined => (c.inst.owner ? actorById(state, c.inst.owner) : undefined) ?? c.holder;
 
