@@ -9,7 +9,7 @@ import { CONFIG } from '../../src/config';
 import { actorBody, getLibrary } from '../../src/library';
 import { BT, RC } from '../../src/library/raceIds';
 import { AM, LC } from '../../src/library/tableIds';
-import { entryPoint, floorGap, placeAll, seeingM, seenSizeFactor, withinM } from '../../src/engine/position';
+import { entryPoint, floorGap, placeAll, seeingM, seenSizeFactor, unplace, withinM } from '../../src/engine/position';
 import { sightFactor } from '../../src/library/bodySize';
 import { ruleset } from '../../src/ruleset';
 import { IT } from '../../src/library/itemIds';
@@ -64,7 +64,7 @@ it('SZ6: code places nobody inside anybody else: bodies keep PLACE_SPACING_M bet
   const s = room();
   const h = horse(s);
   const many = [s.player, h, ...s.actors.filter((a) => a !== h)];
-  for (const a of many) { a.zone = 'tav_common'; delete a.pos; }
+  for (const a of many) { a.zone = 'tav_common'; unplace(s, a); }
   placeAll(s);
   for (let i = 0; i < many.length; i++) for (let j = i + 1; j < many.length; j++)
     expect(floorGap(s, many[i], many[j])).toBeGreaterThanOrEqual(CONFIG.PLACE_SPACING_M - 0.01);

@@ -18,6 +18,7 @@ import { IT } from '../../src/library/itemIds';
 import { DU, HL } from '../../src/library/tableIds';
 import type { Actor, GameEvent, GameState } from '../../src/types';
 import { boxOf } from '../../src/plan/geom';
+import { unplace } from '../../src/engine/position';
 
 const rest = intent({ action: { type: 'rest' } });
 const tavern = () => makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'trader'] });
@@ -40,7 +41,7 @@ describe('272 the world clock', () => {
     const s = tavern();
     const w = wim(s);
     w.zone = 'street_square';
-    delete w.pos;
+    unplace(s, w);
     headTo(s, w, 'tav_common', 'weaver');
     w.mind!.knowledge.player = { status: 'tracking', lastKnownZone: 'tav_common', lastSeenTurn: s.turn, source: 'seen', revealed: [] } as never;
     s.player.core.condition.hpLostPct = 50;
@@ -130,7 +131,7 @@ describe('272 the coming-near check', () => {
     const s = tavern();
     const w = wim(s);
     w.zone = 'street_square';
-    delete w.pos;
+    unplace(s, w);
     const watch = startWatch(s, s.player, 'standing');
     return { s, w, watch };
   };

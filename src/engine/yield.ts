@@ -13,6 +13,7 @@ import { perceptionOf } from '../perception';
 import { logCode } from './effects';
 import { allActors, bandById, countsInFight, hostile, isActive } from './relations';
 import { besidePlayer, fightingWith } from './engagement';
+import { standingAt } from './position';
 export { truce } from './relations';
 
 /** a Claude-run foe of an Intelligent race can take a yield (MB41) */
@@ -28,7 +29,7 @@ export function perceivesNow(state: GameState, observer: Actor, who: Actor, nois
 }
 /** how the observer would perceive a sound of `noise` and a sight of `visibility` made by `who` where it stands now */
 export function probe(state: GameState, observer: Actor, who: Actor, noise: NoiseKey, visibility: VisibilityKey) {
-  const e = { id: 'probe', turn: state.turn, actorId: who.id, kind: 'idle', zone: who.zone, ...(who.pos ? { pos: { ...who.pos } } : {}), noise, visibility, perception: {} } as unknown as GameEvent;
+  const e = { id: 'probe', turn: state.turn, actorId: who.id, kind: 'idle', zone: who.zone, pos: standingAt(who), noise, visibility, perception: {} } as unknown as GameEvent;
   return perceptionOf(e, state, observer);
 }
 

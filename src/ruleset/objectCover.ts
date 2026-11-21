@@ -9,8 +9,6 @@ import { CONFIG } from '../config';
 import { actorBody, getLibrary } from '../library';
 import { furnitureIn, furniturePos } from '../engine/furniture';
 import { spotOf, type Pos } from '../engine/position';
-import { heightOf } from '../scenario/heights';
-import { zoneById } from '../engine/relations';
 import { crossings, openingsOn, seesNow } from '../plan/line';
 import { dist } from '../plan/geom';
 
@@ -58,8 +56,8 @@ export function objectHidden(state: GameState, body: Actor, zone: Zone, from?: A
       const dT = Math.hypot(t.x - v.x, t.y - v.y);
       const out = dT > 0 ? exitShare(v, t, box) : undefined;
       if (out === undefined || out >= 1) continue; // the line misses it, or the target stands on it
-      const floorT = heightOf(zone);
-      const eye = heightOf(zoneById(state, from.zone)) + actorBody(state, from).size.heightM * CONFIG.EYE_SHARE;
+      const floorT = body.floor; // D-1623: its own height
+      const eye = from.floor + actorBody(state, from).size.heightM * CONFIG.EYE_SHARE;
       const top = floorT + box.h;
       above = eye + (top - eye) / out - floorT; // the grazing line carried on to the target (dT ÷ dPiece = 1 ÷ out)
     } else {
@@ -80,8 +78,8 @@ export function openingShown(state: GameState, body: Actor, zone: Zone, from?: A
   if (!from || from.zone === zone.id) return 1;
   const t = spotOf(state, body).pos, v = spotOf(state, from).pos;
   if (!t || !v) return 1;
-  const floorT = heightOf(zone), size = actorBody(state, body).size, h = size.heightM;
-  const eye = heightOf(zoneById(state, from.zone)) + actorBody(state, from).size.heightM * CONFIG.EYE_SHARE;
+  const floorT = body.floor, size = actorBody(state, body).size, h = size.heightM;
+  const eye = from.floor + actorBody(state, from).size.heightM * CONFIG.EYE_SHARE;
   // PZ3: the last opening seen through that the sight line to the target passes, at whatever height (the frame below
   // shows how much of the target it lets through)
   let o: Opening | undefined, c: { at: Pt } | undefined;

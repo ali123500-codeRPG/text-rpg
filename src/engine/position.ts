@@ -1,5 +1,5 @@
-// ZP1–ZP4, PZ1–PZ8: everyone on stage stands at a point in metres on the map, on the floor of its title (Located.zone, a
-// cache code keeps: the smallest title that holds the point, plan/where zoneAt). Distance between two people is the
+// ZP1–ZP4, PZ1–PZ8, D-1623: everyone on stage stands at a point in metres on the map, at a height of its own (Actor.floor);
+// its title (Located.zone) is a cache code keeps: the smallest title that holds the point at that height (plan/where zoneAt). Distance between two people is the
 // straight line when nothing stops sight between their eyes (plan/line lineClear: walls, shut doors, roofs), else the
 // walking path round the walls and through the ways (plan/path walkPath).
 // SZ4, SZ5: a person takes up room: a capsule on the floor (its size from actorBody), turned the way it faces, as tall as
@@ -17,15 +17,15 @@ import { actorBody } from '../library';
 import { sightFactor } from '../library/bodySize';
 import { followGap } from './follow';
 import { dist, keepInside, lerp, NEAR_M, sidesOf, crossing as segCross } from '../plan/geom';
-import { inTitle, middle, roofed, sideOfOpening, wayTo, zoneAt } from '../plan/where';
+import { inSpan, inTitle, middle, roofed, sideOfOpening, wayTo, zoneAt } from '../plan/where';
 import { crossings, lineClear } from '../plan/line';
 import { walkPath, type WalkPath } from '../plan/path';
 import { wallKind } from '../plan/walls';
 import type { Actor, Barrier, GameState, MoveSpot, Opening, Pt3, Zone } from '../types';
 
 export type Pos = { x: number; y: number };
-/** someone or something that stands somewhere: a title, and a point in it */
-export type Located = { zone: string; pos?: Pos };
+/** someone or something that stands somewhere: a title, and a point in it; an actor's own height (D-1623) */
+export type Located = { zone: string; pos?: Pos; floor?: number };
 
 /** metres closer than this count as the same spot (a step's rounding) */
 export const M_EPS = 0.01;
@@ -44,8 +44,16 @@ const centre = (z: Zone): Pos => keepInside(middle(z), z.outline, 0);
 export const inside = (z: Zone, p: Pos) => inTitle(z, p, EPS);
 const flat = (a: Pos, b: Pos) => Math.hypot(a.x - b.x, a.y - b.y);
 const unit = (A: Pos, B: Pos): [number, number] | undefined => { const d = flat(A, B); return d > EPS ? [(B.x - A.x) / d, (B.y - A.y) / d] : undefined; };
-/** PZ7: the floor someone stands on: its title's */
-export const floorOf = (state: GameState, a: Located): number => zoneById(state, a.zone)?.floor ?? 0;
+/** PZ7, D-1623: the floor someone stands on: its own height; a spot with none, its title's */
+export const floorOf = (state: GameState, a: Located): number => a.floor ?? zoneById(state, a.zone)?.floor ?? 0;
+/** D-1623: an actor's point and height (where an event it makes happens) */
+export const standingAt = (a: Actor): Pt3 => ({ x: a.pos.x, y: a.pos.y, floor: a.floor });
+/** D-1623: where an actor stands, as a copy: its title, point and height */
+export const placeOf = (a: Actor): Located => ({ zone: a.zone, pos: { ...a.pos }, floor: a.floor });
+/** D-1623: where an event's point lies: its title, point and height */
+export const spotAt = (zone: string, p?: Pt3): Located => ({ zone, ...(p ? { pos: { x: p.x, y: p.y }, floor: p.floor } : {}) });
+/** D-1623: the point and height of a title's middle (where someone put in it with no point of its own starts) */
+export const titleMiddle = (z: Zone): Pt3 => ({ ...(z.outline?.length ? centre(z) : { x: 0, y: 0 }), floor: z.floor });
 
 /** SZ4: a body on the floor: a capsule whose spine runs `half` metres either way of `p` along `ax`, `r` round it, `h` tall.
  * A spot (no body) is a point: half, r and h 0. */
@@ -91,11 +99,12 @@ export function floorGap(state: GameState, a: Located, b: Located): number {
   return shapeGap(shapeOf(state, a, pa, unit(pa, pb)), shapeOf(state, b, pb));
 }
 
-/** where it stands: its own point while that lies in its title, else the title's middle; no point in a title not drawn */
+/** where it stands: its own point (and height) while that lies in its title, else the title's middle; in a title not
+ * drawn, its own point (D-1623: a title never takes the point away) */
 export function spotOf(state: GameState, a: Located): Located {
-  const z = zoneById(state, a.zone);
-  if (!z?.outline?.length) return { zone: a.zone };
-  return { zone: a.zone, pos: a.pos && inside(z, a.pos) ? a.pos : centre(z) };
+  const z = zoneById(state, a.zone), own = { zone: a.zone, ...(a.pos ? { pos: a.pos } : {}), ...(a.floor !== undefined ? { floor: a.floor } : {}) };
+  if (!z?.outline?.length) return own;
+  return a.pos && inside(z, a.pos) ? own : { zone: a.zone, pos: centre(z) };
 }
 
 /** PZ1: the point where it stands (spotOf); a title with no footprint is a world-building bug */
@@ -115,23 +124,27 @@ const noOutline = (z: { id: string }) => new Error(`title ${z.id} has no outline
 /** PZ1 a: the title a point in title z belongs to: the smallest that holds it (z, or a smaller one inside it) */
 const titleIn = (state: GameState, z: Zone, p: Pos): string => zoneAt(state, p, z.floor, z.id)?.id ?? z.id;
 
-/** ZP1: gives everyone on stage whose point is missing or outside its title a free spot in it: where placement starts
- * (anchor), else the nearest point on a half-PLACE_SPACING_M grid around it whose body keeps PLACE_SPACING_M from everyone
- * already standing there (SZ6: body to body), never in a smaller title inside it. `withPlayer`: the ids of those who just
- * arrived with the player (GSM-51). PZ1: anyone whose point lies in a smaller title inside its own is in that one
- * (Actor.zone is a cache of zoneAt). */
+/** ZP1: gives everyone on stage whose point is outside its title (or off its floors), or who was just put in it
+ * (`unplaced`, `withPlayer`), a free spot in it on its floor: where placement starts (anchor), else the nearest point on a
+ * half-PLACE_SPACING_M grid around it whose body keeps PLACE_SPACING_M from everyone already standing there (SZ6: body to
+ * body), never in a smaller title inside it. `withPlayer`: the ids of those who just arrived with the player (GSM-51).
+ * PZ1: anyone whose point lies in a smaller title inside its own is in that one (Actor.zone is a cache of zoneAt). D-1623:
+ * in a title with no outline everyone keeps their own point. */
 export function placeAll(state: GameState, withPlayer: readonly string[] = []): void {
   const gap = CONFIG.PLACE_SPACING_M;
   const people = allActors(state);
+  const pending = new Set(people.filter((a) => a.unplaced || withPlayer.includes(a.id))); // stand-in points: no one stands there yet
   for (const a of people) {
     const z = zoneById(state, a.zone);
-    if (!z?.outline?.length) { delete a.pos; continue; }
-    if (a.pos && inside(z, a.pos)) {
-      const t = titleIn(state, z, a.pos);
+    const fresh = pending.delete(a);
+    delete a.unplaced;
+    if (!z?.outline?.length) continue;
+    if (!fresh && inside(z, a.pos) && inSpan(z, a.floor)) {
+      const t = zoneAt(state, a.pos, a.floor, z.id)?.id ?? z.id;
       if (t !== a.zone) { a.zone = t; a.placeId = zoneById(state, t)?.placeId ?? a.placeId; }
       continue;
     }
-    const taken = people.filter((o) => o !== a && o.zone === a.zone && o.pos && inside(z, o.pos)).map((o) => shapeOf(state, o, o.pos!));
+    const taken = people.filter((o) => o !== a && !pending.has(o) && o.zone === a.zone && o.pos && inside(z, o.pos)).map((o) => shapeOf(state, o, o.pos!));
     const c = anchor(state, z, withPlayer.includes(a.id));
     let spot = c;
     const step = gap / 2; // SZ6: a finer grid than the spacing, so bodies of any width find the nearest free spot
@@ -145,7 +158,16 @@ export function placeAll(state: GameState, withPlayer: readonly string[] = []): 
       if (best) { spot = best; break; }
     }
     a.pos = { ...spot };
+    a.floor = z.floor;
   }
+}
+
+/** ZP1, D-1623: `a` was put in title `a.zone` with no spot there yet: it stands at the title's middle on its floor until
+ * placeAll gives it a free spot */
+export function unplace(state: GameState, a: Actor): void {
+  const z = zoneById(state, a.zone);
+  if (z?.outline?.length) { const m = titleMiddle(z); a.pos = { x: m.x, y: m.y }; a.floor = m.floor; }
+  a.unplaced = true;
 }
 
 /** where placeAll starts looking in a title: the player's point for one who arrived with the player (GSM-51); an
@@ -286,10 +308,11 @@ const centreOf = (state: GameState, zoneId: string): Pos => { const z = zoneById
 export const goalPoint = (state: GameState, goal: Located): Pt3 => (goal.pos ? pointAt(state, goal) : { ...centreOf(state, goal.zone), floor: floorOf(state, goal) });
 
 /** a step of a walk to `to`: the walker now faces the way it walked (BG-18: "the slime on the left") */
-function step(a: { pos?: Pos; facing?: [number, number] }, to: Pos): void {
+function step(a: { pos?: Pos; floor?: number; facing?: [number, number] }, to: Pos | Pt3): void {
   const from = a.pos, d = from ? Math.hypot(to.x - from.x, to.y - from.y) : 0;
   if (from && d > EPS) a.facing = [(to.x - from.x) / d, (to.y - from.y) / d];
   a.pos = { x: to.x, y: to.y };
+  if ('floor' in to && a.floor !== undefined) a.floor = to.floor; // D-1623: a climb carries its own height
 }
 
 /** SZ4: the actor turns to face what it strikes or speaks to (turning never collides) */

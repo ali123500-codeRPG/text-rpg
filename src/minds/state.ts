@@ -15,7 +15,7 @@ import { soundDb, VOLUME_NOISE } from '../perception/noise';
 import { markUse, ruleset, situational, fnRoller, tierLevel, effectiveSkill } from '../ruleset';
 import { coverShown, rollFnSkills } from '../ruleset/gear';
 import { rewardSources } from '../ruleset/achRewards';
-import { distM, seeingM, sightDistM, withinGrip, withinM, type Located } from '../engine/position';
+import { distM, placeOf, seeingM, sightDistM, spotAt, standingAt, withinGrip, withinM, type Located } from '../engine/position';
 import { hasPerk, meltAwayHere, perkSum } from '../ruleset/perks';
 import { blindSpotNow } from '../engine/perkMarks';
 import { fightingWith } from '../engine/engagement';
@@ -275,7 +275,7 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): str
   const moved = event.kind === 'move';
   const melt = !moved && !fade && event.kind !== 'attack' && hasPerk(s, PK.melt_away) && !!zone && (blindSpotNow(state, s) || meltAwayHere(coverShown(state, s, zone), zoneLight(state, zone, s.pos)));
   const still = fade || melt;
-  const from: Located = { zone: event.fromZone ?? s.zone, pos: event.fromPos ?? s.pos };
+  const from: Located = event.fromPos ? spotAt(event.fromZone ?? s.zone, event.fromPos) : placeOf(s);
   const mine = (sk: string, sense: Sense, a?: Actor) => hiderRoll(state, s, sk, sense, still, a);
   const theirs = (a: Actor, sense: Sense) => watcherRoll(state, a, sense, zone, s);
   // VS5: slipping away from a foe that is fighting you within VANISH_NEAR_M is harder (by distance, not weapon reach)
@@ -436,7 +436,7 @@ export function searchFor(state: GameState, a: Actor, event: GameEvent, rng: Rng
     for (const [f] of tests) if (!reach.some((t) => t.sense === f && t.pastArea) && !done.ids.includes(`${pairKey(h, a)}:${f}`)) done.ids.push(`${pairKey(h, a)}:${f}`);
     const r = best.r;
     if (a.kind === 'player' && r.gap > 0) { tally(state, 'spotted'); tally(state, 'spotted', { by: 'function', of: best.sense }); } // N3
-    const at = { ...event, zone: h.zone, ...(h.pos ? { pos: { ...h.pos } } : {}) };
+    const at = { ...event, zone: h.zone, pos: standingAt(h) };
     if (r.gap > 0) { updateBeliefs(state, { kind: 'detection', observerId: a.id, aboutId: h.id, status: 'aware', event: at }); spotted(a, h); won.push({ found: h, r }); } // WN8
     else if (r.gap === 0) updateBeliefs(state, { kind: 'detection', observerId: a.id, aboutId: h.id, status: 'suspicious', event: at });
   }

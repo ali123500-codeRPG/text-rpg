@@ -84,7 +84,7 @@ export function refFighter(state: GameState, L: number, id: string): { S: GameSt
   const relics = CONFIG.MODEL_REF_KIT.map((k) => relicOf(itemDef(state, k), L));
   const S: GameState = { ...state, blueprints: [...relics.map((d) => ({ storyId: state.storyId, id: d.id, kind: 'item' as const, data: d as unknown as Record<string, unknown> })), ...(state.blueprints ?? [])] };
   const ref: Actor = {
-    id, storyId: state.storyId, kind: 'npc', names: { current: 'reference fighter', past: [] }, label: 'reference fighter', placeId: '', zone: '', bandId: '',
+    id, storyId: state.storyId, kind: 'npc', names: { current: 'reference fighter', past: [] }, label: 'reference fighter', placeId: '', zone: '', pos: { x: 0, y: 0 }, floor: 0, bandId: '',
     core: {
       raceId: RC.human, bodyTypeId: BT.humanoid, skills: Object.fromEntries(CONFIG.MODEL_REF_SKILLS.map((k) => [k, { raw: L, state: 'normal' as const }])),
       classes: [], perks: [], condition: { hpLostPct: 0, parts: {}, status: [], moraleLost: 0 },

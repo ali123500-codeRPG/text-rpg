@@ -310,7 +310,6 @@ export class ScenarioDirector {
       if (w.frontier !== key || !a || !isActive(a)) continue;
       a.zone = here.id;
       a.placeId = here.placeId;
-      delete a.pos; // its point lay in the title it left
       out.push(a.id);
     }
     if (out.length) placeAll(state, out); // GSM-51: placed beside the player at once, so its follow event has its point

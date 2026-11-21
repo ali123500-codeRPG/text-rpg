@@ -25,6 +25,7 @@ import { boxGap, pieceBox } from '../ruleset/objectCover';
 import { FU } from '../library/tableIds';
 import { actorBody } from '../library';
 import { matchedCritFeat, outmatchedOnce, type ActContest } from './feats';
+import { spotAt } from './position';
 
 /** NW18: what wakes a sleeper. blow: struck; noise: a loud noise heard; heard: its hearing check passed (every sleeper sleeps light, NW14);
  * rested: its sleep ran out; watch: its turn on watch */
@@ -95,7 +96,7 @@ export function wakeByEvent(state: GameState, ev: GameEvent): void {
   for (const x of allActors(state)) {
     if (!isAsleep(x) || x.id === ev.actorId) continue;
     if (ev.target === x.id && CONFIG.WAKE_CONTACT.includes(ev.kind)) wake(state, x, 'blow', ev.actorId);
-    else if (loud(x) && soundCarries(state, x, { zone: ev.zone, pos: ev.pos }, ev.noise)) wake(state, x, 'noise', ev.actorId);
+    else if (loud(x) && soundCarries(state, x, spotAt(ev.zone, ev.pos), ev.noise)) wake(state, x, 'noise', ev.actorId);
   }
 }
 

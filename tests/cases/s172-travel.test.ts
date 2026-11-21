@@ -6,7 +6,7 @@ import { makeVillage, withRoad } from '../harness';
 import { middle } from '../../src/plan/where';
 import { intent, play } from './w4-kit';
 import { roadShape } from '../../src/scenario/apply';
-import { placeAll } from '../../src/engine/position';
+import { placeAll, unplace } from '../../src/engine/position';
 import { travelSpeed } from '../../src/engine/travel';
 import { buildWeaverView } from '../../src/views';
 import { replayScenarioStart } from '../../src/scenario/director';
@@ -74,7 +74,7 @@ describe('172 travel', () => {
     expect(replayScenarioStart(s, [null], createRng(5)).eventRoll).toBe(rolled);
     expect(s.stage.tier).toBe(rolled.tier);
     // RE6: the encounter's people stand on the road ahead of the player where a still figure is first glimpsed (60 m)
-    n.actors[0].zone = 'north_road'; delete n.actors[0].pos;
+    n.actors[0].zone = 'north_road'; unplace(n, n.actors[0]);
     placeAll(n);
     const p = n.player.pos!, q = n.actors[0].pos!;
     expect(Math.hypot(p.x - q.x, p.y - q.y)).toBeGreaterThan(CONFIG.SIGHT_M[CONFIG.ENCOUNTER_VISIBILITY]![1] - 5);
@@ -106,7 +106,7 @@ describe('172 travel', () => {
   it('TV1: with someone hostile who perceives the player it is a normal move, a step at a time', () => {
     const s = withRoad(9);
     const foe = s.actors.find((a) => a.id === 'patron_1')!;
-    foe.zone = 'gate_inner'; foe.placeId = 'gate'; delete foe.pos; placeAll(s);
+    foe.zone = 'gate_inner'; foe.placeId = 'gate'; unplace(s, foe); placeAll(s);
     foe.mind!.overrides = { player: 'hostile' };
     foe.mind!.knowledge.player = { status: 'aware', source: 'seen', revealed: [], lastKnownZone: 'gate_inner' } as never;
     go(s, 'ashford_gate');
@@ -143,7 +143,7 @@ describe('172 travel', () => {
   it('TV6: a bandmate together with the player travels along, at the slower of the two speeds', () => {
     const s = withRoad(9);
     const mate = s.actors.find((a) => a.id === 'patron_1')!;
-    mate.bandId = s.player.bandId; mate.zone = 'gate_inner'; mate.placeId = 'gate'; delete mate.pos; placeAll(s);
+    mate.bandId = s.player.bandId; mate.zone = 'gate_inner'; mate.placeId = 'gate'; unplace(s, mate); placeAll(s);
     mate.core.inventory = []; // no armor: the same speed
     go(s, 'ashford_gate');
     expect(trip(s)!.companions).toEqual(['patron_1']);

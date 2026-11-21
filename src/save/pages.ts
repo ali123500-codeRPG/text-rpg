@@ -61,8 +61,7 @@ function anchorOf(k: TileList, x: TileLists[TileList][number]): Pt {
   const r = x as unknown as Record<string, unknown>;
   if (k === 'walls') { const w = r as unknown as TileLists['walls'][number]; return { x: (w.a.x + w.b.x) / 2, y: (w.a.y + w.b.y) / 2 }; }
   if (k === 'roofs') return middleOf((r as unknown as TileLists['roofs'][number]).outline);
-  // shortcut: an item off every outlined title has no point and is saved in tile 0,0; WT4 a (D-1623) gives everything a point
-  return ((k === 'furniture' ? r.pos : r.at) as Pt | undefined) ?? { x: 0, y: 0 };
+  return (k === 'furniture' ? r.pos : r.at) as Pt; // D-1623: everything on the ground has a point (engine/ground dropOnGround)
 }
 const tileOf = (p: Pt, size: number): [number, number] => [Math.floor(p.x / size), Math.floor(p.y / size)];
 const byTile = (a: [number, number], b: [number, number]) => a[0] - b[0] || a[1] - b[1];

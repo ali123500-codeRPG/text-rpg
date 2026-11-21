@@ -33,6 +33,7 @@ import { bodyLie, rejudgePlayDead } from './playDead';
 import { fooledByFeint } from './feint';
 import { bluffedBy, drawnTo, spendBluff, undraw } from './perkMarks';
 import { rowsOf } from '../views/tactics';
+import { placeOf } from './position';
 
 /** WN1: the words a warning is shouted with (the narration tells the rest) */
 const WARN_LINE = { trick: "It's a trick!", hidden: 'There! Someone hiding!', foe: 'Over here!' } as const;
@@ -50,7 +51,7 @@ const allyOf = (state: GameState, x: Actor, a: Actor): boolean =>
 
 /** WN7 a: x hears a's warning: words clearly, a cry at all */
 const reaches = (state: GameState, a: Actor, x: Actor, voice: 'words' | 'cry'): boolean => {
-  const at = { zone: a.zone, ...(a.pos ? { pos: a.pos } : {}) };
+  const at = placeOf(a);
   return voice === 'words' ? hearsClearly(state, at, x, 'loud') : hears(state, x, at, 'loud');
 };
 /** x does not yet know what a warning about `about` would tell it */

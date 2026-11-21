@@ -1,10 +1,10 @@
 // W3 — Perception per event, the single belief writer, communication events, belief decay.
-import type { Actor, Belief, BeliefStatus, CheckResult, ContestResult, AttackResult, Cue, GameEvent, GameState, Perception, Rng } from '../types';
+import type { Actor, Belief, BeliefStatus, CheckResult, ContestResult, AttackResult, Cue, GameEvent, GameState, Perception, Pt3, Rng } from '../types';
 import { SPEECH_ACTIONS } from '../types';
 import { CONFIG } from '../config';
 import { AWARENESS, GRADE_LEVELS, HIT_OUTCOMES, NOISE, type GradeLevel, type NoiseKey } from '../scales';
 import { hearingOf, soundDb, VOLUME_NOISE } from './noise';
-import { M_EPS, distOrNull, leastGapM, seeingM, withinM, type Located } from '../engine/position';
+import { M_EPS, distOrNull, leastGapM, seeingM, spotAt, standingAt, withinM, type Located } from '../engine/position';
 import { sightLevel, stillGlimpsed } from './sight';
 export { hearingOf, openAirReachM, soundDb } from './noise';
 import { isDark, now, pitchBlack, turnTime, zoneLight } from '../time';
@@ -116,7 +116,7 @@ export function smells(state: GameState, observer: Actor, at: Located): boolean 
  * the point */
 function madeAt(state: GameState, event: GameEvent): Located {
   const a = actorById(state, event.actorId), p = event.pos;
-  return a && p && a.zone === event.zone && a.pos && Math.hypot(a.pos.x - p.x, a.pos.y - p.y) <= M_EPS ? a : { zone: event.zone, pos: p };
+  return a && p && a.zone === event.zone && a.pos && Math.hypot(a.pos.x - p.x, a.pos.y - p.y) <= M_EPS ? a : spotAt(event.zone, p);
 }
 
 /** BG-89: event kinds that touch their target */
@@ -150,7 +150,7 @@ export function faintness(state: GameState, event: GameEvent, observer: Actor, c
     const g = GRADE_LEVELS.pos(pick(CONFIG.MAKE_OUT_SIGHT_GRADES, (n) => share <= n)) + (dark ? CONFIG.MAKE_OUT_DARK_STEPS : 0);
     return Math.min(g, GRADE_LEVELS.keys.length - 1);
   };
-  const ps = [at(madeAt(state, event)), event.fromZone ? at({ zone: event.fromZone, pos: event.fromPos }) : null].filter((g): g is number => g !== null);
+  const ps = [at(madeAt(state, event)), event.fromZone ? at(spotAt(event.fromZone, event.fromPos)) : null].filter((g): g is number => g !== null);
   return ps.length ? GRADE_LEVELS.at(Math.min(...ps)) : null;
 }
 
@@ -163,7 +163,7 @@ function sightOf(event: GameEvent, state: GameState, observer: Actor, at: Locate
   let sight = seenAt(at);
   // BG-23: a leg out of a zone is seen where it set off as well as where it ended (someone walking out through a door
   // in plain sight is seen going, though the room beyond is out of sight)
-  if (event.fromZone) sight = better(sight, seenAt({ zone: event.fromZone, pos: event.fromPos }));
+  if (event.fromZone) sight = better(sight, seenAt(spotAt(event.fromZone, event.fromPos)));
   // Q17: someone the player saw clearly stays seen while they stay put (within the zones the player can see); BG-252
   // (PG11 a): as long as they can still be glimpsed, the same rule as Who's here (seenActors)
   if (observer.kind === 'player' && event.kind !== 'move' && event.kind !== 'flee' && observer.journal?.clearSight?.[event.actorId] === event.zone
@@ -221,7 +221,7 @@ export function noteSightings(event: GameEvent, state: GameState): void {
   const per = event.perception[p.id];
   const cs = (p.journal.clearSight ??= {});
   if (per) (p.journal.lastKnown ??= {})[event.actorId] = event.zone; // BG-28: seen or heard, the last place known
-  if (per && event.pos) (p.journal.lastSpot ??= {})[event.actorId] = { ...event.pos, floor: zoneById(state, event.zone)?.floor ?? 0 }; // BG-125; an event with no point (none: ZP1) never erases a known one
+  if (per && event.pos) (p.journal.lastSpot ??= {})[event.actorId] = { ...event.pos }; // BG-125; an event with no point (none: ZP1) never erases a known one
   if (per?.level === 'full' && per.cue === 'sight') { cs[event.actorId] = event.zone; noteBody(state, actorById(state, event.actorId)); }
   else if (event.kind === 'move' || event.kind === 'flee') delete cs[event.actorId];
   if (!per && (event.kind === 'move' || event.kind === 'flee') && actorById(state, event.actorId)?.posture === 'stealthy') updateBeliefs(state, { kind: 'lost', observerId: p.id, aboutId: event.actorId });
@@ -272,7 +272,7 @@ export function lookAround(state: GameState): string[] {
     if (a.id === p.id) continue;
     const d = seeingM(state, p, a);
     // BG-279: a good look is this turn's make-out of everyone it shows, so their own move later this turn keeps them seen
-    if (inLookReach(d)) { cs[a.id] = a.zone; recordMadeOut(state, p.id, a.id, FN.sight, true); (p.journal.lastKnown ??= {})[a.id] = a.zone; if (a.pos) (p.journal.lastSpot ??= {})[a.id] = { ...a.pos, floor: zoneById(state, a.zone)?.floor ?? 0 }; noteBody(state, a); shown.push(a.id); }
+    if (inLookReach(d)) { cs[a.id] = a.zone; recordMadeOut(state, p.id, a.id, FN.sight, true); (p.journal.lastKnown ??= {})[a.id] = a.zone; (p.journal.lastSpot ??= {})[a.id] = standingAt(a); noteBody(state, a); shown.push(a.id); }
   }
   return shown;
 }
@@ -293,9 +293,8 @@ export function computePerception(event: GameEvent, state: GameState, _rng: Rng)
   return out;
 }
 
-/** PZ11 a: where something was made out: its point and its title's floor (nothing when no point is known) */
-const atOf = (state: GameState, zone: string, pos: { x: number; y: number } | undefined): Pick<Belief, 'lastKnownAt'> =>
-  (pos ? { lastKnownAt: { x: pos.x, y: pos.y, floor: zoneById(state, zone)?.floor ?? 0 } } : {});
+/** PZ11 a, D-1623: where something was made out: its point and height (nothing when no point is known) */
+const atOf = (pos: Pt3 | undefined): Pick<Belief, 'lastKnownAt'> => (pos ? { lastKnownAt: { x: pos.x, y: pos.y, floor: pos.floor } } : {});
 
 const raise = (cur: BeliefStatus | undefined, to: BeliefStatus): BeliefStatus =>
   AWARENESS.pos(to) > AWARENESS.pos(cur ?? 'unaware') ? to : (cur ?? 'unaware');
@@ -317,7 +316,7 @@ export function updateBeliefs(state: GameState, update: BeliefUpdate): void {
     const o = actorById(state, update.observerId);
     const about = actorById(state, update.aboutId);
     if (o) write(o, update.aboutId, { status: update.status, source: update.source ?? 'seen', lastKnownZone: update.zone, lastSeenTurn: state.turn,
-      ...(about && update.zone === about.zone ? atOf(state, about.zone, about.pos) : {}) });
+      ...(about && update.zone === about.zone ? atOf(standingAt(about)) : {}) });
     return;
   }
   if (update.kind === 'reveal') {
@@ -350,7 +349,7 @@ export function updateBeliefs(state: GameState, update: BeliefUpdate): void {
     const cue = perceptionOf(update.event, state, o)?.cue;
     write(o, update.aboutId, {
       status: raise(o.mind?.knowledge[update.aboutId]?.status, update.status),
-      lastKnownZone: update.event.zone, lastSeenTurn: update.event.turn, source: cue === 'sound' ? 'heard' : 'seen', ...atOf(state, update.event.zone, update.event.pos),
+      lastKnownZone: update.event.zone, lastSeenTurn: update.event.turn, source: cue === 'sound' ? 'heard' : 'seen', ...atOf(update.event.pos),
     });
     return;
   }
@@ -365,7 +364,7 @@ export function updateBeliefs(state: GameState, update: BeliefUpdate): void {
     const cur = o.mind.knowledge[e.actorId]?.status;
     write(o, e.actorId, {
       status: raise(cur, p.level === 'full' ? (atLeast(cur, 'aware') ? 'tracking' : 'aware') : 'suspicious'), // hunting and engaged stay (YD6)
-      lastKnownZone: e.zone, lastSeenTurn: e.turn, source: p.cue === 'sound' ? 'heard' : 'seen', ...atOf(state, e.zone, e.pos),
+      lastKnownZone: e.zone, lastSeenTurn: e.turn, source: p.cue === 'sound' ? 'heard' : 'seen', ...atOf(e.pos),
     });
     if (e.kind === 'attack' && e.target) {
       const target = actorById(state, e.target);

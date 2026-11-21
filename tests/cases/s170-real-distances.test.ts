@@ -11,6 +11,7 @@ import { rangeMod } from '../../src/ruleset';
 import { hearsWords, perceptionOf } from '../../src/perception';
 import { CONFIG, resetConfig } from '../../src/config';
 import type { GameEvent, GameState, Intent } from '../../src/types';
+import { standingAt } from '../../src/engine/position';
 
 const intent = (move: Intent['move']): Intent => ({ move, gear: null, spoken: null, addressees: null, deferred: [], clarify: null, action: null });
 const turn = (s: GameState, i: Intent) => { s.turn += 1; return resolveTurn(s, { intent: i, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(1)); };
@@ -48,12 +49,12 @@ describe('170 real distances', () => {
   it('words carry only by sound: a talker made out 20 m off is seen, but a normal voice is clear only to about 18 m', () => {
     const s = makeVillage({ playerZone: 'street_square' });
     const g = s.actors.find((a) => a.id === 'guard_1')!; // at the gate, 20 m off
-    const said = { id: 'e', turn: 1, actorId: 'guard_1', kind: 'speak', zone: g.zone, pos: g.pos, effects: [], noise: 'normal', visibility: 'normal',
+    const said = { id: 'e', turn: 1, actorId: 'guard_1', kind: 'speak', zone: g.zone, pos: standingAt(g), effects: [], noise: 'normal', visibility: 'normal',
       line: { text: 'The captain said you could go.', volume: 'normal' }, perception: {} } as GameEvent;
     const p = perceptionOf(said, s, s.player);
     expect(p).toEqual({ level: 'full', cue: 'sight' });
     expect(hearsWords(p ?? undefined)).toBe(false);
-    const near = perceptionOf({ ...said, zone: s.player.zone, pos: { x: s.player.pos!.x + 5, y: s.player.pos!.y } }, s, s.player);
+    const near = perceptionOf({ ...said, zone: s.player.zone, pos: { ...standingAt(s.player), x: s.player.pos.x + 5 } }, s, s.player);
     expect(hearsWords(near ?? undefined)).toBe(true);
   });
 

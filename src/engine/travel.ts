@@ -108,7 +108,7 @@ export function travel(state: GameState, a: Actor, goal: Located, o: Order, rng:
       passiveHealing(state, m);
       passiveFatigue(state, m); // FT4/FT28
       for (const x of group) payTravel(state, x, m); // SR5
-      for (const c of group.slice(1)) { c.zone = a.zone; c.placeId = a.placeId; if (a.pos) c.pos = { ...a.pos }; } // they walk beside the player
+      for (const c of group.slice(1)) { c.zone = a.zone; c.placeId = a.placeId; c.pos = { ...a.pos }; c.floor = a.floor; } // they walk beside the player
       const met = world && mark ? world.after(m, mark) : null;
       if (met) { trip.met = met; trip.stop = 'met'; }
     }
@@ -132,8 +132,8 @@ export function travel(state: GameState, a: Actor, goal: Located, o: Order, rng:
       }
     }
   }
-  for (const c of group.slice(1)) { c.zone = a.zone; c.placeId = a.placeId; delete c.pos; }
-  if (group.length > 1) placeAll(state, group.slice(1).map((c) => c.id)); // GSM-51: placed beside the player at once
+  for (const c of group.slice(1)) { c.zone = a.zone; c.placeId = a.placeId; }
+  if (group.length > 1) placeAll(state, group.slice(1).map((c) => c.id)); // GSM-51: placed beside the player at once (a fresh spot)
   return trip;
 }
 

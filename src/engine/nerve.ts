@@ -3,7 +3,7 @@
 import type { Actor, GameState } from '../types';
 import { isBrokenLevel, isCoweringLevel, moraleLevel } from '../ruleset/morale';
 import { allActors, countsInFight, foe, isActive, stance, warm } from './relations';
-import { distOrNull, M_EPS, type Located } from './position';
+import { distOrNull, M_EPS, type Located, placeOf } from './position';
 import { hasPerk } from '../ruleset/perks';
 import { PK } from '../library/perkIds';
 import { hearsClearly } from '../perception';
@@ -34,7 +34,7 @@ export function walksAway(state: GameState, a: Actor, goal: Located): boolean {
 /** TC36 c Fall Back on Me: the nearest owner of the perk, up and not broken, that broken `a` is friendly to (or shares a band
  * with) and hears shout clearly; undefined when none */
 export function fallBackOwner(state: GameState, a: Actor): Actor | undefined {
-  const at = (x: Actor): Located => ({ zone: x.zone, ...(x.pos ? { pos: x.pos } : {}) });
+  const at = (x: Actor): Located => (placeOf(x));
   return allActors(state)
     .filter((o) => o !== a && isActive(o) && !nerveBroken(o) && hasPerk(o, PK.fall_back_on_me) && (o.bandId === a.bandId || warm(stance(state, a, o)))
       && hearsClearly(state, at(o), a, VOLUME_NOISE.shout))

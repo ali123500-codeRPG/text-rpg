@@ -6,8 +6,7 @@ import type { GameState, Pt, Region } from '../types';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
 import { zoneById } from '../engine/relations';
-import { heightOf } from '../scenario/heights';
-import { middle, roofed } from '../plan/where';
+import { roofed } from '../plan/where';
 import { coverOf } from './generate';
 
 const cellsOf = (r: Region) => Math.round(r.size / r.cell);
@@ -75,14 +74,14 @@ export const landSightM = () => Math.max(...Object.values(CONFIG.SIGHT_M).flatMa
 export function seeLand(state: GameState): void {
   const p = state.player, z = zoneById(state, p.zone);
   if (!z?.outline?.length || roofed(state, z) || !state.regions?.length) return;
-  const at = p.pos ?? middle(z);
-  if (!at || !regionAt(state, at)) return;
+  const at = p.pos;
+  if (!regionAt(state, at)) return;
   const range = landSightM(), world = state.regions;
   const j = (p.journal ??= { secretsKnown: [], factsWitnessed: [], remembered: {}, namesKnown: [] });
   // WZ18: every drawn region the sight reaches into, the player's own and its neighbours
   for (const r of world.filter((x) => Math.max(x.gx * x.size - at.x, at.x - (x.gx + 1) * x.size, x.gy * x.size - at.y, at.y - (x.gy + 1) * x.size) < range)) {
     const bits = decode(j.landSeen?.[r.id], cellsOf(r) ** 2);
-    for (const i of cellsInSight(r, at, CONFIG.LAND_EYE_M + heightOf(z), range, world)) bits[i >> 3] |= 1 << (i & 7);
+    for (const i of cellsInSight(r, at, CONFIG.LAND_EYE_M + p.floor, range, world)) bits[i >> 3] |= 1 << (i & 7);
     (j.landSeen ??= {})[r.id] = encode(bits);
   }
 }

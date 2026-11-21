@@ -131,8 +131,8 @@ describe('125 All-50 parts', () => {
     const s = makeVillage();
     const zone = zoneById(s, s.player.zone)!;
     lightAll(s, 'dim');
-    delete s.player.pos; // read the room's own light word, not the light where they stand
-    const mod = (skill: string) => situational(s, skill, { light: zone, actor: s.player }).modifiers[0]?.value ?? 0;
+    // the room's own light word, not the light where they stand: the owner as read from outside the room
+    const mod = (skill: string) => situational(s, skill, { light: zone, actor: { ...s.player, zone: '' } }).modifiers[0]?.value ?? 0;
     const before = [mod(SK.sneaking), mod(SK.eyesight)];
     give(s.player, PK.child_of_night);
     expect(before).toEqual([9, -9]); // LT2: dim, 3 lux

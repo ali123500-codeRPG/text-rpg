@@ -13,7 +13,7 @@ import { furnitureIn } from '../engine/furniture';
 import { placeHasForge } from '../engine/repair';
 
 import { FU, ZK } from '../library/tableIds';
-import { distOrNull, entryPoint, placeAll, startAtDoor } from '../engine/position';
+import { distOrNull, entryPoint, placeAll, standingAt, startAtDoor, titleMiddle } from '../engine/position';
 import { clockSet, now, startClock } from '../time';
 import { activity, getLibrary, itemDef, npcTemplate, routine, routineSet } from '../library';
 import { composeTemplate, rankPos, roleMissing, presetPersonality, spawnNpc, templateRank } from '../library/spawn';
@@ -162,7 +162,7 @@ function enterFrontier(state: GameState, entry: Zone): void {
   const from = state.player.zone;
   moveTo(state, state.player, entry.id);
   const at = entryPoint(state, entry.id, from, state.player);
-  if (at) state.player.pos = at;
+  if (at) { state.player.pos = at; state.player.floor = entry.floor; }
 }
 
 function setFallbackFlags(state: GameState, reason: string, code: 'weaver_fallback' | 'routine_fallback', errors: PlanError[], actors?: string[]): void {
@@ -391,7 +391,9 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     } else {
       const t = c.compose ? composedBlueprint(state, c.compose, c.label) : npcTemplate(state, c.template!); // NG15
       const personality = c.personality ? personalityFrom(presetPersonality(t, id), c.personality) : undefined; // PL12 on the NG14 layers
-      a = spawnNpc(state, t.id, { id, zone: startZone, placeId: startPlace, bandId: bandRef(c.band), label: c.label, name: c.name, storyId: state.storyId, ...(personality ? { personality } : {}), ...(LIFE_STAGES.keyOf(c.age) ? { ageStage: LIFE_STAGES.keyOf(c.age) } : {}), ...(TALENTS.keyOf(c.talent) ? { talent: TALENTS.keyOf(c.talent) } : {}) }, rng);
+      const z0 = zoneById(state, startZone);
+      a = spawnNpc(state, t.id, { id, zone: startZone, placeId: startPlace, ...(z0 ? { at: titleMiddle(z0) } : {}), bandId: bandRef(c.band), label: c.label, name: c.name, storyId: state.storyId, ...(personality ? { personality } : {}), ...(LIFE_STAGES.keyOf(c.age) ? { ageStage: LIFE_STAGES.keyOf(c.age) } : {}), ...(TALENTS.keyOf(c.talent) ? { talent: TALENTS.keyOf(c.talent) } : {}) }, rng);
+      a.unplaced = true; // ZP1: placeAll gives it a free spot in its title
       state.actors.push(a);
     }
     a.bandId = bandRef(c.band);
@@ -663,7 +665,7 @@ export function applyFallbackStage(state: GameState, ctx: PlanContext, reason: s
 }
 
 /** ZP1: an event happens at its maker's point */
-const atPoint = (a: Actor): Pick<GameEvent, 'pos'> => (a.pos ? { pos: { ...a.pos } } : {});
+const atPoint = (a: Actor): Pick<GameEvent, 'pos'> => ({ pos: standingAt(a) });
 
 /** Scenario setup step 7 (case 42): a stealthy player arriving through a frontier is tested by every observer in range;
  * the plan's opening beliefs were skipped for this entry. Returns the arrival event. */

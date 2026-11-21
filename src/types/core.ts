@@ -256,7 +256,7 @@ export type GameEvent = {
   actorId: string;
   kind: string; // 'attack','move','idle','speak','call_help','alarm','arrival','presence','item_dropped','give','wasted','search','hold','threshold_crossed','part_state_changed', ...
   zone: string;
-  pos?: { x: number; y: number }; // where it happened: the actor's point on its title's floor (ZP1: everyone always has one)
+  pos?: Pt3; // where it happened: the actor's point and height (ZP1, D-1623: everyone always has both)
   target?: string;
   tier?: Tier;
   effects: Effect[]; // structured; text is built per view, never stored
@@ -271,7 +271,7 @@ export type GameEvent = {
   line?: { text: string; volume: import('./agents').Volume; to?: string }; // to (BG-132): who a reply's words are for
   fromZone?: string; // moves
   beside?: true; // BG-81: a walk at someone (target) that reached them
-  fromPos?: { x: number; y: number }; // BG-23: where the leg set off (in fromZone when it left a zone)
+  fromPos?: Pt3; // BG-23: where the leg set off, its point and height (in fromZone when it left a zone; D-1623)
   heading?: string; // BG-22: a leg that stays in its zone on the way to another: the zone it heads for
   summed?: true; // BF2e: a catch-up leg of a long turn (a trade, a rest): told in its summary, never as its own move
   round?: { way: string; shut: 'blocked' | 'barred' | 'locked' }; // BG-148: a walk that goes round a way it knows is shut (its label)

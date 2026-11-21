@@ -49,7 +49,7 @@ function sendHero(s: GameState): void {
 }
 const spawnEcho = (s: GameState) => {
   const e = spawnNpc(s, ECHO, { id: 'echo_1', zone: s.player.zone, placeId: s.player.placeId, bandId: 'tavern_folk', label: 'a grim swordsman', name: 'Not Aldric' });
-  e.pos = s.player.pos ? { ...s.player.pos } : undefined;
+  e.pos = { ...s.player.pos }; e.floor = s.player.floor;
   s.actors.push(e);
   return e;
 };

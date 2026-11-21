@@ -4,12 +4,12 @@ import { TP } from '../../src/library/templateIds';
 import { BT } from '../../src/library/raceIds';
 import { RC } from '../../src/library/raceIds';
 import type { Actor, Band, Barrier, Furniture, Rect, ItemInstance, Light, GameState, Place, PlanFurniture, TitleSpec, WaySpec, WayKind } from '../../src/types';
-import { spawnNpc, equipLoadout, fullParts } from '../../src/library/spawn';
+import { spawnNpc, equipLoadout, fullParts, standIn } from '../../src/library/spawn';
 import { resetLibrary } from '../../src/library';
 import { CONFIG, resetConfig } from '../../src/config';
 import { getLibrary, itemDef, routineSet } from '../../src/library';
 import { requirement } from '../../src/ruleset/requirements';
-import { floorGap } from '../../src/engine/position';
+import { floorGap, unplace } from '../../src/engine/position';
 import { drawTitles } from '../../src/plan/draw';
 import { inTitle, middle, wayTo } from '../../src/plan/where';
 import { boxOf } from '../../src/plan/geom';
@@ -70,7 +70,7 @@ export function recommendedPlayer(storyId = 'test', zone = 'tav_common', placeId
   const tagged: string[] = [SK.melee_medium, SK.block, SK.endurance];
   return {
     id: 'player', storyId, kind: 'player', names: { current: 'Aldric', past: [] }, label: 'a swordsman',
-    placeId, zone, posture: 'open', bandId: 'player_band',
+    placeId, zone, ...standIn(), unplaced: true, posture: 'open', bandId: 'player_band',
     core: {
       bodyTypeId: BT.humanoid, raceId: RC.human,
       skills: Object.fromEntries(Object.entries(skills).map(([k, v]) => [k, { raw: v, state: tagged.includes(k) ? 'tagged' as const : 'normal' as const }])),
@@ -128,7 +128,7 @@ function buildVillage(opts: VillageOpts): GameState {
   const zoneOf = (id: string) => titles.find((z) => z.id === id)!;
   const playerZone = opts.playerZone ?? 'tav_common';
   const npc = (tpl: string, id: string, zone: string, bandId: string, name: string) =>
-    spawnNpc(null, tpl, { id, zone, placeId: zoneOf(zone).placeId, bandId, name, storyId, drawn: !opts.sheathed });
+    ({ ...spawnNpc(null, tpl, { id, zone, placeId: zoneOf(zone).placeId, bandId, name, storyId, drawn: !opts.sheathed }), unplaced: true as const });
   let actors: Actor[] = [
     withRoutine(npc(TP.guard, 'guard_1', 'gate_inner', 'village_watch', 'Bertram'), 'gate_guard', { post: 'gate_inner' }),
     withRoutine(npc(TP.trader, 'trader', 'tav_counter', 'tavern_folk', 'Mags'), 'barkeep', { counter: 'tav_counter', refuge: 'tav_cellar' }),
@@ -183,7 +183,7 @@ export function place(state: GameState, id: string, zone: string): Actor {
   const a = actor(state, id);
   a.zone = zone;
   a.placeId = state.places.find((p) => p.zones.some((z) => z.id === zone))!.id;
-  delete a.pos;
+  unplace(state, a);
   placeAll(state);
   return a;
 }
@@ -203,6 +203,7 @@ export function beside(state: GameState, id: string, near = 'player', m = 0.5): 
   const a = actor(state, id), b = actor(state, near);
   a.zone = b.zone;
   a.placeId = b.placeId;
+  a.floor = b.floor;
   const z = state.zones.find((q) => q.id === b.zone)!;
   // SZ5: m metres between their bodies (each turned as it stands): the centres sit farther apart by both bodies' extents
   for (const side of [1, -1]) {

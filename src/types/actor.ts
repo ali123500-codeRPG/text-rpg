@@ -28,7 +28,12 @@ export type Actor = {
   placeId: PlaceId; // always the place of `zone`
   zone: string;
   /** ZP1 where it stands in metres on the map (the frame of Zone.rect); code keeps it inside `zone` (engine/position.ts) */
-  pos?: { x: number; y: number };
+  pos: { x: number; y: number };
+  /** D-1623: the height of the floor it stands on, in metres (Zone.floor of the frame); its own, never read from its title */
+  floor: number;
+  /** ZP1: just put in its title (spawned, or brought onto the stage) with a stand-in point: placeAll gives it a free spot
+   * there and clears this */
+  unplaced?: true;
   /** the way it last walked, a unit [east, north]: what its left and right are (BG-18) */
   facing?: [number, number];
   posture?: (typeof import('../scales').POSTURES.keys)[number]; // NS1: any actor can be stealthy

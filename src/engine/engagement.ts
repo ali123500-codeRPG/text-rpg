@@ -4,9 +4,9 @@
 // nothing has engaged it, either way, for ENGAGEMENT_END (engagementEndS) in a row. Talk turning into a fight (or back)
 // stays one engagement, so once-per-engagement effects and the end-of-engagement improvement rolls happen once.
 import type { Actor, EngagementKind, GameEvent, GameState } from '../types';
-import { actorById, allActors, atLeast, countsInFight, hostile, isActive, sparring, zoneById } from './relations';
+import { actorById, allActors, atLeast, countsInFight, hostile, isActive, sparring } from './relations';
 import { logCode } from './effects';
-import { M_EPS, distM } from './position';
+import { M_EPS, distM, spotAt, standingAt } from './position';
 import { calm } from './heal';
 import { CP } from '../library/tableIds';
 import { yieldAllTaken } from './yield';
@@ -33,7 +33,7 @@ function press(state: GameState, a: Actor, b: Actor, status: 'hunting' | 'engage
   const cur = k[b.id];
   const next = atLeast(cur?.status, status) ? cur!.status : status;
   k[b.id] = { ...(cur ?? { source: 'seen', revealed: [] }), status: next, closedTurn: state.turn, lastKnownZone: b.zone, lastSeenTurn: state.turn };
-  if (b.pos) k[b.id]!.lastKnownAt = { x: b.pos.x, y: b.pos.y, floor: zoneById(state, b.zone)?.floor ?? 0 }; else delete k[b.id]!.lastKnownAt; // PZ11 a
+  k[b.id]!.lastKnownAt = standingAt(b); // PZ11 a, D-1623: its own point and height
 }
 
 /** YD6 each turn, after the blows and moves: a real (not sparring) blow engages attacker and target, and the target's
@@ -56,8 +56,8 @@ export function noteFighting(state: GameState, events: GameEvent[]): void {
     if (e.kind === 'move') {
       for (const b of allActors(state)) {
         // a leg that ends nearer b in metres than it set off, or a walk at b
-        const start = { zone: e.fromZone ?? e.zone, pos: e.fromPos };
-        const closer = e.target === b.id || distM(state, { zone: e.zone, pos: e.pos }, b) < distM(state, start, b) - M_EPS;
+        const start = spotAt(e.fromZone ?? e.zone, e.fromPos);
+        const closer = e.target === b.id || distM(state, spotAt(e.zone, e.pos), b) < distM(state, start, b) - M_EPS;
         if (b === a || !isActive(b) || !closer) continue;
         const mine = a.mind?.knowledge?.[b.id], theirs = b.mind?.knowledge?.[a.id];
         if (hostile(state, a, b) && atLeast(mine?.status, 'aware')) press(state, a, b, 'hunting');
