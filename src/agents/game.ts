@@ -14,6 +14,8 @@ import { SCENARIO_ENDING_NAMES, SPEECH_ACTIONS, type HitNote, type ScenarioEndNo
 import { pendingEnding } from '../engine/scenarioEnd';
 import type { ScenarioRecord } from '../types';
 import { callChronicler } from './chronicler';
+import { callWitness } from './witness';
+import { renounceVow, swearVow } from '../engine/vows';
 import { barrierName } from '../engine/barriers';
 import { scenarioGainsNow } from '../engine/growth';
 import { CONFIG, defaultSettings } from '../config';
@@ -1022,6 +1024,19 @@ export function createGame(deps: GameDeps): Game {
     undoPerk(id) { if (state && !busy) { undoPerk(state, state.player, id); amend((x) => undoPerk(x, x.player, id)); emit(); } },
     abandonQuest(id) { if (state && !busy && abandonQuest(state, id)) { amend((x) => { abandonQuest(x, id); }); emit(); } },
     pinQuest(id) { if (state && !busy) { pinQuest(state, id); amend((x) => pinQuest(x, id)); emit(); } },
+    // D-141: the Witness talks outside the turn; Swear and renounce are saved at once, like a quest given up
+    async witness(chat) {
+      if (!state || stopped) return null;
+      try { return await callWitness(state, chat, ctxFor(state.turn, [])); }
+      catch (e) { if (e instanceof StopPlay) stop(e.code); else codeError('witness', e); return null; }
+    },
+    swearVow(form) {
+      if (!state || busy) return 'Wait for the turn to finish.';
+      const err = swearVow(state, form);
+      if (!err) { amend((x) => { swearVow(x, form); }); emit(); }
+      return err;
+    },
+    renounceVow(id) { if (state && !busy && renounceVow(state, id)) { amend((x) => { renounceVow(x, id); }); emit(); } },
     setSignatures(lines) { if (state && !busy) { setSignatures(state.player, lines); amend((x) => setSignatures(x.player, lines)); emit(); } },
     setDefense(kind) { if (state && !busy) { state.player.core.standingDefense = kind; amend((x) => { x.player.core.standingDefense = kind; }); emit(); } },
     adopt(s) {
@@ -1447,6 +1462,8 @@ export function xpSourceWords(s: GameState, x: XpAward): string {
   if (kind === 'achievement') return `achievement: ${engine.achievementName(s, s.player.progression?.achievements?.find((a) => a.id === id) ?? { id })}`;
   if (kind === 'quest') return `job done: ${s.quests.find((q) => q.id === id)?.text ?? 'a job'}`;
   if (kind === 'essence removed') return `essence given up: ${getLibrary().essences?.[id]?.name ?? id}`;
+  if (kind === 'vow') return `vow kept: ${s.vows?.find((v) => v.id === id)?.text ?? 'a vow'}`;
+  if (kind === 'vow broken') return `vow broken: ${s.vows?.find((v) => v.id === id)?.text ?? 'a vow'}`;
   return x.source;
 }
 /** how far apart two tiers are, in words ("1 tier ahead") */

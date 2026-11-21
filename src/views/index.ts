@@ -805,7 +805,7 @@ function jobViews(state: GameState, viewerId: string): JobView[] {
 }
 
 /** QT14: a quest's goal and progress as the player knows it ("Slimes 3 / 10"); empty for an "other" goal */
-export function questGoalText(state: GameState, q: Quest): string {
+export function questGoalText(state: GameState, q: { goal: Quest['goal']; progress: number }): string {
   const g = q.goal, lib = getLibrary();
   const who = (id: string) => callName(state, state.player.id, id);
   const name = (f: () => string, or: string) => { try { return f(); } catch { return or; } };

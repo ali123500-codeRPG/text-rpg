@@ -421,17 +421,19 @@ Land generation, regions and ways, roads and travel, the people of the world, wo
 
 ## scenarios: scenarios and quests
 
-The scenario director, stages and triggers, quests, scenario setup and validation, the scenario end and its gains.
+The scenario director, stages and triggers, quests and vows, scenario setup and validation, the scenario end and its gains.
 
 - Spec: [scenarios.md](spec/part-2-turn-engine/scenarios.md),
   [scenario-setup.md](spec/part-2-turn-engine/scenario-setup.md),
   [stage-extension.md](spec/part-2-turn-engine/stage-extension.md),
   [agent-weaver.md](spec/part-2-turn-engine/agent-weaver.md),
-  [opening-narration.md](spec/part-2-turn-engine/opening-narration.md)
+  [opening-narration.md](spec/part-2-turn-engine/opening-narration.md),
+  [vows.md](spec/part-2-turn-engine/vows.md)
 - History: [history-scenarios-and-quests.md](memory/history-scenarios-and-quests.md)
 - Code:
   - `src/engine/pacing.ts`
   - `src/engine/quests.ts`
+  - `src/engine/vows.ts`
   - `src/engine/scenarioEnd.ts`
   - `src/engine/loot.ts`
   - `src/engine/triggers.ts`
@@ -476,7 +478,7 @@ NPC minds, routines and goals, memory, templates and spawning, uniques and echoe
 
 ## agents: the game's AI agents
 
-Prompts, schemas and calls for the Parser, Planner, Responder, Voice, Narrator, Weaver, Chronicler and director; the views each
+Prompts, schemas and calls for the Parser, Planner, Responder, Voice, Narrator, Weaver, Chronicler, Witness and director; the views each
 agent is given; leak prevention; autopilot.
 
 - Spec: [agent-parser.md](spec/part-2-turn-engine/agent-parser.md),
@@ -485,6 +487,7 @@ agent is given; leak prevention; autopilot.
   [agent-voice.md](spec/part-2-turn-engine/agent-voice.md),
   [agent-narrator.md](spec/part-2-turn-engine/agent-narrator.md),
   [agent-chronicler.md](spec/part-2-turn-engine/agent-chronicler.md),
+  [agent-witness.md](spec/part-2-turn-engine/agent-witness.md),
   [hidden-state-persistence.md](spec/part-2-turn-engine/hidden-state-persistence.md),
   [latency-and-cost.md](spec/part-2-turn-engine/latency-and-cost.md),
   [leak-prevention-validation-and-failure-handling.md](spec/part-2-turn-engine/leak-prevention-validation-and-failure-handling.md)
@@ -506,6 +509,7 @@ agent is given; leak prevention; autopilot.
   - `src/agents/narration.ts`
   - `src/agents/prompts.ts`
   - `src/agents/schema.ts`
+  - `src/agents/witness.ts`
   - `src/agents/wrappers.ts`
   - `src/types/agents.ts`
   - `src/types/views.ts`
@@ -598,6 +602,7 @@ styles, the fake game the smoke tests drive. A UI change uses the design skills 
   - `src/ui/suggest.ts`
   - `src/ui/timeOfDay.ts`
   - `src/ui/voiceSamples.ts`
+  - `src/ui/vows.ts`
   - `src/views/backdrop.ts`
 
 ## library-viewer: the library viewer

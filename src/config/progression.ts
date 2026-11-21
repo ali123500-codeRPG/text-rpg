@@ -2,6 +2,7 @@
 // so a key keeps its place: moving keys between parts, or reordering them, changes CONFIG's key order.
 import type { DefenseKind } from '../types';
 import type { QualityKey, QuestRewardLevel } from '../scales';
+import type { VowStake } from '../types/state';
 import { GR, RT } from '../library/functionIds';
 import { SK } from '../library/skillIds';
 import { IT } from '../library/itemIds';
@@ -102,4 +103,12 @@ export const PROGRESSION = {
   /** a quest pays the XP of the achievement reward level this many places above its own (quest 0 = achievement II) */
   QUEST_XP_LEVELS_UP: 2,
   GAIN_MAX_QUALITY: { none: null, minor: 'quality_1', moderate: 'quality_2', major: 'quality_3', extreme: 'quality_4' } as Record<string, QualityKey | null>, // null: no minted item
+  /** D-141 vows: at most this many active at a time (VW7 a, placeholder) */
+  VOW_MAX_ACTIVE: 3,
+  /** VW4: the stakes a vow may be sworn at, rows of REWARD_LEVELS: keeping pays that level's Thread (rewardXp), breaking
+   * takes the same (VW5 a) */
+  VOW_STAKES: ['i', 'ii', 'iii'] as VowStake[],
+  /** VW6 a: a vow's deadline in game days, from this to this (placeholders) */
+  VOW_DAYS_MIN: 1,
+  VOW_DAYS_MAX: 30,
 };

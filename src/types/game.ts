@@ -54,7 +54,7 @@ export type LogLine = {
 export type ActionNote = { who: string; what: string; done: number; left: number; state: 'going' | 'done' | 'broken' | 'stopped' };
 export type ScenarioEndNote = { as: import('./hidden').ScenarioEnding; name: string; closing?: string };
 /** one row of the gains moment's XP sum: kind says what earned it, label names it for the player */
-export type XpPart = { kind: 'defeat' | 'achievement' | 'quest' | 'other'; label: string; amount: number };
+export type XpPart = { kind: 'defeat' | 'achievement' | 'quest' | 'vow' | 'other'; label: string; amount: number };
 /** one scenario's gains kept on the character (Progression.gainsLog): its number, how it ended, the turn it ended on, and the
  * closing line the Narrator gave it (added once the turn's narration arrives) */
 export type GainsRecord = ScenarioGains & { number: number; ending: import('./hidden').ScenarioEnding; endTurn: number; closing?: string };
@@ -183,6 +183,12 @@ export interface GameApi {
   abandonQuest(questId: string): void;
   /** pin a quest to the Play screen's quest line, or unpin it */
   pinQuest(questId: string): void;
+  /** D-141 VW2: one Witness answer to the chat so far (its words, and a vow ready to swear when one took shape); null when the call failed */
+  witness(chat: import('../agents/witness').WitnessLine[]): Promise<import('../agents/witness').WitnessReply | null>;
+  /** D-141: swear the vow the Witness drew up; null when sworn, else why not. Saved at once */
+  swearVow(form: import('../engine/vows').VowForm): string | null;
+  /** VW8 a: renounce an active vow: it breaks, and its stake's Thread is taken. Saved at once */
+  renounceVow(vowId: string): void;
   /** the player character's signatures, one per line (setSignatures cleans them); saved at once */
   setSignatures(lines: string[]): void;
   /** the deck's Defense row: the player's standing defense from now on (free, no turn); saved at once */

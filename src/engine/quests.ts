@@ -32,7 +32,7 @@ function libKey(rows: Record<string, { name: string }> | undefined, t: string): 
 }
 
 /** QT6/QT7: the giver's goal as a kind code can check from events; anything else is "other" */
-function readGoal(state: GameState, g: JobOffer['goal']): QuestGoal {
+export function readGoal(state: GameState, g: JobOffer['goal']): QuestGoal {
   const t = g.target?.trim() ?? '';
   const other = (id: string | null | undefined) => { const a = actorById(state, id ?? ''); return a && a !== state.player ? a : undefined; };
   const lib = getLibrary();
@@ -64,7 +64,7 @@ function readPay(state: GameState, p: JobOffer['pay']): Quest['pay'] {
 }
 
 /** QT25: "in N days", optionally "by" a time of day, as a clock time; without a time of day, the end of that day */
-function dueAt(state: GameState, d: NonNullable<JobOffer['due']>): number {
+export function dueAt(state: GameState, d: NonNullable<JobOffer['due']>): number {
   const day = dayOf(now(state)) + whole(d.days, 0);
   if (!d.by) return day * DAY_MINUTES;
   const t = (day - 1) * DAY_MINUTES + CONFIG.TIME_OF_DAY_FROM[d.by];
@@ -209,8 +209,23 @@ export function givenTo(state: GameState, events: GameEvent[], item: string, to:
   return n;
 }
 
-const need = (g: QuestGoal) => (g.kind === 'defeat' ? g.count : g.kind === 'deliver' ? g.qty : 1);
-const dead = (a: Actor | undefined) => !!a && healthLevel(a) === 'dead';
+export const need = (g: QuestGoal) => (g.kind === 'defeat' ? g.count : g.kind === 'deliver' ? g.qty : 1);
+/** the defeated who count toward a defeat goal */
+export const goalFoes = (g: QuestGoal, defeated: Actor[]): Actor[] =>
+  g.kind === 'defeat' ? defeated.filter((x) => (g.by === 'actor' ? x.id : g.by === 'race' ? x.core.raceId : x.core.bodyTypeId) === g.of) : [];
+/** QT7: a checkable goal's progress after this turn's events; one rule for quests and vows (D-141) */
+export function goalProgress(state: GameState, g: QuestGoal, progress: number, events: GameEvent[], defeated: Actor[]): number {
+  if (g.kind === 'defeat') return progress + goalFoes(g, defeated).length;
+  if (g.kind === 'deliver') return progress + givenTo(state, events, g.item, g.to, g.inst);
+  if (g.kind === 'reach' && playerIn(state, g.place)) return 1;
+  if (g.kind === 'find' && playerFound(state, g.actor)) return 1;
+  return progress;
+}
+/** the person a goal names, whose death makes it impossible (QT11) */
+export const goalTarget = (g: QuestGoal): string | undefined => (g.kind === 'defeat' && g.by === 'actor' ? g.of : g.kind === 'find' ? g.actor : g.kind === 'deliver' ? g.to : undefined);
+/** QT11: a deliver goal whose one item no longer exists */
+export const goalItemGone = (state: GameState, g: QuestGoal): boolean => g.kind === 'deliver' && !!g.inst && !instances(state).some((i) => i.id === g.item);
+export const dead = (a: Actor | undefined) => !!a && healthLevel(a) === 'dead';
 const owedOf = (q: Quest) => ({ coin: Math.max(0, (q.pay?.coin ?? 0) - (q.paid?.coin ?? 0)), qty: q.pay?.item ? Math.max(0, (q.pay.qty ?? 1) - (q.paid?.qty ?? 0)) : 0 });
 export const owes = (q: Quest) => { const o = owedOf(q); return o.coin > 0 || o.qty > 0; };
 
@@ -219,13 +234,8 @@ export function updateQuests(state: GameState, events: GameEvent[], defeated: Ac
   const p = state.player;
   for (const q of state.quests.filter((x) => x.state === 'active')) {
     const g = q.goal;
-    if (g.kind === 'defeat') for (const t of defeated.filter((x) => (g.by === 'actor' ? x.id : g.by === 'race' ? x.core.raceId : x.core.bodyTypeId) === g.of)) {
-      q.progress++;
-      q.foePower = (q.foePower ?? 0) + fightPower(state, t); // QX4, GR44: each foe's power as it joined the fight
-    }
-    if (g.kind === 'deliver') q.progress += givenTo(state, events, g.item, g.to, g.inst);
-    if (g.kind === 'reach' && playerIn(state, g.place)) q.progress = 1;
-    if (g.kind === 'find' && playerFound(state, g.actor)) q.progress = 1;
+    for (const t of goalFoes(g, defeated)) q.foePower = (q.foePower ?? 0) + fightPower(state, t); // QX4, GR44: each foe's power as it joined the fight
+    q.progress = goalProgress(state, g, q.progress, events, defeated);
     if (g.kind === 'other' || q.progress < need(g)) continue;
     q.progress = need(g);
     q.state = 'ready';
@@ -251,11 +261,10 @@ export function updateQuests(state: GameState, events: GameEvent[], defeated: Ac
   }
   // QT11: code fails a job that can no longer be done; QT25: a goal not met by the deadline fails, the player's doing
   for (const q of state.quests.filter((x) => x.state === 'active')) {
-    const g = q.goal;
-    const target = g.kind === 'defeat' && g.by === 'actor' ? g.of : g.kind === 'find' ? g.actor : g.kind === 'deliver' ? g.to : undefined;
+    const target = goalTarget(q.goal);
     if (dead(actorById(state, q.giver))) endQuest(state, q, 'failed', 'giver_dead');
     else if (target && dead(actorById(state, target))) endQuest(state, q, 'failed', 'target_dead');
-    else if (g.kind === 'deliver' && g.inst && !instances(state).some((i) => i.id === g.item)) endQuest(state, q, 'failed', 'item_gone');
+    else if (goalItemGone(state, q.goal)) endQuest(state, q, 'failed', 'item_gone');
     else if (q.due !== undefined && now(state) > q.due) endQuest(state, q, 'failed', 'deadline', true);
   }
 }
@@ -290,9 +299,9 @@ export function payText(state: GameState, q: Quest): string {
   return `${q.unpaid ? 'Unpaid' : 'Owed'} ${payWords(state, o.coin, q.pay.item, o.qty)}`;
 }
 /** the day a quest is due on */
-export const dueDay = (q: Quest): number | undefined => (q.due === undefined ? undefined : q.dueBy ? dayOf(q.due) : q.due / DAY_MINUTES);
+export const dueDay = (q: Pick<Quest, 'due' | 'dueBy'>): number | undefined => (q.due === undefined ? undefined : q.dueBy ? dayOf(q.due) : q.due / DAY_MINUTES);
 /** QT25: "Due day 3, dusk"; without a time of day, "Due end of day 3" */
-export function dueText(q: Quest): string {
+export function dueText(q: Pick<Quest, 'due' | 'dueBy'>): string {
   if (q.due === undefined) return '';
   return q.dueBy ? `Due day ${dueDay(q)}, ${TIME_OF_DAY.name(q.dueBy).toLowerCase()}` : `Due end of day ${dueDay(q)}`;
 }

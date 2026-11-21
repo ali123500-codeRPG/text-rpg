@@ -100,6 +100,28 @@ export type Quest = {
   pinned?: true; // shown on the Play screen's quest line
 };
 
+/** D-141 (VW1–VW9): a vow's states and the stakes it may be sworn at (rows of REWARD_LEVELS) */
+export const VOW_STATES = ['active', 'kept', 'broken'] as const;
+export type VowState = (typeof VOW_STATES)[number];
+export type VowStake = 'i' | 'ii' | 'iii';
+export const VOW_GOAL_KINDS = ['defeat', 'deliver', 'reach', 'find', 'skill', 'level', 'achievement', 'essence', 'restraint'] as const;
+/** VW3 c: what a vow asks, all read by code: a quest goal (QT7), a growth goal read from the sheet, or a restraint
+ * (never do `act` until the deadline: 'kill', or one of the Parser's action types) */
+export type VowGoal =
+  | Exclude<QuestGoal, { kind: 'other' }>
+  | { kind: 'skill'; skill: string; to: number } // the player's true skill
+  | { kind: 'level'; to: number } // character level
+  | { kind: 'achievement'; key: string } // an achievement library key, earned at any level
+  | { kind: 'essence'; from: number } // take an essence: essences_taken passes `from`, its count when sworn
+  | { kind: 'restraint'; act: string };
+/** D-141: a goal the player set with the Witness; code checks it each turn, pays its stake's Thread when kept and takes
+ * the same Thread when broken (VW4, VW5) */
+export type Vow = {
+  id: string; text: string; goal: VowGoal; progress: number; stake: VowStake; state: VowState;
+  startTurn: number; startAt: number; due: number; dueBy?: TimeOfDay; // VW6: game clock minutes, as quests (QT25)
+  endTurn?: number; why?: string; xp?: number; // xp: what keeping paid, or breaking took
+};
+
 /** SP1/SP3: a spar between sides (one actor each for one against one; every actor on its own side for a free-for-all).
  * out: who has yielded or reached the limit (SP4, SP5), with the turn; last: the turn of the latest blow between sides (or the start). */
 export type Spar = { id: string; sides: string[][]; cruel?: true; start: number; last: number; out: Record<string, number> };
@@ -149,6 +171,7 @@ export type GameState = {
   /** AT15: game minutes each recent turn ended, by turn (time.ts turnTime): timers count game time from turn stamps */
   turnEnds?: Record<number, number>;
   quests: Quest[];
+  vows?: Vow[]; // D-141
   spars?: Spar[]; // SP1: live spars (public: anyone who sees a sparring blow knows it is a spar)
   yielding?: PlayerYield; // MB40: cleared when the scenario ends
   offers?: StandDowns; // TF13–TF16: cleared when the scenario ends
@@ -224,6 +247,7 @@ export type EnginePage = {
   clocks: Record<string, number>;
   bands: Band[];
   quests: Quest[];
+  vows?: Vow[];
   spars?: Spar[];
   yielding?: PlayerYield;
   offers?: StandDowns;

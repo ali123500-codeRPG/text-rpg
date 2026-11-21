@@ -3,6 +3,9 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, the spec and `docs/bugs/`.
 
+- 21/11/2026: `docs/instructions.md` section 2: parked vow and pledge ideas get VP-n rows in `docs/spec/vow-ideas.md`.
+  The owner, Questions hub page "Vows: goals you set with an agent (D-141)", VW5: "park forsworn idea (under a new parked
+  ID theme for pledges and vows, and move all parked ideas related to them to that new theme )".
 - 21/11/2026: `.agents/skills/rpg-map`: the stages to render and check are four, with `two-towns`. The owner, in the
   D-1558 thread: "Add a 4th test stage with two towns and a road (MAP-52)."
 - 21/11/2026: `AGENTS.md` rule 7 and `docs/instructions.md` section 4: the spec names a balancing setting and never copies

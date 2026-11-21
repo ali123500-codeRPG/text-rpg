@@ -43,12 +43,14 @@ game system to its topics, code and tests. A new topic is a new file here plus i
 - [Travel](spec/part-2-turn-engine/travel.md)
 - [Land and regions](spec/part-2-turn-engine/land-and-regions.md)
 - [Scenarios](spec/part-2-turn-engine/scenarios.md)
+- [Vows](spec/part-2-turn-engine/vows.md)
 - [Scenario setup](spec/part-2-turn-engine/scenario-setup.md)
 - [Stage extension](spec/part-2-turn-engine/stage-extension.md)
 - [World, tone and the power ladder](spec/part-2-turn-engine/world-tone-and-the-power-ladder.md)
 - [Agent World builder](spec/part-2-turn-engine/agent-world-builder.md)
 - [Agent Weaver](spec/part-2-turn-engine/agent-weaver.md)
 - [Agent Chronicler](spec/part-2-turn-engine/agent-chronicler.md)
+- [Agent Witness](spec/part-2-turn-engine/agent-witness.md)
 - [Opening narration](spec/part-2-turn-engine/opening-narration.md)
 - [Explore mode](spec/part-2-turn-engine/explore-mode.md)
 - [Latency and cost](spec/part-2-turn-engine/latency-and-cost.md)
@@ -105,7 +107,7 @@ How the game saves and loads. Part 4 replaces the single GameState document as t
 
 ## Logs and appendix
 
-- [Deferred items](spec/deferred-items.md); finished rows: [archive](spec/deferred-items-archive.md); parked perk ideas: [Perk ideas](spec/perk-ideas.md); parked achievement ideas: [Achievement ideas](spec/achievement-ideas.md)
+- [Deferred items](spec/deferred-items.md); finished rows: [archive](spec/deferred-items-archive.md); parked perk ideas: [Perk ideas](spec/perk-ideas.md); parked achievement ideas: [Achievement ideas](spec/achievement-ideas.md); parked vow and pledge ideas: [Vow and pledge ideas](spec/vow-ideas.md)
 - [Bug log](spec/bug-log.md); closed rows: [archive](spec/bug-log-archive.md)
 - [Check on release](spec/check-on-release.md)
 - [Open questions](spec/open-questions.md)

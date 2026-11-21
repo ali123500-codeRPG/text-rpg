@@ -73,6 +73,18 @@ describe('play page smoke (TQ7)', () => {
     expect(errors).toEqual([]);
   });
 
+  it('D-141: the Quests page swears a vow through the Witness and lists it', async () => {
+    await nav('Quests');
+    await page.getByRole('button', { name: 'Swear a vow' }).click();
+    await page.getByLabel('Your words to the Witness').fill('I will not steal for a while');
+    await page.locator('.wit-pop').getByRole('button', { name: 'Send' }).click();
+    await page.getByText('Then swear it.').waitFor();
+    await page.getByRole('button', { name: 'Swear', exact: true }).click();
+    await page.locator('.vows').getByText('Steal nothing for three days').first().waitFor();
+    expect(await page.getByRole('button', { name: 'Swear a vow' }).isEnabled()).toBe(true);
+    expect(errors).toEqual([]);
+  });
+
   it('creation: the creation screen downloads no backdrop (PS-489)', async () => {
     await page.getByRole('button', { name: 'Begin the story' }).waitFor();
     expect(backdrops).toEqual([]);
