@@ -71,6 +71,7 @@ export const ACH = {
   finishing_1: 'AC258', finishing_10: 'AC259', every_last_1: 'AC260', every_last_10: 'AC261',
   crippled_quests_1: 'AC262', crippled_quests_5: 'AC263', crippled_parts_1: 'AC264', crippled_parts_10: 'AC265',
   threat_deals_1: 'AC266', threat_deals_10: 'AC267',
+  great_seen_1: 'AC268', great_become_1: 'AC269',
 } as const;
 /** TB6: chain heads with no trunk of their own; their branches are the per-source chains (healing and calming by source) */
 export const ACH_HEADS = { healed: 'AH1', calmed: 'AH2', areas: 'AH3', wounds: 'AH4' } as const;
@@ -129,6 +130,8 @@ export const ACH_RULE_TEXT: Record<AchievementRule, string> = {
   crippled_quests: 'quests finished while one of your parts is Crippled',
   crippled_parts: 'times one of your parts became Crippled',
   threat_deals: 'deals struck with you while a hostile foe was fighting you',
+  great_seen: 'people among the Great (Combat Power at Beyond or higher) seen',
+  great_become: 'times you became one of the Great: a fighting true skill at Beyond or higher',
 };
 /** ACH_RULE_TEXT for a count of exactly 1, where the noun changes ("1 foe defeated", not "1 foes defeated");
  * a rule left out reads the same at 1 (copper, HP, points, %, true skill, class unlocked) */
@@ -166,6 +169,8 @@ export const ACH_RULE_ONE: Partial<Record<AchievementRule, string>> = {
   crippled_quests: 'quest finished while one of your parts is Crippled',
   crippled_parts: 'time one of your parts became Crippled',
   threat_deals: 'deal struck with you while a hostile foe was fighting you',
+  great_seen: 'person among the Great (Combat Power at Beyond or higher) seen',
+  great_become: 'became one of the Great: a fighting true skill at Beyond or higher',
 };
 /** the tree mastery achievement for an All-XXX step, by the tree's rating (TREE_RATINGS): each rating has its own line,
  * grander the higher the rating; an inferior tree earns none */

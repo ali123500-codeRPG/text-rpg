@@ -17,6 +17,10 @@ import { markFightSurvived } from './tacticsMarks';
 import { HEALTH_LEVELS, TIERS } from '../scales';
 import { tierLevel } from '../ruleset';
 import { seeingM } from './position';
+import { intelligenceOf } from '../ruleset/body';
+import { isGreat } from '../ruleset/reportCard';
+import { seenIds } from '../views';
+import { ACH } from '../library/achievementIds';
 
 /** every turn, after the turn's events: zones and days, then the fight log */
 export function turnFeats(state: GameState, events: GameEvent[]): void {
@@ -34,6 +38,17 @@ export function turnFeats(state: GameState, events: GameEvent[]): void {
   logFight(state, events);
   eventFeats(state, events);
   stateFeats(state, events);
+  greatFeats(state);
+}
+
+/** GW: the first person among the Great in the player's sight (GW2 a: people only), and the player becoming one (GW4) */
+function greatFeats(state: GameState): void {
+  const p = state.player, has = (key: string) => (p.progression!.achievements ?? []).some((x) => x.key === key)
+    || (p.progression!.pendingAchievements ?? []).some((x) => x.key === key);
+  if (!has(ACH.great_become_1) && isGreat(p)) tally(state, 'great_become');
+  if (has(ACH.great_seen_1)) return;
+  const seen = new Set(seenIds(state, p));
+  if (allActors(state).some((a) => a !== p && seen.has(a.id) && intelligenceOf(a) === 'intelligent' && isGreat(a))) tally(state, 'great_seen');
 }
 
 /** TM14: every place the player stands in, and the places holding it (a tavern, its settlement …), counted once per

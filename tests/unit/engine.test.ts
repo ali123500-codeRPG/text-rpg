@@ -111,6 +111,7 @@ vi.mock('../../src/perception', async () => {
 
 vi.mock('../../src/views', () => ({
   seesClearlyNow: () => true,
+  seenIds: () => [], // no one in sight, as the view below perceives no one (the GW feats read it each turn)
   routineView: (_s: GameState, a: Actor) => ({ self: { zone: a.zone, slots: {} }, beliefs: [] }), // no routine, as the view below
   buildActorView: (state: GameState, id: string) => {
     const a = state.actors.find((x) => x.id === id)!;

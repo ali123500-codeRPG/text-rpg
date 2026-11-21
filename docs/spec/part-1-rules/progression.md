@@ -203,6 +203,13 @@ question IDs, BG/D numbers) sits in one trailing parenthesis.
   rest healing, quest pay and event roll add up across chains, as max morale does (DI22 a, achievementSum); a new reward,
   max HP %, on Bought with Blood and each Something Gave level (DI23 a); Not Done Yet moves to III (DI24 b); Breaker of
   Wills to III and The Name That Ends Fights to IV (DI25 a).
+- **PROG-269** **Achievements for the Great** (Ali, Questions hub page "Achievements for the Great (GW)", 21/11/2026;
+  rows in src/library/data.ts, counted in src/engine/feats.ts). One of the Great is anyone whose Combat Power (the
+  report card's line: the best fighting true skill) reaches the anchor of the rank CONFIG.GREAT_FROM (Beyond), for NPCs
+  and the hero alike (isGreat, GW1 a). In the Shadow of the Great (level I, max morale, GW3 a) is earned the first time a
+  person among the Great (an intelligent body, not a beast; GW2 a) is in the hero's sight, whatever their stance. One of
+  the Great (level VI, renown, GW4 a) is earned when the hero's own Combat Power gets there; it is kept if an essence is
+  let go later.
 - **PROG-119** Earned achievements are listed on the Achievements page (the rail's Achievements tab), not on the
   character card: grouped by reward level with every group open (a heading the player closes stays closed), and clicking
   a chain opens its side panel: its current row with how it is earned, the turn it was earned and its reward, the
