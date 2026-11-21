@@ -535,6 +535,25 @@ export function startAtDoor(state: GameState, placeId?: string): void {
   p.pos = { x: out.x + (c.x - out.x) * k, y: out.y + (c.y - out.y) * k };
 }
 
+/** WT16: a newcomer arrives at the way into place `placeId` from outside (gate, door or road end): a step (ENTER_M) inside
+ * it, then the free spot nearest that (placeAll). The way joins a title of the place (or of a place inside it) to ground
+ * outside it; a frontier or an outdoor title first, else the first in world order. false when the place has none. */
+export function arriveAtWayIn(state: GameState, placeId: string): boolean {
+  const inPlace = (id: string): boolean => {
+    for (let p = state.places.find((x) => x.id === id), n = 0; p && n < 64; p = state.places.find((x) => x.id === p!.parentId), n++) if (p.id === placeId) return true;
+    return false;
+  };
+  const ways = state.openings.flatMap((o) => [0, 1].map((i) => ({ o, z: zoneById(state, o.joins[i]), out: o.frontier ? undefined : zoneById(state, o.joins[1 - i]) }))
+    .filter((x) => x.z?.outline?.length && inPlace(x.z.placeId) && (x.o.frontier ? x.o.joins[0] === x.z.id : !!x.out && !inPlace(x.out.placeId))));
+  const way = ways.find((x) => x.o.frontier || !roofed(state, x.out!)) ?? ways[0];
+  if (!way) return false;
+  const p = state.player, z = way.z!, at = endOn(way.o, z.id), c = centre(z), d = flat(at, c), m = Math.min(enterM(state, p), d);
+  p.zone = z.id; p.placeId = z.placeId; p.floor = z.floor;
+  p.pos = d > EPS ? { x: at.x + (c.x - at.x) * m / d, y: at.y + (c.y - at.y) * m / d } : { ...at };
+  placeAll(state, [p.id]);
+  return true;
+}
+
 /** BG-47: metres still to walk from `a` to where its walk toward `goal` leaves its title; `enter` (AT49, BG-1545): to where it
  * gets into `goal`, where a walk to a title ends (walkThere), a climb up into it included (undefined without a way) */
 export function wayLeftM(state: GameState, a: Located, goal: string, walker?: Actor, enter = false): number | undefined {
